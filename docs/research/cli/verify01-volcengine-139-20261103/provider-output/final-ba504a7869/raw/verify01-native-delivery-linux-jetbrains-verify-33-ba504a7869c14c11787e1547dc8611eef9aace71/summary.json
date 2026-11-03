@@ -1,0 +1,924 @@
+{
+  "schema": "chainlesschain.verify01-native-task-campaign/v1",
+  "executionSourceCommit": "ba504a7869c14c11787e1547dc8611eef9aace71",
+  "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+  "executionBudgets": {
+    "modelTurns": 40,
+    "physicalRequests": 48,
+    "outputTokens": 393216,
+    "ordinaryDeadlineMs": 2400000,
+    "firstRunDeadlineMs": 3600000
+  },
+  "frozenArchiveDigest": "sha256:0cd894ce05bd6fcbc5673f3728a1cde0b27337eb6f7d43ee8e4cf9cc1bfbb1bc",
+  "versions": {
+    "cli": "0.166.139",
+    "vscode": "0.37.175",
+    "jetbrains": "0.4.192",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "modelTransport": {
+    "provider": "volcengine",
+    "model": "deepseek-v4-flash-ga-260731",
+    "endpoint": "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
+    "policyDigest": "sha256:c63871f3cc9c82eb2d6129c9c5cff8242d101c876a6161018001ae3ae62243c4",
+    "defaultThinkingPreserved": false,
+    "formalSample": false
+  },
+  "packageSetDigest": "sha256:2f00fcaea2f423b761563ebd9543228a488298ba735a8e87b7c3e95e11bef031",
+  "actualPlatform": "linux",
+  "actualArch": "x64",
+  "actualEntry": "jetbrains",
+  "changeReview": {
+    "requested": true,
+    "observed": false
+  },
+  "startedAt": "2026-11-03T05:45:15.143Z",
+  "samples": [
+    {
+      "schema": "chainlesschain.verify01-native-task-sample/v1",
+      "sampleId": "verify-33",
+      "taskId": "verify-33",
+      "kind": "task",
+      "runId": "3e242150-bc46-4497-845e-be0b06bc676c",
+      "stratum": "linux-jetbrains-volcengine",
+      "declaredActualEntry": {
+        "platform": "linux",
+        "entry": "jetbrains"
+      },
+      "actualPlatform": "linux",
+      "actualEntry": "jetbrains",
+      "changeReview": {
+        "requested": true,
+        "observed": false,
+        "reminderCount": 0,
+        "evidence": "model-stream.ndjson:iteration_warning",
+        "completed": null
+      },
+      "executionSourceCommit": "ba504a7869c14c11787e1547dc8611eef9aace71",
+      "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+      "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+      "versions": {
+        "cli": "0.166.139",
+        "vscode": "0.37.175",
+        "jetbrains": "0.4.192",
+        "vscodeHost": "1.132.0",
+        "jetbrainsHost": "2025.2"
+      },
+      "packageSetDigest": "sha256:2f00fcaea2f423b761563ebd9543228a488298ba735a8e87b7c3e95e11bef031",
+      "expectedFiles": [
+        "packages/vscode-extension/__tests__/verify-33.test.js"
+      ],
+      "startedAt": "2026-11-03T05:45:15.144Z",
+      "deadline": "2026-11-03T06:25:15.143Z",
+      "candidates": [
+        {
+          "file": "packages/vscode-extension/__tests__/verify-33.test.js",
+          "path": "verify-33/candidate/packages/vscode-extension/__tests__/verify-33.test.js",
+          "digest": "sha256:72fbf404fca2ae7ca520e83e3a00108ef01918c00f238439b0b28e1db37c40fa",
+          "bytes": 27
+        }
+      ],
+      "sourceScopePassed": true,
+      "metadataChanges": [
+        ".idea",
+        ".idea/.gitignore",
+        ".idea/misc.xml",
+        ".idea/modules.xml",
+        ".idea/workspace.iml",
+        ".idea/workspace.xml"
+      ],
+      "unexpectedChanges": [],
+      "generationPassed": false,
+      "passed": false,
+      "acceptancePending": true,
+      "formalSample": false,
+      "install": {
+        "passed": true,
+        "startedAt": "2026-11-03T05:45:16.645Z",
+        "finishedAt": "2026-11-03T05:45:35.833Z",
+        "lifecycleScriptsEnabled": true,
+        "sampleId": "verify-33",
+        "locked": {
+          "version": "0.166.139",
+          "resolved": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.139.tgz",
+          "integrity": "sha512-X0frBGhYvdNLxnz4oYtqo07vJvFHpi99yyZ1n1q7xI82x6v6BEx/jPy420YfZIidKlJG+HSF5SeQG38idwSW1w==",
+          "hasInstallScript": true,
+          "license": "MIT",
+          "dependencies": {
+            "@aws-sdk/client-s3": "^3.700.0",
+            "@chainlesschain/context-memory-kernel": "0.1.11",
+            "@chainlesschain/core-config": "0.1.2",
+            "@chainlesschain/core-db": "0.1.5",
+            "@chainlesschain/core-env": "0.1.2",
+            "@chainlesschain/core-infra": "0.1.1",
+            "@chainlesschain/core-mtc": "0.2.3",
+            "@chainlesschain/core-multisig": "0.1.4",
+            "@chainlesschain/personal-data-hub": "0.4.66",
+            "@chainlesschain/session-core": "0.3.24",
+            "@chainlesschain/shared-logger": "0.1.1",
+            "@inquirer/prompts": "^7.2.0",
+            "@noble/curves": "^1.9.7",
+            "@tootallnate/quickjs-emscripten": "^0.23.0",
+            "acorn": "8.17.0",
+            "ajv": "^8.20.0",
+            "ajv-formats": "^3.0.1",
+            "chalk": "^5.4.1",
+            "commander": "^12.1.0",
+            "esbuild-wasm": "0.28.1",
+            "js-yaml": "^3.15.1",
+            "koffi": "^2.16.3",
+            "ora": "^8.1.1",
+            "pac-resolver": "^7.0.1",
+            "semver": "^7.6.3",
+            "sql.js": "^1.14.1",
+            "undici": "^7.30.1",
+            "webdav": "^5.10.0",
+            "ws": "^8.14.2"
+          },
+          "bin": {
+            "cc": "bin/chainlesschain.js",
+            "chainlesschain": "bin/chainlesschain.js",
+            "clc": "bin/chainlesschain.js",
+            "clchain": "bin/chainlesschain.js"
+          },
+          "engines": {
+            "node": ">=22.12.0"
+          },
+          "optionalDependencies": {
+            "better-sqlite3": "^12.1.0",
+            "node-pty": "^1.0.0",
+            "pdf-parse": "^1.1.1"
+          },
+          "peerDependencies": {
+            "playwright": "^1.40.0"
+          },
+          "peerDependenciesMeta": {
+            "playwright": {
+              "optional": true
+            }
+          }
+        }
+      },
+      "configure": {
+        "passed": true,
+        "accountKeyInHost": false,
+        "independentProfile": true
+      },
+      "host": {
+        "passed": false,
+        "failure": "model task failed before a restartable result; see real protocol",
+        "restartRequired": true
+      },
+      "capturePath": "verify-33/capture",
+      "model": {
+        "pass": false,
+        "terminal": {
+          "terminalVerified": false,
+          "observedFallback": false,
+          "usage": null,
+          "totalCostUsd": null
+        },
+        "identity": true,
+        "fileOnlyToolSurface": true,
+        "plannedTools": [
+          "read_file",
+          "write_file",
+          "edit_file",
+          "edit_file_hashed",
+          "search_files",
+          "list_dir"
+        ],
+        "scoped": true,
+        "settled": true,
+        "preExecutionDenials": [],
+        "delivered": false,
+        "init": {
+          "type": "system",
+          "subtype": "init",
+          "protocol_version": 1,
+          "session_id": "panel-1793684967795-6fb18b",
+          "session_persistence": true,
+          "input_receipts": {
+            "version": 1
+          },
+          "task_worklog": null,
+          "model": "deepseek-v4-flash-ga-260731",
+          "provider": "volcengine",
+          "permission_mode": "acceptEdits",
+          "permission_mode_state": {
+            "correlation_id": "7829f6c6-64be-4d2a-8932-589da77f793b",
+            "requested": "acceptEdits",
+            "effective": "acceptEdits",
+            "policy_revision": "b4d0151996d5d9e3"
+          },
+          "tools": [
+            "read_file",
+            "search_files",
+            "list_dir",
+            "write_file",
+            "edit_file",
+            "edit_file_hashed"
+          ],
+          "tools_hash": "eba35f3546a7a50a",
+          "policy_digest": "b4d0151996d5d9e3",
+          "loaded_sources": [
+            "project-memory",
+            "memory-recall",
+            "plugins"
+          ],
+          "slash_commands": [
+            "status",
+            "doctor",
+            "mcp",
+            "hooks",
+            "permissions",
+            "agents",
+            "tasks",
+            "memory"
+          ],
+          "input_format": "stream-json",
+          "additional_directories": [],
+          "resumed_messages": 0,
+          "trace_id": "tr-1c059f0e-2e01-45de-b184-0ef0d15852ce",
+          "seq": 1
+        },
+        "tools": [
+          {
+            "type": "tool_use",
+            "id": "call_xrbloh1qltt8xbdvujftz4fr",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/vscode-extension/src/chat/image-attachments.js"
+            },
+            "trace_id": "tr-1c059f0e-2e01-45de-b184-0ef0d15852ce",
+            "seq": 6
+          },
+          {
+            "type": "tool_use",
+            "id": "call_p91rpo3bmfuxpisxn53j5byc",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/unit/vscode-ext-image-budget.test.js"
+            },
+            "trace_id": "tr-1c059f0e-2e01-45de-b184-0ef0d15852ce",
+            "seq": 10
+          },
+          {
+            "type": "tool_use",
+            "id": "call_0k0v1kq7b9phuggv9dnem4xg",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/unit/vscode-ext-chat-images.test.js"
+            },
+            "trace_id": "tr-1c059f0e-2e01-45de-b184-0ef0d15852ce",
+            "seq": 14
+          },
+          {
+            "type": "tool_use",
+            "id": "call_4dx5nlbu9zfhcquck2bb07l7",
+            "tool": "list_dir",
+            "args": {
+              "path": "packages/vscode-extension/__tests__"
+            },
+            "trace_id": "tr-1c059f0e-2e01-45de-b184-0ef0d15852ce",
+            "seq": 18
+          },
+          {
+            "type": "tool_use",
+            "id": "call_0e1gonguefcnzoclo8chz0e0",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/vscode-extension/__tests__/verify-33.test.js"
+            },
+            "trace_id": "tr-1c059f0e-2e01-45de-b184-0ef0d15852ce",
+            "seq": 22
+          }
+        ],
+        "toolResults": [
+          {
+            "type": "tool_result",
+            "id": "call_xrbloh1qltt8xbdvujftz4fr",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-w1orf2/3e242150-bc46-4497-845e-be0b06bc676c/workspace/packages/vscode-extension/src/chat/image-attachments.js",
+              "fileVersion": "9560:1791108223000:1793684715967.245",
+              "readSpan": {
+                "start": 0,
+                "end": 9560,
+                "total": 9560
+              },
+              "hashed": false,
+              "content": "const {\n  Worker,\n  isMainThread,\n  parentPort,\n  workerData,\n} = require(\"worker_threads\");\nconst fs = require(\"fs/promises\");\nconst path = require(\"path\");\nconst os = require(\"os\");\nconst crypto = require(\"crypto\");\nconst { inspectImageBudget } = require(\"./image-decode-budget\");\nconst { readImageSnapshot } = require(\"./image-file-snapshot\");\n\n// Byte limit follows CLI clipboard-image. Both IDEs share these turn limits.\nconst MAX_IMAGES = 4;\nconst MAX_IMAGE_BYTES = 20 * 1024 * 1024;\nconst MAX_TURN_BYTES = MAX_IMAGE_BYTES;\nconst MAX_IMAGE_PIXELS = 40_000_000;\n\nfunction imageDimensions(data) {\n  const ascii = (start, end) => data.toString(\"ascii\", start, end);\n  if (\n    data.length >= 24 &&\n    data\n      .subarray(0, 8)\n      .equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])) &&\n    ascii(12, 16) === \"IHDR\"\n  ) {\n    return {\n      format: \"png\",\n      width: data.readUInt32BE(16),\n      height: data.readUInt32BE(20),\n    };\n  }\n  if (data.length >= 10 && [\"GIF87a\", \"GIF89a\"].includes(ascii(0, 6))) {\n    return {\n      format: \"gif\",\n      width: data.readUInt16LE(6),\n      height: data.readUInt16LE(8),\n    };\n  }\n  if (data.length >= 30 && ascii(0, 4) === \"RIFF\" && ascii(8, 12) === \"WEBP\") {\n    const kind = ascii(12, 16);\n    if (kind === \"VP8X\")\n      return {\n        format: \"webp\",\n        width: data.readUIntLE(24, 3) + 1,\n        height: data.readUIntLE(27, 3) + 1,\n      };\n    if (\n      kind === \"VP8 \" &&\n      data[23] === 157 &&\n      data[24] === 1 &&\n      data[25] === 42\n    )\n      return {\n        format: \"webp\",\n        width: data.readUInt16LE(26) & 16383,\n        height: data.readUInt16LE(28) & 16383,\n      };\n    if (kind === \"VP8L\" && data[20] === 47) {\n      const bits = data.readUInt32LE(21);\n      return {\n        format: \"webp\",\n        width: (bits & 16383) + 1,\n        height: ((bits >>> 14) & 16383) + 1,\n      };\n    }\n  }\n  if (data.length >= 4 && data[0] === 255 && data[1] === 216) {\n    let offset = 2;\n    while (offset + 4 <= data.length) {\n      if (data[offset++] !== 255) break;\n      while (data[offset] === 255) offset++;\n      const marker = data[offset++];\n      if (marker === 217 || marker === 218) break;\n      if (marker === 1 || (marker >= 208 && marker <= 215)) continue;\n      if (offset + 2 > data.length) break;\n      const length = data.readUInt16BE(offset);\n      if (length < 2 || offset + length > data.length) break;\n      if (\n        [\n          192, 193, 194, 195, 197, 198, 199, 201, 202, 203, 205, 206, 207,\n        ].includes(marker) &&\n        length >= 8\n      ) {\n        return {\n          format: \"jpeg\",\n          width: data.readUInt16BE(offset + 5),\n          height: data.readUInt16BE(offset + 3),\n        };\n      }\n      offset += length;\n    }\n  }\n  throw new Error(\n    \"Unsupported or malformed image header; use PNG, JPEG, GIF or WebP\",\n  );\n}\n\n/** Cheap bound before cloning worker data or allocating decoded buffers. */\nfunction checkImageEnvelope(images) {\n  if (!Array.isArray(images) || images.length > MAX_IMAGES)\n    throw new Error(\"Attach at most 4 images per message\");\n  let total = 0;\n  for (const [index, image] of images.entries()) {\n    if (\n      typeof image?.data !== \"string\" ||\n      image.data.length > Math.ceil(MAX_IMAGE_BYTES / 3) * 4 + 64\n    )\n      throw new Error(\n        `Image ${index + 1}: exceeds the 20 MiB limit or has no image data`,\n      );\n    const comma = image.data.indexOf(\",\");\n    if (comma < 0 || comma > 32)\n      throw new Error(`Image ${index + 1}: invalid data URL`);\n    const padding = image.data.endsWith(\"==\")\n      ? 2\n      : image.data.endsWith(\"=\")\n        ? 1\n        : 0;\n    const size = ((image.data.length - comma - 1) * 3) / 4 - padding;\n    if (size <= 0 || size > MAX_IMAGE_BYTES)\n      throw new Error(\n        `Image ${index + 1}: exceeds the 20 MiB limit or is empty`,\n      );\n    total += size;\n    if (total > MAX_TURN_BYTES)\n      throw new Error(`Image ${index + 1}: total attachments exceed 20 MiB`);\n  }\n}\n\nasync function writeImageBatch(\n  images,\n  { directory = os.tmpdir(), io = fs } = {},\n) {\n  checkImageEnvelope(images);\n  let decodedPixels = 0;\n  const decoded = images.map((image, index) => {\n    try {\n      const match =\n        /^data:image\\/(png|jpeg|gif|webp);base64,([A-Za-z0-9+/]*={0,2})$/.exec(\n          image.data,\n        );\n      if (!match || match[2].length % 4 !== 0)\n        throw new Error(\"invalid MIME or base64 data\");\n      const data = Buffer.from(match[2], \"base64\");\n      if (data.toString(\"base64\") !== match[2])\n        throw new Error(\"noncanonical base64 data\");\n      const info = imageDimensions(data);\n      if (info.format !== match[1])\n        throw new Error(\"MIME does not match the image format\");\n      if (\n        !info.width ||\n        !info.height ||\n        info.width * info.height > MAX_IMAGE_PIXELS\n      )\n        throw new Error(\"image dimensions exceed 40 megapixels or are invalid\");\n      const budget = inspectImageBudget(data);\n      decodedPixels += budget.decodedPixels;\n      if (decodedPixels > MAX_IMAGE_PIXELS)\n        throw new Error(\n          \"attachments exceed 40 million decoded canvas pixels in total\",\n        );\n      return { data, extension: info.format === \"jpeg\" ? \"jpg\" : info.format };\n    } catch (error) {\n      throw new Error(`Image ${index + 1}: ${error.message}`);\n    }\n  });\n  const files = [];\n  try {\n    for (const { data, extension } of decoded) {\n      const file = path.join(\n        directory,\n        `cc-chat-img-${crypto.randomUUID()}.${extension}`,\n      );\n      // Exclusive create; remember the path only after we own its descriptor.\n      const handle = await io.open(file, \"wx\", 0o600);\n      files.push(file);\n      try {\n        await handle.writeFile(data);\n      } finally {\n        await handle.close();\n      }\n    }\n    return files;\n  } catch (error) {\n    await Promise.allSettled(files.map((file) => io.unlink(file)));\n    throw new Error(\n      `Image ${files.length || 1}: attachment could not be written (${error.code || error.message})`,\n    );\n  }\n}\n\nasync function writeImageTemps(\n  images,\n  { directory = os.tmpdir(), signal, timeoutMs = 5000 } = {},\n) {\n  checkImageEnvelope(images);\n  if (signal?.aborted) throw new Error(\"Image preparation cancelled\");\n  if (!images.length) return [];\n  // The parent owns a private staging directory before starting the worker.\n  // Termination can therefore clean even a partial file created just before\n  // the worker reported it, without deleting paths owned by anyone else.\n  // Windows mkdtemp does not automatically expand long prefixes like mkdir\n  // does. Profile/workspace storage can legitimately exceed MAX_PATH; keep\n  // staging beside the destination and use the extended-length form only for\n  // this filesystem call (toNamespacedPath is a no-op on other platforms).\n  const staging = await fs.mkdtemp(\n    path.toNamespacedPath(path.join(directory, \".cc-image-\")),\n  );\n  const files = [];\n  let worker, timer, abort;\n  const deadline = performance.now() + timeoutMs;\n  const check = () => {\n    if (signal?.aborted) throw new Error(\"Image preparation cancelled\");\n    if (performance.now() >= deadline)\n      throw new Error(\"Image preparation exceeded the time budget\");\n  };\n  try {\n    check();\n    const prepared = await new Promise((resolve, reject) => {\n      worker = new Worker(__filename, {\n        workerData: { images, directory: staging },\n      });\n      abort = () => reject(new Error(\"Image preparation cancelled\"));\n      signal?.addEventListener(\"abort\", abort, { once: true });\n      if (signal?.aborted) abort();\n      timer = setTimeout(\n        () => reject(new Error(\"Image preparation exceeded the time budget\")),\n        timeoutMs,\n      );\n      let replied = false;\n      worker.once(\"message\", (result) => {\n        replied = true;\n        if (result.error) reject(new Error(result.error));\n        else resolve(result.files);\n      });\n      worker.once(\"error\", reject);\n      worker.once(\"exit\", (code) => {\n        if (!replied) reject(new Error(`Image preparation stopped (${code})`));\n      });\n    });\n    clearTimeout(timer);\n    for (const source of prepared) {\n      check();\n      const target = path.join(directory, path.basename(source));\n      // Own the destination before copying so cancellation can clean it, while\n      // retaining support for filesystems that do not implement hard links.\n      const handle = await fs.open(target, \"wx\", 0o600);\n      files.push(target);\n      try {\n        const bytes = await readImageSnapshot(source, null, {\n          signal,\n          timeoutMs: Math.max(1, deadline - performance.now()),\n        });\n        check();\n        await handle.writeFile(bytes, { signal });\n        check();\n      } finally {\n        await handle.close();\n      }\n    }\n    check();\n    return files;\n  } catch (error) {\n    await Promise.allSettled(files.map((file) => fs.unlink(file)));\n    throw error;\n  } finally {\n    clearTimeout(timer);\n    signal?.removeEventListener(\"abort\", abort);\n    if (worker) await worker.terminate();\n    await fs.rm(staging, { recursive: true, force: true });\n  }\n}\n\nif (!isMainThread && workerData?.images) {\n  writeImageBatch(workerData.images, { directory: workerData.directory }).then(\n    (files) => parentPort.postMessage({ files }),\n    (error) => parentPort.postMessage({ error: error.message }),\n  );\n}\n\nmodule.exports = {\n  MAX_IMAGES,\n  MAX_IMAGE_BYTES,\n  MAX_TURN_BYTES,\n  MAX_IMAGE_PIXELS,\n  imageDimensions,\n  checkImageEnvelope,\n  writeImageBatch,\n  writeImageTemps,\n};\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793684975481,
+                "meta": {
+                  "args": {
+                    "path": "packages/vscode-extension/src/chat/image-attachments.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 9,
+                "sessionId": "panel-1793684967795-6fb18b",
+                "metadata": {
+                  "args": {
+                    "path": "packages/vscode-extension/src/chat/image-attachments.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_xrbloh1qltt8xbdvujftz4fr",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-1c059f0e-2e01-45de-b184-0ef0d15852ce",
+            "seq": 7
+          },
+          {
+            "type": "tool_result",
+            "id": "call_p91rpo3bmfuxpisxn53j5byc",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-w1orf2/3e242150-bc46-4497-845e-be0b06bc676c/workspace/packages/cli/__tests__/unit/vscode-ext-image-budget.test.js",
+              "fileVersion": "6696:1791108223000:1793684715864.2424",
+              "readSpan": {
+                "start": 0,
+                "end": 6696,
+                "total": 6696
+              },
+              "hashed": false,
+              "content": "import { describe, expect, it, vi } from \"vitest\";\nimport fs from \"node:fs/promises\";\nimport { Window } from \"happy-dom\";\nimport {\n  checkImageEnvelope,\n  imageDimensions,\n  writeImageBatch,\n  MAX_IMAGE_BYTES,\n} from \"../../../vscode-extension/src/chat/image-attachments.js\";\nimport { buildChatHtml } from \"../../../vscode-extension/src/chat/chat-html.js\";\nimport { ChatViewProvider } from \"../../../vscode-extension/src/chat/chat-view.js\";\n\nconst png =\n  \"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==\";\nconst image = { data: `data:image/png;base64,${png}` };\n\ndescribe(\"bounded image intake\", () => {\n  it(\"rejects byte and aggregate limits before allocating buffers\", () => {\n    const large = {\n      data:\n        \"data:image/png;base64,\" +\n        \"A\".repeat(Math.ceil(MAX_IMAGE_BYTES / 3) * 4 + 4),\n    };\n    expect(() => checkImageEnvelope([large])).toThrow(\"20 MiB\");\n    const half = {\n      data: \"data:image/png;base64,\" + \"A\".repeat(15 * 1024 * 1024),\n    };\n    expect(() => checkImageEnvelope([half, half])).toThrow(\"total\");\n  });\n\n  it(\"rejects a pixel bomb without writing files\", async () => {\n    const bytes = Buffer.from(png, \"base64\");\n    bytes.writeUInt32BE(100000, 16);\n    bytes.writeUInt32BE(100000, 20);\n    const open = vi.fn();\n    await expect(\n      writeImageBatch(\n        [{ data: `data:image/png;base64,${bytes.toString(\"base64\")}` }],\n        { io: { open } },\n      ),\n    ).rejects.toThrow(\"40 megapixels\");\n    expect(open).not.toHaveBeenCalled();\n  });\n\n  it(\"recognizes JPEG, GIF and WebP headers without decoding pixels\", () => {\n    expect(\n      imageDimensions(Buffer.from(\"47494638396102000300\", \"hex\")),\n    ).toMatchObject({ format: \"gif\", width: 2, height: 3 });\n    expect(\n      imageDimensions(Buffer.from(\"ffd8ffc00008080003000200\", \"hex\")),\n    ).toMatchObject({ format: \"jpeg\", width: 2, height: 3 });\n    const webp = Buffer.alloc(30);\n    webp.write(\"RIFF\", 0);\n    webp.write(\"WEBPVP8X\", 8);\n    webp[24] = 1;\n    webp[27] = 2;\n    expect(imageDimensions(webp)).toMatchObject({\n      format: \"webp\",\n      width: 2,\n      height: 3,\n    });\n  });\n\n  it(\"cleans already-owned files on write failure and reports the failing image\", async () => {\n    const unlink = vi.fn(async () => {});\n    const open = vi.fn(async () => ({\n      writeFile: async () => {\n        throw Object.assign(new Error(\"full\"), { code: \"ENOSPC\" });\n      },\n      close: vi.fn(),\n    }));\n    await expect(\n      writeImageBatch([image], { io: { open, unlink } }),\n    ).rejects.toThrow(\"Image 1\");\n    expect(unlink).toHaveBeenCalledTimes(1);\n    expect(open.mock.calls[0].slice(1)).toEqual([\"wx\", 0o600]);\n  });\n\n  it(\"keeps async image sends bound to their source tab and discards reset results\", async () => {\n    const sent = [];\n    const messages = [];\n    const provider = new ChatViewProvider(\n      {\n        workspace: {\n          workspaceFolders: [],\n          getConfiguration: () => ({ get: () => undefined }),\n        },\n        window: {},\n      },\n      {\n        deps: {\n          resolveChatLlm: () => ({}),\n          createSession: (cfg) => ({\n            running: true,\n            sendEvent: (msg) => {\n              sent.push({ cfg, msg });\n              return true;\n            },\n            stop() {},\n          }),\n        },\n      },\n    );\n    provider.view = {\n      webview: {\n        postMessage(msg) {\n          messages.push(msg);\n          return Promise.resolve();\n        },\n      },\n    };\n    const postFrom = provider._postFrom.bind(provider);\n    provider._postFrom = (...args) => {\n      messages.push(args[1]);\n      return postFrom(...args);\n    };\n    let finish;\n    provider._writeImageTemps = () =>\n      new Promise((resolve) => {\n        finish = resolve;\n      });\n    const a = provider._activeConv();\n    const pending = provider._handleMessage({\n      type: \"send\",\n      text: \"A only\",\n      images: [image],\n    });\n    const b = provider._convs.create({});\n    const files = await writeImageBatch([image]);\n    finish(files);\n    await pending;\n    expect(sent, JSON.stringify(messages)).toHaveLength(1);\n    expect(a.session).toBeTruthy();\n    expect(b.session).toBeNull();\n    provider._convs.switchTo(a.id);\n    const pendingReset = provider._handleMessage({\n      type: \"send\",\n      text: \"old generation\",\n      images: [image],\n    });\n    provider._clearSessionState(a);\n    const staleFiles = await writeImageBatch([image]);\n    finish(staleFiles);\n    await pendingReset;\n    expect(sent).toHaveLength(1);\n    await expect(fs.stat(staleFiles[0])).rejects.toThrow();\n    provider.dispose();\n  });\n\n  it(\"reserves read slots before rapid drops and keeps drafts in their own tab\", async () => {\n    const window = new Window({\n      settings: {\n        enableJavaScriptEvaluation: true,\n        suppressInsecureJavaScriptEnvironmentWarning: true,\n      },\n    });\n    const posted = [];\n    const readers = [];\n    window.FileReader = class {\n      readAsDataURL() {\n        readers.push(this);\n      }\n    };\n    window.acquireVsCodeApi = () => ({\n      postMessage: (event) => posted.push(event),\n      getState: () => ({}),\n      setState() {},\n    });\n    window.document.write(\n      buildChatHtml({ nonce: \"n\", cspSource: \"vscode-resource:\" }),\n    );\n    const input = window.document.getElementById(\"input\");\n    const tabs = (id) =>\n      window.dispatchEvent(\n        new window.MessageEvent(\"message\", {\n          data: {\n            kind: \"tabs\",\n            activeId: id,\n            tabs: [\n              { id: \"a\", title: \"A\" },\n              { id: \"b\", title: \"B\" },\n            ],\n          },\n        }),\n      );\n    tabs(\"a\");\n    input.value = \"draft A\";\n    input.dispatchEvent(new window.Event(\"input\"));\n    const drop = new window.Event(\"drop\");\n    Object.defineProperty(drop, \"dataTransfer\", {\n      value: {\n        items: [{ kind: \"file\", type: \"image/png\" }],\n        files: Array.from({ length: 6 }, () => ({\n          type: \"image/png\",\n          size: 1024,\n        })),\n      },\n    });\n    input.dispatchEvent(drop);\n    expect(readers).toHaveLength(4);\n    window.document.getElementById(\"send\").click();\n    expect(posted.filter((e) => e.type === \"send\")).toHaveLength(0);\n    tabs(\"b\");\n    for (const reader of readers) {\n      reader.result = image.data;\n      reader.onload();\n    }\n    expect(window.document.getElementById(\"attach\").textContent).toBe(\"\");\n    expect(input.value).toBe(\"\");\n    tabs(\"a\");\n    expect(input.value).toBe(\"draft A\");\n    expect(\n      window.document.getElementById(\"attach\").querySelectorAll(\".chip\"),\n    ).toHaveLength(4);\n    await window.happyDOM.abort();\n  });\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793684979924,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/vscode-ext-image-budget.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "panel-1793684967795-6fb18b",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/vscode-ext-image-budget.test.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_p91rpo3bmfuxpisxn53j5byc",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-1c059f0e-2e01-45de-b184-0ef0d15852ce",
+            "seq": 11
+          },
+          {
+            "type": "tool_result",
+            "id": "call_0k0v1kq7b9phuggv9dnem4xg",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-w1orf2/3e242150-bc46-4497-845e-be0b06bc676c/workspace/packages/cli/__tests__/unit/vscode-ext-chat-images.test.js",
+              "fileVersion": "10125:1791108223000:1793684715863.2424",
+              "readSpan": {
+                "start": 0,
+                "end": 10116,
+                "total": 10116
+              },
+              "hashed": false,
+              "content": "/**\n * Chat panel image paste — webview data URLs → host temp files → stream-json\n * {\"type\":\"user\",\"images\":[paths]} (the CLI side is covered by\n * headless-stream-images.test.js). Host-side hardening: only whitelisted\n * image data URLs become files, capped per message; the generated HTML keeps\n * parsing (dead-panel gate).\n */\nimport { describe, it, expect } from \"vitest\";\nimport fs from \"fs\";\n\nimport { ChatViewProvider } from \"../../../vscode-extension/src/chat/chat-view.js\";\nimport { buildChatHtml } from \"../../../vscode-extension/src/chat/chat-html.js\";\n\n// 1×1 transparent PNG.\nconst PNG_BASE64 =\n  \"iVBORw0KGgoAAAABAAAAAQAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==\".replace(\n    \"AAAABAAAAAQAAAAE\",\n    \"AAAANSUhEUgAAAAE\",\n  );\nconst PNG_URL = \"data:image/png;base64,\" + PNG_BASE64;\n\nfunction makeProvider() {\n  return new ChatViewProvider(\n    { workspace: { getConfiguration: () => ({ get: () => undefined }) } },\n    {},\n  );\n}\n\ndescribe(\"ChatViewProvider._writeImageTemps\", () => {\n  it(\"writes a whitelisted data URL to a temp file with the exact bytes\", async () => {\n    const provider = makeProvider();\n    const files = await provider._writeImageTemps([{ data: PNG_URL }]);\n    expect(files).toHaveLength(1);\n    expect(files[0]).toMatch(/cc-chat-img-.*\\.png$/);\n    try {\n      expect(fs.readFileSync(files[0]).toString(\"base64\")).toBe(PNG_BASE64);\n    } finally {\n      fs.rmSync(files[0], { force: true });\n    }\n  });\n\n  it(\"rejects MIME spoofing without sending a partial attachment set\", async () => {\n    const provider = makeProvider();\n    await expect(\n      provider._writeImageTemps([\n        { data: \"data:image/jpeg;base64,\" + PNG_BASE64 },\n        { data: \"data:image/webp;base64,\" + PNG_BASE64 },\n      ]),\n    ).rejects.toThrow(\"MIME\");\n  });\n\n  it(\"reports junk: non-image mime, malformed base64, missing data\", async () => {\n    const provider = makeProvider();\n    for (const image of [\n      { data: \"data:text/html;base64,\" + PNG_BASE64 }, // not an image\n      { data: \"data:image/png;base64,!!!not-base64$$\" }, // bad charset\n      { data: \"C:\\\\windows\\\\system32\\\\evil.png\" }, // not a data URL\n      {},\n      null,\n    ])\n      await expect(provider._writeImageTemps([image])).rejects.toThrow();\n  });\n\n  it(\"rejects more than 4 attachments per message visibly\", async () => {\n    const provider = makeProvider();\n    await expect(\n      provider._writeImageTemps(\n        Array.from({ length: 7 }, () => ({ data: PNG_URL })),\n      ),\n    ).rejects.toThrow(\"at most 4\");\n  });\n});\n\ndescribe(\"chat HTML ships the paste/attach UI (parse gate)\", () => {\n  it(\"has the attach strip and paste handler, and all scripts parse\", () => {\n    const html = buildChatHtml({ nonce: \"n\".repeat(32), cspSource: \"vsc:\" });\n    expect(html).toContain('id=\"attach\"');\n    expect(html).toContain('addEventListener(\"paste\"');\n    const scripts = [\n      ...html.matchAll(/<script nonce=\"[^\"]+\">([\\s\\S]*?)<\\/script>/g),\n    ];\n    for (const [, body] of scripts) {\n      new Function(body); // throws on syntax error — dead-panel gate\n    }\n  });\n});\n\ndescribe(\"image temp-file cleanup (no tmpdir pile-up)\", () => {\n  function makeSendableProvider() {\n    const spawns = [];\n    const provider = new ChatViewProvider(\n      {\n        commands: { executeCommand: () => Promise.resolve() },\n        window: {},\n        workspace: {\n          workspaceFolders: [{ uri: { fsPath: \"/ws\" } }],\n          getConfiguration: () => ({ get: () => undefined }),\n        },\n      },\n      {\n        deps: {\n          createSession: (cfg) => {\n            const s = {\n              cfg,\n              running: true,\n              send: () => true,\n              sendEvent: () => true,\n              stop() {\n                this.running = false;\n              },\n            };\n            spawns.push(s);\n            return s;\n          },\n          resolveChatLlm: () => ({\n            provider: \"\",\n            model: \"\",\n            baseUrl: \"\",\n            apiKey: \"\",\n          }),\n        },\n      },\n    );\n    provider.view = { webview: { postMessage: () => Promise.resolve() } };\n    return { provider, spawns };\n  }\n\n  it(\"deletes a conversation's temp images once its turn results\", async () => {\n    const { provider } = makeSendableProvider();\n    await provider._handleMessage({\n      type: \"send\",\n      text: \"look\",\n      images: [{ data: PNG_URL }],\n    });\n    const convId = provider._convs.activeId();\n    const tracked = provider._imgTemps.get(convId);\n    expect(tracked).toHaveLength(1);\n    expect(fs.existsSync(tracked[0])).toBe(true);\n\n    // The turn finishing is the cleanup point (CLI consumed the file at turn start).\n    provider._makeOnEvent(convId)({ type: \"result\", result: \"done\" });\n    expect(fs.existsSync(tracked[0])).toBe(false);\n    expect(provider._imgTemps.has(convId)).toBe(false);\n  });\n\n  it(\"Stop cancels image preparation before spawning and removes the prepared files\", async () => {\n    const { provider, spawns } = makeSendableProvider();\n    const posted = [];\n    provider.view.webview.postMessage = (m) => {\n      posted.push(m);\n      return Promise.resolve();\n    };\n    const files = await provider._writeImageTemps([{ data: PNG_URL }]);\n    let release;\n    provider._writeImageTemps = () =>\n      new Promise((done) => {\n        release = () => done(files);\n      });\n    const sending = provider._handleMessage({\n      type: \"send\",\n      text: \"cancel image\",\n      images: [{ data: PNG_URL }],\n    });\n    try {\n      expect(provider._interruptConversation()).toBe(true);\n      release();\n      expect(await sending).toBe(false);\n      expect(spawns).toEqual([]);\n      expect(files.every((file) => !fs.existsSync(file))).toBe(true);\n      expect(posted.find((m) => m.kind === \"sendRejected\").text).toBe(\n        \"cancel image\",\n      );\n    } finally {\n      release();\n      await sending;\n      provider.dispose();\n      for (const file of files) fs.rmSync(file, { force: true });\n    }\n  });\n\n  it(\"dispose() sweeps every conversation's leftovers\", async () => {\n    const { provider } = makeSendableProvider();\n    await provider._handleMessage({\n      type: \"send\",\n      text: \"look\",\n      images: [{ data: PNG_URL }],\n    });\n    const files = [...provider._imgTemps.values()].flat();\n    expect(files.length).toBeGreaterThan(0);\n    provider.dispose();\n    for (const f of files) expect(fs.existsSync(f)).toBe(false);\n  });\n\n  it(\"keeps a queued screenshot until its own turn finishes\", async () => {\n    const { provider } = makeSendableProvider();\n    provider._handleMessage({ type: \"send\", text: \"investigate\" });\n    await provider._handleMessage({\n      type: \"send\",\n      text: \"evidence\",\n      images: [{ data: PNG_URL }],\n    });\n    const id = provider._convs.activeId();\n    const [file] = provider._imgTemps.get(id);\n    try {\n      provider._makeOnEvent(id)({ type: \"result\", result: \"first turn\" });\n      expect(fs.existsSync(file)).toBe(true);\n      provider._makeOnEvent(id)({ type: \"result\", result: \"image turn\" });\n      expect(fs.existsSync(file)).toBe(false);\n    } finally {\n      provider.dispose();\n    }\n  });\n\n  it(\"a failed send does not delete earlier queued attachments\", async () => {\n    const { provider, spawns } = makeSendableProvider();\n    await provider._handleMessage({\n      type: \"send\",\n      text: \"first\",\n      images: [{ data: PNG_URL }],\n    });\n    const id = provider._convs.activeId();\n    const [file] = provider._imgTemps.get(id);\n    try {\n      spawns[0].sendEvent = () => false;\n      await provider._handleMessage({\n        type: \"send\",\n        text: \"second\",\n        images: [{ data: PNG_URL }],\n      });\n      expect(provider._imgTemps.get(id)).toEqual([file]);\n      expect(fs.existsSync(file)).toBe(true);\n    } finally {\n      provider.dispose();\n    }\n  });\n});\n\ndescribe(\"API key stays in the CLI secure store\", () => {\n  it(\"never copies a configured key into child env or argv\", () => {\n    const spawns = [];\n    const provider = new ChatViewProvider(\n      {\n        commands: { executeCommand: () => Promise.resolve() },\n        window: {},\n        workspace: {\n          workspaceFolders: [{ uri: { fsPath: \"/ws\" } }],\n          getConfiguration: () => ({ get: () => undefined }),\n        },\n      },\n      {\n        deps: {\n          createSession: (cfg) => {\n            const s = {\n              cfg,\n              running: true,\n              send: () => true,\n              sendEvent: () => true,\n              stop() {},\n            };\n            spawns.push(s);\n            return s;\n          },\n          resolveChatLlm: () => ({\n            provider: \"volcengine\",\n            model: \"doubao\",\n            baseUrl: \"https://ark.example\",\n            apiKey: \"sk-secret\",\n          }),\n        },\n      },\n    );\n    provider.view = { webview: { postMessage: () => Promise.resolve() } };\n    provider._handleMessage({ type: \"send\", text: \"hi\" });\n    expect(spawns).toHaveLength(1);\n    expect(spawns[0].cfg.env.CC_API_KEY).not.toBe(\"sk-secret\");\n    expect(spawns[0].cfg.args).not.toContain(\"--api-key\");\n    expect(spawns[0].cfg.args).not.toContain(\"sk-secret\");\n  });\n\n  it(\"does not synthesize CC_API_KEY when no key is configured\", () => {\n    const spawns = [];\n    const provider = new ChatViewProvider(\n      {\n        commands: { executeCommand: () => Promise.resolve() },\n        window: {},\n        workspace: {\n          workspaceFolders: [{ uri: { fsPath: \"/ws\" } }],\n          getConfiguration: () => ({ get: () => undefined }),\n        },\n      },\n      {\n        deps: {\n          createSession: (cfg) => (\n            spawns.push({ cfg }),\n            { cfg, running: true, send: () => true }\n          ),\n          resolveChatLlm: () => ({\n            provider: \"\",\n            model: \"\",\n            baseUrl: \"\",\n            apiKey: \"\",\n          }),\n        },\n      },\n    );\n    provider.view = { webview: { postMessage: () => Promise.resolve() } };\n    provider._handleMessage({ type: \"send\", text: \"hi\" });\n    expect(spawns[0].cfg.env.CC_API_KEY).toBe(process.env.CC_API_KEY);\n  });\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793684983822,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/vscode-ext-chat-images.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "panel-1793684967795-6fb18b",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/vscode-ext-chat-images.test.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_0k0v1kq7b9phuggv9dnem4xg",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-1c059f0e-2e01-45de-b184-0ef0d15852ce",
+            "seq": 15
+          },
+          {
+            "type": "tool_result",
+            "id": "call_4dx5nlbu9zfhcquck2bb07l7",
+            "tool": "list_dir",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "entries": [
+                {
+                  "name": "verify-33.test.js",
+                  "type": "file"
+                }
+              ],
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793684988866,
+                "meta": {
+                  "args": {
+                    "path": "packages/vscode-extension/__tests__"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "panel-1793684967795-6fb18b",
+                "metadata": {
+                  "args": {
+                    "path": "packages/vscode-extension/__tests__"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "list_dir",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_4dx5nlbu9zfhcquck2bb07l7",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-1c059f0e-2e01-45de-b184-0ef0d15852ce",
+            "seq": 19
+          },
+          {
+            "type": "tool_result",
+            "id": "call_0e1gonguefcnzoclo8chz0e0",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-w1orf2/3e242150-bc46-4497-845e-be0b06bc676c/workspace/packages/vscode-extension/__tests__/verify-33.test.js",
+              "fileVersion": "27:1793684715994.2456:1793684715994.2456",
+              "readSpan": {
+                "start": 0,
+                "end": 27,
+                "total": 27
+              },
+              "hashed": false,
+              "content": "// Non-answer placeholder.\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793684993400,
+                "meta": {
+                  "args": {
+                    "path": "packages/vscode-extension/__tests__/verify-33.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "panel-1793684967795-6fb18b",
+                "metadata": {
+                  "args": {
+                    "path": "packages/vscode-extension/__tests__/verify-33.test.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_0e1gonguefcnzoclo8chz0e0",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-1c059f0e-2e01-45de-b184-0ef0d15852ce",
+            "seq": 23
+          }
+        ],
+        "usageEvents": [
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 2736,
+              "output_tokens": 65,
+              "cache_read_input_tokens": 2048,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-1c059f0e-2e01-45de-b184-0ef0d15852ce",
+            "seq": 5
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 5020,
+              "output_tokens": 69,
+              "cache_read_input_tokens": 4096,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-1c059f0e-2e01-45de-b184-0ef0d15852ce",
+            "seq": 9
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 6313,
+              "output_tokens": 69,
+              "cache_read_input_tokens": 6144,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-1c059f0e-2e01-45de-b184-0ef0d15852ce",
+            "seq": 13
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 6007,
+              "output_tokens": 90,
+              "cache_read_input_tokens": 10240,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-1c059f0e-2e01-45de-b184-0ef0d15852ce",
+            "seq": 17
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 2248,
+              "output_tokens": 61,
+              "cache_read_input_tokens": 14336,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-1c059f0e-2e01-45de-b184-0ef0d15852ce",
+            "seq": 21
+          }
+        ],
+        "unknownUsageEvents": [],
+        "observedUsage": {
+          "input_tokens": 22324,
+          "output_tokens": 354,
+          "cache_read_input_tokens": 36864
+        },
+        "usageComplete": false,
+        "failureCategory": "agent-error",
+        "modelUsageRecordCount": 5,
+        "estimatedCostUSD": null,
+        "actualBilledCostUSD": null,
+        "final": {
+          "type": "result",
+          "subtype": "error",
+          "is_error": true,
+          "error": "volcengine API error: HTTP 403 — DIAGNOSTIC_REQUEST_NOT_DISPATCHED.",
+          "turn": 1,
+          "trace_id": "tr-1c059f0e-2e01-45de-b184-0ef0d15852ce",
+          "seq": 26
+        },
+        "scopePathComparison": "native-case-sensitive"
+      },
+      "brokerStatus": {
+        "physicalRequestsStarted": 6,
+        "usageCompleteRequests": 5,
+        "passed": false,
+        "poisoned": null,
+        "errorCode": "DIAGNOSTIC_REQUEST_NOT_DISPATCHED"
+      },
+      "broker": {
+        "formalSample": false,
+        "physicalRequestsStarted": 6,
+        "usageCompleteRequests": 5,
+        "tasks": [
+          {
+            "taskId": "verify-33",
+            "requests": 6,
+            "errorCode": "DIAGNOSTIC_REQUEST_NOT_DISPATCHED"
+          }
+        ],
+        "poisoned": null,
+        "actualBilledCostCny": null,
+        "tokenOnlyEstimateCny": null,
+        "knownTokenOnlyEstimateCny": 0.0738444,
+        "fxRate": null
+      },
+      "changedPaths": [
+        ".idea",
+        ".idea/.gitignore",
+        ".idea/misc.xml",
+        ".idea/modules.xml",
+        ".idea/workspace.iml",
+        ".idea/workspace.xml"
+      ],
+      "finishedAt": "2026-11-03T05:50:33.402Z"
+    }
+  ],
+  "selectionScope": "operator-subset",
+  "selectedSampleIds": [
+    "verify-33"
+  ],
+  "generationPassed": false,
+  "acceptancePending": true,
+  "formalSample": false,
+  "limitations": [
+    "Native generation; independent Linux acceptance pending",
+    "Broker thinking disabled, six file tools only, 40 model turns, 48 requests, 180 second request timeout, model maximum 393216 output tokens (8192 test cap removed), 16 MiB response transport limit",
+    "IDE context bridges and optional task worklog disabled; real UI and restart retained",
+    "No prior candidates or repair seeds supplied"
+  ],
+  "cohortKind": "volcengine-native-diagnostic",
+  "executionIdentityDigest": "sha256:2066bb4c8665dd6b8efcd3f274132d0501317d6c60f6edf4e93672c075525798",
+  "group": "linux-jetbrains",
+  "entry": "jetbrains",
+  "platform": "linux",
+  "executionSourceBindings": [
+    {
+      "file": "packages/cli/scripts/verify01-native-task-campaign.mjs",
+      "digest": "sha256:4c8c4a870999a591b91ee675a09653189d43a72d382f2eba3b9597f3af0c2acd"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-task-diagnostic.mjs",
+      "digest": "sha256:4f9710a91e70a88d11a0378b17ffd59a1fc35721dd71ebced4541583fe82781e"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-diagnostic-broker.mjs",
+      "digest": "sha256:fdb0bb84cfdcb37c89b106e430f8b8fcae3125126b23a88c2aab948cd5c0315b"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-native-provider-profile.mjs",
+      "digest": "sha256:ed574c65e4b7c4248937356fce5c9cbd18ae4bf1d3237b20586a322cff2f0132"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-native-execution-budgets.mjs",
+      "digest": "sha256:6f16228f7e9728887a6331e49500e9d418a8764fbb2a75d9bb1372bac19ae710"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-openai-diagnostic-broker.mjs",
+      "digest": "sha256:72b9b54ddf8d4f916ffdf75acde808e9ea19d66b0bc67e96b0d2be44ef65cebe"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-openai-transport-preload.mjs",
+      "digest": "sha256:d3deaf2d2465537c7ecff4be95b044f5fbc4ae3c6a6a035dc816dcb27b9c345a"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-review-specs.mjs",
+      "digest": "sha256:202eec83bb24f5b271d19ae9114d7ef5c9ec024a7592895a04bbdd164cc91f1d"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-project-revision.mjs",
+      "digest": "sha256:a3bca91a5b5d6174b64c3011e245505e7eef51540ff890f17ac39d9f0d1db50f"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-prerelease-package-set.mjs",
+      "digest": "sha256:324b67e2405916eecabd4abd459aa7fb7c4ed036029ee22d13e742d32f51dfa8"
+    },
+    {
+      "file": "packages/cli/src/lib/eval/stream-terminal.js",
+      "digest": "sha256:4440c2821c65afac8bfa5e79cee5671434e89702dacb8128e09480f329451114"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-first-run-cli-diagnostic.mjs",
+      "digest": "sha256:ad10cb2f362a8d163d024bbae7da09137e8f102956f4212e8af004f134474b7b"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/plan.json",
+      "digest": "sha256:aa55909d4cb3d83ac94127168ae6114ee7ceb7b6584b64fcb985904add297f35"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/tasks.json",
+      "digest": "sha256:c1be59b0b754f5442e571e3e9d9290bd5c72c13f324ae603d4b629a6b06852d2"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/comparison-bindings.json",
+      "digest": "sha256:32ba5c28f69146fcddda04d3fc0f2aba649fdae4d607f48168af3bd3b773432c"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/plan.sha256",
+      "digest": "sha256:73d2473d0e205379b5b654a245ec96b3f19b524a3906e979682ee4ad84e0202e"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-native-plugin-artifact.mjs",
+      "digest": "sha256:ce04147c3e2f97c7d44d37052f5e8329595efe9bbcb852b51952535ba96357bc"
+    },
+    {
+      "file": "packages/jetbrains-plugin/scripts/verify01-native-task-adapter.mjs",
+      "digest": "sha256:b8fc449018df5d188d9aada8469e023bd220ece659620b2323cf796e9d08fdcb"
+    },
+    {
+      "file": "packages/jetbrains-plugin/build.gradle.kts",
+      "digest": "sha256:17510157d489a11ed93bde3b2cb06cf3f939edac6ffd8b26735c047f44e3aba7"
+    },
+    {
+      "file": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/IdeUiSmokeTest.java",
+      "digest": "sha256:29655e9a949948528018ad85baf368e5240445216caa747719c95d6c83903e0b"
+    },
+    {
+      "file": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/UiFailureDiagnostics.java",
+      "digest": "sha256:5802b749fd82048d196e90ce5f0f2f4e4c7cfc527590f07b62ccafb73d4c6a20"
+    },
+    {
+      "file": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/ConversationRecoveryJourney.java",
+      "digest": "sha256:44cb87d4c64437b64204a4bca9d7faaec68a6cbbff8b7303c491e17e7597337b"
+    },
+    {
+      "file": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/Verify01HostJourney.java",
+      "digest": "sha256:b2a5f856e6607ec559b1c7d17be14a110cccd6bcaea323cbab5ae1458109ee5b"
+    }
+  ],
+  "install": {
+    "passed": true,
+    "startedAt": "2026-11-03T05:45:16.645Z",
+    "finishedAt": "2026-11-03T05:45:35.833Z",
+    "lifecycleScriptsEnabled": true,
+    "sampleId": "verify-33",
+    "locked": {
+      "version": "0.166.139",
+      "resolved": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.139.tgz",
+      "integrity": "sha512-X0frBGhYvdNLxnz4oYtqo07vJvFHpi99yyZ1n1q7xI82x6v6BEx/jPy420YfZIidKlJG+HSF5SeQG38idwSW1w==",
+      "hasInstallScript": true,
+      "license": "MIT",
+      "dependencies": {
+        "@aws-sdk/client-s3": "^3.700.0",
+        "@chainlesschain/context-memory-kernel": "0.1.11",
+        "@chainlesschain/core-config": "0.1.2",
+        "@chainlesschain/core-db": "0.1.5",
+        "@chainlesschain/core-env": "0.1.2",
+        "@chainlesschain/core-infra": "0.1.1",
+        "@chainlesschain/core-mtc": "0.2.3",
+        "@chainlesschain/core-multisig": "0.1.4",
+        "@chainlesschain/personal-data-hub": "0.4.66",
+        "@chainlesschain/session-core": "0.3.24",
+        "@chainlesschain/shared-logger": "0.1.1",
+        "@inquirer/prompts": "^7.2.0",
+        "@noble/curves": "^1.9.7",
+        "@tootallnate/quickjs-emscripten": "^0.23.0",
+        "acorn": "8.17.0",
+        "ajv": "^8.20.0",
+        "ajv-formats": "^3.0.1",
+        "chalk": "^5.4.1",
+        "commander": "^12.1.0",
+        "esbuild-wasm": "0.28.1",
+        "js-yaml": "^3.15.1",
+        "koffi": "^2.16.3",
+        "ora": "^8.1.1",
+        "pac-resolver": "^7.0.1",
+        "semver": "^7.6.3",
+        "sql.js": "^1.14.1",
+        "undici": "^7.30.1",
+        "webdav": "^5.10.0",
+        "ws": "^8.14.2"
+      },
+      "bin": {
+        "cc": "bin/chainlesschain.js",
+        "chainlesschain": "bin/chainlesschain.js",
+        "clc": "bin/chainlesschain.js",
+        "clchain": "bin/chainlesschain.js"
+      },
+      "engines": {
+        "node": ">=22.12.0"
+      },
+      "optionalDependencies": {
+        "better-sqlite3": "^12.1.0",
+        "node-pty": "^1.0.0",
+        "pdf-parse": "^1.1.1"
+      },
+      "peerDependencies": {
+        "playwright": "^1.40.0"
+      },
+      "peerDependenciesMeta": {
+        "playwright": {
+          "optional": true
+        }
+      }
+    }
+  },
+  "finishedAt": "2026-11-03T05:50:33.405Z"
+}

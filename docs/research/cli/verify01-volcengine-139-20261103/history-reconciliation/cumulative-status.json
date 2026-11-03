@@ -1,0 +1,643 @@
+{
+  "schema": "chainlesschain.volcengine-historical-cumulative-status/v1",
+  "scope": "All known Volcengine automatic-deliverable records, union by sample ID; preserve original qualification boundaries",
+  "provider": "volcengine",
+  "model": "deepseek-v4-flash-ga-260731",
+  "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "accepted": 34,
+  "total": 45,
+  "percentage": 75.6,
+  "tasks": {
+    "accepted": 27,
+    "total": 36
+  },
+  "firstRuns": {
+    "accepted": 7,
+    "total": 9
+  },
+  "historicalBaselineAccepted": 34,
+  "recent139OnlyAccepted": 17,
+  "newHistoricalSampleIdsFrom139": [],
+  "latestOutputRetryAcceptedSampleIds": [
+    "verify-01",
+    "verify-32"
+  ],
+  "latestOutputRetryAlreadyHistorical": true,
+  "remainingSampleIds": [
+    "first-run-darwin-cli",
+    "first-run-darwin-jetbrains",
+    "verify-04",
+    "verify-07",
+    "verify-08",
+    "verify-09",
+    "verify-10",
+    "verify-11",
+    "verify-13",
+    "verify-19",
+    "verify-30"
+  ],
+  "historicalQualificationBoundaries": [
+    {
+      "sampleId": "verify-06",
+      "runId": "40634447041",
+      "candidateAcceptancePassed": true,
+      "generationPassed": false,
+      "endToEndPassed": false,
+      "meaning": "Counted under the existing historical automatic-deliverable ledger; not upgraded to strict native end-to-end success"
+    }
+  ],
+  "recent139CoverageEvidence": {
+    "path": "docs/research/cli/verify01-volcengine-139-20261103/provider-output/completion-status.json",
+    "digest": "sha256:e00c02a0aaf84b1ac4c0d06aba59fc7bff18bc64ff931aeb40fc29c2ee040b8d"
+  },
+  "historicalSources": [
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+      "digest": "sha256:7e8313862e274a0240018c87e229aa6cf23f32ff534958446a7b21d7738ff872",
+      "qualifiedSampleIds": [
+        "first-run-darwin-vscode",
+        "first-run-linux-jetbrains",
+        "first-run-linux-vscode",
+        "first-run-win32-cli",
+        "first-run-win32-jetbrains",
+        "first-run-win32-vscode",
+        "verify-01",
+        "verify-02",
+        "verify-03",
+        "verify-05",
+        "verify-12",
+        "verify-14",
+        "verify-15",
+        "verify-16",
+        "verify-17",
+        "verify-18",
+        "verify-20",
+        "verify-21",
+        "verify-22",
+        "verify-23",
+        "verify-24",
+        "verify-25",
+        "verify-26",
+        "verify-27",
+        "verify-28",
+        "verify-29",
+        "verify-31",
+        "verify-32",
+        "verify-33",
+        "verify-34",
+        "verify-35",
+        "verify-36"
+      ],
+      "basis": "existing accepted candidate export index; archive bytes not newly revalidated"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-128-review-20261028.json",
+      "digest": "sha256:510ce7a8ce74b630feaef9f3b598c5c659f80a0c8b3db9d3ec84fafb220b90fa",
+      "newCandidateQualifiedSampleIds": [
+        "first-run-linux-cli",
+        "verify-06"
+      ],
+      "ledgerCounts": {
+        "generationRecordsCollected": 11,
+        "acceptanceRecordsCollected": 11,
+        "candidateAcceptancePassed": 2,
+        "endToEndPassed": 1,
+        "reusedAcceptedDeliverables": 32,
+        "cumulativeAcceptedDeliverables": 34
+      }
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-131-easy-first-20261029.json",
+      "digest": "sha256:52125b9fa17811f52bb80ce483f5998b77cc652a6ed0dde405cab448b7a718fa",
+      "newCandidateQualifiedSampleIds": [],
+      "ledgerCounts": {
+        "generationRecordsCollected": 0,
+        "acceptanceRecordsCollected": 0,
+        "candidateAcceptancePassed": 0,
+        "endToEndPassed": 0,
+        "reusedAcceptedDeliverables": 34,
+        "cumulativeAcceptedDeliverables": 34
+      }
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-132-easy-first-20261030.json",
+      "digest": "sha256:5813459ad8eb9093d04068ee9a0468a7ab1c5e226a87e8d0958860aec9acbc66",
+      "newCandidateQualifiedSampleIds": [],
+      "ledgerCounts": {
+        "generationRecordsCollected": 1,
+        "acceptanceRecordsCollected": 1,
+        "candidateAcceptancePassed": 0,
+        "endToEndPassed": 0,
+        "reusedAcceptedDeliverables": 34,
+        "cumulativeAcceptedDeliverables": 34
+      }
+    }
+  ],
+  "samples": [
+    {
+      "sampleId": "first-run-darwin-cli",
+      "historicallyQualified": false,
+      "acceptedInRecent139Cohort": false,
+      "cumulativelyQualified": false,
+      "qualificationEvidence": []
+    },
+    {
+      "sampleId": "first-run-darwin-jetbrains",
+      "historicallyQualified": false,
+      "acceptedInRecent139Cohort": false,
+      "cumulativelyQualified": false,
+      "qualificationEvidence": []
+    },
+    {
+      "sampleId": "first-run-darwin-vscode",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": false,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ]
+    },
+    {
+      "sampleId": "first-run-linux-cli",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": true,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-128-review-20261028.json",
+          "runId": "40632820075",
+          "rawSummary": {
+            "path": "next-package-128-review-20261028/40632820075/objects/cd80fffc4390f5bae54379a3b11b4c8572304567d9e73d3773ec7a3340de0752.gz",
+            "originalDigest": "sha256:cd80fffc4390f5bae54379a3b11b4c8572304567d9e73d3773ec7a3340de0752",
+            "storedDigest": "sha256:c6fb1fbdc46f0de0efc5a27df94ecea5dc20a0596845b474218800a106375372",
+            "originalBytes": 124746
+          },
+          "candidateAcceptancePassed": true,
+          "generationPassed": true,
+          "endToEndPassed": true
+        }
+      ]
+    },
+    {
+      "sampleId": "first-run-linux-jetbrains",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": true,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ]
+    },
+    {
+      "sampleId": "first-run-linux-vscode",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": false,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ]
+    },
+    {
+      "sampleId": "first-run-win32-cli",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": true,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ]
+    },
+    {
+      "sampleId": "first-run-win32-jetbrains",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": false,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ]
+    },
+    {
+      "sampleId": "first-run-win32-vscode",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": false,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-01",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": true,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-02",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": true,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-03",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": true,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-04",
+      "historicallyQualified": false,
+      "acceptedInRecent139Cohort": false,
+      "cumulativelyQualified": false,
+      "qualificationEvidence": []
+    },
+    {
+      "sampleId": "verify-05",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": false,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-06",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": false,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-128-review-20261028.json",
+          "runId": "40634447041",
+          "rawSummary": {
+            "path": "next-package-128-review-20261028/40634447041/objects/760c03a6b2ab01bc4768b71382d5b97c808725fcac426ef96791b7042036ab5e.gz",
+            "originalDigest": "sha256:760c03a6b2ab01bc4768b71382d5b97c808725fcac426ef96791b7042036ab5e",
+            "storedDigest": "sha256:e4384144155c5b7951256d469fbaa52b5fc51a602fc4dc24796c6c801ccb2cbc",
+            "originalBytes": 195902
+          },
+          "candidateAcceptancePassed": true,
+          "generationPassed": false,
+          "endToEndPassed": false
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-07",
+      "historicallyQualified": false,
+      "acceptedInRecent139Cohort": false,
+      "cumulativelyQualified": false,
+      "qualificationEvidence": []
+    },
+    {
+      "sampleId": "verify-08",
+      "historicallyQualified": false,
+      "acceptedInRecent139Cohort": false,
+      "cumulativelyQualified": false,
+      "qualificationEvidence": []
+    },
+    {
+      "sampleId": "verify-09",
+      "historicallyQualified": false,
+      "acceptedInRecent139Cohort": false,
+      "cumulativelyQualified": false,
+      "qualificationEvidence": []
+    },
+    {
+      "sampleId": "verify-10",
+      "historicallyQualified": false,
+      "acceptedInRecent139Cohort": false,
+      "cumulativelyQualified": false,
+      "qualificationEvidence": []
+    },
+    {
+      "sampleId": "verify-11",
+      "historicallyQualified": false,
+      "acceptedInRecent139Cohort": false,
+      "cumulativelyQualified": false,
+      "qualificationEvidence": []
+    },
+    {
+      "sampleId": "verify-12",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": true,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-13",
+      "historicallyQualified": false,
+      "acceptedInRecent139Cohort": false,
+      "cumulativelyQualified": false,
+      "qualificationEvidence": []
+    },
+    {
+      "sampleId": "verify-14",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": false,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-15",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": false,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-16",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": false,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-17",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": false,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-18",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": true,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-19",
+      "historicallyQualified": false,
+      "acceptedInRecent139Cohort": false,
+      "cumulativelyQualified": false,
+      "qualificationEvidence": []
+    },
+    {
+      "sampleId": "verify-20",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": false,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-21",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": false,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-22",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": true,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-23",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": true,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-24",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": false,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-25",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": false,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-26",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": true,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-27",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": true,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-28",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": false,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-29",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": true,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-30",
+      "historicallyQualified": false,
+      "acceptedInRecent139Cohort": false,
+      "cumulativelyQualified": false,
+      "qualificationEvidence": []
+    },
+    {
+      "sampleId": "verify-31",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": true,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-32",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": true,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-33",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": false,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-34",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": true,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-35",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": true,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-36",
+      "historicallyQualified": true,
+      "acceptedInRecent139Cohort": false,
+      "cumulativelyQualified": true,
+      "qualificationEvidence": [
+        {
+          "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json",
+          "kind": "historical-accepted-candidate-index"
+        }
+      ]
+    }
+  ],
+  "formalFrozenScoresUnchanged": true,
+  "replacesPriorAllHistoryInterpretationOf17": true
+}

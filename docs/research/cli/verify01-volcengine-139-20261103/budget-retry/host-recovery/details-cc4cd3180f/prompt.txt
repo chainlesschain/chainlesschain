@@ -1,0 +1,15 @@
+在固定项目快照中完成「付费分解前预检」。阅读 packages/cli/src/commands/orchestrate.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：被拒绝后端在分解前终止；分解和通知 spy 均为零。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。
+
+This is an unseeded native linux-jetbrains-volcengine execution, sample verify-06, kind task. No previous candidate or repair feedback is supplied. First-run and ordinary samples use independent profiles and workspaces.
+Read the frozen source and relevant existing tests before writing. Verify actual exported APIs, argument names, return fields and fixture construction. Read bounded slices and avoid repeated unchanged reads.
+Frozen source files: packages/cli/src/commands/orchestrate.js
+Related existing tests: packages/cli/__tests__/integration/orchestrator-workflow.test.js
+Only these deliverables may be changed: packages/cli/__tests__/verify-06.test.js
+Use repository-relative mutation paths. Import paths are relative to the deliverable, not to an existing unit test directory: verify the resolved source path explicitly.
+Replace the non-answer placeholder with complete independent Vitest regression tests. Use focused positive and negative behavioral controls, at most six cases. Do not import an existing suite or assert on source text.
+For each independent validation condition, construct an admissible positive control, then change only that condition for its negative control. Keep the other prerequisites valid so a different guard cannot cause the rejection. For stated limits, cover the accepted boundary and the first rejected value.
+Before finishing, audit your selected independent conditions against the actual source. Explain which positive/negative controls cover each condition and explicitly identify any uncovered condition; do not infer coverage from a rejection that another guard can cause.
+If an intended behavioral assertion exposes a defect in the frozen implementation, keep that assertion and explain the implementation defect in your final response; distinguish it from a test assumption or fixture error.
+Source and existing tests are read-only. Describe implementation defects in your final response instead of modifying source. Only six file tools are available; no shell, code execution, MCP or network tools. Do not inspect node_modules or paths outside the project.
+An independent checker runs baseline, candidate and behavioral coverage tests later in network-disabled Linux Docker. Native generation does not imply native test execution. Do not claim tests passed.
+You have 40 model turns. Write early enough to read back the completed deliverable, then finish with a concise account and limitations.

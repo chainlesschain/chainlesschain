@@ -1,0 +1,218 @@
+import { describe, expect, it } from "vitest";
+import {
+  createEvalComparison,
+  createEvalHistoryRecord,
+  EVAL_CONTEXT_SCHEMA,
+  EVAL_EXECUTION_PROTOCOL,
+} from "../src/lib/eval/evidence.js";
+import {
+  buildOutcomeReport,
+  outcomeDigest,
+  OUTCOME_PLAN_SCHEMA,
+} from "../src/lib/eval/outcomes.js";
+
+const NOW = Date.parse("2026-09-15T12:00:00.000Z");
+const SHA = "a".repeat(40);
+const D = (letter) => `sha256:${letter.repeat(64)}`;
+
+const STAGE_NAMES = [
+  "install",
+  "configure",
+  "authenticate",
+  "tool",
+  "artifact",
+];
+
+/**
+ * Builds a frozen outcome plan with two always-observed samples
+ * (one task, one first-run) plus zero or more additional task samples.
+ * `observedExtra` decides whether those extra task samples carry an
+ * observation (otherwise they are missing from the observations).
+ * `omitCostOn` drops the cost field from the named observation so the
+ * observed cost is unknown.
+ */
+function fixture({ extraTaskSamples = 0, observedExtra = false, omitCostOn = new Set() } = {}) {
+  const comparison = createEvalComparison({
+    suite: "builtin",
+    corpusDigest: D("a"),
+    provider: "test",
+    model: "test-model",
+    context: {
+      schema: EVAL_CONTEXT_SCHEMA,
+      provider: "test",
+      model: "test-model",
+      modelRevision: "test-r1",
+      environmentDigest: D("b"),
+      permissionDigest: D("c"),
+      inferenceDigest: D("d"),
+    },
+  });
+  const window = {
+    start: "2026-09-15T10:00:00.000Z",
+    end: "2026-09-15T11:00:00.000Z",
+  };
+  const makeSample = (kind, id) => ({
+    id,
+    kind,
+    taskId: "fix-build",
+    stratum: "windows-cli-test",
+    comparisonDigest: outcomeDigest(comparison),
+    timeBudgetMs: 1000,
+    costBudget: 1,
+  });
+  const samples = [
+    makeSample("task", "sample-0"),
+    makeSample("first-run", "sample-1"),
+  ];
+  for (let i = 0; i < extraTaskSamples; i += 1)
+    samples.push(makeSample("task", `task-extra-${i}`));
+
+  const runs = samples.map((sample, index) =>
+    createEvalHistoryRecord(
+      {
+        total: 1,
+        passed: 1,
+        failed: 0,
+        passRate: 1,
+        unrelatedChangeRate: 0,
+        results: [
+          {
+            id: sample.taskId,
+            pass: true,
+            artifactCheckPassed: true,
+            executionSucceeded: true,
+            agentOk: true,
+            error: null,
+            ms: 100,
+            executionEvidence: {
+              protocol: EVAL_EXECUTION_PROTOCOL,
+              exitCode: 0,
+              signal: null,
+              terminalVerified: true,
+              observedFallback: false,
+            },
+          },
+        ],
+      },
+      {
+        runId: `run-${index}`,
+        ranAt: "2026-09-15T10:30:00.000Z",
+        label: SHA,
+        comparison,
+      },
+    ),
+  );
+
+  const alwaysObserved = new Set(["sample-0", "sample-1"]);
+  const observations = samples
+    .map((sample, index) => ({
+      sampleId: sample.id,
+      observedAt: "2026-09-15T10:30:00.000Z",
+      runId: `run-${index}`,
+      cost: omitCostOn.has(sample.id) ? undefined : 0.1,
+      elapsedMs: 500,
+      retries: 0,
+      manualRepairs: 0,
+      ...(sample.kind === "first-run"
+        ? {
+            firstRun: {
+              cleanEnvironment: true,
+              stages: Object.fromEntries(
+                STAGE_NAMES.map((stage) => [
+                  stage,
+                  { passed: true, receipt: `receipt:${stage}` },
+                ]),
+              ),
+            },
+          }
+        : {}),
+    }))
+    .filter((observation) => {
+      if (alwaysObserved.has(observation.sampleId)) return true;
+      return observedExtra && observation.sampleId.startsWith("task-extra-");
+    });
+
+  return {
+    plan: {
+      schema: OUTCOME_PLAN_SCHEMA,
+      commitSha: SHA,
+      currency: "USD",
+      window,
+      samples,
+    },
+    history: { runs, issues: [] },
+    observations,
+  };
+}
+
+const report = (input) => buildOutcomeReport(input, { now: NOW });
+
+describe("verify-23: missing samples keep the fixed planned denominator", () => {
+  it("retains missing planned samples in planned/missing/successRate (positive control)", () => {
+    // Two task samples planned; only sample-0 is observed.
+    const result = report(fixture({ extraTaskSamples: 1 }));
+    expect(result.task).toMatchObject({
+      planned: 2,
+      observed: 1,
+      missing: 1,
+      succeeded: 1,
+      successRate: 0.5,
+    });
+  });
+
+  it("observing a sample removes it from missing without shrinking planned (negative control)", () => {
+    // Same plan; only the observation state differs (extra sample is now observed).
+    const result = report(fixture({ extraTaskSamples: 1, observedExtra: true }));
+    expect(result.task).toMatchObject({
+      planned: 2,
+      observed: 2,
+      missing: 0,
+      succeeded: 2,
+      successRate: 1,
+    });
+  });
+
+  it("keeps a missing sample's unknown cost null instead of zero (positive control)", () => {
+    // One task sample with known cost 0.1; the other planned task sample is missing.
+    const result = report(fixture({ extraTaskSamples: 1 }));
+    // Missing sample stays out of observed while the aggregate stays unknown.
+    expect(result.task.observed).toBe(1);
+    expect(result.task.missing).toBe(1);
+    // Unknown cost must not masquerade as zero.
+    expect(result.task.totalCost).toBeNull();
+    expect(result.task.costPerSuccess).toBeNull();
+  });
+
+  it("reports the known sum only when every planned sample's cost is known (negative control)", () => {
+    // Same plan, but the extra sample is now observed with a known cost.
+    const result = report(fixture({ extraTaskSamples: 1, observedExtra: true }));
+    expect(result.task.observed).toBe(2);
+    expect(result.task.missing).toBe(0);
+    expect(result.task.totalCost).toBe(0.2);
+    expect(result.task.costPerSuccess).toBe(0.1);
+  });
+
+  it("keeps an observed-but-unknown cost null even with all samples observed (positive control)", () => {
+    // Both task samples observed; the extra one carries no cost field. observed/missing
+    // are now complete (2/0), so the null aggregate is isolated to the cost guard.
+    const result = report(
+      fixture({
+        extraTaskSamples: 1,
+        observedExtra: true,
+        omitCostOn: new Set(["task-extra-0"]),
+      }),
+    );
+    expect(result.task.observed).toBe(2);
+    expect(result.task.missing).toBe(0);
+    expect(result.task.totalCost).toBeNull();
+    expect(result.task.costPerSuccess).toBeNull();
+  });
+
+  it("supplying the observed cost makes the aggregate totalCost known (negative control)", () => {
+    // Same plan; only the cost field on the extra observation is supplied.
+    const result = report(fixture({ extraTaskSamples: 1, observedExtra: true }));
+    expect(result.task.observed).toBe(2);
+    expect(result.task.totalCost).toBe(0.2);
+    expect(result.task.costPerSuccess).toBe(0.1);
+  });
+});

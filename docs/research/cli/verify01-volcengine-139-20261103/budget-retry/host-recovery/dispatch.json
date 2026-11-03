@@ -1,0 +1,27 @@
+{
+  "schema": 1,
+  "source": "cc4cd3180f226a7365f97b26f37a8da3306c1b07",
+  "ref": "verify01-volc139-host40-cc4cd3180f",
+  "provider": "volcengine",
+  "scope": "zero-request-host-failure-recovery-only",
+  "priorRunId": 41574308573,
+  "selectedSampleIds": [
+    "verify-06"
+  ],
+  "packageSetPath": "docs/research/cli/verify01-package-sets/2026-11-03-volcengine-139-budget40-host-recovery.json",
+  "submitted": true,
+  "submissionStartedAt": "2026-11-03T04:13:26.214702+00:00",
+  "inputs": {
+    "confirm_live": "true",
+    "provider": "volcengine",
+    "fresh_volcengine_round": "true",
+    "hosts": "all",
+    "entries": "all",
+    "package_set": "latest",
+    "package_set_file": "docs/research/cli/verify01-package-sets/2026-11-03-volcengine-139-budget40-host-recovery.json",
+    "review_changes": "true"
+  },
+  "runId": 41576842146,
+  "submittedAt": "2026-11-03T04:13:32.760274+00:00",
+  "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41576842146"
+}

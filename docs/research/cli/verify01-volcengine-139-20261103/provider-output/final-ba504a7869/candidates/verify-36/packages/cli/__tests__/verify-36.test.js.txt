@@ -1,0 +1,145 @@
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { mkdtempSync, mkdirSync, rmSync, realpathSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import {
+  BACKGROUND_LAUNCH_PROFILE_VERSION,
+  buildArgvFromBackgroundLaunchProfile,
+  captureBackgroundLaunchProfile,
+  fingerprintBackgroundLaunchProfile,
+  normalizeBackgroundLaunchProfile,
+} from "../../src/lib/background-launch-profile.js";
+
+/**
+ * verify-36: 启动配置身份保真 (launch-profile identity fidelity).
+ *
+ * Acceptance:
+ *  1. 保存和恢复启动配置后策略身份一致 — after capturing a launch profile and
+ *     rebuilding argv from it, re-capturing yields the identical strategy
+ *     identity (fingerprintBackgroundLaunchProfile equality).
+ *  2. 非法配置拒绝而非放宽 — an illegal configuration value must be REJECTED
+ *     (thrown), not silently relaxed/coerced to a permissive default.
+ *
+ * The frozen source currently relaxes invalid enum values (permission.mode,
+ * sandbox.mode, tri-state) instead of rejecting them. Cases 3-5 assert the
+ * required rejection behavior and thereby expose that implementation defect.
+ */
+
+let dir;
+let previousHome;
+
+beforeEach(() => {
+  dir = realpathSync.native(mkdtempSync(join(tmpdir(), "cc-verify36-")));
+  previousHome = process.env.CHAINLESSCHAIN_HOME;
+  process.env.CHAINLESSCHAIN_HOME = join(dir, "home");
+  mkdirSync(process.env.CHAINLESSCHAIN_HOME, { recursive: true });
+});
+
+afterEach(() => {
+  if (previousHome === undefined) delete process.env.CHAINLESSCHAIN_HOME;
+  else process.env.CHAINLESSCHAIN_HOME = previousHome;
+  rmSync(dir, { recursive: true, force: true });
+});
+
+function capture(argv) {
+  return captureBackgroundLaunchProfile({
+    argv,
+    cwd: dir,
+    governance: {
+      permissionMode: "manual",
+      resourceBudget: { maxTurns: 12, maxCostUsd: 4.5 },
+    },
+  });
+}
+
+describe("verify-36 background launch profile identity", () => {
+  it("preserves the strategy identity across save -> restore -> re-capture", () => {
+    const argv = [
+      "agent",
+      "--provider",
+      "openai",
+      "--model",
+      "gpt-test",
+      "--permission-mode",
+      "manual",
+      "--sandbox-mode",
+      "strict",
+      "--allowed-tools",
+      "read_file,run_shell",
+      "--max-turns",
+      "5",
+    ];
+    const saved = capture(argv);
+    const restored = buildArgvFromBackgroundLaunchProfile(saved);
+    const recaptured = capture(restored);
+
+    expect(fingerprintBackgroundLaunchProfile(saved)).toBe(
+      fingerprintBackgroundLaunchProfile(recaptured),
+    );
+    // The identity is stable under repeated normalization too.
+    expect(
+      fingerprintBackgroundLaunchProfile(
+        normalizeBackgroundLaunchProfile(saved),
+      ),
+    ).toBe(fingerprintBackgroundLaunchProfile(saved));
+  });
+
+  it("rejects an unsupported profile version instead of coercing it", () => {
+    const profile = {
+      version: BACKGROUND_LAUNCH_PROFILE_VERSION + 1,
+      command: "agent",
+      workspace: { cwd: dir },
+    };
+    expect(() => normalizeBackgroundLaunchProfile(profile)).toThrowError(
+      /Unsupported background launch profile version/,
+    );
+  });
+
+  it("rejects an illegal permission mode instead of relaxing it", () => {
+    const profile = {
+      version: BACKGROUND_LAUNCH_PROFILE_VERSION,
+      command: "agent",
+      workspace: { cwd: dir },
+      permission: { mode: "not-a-permission-mode" },
+      llm: { provider: "openai", model: "gpt-test" },
+    };
+    expect(() => normalizeBackgroundLaunchProfile(profile)).toThrow();
+  });
+
+  it("rejects an illegal sandbox mode instead of relaxing it", () => {
+    const profile = {
+      version: BACKGROUND_LAUNCH_PROFILE_VERSION,
+      command: "agent",
+      workspace: { cwd: dir },
+      sandbox: { mode: "not-a-sandbox-mode" },
+      llm: { provider: "openai", model: "gpt-test" },
+    };
+    expect(() => normalizeBackgroundLaunchProfile(profile)).toThrow();
+  });
+
+  it("rejects an illegal tri-state value instead of coercing it", () => {
+    const profile = {
+      version: BACKGROUND_LAUNCH_PROFILE_VERSION,
+      command: "agent",
+      workspace: { cwd: dir },
+      llm: { provider: "openai", model: "gpt-test" },
+      mcp: { ide: "not-a-tri-state" },
+    };
+    expect(() => normalizeBackgroundLaunchProfile(profile)).toThrow();
+  });
+
+  it("preserves a valid tri-state value through normalization", () => {
+    const profile = {
+      version: BACKGROUND_LAUNCH_PROFILE_VERSION,
+      command: "agent",
+      workspace: { cwd: dir },
+      llm: { provider: "openai", model: "gpt-test" },
+      mcp: { ide: "auto" },
+    };
+    const normalized = normalizeBackgroundLaunchProfile(profile);
+    expect(normalized.mcp.ide).toBe("auto");
+    expect(fingerprintBackgroundLaunchProfile(profile)).toBe(
+      fingerprintBackgroundLaunchProfile(normalized),
+    );
+  });
+});

@@ -1,0 +1,151 @@
+import {
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { loadBackgroundAgentListIndex } from "../src/lib/background-agent-list-index.js";
+
+let directory;
+
+function writeState(id, overrides = {}) {
+  writeFileSync(
+    join(directory, `${id}.json`),
+    JSON.stringify({ id, startedAt: 1, status: "completed", ...overrides }),
+    "utf8",
+  );
+}
+
+function reader() {
+  return vi.fn((id) =>
+    JSON.parse(readFileSync(join(directory, `${id}.json`), "utf8")),
+  );
+}
+
+// Independent full scan of the same snapshot: authoritative state files,
+// sorted by name exactly as collectInventory sorts them.
+function expectedEntries(dir) {
+  return readdirSync(dir)
+    .filter(
+      (name) =>
+        /^bg-[A-Za-z0-9-]+\.json$/.test(name) && !name.includes(".job."),
+    )
+    .sort((a, b) => a.localeCompare(b, "en"))
+    .map((name) => {
+      const state = JSON.parse(readFileSync(join(dir, name), "utf8"));
+      return { id: state.id, startedAt: state.startedAt, status: state.status };
+    });
+}
+
+function paginate(items, pageSize) {
+  const pages = [];
+  for (let i = 0; i < items.length; i += pageSize) {
+    pages.push(items.slice(i, i + pageSize));
+  }
+  return pages;
+}
+
+beforeEach(() => {
+  directory = mkdtempSync(join(tmpdir(), "cc-verify-10-"));
+});
+
+afterEach(() => {
+  rmSync(directory, { recursive: true, force: true });
+});
+
+describe("background agent list index: pagination stays valid after write/delete", () => {
+  it("rebuilds after a write and paginates the same-snapshot full list including the last page", () => {
+    ["bg-a", "bg-b", "bg-c"].forEach((id) => writeState(id, { startedAt: 4 }));
+    const initial = loadBackgroundAgentListIndex({
+      directory,
+      readState: reader(),
+    });
+    expect(initial.source).toBe("rebuilt");
+
+    // Write new state files after the index was cached.
+    writeState("bg-d", { startedAt: 3 });
+    writeState("bg-e", { startedAt: 2 });
+    const fresh = loadBackgroundAgentListIndex({
+      directory,
+      readState: reader(),
+    });
+    expect(fresh.source).toBe("rebuilt");
+
+    const full = expectedEntries(directory);
+    const pages = paginate(fresh.entries, 2);
+    expect(pages.length).toBe(3);
+    expect(pages[2].length).toBe(1); // last page is the non-divisible remainder
+    expect(pages.flat()).toEqual(full);
+    expect(pages.flat()).toEqual(fresh.entries);
+  });
+
+  it("rebuilds after a delete and paginates the same-snapshot full list including the last page", () => {
+    ["bg-a", "bg-b", "bg-c", "bg-d", "bg-e"].forEach((id) => writeState(id));
+    const initial = loadBackgroundAgentListIndex({
+      directory,
+      readState: reader(),
+    });
+    expect(initial.source).toBe("rebuilt");
+
+    rmSync(join(directory, "bg-d.json"));
+    rmSync(join(directory, "bg-e.json"));
+    const afterDelete = loadBackgroundAgentListIndex({
+      directory,
+      readState: reader(),
+    });
+    expect(afterDelete.source).toBe("rebuilt");
+
+    const full = expectedEntries(directory);
+    expect(full.length).toBe(3);
+    const pages = paginate(afterDelete.entries, 2);
+    expect(pages.length).toBe(2);
+    expect(pages[1].length).toBe(1); // last page is the remainder
+    expect(pages.flat()).toEqual(full);
+    expect(pages.flat()).toEqual(afterDelete.entries);
+  });
+
+  it("reuses the cached index on an unchanged snapshot and paginates identically to the full list", () => {
+    ["bg-a", "bg-b", "bg-c", "bg-d", "bg-e"].forEach((id) => writeState(id));
+    const first = loadBackgroundAgentListIndex({
+      directory,
+      readState: reader(),
+    });
+    expect(first.source).toBe("rebuilt");
+
+    const second = loadBackgroundAgentListIndex({
+      directory,
+      readState: reader(),
+    });
+    expect(second.source).toBe("index");
+
+    expect(paginate(second.entries, 2)).toEqual(paginate(first.entries, 2));
+    expect(second.entries).toEqual(expectedEntries(directory));
+  });
+
+  it("keeps the non-divisible tail as a distinct last page matching the full list", () => {
+    ["bg-a", "bg-b", "bg-c", "bg-d", "bg-e"].forEach((id, idx) =>
+      writeState(id, { startedAt: 10 - idx }),
+    );
+    const result = loadBackgroundAgentListIndex({
+      directory,
+      readState: reader(),
+    });
+    const full = expectedEntries(directory);
+    expect(result.entries).toEqual(full);
+
+    // 2 and 3 leave a remainder tail; 5 divides evenly.
+    for (const pageSize of [2, 3, 5]) {
+      const pages = paginate(result.entries, pageSize);
+      expect(pages.flat()).toEqual(full);
+      expect(pages.flat().length).toBe(full.length);
+      const remainder = full.length % pageSize;
+      expect(pages[pages.length - 1]).toEqual(
+        full.slice(full.length - (remainder || pageSize)),
+      );
+    }
+  });
+});

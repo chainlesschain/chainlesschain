@@ -1,0 +1,207 @@
+import { afterAll, describe, expect, it, vi } from "vitest";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+const root = mkdtempSync(join(tmpdir(), "cc-verify-07-"));
+// Only filesystem locations are substituted; persistence and verification are real.
+vi.mock("../src/lib/paths.js", () => ({
+  getHomeDir: () => join(root, "home"),
+  getClaudeProjectStorageDir: () => null,
+  getStatePath: () => join(root, "home", "state"),
+  getMachineSecurityAnchorDir: () => join(root, "security"),
+}));
+const store = await import("../src/harness/jsonl-session-store.js");
+// From __tests__/, ../src resolves to packages/cli/src (not ../../src).
+const { readSessionTranscriptHistory } =
+  await import("../src/lib/session-transcript-history.js");
+
+afterAll(() => rmSync(root, { recursive: true, force: true }));
+
+function start(id) {
+  store.startSession(id, { provider: "test", model: "test" });
+}
+function append(id, role, text) {
+  if (role === "user") store.appendUserMessage(id, text);
+  else store.appendAssistantMessage(id, text);
+}
+function assertRows(rows, expected, startOrdinal = 0) {
+  expect(rows.map(({ role, text }) => ({ role, text }))).toEqual(expected);
+  expect(rows.map((row) => row.ordinal)).toEqual(
+    expected.map((_, index) => startOrdinal + index),
+  );
+  expect(new Set(rows.map((row) => row.id)).size).toBe(rows.length);
+  // Independently check each row against its verified persisted source event.
+  const events = rows.length
+    ? store.readVerifiedEvents(rows[0].id.split(":")[0])
+    : [];
+  for (const row of rows) {
+    const event = events.find((entry) => entry.hash === row.eventId);
+    expect(event).toBeDefined();
+    expect(event.type).toBe(`${row.role}_message`);
+    expect(event.data.content).toBe(row.text);
+    expect(row.itemIndex).toBe(0);
+  }
+}
+
+describe("persistent transcript pagination boundaries", () => {
+  it("walks latest-to-origin pages without repeating a boundary or losing the final body", () => {
+    const id = "verify07-backward";
+    start(id);
+    const expected = Array.from({ length: 7 }, (_, index) => ({
+      role: index % 2 ? "assistant" : "user",
+      text: `body-${index}: 首尾正文\n${"content ".repeat(20)}END-${index}`,
+    }));
+    expected.forEach(({ role, text }) => append(id, role, text));
+    let page = readSessionTranscriptHistory(id, { limit: 2 });
+    assertRows(page.messages, expected.slice(5), 5);
+    expect(page.syncCursor).toEqual(expect.any(String));
+    const baseline = page.syncCursor;
+    let rows = [...page.messages];
+    const cursors = new Set();
+    for (const first of [3, 1, 0]) {
+      expect(page.nextCursor).toEqual(expect.any(String));
+      expect(cursors.has(page.nextCursor)).toBe(false);
+      cursors.add(page.nextCursor);
+      page = readSessionTranscriptHistory(id, {
+        limit: 2,
+        cursor: page.nextCursor,
+      });
+      assertRows(page.messages, expected.slice(first, first === 0 ? 1 : first + 2), first);
+      expect(page.syncCursor).toBeNull();
+      expect(page.totalMessages).toBe(7);
+      rows = [...page.messages, ...rows];
+    }
+    expect(page.nextCursor).toBeNull();
+    assertRows(rows, expected);
+    const unchanged = readSessionTranscriptHistory(id, { after: baseline, limit: 2 });
+    expect(unchanged.messages).toEqual([]);
+    expect(unchanged.hasMore).toBe(false);
+    expect(unchanged.from).toBe(7);
+  });
+
+  it.each([1, 2])("drains appended bodies with limit %i, then polls the final cursor without duplicates", (limit) => {
+    const id = `verify07-forward-${limit}`;
+    start(id);
+    const initial = [
+      { role: "user", text: "initial question" },
+      { role: "assistant", text: "initial answer" },
+    ];
+    initial.forEach(({ role, text }) => append(id, role, text));
+    const baseline = readSessionTranscriptHistory(id, { limit: 1 });
+    const idle = readSessionTranscriptHistory(id, { after: baseline.syncCursor, limit });
+    expect(idle.messages).toEqual([]);
+    expect(idle.hasMore).toBe(false);
+    expect(idle.from).toBe(2);
+
+    const added = [
+      { role: "user", text: "next question" },
+      { role: "assistant", text: "same boundary body" },
+      { role: "assistant", text: "same boundary body" },
+      { role: "user", text: "last question" },
+      { role: "assistant", text: "最终正文\ncomplete final answer END" },
+    ];
+    added.forEach(({ role, text }) => append(id, role, text));
+    // Navigating the old history cursor after append must not consume new rows.
+    const older = readSessionTranscriptHistory(id, { cursor: baseline.nextCursor, limit: 1 });
+    assertRows(older.messages, initial.slice(0, 1));
+    expect(older.nextCursor).toBeNull();
+    expect(older.syncCursor).toBeNull();
+
+    let cursor = idle.nextCursor;
+    const received = [];
+    for (let offset = 0; offset < added.length; offset += limit) {
+      const page = readSessionTranscriptHistory(id, { after: cursor, limit });
+      const slice = added.slice(offset, offset + limit);
+      assertRows(page.messages, slice, 2 + offset);
+      expect(page.from).toBe(2 + offset);
+      expect(page.totalMessages).toBe(7);
+      expect(page.hasMore).toBe(offset + slice.length < added.length);
+      expect(page.nextCursor).toEqual(expect.any(String));
+      expect(page.nextCursor).not.toBe(cursor);
+      received.push(...page.messages);
+      cursor = page.nextCursor;
+    }
+    assertRows(received, added, 2);
+    expect(new Set(received.map((row) => row.eventId)).size).toBe(5);
+    const end = readSessionTranscriptHistory(id, { after: cursor, limit });
+    expect(end.messages).toEqual([]);
+    expect(end.from).toBe(7);
+    expect(end.hasMore).toBe(false);
+    expect(end.nextCursor).toBe(cursor);
+    // A later append starts strictly after the completed final body.
+    append(id, "assistant", "post-poll final body");
+    const resumed = readSessionTranscriptHistory(id, { after: end.nextCursor, limit });
+    assertRows(resumed.messages, [{ role: "assistant", text: "post-poll final body" }], 7);
+    expect(resumed.hasMore).toBe(false);
+  });
+
+  it("keeps contiguous bodies across the byte ceiling even when the row limit is not reached", () => {
+    const id = "verify07-byte-boundary";
+    start(id);
+    append(id, "user", "baseline");
+    const baseline = readSessionTranscriptHistory(id, { limit: 100 });
+    const added = Array.from({ length: 40 }, (_, index) => ({
+      role: "assistant",
+      text: `body-${index}: ${"x".repeat(40000)} END-${index}`,
+    }));
+    added.forEach(({ role, text }) => append(id, role, text));
+    // 40 moderate rows exceed 1 MiB together, but no individual row is oversized.
+    const first = readSessionTranscriptHistory(id, { after: baseline.syncCursor, limit: 100 });
+    expect(first.messages.length).toBeGreaterThan(0);
+    expect(first.messages.length).toBeLessThan(40);
+    expect(first.hasMore).toBe(true);
+    expect(first.from).toBe(1);
+    expect(first.messages.reduce((sum, row) => sum + Buffer.byteLength(JSON.stringify(row)), 0))
+      .toBeLessThanOrEqual(1024 * 1024);
+    assertRows(first.messages, added.slice(0, first.messages.length), 1);
+    const rest = readSessionTranscriptHistory(id, { after: first.nextCursor, limit: 100 });
+    expect(rest.from).toBe(1 + first.messages.length);
+    expect(rest.hasMore).toBe(false);
+    assertRows([...first.messages, ...rest.messages], added, 1);
+    const drained = readSessionTranscriptHistory(id, { after: rest.nextCursor, limit: 100 });
+    expect(drained.messages).toEqual([]);
+    expect(drained.hasMore).toBe(false);
+    expect(drained.from).toBe(41);
+
+    const all = [{ role: "user", text: "baseline" }, ...added];
+    const latest = readSessionTranscriptHistory(id, { limit: 100 });
+    expect(latest.messages.length).toBeLessThan(41);
+    expect(latest.nextCursor).toEqual(expect.any(String));
+    const firstOrdinal = 41 - latest.messages.length;
+    assertRows(latest.messages, all.slice(firstOrdinal), firstOrdinal);
+    const older = readSessionTranscriptHistory(id, { cursor: latest.nextCursor, limit: 100 });
+    expect(older.nextCursor).toBeNull();
+    expect(older.syncCursor).toBeNull();
+    assertRows([...older.messages, ...latest.messages], all);
+  });
+
+  it("accepts genuine boundary cursors but rejects a changed revision without changing persisted history", () => {
+    const id = "verify07-cursor-control";
+    start(id);
+    append(id, "user", "question");
+    append(id, "assistant", "final answer");
+    const latest = readSessionTranscriptHistory(id, { limit: 1 });
+    const events = store.readVerifiedEvents(id);
+    for (const [option, cursor] of [
+      ["cursor", latest.nextCursor],
+      ["after", latest.syncCursor],
+    ]) {
+      const valid = readSessionTranscriptHistory(id, { [option]: cursor, limit: 1 });
+      if (option === "cursor") {
+        assertRows(valid.messages, [{ role: "user", text: "question" }]);
+      } else {
+        expect(valid.messages).toEqual([]);
+        expect(valid.hasMore).toBe(false);
+      }
+      const anchor = JSON.parse(Buffer.from(cursor, "base64url").toString("utf8"));
+      // Keep the session, generation, count and position valid: reach revision validation.
+      anchor.revision = `${anchor.revision[0] === "a" ? "b" : "a"}${anchor.revision.slice(1)}`;
+      const tampered = Buffer.from(JSON.stringify(anchor)).toString("base64url");
+      expect(() => readSessionTranscriptHistory(id, { [option]: tampered, limit: 1 }))
+        .toThrow(expect.objectContaining({ code: "SESSION_TRANSCRIPT_CURSOR_STALE" }));
+      expect(store.readVerifiedEvents(id)).toEqual(events);
+      expect(readSessionTranscriptHistory(id, { [option]: cursor, limit: 1 })).toEqual(valid);
+    }
+  });
+});

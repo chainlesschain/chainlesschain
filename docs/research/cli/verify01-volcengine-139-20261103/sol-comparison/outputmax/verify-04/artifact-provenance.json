@@ -1,0 +1,14 @@
+{
+  "runId": 41585306414,
+  "executionSource": "ba504a7869c14c11787e1547dc8611eef9aace71",
+  "projectCommit": null,
+  "artifact": {
+    "id": 13208097483,
+    "name": "verify01-native-delivery-linux-cli-verify-04-ba504a7869c14c11787e1547dc8611eef9aace71",
+    "digest": "sha256:3241a35adebde1aee6626f398c6a6d91e683be89637f06dc16bef080afe87b80",
+    "summaryDigest": "sha256:cd17197f5d02522ae4a9a94d9fc1ce2e2fccae99f3179c47485c7e0bf043813c"
+  },
+  "selectedSamples": [
+    "verify-04"
+  ]
+}

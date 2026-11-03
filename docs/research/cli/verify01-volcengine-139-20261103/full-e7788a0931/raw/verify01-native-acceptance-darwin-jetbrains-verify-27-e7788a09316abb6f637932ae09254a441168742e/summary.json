@@ -1,0 +1,1258 @@
+{
+  "schema": "chainlesschain.verify01-native-task-acceptance/v1",
+  "executionSourceCommit": "e7788a09316abb6f637932ae09254a441168742e",
+  "deliverySourceCommit": "e7788a09316abb6f637932ae09254a441168742e",
+  "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+  "versions": {
+    "cli": "0.166.139",
+    "vscode": "0.37.175",
+    "jetbrains": "0.4.192",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "packageSetDigest": "sha256:7ac96aab19914fb001c91868a6a94c776639ef217fe3fd0e841e7bdff5d98e5f",
+  "group": "darwin-jetbrains",
+  "actualGenerationHost": {
+    "platform": "darwin",
+    "entry": "jetbrains",
+    "arch": "arm64"
+  },
+  "acceptanceHost": "linux-docker",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "reviewDigest": "sha256:a45bec6a5f51a5c0018e409a24715002c04fd3a24cceb4f06398e2035dc14d63",
+  "sourceSummaryDigest": "sha256:12f94589bad6c06d78db42f3d3d760d60a411e0060574fe29bd8c48551073470",
+  "formalSample": false,
+  "startedAt": "2026-11-03T03:59:04.835Z",
+  "samples": [
+    {
+      "sampleId": "verify-27",
+      "taskId": "verify-27",
+      "kind": "task",
+      "versions": {
+        "cli": "0.166.139",
+        "vscode": "0.37.175",
+        "jetbrains": "0.4.192",
+        "vscodeHost": "1.132.0",
+        "jetbrainsHost": "2025.2"
+      },
+      "packageSetDigest": "sha256:7ac96aab19914fb001c91868a6a94c776639ef217fe3fd0e841e7bdff5d98e5f",
+      "originalGenerationPassed": true,
+      "generationPassed": true,
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": true
+      },
+      "model": {
+        "pass": true,
+        "terminal": {
+          "terminalVerified": true,
+          "observedFallback": false,
+          "usage": {
+            "inputTokens": 73821,
+            "outputTokens": 10033,
+            "cacheReadInputTokens": 94720,
+            "cacheCreationInputTokens": 0
+          },
+          "totalCostUsd": null
+        },
+        "identity": true,
+        "fileOnlyToolSurface": true,
+        "plannedTools": [
+          "read_file",
+          "write_file",
+          "edit_file",
+          "edit_file_hashed",
+          "search_files",
+          "list_dir"
+        ],
+        "scoped": true,
+        "settled": true,
+        "preExecutionDenials": [],
+        "delivered": true,
+        "init": {
+          "type": "system",
+          "subtype": "init",
+          "protocol_version": 1,
+          "session_id": "panel-1793674968567-e39595",
+          "session_persistence": true,
+          "input_receipts": {
+            "version": 1
+          },
+          "task_worklog": null,
+          "model": "deepseek-v4-flash-ga-260731",
+          "provider": "volcengine",
+          "permission_mode": "acceptEdits",
+          "permission_mode_state": {
+            "correlation_id": "c35217be-5386-4229-87fb-4deb5a45b8ee",
+            "requested": "acceptEdits",
+            "effective": "acceptEdits",
+            "policy_revision": "b4d0151996d5d9e3"
+          },
+          "tools": [
+            "read_file",
+            "search_files",
+            "list_dir",
+            "write_file",
+            "edit_file",
+            "edit_file_hashed"
+          ],
+          "tools_hash": "eba35f3546a7a50a",
+          "policy_digest": "b4d0151996d5d9e3",
+          "loaded_sources": [
+            "project-memory",
+            "memory-recall",
+            "plugins"
+          ],
+          "slash_commands": [
+            "status",
+            "doctor",
+            "mcp",
+            "hooks",
+            "permissions",
+            "agents",
+            "tasks",
+            "memory"
+          ],
+          "input_format": "stream-json",
+          "additional_directories": [],
+          "resumed_messages": 0,
+          "trace_id": "tr-699920ea-3760-4619-8bb0-0710ed8f106d",
+          "seq": 1
+        },
+        "tools": [
+          {
+            "type": "tool_use",
+            "id": "call_tsoynl0oru7pesz02lepl5bp",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/vscode-extension/src/chat/question-drafts.js"
+            },
+            "trace_id": "tr-699920ea-3760-4619-8bb0-0710ed8f106d",
+            "seq": 6
+          },
+          {
+            "type": "tool_use",
+            "id": "call_o82tb48grbjddu81r6e051yy",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/unit/vscode-ext-question-drafts.test.js"
+            },
+            "trace_id": "tr-699920ea-3760-4619-8bb0-0710ed8f106d",
+            "seq": 10
+          },
+          {
+            "type": "tool_use",
+            "id": "call_ck02g12soskg1fu404bnopch",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/vscode-extension/src/chat/question-draft-contract.js"
+            },
+            "trace_id": "tr-699920ea-3760-4619-8bb0-0710ed8f106d",
+            "seq": 14
+          },
+          {
+            "type": "tool_use",
+            "id": "call_wvqsh0qfw1nmyzxr8wzy6j33",
+            "tool": "write_file",
+            "args": {
+              "path": "packages/vscode-extension/__tests__/verify-27.test.js",
+              "content": "import { describe, expect, it, vi } from \"vitest\";\nimport { QuestionDrafts } from \"../src/chat/question-drafts.js\";\nimport { questionIdentity } from \"../src/chat/question-draft-contract.js\";\n\nconst binding = {\n  sessionId: \"session-1\",\n  turnId: \"turn-1\",\n  toolUseId: \"tool-1\",\n  sequence: 1,\n};\nconst baseRequest = {\n  kind: \"question\",\n  id: \"q1\",\n  question: \"Pick a target\",\n  binding,\n};\nconst savedValues = [{ key: \"answer\", value: \"partial input\" }];\n\nconst savedQuestion = {\n  id: \"rec-1\",\n  digest: questionIdentity(\"session-1\", baseRequest),\n  sessionId: \"session-1\",\n  requestId: \"q1\",\n  status: \"draft\",\n  fields: savedValues,\n};\n\nfunction host({ sessionId = \"session-1\", draftKey = \"dk\" } = {}) {\n  const messages = [];\n  const conv = {\n    id: \"a\",\n    sessionId,\n    draftKey,\n    _sessionToken: {},\n    session: { running: true, sendEvent: vi.fn(() => true) },\n  };\n  const store = {\n    view: vi.fn().mockResolvedValue({ questions: [savedQuestion] }),\n    saveQuestion: vi.fn().mockResolvedValue(undefined),\n    archiveQuestion: vi.fn().mockResolvedValue(undefined),\n  };\n  const drafts = new QuestionDrafts({\n    store,\n    getConversation: (id) => (id === conv.id ? conv : null),\n    post: (m) => messages.push(m),\n    refresh: () => {},\n  });\n  return { drafts, conv, messages };\n}\n\nasync function restoreFields(request, overrides = {}) {\n  const h = host(overrides);\n  const registered = h.drafts.register(h.conv, request);\n  await h.drafts.restore(registered);\n  const snapshot = h.messages.find((m) => m.kind === \"questionDraftSnapshot\");\n  return snapshot ? snapshot.fields : undefined;\n}\n\ndescribe(\"verify-27: precise resend restores live draft fields; mismatch does not\", () => {\n  it(\"restores saved fields only on a precise resend of the same request, session and schema\", async () => {\n    const fields = await restoreFields(baseRequest);\n    expect(fields).toEqual(savedValues);\n  });\n\n  it(\"does not restore fields when the resend changes the request id\", async () => {\n    const fields = await restoreFields({ ...baseRequest, id: \"q2\" });\n    expect(fields).toEqual([]);\n  });\n\n  it(\"does not restore fields when the resend changes the requested schema\", async () => {\n    const fields = await restoreFields({\n      ...baseRequest,\n      requestedSchema: {\n        type: \"object\",\n        properties: { color: { type: \"string\" } },\n      },\n    });\n    expect(fields).toEqual([]);\n  });\n\n  it(\"does not restore fields when the resend is for a different session\", async () => {\n    const fields = await restoreFields(baseRequest, { sessionId: \"session-2\" });\n    expect(fields).toEqual([]);\n  });\n});\n"
+            },
+            "trace_id": "tr-699920ea-3760-4619-8bb0-0710ed8f106d",
+            "seq": 18
+          },
+          {
+            "type": "tool_use",
+            "id": "call_w6cau5xo9lbkp4booib3kom7",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/vscode-extension/__tests__/verify-27.test.js"
+            },
+            "trace_id": "tr-699920ea-3760-4619-8bb0-0710ed8f106d",
+            "seq": 22
+          },
+          {
+            "type": "tool_use",
+            "id": "call_wrw69j2p449oybjz5cqxkaf1",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/vscode-extension/src/chat/question-drafts.js"
+            },
+            "trace_id": "tr-699920ea-3760-4619-8bb0-0710ed8f106d",
+            "seq": 31
+          },
+          {
+            "type": "tool_use",
+            "id": "call_38hkwmvf11t2s6pvdjob3vrm",
+            "tool": "search_files",
+            "args": {
+              "pattern": "restore",
+              "path": "packages/vscode-extension/src/chat/question-drafts.js",
+              "content_search": true
+            },
+            "trace_id": "tr-699920ea-3760-4619-8bb0-0710ed8f106d",
+            "seq": 35
+          },
+          {
+            "type": "tool_use",
+            "id": "call_rk29mz3woi75uc1lxkdk4vkg",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/vscode-extension/src/chat/question-drafts.js",
+              "offset": 80,
+              "limit": 150
+            },
+            "trace_id": "tr-699920ea-3760-4619-8bb0-0710ed8f106d",
+            "seq": 39
+          },
+          {
+            "type": "tool_use",
+            "id": "call_sza0zsuvavqzfzje9e50om6i",
+            "tool": "search_files",
+            "args": {
+              "content_search": true,
+              "path": "packages/vscode-extension/src/chat/question-draft-contract.js",
+              "pattern": "normalizeQuestionFields"
+            },
+            "trace_id": "tr-699920ea-3760-4619-8bb0-0710ed8f106d",
+            "seq": 43
+          },
+          {
+            "type": "tool_use",
+            "id": "call_hwin5ostfugphm26d4m55urr",
+            "tool": "read_file",
+            "args": {
+              "offset": 112,
+              "limit": 60,
+              "path": "packages/vscode-extension/src/chat/question-draft-contract.js"
+            },
+            "trace_id": "tr-699920ea-3760-4619-8bb0-0710ed8f106d",
+            "seq": 47
+          }
+        ],
+        "toolResults": [
+          {
+            "type": "tool_result",
+            "id": "call_tsoynl0oru7pesz02lepl5bp",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/private/tmp/cc-native-VYGEf0/5fdcd803-bc9a-4e16-8788-b09c2ea61501/workspace/packages/vscode-extension/src/chat/question-drafts.js",
+              "fileVersion": "9164:1791108223000:1793674544608.8357",
+              "readSpan": {
+                "start": 0,
+                "end": 9162,
+                "total": 9162
+              },
+              "hashed": false,
+              "content": "const crypto = require(\"crypto\");\nconst {\n  questionIdentity,\n  questionFields,\n  normalizeQuestionFields,\n  questionDraftText,\n} = require(\"./question-draft-contract\");\n\n/** Live authority stays in this host. Disk records are editable recovery data. */\nclass QuestionDrafts {\n  constructor({ store, getConversation, post, refresh }) {\n    Object.assign(this, { store, getConversation, post, refresh });\n    this.requests = new Map();\n  }\n\n  register(conv, request) {\n    let digest, fields, recoveryError;\n    try {\n      digest = questionIdentity(conv.sessionId, request);\n      fields = questionFields(request);\n      if (fields.length > 128)\n        throw new Error(\"Question has more than 128 draft fields\");\n    } catch (error) {\n      recoveryError = error.message;\n      digest = crypto.randomBytes(32).toString(\"hex\");\n      fields = [];\n    }\n    for (const entry of this.requests.values()) {\n      if (\n        entry.conv === conv &&\n        entry.request.id === request.id &&\n        entry.state !== \"archived\"\n      ) {\n        if (entry.digest === digest && this.live(entry)) return entry.request;\n        this.archive(entry, \"Question replaced\");\n      }\n    }\n    // Only archived instances may be evicted. Never silently lose a live request.\n    if (this.requests.size >= 256) {\n      const old = [...this.requests.values()].find(\n        (r) => r.state === \"archived\",\n      );\n      if (old) this.requests.delete(old.instance);\n      else throw new Error(\"Too many pending questions\");\n    }\n    const instance = crypto.randomUUID();\n    const entry = {\n      conv,\n      session: conv.session,\n      token: conv._sessionToken,\n      key: conv.draftKey,\n      sessionId: conv.sessionId || \"\",\n      instance,\n      recordId: instance,\n      digest,\n      fields,\n      state: \"draft\",\n      revision: -1,\n      recoveryError,\n    };\n    entry.request = {\n      ...request,\n      convId: conv.id,\n      draftKey: entry.key,\n      questionInstance: instance,\n      questionKey: digest,\n      draftFields: fields,\n      draftStorage: !!this.store && !recoveryError,\n      questionState: \"draft\",\n      ...(recoveryError ? { recoveryError } : {}),\n    };\n    this.requests.set(instance, entry);\n    return entry.request;\n  }\n\n  match(message) {\n    const r = this.requests.get(message.questionInstance);\n    return r &&\n      r.conv.id === message.convId &&\n      r.key === message.draftKey &&\n      r.digest === message.questionKey &&\n      r.request.id === message.id\n      ? r\n      : null;\n  }\n\n  live(r) {\n    return (\n      r.state !== \"archived\" &&\n      this.getConversation(r.conv.id) === r.conv &&\n      r.conv.session === r.session &&\n      r.conv._sessionToken === r.token &&\n      r.conv.draftKey === r.key &&\n      (r.conv.sessionId || \"\") === r.sessionId\n    );\n  }\n\n  message(r, kind, extra = {}) {\n    this.post({\n      kind,\n      convId: r.conv.id,\n      draftKey: r.key,\n      id: r.request.id,\n      questionInstance: r.instance,\n      questionKey: r.digest,\n      ...extra,\n    });\n  }\n\n  async load(r) {\n    if (!this.store || r.recoveryError) return [];\n    if (!r.loading)\n      r.loading = (async () => {\n        const saved = await this.store.view(r.key, { includeComposer: false });\n        const binding = r.request.binding;\n        // Legacy unbound requests can only recover in the original live instance.\n        const bound =\n          binding?.sessionId === r.sessionId &&\n          typeof binding?.turnId === \"string\" &&\n          binding.turnId &&\n          typeof binding?.toolUseId === \"string\" &&\n          binding.toolUseId &&\n          Number.isSafeInteger(binding?.sequence);\n        const prior = saved.questions.find(\n          (q) =>\n            q.digest === r.digest &&\n            q.sessionId === r.sessionId &&\n            q.requestId === r.request.id &&\n            q.status === \"draft\" &&\n            (q.id === r.recordId || bound),\n        );\n        if (prior && this.live(r) && r.revision < 0) {\n          r.recordId = prior.id;\n          r.values = normalizeQuestionFields(r.fields, prior.fields);\n        }\n        return r.values || [];\n      })().catch((error) => {\n        r.loading = null;\n        throw error;\n      });\n    await r.loading;\n    return r.values || [];\n  }\n\n  async restore(message) {\n    const r = this.match(message);\n    if (!r || !this.live(r)) return;\n    try {\n      const values = await this.load(r);\n      if (this.live(r))\n        this.message(r, \"questionDraftSnapshot\", {\n          fields: values,\n          state: r.state,\n        });\n    } catch (error) {\n      this.message(r, \"questionDraftError\", { text: error.message });\n    }\n  }\n\n  async save(message) {\n    const r = this.match(message);\n    if (!r || !this.store || r.recoveryError) return;\n    const values = normalizeQuestionFields(r.fields, message.fields || []);\n    if (!Number.isSafeInteger(message.revision) || message.revision < 0)\n      throw new Error(\"Invalid question draft revision\");\n    await this.load(r);\n    r.revision++;\n    r.values = values;\n    await this.store.saveQuestion(r.key, {\n      id: r.recordId,\n      digest: r.digest,\n      sessionId: r.sessionId,\n      requestId: r.request.id,\n      title: String(r.request.question || \"Question\").slice(0, 1024),\n      fields: values,\n      text: questionDraftText(r.fields, values),\n      status: r.state === \"draft\" && this.live(r) ? \"draft\" : \"archived\",\n    });\n  }\n\n  archive(r, reason) {\n    if (r.state === \"archived\") return;\n    r.state = \"archived\";\n    r.request.questionState = \"archived\";\n    this.message(r, \"questionState\", { state: \"archived\", text: reason });\n    if (this.store)\n      this.store\n        .archiveQuestion(r.key, r.recordId, r.digest)\n        .then(() => this.refresh(r.conv))\n        .catch((error) =>\n          this.message(r, \"questionDraftError\", { text: error.message }),\n        );\n  }\n\n  rejected(conv, id, reason) {\n    for (const r of this.requests.values()) {\n      if (\n        r.conv !== conv ||\n        r.request.id !== id ||\n        !this.live(r) ||\n        ![\"saving\", \"pending\"].includes(r.state)\n      )\n        continue;\n      r.state = \"unknown\";\n      r.request.questionState = \"unknown\";\n      this.message(r, \"questionState\", {\n        state: \"unknown\",\n        text:\n          \"Agent rejected the response: \" +\n          String(reason || \"unknown reason\").slice(0, 256) +\n          \". Saved text remains available.\",\n      });\n    }\n  }\n\n  archiveConversation(\n    conv,\n    {\n      blockingOnly = false,\n      id = null,\n      reason = \"Question closed; saved text remains editable\",\n    } = {},\n  ) {\n    for (const r of this.requests.values())\n      if (\n        r.conv === conv &&\n        (!id || r.request.id === id) &&\n        (!blockingOnly || r.request.blocking !== false)\n      )\n        this.archive(r, reason);\n  }\n\n  async answer(message, openUrl) {\n    const r = this.match(message);\n    if (!r || !this.live(r) || r.state !== \"draft\" || !r.session?.running)\n      return;\n    // Reserve before the first await. A second click must never dispatch again.\n    r.state = \"saving\";\n    r.request.questionState = \"saving\";\n    this.message(r, \"questionState\", {\n      state: \"saving\",\n      text: \"Saving answer…\",\n    });\n    try {\n      await this.save(message);\n    } catch (error) {\n      if (this.live(r)) {\n        r.state = \"draft\";\n        r.request.questionState = \"draft\";\n        this.message(r, \"questionState\", {\n          state: \"draft\",\n          text: `Answer was not sent: ${error.message}`,\n        });\n      }\n      return;\n    }\n    if (!this.live(r) || r.state !== \"saving\") return;\n    let answer = message.answer === undefined ? null : message.answer;\n    if (openUrl) {\n      // Use the reviewed host-owned URL, never a URL supplied by the Webview.\n      try {\n        const target = new URL(r.request.url);\n        if (\n          r.request.mode !== \"url\" ||\n          !r.request.elicitation ||\n          target.protocol !== \"https:\" ||\n          !target.hostname ||\n          target.username ||\n          target.password\n        )\n          throw new Error(\"unsafe URL\");\n        answer = (await openUrl(target.href)) === false ? null : {};\n      } catch {\n        answer = null;\n      }\n      if (!this.live(r) || r.state !== \"saving\") return;\n    }\n    r.state = \"pending\";\n    r.request.questionState = \"pending\";\n    try {\n      const sent = r.session.sendEvent({\n        type: \"answer\",\n        id: r.request.id,\n        answer,\n        ...(r.request.binding ? { binding: r.request.binding } : {}),\n      });\n      if (sent === false) throw new Error(\"Agent pipe unavailable\");\n      if (this.live(r) && r.state === \"pending\")\n        this.message(r, \"questionState\", {\n          state: \"pending\",\n          text: \"Submitted; waiting for agent confirmation\",\n        });\n    } catch {\n      if (this.live(r)) {\n        r.state = \"unknown\";\n        r.request.questionState = \"unknown\";\n        this.message(r, \"questionState\", {\n          state: \"unknown\",\n          text: \"Delivery is unknown. Saved text is available; no automatic retry.\",\n        });\n      }\n    }\n    this.refresh(r.conv);\n  }\n}\nmodule.exports = { QuestionDrafts };\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793674978215,
+                "meta": {
+                  "args": {
+                    "path": "packages/vscode-extension/src/chat/question-drafts.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 26,
+                "sessionId": "panel-1793674968567-e39595",
+                "metadata": {
+                  "args": {
+                    "path": "packages/vscode-extension/src/chat/question-drafts.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_tsoynl0oru7pesz02lepl5bp",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-699920ea-3760-4619-8bb0-0710ed8f106d",
+            "seq": 7
+          },
+          {
+            "type": "tool_result",
+            "id": "call_o82tb48grbjddu81r6e051yy",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/private/tmp/cc-native-VYGEf0/5fdcd803-bc9a-4e16-8788-b09c2ea61501/workspace/packages/cli/__tests__/unit/vscode-ext-question-drafts.test.js",
+              "fileVersion": "18578:1791108223000:1793674543708.918",
+              "readSpan": {
+                "start": 0,
+                "end": 18572,
+                "total": 18572
+              },
+              "hashed": false,
+              "content": "import { afterEach, describe, expect, it, vi } from \"vitest\";\nimport fs from \"node:fs/promises\";\nimport path from \"node:path\";\nimport { tmpdir } from \"node:os\";\nimport { randomUUID } from \"node:crypto\";\nimport { Window } from \"happy-dom\";\nimport { DraftStore } from \"../../../vscode-extension/src/chat/draft-store.js\";\nimport { QuestionDrafts } from \"../../../vscode-extension/src/chat/question-drafts.js\";\nimport {\n  questionIdentity,\n  questionFields,\n  normalizeQuestionFields,\n} from \"../../../vscode-extension/src/chat/question-draft-contract.js\";\nimport { ChatViewProvider } from \"../../../vscode-extension/src/chat/chat-view.js\";\nimport { buildChatHtml } from \"../../../vscode-extension/src/chat/chat-html.js\";\n\nconst cleanups = [];\nafterEach(async () => {\n  for (const fn of cleanups.splice(0).reverse()) await fn();\n});\nasync function storage() {\n  const root = await fs.mkdtemp(path.join(tmpdir(), \"cc-question-\"));\n  cleanups.push(() => fs.rm(root, { recursive: true, force: true }));\n  return root;\n}\nconst binding = {\n  backgroundAgentId: null,\n  sessionId: \"session-1\",\n  turnId: \"turn-1\",\n  toolUseId: \"tool-1\",\n  sequence: 1,\n};\nconst request = {\n  kind: \"question\",\n  id: \"q1\",\n  question: \"Choose a target\",\n  binding,\n};\nconst values = [{ key: \"answer\", value: \"half entered 中文\" }];\nconst payload = (q, extra = {}) => ({\n  ...q,\n  fields: values,\n  revision: 1,\n  ...extra,\n});\nfunction controller(store, overrides = {}) {\n  cleanups.push(async () => {\n    let queue;\n    do {\n      queue = store.queue;\n      await queue;\n    } while (queue !== store.queue);\n  });\n  const conv = {\n    id: \"a\",\n    sessionId: \"session-1\",\n    draftKey: randomUUID(),\n    _sessionToken: {},\n    session: { running: true, sendEvent: vi.fn(() => true) },\n    ...overrides,\n  };\n  const messages = [];\n  const drafts = new QuestionDrafts({\n    store,\n    getConversation: (id) => (id === conv.id ? conv : null),\n    post: (m) => messages.push(m),\n    refresh: () => {},\n  });\n  return { drafts, conv, messages };\n}\nfunction ui(backup = {}) {\n  const window = new Window({\n    settings: {\n      enableJavaScriptEvaluation: true,\n      disableCSSFileLoading: true,\n      disableJavaScriptFileLoading: true,\n    },\n  });\n  cleanups.push(() => window.happyDOM.abort());\n  const sent = [];\n  let state = backup;\n  window.acquireVsCodeApi = () => ({\n    postMessage: (m) => sent.push(m),\n    getState: () => state,\n    setState: (v) => {\n      state = v;\n    },\n  });\n  window.document.write(\n    buildChatHtml({ nonce: \"n\", cspSource: \"vscode-resource:\" }),\n  );\n  const emit = (data) =>\n    window.dispatchEvent(new window.MessageEvent(\"message\", { data }));\n  const card = (q) => window.document.getElementById(\"q-\" + q.questionInstance);\n  return { window, sent, emit, card, state: () => state };\n}\n\ndescribe(\"question recovery authority and persistence\", () => {\n  it(\"recovers an unfinished bound question in a fresh host without sending an answer\", async () => {\n    const root = await storage();\n    const first = controller(new DraftStore(root));\n    const q = first.drafts.register(first.conv, request);\n    await first.drafts.save(payload(q));\n    const next = controller(new DraftStore(root), {\n      draftKey: first.conv.draftKey,\n    });\n    const restored = next.drafts.register(next.conv, request);\n    expect(restored.questionInstance).not.toBe(q.questionInstance);\n    await next.drafts.restore(restored);\n    expect(next.messages.at(-1)).toMatchObject({\n      kind: \"questionDraftSnapshot\",\n      fields: values,\n      state: \"draft\",\n    });\n    expect(next.conv.session.sendEvent).not.toHaveBeenCalled();\n    await next.drafts.save(\n      payload(restored, { fields: [{ key: \"answer\", value: \"finished\" }] }),\n    );\n    expect(\n      (await next.drafts.store.view(first.conv.draftKey)).questions,\n    ).toHaveLength(1);\n  });\n\n  it(\"archives cancellations, schema changes and late edits without reviving the request\", async () => {\n    const h = controller(new DraftStore(await storage()));\n    const q = h.drafts.register(h.conv, request);\n    await h.drafts.save(payload(q));\n    const changed = h.drafts.register(h.conv, {\n      ...request,\n      options: [\"a\", \"b\"],\n    });\n    await h.drafts.save(\n      payload(q, { fields: [{ key: \"answer\", value: \"late text\" }] }),\n    );\n    await h.drafts.answer(payload(q, { answer: \"stale\" }));\n    await h.drafts.restore(changed);\n    expect(h.messages.at(-1).fields).toEqual([]);\n    expect(h.conv.session.sendEvent).not.toHaveBeenCalled();\n    expect(\n      (await h.drafts.store.view(h.conv.draftKey)).questions[0],\n    ).toMatchObject({ status: \"archived\", text: \"Answer: late text\" });\n  });\n\n  it(\"does not restore unbound or already submitted answers as a new live form\", async () => {\n    const root = await storage();\n    for (const bound of [false, true]) {\n      const h = controller(new DraftStore(root));\n      const original = { ...request, binding: bound ? binding : undefined };\n      const q = h.drafts.register(h.conv, original);\n      await h.drafts.save(payload(q));\n      if (bound) await h.drafts.answer(payload(q, { answer: \"sent\" }));\n      const next = controller(new DraftStore(root), {\n        draftKey: h.conv.draftKey,\n      });\n      const nextQ = next.drafts.register(next.conv, original);\n      await next.drafts.restore(nextQ);\n      expect(next.messages.at(-1).fields).toEqual([]);\n      expect(\n        (await next.drafts.store.view(h.conv.draftKey)).questions[0].text,\n      ).toContain(\"half entered\");\n      expect(next.conv.session.sendEvent).not.toHaveBeenCalled();\n    }\n  });\n\n  it(\"reserves one response, persists before writing, and leaves failed delivery unknown\", async () => {\n    const h = controller(new DraftStore(await storage()));\n    const q = h.drafts.register(h.conv, request);\n    h.conv.session.sendEvent.mockReturnValue(false);\n    await Promise.all([\n      h.drafts.answer(payload(q, { answer: \"x\" })),\n      h.drafts.answer(payload(q, { answer: \"x\" })),\n    ]);\n    expect(h.conv.session.sendEvent).toHaveBeenCalledOnce();\n    expect(h.messages.at(-1)).toMatchObject({ state: \"unknown\" });\n    expect(\n      (await h.drafts.store.view(h.conv.draftKey)).questions[0].status,\n    ).toBe(\"archived\");\n    await h.drafts.answer(payload(q, { answer: \"retry\" }));\n    expect(h.conv.session.sendEvent).toHaveBeenCalledOnce();\n  });\n\n  it(\"does not dispatch on storage failure or a reset during the save\", async () => {\n    const h = controller(new DraftStore(await storage()));\n    const q = h.drafts.register(h.conv, request);\n    await h.drafts.restore(q);\n    const save = vi\n      .spyOn(h.drafts.store, \"saveQuestion\")\n      .mockRejectedValueOnce(new Error(\"disk full\"));\n    await h.drafts.answer(payload(q, { answer: \"x\" }));\n    expect(h.messages.at(-1)).toMatchObject({\n      state: \"draft\",\n      text: \"Answer was not sent: disk full\",\n    });\n    save.mockRestore();\n    let release;\n    const original = h.drafts.store.saveQuestion.bind(h.drafts.store);\n    vi.spyOn(h.drafts.store, \"saveQuestion\").mockImplementation(\n      async (...args) => {\n        await new Promise((resolve) => {\n          release = resolve;\n        });\n        return original(...args);\n      },\n    );\n    const sending = h.drafts.answer(payload(q, { answer: \"x\" }));\n    await vi.waitFor(() => expect(release).toBeTypeOf(\"function\"));\n    h.conv._sessionToken = {};\n    release();\n    await sending;\n    expect(h.conv.session.sendEvent).not.toHaveBeenCalled();\n  });\n\n  it(\"keeps deferred questions across turn end and bounds stored questions\", async () => {\n    const h = controller(new DraftStore(await storage()));\n    const blocking = h.drafts.register(h.conv, request);\n    const deferred = h.drafts.register(h.conv, {\n      ...request,\n      id: \"later\",\n      blocking: false,\n    });\n    await h.drafts.save(payload(blocking));\n    await h.drafts.save(payload(deferred));\n    h.drafts.archiveConversation(h.conv, { blockingOnly: true });\n    expect(h.drafts.match(deferred).state).toBe(\"draft\");\n    expect(h.drafts.match(blocking).state).toBe(\"archived\");\n    for (let i = 2; i < 16; i++)\n      await h.drafts.save(\n        payload(h.drafts.register(h.conv, { ...request, id: \"q\" + i })),\n      );\n    await expect(\n      h.drafts.save(\n        payload(h.drafts.register(h.conv, { ...request, id: \"overflow\" })),\n      ),\n    ).rejects.toThrow(\"16 questions\");\n    expect((await h.drafts.store.list())[0].label).toBe(request.question);\n  });\n});\n\ndescribe(\"generated question forms\", () => {\n  it(\"retains multiselect edits when switching between conversation tabs\", async () => {\n    const h = controller(new DraftStore(await storage()));\n    const q = h.drafts.register(h.conv, {\n      ...request,\n      options: [\"alpha\", \"beta\"],\n      multiSelect: true,\n    });\n    const view = ui();\n    const tabs = (activeId) =>\n      view.emit({\n        kind: \"tabs\",\n        activeId,\n        tabs: [\n          { id: \"a\", title: \"A\", draftKey: h.conv.draftKey },\n          { id: \"b\", title: \"B\", draftKey: randomUUID() },\n        ],\n      });\n    tabs(\"a\");\n    view.emit(q);\n    const original = view.card(q);\n    original.querySelectorAll(\"input\")[1].checked = true;\n    original\n      .querySelectorAll(\"input\")[1]\n      .dispatchEvent(new view.window.Event(\"change\"));\n    tabs(\"b\");\n    expect(view.card(q)).toBeNull();\n    tabs(\"a\");\n    view.emit(q);\n    expect(view.card(q)).toBe(original);\n    expect(original.querySelectorAll(\"input\")[1].checked).toBe(true);\n    expect(view.sent.some((m) => m.type === \"answer\")).toBe(false);\n  });\n  it(\"preserves partial form values through Webview reconstruction, omitting write-only secrets\", async () => {\n    const h = controller(new DraftStore(await storage()));\n    const schema = {\n      type: \"object\",\n      properties: {\n        name: { type: \"string\" },\n        consent: { type: \"boolean\" },\n        color: { type: \"string\", enum: [\"red\", \"blue\"] },\n        token: { type: \"string\", writeOnly: true },\n        choices: { type: \"array\", items: { type: \"string\", enum: [\"a\", \"b\"] } },\n      },\n    };\n    const q = h.drafts.register(h.conv, {\n      ...request,\n      elicitation: true,\n      requestedSchema: schema,\n    });\n    const first = ui();\n    first.emit(q);\n    const controls = first.card(q).querySelectorAll(\"input,select\");\n    expect(controls).toHaveLength(6);\n    controls[0].value = \"unfinished\";\n    controls[1].checked = true;\n    controls[2].value = \"blue\";\n    controls[3].value = \"secret-token\";\n    controls[5].checked = true;\n    controls[0].dispatchEvent(new first.window.Event(\"input\"));\n    const update = first.sent.find((m) => m.type === \"questionDraftUpdate\");\n    await h.drafts.save(update);\n    expect(JSON.stringify(first.state())).not.toContain(\"secret-token\");\n    expect(\n      JSON.stringify(await h.drafts.store.view(h.conv.draftKey)),\n    ).not.toContain(\"secret-token\");\n    const next = ui();\n    next.emit(q);\n    await h.drafts.restore(q);\n    next.emit(h.messages.at(-1));\n    const restored = next.card(q).querySelectorAll(\"input,select\");\n    expect(restored[0].value).toBe(\"unfinished\");\n    expect(restored[1].checked).toBe(true);\n    expect(restored[2].value).toBe(\"blue\");\n    expect(restored[3].value).toBe(\"\");\n    expect(restored[5].checked).toBe(true);\n    expect(next.sent.some((m) => m.type === \"answer\")).toBe(false);\n  });\n\n  it(\"restores the last keystroke backup and never overwrites a newer edit\", async () => {\n    const h = controller(new DraftStore(await storage()));\n    const q = h.drafts.register(h.conv, request);\n    const first = ui();\n    first.emit(q);\n    first.card(q).querySelector(\"input\").value = \"last keystroke\";\n    first\n      .card(q)\n      .querySelector(\"input\")\n      .dispatchEvent(new first.window.Event(\"input\"));\n    const next = ui(first.state());\n    next.emit(q);\n    expect(next.card(q).querySelector(\"input\").value).toBe(\"last keystroke\");\n    next.emit({\n      ...q,\n      kind: \"questionDraftSnapshot\",\n      state: \"draft\",\n      fields: values,\n    });\n    expect(next.card(q).querySelector(\"input\").value).toBe(\"last keystroke\");\n    expect(next.sent.some((m) => m.type === \"answer\")).toBe(false);\n  });\n\n  it(\"disables duplicate clicks and marks completion only on the host resolution\", async () => {\n    const h = controller(new DraftStore(await storage()));\n    const q = h.drafts.register(h.conv, request);\n    const view = ui();\n    view.emit(q);\n    const card = view.card(q);\n    const send = [...card.querySelectorAll(\"button\")].find(\n      (b) => b.textContent === \"Send\",\n    );\n    send.click();\n    send.click();\n    expect(view.sent.filter((m) => m.type === \"answer\")).toHaveLength(1);\n    expect(card.classList.contains(\"done\")).toBe(false);\n    await h.drafts.answer(view.sent.find((m) => m.type === \"answer\"));\n    view.emit(h.messages.at(-1));\n    expect(card.textContent).toContain(\"waiting for agent confirmation\");\n    h.drafts.archiveConversation(h.conv, {\n      id: q.id,\n      reason: \"Answered — confirmed by agent\",\n    });\n    view.emit(h.messages.at(-1));\n    expect(card.classList.contains(\"done\")).toBe(true);\n  });\n\n  it(\"excludes unsupported JSON fallback values and rejects oversized draft structures\", () => {\n    const descriptors = questionFields({\n      requestedSchema: {\n        type: \"object\",\n        properties: { pwd: { type: \"string\", format: \"password\" } },\n      },\n    });\n    expect(\n      normalizeQuestionFields(descriptors, [\n        { key: \"answer-json\", value: \"secret\" },\n      ]),\n    ).toEqual([]);\n    expect(() =>\n      normalizeQuestionFields(questionFields(request), [\n        { key: \"answer\", value: \"x\".repeat(32769) },\n      ]),\n    ).toThrow(\"32K\");\n    expect(() =>\n      questionIdentity(\"s\", { ...request, options: Array(10000).fill(\"x\") }),\n    ).toThrow(\"too many\");\n    expect(questionIdentity(\"s\", { ...request, binding: { b: 2, a: 1 } })).toBe(\n      questionIdentity(\"s\", { ...request, binding: { a: 1, b: 2 } }),\n    );\n  });\n});\n\ndescribe(\"ChatView question owner routing\", () => {\n  async function host() {\n    const messages = [];\n    const provider = new ChatViewProvider(\n      {\n        workspace: {\n          workspaceFolders: [],\n          getConfiguration: () => ({ get() {} }),\n        },\n        commands: { executeCommand() {} },\n        window: {},\n        env: { openExternal: vi.fn() },\n        Uri: { parse: (s) => s },\n      },\n      {\n        storagePath: await storage(),\n        deps: {\n          resolveChatLlm: () => ({}),\n          loadTranscriptPage: async () => ({ messages: [] }),\n        },\n      },\n    );\n    cleanups.push(async () => {\n      provider.dispose();\n      let queue;\n      do {\n        queue = provider._draftStore.queue;\n        await queue;\n      } while (queue !== provider._draftStore.queue);\n    });\n    provider.view = {\n      webview: {\n        postMessage: (m) => {\n          messages.push(m);\n          return Promise.resolve(true);\n        },\n      },\n    };\n    const a = provider._activeConv();\n    a.sessionId = \"session-1\";\n    a._sessionToken = {};\n    a.session = { running: true, sendEvent: vi.fn(() => true), stop() {} };\n    provider._makeOnEvent(\n      a.id,\n      a._sessionToken,\n    )({\n      type: \"question_request\",\n      id: \"url\",\n      question: \"Authorize\",\n      binding,\n      metadata: {\n        kind: \"mcp_elicitation\",\n        mode: \"url\",\n        url: \"https://example.test/\",\n      },\n    });\n    return {\n      provider,\n      a,\n      q: messages.find((m) => m.kind === \"question\"),\n      messages,\n    };\n  }\n\n  it(\"keeps a rejected response unresolved and exposes archived text without sending it\", async () => {\n    const h = await host();\n    await h.provider._handleMessage(\n      payload(h.q, { type: \"answer\", fields: [], answer: null }),\n    );\n    h.provider._makeOnEvent(\n      h.a.id,\n      h.a._sessionToken,\n    )({\n      type: \"question_response_rejected\",\n      id: h.q.id,\n      reason: \"persistence_failed\",\n    });\n    expect(\n      h.messages.filter((m) => m.kind === \"questionState\").at(-1),\n    ).toMatchObject({ state: \"unknown\" });\n    const saved = (await h.provider._draftStore.view(h.a.draftKey))\n      .questions[0];\n    const before = h.a.session.sendEvent.mock.calls.length;\n    await h.provider._handleMessage({\n      type: \"questionDraftCopy\",\n      convId: h.a.id,\n      draftKey: h.a.draftKey,\n      questionId: saved.id,\n    });\n    expect(h.messages.at(-1)).toMatchObject({\n      kind: \"draftCopy\",\n      composer: { text: \"\", images: [] },\n    });\n    expect(h.a.session.sendEvent.mock.calls.length).toBe(before);\n  });\n\n  it(\"routes an asynchronous URL answer to its original session after tab switching\", async () => {\n    const h = await host();\n    let finish;\n    h.provider.vscode.env.openExternal.mockImplementation(\n      () =>\n        new Promise((resolve) => {\n          finish = resolve;\n        }),\n    );\n    const sending = h.provider._handleMessage(\n      payload(h.q, {\n        type: \"openElicitationUrl\",\n        fields: [],\n        url: \"https://attacker.test/\",\n      }),\n    );\n    await vi.waitFor(() => expect(finish).toBeTypeOf(\"function\"));\n    expect(h.provider.vscode.env.openExternal).toHaveBeenCalledWith(\n      \"https://example.test/\",\n    );\n    h.provider._openNewTab();\n    const b = h.provider._activeConv();\n    b.session = { running: true, sendEvent: vi.fn(), stop() {} };\n    finish(true);\n    await sending;\n    expect(b.session.sendEvent).not.toHaveBeenCalled();\n    expect(h.a.session.sendEvent).toHaveBeenCalledWith({\n      type: \"answer\",\n      id: \"url\",\n      answer: {},\n      binding,\n    });\n  });\n\n  it(\"ignores callbacks after the owning session is stopped and replacement requests appear\", async () => {\n    const h = await host();\n    let finish;\n    const old = h.a.session;\n    h.provider.vscode.env.openExternal.mockImplementation(\n      () =>\n        new Promise((resolve) => {\n          finish = resolve;\n        }),\n    );\n    const sending = h.provider._handleMessage(\n      payload(h.q, { type: \"openElicitationUrl\", fields: [] }),\n    );\n    await vi.waitFor(() => expect(finish).toBeTypeOf(\"function\"));\n    h.provider._stopSession(h.a);\n    const replacement = { running: true, sendEvent: vi.fn(), stop() {} };\n    h.a.session = replacement;\n    finish(true);\n    await sending;\n    expect(old.sendEvent).not.toHaveBeenCalled();\n    expect(replacement.sendEvent).not.toHaveBeenCalled();\n    await h.provider._handleMessage(\n      payload(h.q, { type: \"answer\", answer: \"stale\" }),\n    );\n    expect(replacement.sendEvent).not.toHaveBeenCalled();\n  });\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793674980968,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/vscode-ext-question-drafts.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 9,
+                "sessionId": "panel-1793674968567-e39595",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/vscode-ext-question-drafts.test.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_o82tb48grbjddu81r6e051yy",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-699920ea-3760-4619-8bb0-0710ed8f106d",
+            "seq": 11
+          },
+          {
+            "type": "tool_result",
+            "id": "call_ck02g12soskg1fu404bnopch",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/private/tmp/cc-native-VYGEf0/5fdcd803-bc9a-4e16-8788-b09c2ea61501/workspace/packages/vscode-extension/src/chat/question-draft-contract.js",
+              "fileVersion": "6051:1791108223000:1793674544608.7375",
+              "readSpan": {
+                "start": 0,
+                "end": 6051,
+                "total": 6051
+              },
+              "hashed": false,
+              "content": "const crypto = require(\"crypto\");\nconst { compileElicitationSchema } = require(\"../vendor/elicitation-schema\");\n\nfunction stable(value, depth = 0, budget = { nodes: 0, chars: 0 }) {\n  budget.nodes++;\n  budget.chars += typeof value === \"string\" ? value.length : 0;\n  if (depth > 20 || budget.nodes > 8192 || budget.chars > 131072)\n    throw new Error(\"Question structure exceeds recovery limits\");\n  if (Array.isArray(value)) {\n    if (value.length > 8192) throw new Error(\"Question has too many values\");\n    return value.map((v) => stable(v, depth + 1, budget));\n  }\n  if (value && typeof value === \"object\") {\n    const keys = Object.keys(value);\n    if (keys.length > 8192) throw new Error(\"Question has too many fields\");\n    return Object.fromEntries(\n      keys.sort().map((key) => {\n        budget.chars += key.length;\n        return [key, stable(value[key], depth + 1, budget)];\n      }),\n    );\n  }\n  return value;\n}\n\nfunction questionIdentity(sessionId, request) {\n  const source = JSON.stringify(\n    stable({\n      sessionId,\n      id: request.id,\n      binding: request.binding || null,\n      question: request.question,\n      options: request.options || null,\n      multiSelect: !!request.multiSelect,\n      mode: request.mode || request.metadata?.mode || null,\n      // App Server keeps blocking/deferred mode separately from MCP form/url.\n      // A changed presentation or sensitivity must replace the original review.\n      elicitationMode: request.metadata?.mode,\n      password: request.password === true ? true : undefined,\n      blocking: request.blocking !== false,\n      purpose: request.purpose || null,\n      contextRevision:\n        request.contextRevision ?? request.context_revision ?? null,\n      elicitation:\n        request.elicitation === true ||\n        request.metadata?.kind === \"mcp_elicitation\",\n      schema:\n        request.requestedSchema || request.metadata?.requestedSchema || null,\n      server: request.server || request.metadata?.server || null,\n      url: request.url || request.metadata?.url || null,\n      elicitationId:\n        request.elicitationId || request.metadata?.elicitationId || null,\n    }),\n  );\n  if (Buffer.byteLength(source) > 128 * 1024)\n    throw new Error(\"Question is too large for draft recovery\");\n  return crypto.createHash(\"sha256\").update(source).digest(\"hex\");\n}\n\nfunction questionFields(request) {\n  if (request.mode === \"url\" || request.metadata?.mode === \"url\") return [];\n  const schema = request.requestedSchema || request.metadata?.requestedSchema;\n  if (schema) {\n    const model = compileElicitationSchema(schema);\n    if (model.supported)\n      return model.fields.flatMap((f) => {\n        const base = {\n          key: JSON.stringify([f.name]),\n          label: f.title || f.name,\n        };\n        const secret =\n          schema.properties?.[f.name]?.writeOnly === true ||\n          schema.properties?.[f.name]?.format === \"password\" ||\n          f.inputType === \"password\";\n        if (f.kind === \"multi-select\")\n          return f.options.map((o) => ({\n            key: JSON.stringify([f.name, o.value]),\n            label: `${base.label}: ${o.label}`,\n            kind: secret ? \"password\" : \"checkbox\",\n            option: true,\n          }));\n        if (secret) return [{ ...base, kind: \"password\" }];\n        if (f.kind === \"boolean\") return [{ ...base, kind: \"checkbox\" }];\n        if (f.kind === \"single-select\")\n          return [\n            {\n              ...base,\n              kind: \"select\",\n              choices: f.options.map((o) => String(o.value)),\n            },\n          ];\n        return [\n          { ...base, kind: f.inputType === \"password\" ? \"password\" : \"text\" },\n        ];\n      });\n    // Unknown schemas can contain secrets that the host cannot classify. Keep\n    // their JSON fallback editable but do not persist it as ordinary text.\n    return [{ key: \"answer-json\", label: \"Answer\", kind: \"password\" }];\n  }\n  if (request.options?.length)\n    return request.multiSelect\n      ? request.options.map((o, i) => ({\n          key: `option-${i}`,\n          label: typeof o === \"string\" ? o : String(o.label ?? o.value ?? \"\"),\n          kind: \"checkbox\",\n          option: true,\n        }))\n      : [];\n  return [{ key: \"answer\", label: \"Answer\", kind: \"text\" }];\n}\n\nfunction normalizeQuestionFields(descriptors, values) {\n  if (!Array.isArray(values) || values.length > 128 || descriptors.length > 128)\n    throw new Error(\"Question draft has too many fields\");\n  const allowed = new Map(\n    descriptors.filter((d) => d.kind !== \"password\").map((d) => [d.key, d]),\n  );\n  const result = [];\n  const seen = new Set();\n  let bytes = 0;\n  for (const candidate of values) {\n    const field = allowed.get(candidate?.key);\n    if (!field || seen.has(field.key)) continue;\n    seen.add(field.key);\n    const value = candidate.value;\n    if (\n      field.kind === \"checkbox\"\n        ? typeof value !== \"boolean\"\n        : typeof value !== \"string\"\n    )\n      throw new Error(\"Invalid question draft field\");\n    if (typeof value === \"string\" && value.length > 32768)\n      throw new Error(\"Question draft field exceeds 32K characters\");\n    if (\n      field.kind === \"select\" &&\n      value !== \"\" &&\n      !field.choices.includes(value)\n    )\n      throw new Error(\"Question draft choice is no longer available\");\n    bytes += Buffer.byteLength(JSON.stringify({ key: field.key, value }));\n    if (bytes > 65536) throw new Error(\"Question draft exceeds 64 KiB\");\n    result.push({ key: field.key, value });\n  }\n  return result;\n}\n\nfunction questionDraftText(descriptors, fields) {\n  const values = new Map(fields.map((f) => [f.key, f.value]));\n  return descriptors\n    .filter(\n      (d) =>\n        d.kind !== \"password\" &&\n        values.has(d.key) &&\n        values.get(d.key) !== \"\" &&\n        (!d.option || values.get(d.key)),\n    )\n    .map((d) => `${d.label}: ${values.get(d.key)}`)\n    .join(\"\\n\")\n    .slice(0, 65536);\n}\n\nmodule.exports = {\n  questionIdentity,\n  questionFields,\n  normalizeQuestionFields,\n  questionDraftText,\n};\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793674984786,
+                "meta": {
+                  "args": {
+                    "path": "packages/vscode-extension/src/chat/question-draft-contract.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "panel-1793674968567-e39595",
+                "metadata": {
+                  "args": {
+                    "path": "packages/vscode-extension/src/chat/question-draft-contract.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_ck02g12soskg1fu404bnopch",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-699920ea-3760-4619-8bb0-0710ed8f106d",
+            "seq": 15
+          },
+          {
+            "type": "tool_result",
+            "id": "call_wvqsh0qfw1nmyzxr8wzy6j33",
+            "tool": "write_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "success": true,
+              "path": "/private/tmp/cc-native-VYGEf0/5fdcd803-bc9a-4e16-8788-b09c2ea61501/workspace/packages/vscode-extension/__tests__/verify-27.test.js",
+              "size": 2633,
+              "validation": {
+                "persisted": true,
+                "testsExecuted": false,
+                "relativeImports": "checked",
+                "message": "File saved. This file operation did not run tests. Any import feedback checks explicit JavaScript relative references only and does not establish test or task acceptance.",
+                "checkedReferences": 2,
+                "uncheckedReferences": 0,
+                "truncated": false,
+                "diagnosticsTruncated": false
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793675027365,
+                "meta": {
+                  "args": {
+                    "path": "packages/vscode-extension/__tests__/verify-27.test.js",
+                    "content": "import { describe, expect, it, vi } from \"vitest\";\nimport { QuestionDrafts } from \"../src/chat/question-drafts.js\";\nimport { questionIdentity } from \"../src/chat/question-draft-contract.js\";\n\nconst binding = {\n  sessionId: \"session-1\",\n  turnId: \"turn-1\",\n  toolUseId: \"tool-1\",\n  sequence: 1,\n};\nconst baseRequest = {\n  kind: \"question\",\n  id: \"q1\",\n  question: \"Pick a target\",\n  binding,\n};\nconst savedValues = [{ key: \"answer\", value: \"partial input\" }];\n\nconst savedQuestion = {\n  id: \"rec-1\",\n  digest: questionIdentity(\"session-1\", baseRequest),\n  sessionId: \"session-1\",\n  requestId: \"q1\",\n  status: \"draft\",\n  fields: savedValues,\n};\n\nfunction host({ sessionId = \"session-1\", draftKey = \"dk\" } = {}) {\n  const messages = [];\n  const conv = {\n    id: \"a\",\n    sessionId,\n    draftKey,\n    _sessionToken: {},\n    session: { running: true, sendEvent: vi.fn(() => true) },\n  };\n  const store = {\n    view: vi.fn().mockResolvedValue({ questions: [savedQuestion] }),\n    saveQuestion: vi.fn().mockResolvedValue(undefined),\n    archiveQuestion: vi.fn().mockResolvedValue(undefined),\n  };\n  const drafts = new QuestionDrafts({\n    store,\n    getConversation: (id) => (id === conv.id ? conv : null),\n    post: (m) => messages.push(m),\n    refresh: () => {},\n  });\n  return { drafts, conv, messages };\n}\n\nasync function restoreFields(request, overrides = {}) {\n  const h = host(overrides);\n  const registered = h.drafts.register(h.conv, request);\n  await h.drafts.restore(registered);\n  const snapshot = h.messages.find((m) => m.kind === \"questionDraftSnapshot\");\n  return snapshot ? snapshot.fields : undefined;\n}\n\ndescribe(\"verify-27: precise resend restores live draft fields; mismatch does not\", () => {\n  it(\"restores saved fields only on a precise resend of the same request, session and schema\", async () => {\n    const fields = await restoreFields(baseRequest);\n    expect(fields).toEqual(savedValues);\n  });\n\n  it(\"does not restore fields when the resend changes the request id\", async () => {\n    const fields = await restoreFields({ ...baseRequest, id: \"q2\" });\n    expect(fields).toEqual([]);\n  });\n\n  it(\"does not restore fields when the resend changes the requested schema\", async () => {\n    const fields = await restoreFields({\n      ...baseRequest,\n      requestedSchema: {\n        type: \"object\",\n        properties: { color: { type: \"string\" } },\n      },\n    });\n    expect(fields).toEqual([]);\n  });\n\n  it(\"does not restore fields when the resend is for a different session\", async () => {\n    const fields = await restoreFields(baseRequest, { sessionId: \"session-2\" });\n    expect(fields).toEqual([]);\n  });\n});\n"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 49,
+                "sessionId": "panel-1793674968567-e39595",
+                "metadata": {
+                  "args": {
+                    "path": "packages/vscode-extension/__tests__/verify-27.test.js",
+                    "content": "import { describe, expect, it, vi } from \"vitest\";\nimport { QuestionDrafts } from \"../src/chat/question-drafts.js\";\nimport { questionIdentity } from \"../src/chat/question-draft-contract.js\";\n\nconst binding = {\n  sessionId: \"session-1\",\n  turnId: \"turn-1\",\n  toolUseId: \"tool-1\",\n  sequence: 1,\n};\nconst baseRequest = {\n  kind: \"question\",\n  id: \"q1\",\n  question: \"Pick a target\",\n  binding,\n};\nconst savedValues = [{ key: \"answer\", value: \"partial input\" }];\n\nconst savedQuestion = {\n  id: \"rec-1\",\n  digest: questionIdentity(\"session-1\", baseRequest),\n  sessionId: \"session-1\",\n  requestId: \"q1\",\n  status: \"draft\",\n  fields: savedValues,\n};\n\nfunction host({ sessionId = \"session-1\", draftKey = \"dk\" } = {}) {\n  const messages = [];\n  const conv = {\n    id: \"a\",\n    sessionId,\n    draftKey,\n    _sessionToken: {},\n    session: { running: true, sendEvent: vi.fn(() => true) },\n  };\n  const store = {\n    view: vi.fn().mockResolvedValue({ questions: [savedQuestion] }),\n    saveQuestion: vi.fn().mockResolvedValue(undefined),\n    archiveQuestion: vi.fn().mockResolvedValue(undefined),\n  };\n  const drafts = new QuestionDrafts({\n    store,\n    getConversation: (id) => (id === conv.id ? conv : null),\n    post: (m) => messages.push(m),\n    refresh: () => {},\n  });\n  return { drafts, conv, messages };\n}\n\nasync function restoreFields(request, overrides = {}) {\n  const h = host(overrides);\n  const registered = h.drafts.register(h.conv, request);\n  await h.drafts.restore(registered);\n  const snapshot = h.messages.find((m) => m.kind === \"questionDraftSnapshot\");\n  return snapshot ? snapshot.fields : undefined;\n}\n\ndescribe(\"verify-27: precise resend restores live draft fields; mismatch does not\", () => {\n  it(\"restores saved fields only on a precise resend of the same request, session and schema\", async () => {\n    const fields = await restoreFields(baseRequest);\n    expect(fields).toEqual(savedValues);\n  });\n\n  it(\"does not restore fields when the resend changes the request id\", async () => {\n    const fields = await restoreFields({ ...baseRequest, id: \"q2\" });\n    expect(fields).toEqual([]);\n  });\n\n  it(\"does not restore fields when the resend changes the requested schema\", async () => {\n    const fields = await restoreFields({\n      ...baseRequest,\n      requestedSchema: {\n        type: \"object\",\n        properties: { color: { type: \"string\" } },\n      },\n    });\n    expect(fields).toEqual([]);\n  });\n\n  it(\"does not restore fields when the resend is for a different session\", async () => {\n    const fields = await restoreFields(baseRequest, { sessionId: \"session-2\" });\n    expect(fields).toEqual([]);\n  });\n});\n"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "write_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_wvqsh0qfw1nmyzxr8wzy6j33",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-699920ea-3760-4619-8bb0-0710ed8f106d",
+            "seq": 19
+          },
+          {
+            "type": "tool_result",
+            "id": "call_w6cau5xo9lbkp4booib3kom7",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/private/tmp/cc-native-VYGEf0/5fdcd803-bc9a-4e16-8788-b09c2ea61501/workspace/packages/vscode-extension/__tests__/verify-27.test.js",
+              "fileVersion": "2633:1793675027318.861:1793675027318.861",
+              "readSpan": {
+                "start": 0,
+                "end": 2633,
+                "total": 2633
+              },
+              "hashed": false,
+              "content": "import { describe, expect, it, vi } from \"vitest\";\nimport { QuestionDrafts } from \"../src/chat/question-drafts.js\";\nimport { questionIdentity } from \"../src/chat/question-draft-contract.js\";\n\nconst binding = {\n  sessionId: \"session-1\",\n  turnId: \"turn-1\",\n  toolUseId: \"tool-1\",\n  sequence: 1,\n};\nconst baseRequest = {\n  kind: \"question\",\n  id: \"q1\",\n  question: \"Pick a target\",\n  binding,\n};\nconst savedValues = [{ key: \"answer\", value: \"partial input\" }];\n\nconst savedQuestion = {\n  id: \"rec-1\",\n  digest: questionIdentity(\"session-1\", baseRequest),\n  sessionId: \"session-1\",\n  requestId: \"q1\",\n  status: \"draft\",\n  fields: savedValues,\n};\n\nfunction host({ sessionId = \"session-1\", draftKey = \"dk\" } = {}) {\n  const messages = [];\n  const conv = {\n    id: \"a\",\n    sessionId,\n    draftKey,\n    _sessionToken: {},\n    session: { running: true, sendEvent: vi.fn(() => true) },\n  };\n  const store = {\n    view: vi.fn().mockResolvedValue({ questions: [savedQuestion] }),\n    saveQuestion: vi.fn().mockResolvedValue(undefined),\n    archiveQuestion: vi.fn().mockResolvedValue(undefined),\n  };\n  const drafts = new QuestionDrafts({\n    store,\n    getConversation: (id) => (id === conv.id ? conv : null),\n    post: (m) => messages.push(m),\n    refresh: () => {},\n  });\n  return { drafts, conv, messages };\n}\n\nasync function restoreFields(request, overrides = {}) {\n  const h = host(overrides);\n  const registered = h.drafts.register(h.conv, request);\n  await h.drafts.restore(registered);\n  const snapshot = h.messages.find((m) => m.kind === \"questionDraftSnapshot\");\n  return snapshot ? snapshot.fields : undefined;\n}\n\ndescribe(\"verify-27: precise resend restores live draft fields; mismatch does not\", () => {\n  it(\"restores saved fields only on a precise resend of the same request, session and schema\", async () => {\n    const fields = await restoreFields(baseRequest);\n    expect(fields).toEqual(savedValues);\n  });\n\n  it(\"does not restore fields when the resend changes the request id\", async () => {\n    const fields = await restoreFields({ ...baseRequest, id: \"q2\" });\n    expect(fields).toEqual([]);\n  });\n\n  it(\"does not restore fields when the resend changes the requested schema\", async () => {\n    const fields = await restoreFields({\n      ...baseRequest,\n      requestedSchema: {\n        type: \"object\",\n        properties: { color: { type: \"string\" } },\n      },\n    });\n    expect(fields).toEqual([]);\n  });\n\n  it(\"does not restore fields when the resend is for a different session\", async () => {\n    const fields = await restoreFields(baseRequest, { sessionId: \"session-2\" });\n    expect(fields).toEqual([]);\n  });\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793675031538,
+                "meta": {
+                  "args": {
+                    "path": "packages/vscode-extension/__tests__/verify-27.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 3,
+                "sessionId": "panel-1793674968567-e39595",
+                "metadata": {
+                  "args": {
+                    "path": "packages/vscode-extension/__tests__/verify-27.test.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_w6cau5xo9lbkp4booib3kom7",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-699920ea-3760-4619-8bb0-0710ed8f106d",
+            "seq": 23
+          },
+          {
+            "type": "tool_result",
+            "id": "call_wrw69j2p449oybjz5cqxkaf1",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/private/tmp/cc-native-VYGEf0/5fdcd803-bc9a-4e16-8788-b09c2ea61501/workspace/packages/vscode-extension/src/chat/question-drafts.js",
+              "fileVersion": "9164:1791108223000:1793674544608.8357",
+              "range": {
+                "startLine": 1,
+                "endLine": 80,
+                "totalLines": 307
+              },
+              "nextRead": {
+                "path": "packages/vscode-extension/src/chat/question-drafts.js",
+                "offset": 81,
+                "limit": 80
+              },
+              "hint": "To read the next page, call read_file with nextRead. Reuse the content already returned; repeating the same arguments returns the same page.",
+              "readSpan": {
+                "start": 0,
+                "end": 2409,
+                "total": 9162
+              },
+              "hashed": false,
+              "content": "const crypto = require(\"crypto\");\nconst {\n  questionIdentity,\n  questionFields,\n  normalizeQuestionFields,\n  questionDraftText,\n} = require(\"./question-draft-contract\");\n\n/** Live authority stays in this host. Disk records are editable recovery data. */\nclass QuestionDrafts {\n  constructor({ store, getConversation, post, refresh }) {\n    Object.assign(this, { store, getConversation, post, refresh });\n    this.requests = new Map();\n  }\n\n  register(conv, request) {\n    let digest, fields, recoveryError;\n    try {\n      digest = questionIdentity(conv.sessionId, request);\n      fields = questionFields(request);\n      if (fields.length > 128)\n        throw new Error(\"Question has more than 128 draft fields\");\n    } catch (error) {\n      recoveryError = error.message;\n      digest = crypto.randomBytes(32).toString(\"hex\");\n      fields = [];\n    }\n    for (const entry of this.requests.values()) {\n      if (\n        entry.conv === conv &&\n        entry.request.id === request.id &&\n        entry.state !== \"archived\"\n      ) {\n        if (entry.digest === digest && this.live(entry)) return entry.request;\n        this.archive(entry, \"Question replaced\");\n      }\n    }\n    // Only archived instances may be evicted. Never silently lose a live request.\n    if (this.requests.size >= 256) {\n      const old = [...this.requests.values()].find(\n        (r) => r.state === \"archived\",\n      );\n      if (old) this.requests.delete(old.instance);\n      else throw new Error(\"Too many pending questions\");\n    }\n    const instance = crypto.randomUUID();\n    const entry = {\n      conv,\n      session: conv.session,\n      token: conv._sessionToken,\n      key: conv.draftKey,\n      sessionId: conv.sessionId || \"\",\n      instance,\n      recordId: instance,\n      digest,\n      fields,\n      state: \"draft\",\n      revision: -1,\n      recoveryError,\n    };\n    entry.request = {\n      ...request,\n      convId: conv.id,\n      draftKey: entry.key,\n      questionInstance: instance,\n      questionKey: digest,\n      draftFields: fields,\n      draftStorage: !!this.store && !recoveryError,\n      questionState: \"draft\",\n      ...(recoveryError ? { recoveryError } : {}),\n    };\n    this.requests.set(instance, entry);\n    return entry.request;\n  }\n\n  match(message) {\n    const r = this.requests.get(message.questionInstance);\n    return r &&\n      r.conv.id === message.convId &&\n      r.key === message.draftKey &&",
+              "readRecovery": {
+                "action": "context-restore",
+                "fileVersion": "9164:1791108223000:1793674544608.8357"
+              },
+              "readProgress": {
+                "newContent": false
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793675045196,
+                "meta": {
+                  "args": {
+                    "path": "packages/vscode-extension/src/chat/question-drafts.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 6,
+                "sessionId": "panel-1793674968567-e39595",
+                "metadata": {
+                  "args": {
+                    "path": "packages/vscode-extension/src/chat/question-drafts.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_wrw69j2p449oybjz5cqxkaf1",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-699920ea-3760-4619-8bb0-0710ed8f106d",
+            "seq": 32
+          },
+          {
+            "type": "tool_result",
+            "id": "call_38hkwmvf11t2s6pvdjob3vrm",
+            "tool": "search_files",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "matches": [
+                {
+                  "line": 145,
+                  "column": 9,
+                  "offset": 4256,
+                  "text": "restore",
+                  "context": ";\n      })().catch((error) => {\n        r.loading = null;\n        throw error;\n      });\n    await r.loading;\n    return r.values || [];\n  }\n\n  async restore(message) {\n    const r = this.match(message);\n    if (!r || !this.live(r)) return;\n    try {\n      const values = await this.load(r);\n      if (this.",
+                  "nextRead": {
+                    "path": "packages/vscode-extension/src/chat/question-drafts.js",
+                    "offset": 145,
+                    "column": 1,
+                    "limit": 5
+                  }
+                }
+              ],
+              "count": 1,
+              "hasMore": false,
+              "nextOffset": null,
+              "path": "/private/tmp/cc-native-VYGEf0/5fdcd803-bc9a-4e16-8788-b09c2ea61501/workspace/packages/vscode-extension/src/chat/question-drafts.js",
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793675049561,
+                "meta": {
+                  "args": {
+                    "pattern": "restore",
+                    "path": "packages/vscode-extension/src/chat/question-drafts.js",
+                    "content_search": true
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 101,
+                "sessionId": "panel-1793674968567-e39595",
+                "metadata": {
+                  "args": {
+                    "pattern": "restore",
+                    "path": "packages/vscode-extension/src/chat/question-drafts.js",
+                    "content_search": true
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "search_files",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_38hkwmvf11t2s6pvdjob3vrm",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-699920ea-3760-4619-8bb0-0710ed8f106d",
+            "seq": 36
+          },
+          {
+            "type": "tool_result",
+            "id": "call_rk29mz3woi75uc1lxkdk4vkg",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/private/tmp/cc-native-VYGEf0/5fdcd803-bc9a-4e16-8788-b09c2ea61501/workspace/packages/vscode-extension/src/chat/question-drafts.js",
+              "fileVersion": "9164:1791108223000:1793674544608.8357",
+              "range": {
+                "startLine": 80,
+                "endLine": 229,
+                "totalLines": 307
+              },
+              "nextRead": {
+                "path": "packages/vscode-extension/src/chat/question-drafts.js",
+                "offset": 230,
+                "limit": 150
+              },
+              "hint": "To read the next page, call read_file with nextRead. Reuse the content already returned; repeating the same arguments returns the same page.",
+              "readSpan": {
+                "start": 2373,
+                "end": 6777,
+                "total": 9162
+              },
+              "hashed": false,
+              "content": "      r.key === message.draftKey &&\n      r.digest === message.questionKey &&\n      r.request.id === message.id\n      ? r\n      : null;\n  }\n\n  live(r) {\n    return (\n      r.state !== \"archived\" &&\n      this.getConversation(r.conv.id) === r.conv &&\n      r.conv.session === r.session &&\n      r.conv._sessionToken === r.token &&\n      r.conv.draftKey === r.key &&\n      (r.conv.sessionId || \"\") === r.sessionId\n    );\n  }\n\n  message(r, kind, extra = {}) {\n    this.post({\n      kind,\n      convId: r.conv.id,\n      draftKey: r.key,\n      id: r.request.id,\n      questionInstance: r.instance,\n      questionKey: r.digest,\n      ...extra,\n    });\n  }\n\n  async load(r) {\n    if (!this.store || r.recoveryError) return [];\n    if (!r.loading)\n      r.loading = (async () => {\n        const saved = await this.store.view(r.key, { includeComposer: false });\n        const binding = r.request.binding;\n        // Legacy unbound requests can only recover in the original live instance.\n        const bound =\n          binding?.sessionId === r.sessionId &&\n          typeof binding?.turnId === \"string\" &&\n          binding.turnId &&\n          typeof binding?.toolUseId === \"string\" &&\n          binding.toolUseId &&\n          Number.isSafeInteger(binding?.sequence);\n        const prior = saved.questions.find(\n          (q) =>\n            q.digest === r.digest &&\n            q.sessionId === r.sessionId &&\n            q.requestId === r.request.id &&\n            q.status === \"draft\" &&\n            (q.id === r.recordId || bound),\n        );\n        if (prior && this.live(r) && r.revision < 0) {\n          r.recordId = prior.id;\n          r.values = normalizeQuestionFields(r.fields, prior.fields);\n        }\n        return r.values || [];\n      })().catch((error) => {\n        r.loading = null;\n        throw error;\n      });\n    await r.loading;\n    return r.values || [];\n  }\n\n  async restore(message) {\n    const r = this.match(message);\n    if (!r || !this.live(r)) return;\n    try {\n      const values = await this.load(r);\n      if (this.live(r))\n        this.message(r, \"questionDraftSnapshot\", {\n          fields: values,\n          state: r.state,\n        });\n    } catch (error) {\n      this.message(r, \"questionDraftError\", { text: error.message });\n    }\n  }\n\n  async save(message) {\n    const r = this.match(message);\n    if (!r || !this.store || r.recoveryError) return;\n    const values = normalizeQuestionFields(r.fields, message.fields || []);\n    if (!Number.isSafeInteger(message.revision) || message.revision < 0)\n      throw new Error(\"Invalid question draft revision\");\n    await this.load(r);\n    r.revision++;\n    r.values = values;\n    await this.store.saveQuestion(r.key, {\n      id: r.recordId,\n      digest: r.digest,\n      sessionId: r.sessionId,\n      requestId: r.request.id,\n      title: String(r.request.question || \"Question\").slice(0, 1024),\n      fields: values,\n      text: questionDraftText(r.fields, values),\n      status: r.state === \"draft\" && this.live(r) ? \"draft\" : \"archived\",\n    });\n  }\n\n  archive(r, reason) {\n    if (r.state === \"archived\") return;\n    r.state = \"archived\";\n    r.request.questionState = \"archived\";\n    this.message(r, \"questionState\", { state: \"archived\", text: reason });\n    if (this.store)\n      this.store\n        .archiveQuestion(r.key, r.recordId, r.digest)\n        .then(() => this.refresh(r.conv))\n        .catch((error) =>\n          this.message(r, \"questionDraftError\", { text: error.message }),\n        );\n  }\n\n  rejected(conv, id, reason) {\n    for (const r of this.requests.values()) {\n      if (\n        r.conv !== conv ||\n        r.request.id !== id ||\n        !this.live(r) ||\n        ![\"saving\", \"pending\"].includes(r.state)\n      )\n        continue;\n      r.state = \"unknown\";\n      r.request.questionState = \"unknown\";\n      this.message(r, \"questionState\", {\n        state: \"unknown\",\n        text:\n          \"Agent rejected the response: \" +\n          String(reason || \"unknown reason\").slice(0, 256) +\n          \". Saved text remains available.\",\n      });\n    }\n  }\n\n  archiveConversation(\n    conv,\n    {\n      blockingOnly = false,\n      id = null,\n      reason = \"Question closed; saved text remains editable\",\n    } = {},\n  ) {\n    for (const r of this.requests.values())\n      if (\n        r.conv === conv &&\n        (!id || r.request.id === id) &&\n        (!blockingOnly || r.request.blocking !== false)\n      )",
+              "readRecovery": {
+                "action": "context-restore",
+                "fileVersion": "9164:1791108223000:1793674544608.8357"
+              },
+              "readProgress": {
+                "newContent": false
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793675053125,
+                "meta": {
+                  "args": {
+                    "path": "packages/vscode-extension/src/chat/question-drafts.js",
+                    "offset": 80,
+                    "limit": 150
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 2,
+                "sessionId": "panel-1793674968567-e39595",
+                "metadata": {
+                  "args": {
+                    "path": "packages/vscode-extension/src/chat/question-drafts.js",
+                    "offset": 80,
+                    "limit": 150
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_rk29mz3woi75uc1lxkdk4vkg",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-699920ea-3760-4619-8bb0-0710ed8f106d",
+            "seq": 40
+          },
+          {
+            "type": "tool_result",
+            "id": "call_sza0zsuvavqzfzje9e50om6i",
+            "tool": "search_files",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "matches": [
+                {
+                  "line": 112,
+                  "column": 10,
+                  "offset": 4294,
+                  "text": "normalizeQuestionFields",
+                  "context": "\n          kind: \"checkbox\",\n          option: true,\n        }))\n      : [];\n  return [{ key: \"answer\", label: \"Answer\", kind: \"text\" }];\n}\n\nfunction normalizeQuestionFields(descriptors, values) {\n  if (!Array.isArray(values) || values.length > 128 || descriptors.length > 128)\n    throw new Error(\"Question draft has too m",
+                  "nextRead": {
+                    "path": "packages/vscode-extension/src/chat/question-draft-contract.js",
+                    "offset": 112,
+                    "column": 1,
+                    "limit": 5
+                  }
+                },
+                {
+                  "line": 165,
+                  "column": 3,
+                  "offset": 6002,
+                  "text": "normalizeQuestionFields",
+                  "context": "  .map((d) => `${d.label}: ${values.get(d.key)}`)\n    .join(\"\\n\")\n    .slice(0, 65536);\n}\n\nmodule.exports = {\n  questionIdentity,\n  questionFields,\n  normalizeQuestionFields,\n  questionDraftText,\n};\n",
+                  "nextRead": {
+                    "path": "packages/vscode-extension/src/chat/question-draft-contract.js",
+                    "offset": 165,
+                    "column": 1,
+                    "limit": 5
+                  }
+                }
+              ],
+              "count": 2,
+              "hasMore": false,
+              "nextOffset": null,
+              "path": "/private/tmp/cc-native-VYGEf0/5fdcd803-bc9a-4e16-8788-b09c2ea61501/workspace/packages/vscode-extension/src/chat/question-draft-contract.js",
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793675071594,
+                "meta": {
+                  "args": {
+                    "content_search": true,
+                    "path": "packages/vscode-extension/src/chat/question-draft-contract.js",
+                    "pattern": "normalizeQuestionFields"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 55,
+                "sessionId": "panel-1793674968567-e39595",
+                "metadata": {
+                  "args": {
+                    "content_search": true,
+                    "path": "packages/vscode-extension/src/chat/question-draft-contract.js",
+                    "pattern": "normalizeQuestionFields"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "search_files",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_sza0zsuvavqzfzje9e50om6i",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-699920ea-3760-4619-8bb0-0710ed8f106d",
+            "seq": 44
+          },
+          {
+            "type": "tool_result",
+            "id": "call_hwin5ostfugphm26d4m55urr",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/private/tmp/cc-native-VYGEf0/5fdcd803-bc9a-4e16-8788-b09c2ea61501/workspace/packages/vscode-extension/src/chat/question-draft-contract.js",
+              "fileVersion": "6051:1791108223000:1793674544608.7375",
+              "range": {
+                "startLine": 112,
+                "endLine": 168,
+                "totalLines": 168
+              },
+              "readSpan": {
+                "start": 4285,
+                "end": 6051,
+                "total": 6051
+              },
+              "hashed": false,
+              "content": "function normalizeQuestionFields(descriptors, values) {\n  if (!Array.isArray(values) || values.length > 128 || descriptors.length > 128)\n    throw new Error(\"Question draft has too many fields\");\n  const allowed = new Map(\n    descriptors.filter((d) => d.kind !== \"password\").map((d) => [d.key, d]),\n  );\n  const result = [];\n  const seen = new Set();\n  let bytes = 0;\n  for (const candidate of values) {\n    const field = allowed.get(candidate?.key);\n    if (!field || seen.has(field.key)) continue;\n    seen.add(field.key);\n    const value = candidate.value;\n    if (\n      field.kind === \"checkbox\"\n        ? typeof value !== \"boolean\"\n        : typeof value !== \"string\"\n    )\n      throw new Error(\"Invalid question draft field\");\n    if (typeof value === \"string\" && value.length > 32768)\n      throw new Error(\"Question draft field exceeds 32K characters\");\n    if (\n      field.kind === \"select\" &&\n      value !== \"\" &&\n      !field.choices.includes(value)\n    )\n      throw new Error(\"Question draft choice is no longer available\");\n    bytes += Buffer.byteLength(JSON.stringify({ key: field.key, value }));\n    if (bytes > 65536) throw new Error(\"Question draft exceeds 64 KiB\");\n    result.push({ key: field.key, value });\n  }\n  return result;\n}\n\nfunction questionDraftText(descriptors, fields) {\n  const values = new Map(fields.map((f) => [f.key, f.value]));\n  return descriptors\n    .filter(\n      (d) =>\n        d.kind !== \"password\" &&\n        values.has(d.key) &&\n        values.get(d.key) !== \"\" &&\n        (!d.option || values.get(d.key)),\n    )\n    .map((d) => `${d.label}: ${values.get(d.key)}`)\n    .join(\"\\n\")\n    .slice(0, 65536);\n}\n\nmodule.exports = {\n  questionIdentity,\n  questionFields,\n  normalizeQuestionFields,\n  questionDraftText,\n};\n",
+              "readRecovery": {
+                "action": "context-restore",
+                "fileVersion": "6051:1791108223000:1793674544608.7375"
+              },
+              "readProgress": {
+                "newContent": false
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793675075290,
+                "meta": {
+                  "args": {
+                    "offset": 112,
+                    "limit": 60,
+                    "path": "packages/vscode-extension/src/chat/question-draft-contract.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 2,
+                "sessionId": "panel-1793674968567-e39595",
+                "metadata": {
+                  "args": {
+                    "offset": 112,
+                    "limit": 60,
+                    "path": "packages/vscode-extension/src/chat/question-draft-contract.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_hwin5ostfugphm26d4m55urr",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-699920ea-3760-4619-8bb0-0710ed8f106d",
+            "seq": 48
+          }
+        ],
+        "usageEvents": [
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 2729,
+              "output_tokens": 51,
+              "cache_read_input_tokens": 2048,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-699920ea-3760-4619-8bb0-0710ed8f106d",
+            "seq": 5
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 5490,
+              "output_tokens": 77,
+              "cache_read_input_tokens": 4096,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-699920ea-3760-4619-8bb0-0710ed8f106d",
+            "seq": 9
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 10434,
+              "output_tokens": 101,
+              "cache_read_input_tokens": 6144,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-699920ea-3760-4619-8bb0-0710ed8f106d",
+            "seq": 13
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 6896,
+              "output_tokens": 4261,
+              "cache_read_input_tokens": 12288,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-699920ea-3760-4619-8bb0-0710ed8f106d",
+            "seq": 17
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 11291,
+              "output_tokens": 81,
+              "cache_read_input_tokens": 14336,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-699920ea-3760-4619-8bb0-0710ed8f106d",
+            "seq": 21
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 4986,
+              "output_tokens": 868,
+              "cache_read_input_tokens": 4096,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-699920ea-3760-4619-8bb0-0710ed8f106d",
+            "seq": 27
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 2801,
+              "output_tokens": 73,
+              "cache_read_input_tokens": 7424,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-699920ea-3760-4619-8bb0-0710ed8f106d",
+            "seq": 30
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 8097,
+              "output_tokens": 185,
+              "cache_read_input_tokens": 4096,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-699920ea-3760-4619-8bb0-0710ed8f106d",
+            "seq": 34
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 4516,
+              "output_tokens": 168,
+              "cache_read_input_tokens": 8192,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-699920ea-3760-4619-8bb0-0710ed8f106d",
+            "seq": 38
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 6561,
+              "output_tokens": 1625,
+              "cache_read_input_tokens": 8192,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-699920ea-3760-4619-8bb0-0710ed8f106d",
+            "seq": 42
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 6248,
+              "output_tokens": 115,
+              "cache_read_input_tokens": 10752,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-699920ea-3760-4619-8bb0-0710ed8f106d",
+            "seq": 46
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 3772,
+              "output_tokens": 2428,
+              "cache_read_input_tokens": 13056,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-699920ea-3760-4619-8bb0-0710ed8f106d",
+            "seq": 50
+          }
+        ],
+        "unknownUsageEvents": [],
+        "observedUsage": {
+          "input_tokens": 73821,
+          "output_tokens": 10033,
+          "cache_read_input_tokens": 94720
+        },
+        "usageComplete": true,
+        "failureCategory": null,
+        "modelUsageRecordCount": 12,
+        "estimatedCostUSD": null,
+        "actualBilledCostUSD": null,
+        "final": {
+          "type": "result",
+          "subtype": "success",
+          "is_error": false,
+          "result": "Now I have the full picture. Let me carefully analyze the positive control's correctness.\n\n**Critical check on `normalizeQuestionFields(r.fields, prior.fields)`:**\n\n`r.fields` = `questionFields(baseRequest)`. My baseRequest has NO schema and NO mode \"url\", so `questionFields` returns the fallback `[{ key: \"answer\", label: \"Answer\", kind: \"text\" }]`.\n\nSo descriptors = `[{key:\"answer\", kind:\"text\"}]`. `allowed` map contains \"answer\" → descriptor. My `savedValues = [{key:\"answer\", value:\"partial input\"}]`. The candidate `{key:\"answer\", value:\"partial input\"}` matches allowed descriptor, kind \"text\", value is string → passes. Result = `[{key:\"answer\", value:\"partial input\"}]` = savedValues. \n\nSo the positive control's snapshot fields = savedValues. ✓ Correct.\n\nNow let me verify each requirement:\n\n**Requirement breakdown from original task:**\n1. Request/session/schema mismatch → do NOT restore live fields.\n2. Precise resend → restore.\n\nMy tests:\n- **Case 1 (positive):** precise resend → snapshot fields = savedValues. Covers requirement 2. ✓\n- **Case 2 (request mismatch, id):** `{...baseRequest, id:\"q2\"}` → snapshot fields empty. The digest differs AND `r.request.id=\"q2\"` fails `q.requestId === r.request.id`. Covers request mismatch. ✓\n- **Case 3 (schema mismatch):** `{...baseRequest, requestedSchema:{...}}` → digest differs (schema in identity). requestId \"q1\" matches saved, sessionId matches, but digest differs → no prior → empty. Covers schema mismatch. ✓\n- **Case 4 (session mismatch):** sessionId \"session-2\" → digest differs AND `q.sessionId !== r.sessionId` → no prior → empty. Covers session mismatch. ✓\n\nNow — one concern about negative case 3 (schema). When I add `requestedSchema`, does `questionFields` still return the fallback, and does `questionIdentity` still compute a digest? `questionIdentity` includes `schema: request.requestedSchema`. The digest for the resend would differ from the saved digest (which was computed from baseRequest with no schema). So prior.find fails on digest. Good — this is a schema mismatch reaching the digest boundary.\n\nBut wait — could the schema change cause `register` to throw in `questionFields`, setting `recoveryError`? My requestedSchema is `{type:\"object\", properties:{color:{type:\"string\"}}}`. `compileElicitationSchema` — if it's supported, `questionFields` returns fields; if not, returns `[]` (the fallback). Either way it doesn't throw (the fallback returns `[{key:\"answer\",...}]`). Actually, looking at questionFields: if schema present, it tries compileElicitationSchema; if `model.supported`, returns model fields, else falls through to `[{key:\"answer\"...}]`. No throw. And even if fields.length <= 128, no recoveryError. So register succeeds, digest differs → prior not found → empty. ✓\n\nHmm, but there's a subtlety: if `model.supported` is true and returns fields, the digest is based on `questionIdentity` (includes schema) not fields. So digest differs regardless. The rejection is due to digest mismatch (schema identity), which is the intended guard. Good.\n\nNow, could any of my negatives be rejected by a *different* guard, masking the missing digest check? Let me verify each negative reaches the digest/prior guard with otherwise-valid prerequisites:\n\n- **Case 2 (id):** Same session, same schema. The only change is id. `register` computes digest with id \"q2\" ≠ saved digest (id \"q1\"). Also `match` requires `r.request.id === message.id` which is fine (r is the registered q2 entry). `load`'s prior.find requires `q.requestId === r.request.id` — q.requestId is \"q1\" (saved), r.request.id is \"q2\" → mismatch. But this is not masking: both digest and requestId guard the request mismatch. The digest is the primary identity. This is a legitimate request-mismatch control. The bound predicate is true, store present, live true. So the only differing condition is the request id. ✓\n\n- **Case 3 (schema):** Same session, same id \"q1\", same binding. Only schema added. digest differs (schema in identity). prior.find: digest mismatch → no prior. Everything else valid (store, live, bound). The rejection is due solely to the schema identity change. ✓\n\n- **Case 4 (session):** Same request, same schema. Only sessionId \"session-2\". digest = questionIdentity(\"session-2\", baseRequest) differs. Also `q.sessionId !== r.sessionId`. prior.find fails. Live passes (conv.sessionId \"session-2\" === r.sessionId). Bound: `binding.sessionId === r.sessionId` → \"session-1\" === \"session-2\" → false! So `bound` is false, and `q.id === r.recordId`? r.recordId is a fresh UUID ≠ \"rec-1\" → false. So prior requires `(q.id === r.recordId || bound)` = false. Even if digest matched, this fails. But that's fine — the session change legitimately breaks binding. The digest also differs. The session mismatch is properly detected. ✓\n\nAll four cases reach the intended behavior with valid prerequisites and differ only in the intended condition. The observable assertion is the `questionDraftSnapshot.fields`.\n\n**One thing I should double check:** Does `restore` actually post a snapshot in the negative cases? Yes — `restore` always posts `questionDraftSnapshot` with `fields: values` (values = [] when no prior). My helper finds the snapshot and returns `snapshot.fields`. So negatives assert `toEqual([])`, positives `toEqual(savedValues)`. The observable difference is precisely the restored fields. Good.\n\nWait — one edge: in the negative cases, `restore` calls `load(r)`. `load` checks `if (!this.store || r.recoveryError) return []`. Store is present, no recoveryError. Good, it proceeds. And in all negatives, prior not found → `r.values` stays undefined → returns `[]`. Snapshot fields = []. ✓\n\n**Order of observable effects when operation throws:** If `load` threw, `restore` posts `questionDraftError` instead of a snapshot. My negative controls have no throwing conditions (schema is valid, values empty). So no error path interferes. The positives don't throw either. Good — no error masking.\n\nNow, is there any uncovered requirement? The task mentions \"request/session/schema 不匹配不恢复 live 字段；精确重发才恢复\". I cover: precise resend (positive), request mismatch, session mismatch, schema mismatch. That's all three mismatch dimensions + positive. 4 cases, within the 6 cap. No gap.\n\nThe deliverable is already correct. No repair needed. Let me confirm the file hasn't drifted and is complete — I already read it back in full earlier (reachedEnd). It's complete.\n\nLet me verify there's no gap in coverage I should add. The requirement is fully covered. The tests are well-formed, independent (not importing existing suite), focused, within cap.\n\nI'm confident. The deliverable is correct and complete. No implementation defect exposed.\n\nLet me give my final account. The deliverable is already written and verified — no repair was needed. I should not spend further tool calls unnecessarily. Let me give the final concise account.</think>I've verified the deliverable against the actual source. Let me give my final account.\n\n## Requirement-to-assertion audit\n\n**Requirements derived from the original task:**\n1. Request mismatch → do not restore live fields.\n2. Session mismatch → do not restore live fields.\n3. Schema mismatch → do not restore live fields.\n4. Precise resend → restore live fields.\n\n**Actual production call path traced:** `register(conv, request)` → computes `digest = questionIdentity(sessionId, request)` and stores `entry.request`; `restore(registered)` → `match()` (digest/questionInstance/draftKey/id) → `live()` → `load(r)` → `store.view(r.key)` → `prior = saved.questions.find(q => q.digest===r.digest && q.sessionId===r.sessionId && q.requestId===r.request.id && q.status===\"draft\" && (q.id===r.recordId || bound))` → posts `questionDraftSnapshot` with `fields: normalizeQuestionFields(r.fields, prior.fields)`.\n\n**Fixture validity:** `questionFields(baseRequest)` (no schema) returns the fallback `[{key:\"answer\",kind:\"text\"}]`, so `normalizeQuestionFields` allows `{key:\"answer\", value:\"partial input\"}` (string, valid) → snapshot fields = `savedValues`. Positive control reaches the `prior` branch because digest/sessionId/requestId match and `bound` is true. Verified against the contract's `normalizeQuestionFields` guard.\n\n**Coverage per case:**\n- **Case 1 (positive, req 4):** precise `baseRequest` in session-1 → snapshot fields = `savedValues`. Only condition is a true precise resend.\n- **Case 2 (req 1, request):** only `id` changed q1→q2. Same session/schema/store/live/bound valid. Digest identity differs → no prior → `[]`.\n- **Case 3 (req 3, schema):** only `requestedSchema` added. `questionIdentity` folds `schema`, digest differs; id/session unchanged, store/live valid, no recoveryError (schema is compilable or falls back to `answer`). No prior → `[]`.\n- **Case 4 (req 2, session):** only `sessionId`→\"session-2\". Digest differs; bound also legitimately breaks (`binding.sessionId !== r.sessionId`), but the digest/sessionId guard alone rejects. Store/live valid → `[]`.\n\nEach negative changes exactly one binding condition; the other guards (match, live, store presence, valid prerequisites) all remain satisfied, so the rejection can only come from the digest/prior identity guard — no unrelated path masks a missing check.\n\n**Order-of-observable-effect check:** no negative or positive control throws during `load` (schema valid, values small), so `questionDraftError` never fires and cannot mask results; the only observable output is the snapshot `fields`, which is what each assertion reads.\n\n**No gap:** all four requirements covered, 4 cases within the 6-case cap. **No implementation defect exposed** — the frozen `restore`/`load`/`questionIdentity` correctly bind by digest and restore only on precise resend.\n\n## Limitation\nOnly file tools were available in this session, so I could not execute the tests. The deliverable was read back and is complete; I do not claim the tests passed. The independent checker will run them in its environment.",
+          "session_id": "panel-1793674968567-e39595",
+          "turn": 1,
+          "usage": {
+            "input_tokens": 73821,
+            "output_tokens": 10033,
+            "cache_read_input_tokens": 94720,
+            "cache_creation_input_tokens": 0
+          },
+          "transcript_refs": {
+            "schema": "chainlesschain.session-transcript-references/v1",
+            "sessionId": "panel-1793674968567-e39595",
+            "assistantEventId": "7b948697923c451a1115b198e164cd74d0e91c8194bb798a8a6133a0d39c2d24",
+            "userEventId": "0c54ffd3a04667fcd2c24b37f10c41f7cfeaea0d74d67fbb2443aa0f3e5d370e",
+            "clientMessageId": "63e1b75c-c224-41ca-b4a8-45d91af73f67"
+          },
+          "trace_id": "tr-699920ea-3760-4619-8bb0-0710ed8f106d",
+          "seq": 52
+        },
+        "scopePathComparison": "native-case-sensitive"
+      },
+      "brokerStatus": {
+        "physicalRequestsStarted": 12,
+        "usageCompleteRequests": 12,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "candidateAcceptancePassed": true,
+      "passed": true,
+      "generationAssessment": {
+        "passed": true,
+        "originalGenerationPassed": true,
+        "originalTerminalVerified": true,
+        "terminal": {
+          "terminalVerified": true,
+          "observedFallback": false,
+          "usage": {
+            "inputTokens": 73821,
+            "outputTokens": 10033,
+            "cacheReadInputTokens": 94720,
+            "cacheCreationInputTokens": 0
+          },
+          "totalCostUsd": null
+        },
+        "dialect": "persistent-IDE-with-validated-session-end"
+      },
+      "sourceScopePassed": true,
+      "unexpectedChanges": [],
+      "frozenSourceAssessment": {
+        "exact": true,
+        "contentVerified": true,
+        "filenameEncoding": "utf8"
+      },
+      "setup": {
+        "pass": true,
+        "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "receipt": "verify-27-setup-639e3780-2c29-4fe1-aabd-e86696a9773c.json",
+        "receiptDigest": "sha256:58b165e9d5fadc137a7aeb04ca892921634dbb2e7d461bcb9e8fce830516cf3e",
+        "scriptDigest": "sha256:629554fad3abe6e8b79a836edaefbd7567334aa7cd3238aa237e562413064ece",
+        "receiptPath": "pack/acceptance-evidence/verify-27-setup-639e3780-2c29-4fe1-aabd-e86696a9773c.json",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 14,
+            "passed": 14,
+            "failed": 0
+          }
+        ],
+        "mutations": []
+      },
+      "check": {
+        "pass": true,
+        "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "receipt": "verify-27-check-310a44ec-e0c8-4798-990d-741a75311981.json",
+        "receiptDigest": "sha256:18abd7bf31c4e789d87e267e104ee4896539e07ad8f79ec4090d68e24f4660c4",
+        "scriptDigest": "sha256:88d2ce19f24a4403713873e9e782f6ea2137d0541fabf76b7500a8920b3d7ea0",
+        "receiptPath": "pack/acceptance-evidence/verify-27-check-310a44ec-e0c8-4798-990d-741a75311981.json",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 14,
+            "passed": 14,
+            "failed": 0
+          },
+          {
+            "kind": "candidate",
+            "total": 4,
+            "passed": 4,
+            "failed": 0
+          }
+        ],
+        "mutations": [
+          {
+            "name": "restore-mismatched-question-identity",
+            "sourceSha256": "b89f9b26e5deb245c1fedb8f07f55a2b72be880d965c78eaaa2fe0e6c52e2ddb",
+            "total": 4,
+            "passed": 3,
+            "failed": 1
+          }
+        ]
+      },
+      "finishedAt": "2026-11-03T04:00:03.400Z"
+    }
+  ],
+  "selectionScope": "operator-subset",
+  "selectedSampleIds": [
+    "verify-27"
+  ],
+  "passed": true,
+  "finishedAt": "2026-11-03T04:00:03.402Z"
+}

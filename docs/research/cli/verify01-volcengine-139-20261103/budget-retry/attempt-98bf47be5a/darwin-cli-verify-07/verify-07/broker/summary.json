@@ -1,0 +1,17 @@
+{
+  "formalSample": false,
+  "physicalRequestsStarted": 17,
+  "usageCompleteRequests": 17,
+  "tasks": [
+    {
+      "taskId": "verify-07",
+      "requests": 17,
+      "errorCode": "DIAGNOSTIC_OUTPUT_TRUNCATED"
+    }
+  ],
+  "poisoned": null,
+  "actualBilledCostCny": null,
+  "tokenOnlyEstimateCny": 0.46782219999999997,
+  "knownTokenOnlyEstimateCny": 0.46782219999999997,
+  "fxRate": null
+}

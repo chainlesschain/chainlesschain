@@ -1,0 +1,158 @@
+{
+  "scope": "verify01-operator-acceptance",
+  "taskId": "verify-30",
+  "stage": "check",
+  "productionAttested": false,
+  "providerAssessed": false,
+  "isolation": "docker",
+  "imageReference": "node:22.12.0-bookworm",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operator": {
+    "uid": 1001,
+    "gid": 1001
+  },
+  "tests": [
+    {
+      "kind": "baseline",
+      "total": 13,
+      "passed": 13,
+      "failed": 0
+    },
+    {
+      "kind": "candidate",
+      "total": 4,
+      "passed": 4,
+      "failed": 0
+    }
+  ],
+  "mutations": [
+    {
+      "name": "collapse-animation-frame-count-and-cumulative-budget",
+      "sourceSha256": "24ae42225ca67212f70c8ce93ccdbbf5bdd17e29b1775c817e2c03ad015ad2f7",
+      "total": 4,
+      "passed": 0,
+      "failed": 4
+    }
+  ],
+  "executions": [
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "setup": false,
+      "ms": 126,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "v22.12.0\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 645,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":4,\"numPassedTestSuites\":4,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":13,\"numPassedTests\":13,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793694236623,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"complete-container admission, distinct from codec decoding\"],\"fullName\":\"complete-container admission, distinct from codec decoding counts all GIF compositing canvases, including small delta frames\",\"status\":\"passed\",\"title\":\"counts all GIF compositing canvases, including small delta frames\",\"duration\":3.7521090000000186,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"complete-container admission, distinct from codec decoding\"],\"fullName\":\"complete-container admission, distinct from codec decoding rejects damaged/truncated containers that retain valid dimension headers\",\"status\":\"passed\",\"title\":\"rejects damaged/truncated containers that retain valid dimension headers\",\"duration\":0.6763839999999846,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"complete-container admission, distinct from codec decoding\"],\"fullName\":\"complete-container admission, distinct from codec decoding retains PNG and GIF acceptance with explicit frame metadata\",\"status\":\"passed\",\"title\":\"retains PNG and GIF acceptance with explicit frame metadata\",\"duration\":0.3811670000000049,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"cancellable codec worker lifecycle\"],\"fullName\":\"cancellable codec worker lifecycle closes transferred bitmaps that arrive after cancellation\",\"status\":\"passed\",\"title\":\"closes transferred bitmaps that arrive after cancellation\",\"duration\":1.4944769999999892,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"cancellable codec worker lifecycle\"],\"fullName\":\"cancellable codec worker lifecycle preserves per-frame duration with a minimum and stops playback timers\",\"status\":\"passed\",\"title\":\"preserves per-frame duration with a minimum and stops playback timers\",\"duration\":2.577639000000005,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"cancellable codec worker lifecycle\"],\"fullName\":\"cancellable codec worker lifecycle rejects codec frame-count or canvas disagreements and closes native resources\",\"status\":\"passed\",\"title\":\"rejects codec frame-count or canvas disagreements and closes native resources\",\"duration\":1.7875610000000108,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"cancellable codec worker lifecycle\"],\"fullName\":\"cancellable codec worker lifecycle terminates a stuck worker on deadline and rejects stale completion\",\"status\":\"passed\",\"title\":\"terminates a stuck worker on deadline and rejects stale completion\",\"duration\":0.9104169999999954,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"cancellable codec worker lifecycle\"],\"fullName\":\"cancellable codec worker lifecycle replacing the visible batch kills its decoder and accepts only the new result\",\"status\":\"passed\",\"title\":\"replacing the visible batch kills its decoder and accepts only the new result\",\"duration\":0.6825059999999894,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"single-descriptor image reads\"],\"fullName\":\"single-descriptor image reads handles short reads and rejects growth or same-size observed modification\",\"status\":\"passed\",\"title\":\"handles short reads and rejects growth or same-size observed modification\",\"duration\":1.7091050000000223,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"single-descriptor image reads\"],\"fullName\":\"single-descriptor image reads checks cancellation and elapsed budget between chunks and closes the descriptor\",\"status\":\"passed\",\"title\":\"checks cancellation and elapsed budget between chunks and closes the descriptor\",\"duration\":0.9708190000000059,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"single-descriptor image reads\"],\"fullName\":\"single-descriptor image reads reads real files and rejects an unexpected saved size\",\"status\":\"passed\",\"title\":\"reads real files and rejects an unexpected saved size\",\"duration\":9.477091000000001,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[],\"fullName\":\"persists GIF attachments and cleans staging under a path longer than Windows MAX_PATH\",\"status\":\"passed\",\"title\":\"persists GIF attachments and cleans staging under a path longer than Windows MAX_PATH\",\"duration\":32.87371200000001,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[],\"fullName\":\"cleans private worker staging after timeout/cancel and promotes accepted bytes exclusively\",\"status\":\"passed\",\"title\":\"cleans private worker staging after timeout/cancel and promotes accepted bytes exclusively\",\"duration\":29.50515200000001,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793694236827,\"endTime\":1793694236914.5051,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/vscode-ext-image-decode-budget.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 637,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":4,\"numPassedTests\":4,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793694237339,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"cumulative animation frame budget (multi-frame admission)\"],\"fullName\":\"cumulative animation frame budget (multi-frame admission) retains an animation whose cumulative canvas-pixel total equals the 40 MP boundary\",\"status\":\"passed\",\"title\":\"retains an animation whose cumulative canvas-pixel total equals the 40 MP boundary\",\"duration\":2.301511000000005,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"cumulative animation frame budget (multi-frame admission)\"],\"fullName\":\"cumulative animation frame budget (multi-frame admission) rejects the first frame past the cumulative 40 MP budget even when frame count is legal\",\"status\":\"passed\",\"title\":\"rejects the first frame past the cumulative 40 MP budget even when frame count is legal\",\"duration\":0.8677660000000174,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"cumulative animation frame budget (multi-frame admission)\"],\"fullName\":\"cumulative animation frame budget (multi-frame admission) retains an animation whose frame count sits exactly on the 200-frame boundary\",\"status\":\"passed\",\"title\":\"retains an animation whose frame count sits exactly on the 200-frame boundary\",\"duration\":0.671496999999988,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"cumulative animation frame budget (multi-frame admission)\"],\"fullName\":\"cumulative animation frame budget (multi-frame admission) rejects the first frame past the 200-frame boundary\",\"status\":\"passed\",\"title\":\"rejects the first frame past the 200-frame boundary\",\"duration\":0.6143239999999821,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793694237513,\"endTime\":1793694237517.6143,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/vscode-extension/__tests__/verify-30.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "/workspace/packages/vscode-extension/src/chat/image-decode-budget.js"
+      ],
+      "setup": false,
+      "ms": 225,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 562,
+      "exitCode": 1,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":0,\"numFailedTestSuites\":2,\"numPendingTestSuites\":0,\"numTotalTests\":4,\"numPassedTests\":0,\"numFailedTests\":4,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793694238137,\"success\":false,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"cumulative animation frame budget (multi-frame admission)\"],\"fullName\":\"cumulative animation frame budget (multi-frame admission) retains an animation whose cumulative canvas-pixel total equals the 40 MP boundary\",\"status\":\"failed\",\"title\":\"retains an animation whose cumulative canvas-pixel total equals the 40 MP boundary\",\"duration\":8.39510899999999,\"failureMessages\":[\"AssertionError: expected { format: 'gif', width: 2000, …(4) } to match object { format: 'gif', frames: 10, …(1) }\\n(3 matching properties omitted from actual)\\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1283:10)\\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1156:15)\\n    at Proxy.methodWrapper (file:///workspace/node_modules/chai/index.js:1700:25)\\n    at /workspace/packages/vscode-extension/__tests__/verify-30.test.js:27:52\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"cumulative animation frame budget (multi-frame admission)\"],\"fullName\":\"cumulative animation frame budget (multi-frame admission) rejects the first frame past the cumulative 40 MP budget even when frame count is legal\",\"status\":\"failed\",\"title\":\"rejects the first frame past the cumulative 40 MP budget even when frame count is legal\",\"duration\":1.432711999999981,\"failureMessages\":[\"AssertionError: expected [Function] to throw an error\\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1552:16)\\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1156:15)\\n    at Proxy.methodWrapper (file:///workspace/node_modules/chai/index.js:1700:25)\\n    at /workspace/packages/vscode-extension/__tests__/verify-30.test.js:37:58\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"cumulative animation frame budget (multi-frame admission)\"],\"fullName\":\"cumulative animation frame budget (multi-frame admission) retains an animation whose frame count sits exactly on the 200-frame boundary\",\"status\":\"failed\",\"title\":\"retains an animation whose frame count sits exactly on the 200-frame boundary\",\"duration\":1.480604999999997,\"failureMessages\":[\"AssertionError: expected { format: 'gif', width: 1, …(4) } to match object { frames: 200, decodedPixels: 200 }\\n(4 matching properties omitted from actual)\\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1283:10)\\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1156:15)\\n    at Proxy.methodWrapper (file:///workspace/node_modules/chai/index.js:1700:25)\\n    at /workspace/packages/vscode-extension/__tests__/verify-30.test.js:44:47\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"cumulative animation frame budget (multi-frame admission)\"],\"fullName\":\"cumulative animation frame budget (multi-frame admission) rejects the first frame past the 200-frame boundary\",\"status\":\"failed\",\"title\":\"rejects the first frame past the 200-frame boundary\",\"duration\":1.009838000000002,\"failureMessages\":[\"AssertionError: expected [Function] to throw an error\\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1552:16)\\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1156:15)\\n    at Proxy.methodWrapper (file:///workspace/node_modules/chai/index.js:1700:25)\\n    at /workspace/packages/vscode-extension/__tests__/verify-30.test.js:51:53\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\"],\"meta\":{},\"tags\":[]}],\"startTime\":1793694238308,\"endTime\":1793694238321.0098,\"status\":\"failed\",\"message\":\"\",\"name\":\"/workspace/packages/vscode-extension/__tests__/verify-30.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "/workspace/packages/vscode-extension/src/chat/image-decode-budget.js"
+      ],
+      "setup": false,
+      "ms": 129,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 563,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":4,\"numPassedTests\":4,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793694238821,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"cumulative animation frame budget (multi-frame admission)\"],\"fullName\":\"cumulative animation frame budget (multi-frame admission) retains an animation whose cumulative canvas-pixel total equals the 40 MP boundary\",\"status\":\"passed\",\"title\":\"retains an animation whose cumulative canvas-pixel total equals the 40 MP boundary\",\"duration\":2.3941250000000025,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"cumulative animation frame budget (multi-frame admission)\"],\"fullName\":\"cumulative animation frame budget (multi-frame admission) rejects the first frame past the cumulative 40 MP budget even when frame count is legal\",\"status\":\"passed\",\"title\":\"rejects the first frame past the cumulative 40 MP budget even when frame count is legal\",\"duration\":1.0809260000000052,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"cumulative animation frame budget (multi-frame admission)\"],\"fullName\":\"cumulative animation frame budget (multi-frame admission) retains an animation whose frame count sits exactly on the 200-frame boundary\",\"status\":\"passed\",\"title\":\"retains an animation whose frame count sits exactly on the 200-frame boundary\",\"duration\":0.7155390000000068,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"cumulative animation frame budget (multi-frame admission)\"],\"fullName\":\"cumulative animation frame budget (multi-frame admission) rejects the first frame past the 200-frame boundary\",\"status\":\"passed\",\"title\":\"rejects the first frame past the 200-frame boundary\",\"duration\":0.6171679999999924,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793694239007,\"endTime\":1793694239011.6172,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/vscode-extension/__tests__/verify-30.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "pass": false,
+  "detail": "candidate tests did not reject the behavioral mutant"
+}

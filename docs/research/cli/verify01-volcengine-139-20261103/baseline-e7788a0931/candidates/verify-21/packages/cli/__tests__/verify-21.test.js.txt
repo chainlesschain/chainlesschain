@@ -1,0 +1,130 @@
+import { afterEach, describe, expect, it } from "vitest";
+import {
+  mkdtempSync,
+  readFileSync,
+  writeFileSync,
+  readdirSync,
+  statSync,
+  rmSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { createDurableMemoryFixture } from "../../scripts/persistent-capacity-benchmark.mjs";
+import { STORE_SCHEMA } from "../../src/lib/context-memory-kernel/durable-memory-port.js";
+import {
+  SegmentedMemoryPort,
+  SEGMENTED_STORE_SCHEMA,
+} from "../../src/lib/context-memory-kernel/segmented-memory-port.js";
+
+const roots = [];
+function location() {
+  const root = mkdtempSync(join(tmpdir(), "cc-shadow-read-verify21-"));
+  roots.push(root);
+  return { root, filePath: join(root, "kernel-v1.json") };
+}
+// Recursive snapshot of file bytes and entry names under a directory, so a
+// test can prove that an operation changed neither bytes nor entries.
+function treeSnapshot(parent) {
+  const entries = readdirSync(parent)
+    .sort()
+    .map((name) => {
+      const path = join(parent, name);
+      if (statSync(path).isDirectory()) return { name, children: treeSnapshot(path) };
+      return { name, bytes: readFileSync(path) };
+    });
+  return { entries };
+}
+afterEach(() => {
+  while (roots.length) rmSync(roots.pop(), { recursive: true, force: true });
+});
+
+describe("memory shadow reads are write-free (verify-21)", () => {
+  it("v1 shadow read returns records without migrating, creating shards or touching bytes/entries", async () => {
+    const { root, filePath } = location();
+    const state = createDurableMemoryFixture(3);
+    writeFileSync(filePath, JSON.stringify(state));
+    const before = treeSnapshot(root);
+
+    const shadow = new SegmentedMemoryPort({ filePath, readOnly: true });
+    expect(await shadow.query()).toHaveLength(3);
+    for (const record of Object.values(state.records))
+      expect(await shadow.read(record.memoryId)).toEqual(record);
+    expect(await shadow.exportSnapshot()).toEqual(state);
+
+    expect(treeSnapshot(root)).toEqual(before);
+    // Migration would replace the v1 authority with a v2 manifest and create a
+    // .shards directory; neither may happen for a shadow read.
+    expect(JSON.parse(readFileSync(filePath)).schema).toBe(STORE_SCHEMA);
+    expect(readdirSync(root).some((name) => name.endsWith(".shards"))).toBe(false);
+  });
+
+  it("negative control: a writable port migrates the identical v1 file and writes shards", async () => {
+    const { root, filePath } = location();
+    const state = createDurableMemoryFixture(3);
+    writeFileSync(filePath, JSON.stringify(state));
+    const before = treeSnapshot(root);
+
+    await new SegmentedMemoryPort({ filePath }).query();
+
+    expect(treeSnapshot(root)).not.toEqual(before);
+    expect(JSON.parse(readFileSync(filePath)).schema).toBe(
+      SEGMENTED_STORE_SCHEMA,
+    );
+    expect(readdirSync(root).some((name) => name.endsWith(".shards"))).toBe(true);
+  });
+
+  it("v2 shadow read skips GC: an orphan shard survives and bytes/entries are unchanged", async () => {
+    const { root, filePath } = location();
+    const seed = new SegmentedMemoryPort({ filePath });
+    await seed.importSnapshot(createDurableMemoryFixture(4));
+    const shardDirectory = `${filePath}.shards`;
+    const orphan = join(shardDirectory, "00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.json");
+    writeFileSync(orphan, "orphan");
+    const before = treeSnapshot(root);
+
+    const shadow = new SegmentedMemoryPort({ filePath, readOnly: true });
+    expect(await shadow.query()).toHaveLength(4);
+    expect(await shadow.getRevision()).toBeGreaterThan(0);
+
+    expect(treeSnapshot(root)).toEqual(before);
+    expect(readFileSync(orphan, "utf8")).toBe("orphan");
+  });
+
+  it("negative control: a writable port GCs the same orphan on read", async () => {
+    const { root, filePath } = location();
+    const seed = new SegmentedMemoryPort({ filePath });
+    await seed.importSnapshot(createDurableMemoryFixture(4));
+    const shardDirectory = `${filePath}.shards`;
+    const orphan = join(shardDirectory, "00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.json");
+    writeFileSync(orphan, "orphan");
+    const before = treeSnapshot(root);
+
+    await new SegmentedMemoryPort({ filePath }).query();
+
+    expect(treeSnapshot(root)).not.toEqual(before);
+    expect(readdirSync(shardDirectory)).not.toContain(
+      "00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.json",
+    );
+  });
+
+  it("shadow commit is rejected before any write and leaves bytes/entries unchanged", async () => {
+    const { root, filePath } = location();
+    const seed = new SegmentedMemoryPort({ filePath });
+    const state = createDurableMemoryFixture(2);
+    await seed.importSnapshot(state);
+    const before = treeSnapshot(root);
+
+    const shadow = new SegmentedMemoryPort({ filePath, readOnly: true });
+    await expect(
+      shadow.commit(
+        {
+          record: Object.values(state.records)[0],
+          event: { type: "test.event" },
+        },
+        1,
+      ),
+    ).rejects.toMatchObject({ code: "CONTEXT_MEMORY_READ_ONLY" });
+
+    expect(treeSnapshot(root)).toEqual(before);
+  });
+});

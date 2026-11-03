@@ -1,0 +1,25 @@
+{
+  "schema": "chainlesschain.verify01-runtime-repair-engineering-validation/v1",
+  "runtimeSource": "284bb5f24c95faed45e9d7e2503640888de92766",
+  "harnessSource": "c811dbc46478ec87ba10ebfe1ba7d9467e56d7f6",
+  "unitTests": {
+    "files": ["read-file-loop-guard.test.js", "tool-argument-recovery.test.js"],
+    "passed": 67
+  },
+  "runtimeComposition": {
+    "file": "agent-evolution-runtime-composition.test.js",
+    "filter": "rejects malformed|resumes legacy malformed",
+    "passed": 5,
+    "skipped": 269,
+    "permissions": "normal native Windows ACL access",
+    "limitations": "The broader sandboxed run failed on unavailable native ACL witness initialization and desktop files omitted by sparse checkout. It is not a passing full composition-suite result. Five directly relevant malformed-argument/strict-ingress/resume regressions passed after normal native permissions and required source files were available."
+  },
+  "offlineHarnessContracts": {
+    "passed": 71,
+    "failed": 0,
+    "covers": ["real workflow selection", "historical unresolved IDs", "runtime versus frozen project binding", "candidate package source verification", "native provider identity", "independent checker package binding", "model maximum output", "provider default tool batching", "connection grace", "legacy policy preservation"]
+  },
+  "sourceEgressInventory": { "passed": true, "candidateFiles": 87, "unclassifiedFiles": 0, "parseErrors": 0, "formalPaidAdmission": false },
+  "candidateBuild": { "runId": 41597482236, "conclusion": "success", "published": false },
+  "notTaskAcceptance": true
+}

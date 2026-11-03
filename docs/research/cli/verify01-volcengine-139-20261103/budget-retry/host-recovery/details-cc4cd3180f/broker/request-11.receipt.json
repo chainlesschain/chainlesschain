@@ -1,0 +1,52 @@
+{
+  "id": 11,
+  "taskId": "verify-06",
+  "startedAt": "2026-11-03T04:26:04.920Z",
+  "usage": {
+    "completion_tokens": 149,
+    "prompt_tokens": 21403,
+    "total_tokens": 21552,
+    "prompt_tokens_details": {
+      "cached_tokens": 16384
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    }
+  },
+  "tokenOnlyEstimateCny": 0.0180364,
+  "actualBilledCostCny": null,
+  "errorCode": null,
+  "responseMode": "sse",
+  "finish": "tool_calls",
+  "finishedAt": "2026-11-03T04:26:09.668Z",
+  "transport": {
+    "socketAssignedMs": 1,
+    "dnsLookupMs": 1,
+    "tcpConnectedMs": 1250,
+    "tlsConnectedMs": 1494,
+    "dispatchStartedMs": 1494,
+    "requestFinishedMs": 1495,
+    "responseStartedMs": 3728,
+    "dispatchStarted": true,
+    "failureCategory": null,
+    "connectionAttempts": [
+      {
+        "event": "start",
+        "family": 4,
+        "elapsedMs": 2,
+        "errorCode": null
+      }
+    ],
+    "nestedErrorCodes": [],
+    "errorCode": null,
+    "errorSyscall": null
+  },
+  "response": {
+    "storedSha256": "fc36d59291f61d2faa6b17459d47e1398556c44bf7266fd8ffc24df48178df83",
+    "storedBytes": 28037,
+    "status": 200,
+    "originalSha256": "fc36d59291f61d2faa6b17459d47e1398556c44bf7266fd8ffc24df48178df83",
+    "originalBytes": 28037,
+    "sensitiveValueRedacted": false
+  }
+}

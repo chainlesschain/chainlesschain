@@ -1,0 +1,134 @@
+/**
+ * Independent regression coverage for the model-failure-policy module
+ * (packages/cli/src/lib/model-failure-policy.js).
+ *
+ * Focus:
+ *  1. isEvolutionIngressFailure — only the admission-ingress code marks a
+ *     failure as an evolution ingress failure; other markers / plain retryable
+ *     protocol errors must not be classified as such.
+ *  2. isTerminalModelFailure — each explicit rejection marker is recognized
+ *     (and only the matching marker changes the outcome), while an ordinary
+ *     retryable protocol error is never treated as an explicit rejection (i.e.
+ *     a protocol error is not implicitly turned into success / skipped retry).
+ */
+
+import { describe, it, expect } from "vitest";
+import {
+  isEvolutionIngressFailure,
+  isTerminalModelFailure,
+} from "../src/lib/model-failure-policy.js";
+
+describe("model-failure-policy", () => {
+  it("isEvolutionIngressFailure: only the ingress code marks an ingress failure", () => {
+    // Positive: the ingress code on the outermost error.
+    const ingress = new Error("admission failed");
+    ingress.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
+    expect(isEvolutionIngressFailure(ingress)).toBe(true);
+
+    // Positive: the ingress code nested on a cause is still found.
+    const nested = new Error("provider 503", {
+      cause: { code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" },
+    });
+    expect(isEvolutionIngressFailure(nested)).toBe(true);
+
+    // Negative control (only the marker differs): a retryable protocol error
+    // carries no ingress code and must not be an ingress failure.
+    const protocol = Object.assign(new Error("Model is overloaded"), {
+      status: 503,
+    });
+    expect(isEvolutionIngressFailure(protocol)).toBe(false);
+
+    // A different explicit rejection marker (ledger persistence) is not an
+    // ingress failure: the two predicates stay distinct.
+    const ledger = Object.assign(new Error("persist failed"), {
+      runtimeLedgerPersistence: true,
+    });
+    expect(isEvolutionIngressFailure(ledger)).toBe(false);
+  });
+
+  it("isTerminalModelFailure: each explicit rejection marker alone flips the result", () => {
+    const base = Object.assign(new Error("provider timeout"), {
+      status: 503, // retryable-looking prerequisite kept valid
+    });
+
+    const markers = [
+      {
+        name: "ingress code",
+        terminal: Object.assign(new Error("admission failed"), {
+          code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+        }),
+        retryable: Object.assign(new Error("admission failed"), { status: 503 }),
+      },
+      {
+        name: "runtime ledger persistence",
+        terminal: Object.assign(new Error("persist failed"), {
+          runtimeLedgerPersistence: true,
+          status: 503,
+        }),
+        retryable: Object.assign(new Error("persist failed"), { status: 503 }),
+      },
+      {
+        name: "workflow effect outcome unknown",
+        terminal: Object.assign(new Error("outcome unknown"), {
+          workflowEffectOutcomeUnknown: true,
+          status: 503,
+        }),
+        retryable: Object.assign(new Error("outcome unknown"), { status: 503 }),
+      },
+      {
+        name: "session budget code",
+        terminal: Object.assign(new Error("budget"), {
+          code: "ERR_SESSION_BUDGET_IN_FLIGHT_LIMIT",
+          status: 503,
+        }),
+        retryable: Object.assign(new Error("budget"), {
+          code: "ERR_SESSION_BUDGET", // does NOT match /^(?:CC|ERR)_SESSION_BUDGET_/
+          status: 503,
+        }),
+      },
+      {
+        name: "abort error",
+        // Neutral message chosen so the abort classification depends solely on
+        // the "AbortError" name, not on the /aborted|interrupted/i message match.
+        terminal: Object.assign(
+          new Error("request failed after provider timeout"),
+          { name: "AbortError", status: 503 },
+        ),
+        retryable: Object.assign(
+          new Error("request failed after provider timeout"),
+          { status: 503 },
+        ),
+      },
+    ];
+
+    for (const m of markers) {
+      expect(isTerminalModelFailure(m.terminal)).toBe(true);
+      expect(isTerminalModelFailure(m.retryable)).toBe(false);
+    }
+    // A nested marker on a cause is also terminal (cause chain is walked).
+    const nested = Object.assign(new Error("provider 503", { cause: base }), {
+      status: 503,
+      runtimeLedgerPersistence: true,
+    });
+    expect(isTerminalModelFailure(nested)).toBe(true);
+  });
+
+  it("isTerminalModelFailure: a retryable protocol error is never an explicit rejection", () => {
+    // "可重试与明确拒绝按现有合同区分": these are retryable by contract, not
+    // terminal. A retryable protocol error must not be implicitly turned into a
+    // success/skip decision.
+    const retryableCases = [
+      new Error("Model is overloaded"),
+      Object.assign(new Error("429 Too Many Requests"), { status: 429 }),
+      Object.assign(new Error("fetch failed"), { code: "ECONNREFUSED" }),
+      new Error("request timed out but still retryable"),
+    ];
+    for (const error of retryableCases) {
+      expect(isTerminalModelFailure(error)).toBe(false);
+    }
+    // Even wrapped under a retryable-looking top frame, with no terminal marker
+    // anywhere in the cause chain, the result stays non-terminal.
+    const chained = new Error("provider 503", { cause: retryableCases[0] });
+    expect(isTerminalModelFailure(chained)).toBe(false);
+  });
+});

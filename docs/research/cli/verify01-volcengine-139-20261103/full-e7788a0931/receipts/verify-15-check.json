@@ -1,0 +1,78 @@
+{
+  "scope": "verify01-operator-acceptance",
+  "taskId": "verify-15",
+  "stage": "check",
+  "productionAttested": false,
+  "providerAssessed": false,
+  "isolation": "docker",
+  "imageReference": "node:22.12.0-bookworm",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operator": {
+    "uid": 1001,
+    "gid": 1001
+  },
+  "tests": [
+    {
+      "kind": "baseline",
+      "total": 12,
+      "passed": 12,
+      "failed": 0
+    }
+  ],
+  "mutations": [],
+  "executions": [
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "setup": false,
+      "ms": 118,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "v22.12.0\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 594,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":3,\"numPassedTestSuites\":3,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":12,\"numPassedTests\":12,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793677625419,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"ScopedPermissionStore\"],\"fullName\":\"ScopedPermissionStore persists an active workspace-bound rule with provenance and TTL\",\"status\":\"passed\",\"title\":\"persists an active workspace-bound rule with provenance and TTL\",\"duration\":5.370643000000001,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ScopedPermissionStore\"],\"fullName\":\"ScopedPermissionStore expires a rule without mutating durable history\",\"status\":\"passed\",\"title\":\"expires a rule without mutating durable history\",\"duration\":1.125392999999974,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ScopedPermissionStore\"],\"fullName\":\"ScopedPermissionStore revokes with record-level CAS and rejects a stale revision\",\"status\":\"passed\",\"title\":\"revokes with record-level CAS and rejects a stale revision\",\"duration\":1.8428229999999814,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ScopedPermissionStore\"],\"fullName\":\"ScopedPermissionStore rejects a stale store generation on create\",\"status\":\"passed\",\"title\":\"rejects a stale store generation on create\",\"duration\":1.0341260000000148,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ScopedPermissionStore\"],\"fullName\":\"ScopedPermissionStore refuses an unsafe persisted generation instead of accepting a non-advancing version\",\"status\":\"passed\",\"title\":\"refuses an unsafe persisted generation instead of accepting a non-advancing version\",\"duration\":0.8004139999999893,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ScopedPermissionStore\"],\"fullName\":\"ScopedPermissionStore refuses an unsafe persisted revision instead of accepting a non-advancing version\",\"status\":\"passed\",\"title\":\"refuses an unsafe persisted revision instead of accepting a non-advancing version\",\"duration\":0.7601940000000127,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ScopedPermissionStore\"],\"fullName\":\"ScopedPermissionStore advances the last safe generation on add and keeps stale generation CAS\",\"status\":\"passed\",\"title\":\"advances the last safe generation on add and keeps stale generation CAS\",\"duration\":1.5682700000000125,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ScopedPermissionStore\"],\"fullName\":\"ScopedPermissionStore advances the last safe revision on revoke and keeps stale revision CAS\",\"status\":\"passed\",\"title\":\"advances the last safe revision on revoke and keeps stale revision CAS\",\"duration\":1.3629509999999811,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ScopedPermissionStore\"],\"fullName\":\"ScopedPermissionStore fails closed on corrupt state or a different workspace binding\",\"status\":\"passed\",\"title\":\"fails closed on corrupt state or a different workspace binding\",\"duration\":1.5427320000000009,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ScopedPermissionStore\"],\"fullName\":\"ScopedPermissionStore isolates permission authority at the nearest nested repository\",\"status\":\"passed\",\"title\":\"isolates permission authority at the nearest nested repository\",\"duration\":8.714394000000027,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"loadPermissionAuthority\"],\"fullName\":\"loadPermissionAuthority includes only active scoped rules and preserves deny precedence\",\"status\":\"passed\",\"title\":\"includes only active scoped rules and preserves deny precedence\",\"duration\":3.582962000000009,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"loadPermissionAuthority\"],\"fullName\":\"loadPermissionAuthority suppresses workspace rules under managed-only policy\",\"status\":\"passed\",\"title\":\"suppresses workspace rules under managed-only policy\",\"duration\":1.4434929999999895,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793677625648,\"endTime\":1793677625677.4436,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/scoped-permission-store.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 605,
+      "exitCode": 1,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":1,\"numPassedTestSuites\":0,\"numFailedTestSuites\":1,\"numPendingTestSuites\":0,\"numTotalTests\":0,\"numPassedTests\":0,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793677626024,\"success\":false,\"testResults\":[{\"assertionResults\":[],\"startTime\":1793677626024,\"endTime\":1793677626024,\"status\":\"failed\",\"message\":\"No test suite found in file /workspace/packages/cli/__tests__/verify-15.test.js\",\"name\":\"/workspace/packages/cli/__tests__/verify-15.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "pass": false,
+  "detail": "acceptance requires executed test cases"
+}

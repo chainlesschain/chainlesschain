@@ -1,0 +1,655 @@
+{
+  "schema": "chainlesschain.verify01-native-task-campaign/v1",
+  "executionSourceCommit": "e7788a09316abb6f637932ae09254a441168742e",
+  "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+  "frozenArchiveDigest": "sha256:0cd894ce05bd6fcbc5673f3728a1cde0b27337eb6f7d43ee8e4cf9cc1bfbb1bc",
+  "versions": {
+    "cli": "0.166.139",
+    "vscode": "0.37.175",
+    "jetbrains": "0.4.192",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "modelTransport": {
+    "provider": "volcengine",
+    "model": "deepseek-v4-flash-ga-260731",
+    "endpoint": "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
+    "policyDigest": "sha256:0e94c4a754ac2d88255cd1c6046eaaa14846b0c8ad62c6239e86195fd8d5f030",
+    "defaultThinkingPreserved": false,
+    "formalSample": false
+  },
+  "packageSetDigest": "sha256:7ac96aab19914fb001c91868a6a94c776639ef217fe3fd0e841e7bdff5d98e5f",
+  "actualPlatform": "linux",
+  "actualArch": "x64",
+  "actualEntry": "jetbrains",
+  "changeReview": {
+    "requested": true,
+    "observed": false
+  },
+  "startedAt": "2026-11-03T02:20:33.370Z",
+  "samples": [
+    {
+      "schema": "chainlesschain.verify01-native-task-sample/v1",
+      "sampleId": "verify-15",
+      "taskId": "verify-15",
+      "kind": "task",
+      "runId": "e41e40fe-08c1-487f-9a7c-d4305730174a",
+      "stratum": "linux-jetbrains-volcengine",
+      "declaredActualEntry": {
+        "platform": "linux",
+        "entry": "jetbrains"
+      },
+      "actualPlatform": "linux",
+      "actualEntry": "jetbrains",
+      "changeReview": {
+        "requested": true,
+        "observed": false,
+        "reminderCount": 0,
+        "evidence": "model-stream.ndjson:iteration_warning",
+        "completed": null
+      },
+      "executionSourceCommit": "e7788a09316abb6f637932ae09254a441168742e",
+      "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+      "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+      "versions": {
+        "cli": "0.166.139",
+        "vscode": "0.37.175",
+        "jetbrains": "0.4.192",
+        "vscodeHost": "1.132.0",
+        "jetbrainsHost": "2025.2"
+      },
+      "packageSetDigest": "sha256:7ac96aab19914fb001c91868a6a94c776639ef217fe3fd0e841e7bdff5d98e5f",
+      "expectedFiles": [
+        "packages/cli/__tests__/verify-15.test.js"
+      ],
+      "startedAt": "2026-11-03T02:20:33.371Z",
+      "deadline": "2026-11-03T02:40:33.371Z",
+      "candidates": [
+        {
+          "file": "packages/cli/__tests__/verify-15.test.js",
+          "path": "verify-15/candidate/packages/cli/__tests__/verify-15.test.js",
+          "digest": "sha256:72fbf404fca2ae7ca520e83e3a00108ef01918c00f238439b0b28e1db37c40fa",
+          "bytes": 27
+        }
+      ],
+      "sourceScopePassed": true,
+      "metadataChanges": [
+        ".idea",
+        ".idea/.gitignore",
+        ".idea/misc.xml",
+        ".idea/modules.xml",
+        ".idea/workspace.iml",
+        ".idea/workspace.xml"
+      ],
+      "unexpectedChanges": [],
+      "generationPassed": false,
+      "passed": false,
+      "acceptancePending": true,
+      "formalSample": false,
+      "install": {
+        "passed": true,
+        "startedAt": "2026-11-03T02:20:34.749Z",
+        "finishedAt": "2026-11-03T02:20:55.206Z",
+        "lifecycleScriptsEnabled": true,
+        "sampleId": "verify-15",
+        "locked": {
+          "version": "0.166.139",
+          "resolved": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.139.tgz",
+          "integrity": "sha512-X0frBGhYvdNLxnz4oYtqo07vJvFHpi99yyZ1n1q7xI82x6v6BEx/jPy420YfZIidKlJG+HSF5SeQG38idwSW1w==",
+          "hasInstallScript": true,
+          "license": "MIT",
+          "dependencies": {
+            "@aws-sdk/client-s3": "^3.700.0",
+            "@chainlesschain/context-memory-kernel": "0.1.11",
+            "@chainlesschain/core-config": "0.1.2",
+            "@chainlesschain/core-db": "0.1.5",
+            "@chainlesschain/core-env": "0.1.2",
+            "@chainlesschain/core-infra": "0.1.1",
+            "@chainlesschain/core-mtc": "0.2.3",
+            "@chainlesschain/core-multisig": "0.1.4",
+            "@chainlesschain/personal-data-hub": "0.4.66",
+            "@chainlesschain/session-core": "0.3.24",
+            "@chainlesschain/shared-logger": "0.1.1",
+            "@inquirer/prompts": "^7.2.0",
+            "@noble/curves": "^1.9.7",
+            "@tootallnate/quickjs-emscripten": "^0.23.0",
+            "acorn": "8.17.0",
+            "ajv": "^8.20.0",
+            "ajv-formats": "^3.0.1",
+            "chalk": "^5.4.1",
+            "commander": "^12.1.0",
+            "esbuild-wasm": "0.28.1",
+            "js-yaml": "^3.15.1",
+            "koffi": "^2.16.3",
+            "ora": "^8.1.1",
+            "pac-resolver": "^7.0.1",
+            "semver": "^7.6.3",
+            "sql.js": "^1.14.1",
+            "undici": "^7.30.1",
+            "webdav": "^5.10.0",
+            "ws": "^8.14.2"
+          },
+          "bin": {
+            "cc": "bin/chainlesschain.js",
+            "chainlesschain": "bin/chainlesschain.js",
+            "clc": "bin/chainlesschain.js",
+            "clchain": "bin/chainlesschain.js"
+          },
+          "engines": {
+            "node": ">=22.12.0"
+          },
+          "optionalDependencies": {
+            "better-sqlite3": "^12.1.0",
+            "node-pty": "^1.0.0",
+            "pdf-parse": "^1.1.1"
+          },
+          "peerDependencies": {
+            "playwright": "^1.40.0"
+          },
+          "peerDependenciesMeta": {
+            "playwright": {
+              "optional": true
+            }
+          }
+        }
+      },
+      "configure": {
+        "passed": true,
+        "accountKeyInHost": false,
+        "independentProfile": true
+      },
+      "host": {
+        "passed": false,
+        "failure": "model task failed before a restartable result; see real protocol",
+        "restartRequired": true
+      },
+      "capturePath": "verify-15/capture",
+      "model": {
+        "pass": false,
+        "terminal": {
+          "terminalVerified": false,
+          "observedFallback": false,
+          "usage": null,
+          "totalCostUsd": null
+        },
+        "identity": true,
+        "fileOnlyToolSurface": true,
+        "plannedTools": [
+          "read_file",
+          "write_file",
+          "edit_file",
+          "edit_file_hashed",
+          "search_files",
+          "list_dir"
+        ],
+        "scoped": true,
+        "settled": true,
+        "preExecutionDenials": [],
+        "delivered": false,
+        "init": {
+          "type": "system",
+          "subtype": "init",
+          "protocol_version": 1,
+          "session_id": "panel-1793672683369-8ba448",
+          "session_persistence": true,
+          "input_receipts": {
+            "version": 1
+          },
+          "task_worklog": null,
+          "model": "deepseek-v4-flash-ga-260731",
+          "provider": "volcengine",
+          "permission_mode": "acceptEdits",
+          "permission_mode_state": {
+            "correlation_id": "f78bccf4-20d5-4791-ac25-1ece78801d2e",
+            "requested": "acceptEdits",
+            "effective": "acceptEdits",
+            "policy_revision": "b4d0151996d5d9e3"
+          },
+          "tools": [
+            "read_file",
+            "search_files",
+            "list_dir",
+            "write_file",
+            "edit_file",
+            "edit_file_hashed"
+          ],
+          "tools_hash": "eba35f3546a7a50a",
+          "policy_digest": "b4d0151996d5d9e3",
+          "loaded_sources": [
+            "project-memory",
+            "memory-recall",
+            "plugins"
+          ],
+          "slash_commands": [
+            "status",
+            "doctor",
+            "mcp",
+            "hooks",
+            "permissions",
+            "agents",
+            "tasks",
+            "memory"
+          ],
+          "input_format": "stream-json",
+          "additional_directories": [],
+          "resumed_messages": 0,
+          "trace_id": "tr-8ae7de73-5b2f-47c6-8beb-389fb7d1bf35",
+          "seq": 1
+        },
+        "tools": [
+          {
+            "type": "tool_use",
+            "id": "call_fgpaqo77i08nf6krnenpcjrx",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/src/lib/scoped-permission-store.js"
+            },
+            "trace_id": "tr-8ae7de73-5b2f-47c6-8beb-389fb7d1bf35",
+            "seq": 6
+          },
+          {
+            "type": "tool_use",
+            "id": "call_6mls65l1rdy174aoloa3ewr8",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/unit/scoped-permission-store.test.js"
+            },
+            "trace_id": "tr-8ae7de73-5b2f-47c6-8beb-389fb7d1bf35",
+            "seq": 10
+          }
+        ],
+        "toolResults": [
+          {
+            "type": "tool_result",
+            "id": "call_fgpaqo77i08nf6krnenpcjrx",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-WtnpM1/e41e40fe-08c1-487f-9a7c-d4305730174a/workspace/packages/cli/src/lib/scoped-permission-store.js",
+              "fileVersion": "18845:1791108223000:1793672433974.275",
+              "readSpan": {
+                "start": 0,
+                "end": 18845,
+                "total": 18845
+              },
+              "hashed": false,
+              "content": "/**\n * Workspace-bound, expiring permission rules owned by the CLI.\n *\n * The state lives outside the repository so an agent cannot authorize itself\n * by editing a project file. Mutations use the shared durable security store:\n * cross-process lock, atomic replace, fsync, and fail-closed corrupt reads.\n */\n\nimport fs from \"node:fs\";\nimport path from \"node:path\";\nimport { createHash, randomUUID } from \"node:crypto\";\nimport projectRoot from \"./project-root.cjs\";\nimport permissionRules from \"./permission-rules.cjs\";\nimport persistentSettings from \"./settings-permission-authority.cjs\";\nimport { getMachineSecurityAnchorDir } from \"./paths.js\";\nimport {\n  readSecurityStore,\n  writeSecurityStore,\n} from \"./durable-security-store.js\";\nimport { withFileLock } from \"./with-file-lock.js\";\n\nconst { findGitProjectRoot } = projectRoot;\nconst { parseRule } = permissionRules;\n\nconst STATE_SCHEMA = \"cc.scoped-permission-rules\";\nconst STATE_SCHEMA_VERSION = 1;\nconst STORE_LABEL = \"scoped permission\";\nconst RULE_ID_PATTERN = /^spr_[0-9a-f]{32}$/;\nconst DECISIONS = new Set([\"allow\", \"ask\", \"deny\"]);\nconst DEFAULT_MAX_RECORDS = 1000;\nconst persistentBindings = new WeakMap();\n\n// Official mutations revoke every provider in this module instance. Path\n// matching alone misses aliases and files that did not exist at admission.\n// This is an in-process event owner, not a cross-process notification journal.\nconst ownerId = randomUUID();\nlet permissionRevision = Object.freeze({\n  ownerId,\n  revision: 0,\n  state: \"ready\",\n});\nconst revisionListeners = new Set();\n\nexport function getScopedPermissionRevision() {\n  if (permissionRevision.state !== \"ready\") {\n    throw scopedPermissionError(\n      \"CC_SCOPED_PERMISSION_AUTHORITY_UNAVAILABLE\",\n      \"Scoped permission authority is unavailable\",\n    );\n  }\n  return permissionRevision;\n}\n\nexport function subscribeScopedPermissionRevision(listener) {\n  if (typeof listener !== \"function\")\n    throw new TypeError(\n      \"scoped permission revision listener must be a function\",\n    );\n  revisionListeners.add(listener);\n  return () => revisionListeners.delete(listener);\n}\n\nfunction beginMutation() {\n  getScopedPermissionRevision();\n  const revision = permissionRevision.revision + 1;\n  permissionRevision = Object.freeze({\n    ownerId,\n    revision,\n    state: Number.isSafeInteger(revision) ? \"mutating\" : \"invalid\",\n  });\n  for (const listener of [...revisionListeners]) {\n    try {\n      listener(permissionRevision);\n    } catch {\n      // One observer must not prevent the other shells from being revoked.\n    }\n  }\n  if (permissionRevision.state === \"invalid\") getScopedPermissionRevision();\n}\n\nfunction finishMutation(state) {\n  permissionRevision = Object.freeze({ ...permissionRevision, state });\n}\n\nexport const SCOPED_PERMISSION_ERROR_CODES = Object.freeze({\n  INVALID: \"CC_SCOPED_PERMISSION_INVALID\",\n  CONFLICT: \"CC_SCOPED_PERMISSION_CONFLICT\",\n  NOT_FOUND: \"CC_SCOPED_PERMISSION_NOT_FOUND\",\n  CORRUPT: \"CC_SCOPED_PERMISSION_CORRUPT\",\n});\n\nfunction scopedPermissionError(code, message, cause = null) {\n  const error = new Error(message);\n  error.code = code;\n  if (cause) error.cause = cause;\n  return error;\n}\n\nfunction canonicalWorkspaceRoot(cwd) {\n  const resolved = path.resolve(cwd || process.cwd());\n  const root = findGitProjectRoot(resolved) || resolved;\n  let canonical = root;\n  try {\n    canonical = fs.realpathSync.native(root);\n  } catch {\n    // A missing/unreadable cwd will be rejected by the caller that uses it.\n  }\n  const normalized = path.normalize(canonical);\n  return process.platform === \"win32\" ? normalized.toLowerCase() : normalized;\n}\n\nfunction workspaceBinding(cwd) {\n  const root = canonicalWorkspaceRoot(cwd);\n  const id = createHash(\"sha256\")\n    .update(`cc-scoped-permission-workspace-v1\\n${root}`, \"utf8\")\n    .digest(\"hex\");\n  return Object.freeze({ id, root });\n}\n\nexport function defaultScopedPermissionStatePath(cwd = process.cwd()) {\n  const workspace = workspaceBinding(cwd);\n  return path.join(\n    getMachineSecurityAnchorDir(),\n    \"permission-center\",\n    \"workspaces\",\n    `${workspace.id}.json`,\n  );\n}\n\nfunction emptyState(workspace) {\n  return {\n    schema: STATE_SCHEMA,\n    schemaVersion: STATE_SCHEMA_VERSION,\n    generation: 0,\n    updatedAt: null,\n    workspace,\n    rules: [],\n  };\n}\n\nfunction validateRecord(record, seenIds) {\n  if (\n    !record ||\n    !RULE_ID_PATTERN.test(record.id || \"\") ||\n    seenIds.has(record.id) ||\n    !DECISIONS.has(record.decision) ||\n    !parseRule(record.rule) ||\n    !Number.isSafeInteger(record.revision) ||\n    record.revision < 1 ||\n    !Number.isFinite(record.createdAt) ||\n    !Number.isFinite(record.expiresAt) ||\n    record.expiresAt <= record.createdAt ||\n    (record.revokedAt !== null && !Number.isFinite(record.revokedAt)) ||\n    typeof record.reason !== \"string\" ||\n    record.reason.length > 500\n  ) {\n    throw scopedPermissionError(\n      SCOPED_PERMISSION_ERROR_CODES.CORRUPT,\n      \"Scoped permission state contains an invalid rule record\",\n    );\n  }\n  seenIds.add(record.id);\n}\n\nfunction validateState(value, workspace) {\n  if (\n    !value ||\n    value.schema !== STATE_SCHEMA ||\n    value.schemaVersion !== STATE_SCHEMA_VERSION ||\n    !Number.isSafeInteger(value.generation) ||\n    value.generation < 0 ||\n    !value.workspace ||\n    value.workspace.id !== workspace.id ||\n    value.workspace.root !== workspace.root ||\n    !Array.isArray(value.rules)\n  ) {\n    throw scopedPermissionError(\n      SCOPED_PERMISSION_ERROR_CODES.CORRUPT,\n      \"Scoped permission state has an invalid schema or workspace binding\",\n    );\n  }\n  const seenIds = new Set();\n  for (const record of value.rules) validateRecord(record, seenIds);\n  return value;\n}\n\nfunction statusFor(record, now) {\n  if (record.revokedAt !== null) return \"revoked\";\n  if (record.expiresAt <= now) return \"expired\";\n  return \"active\";\n}\n\nfunction nextVersion(value, label) {\n  if (value === Number.MAX_SAFE_INTEGER) {\n    throw scopedPermissionError(\n      SCOPED_PERMISSION_ERROR_CODES.INVALID,\n      `Scoped permission ${label} is exhausted`,\n    );\n  }\n  return value + 1;\n}\n\nfunction projectRecord(record, now, filePath) {\n  return Object.freeze({\n    ...structuredClone(record),\n    status: statusFor(record, now),\n    source: \"cli-security-store\",\n    sourceFile: filePath,\n    scope: \"workspace\",\n  });\n}\n\nexport class ScopedPermissionStore {\n  constructor({\n    cwd = process.cwd(),\n    filePath = null,\n    now = () => Date.now(),\n    maxRecords = DEFAULT_MAX_RECORDS,\n    lock = undefined,\n    randomId = () => `spr_${randomUUID().replaceAll(\"-\", \"\")}`,\n    settingsAuthority = null,\n  } = {}) {\n    this.workspace = workspaceBinding(cwd);\n    this.filePath = path.resolve(\n      filePath || defaultScopedPermissionStatePath(this.workspace.root),\n    );\n    const relativeToWorkspace = path.relative(\n      this.workspace.root,\n      this.filePath,\n    );\n    if (\n      relativeToWorkspace === \"\" ||\n      (!relativeToWorkspace.startsWith(\"..\") &&\n        !path.isAbsolute(relativeToWorkspace))\n    ) {\n      throw scopedPermissionError(\n        SCOPED_PERMISSION_ERROR_CODES.INVALID,\n        \"Scoped permission authority must be stored outside the workspace\",\n      );\n    }\n    this._now = typeof now === \"function\" ? now : () => Number(now);\n    this.maxRecords = Math.max(\n      1,\n      Math.floor(Number(maxRecords) || DEFAULT_MAX_RECORDS),\n    );\n    this._lock = lock;\n    this._randomId = randomId;\n    if (settingsAuthority) {\n      const bound =\n        persistentSettings.settingsPermissionAuthorityOptions(\n          settingsAuthority,\n        );\n      if (path.resolve(cwd) !== bound.cwd || this.filePath !== bound.scopedFile)\n        throw new TypeError(\n          \"persistent scoped permission authority options mismatch\",\n        );\n      persistentBindings.set(this, settingsAuthority);\n    }\n  }\n\n  _capture() {\n    const revision = getScopedPermissionRevision();\n    const captured = Object.freeze({\n      filePath: path.resolve(this.filePath),\n      workspace: Object.freeze({ ...this.workspace }),\n      now: this._now.bind(this),\n      randomId: this._randomId.bind(this),\n      maxRecords: this.maxRecords,\n      lock: this._lock || withFileLock,\n      settingsAuthority: persistentBindings.get(this) || null,\n    });\n    if (captured.settingsAuthority) {\n      const bound = persistentSettings.settingsPermissionAuthorityOptions(\n        captured.settingsAuthority,\n      );\n      const workspace = workspaceBinding(bound.cwd);\n      if (\n        captured.filePath !== bound.scopedFile ||\n        captured.workspace.id !== workspace.id ||\n        captured.workspace.root !== workspace.root\n      )\n        throw new TypeError(\n          \"persistent scoped permission authority options mismatch\",\n        );\n    }\n    if (getScopedPermissionRevision() !== revision)\n      throw scopedPermissionError(\n        \"CC_SCOPED_PERMISSION_AUTHORITY_CHANGED\",\n        \"Scoped permission authority changed while capturing the operation\",\n      );\n    return captured;\n  }\n\n  _read(captured = this._capture()) {\n    getScopedPermissionRevision();\n    const stored = captured.settingsAuthority\n      ? persistentSettings.readSettingsPermissionAuthority(\n          captured.settingsAuthority,\n        ).scopedObservation.settings || {}\n      : readSecurityStore(captured.filePath, STORE_LABEL);\n    if (Object.keys(stored).length === 0) return emptyState(captured.workspace);\n    return validateState(stored, captured.workspace);\n  }\n\n  _mutate(captured, update) {\n    getScopedPermissionRevision(); // Reject observer reentry before the lock.\n    if (captured.settingsAuthority) {\n      let started = false;\n      try {\n        persistentSettings.mutateSettingsPermissionSource(\n          captured.settingsAuthority,\n          {\n            logicalPath: captured.filePath,\n            prepare(draft) {\n              if (Object.keys(draft).length === 0)\n                Object.assign(draft, emptyState(captured.workspace));\n              validateState(draft, captured.workspace);\n              if (update(draft) === false) return false;\n              validateState(draft, captured.workspace);\n            },\n            revokeLocal() {\n              started = true;\n              beginMutation();\n            },\n            replace(file, draft) {\n              validateState(draft, captured.workspace);\n              writeSecurityStore(file, STORE_LABEL, draft);\n            },\n          },\n        );\n        if (started) finishMutation(\"ready\");\n      } catch (error) {\n        if (started)\n          finishMutation(\n            error.commitState === \"unknown\" ||\n              permissionRevision.state === \"invalid\"\n              ? \"invalid\"\n              : \"ready\",\n          );\n        throw error;\n      }\n      return;\n    }\n    fs.mkdirSync(path.dirname(captured.filePath), {\n      recursive: true,\n      mode: 0o700,\n    });\n    let started = false;\n    let committed = false;\n    try {\n      captured.lock(\n        captured.filePath,\n        () => {\n          const draft = this._read(captured);\n          if (update(draft) === false) return; // Idempotent revoke does no I/O.\n          validateState(draft, captured.workspace);\n          started = true;\n          beginMutation();\n          // No draft field aliases the public instance during notification.\n          validateState(draft, captured.workspace);\n          writeSecurityStore(captured.filePath, STORE_LABEL, draft);\n          committed = true;\n        },\n        { timeoutMs: 2000, staleMs: 30000, failIfUnavailable: true },\n      );\n      if (started) finishMutation(\"ready\");\n    } catch (error) {\n      if (!error.commitState)\n        error.commitState = committed ? \"committed\" : \"not-committed\";\n      if (started)\n        finishMutation(\n          error.commitState === \"unknown\" ||\n            permissionRevision.state === \"invalid\"\n            ? \"invalid\"\n            : \"ready\",\n        );\n      throw error;\n    }\n  }\n\n  list() {\n    const revision = getScopedPermissionRevision();\n    const captured = this._capture();\n    const state = this._read(captured);\n    const now = captured.now();\n    if (getScopedPermissionRevision() !== revision)\n      throw scopedPermissionError(\n        \"CC_SCOPED_PERMISSION_AUTHORITY_CHANGED\",\n        \"Scoped permission authority changed while reading rules\",\n      );\n    return Object.freeze({\n      schema: state.schema,\n      schemaVersion: state.schemaVersion,\n      generation: state.generation,\n      updatedAt: state.updatedAt,\n      workspace: structuredClone(state.workspace),\n      file: captured.filePath,\n      rules: state.rules.map((record) =>\n        projectRecord(record, now, captured.filePath),\n      ),\n    });\n  }\n\n  add({\n    decision,\n    rule,\n    expiresAt,\n    reason = \"\",\n    expectedGeneration = null,\n  } = {}) {\n    const captured = this._capture();\n    const normalizedDecision = String(decision || \"\")\n      .trim()\n      .toLowerCase();\n    const normalizedRule = String(rule || \"\").trim();\n    const normalizedReason = String(reason || \"\").trim();\n    const now = captured.now();\n    const expiry = Number(expiresAt);\n    if (!DECISIONS.has(normalizedDecision)) {\n      throw scopedPermissionError(\n        SCOPED_PERMISSION_ERROR_CODES.INVALID,\n        \"decision must be allow | ask | deny\",\n      );\n    }\n    if (!parseRule(normalizedRule)) {\n      throw scopedPermissionError(\n        SCOPED_PERMISSION_ERROR_CODES.INVALID,\n        \"rule must be a valid Tool or Tool(pattern) permission rule\",\n      );\n    }\n    if (!Number.isFinite(expiry) || expiry <= now) {\n      throw scopedPermissionError(\n        SCOPED_PERMISSION_ERROR_CODES.INVALID,\n        \"expiresAt must be a future timestamp\",\n      );\n    }\n    if (normalizedReason.length > 500) {\n      throw scopedPermissionError(\n        SCOPED_PERMISSION_ERROR_CODES.INVALID,\n        \"reason must be at most 500 characters\",\n      );\n    }\n\n    let created = null;\n    this._mutate(captured, (draft) => {\n      const current =\n        Object.keys(draft).length === 0\n          ? emptyState(captured.workspace)\n          : validateState(draft, captured.workspace);\n      if (\n        expectedGeneration !== null &&\n        Number(expectedGeneration) !== current.generation\n      ) {\n        throw scopedPermissionError(\n          SCOPED_PERMISSION_ERROR_CODES.CONFLICT,\n          `Scoped permission generation changed (expected ${expectedGeneration}, current ${current.generation})`,\n        );\n      }\n\n      const retained = [...current.rules];\n      while (retained.length >= captured.maxRecords) {\n        const inactiveIndex = retained.findIndex(\n          (record) => statusFor(record, now) !== \"active\",\n        );\n        if (inactiveIndex < 0) break;\n        retained.splice(inactiveIndex, 1);\n      }\n      if (retained.length >= captured.maxRecords) {\n        throw scopedPermissionError(\n          SCOPED_PERMISSION_ERROR_CODES.INVALID,\n          `Scoped permission store is full (${captured.maxRecords} retained rules)`,\n        );\n      }\n      const id = captured.randomId();\n      if (\n        !RULE_ID_PATTERN.test(id) ||\n        retained.some((item) => item.id === id)\n      ) {\n        throw scopedPermissionError(\n          SCOPED_PERMISSION_ERROR_CODES.INVALID,\n          \"Could not allocate a valid unique scoped permission id\",\n        );\n      }\n      created = {\n        id,\n        decision: normalizedDecision,\n        rule: normalizedRule,\n        revision: 1,\n        createdAt: now,\n        expiresAt: expiry,\n        revokedAt: null,\n        reason: normalizedReason,\n      };\n      Object.assign(draft, current, {\n        generation: nextVersion(current.generation, \"generation\"),\n        updatedAt: now,\n        rules: [...retained, created],\n      });\n      validateState(draft, captured.workspace);\n    });\n    return projectRecord(created, now, captured.filePath);\n  }\n\n  revoke({ id, expectedRevision = null } = {}) {\n    const captured = this._capture();\n    const normalizedId = String(id || \"\").trim();\n    if (!RULE_ID_PATTERN.test(normalizedId)) {\n      throw scopedPermissionError(\n        SCOPED_PERMISSION_ERROR_CODES.INVALID,\n        \"A valid scoped permission id is required\",\n      );\n    }\n    const now = captured.now();\n    let revoked = null;\n    this._mutate(captured, (draft) => {\n      const current =\n        Object.keys(draft).length === 0\n          ? emptyState(captured.workspace)\n          : validateState(draft, captured.workspace);\n      const index = current.rules.findIndex(\n        (record) => record.id === normalizedId,\n      );\n      if (index < 0) {\n        throw scopedPermissionError(\n          SCOPED_PERMISSION_ERROR_CODES.NOT_FOUND,\n          `Scoped permission rule not found: ${normalizedId}`,\n        );\n      }\n      const record = current.rules[index];\n      if (\n        expectedRevision !== null &&\n        Number(expectedRevision) !== record.revision\n      ) {\n        throw scopedPermissionError(\n          SCOPED_PERMISSION_ERROR_CODES.CONFLICT,\n          `Scoped permission revision changed (expected ${expectedRevision}, current ${record.revision})`,\n        );\n      }\n      if (record.revokedAt !== null) {\n        revoked = record;\n        return false;\n      }\n      revoked = {\n        ...record,\n        revision: nextVersion(record.revision, \"revision\"),\n        revokedAt: now,\n      };\n      const rules = [...current.rules];\n      rules[index] = revoked;\n      Object.assign(draft, current, {\n        generation: nextVersion(current.generation, \"generation\"),\n        updatedAt: now,\n        rules,\n      });\n      validateState(draft, captured.workspace);\n    });\n    return projectRecord(revoked, now, captured.filePath);\n  }\n}\n\n// Only the production provider uses a scoped observation already validated in\n// the same durable read as settings. A store cannot substitute another source.\nexport function projectScopedPermissionObservation(\n  store,\n  binding,\n  observation,\n) {\n  if (persistentBindings.get(store) !== binding)\n    throw new TypeError(\n      \"scoped store must use the provider's persistent authority\",\n    );\n  const captured = ScopedPermissionStore.prototype._capture.call(store);\n  if (observation.logicalPath !== captured.filePath)\n    throw new TypeError(\"persistent scoped permission source mismatch\");\n  const stored = observation.settings || {};\n  const state =\n    Object.keys(stored).length === 0\n      ? emptyState(captured.workspace)\n      : validateState(stored, captured.workspace);\n  const now = captured.now();\n  return Object.freeze({\n    schema: state.schema,\n    schemaVersion: state.schemaVersion,\n    generation: state.generation,\n    updatedAt: state.updatedAt,\n    workspace: structuredClone(state.workspace),\n    file: captured.filePath,\n    rules: state.rules.map((record) =>\n      projectRecord(record, now, captured.filePath),\n    ),\n  });\n}\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793672691187,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/scoped-permission-store.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 7,
+                "sessionId": "panel-1793672683369-8ba448",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/scoped-permission-store.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_fgpaqo77i08nf6krnenpcjrx",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-8ae7de73-5b2f-47c6-8beb-389fb7d1bf35",
+            "seq": 7
+          },
+          {
+            "type": "tool_result",
+            "id": "call_6mls65l1rdy174aoloa3ewr8",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-WtnpM1/e41e40fe-08c1-487f-9a7c-d4305730174a/workspace/packages/cli/__tests__/unit/scoped-permission-store.test.js",
+              "fileVersion": "10031:1791108223000:1793672433909.2742",
+              "readSpan": {
+                "start": 0,
+                "end": 10031,
+                "total": 10031
+              },
+              "hashed": false,
+              "content": "import fs from \"node:fs\";\nimport os from \"node:os\";\nimport path from \"node:path\";\nimport { execFileSync } from \"node:child_process\";\nimport { afterEach, beforeEach, describe, expect, it } from \"vitest\";\nimport {\n  SCOPED_PERMISSION_ERROR_CODES,\n  ScopedPermissionStore,\n} from \"../../src/lib/scoped-permission-store.js\";\nimport { loadPermissionAuthority } from \"../../src/lib/permission-authority.js\";\n\nlet root;\nlet workspace;\nlet stateFile;\nlet now;\n\nfunction store(options = {}) {\n  return new ScopedPermissionStore({\n    cwd: workspace,\n    filePath: stateFile,\n    now: () => now,\n    randomId: () => \"spr_0123456789abcdef0123456789abcdef\",\n    ...options,\n  });\n}\n\nbeforeEach(() => {\n  root = fs.mkdtempSync(path.join(os.tmpdir(), \"cc-scoped-permission-\"));\n  workspace = path.join(root, \"workspace\");\n  fs.mkdirSync(workspace, { recursive: true });\n  stateFile = path.join(root, \"security\", \"rules.json\");\n  now = Date.UTC(2026, 7, 15, 0, 0, 0);\n});\n\nafterEach(() => {\n  fs.rmSync(root, { recursive: true, force: true });\n});\n\ndescribe(\"ScopedPermissionStore\", () => {\n  it(\"persists an active workspace-bound rule with provenance and TTL\", () => {\n    const created = store().add({\n      decision: \"allow\",\n      rule: \"Bash(git status:*)\",\n      expiresAt: now + 60_000,\n      reason: \"inspect the worktree\",\n    });\n\n    expect(created).toMatchObject({\n      id: \"spr_0123456789abcdef0123456789abcdef\",\n      revision: 1,\n      decision: \"allow\",\n      status: \"active\",\n      scope: \"workspace\",\n      source: \"cli-security-store\",\n    });\n    const listed = store().list();\n    expect(listed.generation).toBe(1);\n    expect(listed.rules).toHaveLength(1);\n    const expectedWorkspaceRoot = path.normalize(\n      fs.realpathSync.native(workspace),\n    );\n    expect(listed.workspace.root).toBe(\n      process.platform === \"win32\"\n        ? expectedWorkspaceRoot.toLowerCase()\n        : expectedWorkspaceRoot,\n    );\n  });\n\n  it(\"expires a rule without mutating durable history\", () => {\n    store().add({\n      decision: \"allow\",\n      rule: \"Read(./src/**)\",\n      expiresAt: now + 1000,\n    });\n    now += 1001;\n\n    const listed = store().list();\n    expect(listed.rules[0].status).toBe(\"expired\");\n    expect(listed.generation).toBe(1);\n  });\n\n  it(\"revokes with record-level CAS and rejects a stale revision\", () => {\n    const created = store().add({\n      decision: \"ask\",\n      rule: \"WebFetch(domain:example.com)\",\n      expiresAt: now + 60_000,\n    });\n    const revoked = store().revoke({\n      id: created.id,\n      expectedRevision: 1,\n    });\n    expect(revoked).toMatchObject({ status: \"revoked\", revision: 2 });\n\n    expect(() =>\n      store().revoke({ id: created.id, expectedRevision: 1 }),\n    ).toThrow(\n      expect.objectContaining({\n        code: SCOPED_PERMISSION_ERROR_CODES.CONFLICT,\n      }),\n    );\n  });\n\n  it(\"rejects a stale store generation on create\", () => {\n    store().add({\n      decision: \"deny\",\n      rule: \"Bash(rm:*)\",\n      expiresAt: now + 60_000,\n      expectedGeneration: 0,\n    });\n    expect(() =>\n      store({\n        randomId: () => \"spr_fedcba9876543210fedcba9876543210\",\n      }).add({\n        decision: \"allow\",\n        rule: \"Read\",\n        expiresAt: now + 60_000,\n        expectedGeneration: 0,\n      }),\n    ).toThrow(\n      expect.objectContaining({\n        code: SCOPED_PERMISSION_ERROR_CODES.CONFLICT,\n      }),\n    );\n  });\n\n  it.each([\"generation\", \"revision\"])(\n    \"refuses an unsafe persisted %s instead of accepting a non-advancing version\",\n    (field) => {\n      store().add({\n        decision: \"allow\",\n        rule: \"Read\",\n        expiresAt: now + 60_000,\n      });\n      const state = JSON.parse(fs.readFileSync(stateFile, \"utf8\"));\n      const target = field === \"generation\" ? state : state.rules[0];\n      target[field] = Number.MAX_SAFE_INTEGER + 1;\n      fs.writeFileSync(stateFile, JSON.stringify(state));\n\n      expect(() => store().list()).toThrow(\n        expect.objectContaining({\n          code: SCOPED_PERMISSION_ERROR_CODES.CORRUPT,\n        }),\n      );\n    },\n  );\n\n  it(\"advances the last safe generation on add and keeps stale generation CAS\", () => {\n    store().add({\n      decision: \"allow\",\n      rule: \"Read\",\n      expiresAt: now + 60_000,\n    });\n    const state = JSON.parse(fs.readFileSync(stateFile, \"utf8\"));\n    state.generation = Number.MAX_SAFE_INTEGER - 1;\n    fs.writeFileSync(stateFile, JSON.stringify(state));\n    const target = store({\n      randomId: () => \"spr_fedcba9876543210fedcba9876543210\",\n    });\n    target.add({\n      decision: \"deny\",\n      rule: \"Write\",\n      expiresAt: now + 60_000,\n      expectedGeneration: Number.MAX_SAFE_INTEGER - 1,\n    });\n    expect(target.list().generation).toBe(Number.MAX_SAFE_INTEGER);\n    expect(target.list().rules).toHaveLength(2);\n    expect(() =>\n      target.add({\n        decision: \"allow\",\n        rule: \"Bash\",\n        expiresAt: now + 60_000,\n        expectedGeneration: Number.MAX_SAFE_INTEGER - 1,\n      }),\n    ).toThrow(\n      expect.objectContaining({ code: SCOPED_PERMISSION_ERROR_CODES.CONFLICT }),\n    );\n  });\n\n  it(\"advances the last safe revision on revoke and keeps stale revision CAS\", () => {\n    const created = store().add({\n      decision: \"allow\",\n      rule: \"Read\",\n      expiresAt: now + 60_000,\n    });\n    const state = JSON.parse(fs.readFileSync(stateFile, \"utf8\"));\n    state.generation = Number.MAX_SAFE_INTEGER - 1;\n    state.rules[0].revision = Number.MAX_SAFE_INTEGER - 1;\n    fs.writeFileSync(stateFile, JSON.stringify(state));\n\n    const revoked = store().revoke({\n      id: created.id,\n      expectedRevision: Number.MAX_SAFE_INTEGER - 1,\n    });\n    expect(revoked).toMatchObject({\n      status: \"revoked\",\n      revision: Number.MAX_SAFE_INTEGER,\n    });\n    expect(store().list().generation).toBe(Number.MAX_SAFE_INTEGER);\n    expect(() =>\n      store().revoke({\n        id: created.id,\n        expectedRevision: Number.MAX_SAFE_INTEGER - 1,\n      }),\n    ).toThrow(\n      expect.objectContaining({ code: SCOPED_PERMISSION_ERROR_CODES.CONFLICT }),\n    );\n  });\n\n  it(\"fails closed on corrupt state or a different workspace binding\", () => {\n    fs.mkdirSync(path.dirname(stateFile), { recursive: true });\n    fs.writeFileSync(stateFile, \"{ broken\", \"utf8\");\n    expect(() => store().list()).toThrow(/store corrupt failed/i);\n\n    fs.rmSync(stateFile, { force: true });\n    store().add({\n      decision: \"deny\",\n      rule: \"Bash\",\n      expiresAt: now + 60_000,\n    });\n    const otherWorkspace = path.join(root, \"other\");\n    fs.mkdirSync(otherWorkspace);\n    expect(() =>\n      new ScopedPermissionStore({\n        cwd: otherWorkspace,\n        filePath: stateFile,\n      }).list(),\n    ).toThrow(\n      expect.objectContaining({ code: SCOPED_PERMISSION_ERROR_CODES.CORRUPT }),\n    );\n  });\n\n  it(\"isolates permission authority at the nearest nested repository\", () => {\n    execFileSync(\"git\", [\"init\", \"-q\"], { cwd: workspace });\n    const nested = path.join(workspace, \"vendor\", \"nested\");\n    fs.mkdirSync(nested, { recursive: true });\n    execFileSync(\"git\", [\"init\", \"-q\"], { cwd: nested });\n\n    const outer = store({ filePath: path.join(root, \"outer-rules.json\") });\n    outer.add({\n      decision: \"allow\",\n      rule: \"Bash(git status:*)\",\n      expiresAt: now + 60_000,\n    });\n    const inner = new ScopedPermissionStore({\n      cwd: nested,\n      filePath: path.join(root, \"inner-rules.json\"),\n      now: () => now,\n    });\n\n    const outerState = outer.list();\n    const innerState = inner.list();\n    const canonicalNested = fs.realpathSync.native(nested);\n    expect(innerState.workspace).not.toEqual(outerState.workspace);\n    expect(innerState.workspace.root).toBe(\n      process.platform === \"win32\"\n        ? canonicalNested.toLowerCase()\n        : canonicalNested,\n    );\n    expect(innerState.rules).toEqual([]);\n    expect(outerState.rules).toHaveLength(1);\n  });\n});\n\ndescribe(\"loadPermissionAuthority\", () => {\n  it(\"includes only active scoped rules and preserves deny precedence\", () => {\n    const scopedStore = store({\n      randomId: () => \"spr_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\n    });\n    const created = scopedStore.add({\n      decision: \"allow\",\n      rule: \"Bash(git status:*)\",\n      expiresAt: now + 60_000,\n    });\n    fs.mkdirSync(path.join(workspace, \".claude\"));\n    fs.writeFileSync(\n      path.join(workspace, \".claude\", \"settings.json\"),\n      JSON.stringify({ permissions: { deny: [\"Bash(git status:*)\"] } }),\n    );\n\n    const authority = loadPermissionAuthority({\n      cwd: workspace,\n      scopedStore,\n      managedSettingsFile: path.join(root, \"missing-managed.json\"),\n      env: {},\n    });\n    expect(authority.rules.allow).toContain(\"Bash(git status:*)\");\n    expect(authority.rules.deny).toContain(\"Bash(git status:*)\");\n    expect(authority.scoped.rules[0]).toMatchObject({\n      id: created.id,\n      effectiveStatus: \"active\",\n    });\n\n    scopedStore.revoke({ id: created.id, expectedRevision: 1 });\n    const afterRevoke = loadPermissionAuthority({\n      cwd: workspace,\n      scopedStore,\n      managedSettingsFile: path.join(root, \"missing-managed.json\"),\n      env: {},\n    });\n    expect(afterRevoke.rules.allow).not.toContain(\"Bash(git status:*)\");\n  });\n\n  it(\"suppresses workspace rules under managed-only policy\", () => {\n    const scopedStore = store();\n    scopedStore.add({\n      decision: \"allow\",\n      rule: \"Bash\",\n      expiresAt: now + 60_000,\n    });\n    const managed = path.join(root, \"managed.json\");\n    fs.writeFileSync(\n      managed,\n      JSON.stringify({\n        allowManagedPermissionRulesOnly: true,\n        permissions: { deny: [\"Bash(rm:*)\"] },\n      }),\n    );\n\n    const authority = loadPermissionAuthority({\n      cwd: workspace,\n      scopedStore,\n      managedSettingsFile: managed,\n      env: {},\n    });\n    expect(authority.rules).toEqual({\n      allow: [],\n      ask: [],\n      deny: [\"Bash(rm:*)\"],\n    });\n    expect(authority.scoped.rules[0].effectiveStatus).toBe(\n      \"suppressed-by-managed-policy\",\n    );\n  });\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793672694578,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/scoped-permission-store.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "panel-1793672683369-8ba448",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/scoped-permission-store.test.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_6mls65l1rdy174aoloa3ewr8",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-8ae7de73-5b2f-47c6-8beb-389fb7d1bf35",
+            "seq": 11
+          }
+        ],
+        "usageEvents": [
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 2711,
+              "output_tokens": 49,
+              "cache_read_input_tokens": 2048,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-8ae7de73-5b2f-47c6-8beb-389fb7d1bf35",
+            "seq": 5
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 7157,
+              "output_tokens": 75,
+              "cache_read_input_tokens": 4096,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-8ae7de73-5b2f-47c6-8beb-389fb7d1bf35",
+            "seq": 9
+          }
+        ],
+        "unknownUsageEvents": [],
+        "observedUsage": {
+          "input_tokens": 9868,
+          "output_tokens": 124,
+          "cache_read_input_tokens": 6144
+        },
+        "usageComplete": false,
+        "failureCategory": "agent-error",
+        "modelUsageRecordCount": 2,
+        "estimatedCostUSD": null,
+        "actualBilledCostUSD": null,
+        "final": {
+          "type": "result",
+          "subtype": "error",
+          "is_error": true,
+          "error": "volcengine API error: HTTP 403 — DIAGNOSTIC_OUTPUT_TRUNCATED.",
+          "turn": 1,
+          "trace_id": "tr-8ae7de73-5b2f-47c6-8beb-389fb7d1bf35",
+          "seq": 14
+        },
+        "scopePathComparison": "native-case-sensitive"
+      },
+      "brokerStatus": {
+        "physicalRequestsStarted": 3,
+        "usageCompleteRequests": 3,
+        "passed": false,
+        "poisoned": null,
+        "errorCode": "DIAGNOSTIC_OUTPUT_TRUNCATED"
+      },
+      "broker": {
+        "formalSample": false,
+        "physicalRequestsStarted": 3,
+        "usageCompleteRequests": 3,
+        "tasks": [
+          {
+            "taskId": "verify-15",
+            "requests": 3,
+            "errorCode": "DIAGNOSTIC_OUTPUT_TRUNCATED"
+          }
+        ],
+        "poisoned": null,
+        "actualBilledCostCny": null,
+        "tokenOnlyEstimateCny": 0.1257034,
+        "knownTokenOnlyEstimateCny": 0.1257034,
+        "fxRate": null
+      },
+      "changedPaths": [
+        ".idea",
+        ".idea/.gitignore",
+        ".idea/misc.xml",
+        ".idea/modules.xml",
+        ".idea/workspace.iml",
+        ".idea/workspace.xml"
+      ],
+      "finishedAt": "2026-11-03T02:26:13.561Z"
+    }
+  ],
+  "selectionScope": "operator-subset",
+  "selectedSampleIds": [
+    "verify-15"
+  ],
+  "generationPassed": false,
+  "acceptancePending": true,
+  "formalSample": false,
+  "limitations": [
+    "Native generation; independent Linux acceptance pending",
+    "Broker thinking disabled, six file tools only, 20 model turns, 24 requests, 180 second request timeout, 8192 output tokens, 16 MiB response transport limit",
+    "IDE context bridges and optional task worklog disabled; real UI and restart retained",
+    "No prior candidates or repair seeds supplied"
+  ],
+  "cohortKind": "volcengine-native-diagnostic",
+  "executionIdentityDigest": "sha256:6a4c23a6f8954f7802a5dba8b72da07fbc82991ada37b936e285ed2870746923",
+  "group": "linux-jetbrains",
+  "entry": "jetbrains",
+  "platform": "linux",
+  "executionSourceBindings": [
+    {
+      "file": "packages/cli/scripts/verify01-native-task-campaign.mjs",
+      "digest": "sha256:8f7136bb7775f5da8d970f9ad543b78a7b60d2be705be205c0c229a24c5b1bd3"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-task-diagnostic.mjs",
+      "digest": "sha256:4f9710a91e70a88d11a0378b17ffd59a1fc35721dd71ebced4541583fe82781e"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-diagnostic-broker.mjs",
+      "digest": "sha256:b524cd15758946fcefe14e932b0461d4d568e1ed4a459cfaa066324f31e5ca43"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-native-provider-profile.mjs",
+      "digest": "sha256:4e5ee5f64128891453acf36f5f91057ba9d0e7e22ff00fcbd54ad62a25991dd8"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-openai-diagnostic-broker.mjs",
+      "digest": "sha256:72b9b54ddf8d4f916ffdf75acde808e9ea19d66b0bc67e96b0d2be44ef65cebe"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-openai-transport-preload.mjs",
+      "digest": "sha256:d3deaf2d2465537c7ecff4be95b044f5fbc4ae3c6a6a035dc816dcb27b9c345a"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-review-specs.mjs",
+      "digest": "sha256:202eec83bb24f5b271d19ae9114d7ef5c9ec024a7592895a04bbdd164cc91f1d"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-project-revision.mjs",
+      "digest": "sha256:a3bca91a5b5d6174b64c3011e245505e7eef51540ff890f17ac39d9f0d1db50f"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-prerelease-package-set.mjs",
+      "digest": "sha256:324b67e2405916eecabd4abd459aa7fb7c4ed036029ee22d13e742d32f51dfa8"
+    },
+    {
+      "file": "packages/cli/src/lib/eval/stream-terminal.js",
+      "digest": "sha256:4440c2821c65afac8bfa5e79cee5671434e89702dacb8128e09480f329451114"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-first-run-cli-diagnostic.mjs",
+      "digest": "sha256:ad10cb2f362a8d163d024bbae7da09137e8f102956f4212e8af004f134474b7b"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/plan.json",
+      "digest": "sha256:aa55909d4cb3d83ac94127168ae6114ee7ceb7b6584b64fcb985904add297f35"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/tasks.json",
+      "digest": "sha256:c1be59b0b754f5442e571e3e9d9290bd5c72c13f324ae603d4b629a6b06852d2"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/comparison-bindings.json",
+      "digest": "sha256:32ba5c28f69146fcddda04d3fc0f2aba649fdae4d607f48168af3bd3b773432c"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/plan.sha256",
+      "digest": "sha256:73d2473d0e205379b5b654a245ec96b3f19b524a3906e979682ee4ad84e0202e"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-native-plugin-artifact.mjs",
+      "digest": "sha256:ce04147c3e2f97c7d44d37052f5e8329595efe9bbcb852b51952535ba96357bc"
+    },
+    {
+      "file": "packages/jetbrains-plugin/scripts/verify01-native-task-adapter.mjs",
+      "digest": "sha256:5f84eaf585163a23e56471a113750933c0459144429bc611742956962dbbbdb1"
+    },
+    {
+      "file": "packages/jetbrains-plugin/build.gradle.kts",
+      "digest": "sha256:74b7a9578e2343c0b3644a46d769e789545877342b8a806ebb269175ab08a6cb"
+    },
+    {
+      "file": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/IdeUiSmokeTest.java",
+      "digest": "sha256:29655e9a949948528018ad85baf368e5240445216caa747719c95d6c83903e0b"
+    },
+    {
+      "file": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/UiFailureDiagnostics.java",
+      "digest": "sha256:5802b749fd82048d196e90ce5f0f2f4e4c7cfc527590f07b62ccafb73d4c6a20"
+    },
+    {
+      "file": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/ConversationRecoveryJourney.java",
+      "digest": "sha256:44cb87d4c64437b64204a4bca9d7faaec68a6cbbff8b7303c491e17e7597337b"
+    },
+    {
+      "file": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/Verify01HostJourney.java",
+      "digest": "sha256:ad6e59cfb2fa56f7376aaf776a226006232156f8ea0f2096a863a42022215cd8"
+    }
+  ],
+  "install": {
+    "passed": true,
+    "startedAt": "2026-11-03T02:20:34.749Z",
+    "finishedAt": "2026-11-03T02:20:55.206Z",
+    "lifecycleScriptsEnabled": true,
+    "sampleId": "verify-15",
+    "locked": {
+      "version": "0.166.139",
+      "resolved": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.139.tgz",
+      "integrity": "sha512-X0frBGhYvdNLxnz4oYtqo07vJvFHpi99yyZ1n1q7xI82x6v6BEx/jPy420YfZIidKlJG+HSF5SeQG38idwSW1w==",
+      "hasInstallScript": true,
+      "license": "MIT",
+      "dependencies": {
+        "@aws-sdk/client-s3": "^3.700.0",
+        "@chainlesschain/context-memory-kernel": "0.1.11",
+        "@chainlesschain/core-config": "0.1.2",
+        "@chainlesschain/core-db": "0.1.5",
+        "@chainlesschain/core-env": "0.1.2",
+        "@chainlesschain/core-infra": "0.1.1",
+        "@chainlesschain/core-mtc": "0.2.3",
+        "@chainlesschain/core-multisig": "0.1.4",
+        "@chainlesschain/personal-data-hub": "0.4.66",
+        "@chainlesschain/session-core": "0.3.24",
+        "@chainlesschain/shared-logger": "0.1.1",
+        "@inquirer/prompts": "^7.2.0",
+        "@noble/curves": "^1.9.7",
+        "@tootallnate/quickjs-emscripten": "^0.23.0",
+        "acorn": "8.17.0",
+        "ajv": "^8.20.0",
+        "ajv-formats": "^3.0.1",
+        "chalk": "^5.4.1",
+        "commander": "^12.1.0",
+        "esbuild-wasm": "0.28.1",
+        "js-yaml": "^3.15.1",
+        "koffi": "^2.16.3",
+        "ora": "^8.1.1",
+        "pac-resolver": "^7.0.1",
+        "semver": "^7.6.3",
+        "sql.js": "^1.14.1",
+        "undici": "^7.30.1",
+        "webdav": "^5.10.0",
+        "ws": "^8.14.2"
+      },
+      "bin": {
+        "cc": "bin/chainlesschain.js",
+        "chainlesschain": "bin/chainlesschain.js",
+        "clc": "bin/chainlesschain.js",
+        "clchain": "bin/chainlesschain.js"
+      },
+      "engines": {
+        "node": ">=22.12.0"
+      },
+      "optionalDependencies": {
+        "better-sqlite3": "^12.1.0",
+        "node-pty": "^1.0.0",
+        "pdf-parse": "^1.1.1"
+      },
+      "peerDependencies": {
+        "playwright": "^1.40.0"
+      },
+      "peerDependenciesMeta": {
+        "playwright": {
+          "optional": true
+        }
+      }
+    }
+  },
+  "finishedAt": "2026-11-03T02:26:13.563Z"
+}

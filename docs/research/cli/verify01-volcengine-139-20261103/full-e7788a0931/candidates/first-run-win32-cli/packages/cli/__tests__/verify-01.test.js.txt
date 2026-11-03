@@ -1,0 +1,76 @@
+import { describe, expect, it } from "vitest";
+import { resolveModelCapabilityProfile } from "../src/lib/model-capabilities.js";
+
+describe("official endpoint vs same-named custom gateway isolation", () => {
+  it("applies the documented official spec only at the official endpoint", () => {
+    const profile = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-4o",
+      baseUrl: "https://api.openai.com/v1",
+    });
+    expect(profile).toMatchObject({
+      windowSource: "official-model-docs",
+      windowAssumed: false,
+      contextWindowTokens: 128000,
+      advertisedMaxOutputTokens: 16384,
+      runtimeProtocol: "chat-completions",
+    });
+    expect(profile.sources).toContain(
+      "https://developers.openai.com/api/docs/models/gpt-4o",
+    );
+  });
+
+  it("does not grant a same-named model official provenance via a custom gateway", () => {
+    const custom = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-4o",
+      baseUrl: "https://gateway.example/v1",
+    });
+    expect(custom).toMatchObject({
+      windowSource: "legacy-catalog",
+      windowAssumed: true,
+      contextWindowTokens: 128000,
+      advertisedMaxOutputTokens: null,
+    });
+    expect(custom.sources).toEqual([]);
+    expect(custom.limitations.join(" ")).toMatch(
+      /Official OpenAI model specifications are not applied to a custom endpoint/,
+    );
+  });
+
+  it("isolates official and custom profiles for the same model name", () => {
+    const official = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-4o",
+      baseUrl: "https://api.openai.com/v1",
+    });
+    const custom = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-4o",
+      baseUrl: "https://gateway.example/v1",
+    });
+    expect(official).not.toEqual(custom);
+    expect(official.sources).toHaveLength(1);
+    expect(custom.sources).toHaveLength(0);
+    expect(official.windowAssumed).toBe(false);
+    expect(custom.windowAssumed).toBe(true);
+    expect(official.digest).not.toBe(custom.digest);
+  });
+
+  it("keeps an undocumented same-named model window assumed at both endpoints", () => {
+    for (const baseUrl of [
+      "https://api.openai.com/v1",
+      "https://gateway.example/v1",
+    ]) {
+      const profile = resolveModelCapabilityProfile({
+        provider: "openai",
+        model: "gpt-4o-mini",
+        baseUrl,
+      });
+      expect(profile.windowSource).toBe("legacy-catalog");
+      expect(profile.windowAssumed).toBe(true);
+      expect(profile.sources).toEqual([]);
+      expect(profile.advertisedMaxOutputTokens).toBeNull();
+    }
+  });
+});

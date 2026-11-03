@@ -1,0 +1,85 @@
+import { describe, expect, it, vi } from "vitest";
+import { QuestionDrafts } from "../src/chat/question-drafts.js";
+import { questionIdentity } from "../src/chat/question-draft-contract.js";
+
+const binding = {
+  sessionId: "session-1",
+  turnId: "turn-1",
+  toolUseId: "tool-1",
+  sequence: 1,
+};
+const baseRequest = {
+  kind: "question",
+  id: "q1",
+  question: "Pick a target",
+  binding,
+};
+const savedValues = [{ key: "answer", value: "partial input" }];
+
+const savedQuestion = {
+  id: "rec-1",
+  digest: questionIdentity("session-1", baseRequest),
+  sessionId: "session-1",
+  requestId: "q1",
+  status: "draft",
+  fields: savedValues,
+};
+
+function host({ sessionId = "session-1", draftKey = "dk" } = {}) {
+  const messages = [];
+  const conv = {
+    id: "a",
+    sessionId,
+    draftKey,
+    _sessionToken: {},
+    session: { running: true, sendEvent: vi.fn(() => true) },
+  };
+  const store = {
+    view: vi.fn().mockResolvedValue({ questions: [savedQuestion] }),
+    saveQuestion: vi.fn().mockResolvedValue(undefined),
+    archiveQuestion: vi.fn().mockResolvedValue(undefined),
+  };
+  const drafts = new QuestionDrafts({
+    store,
+    getConversation: (id) => (id === conv.id ? conv : null),
+    post: (m) => messages.push(m),
+    refresh: () => {},
+  });
+  return { drafts, conv, messages };
+}
+
+async function restoreFields(request, overrides = {}) {
+  const h = host(overrides);
+  const registered = h.drafts.register(h.conv, request);
+  await h.drafts.restore(registered);
+  const snapshot = h.messages.find((m) => m.kind === "questionDraftSnapshot");
+  return snapshot ? snapshot.fields : undefined;
+}
+
+describe("verify-27: precise resend restores live draft fields; mismatch does not", () => {
+  it("restores saved fields only on a precise resend of the same request, session and schema", async () => {
+    const fields = await restoreFields(baseRequest);
+    expect(fields).toEqual(savedValues);
+  });
+
+  it("does not restore fields when the resend changes the request id", async () => {
+    const fields = await restoreFields({ ...baseRequest, id: "q2" });
+    expect(fields).toEqual([]);
+  });
+
+  it("does not restore fields when the resend changes the requested schema", async () => {
+    const fields = await restoreFields({
+      ...baseRequest,
+      requestedSchema: {
+        type: "object",
+        properties: { color: { type: "string" } },
+      },
+    });
+    expect(fields).toEqual([]);
+  });
+
+  it("does not restore fields when the resend is for a different session", async () => {
+    const fields = await restoreFields(baseRequest, { sessionId: "session-2" });
+    expect(fields).toEqual([]);
+  });
+});

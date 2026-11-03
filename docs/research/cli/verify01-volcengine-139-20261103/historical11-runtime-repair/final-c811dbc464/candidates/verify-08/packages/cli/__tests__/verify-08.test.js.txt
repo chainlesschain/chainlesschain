@@ -1,0 +1,141 @@
+import { createHash } from "node:crypto";
+import { describe, expect, it } from "vitest";
+import {
+  createBranchHistoryImport,
+  BRANCH_HISTORY_SCHEMA,
+  BRANCH_HISTORY_MESSAGE,
+} from "../src/lib/session-branch-history.js";
+
+const hex = (n) => n.toString(16).padStart(64, "0");
+
+// Replicates the exact digest accumulation performed inside
+// createBranchHistoryImport(): start and branch are joined as
+// `[start,branch`, each message appends `,message`, and completion closes
+// with `]` (the completion event's own payload is not hashed).
+function computeInputDigest(startData, branchData, messageRows) {
+  let d = createHash("sha256").update(
+    `[${JSON.stringify({ type: "session_start", data: startData })},${JSON.stringify(
+      { type: "session_branch", data: branchData },
+    )}`,
+  );
+  for (const row of messageRows) {
+    d = d.update(
+      `,${JSON.stringify({ type: BRANCH_HISTORY_MESSAGE, data: row })}`,
+    );
+  }
+  return `sha256:${d.update("]").digest("hex")}`;
+}
+
+function historyDescriptor(sourceGeneration, contextMessageCount) {
+  return {
+    schema: BRANCH_HISTORY_SCHEMA,
+    sourceGeneration,
+    totalMessages: 1,
+    contextMessageCount,
+    coverage: { kind: "from-origin", boundaryEvent: null, reason: null },
+  };
+}
+
+function runBranch(sourceGeneration, messageRows, contextMessageCount = 0) {
+  const tracker = createBranchHistoryImport();
+  const startData = { sessionId: "s-fork-root", note: "ancestor" };
+  const startResult = tracker.accept({
+    type: "session_start",
+    data: startData,
+  });
+  const branchData = { history: historyDescriptor(sourceGeneration, contextMessageCount) };
+  const branchResult = tracker.accept({ type: "session_branch", data: branchData });
+  const archiveResults = [];
+  for (const row of messageRows) {
+    const r = tracker.accept({ type: BRANCH_HISTORY_MESSAGE, data: row });
+    if (r) archiveResults.push(r);
+  }
+  const inputDigest = computeInputDigest(startData, branchData, messageRows);
+  const completeResult = tracker.accept({
+    type: "session_branch_complete",
+    data: { schemaVersion: 2, messageCount: contextMessageCount, inputDigest },
+  });
+  return { startResult, branchResult, archiveResults, completeResult };
+}
+
+describe("fork history attribution", () => {
+  it("restores a valid ancestor and archives its own independent body text", () => {
+    const rows = [
+      { role: "assistant", text: "alpha ", part: 0, last: false, sourceEventId: hex(7), sourceItemIndex: 0 },
+      { role: "assistant", text: "body", part: 1, last: true, sourceEventId: hex(7), sourceItemIndex: 0 },
+    ];
+    const { branchResult, archiveResults, completeResult } = runBranch(hex(1), rows);
+    expect(branchResult.kind).toBe("start");
+    expect(branchResult.coverage).toEqual({
+      kind: "from-origin",
+      boundaryEvent: null,
+      reason: null,
+    });
+    expect(archiveResults.map((r) => r.kind)).toEqual(["archive-part", "archive"]);
+    expect(archiveResults[1].message).toEqual({ role: "assistant", content: "alpha body" });
+    expect(completeResult.kind).toBe("complete");
+  });
+
+  it("restores an independent second branch with its own ancestor and body", () => {
+    const rowsA = [{ role: "user", text: "question A", part: 0, last: true, sourceEventId: hex(8), sourceItemIndex: 0 }];
+    const rowsB = [{ role: "user", text: "question B", part: 0, last: true, sourceEventId: hex(9), sourceItemIndex: 0 }];
+    const a = runBranch(hex(2), rowsA);
+    const b = runBranch(hex(3), rowsB);
+    expect(a.completeResult.kind).toBe("complete");
+    expect(a.archiveResults[0].message.content).toBe("question A");
+    expect(b.completeResult.kind).toBe("complete");
+    expect(b.archiveResults[0].message.content).toBe("question B");
+  });
+
+  it("rejects a history message fed after the branch has completed", () => {
+    const tracker = createBranchHistoryImport();
+    const startData = { sessionId: "s-fork-root", note: "ancestor" };
+    tracker.accept({ type: "session_start", data: startData });
+    const branchData = { history: historyDescriptor(hex(4), 0) };
+    tracker.accept({ type: "session_branch", data: branchData });
+    const row = { role: "user", text: "late", part: 0, last: true, sourceEventId: hex(10), sourceItemIndex: 0 };
+    const inputDigest = computeInputDigest(startData, branchData, [row]);
+    tracker.accept({ type: "session_branch_complete", data: { schemaVersion: 2, messageCount: 0, inputDigest } });
+    // Post-branch content must not leak into the completed import stream.
+    expect(() => tracker.accept({ type: BRANCH_HISTORY_MESSAGE, data: row })).toThrow();
+  });
+
+  it("rejects splicing a different branch's message identity into an open body", () => {
+    const tracker = createBranchHistoryImport();
+    const startData = { sessionId: "s-fork-root", note: "ancestor" };
+    tracker.accept({ type: "session_start", data: startData });
+    const branchData = { history: historyDescriptor(hex(5), 0) };
+    tracker.accept({ type: "session_branch", data: branchData });
+    tracker.accept({
+      type: BRANCH_HISTORY_MESSAGE,
+      data: { role: "assistant", text: "part0 ", part: 0, last: false, sourceEventId: hex(11), sourceItemIndex: 0 },
+    });
+    // Same part slot but a foreign sourceEventId (belongs to another branch):
+    // the text-identity continuity guard must reject the cross-branch splice.
+    expect(() =>
+      tracker.accept({
+        type: BRANCH_HISTORY_MESSAGE,
+        data: { role: "assistant", text: "splice", part: 1, last: true, sourceEventId: hex(12), sourceItemIndex: 0 },
+      }),
+    ).toThrow();
+  });
+
+  it("rejects an ancestor whose sourceGeneration is not a valid hash", () => {
+    const tracker = createBranchHistoryImport();
+    tracker.accept({ type: "session_start", data: { sessionId: "s" } });
+    const bad = { history: historyDescriptor("not-a-64-hex-hash", 0) };
+    expect(() => tracker.accept({ type: "session_branch", data: bad })).toThrow();
+  });
+
+  it("accepts the boundary contextMessageCount of 32768 and rejects 32769", () => {
+    const ok = createBranchHistoryImport();
+    ok.accept({ type: "session_start", data: { sessionId: "s" } });
+    expect(ok.accept({ type: "session_branch", data: { history: historyDescriptor(hex(6), 32768) } }).kind).toBe("start");
+
+    const over = createBranchHistoryImport();
+    over.accept({ type: "session_start", data: { sessionId: "s" } });
+    expect(() =>
+      over.accept({ type: "session_branch", data: { history: historyDescriptor(hex(6), 32769) } }),
+    ).toThrow();
+  });
+});

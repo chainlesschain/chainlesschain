@@ -1,0 +1,208 @@
+/**
+ * Independent regression coverage for the "cancelled-approval late callback"
+ * behavior in packages/cli/src/runtime/headless-stream.js.
+ *
+ * Interactive approvals round-trip through runAgentHeadlessStream's
+ * `settleApproval`, which guards every verdict against the `pendingApprovals`
+ * map:
+ *   - once an approval is cancelled (its pending entry removed), a late
+ *     verdict for that same id is dropped (`const p = pendingApprovals.get(id);
+ *     if (!p) return;`) and cannot authorize anything, including a newer
+ *     pending request;
+ *   - a normal accept only binds to the original request: a verdict whose
+ *     binding digest does not match the advertised one is rejected
+ *     (`binding-mismatch`), and a structured verdict that omits a required
+ *     binding is rejected (`binding-missing`).
+ *
+ * These controls drive the real runtime with interactiveApprovals on a mocked
+ * ApprovalGate, so the positive/negative pairs reach the same settleApproval
+ * boundary and differ only in the condition under test.
+ */
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import {
+  runAgentHeadlessStream,
+} from "../src/runtime/headless-stream.js";
+import { approvalBindingDigest } from "../src/lib/agent-authority.js";
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Fake loop: a RISKY user message hits permissionConfirm (what executeTool
+// does for a settings/hook ask) and reports the verdict as its reply.
+const confirmingLoop = async function* (messages, opts) {
+  const lastUser = [...messages].reverse().find((m) => m.role === "user");
+  if (/RISKY/.test(lastUser.content)) {
+    const ok = await opts.permissionConfirm({
+      tool: "run_shell",
+      command: "npm run test:unit",
+      riskLevel: "medium",
+      reason: "settings rule asks",
+    });
+    yield {
+      type: "response-complete",
+      content: ok ? "executed" : "skipped (denied)",
+    };
+  } else {
+    yield { type: "response-complete", content: "plain reply" };
+  }
+  yield { type: "run-ended", reason: "complete" };
+};
+
+function harness({ inputGen, agentLoop = confirmingLoop, options = {} }) {
+  const lines = [];
+  const deps = {
+    bootstrap: async () => ({ db: null }),
+    getApprovalGate: async () => null,
+    writeOut: (s) => lines.push(s),
+    writeErr: () => {},
+    agentLoop,
+    input: inputGen(),
+  };
+  return {
+    run: () =>
+      runAgentHeadlessStream(
+        { expandFileRefs: false, interactiveApprovals: true, ...options },
+        deps,
+      ),
+    events: () =>
+      lines
+        .join("")
+        .trimEnd()
+        .split("\n")
+        .map((l) => JSON.parse(l)),
+  };
+}
+
+const resultOf = (h) =>
+  h
+    .events()
+    .filter((e) => e.type === "result")
+    .map((e) => e.result);
+
+const expectedBinding = approvalBindingDigest({
+  toolCallId: "appr-1",
+  args: { command: "npm run test:unit" },
+  policyDigest: "medium",
+});
+
+describe("cancelled-approval late callback", () => {
+  beforeEach(() => {
+    process.env.CC_APPROVAL_TIMEOUT_MS = "30000";
+  });
+  afterEach(() => {
+    delete process.env.CC_APPROVAL_TIMEOUT_MS;
+  });
+
+  it("a normal (non-late) accept authorizes the original blocked request", async () => {
+    // positive control: the harness and accept path work, so a denial below is
+    // caused by the guard under test, not by a broken setup.
+    const h = harness({
+      inputGen: async function* () {
+        yield JSON.stringify({ type: "user", text: "do the RISKY thing" }) +
+          "\n";
+        await sleep(80); // let the turn reach the confirm
+        yield JSON.stringify({ type: "approval", id: "appr-1", approve: true }) +
+          "\n";
+      },
+    });
+    await h.run();
+    expect(resultOf(h)).toEqual(["executed"]);
+  });
+
+  it("after cancellation a late accept for the old id cannot authorize the new request", async () => {
+    process.env.CC_APPROVAL_TIMEOUT_MS = "40"; // cancellation = timeout
+    const h = harness({
+      inputGen: async function* () {
+        yield JSON.stringify({ type: "user", text: "do the RISKY thing A" }) +
+          "\n";
+        await sleep(150); // appr-1 times out -> cancelled, turn A denied & ends
+        yield JSON.stringify({ type: "user", text: "do the RISKY thing B" }) +
+          "\n";
+        await sleep(80); // turn B reaches confirm -> appr-2 pending
+        // late accept for the already-cancelled appr-1, while appr-2 is pending
+        yield JSON.stringify({ type: "approval", id: "appr-1", approve: true }) +
+          "\n";
+        await sleep(150); // appr-2 times out too so the run can finish
+      },
+    });
+    await h.run();
+    // the late appr-1 accept must NOT authorize the newer appr-2 request
+    expect(resultOf(h)).toEqual(["skipped (denied)", "skipped (denied)"]);
+    expect(
+      h
+        .events()
+        .filter((e) => e.type === "approval_resolved" && e.approved === true),
+    ).toHaveLength(0);
+  });
+
+  it("an accept carrying the original request's binding authorizes that request", async () => {
+    // positive control for the binding condition: the correct digest matches
+    const h = harness({
+      inputGen: async function* () {
+        yield JSON.stringify({ type: "user", text: "do the RISKY thing" }) +
+          "\n";
+        await sleep(80);
+        yield JSON.stringify({
+          type: "approval",
+          id: "appr-1",
+          decision: { kind: "acceptOnce" },
+          approve: true,
+          binding: expectedBinding,
+        }) + "\n";
+      },
+    });
+    await h.run();
+    expect(resultOf(h)).toEqual(["executed"]);
+  });
+
+  it("an accept whose binding matches a different call is rejected", async () => {
+    // negative: only the binding changed; it is bound to another command, so
+    // it must not authorize the original request.
+    const foreignBinding = approvalBindingDigest({
+      toolCallId: "appr-1",
+      args: { command: "rm -rf /" },
+      policyDigest: "medium",
+    });
+    const h = harness({
+      inputGen: async function* () {
+        yield JSON.stringify({ type: "user", text: "do the RISKY thing" }) +
+          "\n";
+        await sleep(80);
+        yield JSON.stringify({
+          type: "approval",
+          id: "appr-1",
+          decision: { kind: "acceptOnce" },
+          approve: true,
+          binding: foreignBinding,
+        }) + "\n";
+      },
+    });
+    await h.run();
+    expect(resultOf(h)).toEqual(["skipped (denied)"]);
+    expect(
+      h.events().find((e) => e.type === "approval_resolved"),
+    ).toMatchObject({ approved: false, via: "binding-mismatch" });
+  });
+
+  it("a structured accept that omits a required binding is rejected", async () => {
+    // negative: only the binding presence changed; the advertised binding is
+    // required but the structured verdict provides none -> binding-missing.
+    const h = harness({
+      inputGen: async function* () {
+        yield JSON.stringify({ type: "user", text: "do the RISKY thing" }) +
+          "\n";
+        await sleep(80);
+        yield JSON.stringify({
+          type: "approval",
+          id: "appr-1",
+          decision: { kind: "acceptOnce" },
+          approve: true,
+        }) + "\n";
+      },
+    });
+    await h.run();
+    expect(resultOf(h)).toEqual(["skipped (denied)"]);
+    expect(
+      h.events().find((e) => e.type === "approval_resolved"),
+    ).toMatchObject({ approved: false, via: "binding-missing" });
+  });
+});

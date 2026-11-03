@@ -1,0 +1,78 @@
+{
+  "scope": "verify01-operator-acceptance",
+  "taskId": "verify-11",
+  "stage": "check",
+  "productionAttested": false,
+  "providerAssessed": false,
+  "isolation": "docker",
+  "imageReference": "node:22.12.0-bookworm",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operator": {
+    "uid": 1001,
+    "gid": 1001
+  },
+  "tests": [
+    {
+      "kind": "baseline",
+      "total": 16,
+      "passed": 16,
+      "failed": 0
+    }
+  ],
+  "mutations": [],
+  "executions": [
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "setup": false,
+      "ms": 126,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "v22.12.0\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 1070,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":16,\"numPassedTests\":16,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793677545626,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"background interaction durable journal\"],\"fullName\":\"background interaction durable journal persists pending before settlement and reloads the terminal answer\",\"status\":\"passed\",\"title\":\"persists pending before settlement and reloads the terminal answer\",\"duration\":6.368072999999981,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background interaction durable journal\"],\"fullName\":\"background interaction durable journal accepts the same settlement idempotently and rejects a conflicting answer\",\"status\":\"passed\",\"title\":\"accepts the same settlement idempotently and rejects a conflicting answer\",\"duration\":1.321250999999961,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background interaction durable journal\"],\"fullName\":\"background interaction durable journal rejects stale and cross-turn settlements\",\"status\":\"passed\",\"title\":\"rejects stale and cross-turn settlements\",\"duration\":0.6849819999999909,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background interaction durable journal\"],\"fullName\":\"background interaction durable journal rejects a newly added cross-session request before any append\",\"status\":\"passed\",\"title\":\"rejects a newly added cross-session request before any append\",\"duration\":0.7563049999999976,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background interaction durable journal\"],\"fullName\":\"background interaction durable journal does not mutate the live journal when persistence fails\",\"status\":\"passed\",\"title\":\"does not mutate the live journal when persistence fails\",\"duration\":0.7213030000000344,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background interaction durable journal\"],\"fullName\":\"background interaction durable journal adjudicates an unknown-but-committed pending snapshot by exact verified readback\",\"status\":\"passed\",\"title\":\"adjudicates an unknown-but-committed pending snapshot by exact verified readback\",\"duration\":1.7896009999999478,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background interaction durable journal\"],\"fullName\":\"background interaction durable journal adjudicates an unknown terminal commit and rejects a stale cancellation\",\"status\":\"passed\",\"title\":\"adjudicates an unknown terminal commit and rejects a stale cancellation\",\"duration\":1.6846020000000408,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background interaction durable journal\"],\"fullName\":\"background interaction durable journal does not lose an unknown-committed first request to an empty stale writer\",\"status\":\"passed\",\"title\":\"does not lose an unknown-committed first request to an empty stale writer\",\"duration\":1.0973279999999477,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background interaction durable journal\"],\"fullName\":\"background interaction durable journal enforces first-terminal-wins across two stale journal writers\",\"status\":\"passed\",\"title\":\"enforces first-terminal-wins across two stale journal writers\",\"duration\":1.58954899999992,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background interaction durable journal\"],\"fullName\":\"background interaction durable journal rejects incomplete or cross-session fallback evidence without appending\",\"status\":\"passed\",\"title\":\"rejects incomplete or cross-session fallback evidence without appending\",\"duration\":0.8143129999999701,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background interaction durable journal\"],\"fullName\":\"background interaction durable journal allows only a truly absent session to remain an empty bootstrap/no-op\",\"status\":\"passed\",\"title\":\"allows only a truly absent session to remain an empty bootstrap/no-op\",\"duration\":2.3682850000000144,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background interaction durable journal\"],\"fullName\":\"background interaction durable journal fails closed on a hash-valid transcript with duplicate session genesis\",\"status\":\"passed\",\"title\":\"fails closed on a hash-valid transcript with duplicate session genesis\",\"duration\":0.6692040000000361,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background interaction durable journal\"],\"fullName\":\"background interaction durable journal imports a pre-journal pendingQuestion and rejects it exactly once on recovery\",\"status\":\"passed\",\"title\":\"imports a pre-journal pendingQuestion and rejects it exactly once on recovery\",\"duration\":0.8122549999999364,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background interaction durable journal\"],\"fullName\":\"background interaction durable journal never creates recovery genesis for absent, missing, or tombstoned sessions\",\"status\":\"passed\",\"title\":\"never creates recovery genesis for absent, missing, or tombstoned sessions\",\"duration\":33.2695020000001,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background interaction durable journal\"],\"fullName\":\"background interaction durable journal persists snapshots through the explicit API\",\"status\":\"passed\",\"title\":\"persists snapshots through the explicit API\",\"duration\":0.4122509999999693,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background interaction durable journal\"],\"fullName\":\"background interaction durable journal rejects late settlement of a pending request and only accepts an exact terminal replay\",\"status\":\"passed\",\"title\":\"rejects late settlement of a pending request and only accepts an exact terminal replay\",\"duration\":0.731290999999942,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793677546214,\"endTime\":1793677546269.7312,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/background-interaction-journal.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 639,
+      "exitCode": 1,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":1,\"numPassedTestSuites\":0,\"numFailedTestSuites\":1,\"numPendingTestSuites\":0,\"numTotalTests\":0,\"numPassedTests\":0,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793677546694,\"success\":false,\"testResults\":[{\"assertionResults\":[],\"startTime\":1793677546694,\"endTime\":1793677546694,\"status\":\"failed\",\"message\":\"No test suite found in file /workspace/packages/cli/__tests__/verify-11.test.js\",\"name\":\"/workspace/packages/cli/__tests__/verify-11.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "pass": false,
+  "detail": "acceptance requires executed test cases"
+}

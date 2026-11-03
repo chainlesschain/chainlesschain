@@ -1,0 +1,655 @@
+{
+  "schema": "chainlesschain.verify01-native-task-campaign/v1",
+  "executionSourceCommit": "e7788a09316abb6f637932ae09254a441168742e",
+  "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+  "frozenArchiveDigest": "sha256:0cd894ce05bd6fcbc5673f3728a1cde0b27337eb6f7d43ee8e4cf9cc1bfbb1bc",
+  "versions": {
+    "cli": "0.166.139",
+    "vscode": "0.37.175",
+    "jetbrains": "0.4.192",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "modelTransport": {
+    "provider": "volcengine",
+    "model": "deepseek-v4-flash-ga-260731",
+    "endpoint": "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
+    "policyDigest": "sha256:0e94c4a754ac2d88255cd1c6046eaaa14846b0c8ad62c6239e86195fd8d5f030",
+    "defaultThinkingPreserved": false,
+    "formalSample": false
+  },
+  "packageSetDigest": "sha256:7ac96aab19914fb001c91868a6a94c776639ef217fe3fd0e841e7bdff5d98e5f",
+  "actualPlatform": "darwin",
+  "actualArch": "arm64",
+  "actualEntry": "jetbrains",
+  "changeReview": {
+    "requested": true,
+    "observed": false
+  },
+  "startedAt": "2026-11-03T03:02:09.456Z",
+  "samples": [
+    {
+      "schema": "chainlesschain.verify01-native-task-sample/v1",
+      "sampleId": "verify-36",
+      "taskId": "verify-36",
+      "kind": "task",
+      "runId": "ec61b7cc-6226-4921-a0ef-03d0b72cfb8b",
+      "stratum": "darwin-jetbrains-volcengine",
+      "declaredActualEntry": {
+        "platform": "darwin",
+        "entry": "jetbrains"
+      },
+      "actualPlatform": "darwin",
+      "actualEntry": "jetbrains",
+      "changeReview": {
+        "requested": true,
+        "observed": false,
+        "reminderCount": 0,
+        "evidence": "model-stream.ndjson:iteration_warning",
+        "completed": null
+      },
+      "executionSourceCommit": "e7788a09316abb6f637932ae09254a441168742e",
+      "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+      "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+      "versions": {
+        "cli": "0.166.139",
+        "vscode": "0.37.175",
+        "jetbrains": "0.4.192",
+        "vscodeHost": "1.132.0",
+        "jetbrainsHost": "2025.2"
+      },
+      "packageSetDigest": "sha256:7ac96aab19914fb001c91868a6a94c776639ef217fe3fd0e841e7bdff5d98e5f",
+      "expectedFiles": [
+        "packages/cli/__tests__/verify-36.test.js"
+      ],
+      "startedAt": "2026-11-03T03:02:09.458Z",
+      "deadline": "2026-11-03T03:22:09.458Z",
+      "candidates": [
+        {
+          "file": "packages/cli/__tests__/verify-36.test.js",
+          "path": "verify-36/candidate/packages/cli/__tests__/verify-36.test.js",
+          "digest": "sha256:72fbf404fca2ae7ca520e83e3a00108ef01918c00f238439b0b28e1db37c40fa",
+          "bytes": 27
+        }
+      ],
+      "sourceScopePassed": true,
+      "metadataChanges": [
+        ".idea",
+        ".idea/.gitignore",
+        ".idea/misc.xml",
+        ".idea/modules.xml",
+        ".idea/workspace.iml",
+        ".idea/workspace.xml"
+      ],
+      "unexpectedChanges": [],
+      "generationPassed": false,
+      "passed": false,
+      "acceptancePending": true,
+      "formalSample": false,
+      "install": {
+        "passed": true,
+        "startedAt": "2026-11-03T03:02:14.432Z",
+        "finishedAt": "2026-11-03T03:02:37.232Z",
+        "lifecycleScriptsEnabled": true,
+        "sampleId": "verify-36",
+        "locked": {
+          "version": "0.166.139",
+          "resolved": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.139.tgz",
+          "integrity": "sha512-X0frBGhYvdNLxnz4oYtqo07vJvFHpi99yyZ1n1q7xI82x6v6BEx/jPy420YfZIidKlJG+HSF5SeQG38idwSW1w==",
+          "hasInstallScript": true,
+          "license": "MIT",
+          "dependencies": {
+            "@aws-sdk/client-s3": "^3.700.0",
+            "@chainlesschain/context-memory-kernel": "0.1.11",
+            "@chainlesschain/core-config": "0.1.2",
+            "@chainlesschain/core-db": "0.1.5",
+            "@chainlesschain/core-env": "0.1.2",
+            "@chainlesschain/core-infra": "0.1.1",
+            "@chainlesschain/core-mtc": "0.2.3",
+            "@chainlesschain/core-multisig": "0.1.4",
+            "@chainlesschain/personal-data-hub": "0.4.66",
+            "@chainlesschain/session-core": "0.3.24",
+            "@chainlesschain/shared-logger": "0.1.1",
+            "@inquirer/prompts": "^7.2.0",
+            "@noble/curves": "^1.9.7",
+            "@tootallnate/quickjs-emscripten": "^0.23.0",
+            "acorn": "8.17.0",
+            "ajv": "^8.20.0",
+            "ajv-formats": "^3.0.1",
+            "chalk": "^5.4.1",
+            "commander": "^12.1.0",
+            "esbuild-wasm": "0.28.1",
+            "js-yaml": "^3.15.1",
+            "koffi": "^2.16.3",
+            "ora": "^8.1.1",
+            "pac-resolver": "^7.0.1",
+            "semver": "^7.6.3",
+            "sql.js": "^1.14.1",
+            "undici": "^7.30.1",
+            "webdav": "^5.10.0",
+            "ws": "^8.14.2"
+          },
+          "bin": {
+            "cc": "bin/chainlesschain.js",
+            "chainlesschain": "bin/chainlesschain.js",
+            "clc": "bin/chainlesschain.js",
+            "clchain": "bin/chainlesschain.js"
+          },
+          "engines": {
+            "node": ">=22.12.0"
+          },
+          "optionalDependencies": {
+            "better-sqlite3": "^12.1.0",
+            "node-pty": "^1.0.0",
+            "pdf-parse": "^1.1.1"
+          },
+          "peerDependencies": {
+            "playwright": "^1.40.0"
+          },
+          "peerDependenciesMeta": {
+            "playwright": {
+              "optional": true
+            }
+          }
+        }
+      },
+      "configure": {
+        "passed": true,
+        "accountKeyInHost": false,
+        "independentProfile": true
+      },
+      "host": {
+        "passed": false,
+        "failure": "model task failed before a restartable result; see real protocol",
+        "restartRequired": true
+      },
+      "capturePath": "verify-36/capture",
+      "model": {
+        "pass": false,
+        "terminal": {
+          "terminalVerified": false,
+          "observedFallback": false,
+          "usage": null,
+          "totalCostUsd": null
+        },
+        "identity": true,
+        "fileOnlyToolSurface": true,
+        "plannedTools": [
+          "read_file",
+          "write_file",
+          "edit_file",
+          "edit_file_hashed",
+          "search_files",
+          "list_dir"
+        ],
+        "scoped": true,
+        "settled": true,
+        "preExecutionDenials": [],
+        "delivered": false,
+        "init": {
+          "type": "system",
+          "subtype": "init",
+          "protocol_version": 1,
+          "session_id": "panel-1793675332449-9afb98",
+          "session_persistence": true,
+          "input_receipts": {
+            "version": 1
+          },
+          "task_worklog": null,
+          "model": "deepseek-v4-flash-ga-260731",
+          "provider": "volcengine",
+          "permission_mode": "acceptEdits",
+          "permission_mode_state": {
+            "correlation_id": "088401ba-f047-4e1c-8d6e-bd7a35ff0668",
+            "requested": "acceptEdits",
+            "effective": "acceptEdits",
+            "policy_revision": "b4d0151996d5d9e3"
+          },
+          "tools": [
+            "read_file",
+            "search_files",
+            "list_dir",
+            "write_file",
+            "edit_file",
+            "edit_file_hashed"
+          ],
+          "tools_hash": "eba35f3546a7a50a",
+          "policy_digest": "b4d0151996d5d9e3",
+          "loaded_sources": [
+            "project-memory",
+            "memory-recall",
+            "plugins"
+          ],
+          "slash_commands": [
+            "status",
+            "doctor",
+            "mcp",
+            "hooks",
+            "permissions",
+            "agents",
+            "tasks",
+            "memory"
+          ],
+          "input_format": "stream-json",
+          "additional_directories": [],
+          "resumed_messages": 0,
+          "trace_id": "tr-9443adee-065b-4d01-9ba3-887d41ebb63a",
+          "seq": 1
+        },
+        "tools": [
+          {
+            "type": "tool_use",
+            "id": "call_47nvfedci8wa3729cqdhbxs9",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/src/lib/background-launch-profile.js"
+            },
+            "trace_id": "tr-9443adee-065b-4d01-9ba3-887d41ebb63a",
+            "seq": 6
+          },
+          {
+            "type": "tool_use",
+            "id": "call_ej03entygj65dlboirvwn3hw",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/unit/background-launch-profile.test.js"
+            },
+            "trace_id": "tr-9443adee-065b-4d01-9ba3-887d41ebb63a",
+            "seq": 10
+          }
+        ],
+        "toolResults": [
+          {
+            "type": "tool_result",
+            "id": "call_47nvfedci8wa3729cqdhbxs9",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/private/tmp/cc-native-JoJTx4/ec61b7cc-6226-4921-a0ef-03d0b72cfb8b/workspace/packages/cli/src/lib/background-launch-profile.js",
+              "fileVersion": "35007:1791108223000:1793674932295.78",
+              "readSpan": {
+                "start": 0,
+                "end": 35007,
+                "total": 35007
+              },
+              "hashed": false,
+              "content": "import {\n  existsSync,\n  lstatSync,\n  readFileSync,\n  readdirSync,\n  readlinkSync,\n  realpathSync,\n} from \"node:fs\";\nimport { createHash } from \"node:crypto\";\nimport { homedir } from \"node:os\";\nimport { dirname, join, parse, resolve } from \"node:path\";\nimport { getConfigPath } from \"./paths.js\";\nimport { assertBackgroundArgvDurable } from \"./background-command-argv.js\";\n\nexport const BACKGROUND_LAUNCH_PROFILE_VERSION = 1;\n\nconst PERMISSION_MODES = new Set([\n  \"manual\",\n  \"auto\",\n  \"dontAsk\",\n  \"default\",\n  \"plan\",\n  \"acceptEdits\",\n  \"bypassPermissions\",\n]);\nconst SANDBOX_MODES = new Set([\"off\", \"workspace-write\", \"strict\"]);\nconst TRI_STATES = new Set([\"auto\", \"enabled\", \"disabled\"]);\nconst PERMISSION_RANK = new Map([\n  [\"plan\", 0],\n  [\"manual\", 1],\n  [\"default\", 1],\n  [\"dontAsk\", 2],\n  [\"acceptEdits\", 3],\n  [\"auto\", 4],\n  [\"bypassPermissions\", 5],\n]);\n\nfunction scalar(value, max = 1024) {\n  if (value === null || value === undefined) return null;\n  const text = String(value).trim();\n  return text ? text.slice(0, max) : null;\n}\n\nfunction positive(value, integer = false) {\n  if (value === null || value === undefined || value === \"\") return null;\n  const number = Number(value);\n  if (!Number.isFinite(number) || number <= 0) return null;\n  return integer ? Math.floor(number) : number;\n}\n\nfunction sortedStrings(values, { split = false, pathsFrom = null } = {}) {\n  const raw = Array.isArray(values) ? values : values ? [values] : [];\n  const expanded = split\n    ? raw.flatMap((value) => String(value).split(/[\\s,]+/))\n    : raw;\n  return [\n    ...new Set(\n      expanded\n        .map((value) => scalar(value, 4096))\n        .filter(Boolean)\n        .map((value) => (pathsFrom ? resolve(pathsFrom, value) : value)),\n    ),\n  ].sort();\n}\n\nfunction orderedStrings(values, { split = false } = {}) {\n  const raw = Array.isArray(values) ? values : values ? [values] : [];\n  const expanded = split\n    ? raw.flatMap((value) => String(value).split(/[\\s,]+/))\n    : raw;\n  return [\n    ...new Set(expanded.map((value) => scalar(value, 4096)).filter(Boolean)),\n  ];\n}\n\nfunction canonicalPath(value, cwd) {\n  const absolute = resolve(cwd || process.cwd(), String(value || \"\"));\n  try {\n    return realpathSync.native\n      ? realpathSync.native(absolute)\n      : realpathSync(absolute);\n  } catch {\n    return absolute;\n  }\n}\n\nfunction hashPathEntry(hash, absolute, relative = \".\") {\n  const stat = lstatSync(absolute);\n  if (stat.isSymbolicLink()) {\n    hash.update(`link\\0${relative}\\0${readlinkSync(absolute)}\\0`);\n    return;\n  }\n  if (stat.isDirectory()) {\n    hash.update(`dir\\0${relative}\\0`);\n    for (const name of readdirSync(absolute).sort()) {\n      hashPathEntry(hash, join(absolute, name), `${relative}/${name}`);\n    }\n    return;\n  }\n  if (stat.isFile()) {\n    hash.update(`file\\0${relative}\\0${stat.size}\\0`);\n    hash.update(readFileSync(absolute));\n    hash.update(\"\\0\");\n    return;\n  }\n  hash.update(`other\\0${relative}\\0${stat.mode}\\0${stat.size}\\0`);\n}\n\n/**\n * Describe a configuration input without storing its contents. The digest is\n * deliberately content-addressed (rather than mtime-addressed), so touching a\n * file does not make a compatible background session impossible to resume.\n */\nexport function describeBackgroundConfigSource(path, options = {}) {\n  const absolute = canonicalPath(path, options.cwd);\n  if (!existsSync(absolute)) {\n    return { path: absolute, kind: \"missing\", sha256: null };\n  }\n  try {\n    const stat = lstatSync(absolute);\n    const kind = stat.isDirectory()\n      ? \"directory\"\n      : stat.isFile()\n        ? \"file\"\n        : stat.isSymbolicLink()\n          ? \"symlink\"\n          : \"other\";\n    const hash = createHash(\"sha256\");\n    hashPathEntry(hash, absolute);\n    return { path: absolute, kind, sha256: hash.digest(\"hex\") };\n  } catch {\n    // Never serialize an exception message: filesystem errors can include\n    // credential-bearing paths supplied by external configuration.\n    return { path: absolute, kind: \"unavailable\", sha256: null };\n  }\n}\n\nfunction findAncestorFile(cwd, ...parts) {\n  let current = resolve(cwd || process.cwd());\n  const root = parse(current).root;\n  for (let depth = 0; depth < 64; depth++) {\n    const candidate = join(current, ...parts);\n    if (existsSync(candidate)) return candidate;\n    if (current === root) break;\n    const parent = dirname(current);\n    if (parent === current) break;\n    current = parent;\n  }\n  return null;\n}\n\nfunction findGitRoot(cwd) {\n  const marker = findAncestorFile(cwd, \".git\");\n  return marker ? dirname(marker) : null;\n}\n\nfunction sourceList({ cwd, settingsFile, mcpConfig, bundle, projectMcp }) {\n  const files = [getConfigPath()];\n  const gitRoot = findGitRoot(cwd);\n  const projectConfig = findAncestorFile(cwd, \".chainlesschain\", \"config.json\");\n  files.push(\n    projectConfig || join(gitRoot || cwd, \".chainlesschain\", \"config.json\"),\n  );\n\n  files.push(join(homedir(), \".claude\", \"settings.json\"));\n  if (gitRoot && canonicalPath(gitRoot) !== canonicalPath(cwd)) {\n    files.push(join(gitRoot, \".claude\", \"settings.json\"));\n    files.push(join(gitRoot, \".claude\", \"settings.local.json\"));\n  }\n  files.push(join(cwd, \".claude\", \"settings.json\"));\n  files.push(join(cwd, \".claude\", \"settings.local.json\"));\n  if (settingsFile) files.push(resolve(cwd, settingsFile));\n\n  const managed =\n    process.env.CC_MANAGED_SETTINGS ||\n    (process.platform === \"win32\"\n      ? join(\n          process.env.ProgramData ||\n            process.env.PROGRAMDATA ||\n            \"C:\\\\ProgramData\",\n          \"ChainlessChain\",\n          \"managed-settings.json\",\n        )\n      : \"/etc/chainlesschain/managed-settings.json\");\n  files.push(resolve(managed));\n  if (mcpConfig) files.push(resolve(cwd, mcpConfig));\n  if (projectMcp) {\n    files.push(join(gitRoot || cwd, \".mcp.json\"));\n  }\n  if (bundle) files.push(resolve(cwd, bundle));\n\n  const unique = [...new Set(files.map((file) => canonicalPath(file)))].sort();\n  return unique.map((file) => describeBackgroundConfigSource(file));\n}\n\n/** Return a credential-free representation of a base URL. */\nexport function sanitizeBackgroundBaseUrl(value) {\n  const original = scalar(value, 8192);\n  if (!original) return { value: null, redacted: false };\n  try {\n    const url = new URL(original);\n    if (url.protocol !== \"http:\" && url.protocol !== \"https:\") {\n      return { value: null, redacted: true };\n    }\n    const redacted = Boolean(\n      url.username || url.password || url.search || url.hash,\n    );\n    url.username = \"\";\n    url.password = \"\";\n    url.search = \"\";\n    url.hash = \"\";\n    return { value: url.toString(), redacted };\n  } catch {\n    return { value: null, redacted: true };\n  }\n}\n\nfunction splitLongOption(token) {\n  const index = token.indexOf(\"=\");\n  return index === -1\n    ? { name: token, inline: null }\n    : { name: token.slice(0, index), inline: token.slice(index + 1) };\n}\n\nfunction emptyParsedProfile(cwd, worktree, governance) {\n  return {\n    version: BACKGROUND_LAUNCH_PROFILE_VERSION,\n    command: \"agent\",\n    llm: {\n      provider: null,\n      model: null,\n      baseUrl: null,\n      baseUrlRedacted: false,\n      visionModel: null,\n      fallbackModels: [],\n    },\n    tools: { allowed: null, disallowed: [] },\n    permission: {\n      mode: scalar(governance?.permissionMode) || \"default\",\n      dangerousBypass: false,\n      unattended: false,\n      unattendedAllow: [],\n      interactiveApprovals: false,\n      promptTool: null,\n      remoteControl: false,\n    },\n    sandbox: { enabled: false, image: null, mode: null, network: false },\n    mcp: {\n      configFile: null,\n      disabled: false,\n      strict: false,\n      project: false,\n      ide: \"auto\",\n      pdh: \"auto\",\n      jetbrains: \"auto\",\n    },\n    settings: { file: null },\n    plugins: { bundle: null, disabled: false },\n    workspace: {\n      cwd: canonicalPath(cwd || process.cwd()),\n      addDirs: [],\n      worktree: worktree\n        ? {\n            repoRoot: canonicalPath(worktree.repoRoot),\n            worktreePath: canonicalPath(worktree.worktreePath || worktree.path),\n            baseSha: scalar(worktree.baseSha),\n            branch: scalar(worktree.branch),\n          }\n        : null,\n    },\n    budget: {\n      maxTurns: positive(governance?.resourceBudget?.maxTurns, true),\n      maxCostUsd: positive(governance?.resourceBudget?.maxCostUsd),\n      thinkingTokens: null,\n      maxRewakes: null,\n      maxOuterTurns: null,\n      goalMaxTokens: null,\n      goalMaxCostUsd: null,\n      goalMaxTimeMs: null,\n    },\n    runtime: {\n      safeMode: false,\n      bare: false,\n      checkpoint: \"default\",\n      managedCheckpoint: false,\n      managedCheckpointState: null,\n      managedCheckpointExcludes: [],\n      noProjectMemory: false,\n      noFileRefs: false,\n      noSlashMacros: false,\n      noRecallMemory: false,\n      noMcpAutoConnect: false,\n      outputStyle: null,\n      outputFormat: \"text\",\n      inputFormat: \"text\",\n      thinking: null,\n      autoRewake: false,\n      autoPin: false,\n      noStream: false,\n      noParkOnExit: false,\n    },\n    credentials: { apiKey: \"default\" },\n    configuration: { sources: [] },\n    omitted: [],\n  };\n}\n\n/**\n * Capture the effective, resumable CLI envelope while intentionally omitting\n * task/system prompts, API keys, images, trace ids and environment values.\n */\nexport function captureBackgroundLaunchProfile({\n  argv = [],\n  cwd = process.cwd(),\n  worktree = null,\n  governance = null,\n} = {}) {\n  assertBackgroundArgvDurable(argv, \"background launch profile\");\n  const profile = emptyParsedProfile(cwd, worktree, governance);\n  const omitted = new Set();\n  const addDirs = [];\n  const fallbackModels = [];\n  const managedExcludes = [];\n  let settingsFile = null;\n  let mcpConfig = null;\n  let bundle = null;\n\n  const args = Array.isArray(argv) ? argv.map(String) : [];\n  for (let index = 0; index < args.length; index++) {\n    const token = args[index];\n    if (token === \"agent\" || token === \"a\") continue;\n    if (token === \"--\") {\n      if (index + 1 < args.length) omitted.add(\"taskPrompt\");\n      break;\n    }\n    if (token === \"-p\") {\n      omitted.add(\"taskPrompt\");\n      if (args[index + 1] && !args[index + 1].startsWith(\"-\")) index++;\n      continue;\n    }\n    if (token === \"-c\") continue;\n    if (token === \"-y\") {\n      profile.permission.dangerousBypass = true;\n      continue;\n    }\n    if (!token.startsWith(\"--\")) {\n      omitted.add(\"taskPrompt\");\n      continue;\n    }\n\n    const { name, inline } = splitLongOption(token);\n    const take = (optional = false) => {\n      if (inline !== null) return inline;\n      const next = args[index + 1];\n      if (next === undefined || (optional && next.startsWith(\"-\"))) return null;\n      index++;\n      return next;\n    };\n    switch (name) {\n      case \"--provider\":\n        profile.llm.provider = scalar(take());\n        break;\n      case \"--model\":\n        profile.llm.model = scalar(take());\n        break;\n      case \"--base-url\": {\n        const safe = sanitizeBackgroundBaseUrl(take());\n        profile.llm.baseUrl = safe.value;\n        profile.llm.baseUrlRedacted = safe.redacted;\n        break;\n      }\n      case \"--vision-model\":\n        profile.llm.visionModel = scalar(take());\n        break;\n      case \"--fallback-model\":\n        fallbackModels.push(...orderedStrings(take(), { split: true }));\n        break;\n      case \"--allowed-tools\":\n        profile.tools.allowed = sortedStrings(take(), { split: true });\n        break;\n      case \"--disallowed-tools\":\n        profile.tools.disallowed = sortedStrings(take(), { split: true });\n        break;\n      case \"--permission-mode\": {\n        const mode = scalar(take());\n        profile.permission.mode = PERMISSION_MODES.has(mode) ? mode : \"default\";\n        break;\n      }\n      case \"--allow-dangerous-bypass\":\n      case \"--dangerously-skip-permissions\":\n      case \"--yolo\":\n        profile.permission.dangerousBypass = true;\n        break;\n      case \"--unattended\":\n        profile.permission.unattended = true;\n        break;\n      case \"--unattended-allow\":\n        profile.permission.unattendedAllow = sortedStrings(take(), {\n          split: true,\n        });\n        break;\n      case \"--interactive-approvals\":\n        profile.permission.interactiveApprovals = true;\n        break;\n      case \"--permission-prompt-tool\":\n        profile.permission.promptTool = scalar(take());\n        break;\n      case \"--remote-control\":\n        profile.permission.remoteControl = true;\n        break;\n      case \"--sandbox\":\n        profile.sandbox.enabled = true;\n        profile.sandbox.image = scalar(take(true));\n        break;\n      case \"--sandbox-mode\": {\n        const mode = scalar(take());\n        profile.sandbox.mode = SANDBOX_MODES.has(mode) ? mode : null;\n        break;\n      }\n      case \"--sandbox-network\":\n        profile.sandbox.network = true;\n        break;\n      case \"--mcp-config\":\n        mcpConfig = scalar(take(), 4096);\n        break;\n      case \"--no-mcp\":\n        profile.mcp.disabled = true;\n        profile.runtime.noMcpAutoConnect = true;\n        break;\n      case \"--strict-mcp-config\":\n        profile.mcp.strict = true;\n        break;\n      case \"--project-mcp\":\n        profile.mcp.project = true;\n        break;\n      case \"--ide\":\n        profile.mcp.ide = \"enabled\";\n        break;\n      case \"--no-ide\":\n        profile.mcp.ide = \"disabled\";\n        break;\n      case \"--pdh\":\n        profile.mcp.pdh = \"enabled\";\n        break;\n      case \"--no-pdh\":\n        profile.mcp.pdh = \"disabled\";\n        break;\n      case \"--jetbrains\":\n        profile.mcp.jetbrains = \"enabled\";\n        break;\n      case \"--no-jetbrains\":\n        profile.mcp.jetbrains = \"disabled\";\n        break;\n      case \"--settings\":\n        settingsFile = scalar(take(), 4096);\n        break;\n      case \"--bundle\":\n        bundle = scalar(take(), 4096);\n        break;\n      case \"--add-dir\":\n        addDirs.push(take());\n        break;\n      case \"--max-turns\":\n        profile.budget.maxTurns = positive(take(), true);\n        break;\n      case \"--max-budget-usd\":\n        profile.budget.maxCostUsd = positive(take());\n        break;\n      case \"--thinking-budget\":\n        profile.budget.thinkingTokens = positive(take(), true);\n        break;\n      case \"--max-rewakes\":\n        profile.budget.maxRewakes = positive(take(), true);\n        break;\n      case \"--max-outer-turns\":\n        profile.budget.maxOuterTurns = positive(take(), true);\n        break;\n      case \"--goal-max-tokens\":\n        profile.budget.goalMaxTokens = positive(take(), true);\n        break;\n      case \"--goal-max-cost\":\n        profile.budget.goalMaxCostUsd = positive(take());\n        break;\n      case \"--goal-max-time\":\n        profile.budget.goalMaxTimeMs = positive(take(), true);\n        break;\n      case \"--safe-mode\":\n        profile.runtime.safeMode = true;\n        break;\n      case \"--bare\":\n        profile.runtime.bare = true;\n        profile.plugins.disabled = true;\n        break;\n      case \"--checkpoint\":\n        profile.runtime.checkpoint = \"enabled\";\n        break;\n      case \"--no-checkpoint\":\n        profile.runtime.checkpoint = \"disabled\";\n        break;\n      case \"--managed-checkpoint\":\n        profile.runtime.managedCheckpoint = true;\n        break;\n      case \"--managed-checkpoint-state\":\n        profile.runtime.managedCheckpointState = canonicalPath(take(), cwd);\n        break;\n      case \"--managed-checkpoint-exclude\":\n        managedExcludes.push(take());\n        break;\n      case \"--no-project-memory\":\n        profile.runtime.noProjectMemory = true;\n        break;\n      case \"--no-file-refs\":\n        profile.runtime.noFileRefs = true;\n        break;\n      case \"--no-slash-macros\":\n        profile.runtime.noSlashMacros = true;\n        break;\n      case \"--no-recall-memory\":\n        profile.runtime.noRecallMemory = true;\n        break;\n      case \"--output-style\":\n        profile.runtime.outputStyle = scalar(take());\n        break;\n      case \"--output-format\":\n        profile.runtime.outputFormat = scalar(take()) || \"text\";\n        break;\n      case \"--input-format\":\n        profile.runtime.inputFormat = scalar(take()) || \"text\";\n        break;\n      case \"--think\":\n        profile.runtime.thinking = scalar(take(true)) || \"think\";\n        break;\n      case \"--ultrathink\":\n        profile.runtime.thinking = \"ultra\";\n        break;\n      case \"--auto-rewake\":\n        profile.runtime.autoRewake = true;\n        break;\n      case \"--auto-pin\":\n        profile.runtime.autoPin = true;\n        break;\n      case \"--no-stream\":\n        profile.runtime.noStream = true;\n        break;\n      case \"--no-park-on-exit\":\n        profile.runtime.noParkOnExit = true;\n        break;\n      case \"--api-key\":\n        take();\n        profile.credentials.apiKey = \"external\";\n        omitted.add(\"apiKey\");\n        break;\n      case \"--print\":\n        take(true);\n        omitted.add(\"taskPrompt\");\n        break;\n      case \"--system-prompt\":\n        take();\n        omitted.add(\"systemPrompt\");\n        break;\n      case \"--append-system-prompt\":\n        take();\n        omitted.add(\"appendSystemPrompt\");\n        break;\n      case \"--recall-query\":\n        take();\n        omitted.add(\"recallQuery\");\n        break;\n      case \"--image\":\n        take();\n        omitted.add(\"initialImage\");\n        break;\n      case \"--goal-condition\":\n        take();\n        omitted.add(\"goalCondition\");\n        break;\n      case \"--trace-id\":\n      case \"--otlp\":\n      case \"--json-schema\":\n      case \"--channels\":\n      case \"--agent-id\":\n      case \"--recall-limit\":\n      case \"--goal\":\n        take(name === \"--goal\");\n        omitted.add(name.slice(2));\n        break;\n      case \"--session\":\n        take();\n        break;\n      case \"--resume\":\n        take(true);\n        break;\n      case \"--continue\":\n      case \"--fork-session\":\n      case \"--bg\":\n      case \"--background\":\n      case \"--worktree\":\n      case \"--no-worktree\":\n      case \"--ephemeral\":\n      case \"--capabilities\":\n      case \"--disable-slash-commands\":\n      case \"--ax-screen-reader\":\n      case \"--replay-user-messages\":\n      case \"--include-partial-messages\":\n      case \"--goal-assess\":\n      case \"--otlp-content\":\n        break;\n      default:\n        // Unknown flags are never copied into persistent state: a future flag\n        // could carry a credential. Record only its option name for diagnosis.\n        omitted.add(`option:${name.slice(0, 96)}`);\n        break;\n    }\n  }\n\n  profile.llm.fallbackModels = orderedStrings(fallbackModels);\n  profile.workspace.addDirs = sortedStrings(addDirs, {\n    pathsFrom: profile.workspace.cwd,\n  });\n  profile.runtime.managedCheckpointExcludes = sortedStrings(managedExcludes, {\n    pathsFrom: profile.workspace.cwd,\n  });\n  profile.settings.file = settingsFile\n    ? canonicalPath(settingsFile, profile.workspace.cwd)\n    : null;\n  profile.mcp.configFile = mcpConfig\n    ? canonicalPath(mcpConfig, profile.workspace.cwd)\n    : null;\n  profile.plugins.bundle = bundle\n    ? canonicalPath(bundle, profile.workspace.cwd)\n    : null;\n  profile.configuration.sources = sourceList({\n    cwd: profile.workspace.cwd,\n    settingsFile,\n    mcpConfig,\n    bundle,\n    projectMcp: profile.mcp.project,\n  });\n  profile.omitted = [...omitted].sort();\n  return normalizeBackgroundLaunchProfile(profile);\n}\n\nfunction normalizeSource(source) {\n  const path = scalar(source?.path, 8192);\n  if (!path) return null;\n  const kind = new Set([\n    \"missing\",\n    \"file\",\n    \"directory\",\n    \"symlink\",\n    \"other\",\n    \"unavailable\",\n  ]).has(source?.kind)\n    ? source.kind\n    : \"unavailable\";\n  const sha256 = /^[a-f0-9]{64}$/.test(String(source?.sha256 || \"\"))\n    ? String(source.sha256)\n    : null;\n  return { path: canonicalPath(path), kind, sha256 };\n}\n\n/** Whitelist and normalize a profile supplied across an API boundary. */\nexport function normalizeBackgroundLaunchProfile(input) {\n  if (!input || Number(input.version) !== BACKGROUND_LAUNCH_PROFILE_VERSION) {\n    throw new Error(\n      `Unsupported background launch profile version: ${input?.version ?? \"missing\"}`,\n    );\n  }\n  const cwd = canonicalPath(input.workspace?.cwd || process.cwd());\n  const safeBase = sanitizeBackgroundBaseUrl(input.llm?.baseUrl);\n  const permissionMode = PERMISSION_MODES.has(input.permission?.mode)\n    ? input.permission.mode\n    : \"default\";\n  const sandboxMode = SANDBOX_MODES.has(input.sandbox?.mode)\n    ? input.sandbox.mode\n    : null;\n  const tri = (value) => (TRI_STATES.has(value) ? value : \"auto\");\n  const pathOrNull = (value) =>\n    value ? canonicalPath(scalar(value, 8192), cwd) : null;\n  const sources = (\n    Array.isArray(input.configuration?.sources)\n      ? input.configuration.sources\n      : []\n  )\n    .map(normalizeSource)\n    .filter(Boolean)\n    .sort((a, b) => a.path.localeCompare(b.path));\n  return {\n    version: BACKGROUND_LAUNCH_PROFILE_VERSION,\n    command: \"agent\",\n    llm: {\n      provider: scalar(input.llm?.provider),\n      model: scalar(input.llm?.model),\n      baseUrl: safeBase.value,\n      baseUrlRedacted: input.llm?.baseUrlRedacted === true || safeBase.redacted,\n      visionModel: scalar(input.llm?.visionModel),\n      fallbackModels: orderedStrings(input.llm?.fallbackModels),\n    },\n    tools: {\n      allowed: Array.isArray(input.tools?.allowed)\n        ? sortedStrings(input.tools.allowed)\n        : null,\n      disallowed: sortedStrings(input.tools?.disallowed),\n    },\n    permission: {\n      mode: permissionMode,\n      dangerousBypass: input.permission?.dangerousBypass === true,\n      unattended: input.permission?.unattended === true,\n      unattendedAllow: sortedStrings(input.permission?.unattendedAllow),\n      interactiveApprovals: input.permission?.interactiveApprovals === true,\n      promptTool: scalar(input.permission?.promptTool),\n      remoteControl: input.permission?.remoteControl === true,\n    },\n    sandbox: {\n      enabled: input.sandbox?.enabled === true,\n      image: scalar(input.sandbox?.image),\n      mode: sandboxMode,\n      network: input.sandbox?.network === true,\n    },\n    mcp: {\n      configFile: pathOrNull(input.mcp?.configFile),\n      disabled: input.mcp?.disabled === true,\n      strict: input.mcp?.strict === true,\n      project: input.mcp?.project === true,\n      ide: tri(input.mcp?.ide),\n      pdh: tri(input.mcp?.pdh),\n      jetbrains: tri(input.mcp?.jetbrains),\n    },\n    settings: { file: pathOrNull(input.settings?.file) },\n    plugins: {\n      bundle: pathOrNull(input.plugins?.bundle),\n      disabled: input.plugins?.disabled === true,\n    },\n    workspace: {\n      cwd,\n      addDirs: sortedStrings(input.workspace?.addDirs, { pathsFrom: cwd }),\n      worktree: input.workspace?.worktree\n        ? {\n            repoRoot: pathOrNull(input.workspace.worktree.repoRoot),\n            worktreePath: pathOrNull(input.workspace.worktree.worktreePath),\n            baseSha: scalar(input.workspace.worktree.baseSha),\n            branch: scalar(input.workspace.worktree.branch),\n          }\n        : null,\n    },\n    budget: {\n      maxTurns: positive(input.budget?.maxTurns, true),\n      maxCostUsd: positive(input.budget?.maxCostUsd),\n      thinkingTokens: positive(input.budget?.thinkingTokens, true),\n      maxRewakes: positive(input.budget?.maxRewakes, true),\n      maxOuterTurns: positive(input.budget?.maxOuterTurns, true),\n      goalMaxTokens: positive(input.budget?.goalMaxTokens, true),\n      goalMaxCostUsd: positive(input.budget?.goalMaxCostUsd),\n      goalMaxTimeMs: positive(input.budget?.goalMaxTimeMs, true),\n    },\n    runtime: {\n      safeMode: input.runtime?.safeMode === true,\n      bare: input.runtime?.bare === true,\n      checkpoint: new Set([\"default\", \"enabled\", \"disabled\"]).has(\n        input.runtime?.checkpoint,\n      )\n        ? input.runtime.checkpoint\n        : \"default\",\n      managedCheckpoint: input.runtime?.managedCheckpoint === true,\n      managedCheckpointState: pathOrNull(input.runtime?.managedCheckpointState),\n      managedCheckpointExcludes: sortedStrings(\n        input.runtime?.managedCheckpointExcludes,\n        { pathsFrom: cwd },\n      ),\n      noProjectMemory: input.runtime?.noProjectMemory === true,\n      noFileRefs: input.runtime?.noFileRefs === true,\n      noSlashMacros: input.runtime?.noSlashMacros === true,\n      noRecallMemory: input.runtime?.noRecallMemory === true,\n      noMcpAutoConnect: input.runtime?.noMcpAutoConnect === true,\n      outputStyle: scalar(input.runtime?.outputStyle),\n      outputFormat: scalar(input.runtime?.outputFormat) || \"text\",\n      inputFormat: scalar(input.runtime?.inputFormat) || \"text\",\n      thinking: scalar(input.runtime?.thinking),\n      autoRewake: input.runtime?.autoRewake === true,\n      autoPin: input.runtime?.autoPin === true,\n      noStream: input.runtime?.noStream === true,\n      noParkOnExit: input.runtime?.noParkOnExit === true,\n    },\n    credentials: {\n      apiKey: input.credentials?.apiKey === \"external\" ? \"external\" : \"default\",\n    },\n    configuration: { sources },\n    omitted: sortedStrings(input.omitted),\n  };\n}\n\nfunction canonicalValue(value) {\n  if (Array.isArray(value)) return value.map(canonicalValue);\n  if (value && typeof value === \"object\") {\n    return Object.fromEntries(\n      Object.keys(value)\n        .sort()\n        .map((key) => [key, canonicalValue(value[key])]),\n    );\n  }\n  return value;\n}\n\nexport function canonicalBackgroundLaunchProfileJson(profile) {\n  return JSON.stringify(\n    canonicalValue(normalizeBackgroundLaunchProfile(profile)),\n  );\n}\n\nexport function fingerprintBackgroundLaunchProfile(profile) {\n  return createHash(\"sha256\")\n    .update(canonicalBackgroundLaunchProfileJson(profile))\n    .digest(\"hex\");\n}\n\nexport function refreshBackgroundLaunchProfileSources(profile) {\n  const normalized = normalizeBackgroundLaunchProfile(profile);\n  return normalizeBackgroundLaunchProfile({\n    ...normalized,\n    configuration: {\n      sources: normalized.configuration.sources.map((source) =>\n        describeBackgroundConfigSource(source.path),\n      ),\n    },\n  });\n}\n\nexport function verifyBackgroundLaunchProfileSources(profile) {\n  const normalized = normalizeBackgroundLaunchProfile(profile);\n  const refreshed = refreshBackgroundLaunchProfileSources(normalized);\n  const issues = [];\n  for (\n    let index = 0;\n    index < normalized.configuration.sources.length;\n    index++\n  ) {\n    const before = normalized.configuration.sources[index];\n    const after = refreshed.configuration.sources[index];\n    if (before.kind === \"unavailable\" || after.kind === \"unavailable\") {\n      issues.push(`configuration-source-unverifiable:${before.path}`);\n    } else if (\n      before.path !== after.path ||\n      before.kind !== after.kind ||\n      before.sha256 !== after.sha256\n    ) {\n      issues.push(`configuration-source-changed:${before.path}`);\n    }\n  }\n  if (normalized.llm.baseUrlRedacted) issues.push(\"base-url-redacted\");\n  return { valid: issues.length === 0, issues, profile: refreshed };\n}\n\nfunction same(a, b) {\n  return (\n    JSON.stringify(canonicalValue(a)) === JSON.stringify(canonicalValue(b))\n  );\n}\n\nfunction isBudgetLooser(before, after) {\n  if (before === null) return false;\n  return after === null || Number(after) > Number(before);\n}\n\nfunction isToolPolicyLooser(before, after) {\n  if (\n    Array.isArray(before.allowed) &&\n    (after.allowed === null ||\n      after.allowed.some((tool) => !before.allowed.includes(tool)))\n  ) {\n    return true;\n  }\n  return before.disallowed.some((tool) => !after.disallowed.includes(tool));\n}\n\nfunction sandboxRank(sandbox) {\n  if (sandbox.mode === \"strict\") return 0;\n  if (sandbox.mode === \"workspace-write\") return 1;\n  if (sandbox.mode === \"off\") return 3;\n  if (sandbox.enabled) return 0;\n  return 2;\n}\n\n/** Explain why a proposed profile cannot silently replace the persisted one. */\nexport function assessBackgroundLaunchProfileCompatibility(original, proposed) {\n  const before = normalizeBackgroundLaunchProfile(original);\n  const after = normalizeBackgroundLaunchProfile(proposed);\n  if (\n    fingerprintBackgroundLaunchProfile(before) ===\n    fingerprintBackgroundLaunchProfile(after)\n  ) {\n    return { compatible: true, reasons: [] };\n  }\n  const reasons = new Set();\n  if (before.llm.provider !== after.llm.provider)\n    reasons.add(\"provider-changed\");\n  if (before.llm.model !== after.llm.model) reasons.add(\"model-changed\");\n  if (before.llm.baseUrl !== after.llm.baseUrl) reasons.add(\"base-url-changed\");\n  if (before.permission.mode !== after.permission.mode) {\n    reasons.add(\n      (PERMISSION_RANK.get(after.permission.mode) ?? 99) >\n        (PERMISSION_RANK.get(before.permission.mode) ?? 99)\n        ? \"permission-mode-loosened\"\n        : \"permission-mode-changed\",\n    );\n  }\n  if (!before.permission.dangerousBypass && after.permission.dangerousBypass) {\n    reasons.add(\"permission-bypass-enabled\");\n  }\n  if (!same(before.tools, after.tools)) {\n    reasons.add(\n      isToolPolicyLooser(before.tools, after.tools)\n        ? \"tool-policy-loosened\"\n        : \"tool-policy-changed\",\n    );\n  }\n  if (!same(before.sandbox, after.sandbox)) {\n    reasons.add(\n      sandboxRank(after.sandbox) > sandboxRank(before.sandbox) ||\n        (!before.sandbox.network && after.sandbox.network)\n        ? \"sandbox-loosened\"\n        : \"sandbox-changed\",\n    );\n  }\n  if (!same(before.mcp, after.mcp)) reasons.add(\"mcp-changed\");\n  if (!same(before.settings, after.settings)) reasons.add(\"settings-changed\");\n  if (!same(before.plugins, after.plugins)) reasons.add(\"plugin-changed\");\n  if (!same(before.workspace, after.workspace))\n    reasons.add(\"workspace-changed\");\n  if (!same(before.configuration, after.configuration)) {\n    reasons.add(\"configuration-changed\");\n  }\n  if (\n    Object.keys(before.budget).some((key) =>\n      isBudgetLooser(before.budget[key], after.budget[key]),\n    )\n  ) {\n    reasons.add(\"budget-loosened\");\n  } else if (!same(before.budget, after.budget)) {\n    reasons.add(\"budget-changed\");\n  }\n  if (!same(before.runtime, after.runtime)) reasons.add(\"runtime-changed\");\n  if (!same(before.omitted, after.omitted)) reasons.add(\"redactions-changed\");\n  if (reasons.size === 0) reasons.add(\"launch-profile-changed\");\n  return { compatible: false, reasons: [...reasons].sort() };\n}\n\nfunction pushValue(argv, flag, value) {\n  if (value !== null && value !== undefined && value !== \"\") {\n    argv.push(flag, String(value));\n  }\n}\n\nfunction pushFlag(argv, flag, enabled) {\n  if (enabled) argv.push(flag);\n}\n\n/** Reconstruct a prompt-free argv template from a persisted profile. */\nexport function buildArgvFromBackgroundLaunchProfile(profile) {\n  const p = normalizeBackgroundLaunchProfile(profile);\n  const argv = [\"agent\"];\n  pushValue(argv, \"--provider\", p.llm.provider);\n  pushValue(argv, \"--model\", p.llm.model);\n  pushValue(argv, \"--base-url\", p.llm.baseUrl);\n  pushValue(argv, \"--vision-model\", p.llm.visionModel);\n  for (const model of p.llm.fallbackModels) {\n    pushValue(argv, \"--fallback-model\", model);\n  }\n  if (p.tools.allowed !== null) {\n    pushValue(argv, \"--allowed-tools\", p.tools.allowed.join(\",\"));\n  }\n  pushValue(argv, \"--disallowed-tools\", p.tools.disallowed.join(\",\"));\n  pushValue(argv, \"--permission-mode\", p.permission.mode);\n  pushFlag(argv, \"--allow-dangerous-bypass\", p.permission.dangerousBypass);\n  pushFlag(argv, \"--unattended\", p.permission.unattended);\n  pushValue(argv, \"--unattended-allow\", p.permission.unattendedAllow.join(\",\"));\n  pushFlag(argv, \"--interactive-approvals\", p.permission.interactiveApprovals);\n  pushValue(argv, \"--permission-prompt-tool\", p.permission.promptTool);\n  pushFlag(argv, \"--remote-control\", p.permission.remoteControl);\n  if (p.sandbox.enabled) {\n    argv.push(\"--sandbox\");\n    if (p.sandbox.image) argv.push(p.sandbox.image);\n  }\n  pushValue(argv, \"--sandbox-mode\", p.sandbox.mode);\n  pushFlag(argv, \"--sandbox-network\", p.sandbox.network);\n  pushValue(argv, \"--mcp-config\", p.mcp.configFile);\n  pushFlag(argv, \"--no-mcp\", p.mcp.disabled);\n  pushFlag(argv, \"--strict-mcp-config\", p.mcp.strict);\n  pushFlag(argv, \"--project-mcp\", p.mcp.project);\n  for (const [key, value] of [\n    [\"ide\", p.mcp.ide],\n    [\"pdh\", p.mcp.pdh],\n    [\"jetbrains\", p.mcp.jetbrains],\n  ]) {\n    if (value === \"enabled\") argv.push(`--${key}`);\n    if (value === \"disabled\") argv.push(`--no-${key}`);\n  }\n  pushValue(argv, \"--settings\", p.settings.file);\n  pushValue(argv, \"--bundle\", p.plugins.bundle);\n  for (const dir of p.workspace.addDirs) pushValue(argv, \"--add-dir\", dir);\n  pushValue(argv, \"--max-turns\", p.budget.maxTurns);\n  pushValue(argv, \"--max-budget-usd\", p.budget.maxCostUsd);\n  pushValue(argv, \"--thinking-budget\", p.budget.thinkingTokens);\n  pushValue(argv, \"--max-rewakes\", p.budget.maxRewakes);\n  pushValue(argv, \"--max-outer-turns\", p.budget.maxOuterTurns);\n  pushValue(argv, \"--goal-max-tokens\", p.budget.goalMaxTokens);\n  pushValue(argv, \"--goal-max-cost\", p.budget.goalMaxCostUsd);\n  pushValue(argv, \"--goal-max-time\", p.budget.goalMaxTimeMs);\n  pushFlag(argv, \"--safe-mode\", p.runtime.safeMode);\n  pushFlag(argv, \"--bare\", p.runtime.bare);\n  pushFlag(argv, \"--checkpoint\", p.runtime.checkpoint === \"enabled\");\n  pushFlag(argv, \"--no-checkpoint\", p.runtime.checkpoint === \"disabled\");\n  pushFlag(argv, \"--managed-checkpoint\", p.runtime.managedCheckpoint);\n  pushValue(\n    argv,\n    \"--managed-checkpoint-state\",\n    p.runtime.managedCheckpointState,\n  );\n  for (const excluded of p.runtime.managedCheckpointExcludes) {\n    pushValue(argv, \"--managed-checkpoint-exclude\", excluded);\n  }\n  pushFlag(argv, \"--no-project-memory\", p.runtime.noProjectMemory);\n  pushFlag(argv, \"--no-file-refs\", p.runtime.noFileRefs);\n  pushFlag(argv, \"--no-slash-macros\", p.runtime.noSlashMacros);\n  pushFlag(argv, \"--no-recall-memory\", p.runtime.noRecallMemory);\n  pushValue(argv, \"--output-style\", p.runtime.outputStyle);\n  pushValue(argv, \"--output-format\", p.runtime.outputFormat);\n  pushValue(argv, \"--input-format\", p.runtime.inputFormat);\n  if (p.runtime.thinking) {\n    pushValue(argv, \"--think\", p.runtime.thinking);\n  }\n  pushFlag(argv, \"--auto-rewake\", p.runtime.autoRewake);\n  pushFlag(argv, \"--auto-pin\", p.runtime.autoPin);\n  pushFlag(argv, \"--no-stream\", p.runtime.noStream);\n  pushFlag(argv, \"--no-park-on-exit\", p.runtime.noParkOnExit);\n  return argv;\n}\n\n/** Remove API key flags before argv is serialized into the transient job. */\nexport function stripBackgroundLaunchSecrets(argv) {\n  const clean = [];\n  let apiKey = null;\n  const args = Array.isArray(argv) ? argv.map(String) : [];\n  for (let index = 0; index < args.length; index++) {\n    const token = args[index];\n    if (token === \"--\") {\n      clean.push(...args.slice(index));\n      break;\n    }\n    if (token === \"--api-key\") {\n      apiKey = args[index + 1] ?? apiKey;\n      if (index + 1 < args.length) index++;\n      continue;\n    }\n    if (token.startsWith(\"--api-key=\")) {\n      apiKey = token.slice(\"--api-key=\".length) || apiKey;\n      continue;\n    }\n    clean.push(token);\n  }\n  return { argv: clean, apiKey };\n}\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793675342126,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/background-launch-profile.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 16,
+                "sessionId": "panel-1793675332449-9afb98",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/background-launch-profile.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_47nvfedci8wa3729cqdhbxs9",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-9443adee-065b-4d01-9ba3-887d41ebb63a",
+            "seq": 7
+          },
+          {
+            "type": "tool_result",
+            "id": "call_ej03entygj65dlboirvwn3hw",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/private/tmp/cc-native-JoJTx4/ec61b7cc-6226-4921-a0ef-03d0b72cfb8b/workspace/packages/cli/__tests__/unit/background-launch-profile.test.js",
+              "fileVersion": "10394:1791108223000:1793674931946.736",
+              "readSpan": {
+                "start": 0,
+                "end": 10394,
+                "total": 10394
+              },
+              "hashed": false,
+              "content": "import { afterEach, beforeEach, describe, expect, it } from \"vitest\";\nimport {\n  mkdirSync,\n  mkdtempSync,\n  realpathSync,\n  rmSync,\n  writeFileSync,\n} from \"node:fs\";\nimport { tmpdir } from \"node:os\";\nimport { join } from \"node:path\";\nimport {\n  assessBackgroundLaunchProfileCompatibility,\n  buildArgvFromBackgroundLaunchProfile,\n  canonicalBackgroundLaunchProfileJson,\n  captureBackgroundLaunchProfile,\n  fingerprintBackgroundLaunchProfile,\n  refreshBackgroundLaunchProfileSources,\n  sanitizeBackgroundBaseUrl,\n  stripBackgroundLaunchSecrets,\n  verifyBackgroundLaunchProfileSources,\n} from \"../../src/lib/background-launch-profile.js\";\n\nlet dir;\nlet previousHome;\n\nbeforeEach(() => {\n  dir = realpathSync.native(mkdtempSync(join(tmpdir(), \"cc-bg-profile-\")));\n  previousHome = process.env.CHAINLESSCHAIN_HOME;\n  process.env.CHAINLESSCHAIN_HOME = join(dir, \"home\");\n  mkdirSync(process.env.CHAINLESSCHAIN_HOME, { recursive: true });\n});\n\nafterEach(() => {\n  if (previousHome === undefined) delete process.env.CHAINLESSCHAIN_HOME;\n  else process.env.CHAINLESSCHAIN_HOME = previousHome;\n  rmSync(dir, { recursive: true, force: true });\n});\n\nfunction capture(argv) {\n  return captureBackgroundLaunchProfile({\n    argv,\n    cwd: dir,\n    governance: {\n      permissionMode: \"manual\",\n      resourceBudget: { maxTurns: 12, maxCostUsd: 4.5 },\n    },\n  });\n}\n\ndescribe(\"background launch profile\", () => {\n  it(\"refuses to capture an ephemeral profile that resume cannot preserve\", () => {\n    expect(() =>\n      capture([\"agent\", \"--ephemeral\", \"--session\", \"ephemeral-session\"]),\n    ).toThrowError(\n      expect.objectContaining({ code: \"BACKGROUND_EPHEMERAL_UNSUPPORTED\" }),\n    );\n  });\n\n  it(\"captures a versioned effective envelope without prompt or credentials\", () => {\n    const settings = join(dir, \"settings.json\");\n    const mcp = join(dir, \"mcp.json\");\n    const bundle = join(dir, \"bundle\");\n    const extra = join(dir, \"extra\");\n    writeFileSync(\n      settings,\n      JSON.stringify({ env: { PRIVATE_TOKEN: \"settings-env-secret\" } }),\n    );\n    writeFileSync(mcp, JSON.stringify({ bearer: \"mcp-secret\" }));\n    mkdirSync(bundle);\n    writeFileSync(join(bundle, \"AGENTS.md\"), \"bundle-private-text\");\n    mkdirSync(extra);\n\n    const profile = capture([\n      \"agent\",\n      \"fix\",\n      \"the\",\n      \"bug\",\n      \"--provider\",\n      \"openai\",\n      \"--model\",\n      \"gpt-test\",\n      \"--base-url\",\n      \"https://user:password@example.test/v1?api_key=query-secret#fragment\",\n      \"--api-key\",\n      \"argv-api-secret\",\n      \"--allowed-tools\",\n      \"read_file,run_shell\",\n      \"--disallowed-tools\",\n      \"delete_file\",\n      \"--permission-mode\",\n      \"acceptEdits\",\n      \"--sandbox\",\n      \"sandbox-image\",\n      \"--sandbox-mode\",\n      \"strict\",\n      \"--mcp-config\",\n      mcp,\n      \"--strict-mcp-config\",\n      \"--settings\",\n      settings,\n      \"--bundle\",\n      bundle,\n      \"--add-dir\",\n      extra,\n      \"--max-turns\",\n      \"8\",\n      \"--max-budget-usd\",\n      \"2.25\",\n      \"--system-prompt\",\n      \"system-prompt-secret\",\n      \"-p\",\n      \"task-prompt-secret\",\n    ]);\n\n    expect(profile).toMatchObject({\n      version: 1,\n      command: \"agent\",\n      llm: {\n        provider: \"openai\",\n        model: \"gpt-test\",\n        baseUrl: \"https://example.test/v1\",\n        baseUrlRedacted: true,\n      },\n      tools: {\n        allowed: [\"read_file\", \"run_shell\"],\n        disallowed: [\"delete_file\"],\n      },\n      permission: { mode: \"acceptEdits\" },\n      sandbox: { enabled: true, image: \"sandbox-image\", mode: \"strict\" },\n      mcp: { configFile: mcp, strict: true },\n      settings: { file: settings },\n      plugins: { bundle },\n      workspace: { cwd: dir, addDirs: [extra] },\n      budget: { maxTurns: 8, maxCostUsd: 2.25 },\n      credentials: { apiKey: \"external\" },\n    });\n    expect(profile.omitted).toEqual(\n      expect.arrayContaining([\"apiKey\", \"systemPrompt\", \"taskPrompt\"]),\n    );\n    expect(profile.configuration.sources).toEqual(\n      expect.arrayContaining([\n        expect.objectContaining({ path: settings, kind: \"file\" }),\n        expect.objectContaining({ path: mcp, kind: \"file\" }),\n        expect.objectContaining({ path: bundle, kind: \"directory\" }),\n      ]),\n    );\n\n    const persisted = JSON.stringify(profile);\n    for (const secret of [\n      \"password\",\n      \"query-secret\",\n      \"argv-api-secret\",\n      \"system-prompt-secret\",\n      \"task-prompt-secret\",\n      \"settings-env-secret\",\n      \"mcp-secret\",\n      \"bundle-private-text\",\n    ]) {\n      expect(persisted).not.toContain(secret);\n    }\n  });\n\n  it(\"does not persist parent-only background worktree switches\", () => {\n    for (const flag of [\"--worktree\", \"--no-worktree\"]) {\n      const profile = capture([\"agent\", \"--background\", flag, \"-p\", \"do work\"]);\n      expect(profile.omitted).not.toContain(`option:${flag.slice(2)}`);\n      const rebuilt = buildArgvFromBackgroundLaunchProfile(profile);\n      expect(rebuilt).not.toContain(\"--worktree\");\n      expect(rebuilt).not.toContain(\"--no-worktree\");\n      expect(rebuilt).not.toContain(\"--background\");\n    }\n  });\n\n  it(\"uses canonical JSON for stable fingerprints and changes on policy drift\", () => {\n    const first = capture([\n      \"agent\",\n      \"task one\",\n      \"--model\",\n      \"m1\",\n      \"--allowed-tools\",\n      \"run_shell,read_file\",\n      \"--disallowed-tools\",\n      \"write_file,delete_file\",\n    ]);\n    const reordered = capture([\n      \"agent\",\n      \"another task\",\n      \"--disallowed-tools\",\n      \"delete_file,write_file\",\n      \"--allowed-tools\",\n      \"read_file,run_shell\",\n      \"--model\",\n      \"m1\",\n    ]);\n\n    expect(canonicalBackgroundLaunchProfileJson(first)).toBe(\n      canonicalBackgroundLaunchProfileJson(reordered),\n    );\n    expect(fingerprintBackgroundLaunchProfile(first)).toBe(\n      fingerprintBackgroundLaunchProfile(reordered),\n    );\n\n    const changedModel = structuredClone(first);\n    changedModel.llm.model = \"m2\";\n    const loosenedPermission = structuredClone(first);\n    loosenedPermission.permission.dangerousBypass = true;\n    const loosenedBudget = structuredClone(first);\n    loosenedBudget.budget.maxTurns = null;\n    const loosenedMode = structuredClone(first);\n    loosenedMode.permission.mode = \"bypassPermissions\";\n    const loosenedTools = structuredClone(first);\n    loosenedTools.tools.allowed = null;\n    const fallbackOrderOne = capture([\n      \"agent\",\n      \"task\",\n      \"--fallback-model\",\n      \"first,second\",\n    ]);\n    const fallbackOrderTwo = capture([\n      \"agent\",\n      \"task\",\n      \"--fallback-model\",\n      \"second,first\",\n    ]);\n    for (const changed of [changedModel, loosenedPermission, loosenedBudget]) {\n      expect(fingerprintBackgroundLaunchProfile(changed)).not.toBe(\n        fingerprintBackgroundLaunchProfile(first),\n      );\n    }\n\n    expect(\n      assessBackgroundLaunchProfileCompatibility(first, changedModel),\n    ).toMatchObject({ compatible: false, reasons: [\"model-changed\"] });\n    expect(\n      assessBackgroundLaunchProfileCompatibility(first, loosenedPermission)\n        .reasons,\n    ).toContain(\"permission-bypass-enabled\");\n    expect(\n      assessBackgroundLaunchProfileCompatibility(first, loosenedBudget).reasons,\n    ).toContain(\"budget-loosened\");\n    expect(\n      assessBackgroundLaunchProfileCompatibility(first, loosenedMode).reasons,\n    ).toContain(\"permission-mode-loosened\");\n    expect(\n      assessBackgroundLaunchProfileCompatibility(first, loosenedTools).reasons,\n    ).toContain(\"tool-policy-loosened\");\n    expect(fingerprintBackgroundLaunchProfile(fallbackOrderOne)).not.toBe(\n      fingerprintBackgroundLaunchProfile(fallbackOrderTwo),\n    );\n  });\n\n  it(\"rebuilds resumable argv while keeping redacted values out\", () => {\n    const profile = capture([\n      \"agent\",\n      \"do not persist me\",\n      \"--provider\",\n      \"openai\",\n      \"--model\",\n      \"gpt-test\",\n      \"--api-key=top-secret\",\n      \"--permission-mode\",\n      \"plan\",\n      \"--sandbox-mode\",\n      \"strict\",\n      \"--allowed-tools\",\n      \"read_file\",\n      \"--max-turns\",\n      \"5\",\n    ]);\n    const argv = buildArgvFromBackgroundLaunchProfile(profile);\n\n    expect(argv).toEqual(\n      expect.arrayContaining([\n        \"agent\",\n        \"--provider\",\n        \"openai\",\n        \"--model\",\n        \"gpt-test\",\n        \"--permission-mode\",\n        \"plan\",\n        \"--sandbox-mode\",\n        \"strict\",\n        \"--max-turns\",\n        \"5\",\n      ]),\n    );\n    expect(JSON.stringify(argv)).not.toContain(\"top-secret\");\n    expect(JSON.stringify(argv)).not.toContain(\"do not persist me\");\n    expect(argv).not.toContain(\"--api-key\");\n  });\n\n  it(\"detects configuration content changes and can refresh explicitly\", () => {\n    const settings = join(dir, \"settings.json\");\n    writeFileSync(settings, JSON.stringify({ model: \"one\" }));\n    const profile = capture([\"agent\", \"task\", \"--settings\", settings]);\n    expect(verifyBackgroundLaunchProfileSources(profile)).toMatchObject({\n      valid: true,\n      issues: [],\n    });\n\n    writeFileSync(settings, JSON.stringify({ model: \"two\" }));\n    const check = verifyBackgroundLaunchProfileSources(profile);\n    expect(check.valid).toBe(false);\n    expect(check.issues).toEqual([`configuration-source-changed:${settings}`]);\n    const refreshed = refreshBackgroundLaunchProfileSources(profile);\n    expect(verifyBackgroundLaunchProfileSources(refreshed).valid).toBe(true);\n    expect(fingerprintBackgroundLaunchProfile(refreshed)).not.toBe(\n      fingerprintBackgroundLaunchProfile(profile),\n    );\n  });\n\n  it(\"sanitizes base URLs and strips both API key argv forms\", () => {\n    expect(\n      sanitizeBackgroundBaseUrl(\"https://u:p@example.test/v1?token=x#y\"),\n    ).toEqual({ value: \"https://example.test/v1\", redacted: true });\n    expect(sanitizeBackgroundBaseUrl(\"file:///secret\")).toEqual({\n      value: null,\n      redacted: true,\n    });\n    expect(\n      stripBackgroundLaunchSecrets([\n        \"agent\",\n        \"--api-key\",\n        \"first\",\n        \"--model\",\n        \"m\",\n        \"--api-key=second\",\n      ]),\n    ).toEqual({ argv: [\"agent\", \"--model\", \"m\"], apiKey: \"second\" });\n    expect(\n      stripBackgroundLaunchSecrets([\n        \"agent\",\n        \"--\",\n        \"mention\",\n        \"--api-key\",\n        \"as task text\",\n      ]),\n    ).toEqual({\n      argv: [\"agent\", \"--\", \"mention\", \"--api-key\", \"as task text\"],\n      apiKey: null,\n    });\n  });\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793675345353,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/background-launch-profile.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 3,
+                "sessionId": "panel-1793675332449-9afb98",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/background-launch-profile.test.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_ej03entygj65dlboirvwn3hw",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-9443adee-065b-4d01-9ba3-887d41ebb63a",
+            "seq": 11
+          }
+        ],
+        "usageEvents": [
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 2717,
+              "output_tokens": 49,
+              "cache_read_input_tokens": 2048,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-9443adee-065b-4d01-9ba3-887d41ebb63a",
+            "seq": 5
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 12464,
+              "output_tokens": 74,
+              "cache_read_input_tokens": 4096,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-9443adee-065b-4d01-9ba3-887d41ebb63a",
+            "seq": 9
+          }
+        ],
+        "unknownUsageEvents": [],
+        "observedUsage": {
+          "input_tokens": 15181,
+          "output_tokens": 123,
+          "cache_read_input_tokens": 6144
+        },
+        "usageComplete": false,
+        "failureCategory": "agent-error",
+        "modelUsageRecordCount": 2,
+        "estimatedCostUSD": null,
+        "actualBilledCostUSD": null,
+        "final": {
+          "type": "result",
+          "subtype": "error",
+          "is_error": true,
+          "error": "volcengine API error: HTTP 403 — DIAGNOSTIC_OUTPUT_TRUNCATED.",
+          "turn": 1,
+          "trace_id": "tr-9443adee-065b-4d01-9ba3-887d41ebb63a",
+          "seq": 14
+        },
+        "scopePathComparison": "native-case-sensitive"
+      },
+      "brokerStatus": {
+        "physicalRequestsStarted": 3,
+        "usageCompleteRequests": 3,
+        "passed": false,
+        "poisoned": null,
+        "errorCode": "DIAGNOSTIC_OUTPUT_TRUNCATED"
+      },
+      "broker": {
+        "formalSample": false,
+        "physicalRequestsStarted": 3,
+        "usageCompleteRequests": 3,
+        "tasks": [
+          {
+            "taskId": "verify-36",
+            "requests": 3,
+            "errorCode": "DIAGNOSTIC_OUTPUT_TRUNCATED"
+          }
+        ],
+        "poisoned": null,
+        "actualBilledCostCny": null,
+        "tokenOnlyEstimateCny": 0.14216600000000001,
+        "knownTokenOnlyEstimateCny": 0.14216600000000001,
+        "fxRate": null
+      },
+      "changedPaths": [
+        ".idea",
+        ".idea/.gitignore",
+        ".idea/misc.xml",
+        ".idea/modules.xml",
+        ".idea/workspace.iml",
+        ".idea/workspace.xml"
+      ],
+      "finishedAt": "2026-11-03T03:10:50.470Z"
+    }
+  ],
+  "selectionScope": "operator-subset",
+  "selectedSampleIds": [
+    "verify-36"
+  ],
+  "generationPassed": false,
+  "acceptancePending": true,
+  "formalSample": false,
+  "limitations": [
+    "Native generation; independent Linux acceptance pending",
+    "Broker thinking disabled, six file tools only, 20 model turns, 24 requests, 180 second request timeout, 8192 output tokens, 16 MiB response transport limit",
+    "IDE context bridges and optional task worklog disabled; real UI and restart retained",
+    "No prior candidates or repair seeds supplied"
+  ],
+  "cohortKind": "volcengine-native-diagnostic",
+  "executionIdentityDigest": "sha256:6a4c23a6f8954f7802a5dba8b72da07fbc82991ada37b936e285ed2870746923",
+  "group": "darwin-jetbrains",
+  "entry": "jetbrains",
+  "platform": "darwin",
+  "executionSourceBindings": [
+    {
+      "file": "packages/cli/scripts/verify01-native-task-campaign.mjs",
+      "digest": "sha256:8f7136bb7775f5da8d970f9ad543b78a7b60d2be705be205c0c229a24c5b1bd3"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-task-diagnostic.mjs",
+      "digest": "sha256:4f9710a91e70a88d11a0378b17ffd59a1fc35721dd71ebced4541583fe82781e"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-diagnostic-broker.mjs",
+      "digest": "sha256:b524cd15758946fcefe14e932b0461d4d568e1ed4a459cfaa066324f31e5ca43"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-native-provider-profile.mjs",
+      "digest": "sha256:4e5ee5f64128891453acf36f5f91057ba9d0e7e22ff00fcbd54ad62a25991dd8"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-openai-diagnostic-broker.mjs",
+      "digest": "sha256:72b9b54ddf8d4f916ffdf75acde808e9ea19d66b0bc67e96b0d2be44ef65cebe"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-openai-transport-preload.mjs",
+      "digest": "sha256:d3deaf2d2465537c7ecff4be95b044f5fbc4ae3c6a6a035dc816dcb27b9c345a"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-review-specs.mjs",
+      "digest": "sha256:202eec83bb24f5b271d19ae9114d7ef5c9ec024a7592895a04bbdd164cc91f1d"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-project-revision.mjs",
+      "digest": "sha256:a3bca91a5b5d6174b64c3011e245505e7eef51540ff890f17ac39d9f0d1db50f"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-prerelease-package-set.mjs",
+      "digest": "sha256:324b67e2405916eecabd4abd459aa7fb7c4ed036029ee22d13e742d32f51dfa8"
+    },
+    {
+      "file": "packages/cli/src/lib/eval/stream-terminal.js",
+      "digest": "sha256:4440c2821c65afac8bfa5e79cee5671434e89702dacb8128e09480f329451114"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-first-run-cli-diagnostic.mjs",
+      "digest": "sha256:ad10cb2f362a8d163d024bbae7da09137e8f102956f4212e8af004f134474b7b"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/plan.json",
+      "digest": "sha256:aa55909d4cb3d83ac94127168ae6114ee7ceb7b6584b64fcb985904add297f35"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/tasks.json",
+      "digest": "sha256:c1be59b0b754f5442e571e3e9d9290bd5c72c13f324ae603d4b629a6b06852d2"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/comparison-bindings.json",
+      "digest": "sha256:32ba5c28f69146fcddda04d3fc0f2aba649fdae4d607f48168af3bd3b773432c"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/plan.sha256",
+      "digest": "sha256:73d2473d0e205379b5b654a245ec96b3f19b524a3906e979682ee4ad84e0202e"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-native-plugin-artifact.mjs",
+      "digest": "sha256:ce04147c3e2f97c7d44d37052f5e8329595efe9bbcb852b51952535ba96357bc"
+    },
+    {
+      "file": "packages/jetbrains-plugin/scripts/verify01-native-task-adapter.mjs",
+      "digest": "sha256:5f84eaf585163a23e56471a113750933c0459144429bc611742956962dbbbdb1"
+    },
+    {
+      "file": "packages/jetbrains-plugin/build.gradle.kts",
+      "digest": "sha256:74b7a9578e2343c0b3644a46d769e789545877342b8a806ebb269175ab08a6cb"
+    },
+    {
+      "file": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/IdeUiSmokeTest.java",
+      "digest": "sha256:29655e9a949948528018ad85baf368e5240445216caa747719c95d6c83903e0b"
+    },
+    {
+      "file": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/UiFailureDiagnostics.java",
+      "digest": "sha256:5802b749fd82048d196e90ce5f0f2f4e4c7cfc527590f07b62ccafb73d4c6a20"
+    },
+    {
+      "file": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/ConversationRecoveryJourney.java",
+      "digest": "sha256:44cb87d4c64437b64204a4bca9d7faaec68a6cbbff8b7303c491e17e7597337b"
+    },
+    {
+      "file": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/Verify01HostJourney.java",
+      "digest": "sha256:ad6e59cfb2fa56f7376aaf776a226006232156f8ea0f2096a863a42022215cd8"
+    }
+  ],
+  "install": {
+    "passed": true,
+    "startedAt": "2026-11-03T03:02:14.432Z",
+    "finishedAt": "2026-11-03T03:02:37.232Z",
+    "lifecycleScriptsEnabled": true,
+    "sampleId": "verify-36",
+    "locked": {
+      "version": "0.166.139",
+      "resolved": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.139.tgz",
+      "integrity": "sha512-X0frBGhYvdNLxnz4oYtqo07vJvFHpi99yyZ1n1q7xI82x6v6BEx/jPy420YfZIidKlJG+HSF5SeQG38idwSW1w==",
+      "hasInstallScript": true,
+      "license": "MIT",
+      "dependencies": {
+        "@aws-sdk/client-s3": "^3.700.0",
+        "@chainlesschain/context-memory-kernel": "0.1.11",
+        "@chainlesschain/core-config": "0.1.2",
+        "@chainlesschain/core-db": "0.1.5",
+        "@chainlesschain/core-env": "0.1.2",
+        "@chainlesschain/core-infra": "0.1.1",
+        "@chainlesschain/core-mtc": "0.2.3",
+        "@chainlesschain/core-multisig": "0.1.4",
+        "@chainlesschain/personal-data-hub": "0.4.66",
+        "@chainlesschain/session-core": "0.3.24",
+        "@chainlesschain/shared-logger": "0.1.1",
+        "@inquirer/prompts": "^7.2.0",
+        "@noble/curves": "^1.9.7",
+        "@tootallnate/quickjs-emscripten": "^0.23.0",
+        "acorn": "8.17.0",
+        "ajv": "^8.20.0",
+        "ajv-formats": "^3.0.1",
+        "chalk": "^5.4.1",
+        "commander": "^12.1.0",
+        "esbuild-wasm": "0.28.1",
+        "js-yaml": "^3.15.1",
+        "koffi": "^2.16.3",
+        "ora": "^8.1.1",
+        "pac-resolver": "^7.0.1",
+        "semver": "^7.6.3",
+        "sql.js": "^1.14.1",
+        "undici": "^7.30.1",
+        "webdav": "^5.10.0",
+        "ws": "^8.14.2"
+      },
+      "bin": {
+        "cc": "bin/chainlesschain.js",
+        "chainlesschain": "bin/chainlesschain.js",
+        "clc": "bin/chainlesschain.js",
+        "clchain": "bin/chainlesschain.js"
+      },
+      "engines": {
+        "node": ">=22.12.0"
+      },
+      "optionalDependencies": {
+        "better-sqlite3": "^12.1.0",
+        "node-pty": "^1.0.0",
+        "pdf-parse": "^1.1.1"
+      },
+      "peerDependencies": {
+        "playwright": "^1.40.0"
+      },
+      "peerDependenciesMeta": {
+        "playwright": {
+          "optional": true
+        }
+      }
+    }
+  },
+  "finishedAt": "2026-11-03T03:10:50.475Z"
+}

@@ -1,0 +1,104 @@
+import { describe, expect, it } from "vitest";
+import { createSessionTranscriptHistoryProjection } from "../src/lib/session-transcript-history.js";
+
+function makeEvents(count) {
+  return Array.from({ length: count }, (_, i) => ({
+    type: "assistant_message",
+    hash: (i + 1).toString(16).padStart(64, "0"),
+    data: { role: "assistant", content: `body-${i}` },
+  }));
+}
+
+function finishProjection(events, options) {
+  const projection = createSessionTranscriptHistoryProjection(
+    "persistent-body",
+    options,
+  );
+  events.forEach((event) => projection.accept(event));
+  return projection.finish({
+    headHash: events.at(-1).hash,
+    eventCount: events.length,
+  });
+}
+
+function decode(cursor) {
+  return JSON.parse(Buffer.from(cursor, "base64url").toString("utf8"));
+}
+
+function walkPages(events, limit) {
+  const pages = [];
+  let cursor = null;
+  let guard = 0;
+  do {
+    const page = finishProjection(events, { limit, cursor });
+    pages.push(page);
+    cursor = page.nextCursor;
+    guard += 1;
+  } while (cursor && guard < 100);
+  return pages;
+}
+
+describe("persistent body pagination boundary", () => {
+  it("reconstructs every message exactly once across pages, keeping the final body on the latest page", () => {
+    const events = makeEvents(10);
+    const pages = walkPages(events, 3);
+    expect(pages.length).toBe(4);
+    const ordinals = pages.flatMap((page) =>
+      page.messages.map((row) => row.ordinal),
+    );
+    // No duplicated boundary rows and no omitted body across the whole walk.
+    expect(new Set(ordinals).size).toBe(10);
+    expect([...ordinals].sort((a, b) => a - b)).toEqual(
+      events.map((_, index) => index),
+    );
+    // The final body stays on the newest (first) page and is never dropped.
+    expect(pages[0].messages.map((row) => row.text)).toEqual([
+      "body-7",
+      "body-8",
+      "body-9",
+    ]);
+    // The oldest page is the last cursorless boundary.
+    expect(pages.at(-1).messages.map((row) => row.text)).toEqual(["body-0"]);
+    expect(pages.at(-1).nextCursor).toBeNull();
+  });
+
+  it("anchors every cross-page cursor at the page's oldest row with no overlap or gap at the boundary", () => {
+    const events = makeEvents(13);
+    const pages = walkPages(events, 4);
+    expect(pages.length).toBe(4);
+    for (let i = 0; i < pages.length - 1; i++) {
+      const boundary = decode(pages[i].nextCursor);
+      expect(boundary.v).toBe(2);
+      expect(boundary.sessionId).toBe("persistent-body");
+      expect(boundary.before).toBe(pages[i].messages[0].ordinal);
+      const older = pages[i + 1];
+      // The following page ends exactly where the current one began.
+      expect(older.messages.at(-1).ordinal).toBe(
+        pages[i].messages[0].ordinal - 1,
+      );
+      expect(
+        older.messages.every((row) => row.ordinal < boundary.before),
+      ).toBe(true);
+    }
+  });
+
+  it("rejects a stale boundary cursor instead of silently walking a changed history", () => {
+    const events = makeEvents(8);
+    const first = finishProjection(events, { limit: 3 });
+    expect(first.nextCursor).not.toBeNull();
+    // Same unchanged history: the cursor continues into the previous chunk.
+    const older = finishProjection(events, { limit: 3, cursor: first.nextCursor });
+    expect(older.messages.map((row) => row.text)).toEqual([
+      "body-2",
+      "body-3",
+      "body-4",
+    ]);
+    // Replaying the same prefix but with a different anchored revision invalidates
+    // the boundary cursor instead of producing a shifted or duplicated page.
+    const tampered = [...events];
+    tampered[7] = { ...events[7], hash: "f".repeat(64) };
+    expect(() =>
+      finishProjection(tampered, { limit: 3, cursor: first.nextCursor }),
+    ).toThrow(/changed/);
+  });
+});

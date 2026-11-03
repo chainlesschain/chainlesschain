@@ -1,0 +1,48 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.7/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+> Task :checkKotlinGradlePluginConfigurationErrors
+> Task :compileUiTestKotlin NO-SOURCE
+> Task :compileUiTestJava UP-TO-DATE
+> Task :initializeIntellijPlatformPlugin
+> Task :patchPluginXml UP-TO-DATE
+> Task :processUiTestResources UP-TO-DATE
+> Task :uiTestClasses UP-TO-DATE
+
+> Task :uiSmokeTest
+
+IdeUiSmokeTest > chainlessChainChatAndControlJourney() PASSED
+
+NativeTranscriptProbeTest > acceptsOnlyTheCurrentValidatedFixtureIdentity() PASSED
+
+NativeTranscriptProbeTest > rejectsEdtInvocationBeforeAttemptingAnyCliProbe() PASSED
+
+PluginStartupContractTest > doesNotTreatAnUnexpectedNullResponseAsStartupReadiness() PASSED
+
+PluginStartupContractTest > rejectsContractDriftImmediatelyAfterStartup() PASSED
+
+PluginStartupContractTest > propagatesRemoteClassLoadingFailuresWithoutRetry() PASSED
+
+PluginStartupContractTest > failsWithAReadinessDiagnosticIfTheLoaderNeverAppears() PASSED
+
+PluginStartupContractTest > waitsForThePluginLoaderAfterTheFrameAppears() PASSED
+
+Verify01HostJourneyTest > multipleGenerationsAndObserverErrorsFailClosed() PASSED
+
+Verify01HostJourneyTest > exitZeroWithoutInitStillCannotCountAsTaskCompletion() PASSED
+
+Verify01HostJourneyTest > initOrInputExcludesPreInitVerdictAndForeignInitIsNotOwned() PASSED
+
+Verify01HostJourneyTest > soleRealExitFailsImmediatelyAndRetainsExactOriginalBytes() PASSED
+
+Verify01HostJourneyTest > existingTerminalAndDrainedExitRequirementsRemainIntact() PASSED
+
+Verify01HostJourneyTest > expandedDeadlineRequiresExplicit40TurnBudgetAndRemainsBounded() PASSED
+
+Verify01HostJourneyTest > diagnosticsKeepObservedTextAndReadinessWithoutInventingOutput() PASSED
+
+Verify01HostJourneyTest > diagnosticFailureOrTimeoutCannotBecomeTaskSuccess() PASSED
+
+Verify01HostJourneyTest > incompleteOrUndrainedExitIsNotPrematurelyAttributed() PASSED
+
+BUILD SUCCESSFUL in 27s
+6 actionable tasks: 3 executed, 3 up-to-date

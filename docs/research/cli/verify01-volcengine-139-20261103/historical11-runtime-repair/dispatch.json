@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "source": "c811dbc46478ec87ba10ebfe1ba7d9467e56d7f6",
+  "ref": "verify01-volc139-history11-c811dbc464",
+  "provider": "volcengine",
+  "scope": "historically-unresolved11-runtime-repair-frozen-project",
+  "packageSetPath": "docs/research/cli/verify01-package-sets/2026-11-03-volcengine-historical11-runtime-repair.json",
+  "selectedSampleIds": [
+    "first-run-darwin-cli",
+    "first-run-darwin-jetbrains",
+    "verify-04",
+    "verify-07",
+    "verify-08",
+    "verify-09",
+    "verify-10",
+    "verify-11",
+    "verify-13",
+    "verify-19",
+    "verify-30"
+  ],
+  "submitted": true,
+  "submissionStartedAt": "2026-11-03T07:54:30.670586+00:00",
+  "inputs": {
+    "confirm_live": "true",
+    "provider": "volcengine",
+    "fresh_volcengine_round": "true",
+    "hosts": "all",
+    "entries": "all",
+    "package_set": "prerelease",
+    "package_set_file": "docs/research/cli/verify01-package-sets/2026-11-03-volcengine-historical11-runtime-repair.json",
+    "review_changes": "true"
+  },
+  "runId": 41599436044,
+  "submittedAt": "2026-11-03T07:54:34.157483+00:00",
+  "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41599436044"
+}

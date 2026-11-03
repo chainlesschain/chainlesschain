@@ -1,0 +1,38 @@
+{
+  "schema": 1,
+  "source": "ba504a7869c14c11787e1547dc8611eef9aace71",
+  "ref": "verify01-volc139-outputmax-ba504a7869",
+  "provider": "volcengine",
+  "scope": "remove-artificial-output-cap-and-retry-latest-truncations",
+  "priorRunId": 41576842146,
+  "selectedSampleIds": [
+    "first-run-darwin-cli",
+    "first-run-darwin-vscode",
+    "verify-01",
+    "verify-04",
+    "verify-07",
+    "verify-08",
+    "verify-11",
+    "verify-14",
+    "verify-15",
+    "verify-32",
+    "verify-33",
+    "verify-36"
+  ],
+  "packageSetPath": "docs/research/cli/verify01-package-sets/2026-11-03-volcengine-139-provider-output.json",
+  "submitted": true,
+  "submissionStartedAt": "2026-11-03T05:40:47.901069+00:00",
+  "inputs": {
+    "confirm_live": "true",
+    "provider": "volcengine",
+    "fresh_volcengine_round": "true",
+    "hosts": "all",
+    "entries": "all",
+    "package_set": "latest",
+    "package_set_file": "docs/research/cli/verify01-package-sets/2026-11-03-volcengine-139-provider-output.json",
+    "review_changes": "true"
+  },
+  "runId": 41585306414,
+  "submittedAt": "2026-11-03T05:40:53.043450+00:00",
+  "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41585306414"
+}

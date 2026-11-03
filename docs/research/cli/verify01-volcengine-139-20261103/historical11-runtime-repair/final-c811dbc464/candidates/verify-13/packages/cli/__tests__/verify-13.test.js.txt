@@ -1,0 +1,136 @@
+import { describe, expect, it, vi } from "vitest";
+import fs from "node:fs";
+import {
+  MAX_INPUT_IMAGE_BYTES,
+  readBoundedImage,
+} from "../../src/lib/image-file-boundary.js";
+import { PNG_BYTES } from "../helpers/image-file-fixtures.js";
+
+/**
+ * Independent regression coverage for the "same-handle attachment read
+ * boundary": one descriptor is pinned, bounded by size/budget/header/pixels,
+ * and always closed. Positive control reads a normal small PNG and confirms the
+ * resource is released; negative controls alter exactly one condition while
+ * keeping the rest of the handle valid so a different guard cannot reject.
+ */
+function memIo(bytes, overrides = {}) {
+  return {
+    constants: fs.constants,
+    openSync() {
+      return 1;
+    },
+    fstatSync() {
+      return {
+        size: bytes.length,
+        mtimeMs: 1,
+        ctimeMs: 1,
+        isFile: () => true,
+      };
+    },
+    readSync(fd, target, offset, length, position) {
+      return bytes.copy(target, offset, position, position + length);
+    },
+    closeSync() {},
+    ...overrides,
+  };
+}
+
+describe("verify-13: attachment same-handle read boundary", () => {
+  it("reads a normal small PNG through the pinned handle and closes it", () => {
+    const closeSync = vi.fn();
+    const io = memIo(PNG_BYTES, { closeSync });
+    const data = readBoundedImage(
+      "a.png",
+      "image/png",
+      MAX_INPUT_IMAGE_BYTES,
+      io,
+    );
+    expect(Buffer.isBuffer(data)).toBe(true);
+    expect(data.equals(PNG_BYTES)).toBe(true);
+    expect(closeSync).toHaveBeenCalledOnce();
+  });
+
+  it("rejects an over-limit size before any read and closes the handle", () => {
+    const readSync = vi.fn();
+    const closeSync = vi.fn();
+    const io = memIo(PNG_BYTES, {
+      fstatSync() {
+        return {
+          size: MAX_INPUT_IMAGE_BYTES + 1,
+          mtimeMs: 1,
+          ctimeMs: 1,
+          isFile: () => true,
+        };
+      },
+      readSync,
+      closeSync,
+    });
+    expect(() =>
+      readBoundedImage("a.png", "image/png", MAX_INPUT_IMAGE_BYTES, io),
+    ).toThrow(/1 byte to 20 MiB/);
+    expect(readSync).not.toHaveBeenCalled();
+    expect(closeSync).toHaveBeenCalledOnce();
+  });
+
+  it("rejects a file replaced during the read and closes the handle", () => {
+    let fstatCalls = 0;
+    const closeSync = vi.fn();
+    const io = memIo(PNG_BYTES, {
+      fstatSync() {
+        return {
+          size: PNG_BYTES.length,
+          mtimeMs: fstatCalls++ === 0 ? 1 : 2,
+          ctimeMs: 1,
+          isFile: () => true,
+        };
+      },
+      closeSync,
+    });
+    expect(() =>
+      readBoundedImage("a.png", "image/png", MAX_INPUT_IMAGE_BYTES, io),
+    ).toThrow(/changed while being read/);
+    expect(closeSync).toHaveBeenCalledOnce();
+  });
+
+  it("rejects an attachment exceeding the remaining message budget", () => {
+    const readSync = vi.fn();
+    const closeSync = vi.fn();
+    const io = memIo(PNG_BYTES, { readSync, closeSync });
+    expect(() =>
+      readBoundedImage("a.png", "image/png", PNG_BYTES.length - 1, io),
+    ).toThrow(/Total image attachments exceed 20 MiB/);
+    expect(readSync).not.toHaveBeenCalled();
+    expect(closeSync).toHaveBeenCalledOnce();
+  });
+
+  it("rejects a non-regular handle before any read", () => {
+    const readSync = vi.fn();
+    const closeSync = vi.fn();
+    const io = memIo(PNG_BYTES, {
+      fstatSync() {
+        return {
+          size: PNG_BYTES.length,
+          mtimeMs: 1,
+          ctimeMs: 1,
+          isFile: () => false,
+        };
+      },
+      readSync,
+      closeSync,
+    });
+    expect(() =>
+      readBoundedImage("a.png", "image/png", MAX_INPUT_IMAGE_BYTES, io),
+    ).toThrow(/regular file/);
+    expect(readSync).not.toHaveBeenCalled();
+    expect(closeSync).toHaveBeenCalledOnce();
+  });
+
+  it("rejects content whose header does not match the declared media type", () => {
+    const closeSync = vi.fn();
+    const io = memIo(PNG_BYTES, { closeSync });
+    expect(() =>
+      readBoundedImage("a.png", "image/jpeg", MAX_INPUT_IMAGE_BYTES, io),
+    ).toThrow(/does not match/);
+    expect(closeSync).toHaveBeenCalledOnce();
+  });
+});

@@ -1,0 +1,133 @@
+import { describe, it, expect } from "vitest";
+import {
+  BackgroundInteractionJournal,
+} from "../src/lib/background-interaction-journal.js";
+
+const AGENT = "verify-11-agent";
+
+// Build a complete interaction binding for the given session.
+function makeBinding(sessionId, sequence) {
+  return {
+    backgroundAgentId: AGENT,
+    sessionId,
+    turnId: "turn-1",
+    toolUseId: "tool-1",
+    sequence,
+  };
+}
+
+function newJournal(sessionId, now = 100) {
+  return new BackgroundInteractionJournal({
+    backgroundAgentId: AGENT,
+    sessionId,
+    now: () => now,
+  });
+}
+
+describe("verify-11 durable journal ownership", () => {
+  // Requirement: same-named request across different sessions must not share
+  // state. A journal is bound to its sessionId and recordPending rejects any
+  // binding that names a different session, so a record owned by one session
+  // can never be projected into another session's journal.
+  it("session-A journal records shared-req with its own value", () => {
+    const journal = newJournal("session-A");
+    const result = journal.recordPending({
+      requestId: "shared-req",
+      binding: makeBinding("session-A", 1),
+      payload: { value: "A" },
+    });
+    expect(result.applied).toBe(true);
+    const record = journal.get("shared-req");
+    expect(record.payload).toEqual({ value: "A" });
+    expect(record.status).toBe("pending");
+  });
+
+  it("session-B journal keeps shared-req isolated from session-A (no leakage)", () => {
+    // Positive prerequisites: each session journal holds the same requestId
+    // with an independent payload bound to its own session.
+    const journalA = newJournal("session-A");
+    journalA.recordPending({
+      requestId: "shared-req",
+      binding: makeBinding("session-A", 1),
+      payload: { value: "A" },
+    });
+    const journalB = newJournal("session-B");
+    journalB.recordPending({
+      requestId: "shared-req",
+      binding: makeBinding("session-B", 1),
+      payload: { value: "B" },
+    });
+
+    // Isolation: session-B holds its own value, not session-A's.
+    expect(journalB.get("shared-req").payload).toEqual({ value: "B" });
+    expect(journalA.get("shared-req").payload).toEqual({ value: "A" });
+    // No shared value appears in the other session's journal.
+    expect(journalB.get("shared-req").payload.value).not.toBe("A");
+  });
+
+  it("a binding for a different session cannot be recorded into this journal", () => {
+    // Negative control: only the sessionId condition differs (foreign session
+    // binding); backgroundAgentId and binding completeness remain valid, so
+    // the rejection is caused by the session guard, not another validation.
+    const journal = newJournal("session-A");
+    expect(() =>
+      journal.recordPending({
+        requestId: "shared-req",
+        binding: makeBinding("session-B", 1),
+        payload: { value: "B" },
+      }),
+    ).toThrow(expect.objectContaining({ code: "INTERACTION_REQUEST_INVALID" }));
+  });
+
+  // Requirement: a completed (terminal) record must not recreate execution
+  // authority. settle() must reject any re-settlement that would change the
+  // outcome, and recordPending() must not re-acquire a terminal record.
+  it("settling a pending record applies the settlement", () => {
+    const journal = newJournal("session-A");
+    journal.recordPending({
+      requestId: "exec-req",
+      binding: makeBinding("session-A", 1),
+      payload: { question: "run?" },
+    });
+    const result = journal.settle({
+      requestId: "exec-req",
+      outcome: { answer: "yes" },
+    });
+    expect(result.applied).toBe(true);
+    expect(journal.get("exec-req").status).toBe("settled");
+  });
+
+  it("a settled record cannot be re-settled to a different outcome", () => {
+    const journal = newJournal("session-A");
+    journal.recordPending({
+      requestId: "exec-req",
+      binding: makeBinding("session-A", 1),
+      payload: { question: "run?" },
+    });
+    journal.settle({ requestId: "exec-req", outcome: { answer: "yes" } });
+    // Negative control: only the settlement changes; the record is already
+    // terminal, so execution authority is not recreated.
+    expect(() =>
+      journal.settle({ requestId: "exec-req", outcome: { answer: "no" } }),
+    ).toThrow(expect.objectContaining({ code: "INTERACTION_ALREADY_SETTLED" }));
+  });
+
+  it("a settled record cannot be re-recorded as pending (no re-execution)", () => {
+    const journal = newJournal("session-A");
+    journal.recordPending({
+      requestId: "exec-req",
+      binding: makeBinding("session-A", 1),
+      payload: { question: "run?" },
+    });
+    journal.settle({ requestId: "exec-req", outcome: { answer: "yes" } });
+    // Negative control: same requestId and binding, but a new payload; the
+    // terminal record blocks re-acquisition of execution authority.
+    expect(() =>
+      journal.recordPending({
+        requestId: "exec-req",
+        binding: makeBinding("session-A", 1),
+        payload: { question: "run again?" },
+      }),
+    ).toThrow(expect.objectContaining({ code: "INTERACTION_REQUEST_CONFLICT" }));
+  });
+});

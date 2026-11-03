@@ -1,0 +1,48 @@
+{
+  "runId": 41585306414,
+  "executionSource": "ba504a7869c14c11787e1547dc8611eef9aace71",
+  "sampleId": "verify-07",
+  "requestId": 35,
+  "completionTokens": 8951,
+  "finish": "tool_calls",
+  "upstreamStatus": 200,
+  "generationPassed": true,
+  "independentAcceptancePending": false,
+  "files": [
+    {
+      "path": "request-35.dispatch.json",
+      "digest": "sha256:ff8b75aab93a9189056682b4dc2e8f3dd1cb558fffae91977c1fdfa329a7aa12"
+    },
+    {
+      "path": "request-35.effective.json",
+      "digest": "sha256:19031fbbd6760f01ba401e26063ed7289fee6d8d51137ba06b9b78c5d69412e1"
+    },
+    {
+      "path": "request-35.original.json",
+      "digest": "sha256:2574fddbfd0ac74404e2f49a2f472151f75613358102501953acac4500fc9060"
+    },
+    {
+      "path": "request-35.receipt.json",
+      "digest": "sha256:070ec59571041fef93e779ebec7748b63c4fbb704cf12ea46043f260c9086c91"
+    },
+    {
+      "path": "summary.json",
+      "digest": "sha256:f0e1d8b60ee268661b90751248ea999fd45a854c86394c7e3bc28ac3131b392d"
+    },
+    {
+      "path": "policy.json",
+      "digest": "sha256:c8ddec504b6c69dc2ee1b5c1efedda232706133585ab3761443a4e057341cc5a"
+    },
+    {
+      "path": "response-35.json",
+      "digest": "sha256:53451971ddaaafd2b9352400efd30c020c140c11ce7cb943472671dd33704943"
+    }
+  ],
+  "rawResponseDigestVerified": true,
+  "toolName": "write_file",
+  "completeToolArgumentsParsed": true,
+  "toolPath": "packages/cli/__tests__/verify-07.test.js",
+  "independentAcceptancePassed": false,
+  "independentAcceptanceDetail": "candidate tests did not reject the behavioral mutant",
+  "finalResults": "../final-ba504a7869/results.json"
+}

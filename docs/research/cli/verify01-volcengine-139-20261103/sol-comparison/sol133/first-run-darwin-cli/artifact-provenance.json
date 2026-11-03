@@ -1,0 +1,18 @@
+{
+  "runId": "41117741513",
+  "executionSource": "0d063552701fc1609aaf5674dfacf42efb1e2154",
+  "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "artifact": {
+    "id": 13008003581,
+    "name": "verify01-native-delivery-darwin-cli-0d063552701fc1609aaf5674dfacf42efb1e2154",
+    "digest": "sha256:2d578475aaaa95112113b3f5e984d0fcb8110cb292bc681a494f0683fab33b5f",
+    "summaryDigest": "sha256:dc66a97ec9e582db58c2ecb6308373bde6935a12181be3e4caaccae90ed99419",
+    "sizeInBytes": 17406224,
+    "expiresAt": "2026-11-13T20:13:15Z",
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41117741513/artifacts/13008003581"
+  },
+  "selectedSamples": [
+    "verify-07",
+    "first-run-darwin-cli"
+  ]
+}

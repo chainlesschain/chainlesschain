@@ -1,0 +1,166 @@
+{
+  "schema": "chainlesschain.fresh-volcengine-native-round/v1",
+  "createdAt": "2026-11-03T01:26:26.468532+00:00",
+  "status": "native-generation-in-progress",
+  "provider": "volcengine",
+  "model": "deepseek-v4-flash-ga-260731",
+  "endpoint": "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
+  "thinking": "disabled-by-existing-diagnostic-broker",
+  "formalSample": false,
+  "projectSource": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "packageSetPath": "docs/research/cli/verify01-package-sets/2026-11-03-volcengine-139.json",
+  "selectedSampleIds": [
+    "verify-01",
+    "verify-02",
+    "verify-03",
+    "verify-04",
+    "verify-05",
+    "verify-06",
+    "verify-07",
+    "verify-08",
+    "verify-09",
+    "verify-10",
+    "verify-11",
+    "verify-12",
+    "verify-13",
+    "verify-14",
+    "verify-15",
+    "verify-16",
+    "verify-17",
+    "verify-18",
+    "verify-19",
+    "verify-20",
+    "verify-21",
+    "verify-22",
+    "verify-23",
+    "verify-24",
+    "verify-25",
+    "verify-26",
+    "verify-27",
+    "verify-28",
+    "verify-29",
+    "verify-30",
+    "verify-31",
+    "verify-32",
+    "verify-33",
+    "verify-34",
+    "verify-35",
+    "verify-36",
+    "first-run-win32-cli",
+    "first-run-win32-vscode",
+    "first-run-win32-jetbrains",
+    "first-run-linux-cli",
+    "first-run-linux-vscode",
+    "first-run-linux-jetbrains",
+    "first-run-darwin-cli",
+    "first-run-darwin-vscode",
+    "first-run-darwin-jetbrains"
+  ],
+  "taskCount": 36,
+  "firstRunCount": 9,
+  "nativeHosts": [
+    "windows",
+    "linux",
+    "macos"
+  ],
+  "entries": [
+    "cli",
+    "vscode",
+    "jetbrains"
+  ],
+  "jetbrainsHostIsolation": "one-runner-per-sample",
+  "reviewChanges": true,
+  "requestBudgets": {
+    "modelTurns": 20,
+    "physicalRequestsPerSample": 24,
+    "maximumPhysicalRequestsAcrossRound": 1080,
+    "outputTokensPerRequest": 8192,
+    "requestTimeoutMs": 180000,
+    "requestBodyBytes": 262144
+  },
+  "historicalScoresUnchanged": true,
+  "authorization": "User explicitly requests fresh GitHub Actions testing of all 36+9 tasks with the latest CLI and IDE plugins using the supplied Volcengine key on 2026-11-03.",
+  "packagePreflightRun": 41559951004,
+  "packagePreflightSource": "a1605db3f88bbac39e24b838e9439e76c6ee1a11",
+  "packageSetDigest": "sha256:7ac96aab19914fb001c91868a6a94c776639ef217fe3fd0e841e7bdff5d98e5f",
+  "packageResolutionDigest": "sha256:079b22245b575f33ea0bcb534ed4c0a1b63df47ff182762ac56f5379c1a9809a",
+  "versions": {
+    "cli": "0.166.139",
+    "vscode": "0.37.175",
+    "jetbrains": "0.4.192",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "priorInfrastructurePreflight": {
+    "runId": 41559683318,
+    "failure": "Missing operator context-memory-kernel dependency before tests",
+    "modelRequests": 0
+  },
+  "localContracts": {
+    "passed": 53,
+    "failed": 0,
+    "affectedContractsAfterCatalogNetworkCorrection": {
+      "passed": 12,
+      "failed": 0
+    }
+  },
+  "initialAuthenticationAttempt": {
+    "runId": 41560581328,
+    "source": "92f480b24de7d6419ce00c5ff58ec3fd20e137c3",
+    "cancellationRequested": true,
+    "failure": "Agent incorrectly extracted only the UUID portion of the prefixed and suffixed full credential",
+    "httpStatus": 401,
+    "providerCode": "AuthenticationError",
+    "countsAsModelCapabilityFailure": false,
+    "usageAndBilledCostUnknown": true,
+    "historicalScoresUnchanged": true,
+    "cancellationConfirmed": true,
+    "conclusion": "cancelled"
+  },
+  "credentialCorrection": {
+    "method": "Use the complete UTF-8 file content with only surrounding whitespace removed",
+    "dedicatedSecretUpdated": true,
+    "authenticatedModelCatalogHttpStatus": 200,
+    "expectedModelListed": true,
+    "modelGenerationRequestsInMetadataPreflight": 0,
+    "checkedAt": "2026-11-03T01:47:12.177561+00:00"
+  },
+  "catalogNetworkAttempt": {
+    "runId": 41562280904,
+    "source": "12691dec300e3048f93e9211cbe54d794ae3ba3f",
+    "conclusion": "failure",
+    "stage": "Select requested native hosts, before any generation jobs",
+    "error": "Node fetch connection timeout during authenticated GET /models",
+    "networkCodes": [
+      "ETIMEDOUT",
+      "ENETUNREACH"
+    ],
+    "httpAuthenticationResponseReceived": false,
+    "modelGenerationRequests": 0,
+    "countsAsModelCapabilityFailure": false
+  },
+  "catalogNetworkCorrection": {
+    "connectionAttemptTimeoutMs": 2000,
+    "maximumReadOnlyCatalogAttempts": 3,
+    "authenticationRejectionsRetried": false,
+    "modelGenerationPolicyChanged": false
+  },
+  "executionSource": "e7788a09316abb6f637932ae09254a441168742e",
+  "runId": 41563424430,
+  "actionsCredentialPreflight": {
+    "runId": 41563424430,
+    "validationJobId": 125679126255,
+    "passed": true,
+    "authenticated": true,
+    "requiredModelListed": true,
+    "beforeAnyGenerationJobs": true
+  },
+  "latestNativeProgress": {
+    "checkedAt": "2026-11-03T02:39:21.978192+00:00",
+    "completedNativeJobs": 15,
+    "totalNativeJobs": 21,
+    "workflowStatus": "queued",
+    "independentAcceptancePending": true
+  },
+  "generationCheckpointPath": "docs/research/cli/verify01-volcengine-139-20261103/generation-checkpoint.json"
+}

@@ -1,0 +1,185 @@
+{
+  "provenance": "Candidates from pinned baseline; all original delivery summaries byte matched final Actions report. Raw final report unchanged.",
+  "candidates": [
+    {
+      "path": "candidates/first-run-darwin-cli/packages/cli/__tests__/verify-07.test.js.txt",
+      "digest": "sha256:72fbf404fca2ae7ca520e83e3a00108ef01918c00f238439b0b28e1db37c40fa"
+    },
+    {
+      "path": "candidates/first-run-darwin-jetbrains/packages/cli/__tests__/verify-09.test.js.txt",
+      "digest": "sha256:e539916b6a742f02270447b174b42896e6f7be37d72fe3bf51b1756c1e24950f"
+    },
+    {
+      "path": "candidates/first-run-darwin-vscode/packages/cli/__tests__/verify-08.test.js.txt",
+      "digest": "sha256:72fbf404fca2ae7ca520e83e3a00108ef01918c00f238439b0b28e1db37c40fa"
+    },
+    {
+      "path": "candidates/first-run-linux-cli/packages/cli/__tests__/verify-04.test.js.txt",
+      "digest": "sha256:77dfa3bbfc42b6a2e4d7aae60f096b82c4b5d4fecae798bb7c81c13cdbfd132b"
+    },
+    {
+      "path": "candidates/first-run-linux-jetbrains/packages/cli/__tests__/verify-06.test.js.txt",
+      "digest": "sha256:063f6c6ab6d7e6e9a6b6553f765316d1222cc309278db287a72f5ccaa009ce7e"
+    },
+    {
+      "path": "candidates/first-run-linux-vscode/packages/cli/__tests__/verify-05.test.js.txt",
+      "digest": "sha256:c3d6a98f3973ea0dd67bd1afcf55aa8f016e7c5dadbda01cb5922706f76660dd"
+    },
+    {
+      "path": "candidates/first-run-win32-cli/packages/cli/__tests__/verify-01.test.js.txt",
+      "digest": "sha256:8e5379c36141f6c1d58e00acd5548ffd93e6ac3ce9a155e075f98f7bcdb0b652"
+    },
+    {
+      "path": "candidates/first-run-win32-jetbrains/packages/cli/__tests__/verify-03.test.js.txt",
+      "digest": "sha256:8590c106e0b82a306e9796f18c7617ec2d6e743f19c58b5ec69d92d8b9093f4b"
+    },
+    {
+      "path": "candidates/first-run-win32-vscode/packages/cli/__tests__/verify-02.test.js.txt",
+      "digest": "sha256:b261319ee3f61ada02abbe1aea6c512a3a6fbcddd00cff539dc85e5e8104c509"
+    },
+    {
+      "path": "candidates/verify-01/packages/cli/__tests__/verify-01.test.js.txt",
+      "digest": "sha256:72fbf404fca2ae7ca520e83e3a00108ef01918c00f238439b0b28e1db37c40fa"
+    },
+    {
+      "path": "candidates/verify-02/packages/cli/__tests__/verify-02.test.js.txt",
+      "digest": "sha256:4d2f5f7e6a7ece93f082c2f0b3c3d96d7929627b5c9331737eb11825b28ec96c"
+    },
+    {
+      "path": "candidates/verify-03/packages/cli/__tests__/verify-03.test.js.txt",
+      "digest": "sha256:c425385a1e718f255e41c91ec361fb24ac0b11fc3035f60471b9f7764a9f5751"
+    },
+    {
+      "path": "candidates/verify-04/packages/cli/__tests__/verify-04.test.js.txt",
+      "digest": "sha256:72fbf404fca2ae7ca520e83e3a00108ef01918c00f238439b0b28e1db37c40fa"
+    },
+    {
+      "path": "candidates/verify-05/packages/cli/__tests__/verify-05.test.js.txt",
+      "digest": "sha256:61080d52c72944dc59bff01229e10352604734039e4da6d95c285ac7ab5a57ec"
+    },
+    {
+      "path": "candidates/verify-06/packages/cli/__tests__/verify-06.test.js.txt",
+      "digest": "sha256:a15f84d5d0be29bac0af81c89404ff9707b737cec85609b2fecd9358f5f4fc70"
+    },
+    {
+      "path": "candidates/verify-07/packages/cli/__tests__/verify-07.test.js.txt",
+      "digest": "sha256:582d13b19e93711723b73384eeae255f39ceaabfd8edbe5c777d24e0a07cce85"
+    },
+    {
+      "path": "candidates/verify-08/packages/cli/__tests__/verify-08.test.js.txt",
+      "digest": "sha256:72fbf404fca2ae7ca520e83e3a00108ef01918c00f238439b0b28e1db37c40fa"
+    },
+    {
+      "path": "candidates/verify-09/packages/cli/__tests__/verify-09.test.js.txt",
+      "digest": "sha256:f4b0d7c74f311cb4ec3683e3e8b402ffc24f1c92991c7751484eec9eb127dda9"
+    },
+    {
+      "path": "candidates/verify-10/packages/cli/__tests__/verify-10.test.js.txt",
+      "digest": "sha256:49af13917a1fcd4ffdd2a50d2adbaa1cb03b63d3ec974157ae80e1ea417ed852"
+    },
+    {
+      "path": "candidates/verify-11/packages/cli/__tests__/verify-11.test.js.txt",
+      "digest": "sha256:72fbf404fca2ae7ca520e83e3a00108ef01918c00f238439b0b28e1db37c40fa"
+    },
+    {
+      "path": "candidates/verify-12/packages/cli/__tests__/verify-12.test.js.txt",
+      "digest": "sha256:783978d48069d37b0d7cc7048080b5c8d07c53ccc347bee18bca76634484d28c"
+    },
+    {
+      "path": "candidates/verify-13/packages/cli/__tests__/verify-13.test.js.txt",
+      "digest": "sha256:f00e649113f326389dda005527b6cdd6b728ac3de70f550e1b61482f3cbbbf6b"
+    },
+    {
+      "path": "candidates/verify-14/packages/cli/__tests__/verify-14.test.js.txt",
+      "digest": "sha256:72fbf404fca2ae7ca520e83e3a00108ef01918c00f238439b0b28e1db37c40fa"
+    },
+    {
+      "path": "candidates/verify-15/packages/cli/__tests__/verify-15.test.js.txt",
+      "digest": "sha256:72fbf404fca2ae7ca520e83e3a00108ef01918c00f238439b0b28e1db37c40fa"
+    },
+    {
+      "path": "candidates/verify-16/packages/cli/__tests__/verify-16.test.js.txt",
+      "digest": "sha256:0fc4b3e9832e87cb3cb5421901801203e23c62c724430cb725675d76a268d184"
+    },
+    {
+      "path": "candidates/verify-17/packages/cli/__tests__/verify-17.test.js.txt",
+      "digest": "sha256:dcc9962f00c12d15ee4963e2c9bb69b93e053a89eeb8a6d419538a14104fd28d"
+    },
+    {
+      "path": "candidates/verify-18/packages/cli/__tests__/verify-18.test.js.txt",
+      "digest": "sha256:d1d2863030d9598676113fe4e21037a1a5afca5e64651f1b93fef954e33ad235"
+    },
+    {
+      "path": "candidates/verify-19/packages/cli/__tests__/verify-19.test.js.txt",
+      "digest": "sha256:80d5d0a17b95aeef610bb88a487efe1159c23be4d7c5d7e3ce81f6e96311037a"
+    },
+    {
+      "path": "candidates/verify-20/packages/cli/__tests__/verify-20.test.js.txt",
+      "digest": "sha256:754d1f8fc17e6d5f4279c06939bbeb5c5e5363449417342ad80c74cbc8e1a254"
+    },
+    {
+      "path": "candidates/verify-21/packages/cli/__tests__/verify-21.test.js.txt",
+      "digest": "sha256:135380263c1e8439d259959ed852d8f57662fff744d570603ff2b4a6d3819719"
+    },
+    {
+      "path": "candidates/verify-22/packages/cli/__tests__/verify-22.test.js.txt",
+      "digest": "sha256:cefd43c30345ab932c59acd7af622548e5a3d4ae77b322e3027e98c6a3c49a07"
+    },
+    {
+      "path": "candidates/verify-23/packages/cli/__tests__/verify-23.test.js.txt",
+      "digest": "sha256:f0bb6d9161bceaea6c17fee93b2b5ec2242677cd6ab1aa0d76d10ec8216d0a20"
+    },
+    {
+      "path": "candidates/verify-24/packages/cli/__tests__/verify-24.test.js.txt",
+      "digest": "sha256:840853cc6d395adc900821ffbe0afae91e3ee7f142beaef2cd0f5395fc90742b"
+    },
+    {
+      "path": "candidates/verify-25/packages/vscode-extension/__tests__/verify-25.test.js.txt",
+      "digest": "sha256:472312e450f46a487d14975ffcb2638e457d68c239c66c608b982c0b1a22bcfd"
+    },
+    {
+      "path": "candidates/verify-26/packages/vscode-extension/__tests__/verify-26.test.js.txt",
+      "digest": "sha256:ca9b5244451f8c062b808db9e6a258254d9526cbc85f55ebdbcdaf2d11dfbade"
+    },
+    {
+      "path": "candidates/verify-27/packages/vscode-extension/__tests__/verify-27.test.js.txt",
+      "digest": "sha256:97949ebd74a6572007547611add3c36b0b7b77d75258fd71c30df4995c069143"
+    },
+    {
+      "path": "candidates/verify-28/packages/vscode-extension/__tests__/verify-28.test.js.txt",
+      "digest": "sha256:cc84205102ad4159fdc9707fb44013ab1cb0144c4336eb22d97b6c2c155b5b34"
+    },
+    {
+      "path": "candidates/verify-29/packages/vscode-extension/__tests__/verify-29.test.js.txt",
+      "digest": "sha256:05fcfb25d2df703209c6b160951f0d26f3551eae5a62f9d904382c8c63d4351c"
+    },
+    {
+      "path": "candidates/verify-30/packages/vscode-extension/__tests__/verify-30.test.js.txt",
+      "digest": "sha256:a22cc4e4d16f19b900a9ee957ccbb6aea94e9700ffd302c34556e0e8775a0a80"
+    },
+    {
+      "path": "candidates/verify-31/packages/vscode-extension/__tests__/verify-31.test.js.txt",
+      "digest": "sha256:1dd05dafc83ec28848b43e2f1394fedf618f3fcf20dba2267521352a611d05e8"
+    },
+    {
+      "path": "candidates/verify-32/packages/vscode-extension/__tests__/verify-32.test.js.txt",
+      "digest": "sha256:72fbf404fca2ae7ca520e83e3a00108ef01918c00f238439b0b28e1db37c40fa"
+    },
+    {
+      "path": "candidates/verify-33/packages/vscode-extension/__tests__/verify-33.test.js.txt",
+      "digest": "sha256:72fbf404fca2ae7ca520e83e3a00108ef01918c00f238439b0b28e1db37c40fa"
+    },
+    {
+      "path": "candidates/verify-34/docs/development/verify-34-outcome-runbook.md.txt",
+      "digest": "sha256:79c32142eefbfd003fb5fd67ff58d88fec1dbe65b115ec395d83e02e55663ec1"
+    },
+    {
+      "path": "candidates/verify-35/packages/cli/__tests__/verify-35.test.js.txt",
+      "digest": "sha256:cef61469d32019e6a724e8fab8048856f262c09156ca506ca3d7b0c7a552e0e2"
+    },
+    {
+      "path": "candidates/verify-36/packages/cli/__tests__/verify-36.test.js.txt",
+      "digest": "sha256:72fbf404fca2ae7ca520e83e3a00108ef01918c00f238439b0b28e1db37c40fa"
+    }
+  ]
+}

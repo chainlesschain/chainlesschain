@@ -1,0 +1,130 @@
+import { afterEach, describe, expect, it, vi } from "vitest";
+import fs from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { randomUUID } from "node:crypto";
+import { DraftStore } from "../src/chat/draft-store.js";
+
+const roots = [];
+afterEach(async () => {
+  for (const root of roots.splice(0))
+    await fs.rm(root, { recursive: true, force: true });
+});
+async function storage() {
+  const root = await fs.mkdtemp(path.join(tmpdir(), "verify25-draft-"));
+  roots.push(root);
+  return root;
+}
+const image = {
+  data: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+};
+
+describe("draft write failure retains old record", () => {
+  it("saves a new draft and recovers it from a fresh store", async () => {
+    const root = await storage();
+    const key = randomUUID();
+    const store = new DraftStore(root);
+    await store.save(key, { text: "old" });
+    await store.save(key, { text: "new", images: [image] });
+    const restored = await new DraftStore(root).view(key);
+    expect(restored.composer.text).toBe("new");
+    expect(restored.composer.images[0].data).toBe(image.data);
+  });
+
+  it("retains the previous draft when the atomic manifest write fails", async () => {
+    const root = await storage();
+    const key = randomUUID();
+    const store = new DraftStore(root);
+    await store.save(key, { text: "keep me", images: [image] });
+    const before = (await fs.readdir(path.join(root, key))).sort();
+    const rename = vi
+      .spyOn(fs, "rename")
+      .mockRejectedValueOnce(new Error("ENOSPC"));
+    try {
+      await expect(
+        store.save(key, { text: "replaced", images: [image] }),
+      ).rejects.toThrow("ENOSPC");
+    } finally {
+      rename.mockRestore();
+    }
+    const restored = await store.view(key);
+    expect(restored.composer.text).toBe("keep me");
+    expect(restored.composer.images[0].data).toBe(image.data);
+    expect(await fs.readdir(path.join(root, key))).toEqual(before);
+  });
+
+  it("clears the composer only after a successful prepare commits", async () => {
+    const root = await storage();
+    const key = randomUUID();
+    const store = new DraftStore(root);
+    await store.save(key, { text: "draft" });
+    await store.prepare(key, "session-1", "input-1", { text: "submitted" });
+    expect((await store.view(key)).composer.text).toBe("");
+    expect((await store.view(key)).pending[0].text).toBe("submitted");
+    expect((await store.recover(key, "input-1")).text).toBe("submitted");
+  });
+
+  it("keeps the old composer when the send-time write fails atomically", async () => {
+    const root = await storage();
+    const key = randomUUID();
+    const store = new DraftStore(root);
+    await store.save(key, { text: "uncleared draft", images: [image] });
+    const before = (await fs.readdir(path.join(root, key))).sort();
+    const rename = vi
+      .spyOn(fs, "rename")
+      .mockRejectedValueOnce(new Error("EXDEV"));
+    try {
+      await expect(
+        store.prepare(key, "session-1", "input-1", {
+          text: "submitted",
+          images: [image],
+        }),
+      ).rejects.toThrow("EXDEV");
+    } finally {
+      rename.mockRestore();
+    }
+    const restored = await store.view(key);
+    expect(restored.composer.text).toBe("uncleared draft");
+    expect(restored.composer.images[0].data).toBe(image.data);
+    expect(restored.pending).toEqual([]);
+    await expect(store.recover(key, "input-1")).rejects.toThrow("Cannot");
+    expect(await fs.readdir(path.join(root, key))).toEqual(before);
+  });
+
+  it("does not leave an abandoned temporary manifest after a failed write", async () => {
+    const root = await storage();
+    const key = randomUUID();
+    const store = new DraftStore(root);
+    await store.save(key, { text: "old" });
+    const rename = vi
+      .spyOn(fs, "rename")
+      .mockRejectedValueOnce(new Error("IOERR"));
+    try {
+      await expect(store.save(key, { text: "attempted" })).rejects.toThrow(
+        "IOERR",
+      );
+    } finally {
+      rename.mockRestore();
+    }
+    expect(await fs.readdir(path.join(root, key))).toEqual(["draft.json"]);
+  });
+
+  it("recovers the newest committed draft after a failed attempt is repaired", async () => {
+    const root = await storage();
+    const key = randomUUID();
+    const store = new DraftStore(root);
+    await store.save(key, { text: "first" });
+    const rename = vi
+      .spyOn(fs, "rename")
+      .mockRejectedValueOnce(new Error("ENOSPC"));
+    try {
+      await expect(store.save(key, { text: "lost" })).rejects.toThrow(
+        "ENOSPC",
+      );
+    } finally {
+      rename.mockRestore();
+    }
+    await store.save(key, { text: "final" });
+    expect((await store.view(key)).composer.text).toBe("final");
+  });
+});

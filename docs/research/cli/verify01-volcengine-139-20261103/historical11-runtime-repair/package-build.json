@@ -1,0 +1,383 @@
+{
+  "run": {
+    "id": 41597482236,
+    "name": "VERIFY01 prerelease CLI and IDE packages",
+    "node_id": "WFR_kwLOQgDM2s8AAAAJr2c0_A",
+    "head_branch": "feature/verify01-volcengine139-20261103",
+    "head_sha": "284bb5f24c95faed45e9d7e2503640888de92766",
+    "path": ".github/workflows/verify01-prerelease-packages.yml",
+    "display_title": "VERIFY01 prerelease CLI and IDE packages",
+    "run_number": 4,
+    "event": "workflow_dispatch",
+    "status": "completed",
+    "conclusion": "success",
+    "workflow_id": 403232410,
+    "check_suite_id": 112718465871,
+    "check_suite_node_id": "CS_kwDOQgDM2s8AAAAaPotLTw",
+    "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/41597482236",
+    "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41597482236",
+    "pull_requests": [
+      {
+        "url": "https://api.github.com/repos/chainlesschain/chainlesschain/pulls/522",
+        "id": 5130343672,
+        "number": 522,
+        "head": {
+          "ref": "feature/verify01-volcengine139-20261103",
+          "sha": "284bb5f24c95faed45e9d7e2503640888de92766",
+          "repo": {
+            "id": 1107348698,
+            "url": "https://api.github.com/repos/chainlesschain/chainlesschain",
+            "name": "chainlesschain"
+          }
+        },
+        "base": {
+          "ref": "feature/verify01-cli139-r2-20261103",
+          "sha": "e76270165e52d079d3d3e307a010c58dd1502ad8",
+          "repo": {
+            "id": 1107348698,
+            "url": "https://api.github.com/repos/chainlesschain/chainlesschain",
+            "name": "chainlesschain"
+          }
+        }
+      }
+    ],
+    "created_at": "2026-11-03T07:36:51Z",
+    "updated_at": "2026-11-03T07:42:33Z",
+    "actor": {
+      "login": "chainlesschain",
+      "id": 247070867,
+      "node_id": "U_kgDODroAkw",
+      "avatar_url": "https://avatars.githubusercontent.com/u/247070867?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/chainlesschain",
+      "html_url": "https://github.com/chainlesschain",
+      "followers_url": "https://api.github.com/users/chainlesschain/followers",
+      "following_url": "https://api.github.com/users/chainlesschain/following{/other_user}",
+      "gists_url": "https://api.github.com/users/chainlesschain/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/chainlesschain/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/chainlesschain/subscriptions",
+      "organizations_url": "https://api.github.com/users/chainlesschain/orgs",
+      "repos_url": "https://api.github.com/users/chainlesschain/repos",
+      "events_url": "https://api.github.com/users/chainlesschain/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/chainlesschain/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "run_attempt": 1,
+    "referenced_workflows": [
+      {
+        "path": "chainlesschain/chainlesschain/.github/workflows/_cli-linux-subreaper.yml@284bb5f24c95faed45e9d7e2503640888de92766",
+        "sha": "284bb5f24c95faed45e9d7e2503640888de92766",
+        "ref": "refs/heads/feature/verify01-volcengine139-20261103"
+      }
+    ],
+    "run_started_at": "2026-11-03T07:36:51Z",
+    "triggering_actor": {
+      "login": "chainlesschain",
+      "id": 247070867,
+      "node_id": "U_kgDODroAkw",
+      "avatar_url": "https://avatars.githubusercontent.com/u/247070867?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/chainlesschain",
+      "html_url": "https://github.com/chainlesschain",
+      "followers_url": "https://api.github.com/users/chainlesschain/followers",
+      "following_url": "https://api.github.com/users/chainlesschain/following{/other_user}",
+      "gists_url": "https://api.github.com/users/chainlesschain/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/chainlesschain/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/chainlesschain/subscriptions",
+      "organizations_url": "https://api.github.com/users/chainlesschain/orgs",
+      "repos_url": "https://api.github.com/users/chainlesschain/repos",
+      "events_url": "https://api.github.com/users/chainlesschain/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/chainlesschain/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "jobs_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/41597482236/jobs",
+    "logs_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/41597482236/logs",
+    "check_suite_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-suites/112718465871",
+    "artifacts_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/41597482236/artifacts",
+    "cancel_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/41597482236/cancel",
+    "rerun_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/41597482236/rerun",
+    "previous_attempt_url": null,
+    "workflow_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/workflows/403232410",
+    "head_commit": {
+      "id": "284bb5f24c95faed45e9d7e2503640888de92766",
+      "tree_id": "21f1e36d7bd3acdf238851c6944a2da653d8e1fb",
+      "message": "fix(cli): avoid impossible read recovery hints in compacted tasks",
+      "timestamp": "2026-11-03T07:35:59Z",
+      "author": {
+        "name": "longfa",
+        "email": "zhanglongfa@chainleschain.com"
+      },
+      "committer": {
+        "name": "longfa",
+        "email": "zhanglongfa@chainleschain.com"
+      }
+    },
+    "repository": {
+      "id": 1107348698,
+      "node_id": "R_kgDOQgDM2g",
+      "name": "chainlesschain",
+      "full_name": "chainlesschain/chainlesschain",
+      "private": false,
+      "owner": {
+        "login": "chainlesschain",
+        "id": 247070867,
+        "node_id": "U_kgDODroAkw",
+        "avatar_url": "https://avatars.githubusercontent.com/u/247070867?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/chainlesschain",
+        "html_url": "https://github.com/chainlesschain",
+        "followers_url": "https://api.github.com/users/chainlesschain/followers",
+        "following_url": "https://api.github.com/users/chainlesschain/following{/other_user}",
+        "gists_url": "https://api.github.com/users/chainlesschain/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/chainlesschain/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/chainlesschain/subscriptions",
+        "organizations_url": "https://api.github.com/users/chainlesschain/orgs",
+        "repos_url": "https://api.github.com/users/chainlesschain/repos",
+        "events_url": "https://api.github.com/users/chainlesschain/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/chainlesschain/received_events",
+        "type": "User",
+        "user_view_type": "public",
+        "site_admin": false
+      },
+      "html_url": "https://github.com/chainlesschain/chainlesschain",
+      "description": null,
+      "fork": false,
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain",
+      "forks_url": "https://api.github.com/repos/chainlesschain/chainlesschain/forks",
+      "keys_url": "https://api.github.com/repos/chainlesschain/chainlesschain/keys{/key_id}",
+      "collaborators_url": "https://api.github.com/repos/chainlesschain/chainlesschain/collaborators{/collaborator}",
+      "teams_url": "https://api.github.com/repos/chainlesschain/chainlesschain/teams",
+      "hooks_url": "https://api.github.com/repos/chainlesschain/chainlesschain/hooks",
+      "issue_events_url": "https://api.github.com/repos/chainlesschain/chainlesschain/issues/events{/number}",
+      "events_url": "https://api.github.com/repos/chainlesschain/chainlesschain/events",
+      "assignees_url": "https://api.github.com/repos/chainlesschain/chainlesschain/assignees{/user}",
+      "branches_url": "https://api.github.com/repos/chainlesschain/chainlesschain/branches{/branch}",
+      "tags_url": "https://api.github.com/repos/chainlesschain/chainlesschain/tags",
+      "blobs_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/blobs{/sha}",
+      "git_tags_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/tags{/sha}",
+      "git_refs_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/refs{/sha}",
+      "trees_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/trees{/sha}",
+      "statuses_url": "https://api.github.com/repos/chainlesschain/chainlesschain/statuses/{sha}",
+      "languages_url": "https://api.github.com/repos/chainlesschain/chainlesschain/languages",
+      "stargazers_url": "https://api.github.com/repos/chainlesschain/chainlesschain/stargazers",
+      "contributors_url": "https://api.github.com/repos/chainlesschain/chainlesschain/contributors",
+      "subscribers_url": "https://api.github.com/repos/chainlesschain/chainlesschain/subscribers",
+      "subscription_url": "https://api.github.com/repos/chainlesschain/chainlesschain/subscription",
+      "commits_url": "https://api.github.com/repos/chainlesschain/chainlesschain/commits{/sha}",
+      "git_commits_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/commits{/sha}",
+      "comments_url": "https://api.github.com/repos/chainlesschain/chainlesschain/comments{/number}",
+      "issue_comment_url": "https://api.github.com/repos/chainlesschain/chainlesschain/issues/comments{/number}",
+      "contents_url": "https://api.github.com/repos/chainlesschain/chainlesschain/contents/{+path}",
+      "compare_url": "https://api.github.com/repos/chainlesschain/chainlesschain/compare/{base}...{head}",
+      "merges_url": "https://api.github.com/repos/chainlesschain/chainlesschain/merges",
+      "archive_url": "https://api.github.com/repos/chainlesschain/chainlesschain/{archive_format}{/ref}",
+      "downloads_url": "https://api.github.com/repos/chainlesschain/chainlesschain/downloads",
+      "issues_url": "https://api.github.com/repos/chainlesschain/chainlesschain/issues{/number}",
+      "pulls_url": "https://api.github.com/repos/chainlesschain/chainlesschain/pulls{/number}",
+      "milestones_url": "https://api.github.com/repos/chainlesschain/chainlesschain/milestones{/number}",
+      "notifications_url": "https://api.github.com/repos/chainlesschain/chainlesschain/notifications{?since,all,participating}",
+      "labels_url": "https://api.github.com/repos/chainlesschain/chainlesschain/labels{/name}",
+      "releases_url": "https://api.github.com/repos/chainlesschain/chainlesschain/releases{/id}",
+      "deployments_url": "https://api.github.com/repos/chainlesschain/chainlesschain/deployments"
+    },
+    "head_repository": {
+      "id": 1107348698,
+      "node_id": "R_kgDOQgDM2g",
+      "name": "chainlesschain",
+      "full_name": "chainlesschain/chainlesschain",
+      "private": false,
+      "owner": {
+        "login": "chainlesschain",
+        "id": 247070867,
+        "node_id": "U_kgDODroAkw",
+        "avatar_url": "https://avatars.githubusercontent.com/u/247070867?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/chainlesschain",
+        "html_url": "https://github.com/chainlesschain",
+        "followers_url": "https://api.github.com/users/chainlesschain/followers",
+        "following_url": "https://api.github.com/users/chainlesschain/following{/other_user}",
+        "gists_url": "https://api.github.com/users/chainlesschain/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/chainlesschain/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/chainlesschain/subscriptions",
+        "organizations_url": "https://api.github.com/users/chainlesschain/orgs",
+        "repos_url": "https://api.github.com/users/chainlesschain/repos",
+        "events_url": "https://api.github.com/users/chainlesschain/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/chainlesschain/received_events",
+        "type": "User",
+        "user_view_type": "public",
+        "site_admin": false
+      },
+      "html_url": "https://github.com/chainlesschain/chainlesschain",
+      "description": null,
+      "fork": false,
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain",
+      "forks_url": "https://api.github.com/repos/chainlesschain/chainlesschain/forks",
+      "keys_url": "https://api.github.com/repos/chainlesschain/chainlesschain/keys{/key_id}",
+      "collaborators_url": "https://api.github.com/repos/chainlesschain/chainlesschain/collaborators{/collaborator}",
+      "teams_url": "https://api.github.com/repos/chainlesschain/chainlesschain/teams",
+      "hooks_url": "https://api.github.com/repos/chainlesschain/chainlesschain/hooks",
+      "issue_events_url": "https://api.github.com/repos/chainlesschain/chainlesschain/issues/events{/number}",
+      "events_url": "https://api.github.com/repos/chainlesschain/chainlesschain/events",
+      "assignees_url": "https://api.github.com/repos/chainlesschain/chainlesschain/assignees{/user}",
+      "branches_url": "https://api.github.com/repos/chainlesschain/chainlesschain/branches{/branch}",
+      "tags_url": "https://api.github.com/repos/chainlesschain/chainlesschain/tags",
+      "blobs_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/blobs{/sha}",
+      "git_tags_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/tags{/sha}",
+      "git_refs_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/refs{/sha}",
+      "trees_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/trees{/sha}",
+      "statuses_url": "https://api.github.com/repos/chainlesschain/chainlesschain/statuses/{sha}",
+      "languages_url": "https://api.github.com/repos/chainlesschain/chainlesschain/languages",
+      "stargazers_url": "https://api.github.com/repos/chainlesschain/chainlesschain/stargazers",
+      "contributors_url": "https://api.github.com/repos/chainlesschain/chainlesschain/contributors",
+      "subscribers_url": "https://api.github.com/repos/chainlesschain/chainlesschain/subscribers",
+      "subscription_url": "https://api.github.com/repos/chainlesschain/chainlesschain/subscription",
+      "commits_url": "https://api.github.com/repos/chainlesschain/chainlesschain/commits{/sha}",
+      "git_commits_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/commits{/sha}",
+      "comments_url": "https://api.github.com/repos/chainlesschain/chainlesschain/comments{/number}",
+      "issue_comment_url": "https://api.github.com/repos/chainlesschain/chainlesschain/issues/comments{/number}",
+      "contents_url": "https://api.github.com/repos/chainlesschain/chainlesschain/contents/{+path}",
+      "compare_url": "https://api.github.com/repos/chainlesschain/chainlesschain/compare/{base}...{head}",
+      "merges_url": "https://api.github.com/repos/chainlesschain/chainlesschain/merges",
+      "archive_url": "https://api.github.com/repos/chainlesschain/chainlesschain/{archive_format}{/ref}",
+      "downloads_url": "https://api.github.com/repos/chainlesschain/chainlesschain/downloads",
+      "issues_url": "https://api.github.com/repos/chainlesschain/chainlesschain/issues{/number}",
+      "pulls_url": "https://api.github.com/repos/chainlesschain/chainlesschain/pulls{/number}",
+      "milestones_url": "https://api.github.com/repos/chainlesschain/chainlesschain/milestones{/number}",
+      "notifications_url": "https://api.github.com/repos/chainlesschain/chainlesschain/notifications{?since,all,participating}",
+      "labels_url": "https://api.github.com/repos/chainlesschain/chainlesschain/labels{/name}",
+      "releases_url": "https://api.github.com/repos/chainlesschain/chainlesschain/releases{/id}",
+      "deployments_url": "https://api.github.com/repos/chainlesschain/chainlesschain/deployments"
+    }
+  },
+  "artifact": {
+    "id": 13213440350,
+    "node_id": "MDg6QXJ0aWZhY3QxMzIxMzQ0MDM1MA==",
+    "name": "verify01-prerelease-packages-284bb5f24c95faed45e9d7e2503640888de92766",
+    "size_in_bytes": 11829886,
+    "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/13213440350",
+    "archive_download_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/13213440350/zip",
+    "expired": false,
+    "digest": "sha256:118231877cbe5643aa2656fc703cc5d75c007d69f2f0b9a1cb7454767e05d584",
+    "created_at": "2026-11-03T07:42:29Z",
+    "updated_at": "2026-11-03T07:42:29Z",
+    "expires_at": "2027-02-01T07:36:52Z",
+    "workflow_run": {
+      "id": 41597482236,
+      "repository_id": 1107348698,
+      "head_repository_id": 1107348698,
+      "head_branch": "feature/verify01-volcengine139-20261103",
+      "head_sha": "284bb5f24c95faed45e9d7e2503640888de92766"
+    }
+  },
+  "bundle": {
+    "schema": "chainlesschain.verify01-prerelease-bundle/v1",
+    "sourceCommit": "284bb5f24c95faed45e9d7e2503640888de92766",
+    "runId": 41597482236,
+    "versions": {
+      "cli": "0.166.139",
+      "vscode": "0.37.175",
+      "jetbrains": "0.4.192",
+      "vscodeHost": "1.132.0",
+      "jetbrainsHost": "2025.2"
+    },
+    "files": {
+      "cli": {
+        "file": "chainlesschain-0.166.139.tgz",
+        "digest": "sha256:fbfe7169415dc8209e1b8dbc1a776a0f97eaf990ffc73094b08e6e7ee38ab4c9",
+        "integrity": "sha512-eIDp8SyyqXBSa/ddtmQI24oBvFE7hVGeKPYkILVtv5Tmj5mnJ6uaskvTdL5BM2+Ni8xRNiDyvWlrY8umhO6BAw==",
+        "bytes": 9539146
+      },
+      "vscode": {
+        "file": "chainlesschain-ide-0.37.175.vsix",
+        "digest": "sha256:aa4f5200f112fef0ab50df25cd10e08ad51d8a5ab138dd0878ea7c78f5f9cdf9",
+        "integrity": "sha512-yDa2Yn8RHW73wXmGiPkncjRQgDitqv6eRs+080SCZFa/oBgu644B/tEyf2ONvIvdUFD9iDUvMVJ0OEb39XMDjA==",
+        "bytes": 749066
+      },
+      "jetbrains": {
+        "file": "chainlesschain-ide-bridge-0.4.192.zip",
+        "digest": "sha256:6e3e028d752d8e5ebb3f319d2557ccf74859b27534f1a6f7dd50cde6fd7b1ccd",
+        "integrity": "sha512-d9V//Ghpf52jzy/jdlgqFcDG13LnciqEPibPUa6udsnX00EfhA3Efa1KZFei4xLQM09y0Qo7m51lL4oR6zFe6w==",
+        "bytes": 1555768
+      }
+    },
+    "cliSourceFiles": [
+      {
+        "file": "bin/chainlesschain.js",
+        "digest": "sha256:32339064da330222d3f1129c201a5e9473441ed3d12b4758193696d3c3565547"
+      },
+      {
+        "file": "src/commands/agent.js",
+        "digest": "sha256:cfa3c35dbf5e8940650d10742b5b25eec377150bf9268363415e558d01053d4e"
+      },
+      {
+        "file": "src/runtime/agent-core.js",
+        "digest": "sha256:e88d93975701247e486ca99f2b5bcafb826b8052f82c0aa1e5c8e0f05ddb6d6c"
+      },
+      {
+        "file": "src/lib/read-file-loop-guard.js",
+        "digest": "sha256:334fd1844dec51b9640a6e6a460c3858c465911af27ef3351be3de66737a10e9"
+      },
+      {
+        "file": "src/lib/coding-change-review-context.js",
+        "digest": "sha256:41fb28f0ee7f99721e4153b7f73b8c6cd44b6aaebaf1931da152b20f6947e8f1"
+      },
+      {
+        "file": "src/lib/coding-task-guidance.js",
+        "digest": "sha256:8b219afd335e5f67baf08c1e59bc5efb6bcf8bd33e2e4eec2ecbf359b2c99e46"
+      },
+      {
+        "file": "src/lib/tool-result-preview.js",
+        "digest": "sha256:f19f3bab0394f82fc6872a9c69aa5d9749627d7ba1466bc9166b90bf330fb7fe"
+      },
+      {
+        "file": "src/lib/evolution/evidence-json-text.js",
+        "digest": "sha256:2023b1958e107fb27314b0518e73970e5ae0bab94fba4da72e7b1dcd197820d2"
+      },
+      {
+        "file": "src/lib/evolution/evolution-evidence-projector.js",
+        "digest": "sha256:2267fb233d9f9806795606abd68ebeffd34547bde1ae3809d190afaee90ae641"
+      },
+      {
+        "file": "src/lib/model-capabilities.js",
+        "digest": "sha256:3153beb805ac7e044fb77e1594d39c140a55c5585067db49f111d5f92a35e865"
+      },
+      {
+        "file": "src/lib/context-memory-kernel/provider-context.js",
+        "digest": "sha256:d075c4c4fb91b64fe9d590ff8403600de83648a898137e14399d6af9da45b272"
+      },
+      {
+        "file": "src/lib/context-memory-kernel/live-compaction.js",
+        "digest": "sha256:6eb8adc555688c25d99bbcf4f6e9302dfe41926d0cb34ba9f02b5baa3c0019f8"
+      },
+      {
+        "file": "src/lib/context-memory-kernel/message-adapter.js",
+        "digest": "sha256:bfb6aab468818c9fff56f9fdaf878e93e9f39cf4ee7322304c348f380fbd3ce3"
+      },
+      {
+        "file": "src/lib/context-memory-kernel/task-binding.js",
+        "digest": "sha256:44415b38b941fc0828a9830e20c46cdc13a87453aab94cd6ab0642f44a046257"
+      },
+      {
+        "file": "src/lib/context-memory-kernel/jsonl-session-context-port.js",
+        "digest": "sha256:af56de83f273d89d4688d40e4f40493e683ff23db156f5bf93d73c71400f0a22"
+      },
+      {
+        "file": "src/runtime/message-roles.js",
+        "digest": "sha256:e60dcd7d2f24f5517d3ff706e9a5df9958aabd4390eb6fd655760ce1187b7a66"
+      },
+      {
+        "file": "src/runtime/tool-argument-recovery.js",
+        "digest": "sha256:749ca33229ff71c3438f8621b2ef0dc603355a6c0ab93c055bc37986731ebc7c"
+      }
+    ],
+    "published": false
+  },
+  "verifiedArchiveDigest": "sha256:118231877cbe5643aa2656fc703cc5d75c007d69f2f0b9a1cb7454767e05d584",
+  "verifiedCliSourceFiles": 17,
+  "taskProjectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "formalSample": false
+}

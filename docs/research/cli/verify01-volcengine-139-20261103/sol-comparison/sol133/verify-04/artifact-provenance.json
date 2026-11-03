@@ -1,0 +1,17 @@
+{
+  "runId": "41117741513",
+  "executionSource": "0d063552701fc1609aaf5674dfacf42efb1e2154",
+  "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "artifact": {
+    "id": 13007476514,
+    "name": "verify01-native-delivery-linux-cli-0d063552701fc1609aaf5674dfacf42efb1e2154",
+    "digest": "sha256:4c1d89f1d6c10214f4da0cef2a884e59a6257f164b6d9cc48727a5e40a00ddae",
+    "summaryDigest": "sha256:4aa1d4e6caa94a8ecac101a46da63c2e412902b54ddb318dd41d85afeb14febf",
+    "sizeInBytes": 16501800,
+    "expiresAt": "2026-11-13T19:52:59Z",
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41117741513/artifacts/13007476514"
+  },
+  "selectedSamples": [
+    "verify-04"
+  ]
+}

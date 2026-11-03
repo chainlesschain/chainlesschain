@@ -1,0 +1,156 @@
+import { describe, it, expect } from "vitest";
+import { mergeUsagePricingBucket } from "../src/lib/usage-pricing-context.js";
+
+/**
+ * Request-level cache / long-context pricing regression coverage.
+ *
+ * mergeUsagePricingBucket(entry, usage) buckets an aggregate entry by
+ * serviceTier, regionalProcessing and whether the per-request prompt token
+ * count (inputTokens + cacheReadTokens + cacheCreationTokens, or the explicit
+ * requestInputTokens) exceeds GPT6_PRICING_TERMS.longContext.threshold
+ * (272000). The stored `requestInputTokens` is the per-request prompt count,
+ * so two requests sharing a total token budget but differing in how that
+ * budget is distributed across cache / long-context land in distinct buckets,
+ * i.e. cost is computed per-request, never on a summed aggregate.
+ */
+
+const usage = (overrides = {}) => ({
+  provider: "openai",
+  model: "gpt-6-sol",
+  inputTokens: 0,
+  outputTokens: 0,
+  cacheReadTokens: 0,
+  cacheCreationTokens: 0,
+  totalTokens: 0,
+  ...overrides,
+});
+
+const newEntry = () => ({ provider: "openai", model: "gpt-6-sol" });
+
+describe("request-level cache & long-context pricing buckets", () => {
+  it("same total tokens split into distinct per-request buckets by cache/long distribution", () => {
+    const entry = newEntry();
+    // short request: prompt 200k via input 100k + cacheRead 100k, plus output
+    // 100k -> totalTokens 300k
+    mergeUsagePricingBucket(
+      entry,
+      usage({
+        inputTokens: 100000,
+        cacheReadTokens: 100000,
+        outputTokens: 100000,
+        totalTokens: 300000,
+      }),
+    );
+    // long request: prompt 300k, no cache -> totalTokens 300k
+    mergeUsagePricingBucket(
+      entry,
+      usage({
+        inputTokens: 300000,
+        outputTokens: 0,
+        totalTokens: 300000,
+      }),
+    );
+    expect(entry.pricingBuckets).toHaveLength(2);
+    const short = entry.pricingBuckets.find((b) => b.requestInputTokens === 200000);
+    const long = entry.pricingBuckets.find((b) => b.requestInputTokens === 300000);
+    expect(short).toMatchObject({
+      inputTokens: 100000,
+      cacheReadTokens: 100000,
+      outputTokens: 100000,
+      totalTokens: 300000,
+      calls: 1,
+    });
+    expect(long).toMatchObject({
+      inputTokens: 300000,
+      cacheReadTokens: 0,
+      outputTokens: 0,
+      totalTokens: 300000,
+      calls: 1,
+    });
+  });
+
+  it("classifies long-context at the 272000 threshold boundary", () => {
+    const entry = newEntry();
+    mergeUsagePricingBucket(
+      entry,
+      usage({ inputTokens: 272000, totalTokens: 272000 }),
+    );
+    mergeUsagePricingBucket(
+      entry,
+      usage({ inputTokens: 272001, totalTokens: 272001 }),
+    );
+    expect(entry.pricingBuckets).toHaveLength(2);
+    expect(entry.pricingBuckets.map((b) => b.requestInputTokens)).toEqual([
+      272000, 272001,
+    ]);
+  });
+
+  it("merges identical per-request characteristics into a single bucket", () => {
+    const entry = newEntry();
+    const sameRequest = () =>
+      usage({ inputTokens: 100, outputTokens: 50, totalTokens: 150 });
+    mergeUsagePricingBucket(entry, sameRequest());
+    mergeUsagePricingBucket(entry, sameRequest());
+    expect(entry.pricingBuckets).toHaveLength(1);
+    expect(entry.pricingBuckets[0]).toMatchObject({
+      inputTokens: 200,
+      outputTokens: 100,
+      totalTokens: 300,
+      calls: 2,
+    });
+  });
+
+  it("keeps service tiers in separate buckets", () => {
+    const entry = newEntry();
+    mergeUsagePricingBucket(
+      entry,
+      usage({ service_tier: "standard", inputTokens: 100, totalTokens: 100 }),
+    );
+    mergeUsagePricingBucket(
+      entry,
+      usage({ service_tier: "batch", inputTokens: 100, totalTokens: 100 }),
+    );
+    expect(entry.pricingBuckets).toHaveLength(2);
+    expect(entry.pricingBuckets.map((b) => b.serviceTier)).toEqual([
+      "standard",
+      "batch",
+    ]);
+  });
+
+  it("keeps regional-processing in separate buckets", () => {
+    const entry = newEntry();
+    mergeUsagePricingBucket(
+      entry,
+      usage({ regional_processing: true, inputTokens: 100, totalTokens: 100 }),
+    );
+    mergeUsagePricingBucket(
+      entry,
+      usage({
+        regional_processing: false,
+        inputTokens: 100,
+        totalTokens: 100,
+      }),
+    );
+    expect(entry.pricingBuckets).toHaveLength(2);
+    expect(entry.pricingBuckets.map((b) => b.regionalProcessing)).toEqual([
+      true,
+      false,
+    ]);
+  });
+
+  it("ignores providers or models without a documented price", () => {
+    const nonPriced = { provider: "openai", model: "gpt-4o" };
+    mergeUsagePricingBucket(
+      nonPriced,
+      usage({ inputTokens: 100, totalTokens: 100 }),
+    );
+    expect(nonPriced.pricingBuckets).toBeUndefined();
+
+    const nonOpenai = { provider: "anthropic", model: "claude-opus-5-5" };
+    mergeUsagePricingBucket(
+      nonOpenai,
+      usage({ inputTokens: 100, totalTokens: 100 }),
+    );
+    expect(nonOpenai.pricingBuckets).toBeUndefined();
+  });
+});

@@ -1,0 +1,165 @@
+{
+  "scope": "verify01-operator-acceptance",
+  "taskId": "verify-04",
+  "stage": "check",
+  "productionAttested": false,
+  "providerAssessed": false,
+  "isolation": "docker",
+  "imageReference": "node:22.12.0-bookworm",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operator": {
+    "uid": 1001,
+    "gid": 1001
+  },
+  "tests": [
+    {
+      "kind": "baseline",
+      "total": 22,
+      "passed": 22,
+      "failed": 0
+    },
+    {
+      "kind": "candidate",
+      "total": 6,
+      "passed": 6,
+      "failed": 0
+    }
+  ],
+  "mutations": [
+    {
+      "name": "merge-short-and-long-request-price-buckets",
+      "sourceSha256": "7b8898a171561e61a4803ef8aa05ffc947aea3cd85e194c2b8ca6898a535b86c",
+      "total": 6,
+      "passed": 4,
+      "failed": 2
+    },
+    {
+      "name": "drop-cache-tokens-from-request-threshold",
+      "sourceSha256": "63b0dbf58bfccf374c4b480da32f78b06c96ff461905e294005ac9047e7a5abd",
+      "total": 6,
+      "passed": 5,
+      "failed": 1
+    }
+  ],
+  "executions": [
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "setup": false,
+      "ms": 114,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "v22.12.0\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 898,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":7,\"numPassedTestSuites\":7,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":22,\"numPassedTests\":22,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793676951586,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts preserves request pricing through durable projection, budget and Eval\",\"status\":\"passed\",\"title\":\"preserves request pricing through durable projection, budget and Eval\",\"duration\":5.627106000000026,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts preserves pricing conditions in crash-recovery settlements\",\"status\":\"passed\",\"title\":\"preserves pricing conditions in crash-recovery settlements\",\"duration\":2.146991000000014,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts resolves gpt-6-astra only at the official endpoint\",\"status\":\"passed\",\"title\":\"resolves gpt-6-astra only at the official endpoint\",\"duration\":1.6992250000000126,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts resolves gpt-6-sol only at the official endpoint\",\"status\":\"passed\",\"title\":\"resolves gpt-6-sol only at the official endpoint\",\"duration\":0.4553280000000086,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts resolves gpt-6-luna only at the official endpoint\",\"status\":\"passed\",\"title\":\"resolves gpt-6-luna only at the official endpoint\",\"duration\":0.5326139999999668,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts resolves Opus 5.5 without changing a custom gateway's assumptions\",\"status\":\"passed\",\"title\":\"resolves Opus 5.5 without changing a custom gateway's assumptions\",\"duration\":0.876342999999963,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts prices cached tokens and long prompts at the request boundary\",\"status\":\"passed\",\"title\":\"prices cached tokens and long prompts at the request boundary\",\"duration\":0.32853600000004235,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts keeps separate request tiers when aggregating one or many sessions\",\"status\":\"passed\",\"title\":\"keeps separate request tiers when aggregating one or many sessions\",\"duration\":1.7659060000000295,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts preserves response service tier for budget settlement\",\"status\":\"passed\",\"title\":\"preserves response service tier for budget settlement\",\"duration\":0.46793700000000626,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts uses the same prices in the legacy database, preserving unknown as NULL\",\"status\":\"passed\",\"title\":\"uses the same prices in the legacy database, preserving unknown as NULL\",\"duration\":2.4664039999999545,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793676952010,\"endTime\":1793676952026.4663,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/model-release-contract.test.js\"},{\"assertionResults\":[{\"ancestorTitles\":[\"session-usage\",\"extractUsage\"],\"fullName\":\"session-usage extractUsage reads a token_usage event\",\"status\":\"passed\",\"title\":\"reads a token_usage event\",\"duration\":1.3787619999999947,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"session-usage\",\"extractUsage\"],\"fullName\":\"session-usage extractUsage reads usage embedded in assistant_message\",\"status\":\"passed\",\"title\":\"reads usage embedded in assistant_message\",\"duration\":0.46972900000000095,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"session-usage\",\"extractUsage\"],\"fullName\":\"session-usage extractUsage returns null for events without usage\",\"status\":\"passed\",\"title\":\"returns null for events without usage\",\"duration\":0.153552000000019,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"session-usage\",\"extractUsage\"],\"fullName\":\"session-usage extractUsage returns null for unknown event types\",\"status\":\"passed\",\"title\":\"returns null for unknown event types\",\"duration\":0.16657200000000216,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"session-usage\",\"extractUsage\"],\"fullName\":\"session-usage extractUsage returns null when all counts are zero\",\"status\":\"passed\",\"title\":\"returns null when all counts are zero\",\"duration\":0.131699000000026,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"session-usage\",\"aggregateUsage\"],\"fullName\":\"session-usage aggregateUsage rolls up total + per-model\",\"status\":\"passed\",\"title\":\"rolls up total + per-model\",\"duration\":0.9314559999999972,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"session-usage\",\"aggregateUsage\"],\"fullName\":\"session-usage aggregateUsage ignores events without usage\",\"status\":\"passed\",\"title\":\"ignores events without usage\",\"duration\":0.17839999999998213,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"session-usage\",\"aggregateUsage\"],\"fullName\":\"session-usage aggregateUsage handles empty + nullish input\",\"status\":\"passed\",\"title\":\"handles empty + nullish input\",\"duration\":0.08331499999999892,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"session-usage\",\"aggregateUsage\"],\"fullName\":\"session-usage aggregateUsage sorts byModel descending by totalTokens\",\"status\":\"passed\",\"title\":\"sorts byModel descending by totalTokens\",\"duration\":0.33171100000001275,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"session-usage\",\"allSessionsUsage (resilient roll-up)\"],\"fullName\":\"session-usage allSessionsUsage (resilient roll-up) aggregates across sessions and skips one that fails to read\",\"status\":\"passed\",\"title\":\"aggregates across sessions and skips one that fails to read\",\"duration\":1.0069500000000176,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"session-usage\",\"allSessionsUsage (resilient roll-up)\"],\"fullName\":\"session-usage allSessionsUsage (resilient roll-up) reports zero skipped when every session reads cleanly\",\"status\":\"passed\",\"title\":\"reports zero skipped when every session reads cleanly\",\"duration\":0.2743240000000071,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"session-usage\",\"allSessionsUsage (resilient roll-up)\"],\"fullName\":\"session-usage allSessionsUsage (resilient roll-up) sessionUsage rolls up a single session via the injected reader\",\"status\":\"passed\",\"title\":\"sessionUsage rolls up a single session via the injected reader\",\"duration\":0.24618200000000456,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793676952177,\"endTime\":1793676952183.246,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/session-usage.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 465,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":6,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793676952486,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"request-level cache & long-context pricing buckets\"],\"fullName\":\"request-level cache & long-context pricing buckets same total tokens split into distinct per-request buckets by cache/long distribution\",\"status\":\"passed\",\"title\":\"same total tokens split into distinct per-request buckets by cache/long distribution\",\"duration\":2.141393000000008,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"request-level cache & long-context pricing buckets\"],\"fullName\":\"request-level cache & long-context pricing buckets classifies long-context at the 272000 threshold boundary\",\"status\":\"passed\",\"title\":\"classifies long-context at the 272000 threshold boundary\",\"duration\":0.4730239999999952,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"request-level cache & long-context pricing buckets\"],\"fullName\":\"request-level cache & long-context pricing buckets merges identical per-request characteristics into a single bucket\",\"status\":\"passed\",\"title\":\"merges identical per-request characteristics into a single bucket\",\"duration\":0.22076300000000515,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"request-level cache & long-context pricing buckets\"],\"fullName\":\"request-level cache & long-context pricing buckets keeps service tiers in separate buckets\",\"status\":\"passed\",\"title\":\"keeps service tiers in separate buckets\",\"duration\":0.34815499999999133,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"request-level cache & long-context pricing buckets\"],\"fullName\":\"request-level cache & long-context pricing buckets keeps regional-processing in separate buckets\",\"status\":\"passed\",\"title\":\"keeps regional-processing in separate buckets\",\"duration\":0.26770399999999483,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"request-level cache & long-context pricing buckets\"],\"fullName\":\"request-level cache & long-context pricing buckets ignores providers or models without a documented price\",\"status\":\"passed\",\"title\":\"ignores providers or models without a documented price\",\"duration\":0.10897500000000093,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793676952622,\"endTime\":1793676952626.109,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-04.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "/workspace/packages/cli/src/lib/usage-pricing-context.js"
+      ],
+      "setup": false,
+      "ms": 123,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 478,
+      "exitCode": 1,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":0,\"numFailedTestSuites\":2,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":4,\"numFailedTests\":2,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793676953086,\"success\":false,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"request-level cache & long-context pricing buckets\"],\"fullName\":\"request-level cache & long-context pricing buckets same total tokens split into distinct per-request buckets by cache/long distribution\",\"status\":\"failed\",\"title\":\"same total tokens split into distinct per-request buckets by cache/long distribution\",\"duration\":5.8238429999999966,\"failureMessages\":[\"AssertionError: expected [ { inputTokens: 400000, …(8) } ] to have a length of 2 but got 1\\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1389:20)\\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1156:15)\\n    at Proxy.methodWrapper (file:///workspace/node_modules/chai/index.js:1700:25)\\n    at /workspace/packages/cli/__tests__/verify-04.test.js:53:34\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"request-level cache & long-context pricing buckets\"],\"fullName\":\"request-level cache & long-context pricing buckets classifies long-context at the 272000 threshold boundary\",\"status\":\"failed\",\"title\":\"classifies long-context at the 272000 threshold boundary\",\"duration\":0.7185149999999965,\"failureMessages\":[\"AssertionError: expected [ { inputTokens: 544001, …(8) } ] to have a length of 2 but got 1\\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1389:20)\\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1156:15)\\n    at Proxy.methodWrapper (file:///workspace/node_modules/chai/index.js:1700:25)\\n    at /workspace/packages/cli/__tests__/verify-04.test.js:82:34\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"request-level cache & long-context pricing buckets\"],\"fullName\":\"request-level cache & long-context pricing buckets merges identical per-request characteristics into a single bucket\",\"status\":\"passed\",\"title\":\"merges identical per-request characteristics into a single bucket\",\"duration\":0.8068079999999895,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"request-level cache & long-context pricing buckets\"],\"fullName\":\"request-level cache & long-context pricing buckets keeps service tiers in separate buckets\",\"status\":\"passed\",\"title\":\"keeps service tiers in separate buckets\",\"duration\":0.43687899999999047,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"request-level cache & long-context pricing buckets\"],\"fullName\":\"request-level cache & long-context pricing buckets keeps regional-processing in separate buckets\",\"status\":\"passed\",\"title\":\"keeps regional-processing in separate buckets\",\"duration\":0.2606630000000081,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"request-level cache & long-context pricing buckets\"],\"fullName\":\"request-level cache & long-context pricing buckets ignores providers or models without a documented price\",\"status\":\"passed\",\"title\":\"ignores providers or models without a documented price\",\"duration\":0.17168900000000065,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793676953228,\"endTime\":1793676953236.2607,\"status\":\"failed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-04.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "/workspace/packages/cli/src/lib/usage-pricing-context.js"
+      ],
+      "setup": false,
+      "ms": 119,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 467,
+      "exitCode": 1,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":0,\"numFailedTestSuites\":2,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":5,\"numFailedTests\":1,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793676953677,\"success\":false,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"request-level cache & long-context pricing buckets\"],\"fullName\":\"request-level cache & long-context pricing buckets same total tokens split into distinct per-request buckets by cache/long distribution\",\"status\":\"failed\",\"title\":\"same total tokens split into distinct per-request buckets by cache/long distribution\",\"duration\":6.289157000000003,\"failureMessages\":[\"AssertionError: expected undefined to match object { inputTokens: 100000, …(4) }\\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1283:10)\\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1156:15)\\n    at Proxy.methodWrapper (file:///workspace/node_modules/chai/index.js:1700:25)\\n    at /workspace/packages/cli/__tests__/verify-04.test.js:56:19\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"request-level cache & long-context pricing buckets\"],\"fullName\":\"request-level cache & long-context pricing buckets classifies long-context at the 272000 threshold boundary\",\"status\":\"passed\",\"title\":\"classifies long-context at the 272000 threshold boundary\",\"duration\":0.44672400000000323,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"request-level cache & long-context pricing buckets\"],\"fullName\":\"request-level cache & long-context pricing buckets merges identical per-request characteristics into a single bucket\",\"status\":\"passed\",\"title\":\"merges identical per-request characteristics into a single bucket\",\"duration\":0.30628300000000763,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"request-level cache & long-context pricing buckets\"],\"fullName\":\"request-level cache & long-context pricing buckets keeps service tiers in separate buckets\",\"status\":\"passed\",\"title\":\"keeps service tiers in separate buckets\",\"duration\":0.39407500000000084,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"request-level cache & long-context pricing buckets\"],\"fullName\":\"request-level cache & long-context pricing buckets keeps regional-processing in separate buckets\",\"status\":\"passed\",\"title\":\"keeps regional-processing in separate buckets\",\"duration\":0.2798119999999926,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"request-level cache & long-context pricing buckets\"],\"fullName\":\"request-level cache & long-context pricing buckets ignores providers or models without a documented price\",\"status\":\"passed\",\"title\":\"ignores providers or models without a documented price\",\"duration\":0.1271419999999921,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793676953815,\"endTime\":1793676953823.2798,\"status\":\"failed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-04.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "pass": true,
+  "detail": "Independent operator checks passed; this is not a provider or task-outcome sample."
+}

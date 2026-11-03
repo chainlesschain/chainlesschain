@@ -1,0 +1,1018 @@
+{
+  "schema": "chainlesschain.fresh-volcengine-native-results/v1",
+  "collectedAt": "2026-11-03T06:29:05.093Z",
+  "runId": 41585306414,
+  "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41585306414",
+  "executionSource": "ba504a7869c14c11787e1547dc8611eef9aace71",
+  "collectionSource": "ba504a7869c14c11787e1547dc8611eef9aace71",
+  "collectionWorkflowRunId": "41585306414",
+  "provider": "volcengine",
+  "model": "deepseek-v4-flash-ga-260731",
+  "versions": {
+    "cli": "0.166.139",
+    "vscode": "0.37.175",
+    "jetbrains": "0.4.192",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "packageSetDigest": "sha256:2f00fcaea2f423b761563ebd9543228a488298ba735a8e87b7c3e95e11bef031",
+  "formalSample": false,
+  "roundKind": "expanded-budget-retry",
+  "executionBudgets": {
+    "modelTurns": 40,
+    "physicalRequests": 48,
+    "outputTokens": 393216,
+    "ordinaryDeadlineMs": 2400000,
+    "firstRunDeadlineMs": 3600000
+  },
+  "baselineRunId": 41563424430,
+  "historicalScoresUnchanged": true,
+  "completeGenerationEvidence": true,
+  "completeEvidence": true,
+  "missingArtifacts": [],
+  "missingSamples": [],
+  "accepted": 2,
+  "total": 12,
+  "tasks": {
+    "accepted": 2,
+    "total": 10
+  },
+  "firstRuns": {
+    "accepted": 0,
+    "total": 2
+  },
+  "groups": {
+    "win32-cli": {
+      "accepted": 1,
+      "total": 1
+    },
+    "win32-vscode": {
+      "accepted": 0,
+      "total": 1
+    },
+    "win32-jetbrains": {
+      "accepted": 0,
+      "total": 0
+    },
+    "linux-cli": {
+      "accepted": 0,
+      "total": 1
+    },
+    "linux-vscode": {
+      "accepted": 1,
+      "total": 2
+    },
+    "linux-jetbrains": {
+      "accepted": 0,
+      "total": 2
+    },
+    "darwin-cli": {
+      "accepted": 0,
+      "total": 2
+    },
+    "darwin-vscode": {
+      "accepted": 0,
+      "total": 2
+    },
+    "darwin-jetbrains": {
+      "accepted": 0,
+      "total": 1
+    }
+  },
+  "artifacts": [
+    {
+      "id": 13208765657,
+      "name": "verify01-native-delivery-win32-cli-verify-01-ba504a7869c14c11787e1547dc8611eef9aace71",
+      "digest": "sha256:649161b1d9dc4689404486d0e386cee9b961afb4a5cf07905378d9a4f895fb03",
+      "summaryDigest": "sha256:4cdeab182d14767905db75b5794d8752476f4fcd7ea10db0bde51228274b1bb2"
+    },
+    {
+      "id": 13210010427,
+      "name": "verify01-native-acceptance-win32-cli-verify-01-ba504a7869c14c11787e1547dc8611eef9aace71",
+      "digest": "sha256:a752dd0e0c8ce6a74f14292cdab54a88daacdfe7a4f5de10755b34759a230f7a",
+      "summaryDigest": "sha256:087752e780eb712c12e78d37a7584a7202c0f64ff5c0793bf7d444ff9bcdad93"
+    },
+    {
+      "id": 13208232389,
+      "name": "verify01-native-delivery-win32-vscode-verify-11-ba504a7869c14c11787e1547dc8611eef9aace71",
+      "digest": "sha256:03d5b932ed96317a70f58fbd89bab46b82f25f6ab231bd20919267f21d667e61",
+      "summaryDigest": "sha256:7fe08a58056f6ccc691c806eb60478dead3a4d7e1d59e3864200e311a77f68fb"
+    },
+    {
+      "id": 13210135159,
+      "name": "verify01-native-acceptance-win32-vscode-verify-11-ba504a7869c14c11787e1547dc8611eef9aace71",
+      "digest": "sha256:b60a8847a2193e7f01943e507359ca4ad41dbc7c8f3861fc850cd2fa2f6826f6",
+      "summaryDigest": "sha256:132971e858f3e3a689a86cff383940eb462e1922368729b9835beceea4fc6345"
+    },
+    {
+      "id": 13208097483,
+      "name": "verify01-native-delivery-linux-cli-verify-04-ba504a7869c14c11787e1547dc8611eef9aace71",
+      "digest": "sha256:3241a35adebde1aee6626f398c6a6d91e683be89637f06dc16bef080afe87b80",
+      "summaryDigest": "sha256:cd17197f5d02522ae4a9a94d9fc1ce2e2fccae99f3179c47485c7e0bf043813c"
+    },
+    {
+      "id": 13210115184,
+      "name": "verify01-native-acceptance-linux-cli-verify-04-ba504a7869c14c11787e1547dc8611eef9aace71",
+      "digest": "sha256:a87944e4a8a1c956bc109be55bc65c9070472bbfebcddb0c218ac530f04d360e",
+      "summaryDigest": "sha256:26c4be24bf0f7cf66130f2ea50c687e455ba0acfc555bd3385fc503fafe7d3f3"
+    },
+    {
+      "id": 13207099972,
+      "name": "verify01-native-delivery-linux-vscode-verify-14-ba504a7869c14c11787e1547dc8611eef9aace71",
+      "digest": "sha256:4d1023e135c8b5c33fdf963351f69d044c9251e4bd88d06e9eabdb3aa84c485f",
+      "summaryDigest": "sha256:4f8aa0874aa90c6f004e3927e0a84762677bb09017f6e0339182582e4b54e0be"
+    },
+    {
+      "id": 13209915737,
+      "name": "verify01-native-acceptance-linux-vscode-verify-14-ba504a7869c14c11787e1547dc8611eef9aace71",
+      "digest": "sha256:e5360496e74fab0a61c4573a016f71efe961c2f55ba62cc5324c5bb5ea521a6a",
+      "summaryDigest": "sha256:007035176e6e804eec5297277d4ee81b42cfc073d8708052428848038846fad1"
+    },
+    {
+      "id": 13208470695,
+      "name": "verify01-native-delivery-linux-vscode-verify-32-ba504a7869c14c11787e1547dc8611eef9aace71",
+      "digest": "sha256:9cd04bd6bbbdc56985bcdc170078ec0905c69da246d560678a02e066babf4b7d",
+      "summaryDigest": "sha256:330cea8a20c2bb7c39301a47193dd5ac61e52ecadcd6b46bd0711d46be7e8b5b"
+    },
+    {
+      "id": 13210015453,
+      "name": "verify01-native-acceptance-linux-vscode-verify-32-ba504a7869c14c11787e1547dc8611eef9aace71",
+      "digest": "sha256:0715052316a074a211776124a504ce8c01dbeed1a016cbc93bad365ec5b6990f",
+      "summaryDigest": "sha256:33dd3ef196bf016f70992c585c923cc2ec1814c10e14450e0025088e4d2e1dbb"
+    },
+    {
+      "id": 13208346981,
+      "name": "verify01-native-delivery-linux-jetbrains-verify-15-ba504a7869c14c11787e1547dc8611eef9aace71",
+      "digest": "sha256:1c55fb1b7bebda7e587cef4d3ab5cf4a8f74f27b0c0a9c4d1a656a468ec83216",
+      "summaryDigest": "sha256:182e71401af841865f5ebb632294b22436704fc8d60eeb152b654fb10dabc32b"
+    },
+    {
+      "id": 13209163464,
+      "name": "verify01-native-acceptance-linux-jetbrains-verify-15-ba504a7869c14c11787e1547dc8611eef9aace71",
+      "digest": "sha256:fb4b44bcca7f40396d682d07ed8ae127d052127bebf457a2e729ffa338bb8580",
+      "summaryDigest": "sha256:e46921d03859fde4f69e95294230024591e2bec19a597180bfe6a63eeeb3a6e4"
+    },
+    {
+      "id": 13208056948,
+      "name": "verify01-native-delivery-linux-jetbrains-verify-33-ba504a7869c14c11787e1547dc8611eef9aace71",
+      "digest": "sha256:36d75cd593dccbbde0a0bc7a649163bf8e1b9ea57cb040006592050459b7ccc2",
+      "summaryDigest": "sha256:822a25a96a609754518b046f9f34a334062110025e2f25fcaef878fb328c98a9"
+    },
+    {
+      "id": 13210115080,
+      "name": "verify01-native-acceptance-linux-jetbrains-verify-33-ba504a7869c14c11787e1547dc8611eef9aace71",
+      "digest": "sha256:c1ee329bff5ead35ca0877fbfbe633df1df833e412c4a501f405de20f21a009a",
+      "summaryDigest": "sha256:8bc87883bc479159910d5aaf55094232a74740494355c1ea9b5dc5f412034f88"
+    },
+    {
+      "id": 13207634124,
+      "name": "verify01-native-delivery-darwin-cli-first-run-darwin-cli-ba504a7869c14c11787e1547dc8611eef9aace71",
+      "digest": "sha256:5c55bc66af0562dfb809aeee467100522613a35d69183e1534b5e305a6ddbe9b",
+      "summaryDigest": "sha256:66a3c1bc70384d042f1740f771c3e8ae9af5042eaf28e1178e2bb3c344516b51"
+    },
+    {
+      "id": 13209785986,
+      "name": "verify01-native-acceptance-darwin-cli-first-run-darwin-cli-ba504a7869c14c11787e1547dc8611eef9aace71",
+      "digest": "sha256:0f1eb11cf31ff616a5b5bad3f09e3a896c41a703534f9a06a7dae33c45cde902",
+      "summaryDigest": "sha256:5442a995ece114081eb6428983d82cf70d833bac76756754d30293b0a644ba46"
+    },
+    {
+      "id": 13207873639,
+      "name": "verify01-native-delivery-darwin-cli-verify-07-ba504a7869c14c11787e1547dc8611eef9aace71",
+      "digest": "sha256:710568a38f5eb0fe02a14ae9846587883e26874ffe2d4c1f9127564f6fc9ae18",
+      "summaryDigest": "sha256:a62793bf209cd215e1fd1f50823a13b81271611005474527bf24f5ebb6ce409f"
+    },
+    {
+      "id": 13209447984,
+      "name": "verify01-native-acceptance-darwin-cli-verify-07-ba504a7869c14c11787e1547dc8611eef9aace71",
+      "digest": "sha256:94be5991acefda317f3427019c74843730923be1ce9fcdd6955a345d20847126",
+      "summaryDigest": "sha256:2942dce655798b15b0f603d6e931a7d831390db8421f4155e415c48855f3538c"
+    },
+    {
+      "id": 13207884393,
+      "name": "verify01-native-delivery-darwin-vscode-first-run-darwin-vscode-ba504a7869c14c11787e1547dc8611eef9aace71",
+      "digest": "sha256:1e984acd84fb8f4a04247147e87f6e10ccf0f6c47abfdbfdcfeeb2f654d56ad3",
+      "summaryDigest": "sha256:5dac0580a2a227378e91be00cde9b3dbc1d301bc4e85ebb8e2bf7017675eaa76"
+    },
+    {
+      "id": 13209023974,
+      "name": "verify01-native-acceptance-darwin-vscode-first-run-darwin-vscode-ba504a7869c14c11787e1547dc8611eef9aace71",
+      "digest": "sha256:2b6d11e3e0ae2ccbb27fe28a4d500c3995c64614060fd5eec91fbcdb4d4b6e78",
+      "summaryDigest": "sha256:b014fb0e3e6fcf04e274cd0983e5b82e30664377932c081f80e16612aeaa2254"
+    },
+    {
+      "id": 13209270275,
+      "name": "verify01-native-delivery-darwin-vscode-verify-08-ba504a7869c14c11787e1547dc8611eef9aace71",
+      "digest": "sha256:79e3a9456b2bb339ebf038e5810c1306cdfade69a8067213ae04eb1c627802eb",
+      "summaryDigest": "sha256:33d2b3b14283430b63b77bafafaa78ffea1be54ec08e29a2ec5f827c66ade401"
+    },
+    {
+      "id": 13209238707,
+      "name": "verify01-native-acceptance-darwin-vscode-verify-08-ba504a7869c14c11787e1547dc8611eef9aace71",
+      "digest": "sha256:ce71bb77d4d4adf10ea736939be86e0729a6b69ca1f4b1344855dd1960acfe87",
+      "summaryDigest": "sha256:b02c95892311ea5d5d35f45380a891da651931a7dd399e91a5598f4260515b54"
+    },
+    {
+      "id": 13209600807,
+      "name": "verify01-native-delivery-darwin-jetbrains-verify-36-ba504a7869c14c11787e1547dc8611eef9aace71",
+      "digest": "sha256:552da17b8ba2dd5eed73dd5f610e11a82b3c77549169aedfb4acb40d4414d81d",
+      "summaryDigest": "sha256:b678bfca153554f70636856a38792f5667fb0195f52faf4043b407b4c82283cc"
+    },
+    {
+      "id": 13209711492,
+      "name": "verify01-native-acceptance-darwin-jetbrains-verify-36-ba504a7869c14c11787e1547dc8611eef9aace71",
+      "digest": "sha256:3e670f950008667c21ec8c8558311f029c8db47460ed22fe088d39e6cf76a7ad",
+      "summaryDigest": "sha256:4f6eb11a635ecd5d3dce2485e8fed1c12e3b7125b61c4540b7026e5d46e8885a"
+    }
+  ],
+  "samples": [
+    {
+      "sampleId": "verify-01",
+      "group": "win32-cli",
+      "cellId": "win32-cli-verify-01",
+      "accepted": true,
+      "candidateAcceptancePassed": true,
+      "generationPassed": true,
+      "sourceScopePassed": true,
+      "deliveryAvailable": true,
+      "acceptanceAvailable": true,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "setup": {
+        "pass": true,
+        "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "receipt": "verify-01-setup-91ebb0f8-e475-4c36-a52b-711b6fa5ae42.json",
+        "receiptDigest": "sha256:98bdfa63da5215fc2375594186466dd19a63cc38fb6f59057b832cfa5e3bd3dc",
+        "scriptDigest": "sha256:74e3fc2333f3ef9ee1b0416a5db920786d078a0f9caec9d7253e44aa4120421d",
+        "receiptPath": "pack/acceptance-evidence/verify-01-setup-91ebb0f8-e475-4c36-a52b-711b6fa5ae42.json",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 75,
+            "passed": 75,
+            "failed": 0
+          }
+        ],
+        "mutations": []
+      },
+      "check": {
+        "pass": true,
+        "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "receipt": "verify-01-check-bf983874-9f56-414a-99b0-75fae340ca50.json",
+        "receiptDigest": "sha256:1aa5b37050209587b91b5db98971f7bddd2ba48f58bc2bb8cab7b47f160f0e27",
+        "scriptDigest": "sha256:1581d3e2ce0a0ce037f84f7a606e9c35043e72088b30e4d24d14ed42066f86fa",
+        "receiptPath": "pack/acceptance-evidence/verify-01-check-bf983874-9f56-414a-99b0-75fae340ca50.json",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 75,
+            "passed": 75,
+            "failed": 0
+          },
+          {
+            "kind": "candidate",
+            "total": 6,
+            "passed": 6,
+            "failed": 0
+          }
+        ],
+        "mutations": [
+          {
+            "name": "custom-endpoint-inherits-official-profile",
+            "sourceSha256": "7b9f578314b4856f00231a9a88e69385cedfc29ce9b393e613d72f5dcca757b9",
+            "total": 6,
+            "passed": 4,
+            "failed": 2
+          }
+        ]
+      },
+      "broker": {
+        "physicalRequestsStarted": 16,
+        "usageCompleteRequests": 16,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "observedUsage": {
+        "input_tokens": 120978,
+        "output_tokens": 14225,
+        "cache_read_input_tokens": 114688
+      }
+    },
+    {
+      "sampleId": "verify-11",
+      "group": "win32-vscode",
+      "cellId": "win32-vscode-verify-11",
+      "accepted": false,
+      "candidateAcceptancePassed": false,
+      "generationPassed": true,
+      "sourceScopePassed": true,
+      "deliveryAvailable": true,
+      "acceptanceAvailable": true,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "setup": {
+        "pass": true,
+        "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "receipt": "verify-11-setup-010e5cc7-9975-4e39-85af-2a99f2352cde.json",
+        "receiptDigest": "sha256:719228b0c0aebb28011b23c90cfa3fdf4e633fd6ced31a439c44b0b5d83af4a4",
+        "scriptDigest": "sha256:87214296cdb119ff9befe3b73603b80c6e0a1dcc807bd4bb898669fa8cb528a4",
+        "receiptPath": "pack/acceptance-evidence/verify-11-setup-010e5cc7-9975-4e39-85af-2a99f2352cde.json",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 16,
+            "passed": 16,
+            "failed": 0
+          }
+        ],
+        "mutations": []
+      },
+      "check": {
+        "pass": false,
+        "detail": "candidate or baseline regression failed",
+        "receipt": "verify-11-check-4d122258-e11a-4423-8de1-f1322cb97abe.json",
+        "receiptDigest": "sha256:5dc843bfb61e8614b7da686057559e7fa8021a8004916a9f4cf85a8e531c1bba",
+        "scriptDigest": "sha256:4cfe2952ca52f23b66a9d7c19b5ba6994805bbc02c32008c7c458aafc3964ebc",
+        "receiptPath": "pack/acceptance-evidence/verify-11-check-4d122258-e11a-4423-8de1-f1322cb97abe.json",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 16,
+            "passed": 16,
+            "failed": 0
+          }
+        ],
+        "mutations": []
+      },
+      "broker": {
+        "physicalRequestsStarted": 39,
+        "usageCompleteRequests": 39,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "observedUsage": {
+        "input_tokens": 454531,
+        "output_tokens": 37810,
+        "cache_read_input_tokens": 308480,
+        "cache_creation_input_tokens": 0
+      }
+    },
+    {
+      "sampleId": "verify-04",
+      "group": "linux-cli",
+      "cellId": "linux-cli-verify-04",
+      "accepted": false,
+      "candidateAcceptancePassed": false,
+      "generationPassed": true,
+      "sourceScopePassed": true,
+      "deliveryAvailable": true,
+      "acceptanceAvailable": true,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "setup": {
+        "pass": true,
+        "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "receipt": "verify-04-setup-2cf46d4c-04a1-4e00-b1e2-398a84efcf5a.json",
+        "receiptDigest": "sha256:6e25f3ae22c2c3063139f8198beab604aa201502bcbe7da863bb6d18fa1a880a",
+        "scriptDigest": "sha256:eed6c6b11b7e9345d7b158d4e33ba925eccbf9b2533d569e5383dc381dbcb269",
+        "receiptPath": "pack/acceptance-evidence/verify-04-setup-2cf46d4c-04a1-4e00-b1e2-398a84efcf5a.json",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 22,
+            "passed": 22,
+            "failed": 0
+          }
+        ],
+        "mutations": []
+      },
+      "check": {
+        "pass": false,
+        "detail": "candidate tests did not reject the behavioral mutant",
+        "receipt": "verify-04-check-2d5c8fe7-6a4a-4d5b-9998-e984c7f4e3e6.json",
+        "receiptDigest": "sha256:3cfe1dae87e6436632db5d63043abae997e29e5398778db85e34b8d48743a6c7",
+        "scriptDigest": "sha256:2c6f2cdbc568babf93c4b99ac47aa055ce9230c4a16aa0da741e861ba1491765",
+        "receiptPath": "pack/acceptance-evidence/verify-04-check-2d5c8fe7-6a4a-4d5b-9998-e984c7f4e3e6.json",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 22,
+            "passed": 22,
+            "failed": 0
+          },
+          {
+            "kind": "candidate",
+            "total": 6,
+            "passed": 6,
+            "failed": 0
+          }
+        ],
+        "mutations": [
+          {
+            "name": "merge-short-and-long-request-price-buckets",
+            "sourceSha256": "7b8898a171561e61a4803ef8aa05ffc947aea3cd85e194c2b8ca6898a535b86c",
+            "total": 6,
+            "passed": 5,
+            "failed": 1
+          }
+        ]
+      },
+      "broker": {
+        "physicalRequestsStarted": 24,
+        "usageCompleteRequests": 24,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "observedUsage": {
+        "input_tokens": 138213,
+        "output_tokens": 16501,
+        "cache_read_input_tokens": 205056
+      }
+    },
+    {
+      "sampleId": "verify-14",
+      "group": "linux-vscode",
+      "cellId": "linux-vscode-verify-14",
+      "accepted": false,
+      "candidateAcceptancePassed": false,
+      "generationPassed": false,
+      "sourceScopePassed": true,
+      "deliveryAvailable": true,
+      "acceptanceAvailable": true,
+      "modelFailure": "agent-error",
+      "modelError": "volcengine API error: HTTP 403 — DIAGNOSTIC_REQUEST_NOT_DISPATCHED.",
+      "modelResultSubtype": "error",
+      "error": null,
+      "setup": {
+        "pass": true,
+        "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "receipt": "verify-14-setup-2e404e4e-e3e9-4918-88a7-7c897f6c9d98.json",
+        "receiptDigest": "sha256:cd0955e3abd5f2e2cf3caf2020375ad03096a024a8915f2fb2436832ba5f2ac8",
+        "scriptDigest": "sha256:bf8b6b29e4c8afb6fff8a751940d92b18e6525361578d59aecd617d062c71776",
+        "receiptPath": "pack/acceptance-evidence/verify-14-setup-2e404e4e-e3e9-4918-88a7-7c897f6c9d98.json",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 41,
+            "passed": 41,
+            "failed": 0
+          }
+        ],
+        "mutations": []
+      },
+      "check": {
+        "pass": false,
+        "detail": "acceptance requires executed test cases",
+        "receipt": "verify-14-check-3edc26af-22d7-43fc-b7ce-b09fe657f583.json",
+        "receiptDigest": "sha256:72ea3c9affdb1f152d16f6b23eab8fea60fbafb3eb84aba7d50ea404f6ec7510",
+        "scriptDigest": "sha256:3a334f8ed63c92940ee96fae1420e61272d8f26639e0a538cc1cfce3f9819c67",
+        "receiptPath": "pack/acceptance-evidence/verify-14-check-3edc26af-22d7-43fc-b7ce-b09fe657f583.json",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 41,
+            "passed": 41,
+            "failed": 0
+          }
+        ],
+        "mutations": []
+      },
+      "broker": {
+        "physicalRequestsStarted": 1,
+        "usageCompleteRequests": 0,
+        "passed": false,
+        "poisoned": null,
+        "errorCode": "DIAGNOSTIC_REQUEST_NOT_DISPATCHED"
+      },
+      "observedUsage": {}
+    },
+    {
+      "sampleId": "verify-32",
+      "group": "linux-vscode",
+      "cellId": "linux-vscode-verify-32",
+      "accepted": true,
+      "candidateAcceptancePassed": true,
+      "generationPassed": true,
+      "sourceScopePassed": true,
+      "deliveryAvailable": true,
+      "acceptanceAvailable": true,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "setup": {
+        "pass": true,
+        "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "receipt": "verify-32-setup-1c7b683a-1a9a-4c3e-8028-58a3cbfd8b08.json",
+        "receiptDigest": "sha256:4c01bf0b302faa2a78405ecb3ccebe0180258eb43f04ce4f52d42814f0598f25",
+        "scriptDigest": "sha256:c4c1a8a54da1fda892dd4bdc112944a6bf46615a9a170f131051453d8da83ce7",
+        "receiptPath": "pack/acceptance-evidence/verify-32-setup-1c7b683a-1a9a-4c3e-8028-58a3cbfd8b08.json",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 13,
+            "passed": 13,
+            "failed": 0
+          }
+        ],
+        "mutations": []
+      },
+      "check": {
+        "pass": true,
+        "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "receipt": "verify-32-check-ea4de81c-e9ae-4c8e-9439-7be484eec755.json",
+        "receiptDigest": "sha256:dcf1e4a0af7b7d0f0fd6575ebfa700eb2843860b1d7da4042ec4ef23460136cc",
+        "scriptDigest": "sha256:6595b4490fe0976bce47e314fa869cafa29454cf253bb0b4af7a65d26a7fa40c",
+        "receiptPath": "pack/acceptance-evidence/verify-32-check-ea4de81c-e9ae-4c8e-9439-7be484eec755.json",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 13,
+            "passed": 13,
+            "failed": 0
+          },
+          {
+            "kind": "candidate",
+            "total": 4,
+            "passed": 4,
+            "failed": 0
+          }
+        ],
+        "mutations": [
+          {
+            "name": "cancelled-preview-resolves-successfully",
+            "sourceSha256": "0fc78bdc4c0c64003240f870ab9c638f48b2cd04aedf58416cb7bbcbca284b1d",
+            "total": 4,
+            "passed": 0,
+            "failed": 4
+          }
+        ]
+      },
+      "broker": {
+        "physicalRequestsStarted": 11,
+        "usageCompleteRequests": 11,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "observedUsage": {
+        "input_tokens": 58952,
+        "output_tokens": 17219,
+        "cache_read_input_tokens": 84224
+      }
+    },
+    {
+      "sampleId": "verify-15",
+      "group": "linux-jetbrains",
+      "cellId": "linux-jetbrains-verify-15",
+      "accepted": false,
+      "candidateAcceptancePassed": false,
+      "generationPassed": true,
+      "sourceScopePassed": true,
+      "deliveryAvailable": true,
+      "acceptanceAvailable": true,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "setup": {
+        "pass": true,
+        "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "receipt": "verify-15-setup-79cc6a53-50b2-46fd-9cdb-0a6915fe9989.json",
+        "receiptDigest": "sha256:7a6a8b0ee54f22d63b99ab11be5bcdd04f6213bc3e0a4c6be2dfca68b8853a06",
+        "scriptDigest": "sha256:4e931639bbcd401983acba88743f4faa971e77c8cd9774ee1cf8e9c79d0924b9",
+        "receiptPath": "pack/acceptance-evidence/verify-15-setup-79cc6a53-50b2-46fd-9cdb-0a6915fe9989.json",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 12,
+            "passed": 12,
+            "failed": 0
+          }
+        ],
+        "mutations": []
+      },
+      "check": {
+        "pass": false,
+        "detail": "candidate or baseline regression failed",
+        "receipt": "verify-15-check-66accced-82c3-4d52-9f49-e3629dcf803f.json",
+        "receiptDigest": "sha256:1cbd38d758505630db56f39a3ab8795106253d79cd41306f6aef43f4e07b826f",
+        "scriptDigest": "sha256:e630699948d2d7e76005b43174eed0d67fdab83f84c4af8e6cdc7e2939372126",
+        "receiptPath": "pack/acceptance-evidence/verify-15-check-66accced-82c3-4d52-9f49-e3629dcf803f.json",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 12,
+            "passed": 12,
+            "failed": 0
+          }
+        ],
+        "mutations": []
+      },
+      "broker": {
+        "physicalRequestsStarted": 10,
+        "usageCompleteRequests": 10,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "observedUsage": {
+        "input_tokens": 82653,
+        "output_tokens": 10722,
+        "cache_read_input_tokens": 116992
+      }
+    },
+    {
+      "sampleId": "verify-33",
+      "group": "linux-jetbrains",
+      "cellId": "linux-jetbrains-verify-33",
+      "accepted": false,
+      "candidateAcceptancePassed": false,
+      "generationPassed": false,
+      "sourceScopePassed": true,
+      "deliveryAvailable": true,
+      "acceptanceAvailable": true,
+      "modelFailure": "agent-error",
+      "modelError": "volcengine API error: HTTP 403 — DIAGNOSTIC_REQUEST_NOT_DISPATCHED.",
+      "modelResultSubtype": "error",
+      "error": null,
+      "setup": {
+        "pass": true,
+        "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "receipt": "verify-33-setup-6f6dc180-9f41-4fda-a96a-608738b04a82.json",
+        "receiptDigest": "sha256:637b7db6e1d7897ca575abb8c36a2a133e3eb536ed9a741dec96ed6d41fc0298",
+        "scriptDigest": "sha256:ac5df6901aac080b9093976160085eb02bf01a87b51ac4de8ec159806bed47e6",
+        "receiptPath": "pack/acceptance-evidence/verify-33-setup-6f6dc180-9f41-4fda-a96a-608738b04a82.json",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 18,
+            "passed": 18,
+            "failed": 0
+          }
+        ],
+        "mutations": []
+      },
+      "check": {
+        "pass": false,
+        "detail": "acceptance requires executed test cases",
+        "receipt": "verify-33-check-3ab1d7c9-4063-4e48-8025-1ba2d2b87cce.json",
+        "receiptDigest": "sha256:2505fe7bf08bc4ea7324dc70bbaa0c0c8f47deb8ff67974aeba9962b6bd17e2d",
+        "scriptDigest": "sha256:ab333a49c15553333545c1a972ab9860ef8bf7de5118b55b55903b4c5747f706",
+        "receiptPath": "pack/acceptance-evidence/verify-33-check-3ab1d7c9-4063-4e48-8025-1ba2d2b87cce.json",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 18,
+            "passed": 18,
+            "failed": 0
+          }
+        ],
+        "mutations": []
+      },
+      "broker": {
+        "physicalRequestsStarted": 6,
+        "usageCompleteRequests": 5,
+        "passed": false,
+        "poisoned": null,
+        "errorCode": "DIAGNOSTIC_REQUEST_NOT_DISPATCHED"
+      },
+      "observedUsage": {
+        "input_tokens": 22324,
+        "output_tokens": 354,
+        "cache_read_input_tokens": 36864
+      }
+    },
+    {
+      "sampleId": "first-run-darwin-cli",
+      "group": "darwin-cli",
+      "cellId": "darwin-cli-first-run-darwin-cli",
+      "accepted": false,
+      "candidateAcceptancePassed": false,
+      "generationPassed": false,
+      "sourceScopePassed": true,
+      "deliveryAvailable": true,
+      "acceptanceAvailable": true,
+      "modelFailure": "agent-error",
+      "modelError": "Repeated file reads or identical large command outputs: the model did not resume the task after six no-progress batches and recovery guidance. The task is not complete. Use a targeted section or compute a bounded summary before retrying.",
+      "modelResultSubtype": "error",
+      "error": null,
+      "setup": {
+        "pass": true,
+        "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "receipt": "verify-07-setup-d8c957f4-cb69-4f9b-9451-14af0c5c1dbf.json",
+        "receiptDigest": "sha256:a42e2a960d6b63607ec728dad9e4dc4fa188efd93985e438e6e0c1a7f0a8b802",
+        "scriptDigest": "sha256:950880ded0874cae94eb828c8b0c291f81447f2c628e0a7177020ebbdda48999",
+        "receiptPath": "pack/acceptance-evidence/verify-07-setup-d8c957f4-cb69-4f9b-9451-14af0c5c1dbf.json",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 39,
+            "passed": 39,
+            "failed": 0
+          }
+        ],
+        "mutations": []
+      },
+      "check": {
+        "pass": false,
+        "detail": "acceptance requires executed test cases",
+        "receipt": "verify-07-check-5b1df1e7-8b29-46f3-8952-3a155636ac49.json",
+        "receiptDigest": "sha256:c687198f2b2fc212fd49e167b80a7bc9f0a936c394ee089a99ec85e5da107eaf",
+        "scriptDigest": "sha256:6b2f6509219d4c0fbcf82fb6cb54de815af27aa2c997e2fc9b1badd709a77b0c",
+        "receiptPath": "pack/acceptance-evidence/verify-07-check-5b1df1e7-8b29-46f3-8952-3a155636ac49.json",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 39,
+            "passed": 39,
+            "failed": 0
+          }
+        ],
+        "mutations": []
+      },
+      "broker": {
+        "physicalRequestsStarted": 16,
+        "usageCompleteRequests": 16,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "observedUsage": {
+        "input_tokens": 105329,
+        "output_tokens": 5356,
+        "cache_read_input_tokens": 94464
+      }
+    },
+    {
+      "sampleId": "verify-07",
+      "group": "darwin-cli",
+      "cellId": "darwin-cli-verify-07",
+      "accepted": false,
+      "candidateAcceptancePassed": false,
+      "generationPassed": true,
+      "sourceScopePassed": true,
+      "deliveryAvailable": true,
+      "acceptanceAvailable": true,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "setup": {
+        "pass": true,
+        "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "receipt": "verify-07-setup-3b7a8210-d068-4b55-8cea-cad3a83fd4a2.json",
+        "receiptDigest": "sha256:cfaa2f7a2b5d1e247e47517338bc2410bdd168528816b9fe496e97a329bfb5d8",
+        "scriptDigest": "sha256:950880ded0874cae94eb828c8b0c291f81447f2c628e0a7177020ebbdda48999",
+        "receiptPath": "pack/acceptance-evidence/verify-07-setup-3b7a8210-d068-4b55-8cea-cad3a83fd4a2.json",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 39,
+            "passed": 39,
+            "failed": 0
+          }
+        ],
+        "mutations": []
+      },
+      "check": {
+        "pass": false,
+        "detail": "candidate tests did not reject the behavioral mutant",
+        "receipt": "verify-07-check-1ad724a8-724f-4c81-8d60-39915ddec16c.json",
+        "receiptDigest": "sha256:f1c1c392bc72033876ae11e6a2d398f22922c4694f4b3ceeceabefd84a15023b",
+        "scriptDigest": "sha256:6b2f6509219d4c0fbcf82fb6cb54de815af27aa2c997e2fc9b1badd709a77b0c",
+        "receiptPath": "pack/acceptance-evidence/verify-07-check-1ad724a8-724f-4c81-8d60-39915ddec16c.json",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 39,
+            "passed": 39,
+            "failed": 0
+          },
+          {
+            "kind": "candidate",
+            "total": 3,
+            "passed": 3,
+            "failed": 0
+          }
+        ],
+        "mutations": [
+          {
+            "name": "repeat-before-cursor-boundary",
+            "sourceSha256": "c18d8ec76cb2a921bc3e4e59b6bb6f89b9eaef805cc63b4db104efa93f097118",
+            "total": 3,
+            "passed": 0,
+            "failed": 3
+          }
+        ]
+      },
+      "broker": {
+        "physicalRequestsStarted": 37,
+        "usageCompleteRequests": 37,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "observedUsage": {
+        "input_tokens": 335198,
+        "output_tokens": 20840,
+        "cache_read_input_tokens": 291072
+      }
+    },
+    {
+      "sampleId": "first-run-darwin-vscode",
+      "group": "darwin-vscode",
+      "cellId": "darwin-vscode-first-run-darwin-vscode",
+      "accepted": false,
+      "candidateAcceptancePassed": false,
+      "generationPassed": true,
+      "sourceScopePassed": true,
+      "deliveryAvailable": true,
+      "acceptanceAvailable": true,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "setup": {
+        "pass": true,
+        "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "receipt": "verify-08-setup-36d5f000-ac67-434b-a965-b3a34f4816f4.json",
+        "receiptDigest": "sha256:13bfc396eb7ffceb1f69d408567861cac53eff6418e5f7dc0c548496e6828382",
+        "scriptDigest": "sha256:bf07183bf170c29dc8c334e1f69747425830b41566105657870750529f66c8e5",
+        "receiptPath": "pack/acceptance-evidence/verify-08-setup-36d5f000-ac67-434b-a965-b3a34f4816f4.json",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 58,
+            "passed": 58,
+            "failed": 0
+          }
+        ],
+        "mutations": []
+      },
+      "check": {
+        "pass": false,
+        "detail": "candidate or baseline regression failed",
+        "receipt": "verify-08-check-9f80366a-9d0e-4ea6-afd5-9b6b286664c8.json",
+        "receiptDigest": "sha256:85d612c1422a180a874c80a81f6a9db60898443e7e35f389c15c15185face001",
+        "scriptDigest": "sha256:95d1860b898071fcd1631194118ce5019615be5bb9600e77e673e0c89595d534",
+        "receiptPath": "pack/acceptance-evidence/verify-08-check-9f80366a-9d0e-4ea6-afd5-9b6b286664c8.json",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 58,
+            "passed": 58,
+            "failed": 0
+          }
+        ],
+        "mutations": []
+      },
+      "broker": {
+        "physicalRequestsStarted": 31,
+        "usageCompleteRequests": 31,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "observedUsage": {
+        "input_tokens": 303887,
+        "output_tokens": 27014,
+        "cache_read_input_tokens": 218112,
+        "cache_creation_input_tokens": 0
+      }
+    },
+    {
+      "sampleId": "verify-08",
+      "group": "darwin-vscode",
+      "cellId": "darwin-vscode-verify-08",
+      "accepted": false,
+      "candidateAcceptancePassed": false,
+      "generationPassed": true,
+      "sourceScopePassed": true,
+      "deliveryAvailable": true,
+      "acceptanceAvailable": true,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "setup": {
+        "pass": true,
+        "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "receipt": "verify-08-setup-dc755fb2-b5c7-456f-bb85-0b07372254d8.json",
+        "receiptDigest": "sha256:ec0550bb98605fc5be23611bf063545f678b1556b0550ca0d29b08c0c2f104fc",
+        "scriptDigest": "sha256:bf07183bf170c29dc8c334e1f69747425830b41566105657870750529f66c8e5",
+        "receiptPath": "pack/acceptance-evidence/verify-08-setup-dc755fb2-b5c7-456f-bb85-0b07372254d8.json",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 58,
+            "passed": 58,
+            "failed": 0
+          }
+        ],
+        "mutations": []
+      },
+      "check": {
+        "pass": false,
+        "detail": "acceptance requires executed test cases",
+        "receipt": "verify-08-check-8c37dd61-58d2-4e2f-935d-05ee6534b0aa.json",
+        "receiptDigest": "sha256:6319225e2d3d5e22011385134a8bcbc161e6efd1650ccc68fa4d603dabfa44ae",
+        "scriptDigest": "sha256:95d1860b898071fcd1631194118ce5019615be5bb9600e77e673e0c89595d534",
+        "receiptPath": "pack/acceptance-evidence/verify-08-check-8c37dd61-58d2-4e2f-935d-05ee6534b0aa.json",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 58,
+            "passed": 58,
+            "failed": 0
+          }
+        ],
+        "mutations": []
+      },
+      "broker": {
+        "physicalRequestsStarted": 41,
+        "usageCompleteRequests": 41,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "observedUsage": {
+        "input_tokens": 383275,
+        "output_tokens": 43165,
+        "cache_read_input_tokens": 305152,
+        "cache_creation_input_tokens": 0
+      }
+    },
+    {
+      "sampleId": "verify-36",
+      "group": "darwin-jetbrains",
+      "cellId": "darwin-jetbrains-verify-36",
+      "accepted": false,
+      "candidateAcceptancePassed": false,
+      "generationPassed": true,
+      "sourceScopePassed": true,
+      "deliveryAvailable": true,
+      "acceptanceAvailable": true,
+      "modelFailure": null,
+      "modelError": null,
+      "modelResultSubtype": "success",
+      "error": null,
+      "setup": {
+        "pass": true,
+        "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "receipt": "verify-36-setup-de93ab6b-bbd3-4db3-966d-800ed7330521.json",
+        "receiptDigest": "sha256:ba3784e8d65bb2f7cf3a5ed65c87a44532bcd6b31b50e17e8c730476438ca617",
+        "scriptDigest": "sha256:6efa449e9cfe276ec3f5b9e65dbb296f86057e68d798db94198f1906c74ace31",
+        "receiptPath": "pack/acceptance-evidence/verify-36-setup-de93ab6b-bbd3-4db3-966d-800ed7330521.json",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 7,
+            "passed": 7,
+            "failed": 0
+          }
+        ],
+        "mutations": []
+      },
+      "check": {
+        "pass": false,
+        "detail": "acceptance requires executed test cases",
+        "receipt": "verify-36-check-8e135b47-17c5-48d6-9e6c-9f4595fb3e24.json",
+        "receiptDigest": "sha256:f25f6645b6bec4448dc2294994342c83da5656390b5440075527aeb01cbedc70",
+        "scriptDigest": "sha256:b4fb49de1004157ab7f55859f1a6a878fe0c13ab5cb67d6b3d6f49bfc26f03be",
+        "receiptPath": "pack/acceptance-evidence/verify-36-check-8e135b47-17c5-48d6-9e6c-9f4595fb3e24.json",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 7,
+            "passed": 7,
+            "failed": 0
+          }
+        ],
+        "mutations": []
+      },
+      "broker": {
+        "physicalRequestsStarted": 39,
+        "usageCompleteRequests": 39,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "observedUsage": {
+        "input_tokens": 338470,
+        "output_tokens": 39179,
+        "cache_read_input_tokens": 356352,
+        "cache_creation_input_tokens": 0
+      }
+    }
+  ]
+}

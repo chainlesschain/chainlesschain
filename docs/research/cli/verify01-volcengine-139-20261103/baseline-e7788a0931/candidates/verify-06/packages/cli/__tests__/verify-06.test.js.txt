@@ -1,0 +1,76 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { Command } from "commander";
+
+// The command dynamically builds an Orchestrator and calls addTask on it. We
+// keep the REAL Orchestrator (so the paid-decomposition pre-check boundary
+// runs unchanged) but capture the constructed instance in order to attach
+// decomposition / notification spies after the command has created it.
+import * as realOrch from "../src/lib/orchestrator.js";
+
+const createdInstances = [];
+vi.mock("../src/lib/orchestrator.js", async (importActual) => {
+  const actual = await importActual();
+  return {
+    ...actual,
+    Orchestrator: class extends actual.Orchestrator {
+      constructor(...args) {
+        super(...args);
+        createdInstances.push(this);
+      }
+    },
+  };
+});
+
+// Import AFTER the mock is registered so orchestrate.js picks up the subclass.
+const { registerOrchestrateCommand } = await import(
+  "../src/commands/orchestrate.js"
+);
+
+function buildProgram() {
+  const program = new Command();
+  program.exitOverride();
+  program.configureOutput({
+    writeOut: () => {},
+    writeErr: () => {},
+  });
+  return program;
+}
+
+/** Run the orchestrate command for a backend, returning the rejected/err and the captured instance. */
+async function runOrchestrate(backendArg) {
+  const program = buildProgram();
+  registerOrchestrateCommand(program, {});
+  const cmd = program.commands.find((c) => c.name() === "orchestrate");
+  const args = ["run", "--backends", backendArg, "fix the bug"];
+  let err = null;
+  try {
+    await cmd.parseAsync(args, { from: "user" });
+  } catch (e) {
+    err = e;
+  }
+  return { err, orch: createdInstances[createdInstances.length - 1] };
+}
+
+describe("orchestrate: paid-decomposition pre-check", () => {
+  beforeEach(() => {
+    createdInstances.length = 0;
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("rejects a CLI-only backend before decomposition and before notification", async () => {
+    const { err, orch } = await runOrchestrate("claude");
+    expect(err).toBeTruthy();
+    // The real Orchestrator's pre-check rejects unattested CLI-only backends.
+    expect(err && err.code).toBe(
+      "AGENT_ROUTER_EXTERNAL_MODEL_INGRESS_UNATTESTED",
+    );
+    const decompose = vi.spyOn(orch, "_decompose");
+    const notifyStart = vi.spyOn(orch.notifier, "notifyStart");
+    expect(decompose).not.toHaveBeenCalled();
+    expect(notifyStart).not.toHaveBeenCalled();
+    // No task record is retained after pre-check rejection.
+    expect(orch._tasks.size).toBe(0);
+  });
+});

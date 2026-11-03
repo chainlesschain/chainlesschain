@@ -1,0 +1,16 @@
+{
+  "runId": 41574308573,
+  "source": "98bf47be5a72442cc7e2655dfbf3aebb7770d409",
+  "linuxJetbrains06": {
+    "physicalRequests": 0,
+    "cause": "Java UI driver rejected expanded deadline under its old 20-minute assertion",
+    "retryEligible": true
+  },
+  "darwinCli07": {
+    "physicalRequests": 17,
+    "errorCode": "DIAGNOSTIC_OUTPUT_TRUNCATED",
+    "outputTokens": 8192,
+    "retryEligible": false
+  },
+  "historicalEvidencePreserved": true
+}

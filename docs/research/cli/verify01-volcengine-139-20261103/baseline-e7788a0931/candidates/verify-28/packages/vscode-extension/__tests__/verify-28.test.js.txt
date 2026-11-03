@@ -1,0 +1,158 @@
+import { afterEach, describe, expect, it } from "vitest";
+import { randomUUID } from "node:crypto";
+import { Window } from "happy-dom";
+import { buildChatHtml } from "../src/chat/chat-html.js";
+
+const cleanups = [];
+afterEach(async () => {
+  for (const fn of cleanups.splice(0).reverse()) await fn();
+});
+
+/** Drives createQuestionForms through the same Webview message loop the host uses. */
+function ui(backup = {}) {
+  const window = new Window({
+    settings: {
+      enableJavaScriptEvaluation: true,
+      disableCSSFileLoading: true,
+      disableJavaScriptFileLoading: true,
+    },
+  });
+  cleanups.push(() => window.happyDOM.abort());
+  const sent = [];
+  let state = backup;
+  window.acquireVsCodeApi = () => ({
+    postMessage: (m) => sent.push(m),
+    getState: () => state,
+    setState: (v) => {
+      state = v;
+    },
+  });
+  window.document.write(
+    buildChatHtml({ nonce: "n", cspSource: "vscode-resource:" }),
+  );
+  const emit = (data) =>
+    window.dispatchEvent(new window.MessageEvent("message", { data }));
+  const card = (q) =>
+    window.document.getElementById("q-" + q.questionInstance);
+  return { window, sent, emit, card };
+}
+
+// Declaration order: select (color) then checkbox (consent).
+const schema = {
+  type: "object",
+  properties: {
+    color: { type: "string", enum: ["red", "blue"] },
+    consent: { type: "boolean" },
+  },
+};
+
+function question(overrides = {}) {
+  return {
+    kind: "question",
+    id: "q-1",
+    questionInstance: "inst-" + randomUUID(),
+    questionKey: "key-1",
+    draftKey: "dk-1",
+    convId: "c-1",
+    draftStorage: true,
+    questionState: "draft",
+    elicitation: true,
+    requestedSchema: schema,
+    ...overrides,
+  };
+}
+
+function snapshot(inst, fields) {
+  return {
+    kind: "questionDraftSnapshot",
+    id: "q-1",
+    questionInstance: inst,
+    questionKey: "key-1",
+    draftKey: "dk-1",
+    convId: "c-1",
+    state: "draft",
+    fields,
+  };
+}
+
+function controls(view, inst) {
+  const card = view.card({ questionInstance: inst });
+  return {
+    select: card.querySelectorAll("select")[0],
+    checkbox: card.querySelectorAll('input[type="checkbox"]')[0],
+  };
+}
+
+const staleFields = [
+  { key: "color", value: "blue" },
+  { key: "consent", value: false },
+];
+
+describe("late draft load never overwrites a fresh select/checkbox edit", () => {
+  it("restores select and checkbox from an early snapshot in declaration order", () => {
+    const view = ui();
+    const q = question();
+    view.emit(q);
+    const { select, checkbox } = controls(view, q.questionInstance);
+    // Not dirty yet -> an admissible snapshot must be applied, color then consent.
+    view.emit(
+      snapshot(q.questionInstance, [
+        { key: "color", value: "blue" },
+        { key: "consent", value: true },
+      ]),
+    );
+    expect(select.value).toBe("blue");
+    expect(checkbox.checked).toBe(true);
+  });
+
+  it("captures select and checkbox edits in declaration order", () => {
+    const view = ui();
+    const q = question();
+    view.emit(q);
+    const { select, checkbox } = controls(view, q.questionInstance);
+    select.value = "red";
+    select.dispatchEvent(new view.window.Event("change"));
+    checkbox.checked = true;
+    checkbox.dispatchEvent(new view.window.Event("change"));
+    const update = view.sent.find((m) => m.type === "questionDraftUpdate");
+    expect(update.fields).toEqual([
+      { key: "color", value: "red" },
+      { key: "consent", value: true },
+    ]);
+  });
+
+  it("a late snapshot does not overwrite a select/checkbox edit already made", () => {
+    const view = ui();
+    const q = question();
+    view.emit(q);
+    const { select, checkbox } = controls(view, q.questionInstance);
+    select.value = "red";
+    select.dispatchEvent(new view.window.Event("change"));
+    checkbox.checked = true;
+    checkbox.dispatchEvent(new view.window.Event("change"));
+    view.emit(snapshot(q.questionInstance, staleFields));
+    expect(select.value).toBe("red");
+    expect(checkbox.checked).toBe(true);
+  });
+
+  it("keeps an edit typed after an early restore when a later snapshot arrives", () => {
+    const view = ui();
+    const q = question();
+    view.emit(q);
+    view.emit(
+      snapshot(q.questionInstance, [
+        { key: "color", value: "blue" },
+        { key: "consent", value: false },
+      ]),
+    );
+    const { select, checkbox } = controls(view, q.questionInstance);
+    expect(select.value).toBe("blue"); // restore applied
+    select.value = "red";
+    select.dispatchEvent(new view.window.Event("change"));
+    checkbox.checked = true;
+    checkbox.dispatchEvent(new view.window.Event("change"));
+    view.emit(snapshot(q.questionInstance, staleFields));
+    expect(select.value).toBe("red");
+    expect(checkbox.checked).toBe(true);
+  });
+});

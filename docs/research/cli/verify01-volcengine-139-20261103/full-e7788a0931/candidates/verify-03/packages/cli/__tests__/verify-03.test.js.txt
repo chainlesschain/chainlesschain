@@ -1,0 +1,109 @@
+import { describe, it, expect } from "vitest";
+import {
+  lookupRate,
+  estimateCost,
+  priceRollup,
+} from "../src/lib/llm-pricing.js";
+
+// verify-03 — "new family unknown pricing".
+//
+// Independent behavioral contract: a model id belonging to a NEWER family
+// version than the price table knows must NOT silently inherit an older
+// family rate. It must come back unpriced (lookupRate → null; estimateCost →
+// matched:false, zero cost; priceRollup → listed under `unpriced`). A known
+// model that the table actually prices must keep working as a positive control.
+//
+// The relevant built-in guard lives in lookupRate(): the generic anthropic
+// "opus" catch-all rejects claude-opus-N for N >= 5 (that tier dropped to a
+// new price the table does not yet contain), so such ids fall through to null
+// instead of being billed at the retired or current $5/$25 family rate.
+
+describe("verify-03 — new family unknown pricing", () => {
+  it("new Opus family ids are unpriced, not billed at an old family rate", () => {
+    // Negative control: a future claude-opus-N (N >= 5) must not inherit the
+    // generic "opus" rate — it falls through the opus guard to null.
+    expect(lookupRate("anthropic", "claude-opus-5-2026")).toBeNull();
+    expect(lookupRate("anthropic", "claude-opus-6-preview")).toBeNull();
+  });
+
+  it("known Opus snapshots still price at their own dated rate", () => {
+    // Positive controls reaching the same opus-guard boundary with the
+    // prerequisite N < 5 valid, so a "null" is NOT caused by the guard alone.
+    expect(lookupRate("anthropic", "claude-opus-4-1-20250805")).toMatchObject({
+      in: 15,
+      out: 75,
+    });
+    expect(lookupRate("anthropic", "claude-opus-4-5-20251101")).toMatchObject({
+      in: 5,
+      out: 25,
+    });
+  });
+
+  it("a brand-new OpenAI family id does not inherit the old GPT family price", () => {
+    // Negative: gpt-6 does not substring-match any GPT pattern → unpriced.
+    expect(lookupRate("openai", "gpt-6-preview")).toBeNull();
+    // Positive control: the known gpt-5 base family is still priced.
+    expect(lookupRate("openai", "gpt-5")).toMatchObject({ in: 1.25, out: 10 });
+  });
+
+  it("estimateCost surfaces a new-family model as unmatched zero cost", () => {
+    // Negative: new Opus family usage is not guessed; it bills $0 and is
+    // reported matched:false so the caller can surface it as unpriced.
+    const c = estimateCost({
+      provider: "anthropic",
+      model: "claude-opus-5-preview",
+      inputTokens: 1000,
+      outputTokens: 1000,
+    });
+    expect(c.matched).toBe(false);
+    expect(c.totalCost).toBe(0);
+    expect(c.rate).toBeNull();
+    // Positive control: known family usage still bills normally.
+    const known = estimateCost({
+      provider: "anthropic",
+      model: "claude-sonnet-4-6",
+      inputTokens: 1_000_000,
+      outputTokens: 1_000_000,
+    });
+    expect(known.matched).toBe(true);
+    expect(known.totalCost).toBeCloseTo(18, 6);
+  });
+
+  it("priceRollup lists a new-family model as unpriced, excluding its tokens", () => {
+    // Negative: the new family row lands in `unpriced` and contributes no cost.
+    const r = priceRollup({
+      total: { inputTokens: 0, outputTokens: 0, totalTokens: 0, calls: 0 },
+      byModel: [
+        {
+          provider: "anthropic",
+          model: "claude-opus-7-future",
+          inputTokens: 500,
+          outputTokens: 500,
+          totalTokens: 1000,
+          calls: 1,
+        },
+      ],
+    });
+    expect(r.cost.totalCost).toBe(0);
+    expect(r.cost.unpricedCount).toBe(1);
+    expect(r.unpriced).toEqual([
+      { provider: "anthropic", model: "claude-opus-7-future", totalTokens: 1000 },
+    ]);
+    // Positive control: a priced known model is not listed as unpriced.
+    const priced = priceRollup({
+      total: {},
+      byModel: [
+        {
+          provider: "anthropic",
+          model: "claude-sonnet-4-6",
+          inputTokens: 1_000_000,
+          outputTokens: 0,
+          totalTokens: 1_000_000,
+          calls: 1,
+        },
+      ],
+    });
+    expect(priced.cost.totalCost).toBeCloseTo(3, 6);
+    expect(priced.cost.unpricedCount).toBe(0);
+  });
+});

@@ -1,0 +1,129 @@
+import { describe, expect, it } from "vitest";
+import { resolveModelCapabilityProfile } from "../src/lib/model-capabilities.js";
+
+// Official endpoint so that the documented-model branch can apply; only the
+// model identity is varied between the positive and negative control of each
+// condition, keeping every other prerequisite valid.
+const OFFICIAL_OPENAI = { provider: "openai", baseUrl: "https://api.openai.com/v1" };
+
+function probe(model) {
+  return resolveModelCapabilityProfile({ ...OFFICIAL_OPENAI, model });
+}
+
+describe("exact model capability lookup: Astra/Sol/Luna and unknown suffixes", () => {
+  it("identifies gpt-6-astra exactly and does not certify a suffixed variant", () => {
+    const positive = probe("gpt-6-astra");
+    expect(positive).toMatchObject({
+      model: "gpt-6-astra",
+      contextWindowTokens: 1050000,
+      windowSource: "official-model-docs",
+      windowAssumed: false,
+      runtimeProtocol: "openai-responses",
+      advertisedMaxOutputTokens: 128000,
+    });
+    expect(positive.sources).not.toEqual([]);
+
+    // Change only the model to an unknown suffix.
+    const negative = probe("gpt-6-astra-custom");
+    expect(negative).toMatchObject({
+      model: "gpt-6-astra-custom",
+      contextWindowTokens: 128000,
+      windowSource: "provider-default",
+      windowAssumed: true,
+      runtimeProtocol: "chat-completions",
+      advertisedMaxOutputTokens: null,
+      sources: [],
+    });
+    expect(negative.runtimeProtocol).not.toBe("openai-responses");
+  });
+
+  it("identifies gpt-6-sol exactly and does not certify a suffixed variant", () => {
+    const positive = probe("gpt-6-sol");
+    expect(positive).toMatchObject({
+      model: "gpt-6-sol",
+      contextWindowTokens: 1050000,
+      windowSource: "official-model-docs",
+      windowAssumed: false,
+      runtimeProtocol: "openai-responses",
+      advertisedMaxOutputTokens: 128000,
+    });
+
+    const negative = probe("gpt-6-sol-pro");
+    expect(negative).toMatchObject({
+      model: "gpt-6-sol-pro",
+      windowSource: "provider-default",
+      windowAssumed: true,
+      runtimeProtocol: "chat-completions",
+      advertisedMaxOutputTokens: null,
+      sources: [],
+    });
+    expect(negative.runtimeProtocol).not.toBe("openai-responses");
+  });
+
+  it("identifies gpt-6-luna exactly and does not certify a suffixed variant", () => {
+    const positive = probe("gpt-6-luna");
+    expect(positive).toMatchObject({
+      model: "gpt-6-luna",
+      contextWindowTokens: 1050000,
+      windowSource: "official-model-docs",
+      windowAssumed: false,
+      runtimeProtocol: "openai-responses",
+      advertisedMaxOutputTokens: 128000,
+    });
+
+    const negative = probe("gpt-6-luna-2");
+    expect(negative).toMatchObject({
+      model: "gpt-6-luna-2",
+      windowSource: "provider-default",
+      windowAssumed: true,
+      runtimeProtocol: "chat-completions",
+      advertisedMaxOutputTokens: null,
+      sources: [],
+    });
+    expect(negative.runtimeProtocol).not.toBe("openai-responses");
+  });
+
+  it("keeps model identity case-exact: casing change loses the certified lookup", () => {
+    expect(probe("gpt-6-astra").runtimeProtocol).toBe("openai-responses");
+
+    // Only the casing changes; nothing else is varied.
+    const negative = probe("GPT-6-ASTRA");
+    expect(negative).toMatchObject({
+      model: "GPT-6-ASTRA",
+      windowSource: "provider-default",
+      windowAssumed: true,
+      runtimeProtocol: "chat-completions",
+      advertisedMaxOutputTokens: null,
+      sources: [],
+    });
+    expect(negative.runtimeProtocol).not.toBe("openai-responses");
+  });
+
+  it("keeps model identity whitespace-exact: padding loses the certified lookup", () => {
+    expect(probe("gpt-6-sol").runtimeProtocol).toBe("openai-responses");
+
+    const negative = probe(" gpt-6-sol");
+    expect(negative).toMatchObject({
+      model: " gpt-6-sol",
+      windowSource: "provider-default",
+      windowAssumed: true,
+      runtimeProtocol: "chat-completions",
+      advertisedMaxOutputTokens: null,
+      sources: [],
+    });
+    expect(negative.runtimeProtocol).not.toBe("openai-responses");
+  });
+
+  it("does not treat an arbitrary derived id as a certified tool model", () => {
+    const profile = probe("gpt-6-astra-explorer");
+    expect(profile).toMatchObject({
+      model: "gpt-6-astra-explorer",
+      windowSource: "provider-default",
+      windowAssumed: true,
+      runtimeProtocol: "chat-completions",
+      advertisedMaxOutputTokens: null,
+      sources: [],
+    });
+    expect(profile.runtimeProtocol).not.toBe("openai-responses");
+  });
+});

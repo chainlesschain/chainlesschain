@@ -1,0 +1,63 @@
+{
+  "version": "0.166.139",
+  "tarballDigest": "sha256:dd1fea339b5b8e4d869c5f9dacf037e92474fb8b2ec268b80856767124782116",
+  "files": [
+    {
+      "path": "src/runtime/agent-core.js",
+      "digest": "sha256:94b7f87da211a53738bc18496d8821dacf8108983c11ffe9be57acb4d43513f5",
+      "matchesWorkspace": true
+    },
+    {
+      "path": "src/lib/provider-options.js",
+      "digest": "sha256:116c24b84fc5c70acce35c8ac3e656ed4d0783f1cc6ae57323922414bb64dfef",
+      "matchesWorkspace": true
+    },
+    {
+      "path": "src/lib/model-capabilities.js",
+      "digest": "sha256:3153beb805ac7e044fb77e1594d39c140a55c5585067db49f111d5f92a35e865",
+      "matchesWorkspace": true
+    },
+    {
+      "path": "src/lib/llm-connection-resolution.js",
+      "digest": "sha256:acd37f1cb504c325d7b3e547ce3227bc56adf3c1f1d80c335bbfefab9bf0ef40",
+      "matchesWorkspace": true
+    },
+    {
+      "path": "src/lib/provider-stream.js",
+      "digest": "sha256:61dab2adfe95db159346d6eb4ce85292da90a8a73354c40a9b5cd828721a9223",
+      "matchesWorkspace": true
+    }
+  ],
+  "scope": "Published .139 source byte matched; offline real chatWithTools request capture; zero network or paid inference",
+  "cases": [
+    {
+      "name": "json-default",
+      "stream": false,
+      "maxTokensPresent": false,
+      "maxTokens": null,
+      "mockedCompletionTokens": 20000
+    },
+    {
+      "name": "sse-default",
+      "stream": true,
+      "maxTokensPresent": false,
+      "maxTokens": null,
+      "mockedCompletionTokens": 20000
+    },
+    {
+      "name": "json-explicit-model-maximum",
+      "stream": false,
+      "maxTokensPresent": true,
+      "maxTokens": 393216,
+      "mockedCompletionTokens": 20000
+    },
+    {
+      "name": "sse-explicit-model-maximum",
+      "stream": true,
+      "maxTokensPresent": true,
+      "maxTokens": 393216,
+      "mockedCompletionTokens": 20000
+    }
+  ],
+  "passed": true
+}

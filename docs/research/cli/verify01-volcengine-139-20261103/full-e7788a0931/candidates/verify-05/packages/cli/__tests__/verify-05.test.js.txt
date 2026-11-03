@@ -1,0 +1,103 @@
+/**
+ * Verify-05: Install/attestation separation in AgentRouter.dispatch.
+ *
+ * Acceptance:
+ *   - An installed-but-unattested CLI backend is still refused for dispatch
+ *     (AGENT_ROUTER_EXTERNAL_MODEL_INGRESS_UNATTESTED).
+ *   - A usable API backend is preserved (dispatch resolves via the API path).
+ *
+ * The ingress module brands ingress objects through a module-private set, so
+ * we stub captureAgentEvolutionIngress to a passing value. That keeps the
+ * ingress preflight green for every backend so the only differing guard between
+ * the positive and negative controls is the `!backend.isCLI` filter under test.
+ */
+
+import { describe, it, expect, vi } from "vitest";
+
+vi.mock("../src/lib/evolution/agent-evolution-ingress.js", async (importActual) => {
+  const actual = await importActual();
+  return {
+    ...actual,
+    captureAgentEvolutionIngress: vi.fn(() => ({ tenantId: "verify-05" })),
+  };
+});
+
+import { AgentRouter, BACKEND_TYPE, AGENT_ROUTER_ERROR } from "../src/lib/agent-router.js";
+
+/** Build an AgentRouter with pre-resolved backends (bypasses real CLI detection). */
+function makeRouter(backends, strategy = "round-robin") {
+  const router = new AgentRouter({ backends: [], strategy, maxParallel: 3 });
+  router._backends = backends;
+  return router;
+}
+
+function cliBackend(type = BACKEND_TYPE.CLAUDE) {
+  return { type, isCLI: true, weight: 1, timeout: 300_000 };
+}
+
+function apiBackend(type = BACKEND_TYPE.GEMINI) {
+  return {
+    type,
+    isCLI: false,
+    weight: 1,
+    provider: type,
+    model: null,
+    apiKey: null,
+    baseUrl: null,
+    timeout: 60_000,
+  };
+}
+
+describe("verify-05: install/attestation separation in AgentRouter.dispatch", () => {
+  const ingress = { token: "branded" };
+
+  it("preserves a usable API backend: dispatch resolves with results", async () => {
+    const router = makeRouter([apiBackend()]);
+    const results = await router.dispatch(
+      [{ id: "t1", description: "implement feature X" }],
+      { cwd: "/tmp/project", evolutionIngress: ingress },
+    );
+    // API path returns one result per subtask (executeViaAPI never rejects on
+    // simulated/networked failure; it returns a failed result object instead).
+    expect(Array.isArray(results)).toBe(true);
+    expect(results).toHaveLength(1);
+    expect(results[0].backendType).toBe(BACKEND_TYPE.GEMINI);
+  });
+
+  it("refuses an installed-but-unattested CLI backend with the unattested code", async () => {
+    const router = makeRouter([cliBackend()]);
+    await expect(
+      router.dispatch(
+        [{ id: "t1", description: "implement feature X" }],
+        { cwd: "/tmp/project", evolutionIngress: ingress },
+      ),
+    ).rejects.toMatchObject({
+      code: AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED,
+    });
+  });
+
+  it("keeps the API backend while filtering out a CLI backend in a mixed router", async () => {
+    const router = makeRouter([cliBackend(BACKEND_TYPE.CLAUDE), apiBackend(BACKEND_TYPE.GEMINI)]);
+    const results = await router.dispatch(
+      [{ id: "t1", description: "implement feature X" }],
+      { cwd: "/tmp/project", evolutionIngress: ingress },
+    );
+    expect(results).toHaveLength(1);
+    expect(results[0].backendType).toBe(BACKEND_TYPE.GEMINI);
+  });
+
+  it("rejects even when multiple installed CLI backends are present (all unattested)", async () => {
+    const router = makeRouter([
+      cliBackend(BACKEND_TYPE.CLAUDE),
+      cliBackend(BACKEND_TYPE.CODEX),
+    ]);
+    await expect(
+      router.dispatch(
+        [{ id: "t1", description: "implement feature X" }],
+        { cwd: "/tmp/project", evolutionIngress: ingress },
+      ),
+    ).rejects.toMatchObject({
+      code: AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED,
+    });
+  });
+});

@@ -1,0 +1,757 @@
+{
+  "schema": "chainlesschain.verify01-native-task-acceptance/v1",
+  "executionSourceCommit": "e7788a09316abb6f637932ae09254a441168742e",
+  "deliverySourceCommit": "e7788a09316abb6f637932ae09254a441168742e",
+  "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+  "versions": {
+    "cli": "0.166.139",
+    "vscode": "0.37.175",
+    "jetbrains": "0.4.192",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "packageSetDigest": "sha256:7ac96aab19914fb001c91868a6a94c776639ef217fe3fd0e841e7bdff5d98e5f",
+  "group": "linux-jetbrains",
+  "actualGenerationHost": {
+    "platform": "linux",
+    "entry": "jetbrains",
+    "arch": "x64"
+  },
+  "acceptanceHost": "linux-docker",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "reviewDigest": "sha256:a45bec6a5f51a5c0018e409a24715002c04fd3a24cceb4f06398e2035dc14d63",
+  "sourceSummaryDigest": "sha256:c2d93d31bfa1f7e584ea5616819915f04bba9d15aae4d4c72af0de85e7fcb6e6",
+  "formalSample": false,
+  "startedAt": "2026-11-03T03:52:08.408Z",
+  "samples": [
+    {
+      "sampleId": "verify-24",
+      "taskId": "verify-24",
+      "kind": "task",
+      "versions": {
+        "cli": "0.166.139",
+        "vscode": "0.37.175",
+        "jetbrains": "0.4.192",
+        "vscodeHost": "1.132.0",
+        "jetbrainsHost": "2025.2"
+      },
+      "packageSetDigest": "sha256:7ac96aab19914fb001c91868a6a94c776639ef217fe3fd0e841e7bdff5d98e5f",
+      "originalGenerationPassed": true,
+      "generationPassed": true,
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": true
+      },
+      "model": {
+        "pass": true,
+        "terminal": {
+          "terminalVerified": true,
+          "observedFallback": false,
+          "usage": {
+            "inputTokens": 47601,
+            "outputTokens": 8790,
+            "cacheReadInputTokens": 75776,
+            "cacheCreationInputTokens": 0
+          },
+          "totalCostUsd": null
+        },
+        "identity": true,
+        "fileOnlyToolSurface": true,
+        "plannedTools": [
+          "read_file",
+          "write_file",
+          "edit_file",
+          "edit_file_hashed",
+          "search_files",
+          "list_dir"
+        ],
+        "scoped": true,
+        "settled": true,
+        "preExecutionDenials": [],
+        "delivered": true,
+        "init": {
+          "type": "system",
+          "subtype": "init",
+          "protocol_version": 1,
+          "session_id": "panel-1793672866893-310a66",
+          "session_persistence": true,
+          "input_receipts": {
+            "version": 1
+          },
+          "task_worklog": null,
+          "model": "deepseek-v4-flash-ga-260731",
+          "provider": "volcengine",
+          "permission_mode": "acceptEdits",
+          "permission_mode_state": {
+            "correlation_id": "5dbedc6c-0c45-4951-93e9-10f3812481ca",
+            "requested": "acceptEdits",
+            "effective": "acceptEdits",
+            "policy_revision": "b4d0151996d5d9e3"
+          },
+          "tools": [
+            "read_file",
+            "search_files",
+            "list_dir",
+            "write_file",
+            "edit_file",
+            "edit_file_hashed"
+          ],
+          "tools_hash": "eba35f3546a7a50a",
+          "policy_digest": "b4d0151996d5d9e3",
+          "loaded_sources": [
+            "project-memory",
+            "memory-recall",
+            "plugins"
+          ],
+          "slash_commands": [
+            "status",
+            "doctor",
+            "mcp",
+            "hooks",
+            "permissions",
+            "agents",
+            "tasks",
+            "memory"
+          ],
+          "input_format": "stream-json",
+          "additional_directories": [],
+          "resumed_messages": 0,
+          "trace_id": "tr-f75c925b-b453-4775-8f8b-75bcd58b518c",
+          "seq": 1
+        },
+        "tools": [
+          {
+            "type": "tool_use",
+            "id": "call_fup6rz02bou96aonh2d3qg2v",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/src/lib/eval/evidence.js"
+            },
+            "trace_id": "tr-f75c925b-b453-4775-8f8b-75bcd58b518c",
+            "seq": 6
+          },
+          {
+            "type": "tool_use",
+            "id": "call_42msclziyjs8rkzl4usadrcr",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/unit/eval-evidence.test.js"
+            },
+            "trace_id": "tr-f75c925b-b453-4775-8f8b-75bcd58b518c",
+            "seq": 10
+          },
+          {
+            "type": "tool_use",
+            "id": "call_gep7130o9fs6atu4m34k8lc9",
+            "tool": "write_file",
+            "args": {
+              "path": "packages/cli/__tests__/verify-24.test.js",
+              "content": "import { describe, expect, it } from \"vitest\";\nimport {\n  createEvalComparison,\n  createEvalHistoryRecord,\n  EVAL_CONTEXT_SCHEMA,\n  EVAL_EXECUTION_PROTOCOL,\n  evaluateStrictEvalGate,\n} from \"../src/lib/eval/evidence.js\";\n\n// verify-24: \"比较身份严格隔离\" — the same task run under a different model,\n// permission or runtime identity must not be counted as a comparable improvement.\n// Each control keeps the identical task population (t1,t2), valid records, and a\n// single changed identity dimension, so only the comparison_identity_changed\n// guard may legitimately reject a differing-identity candidate.\n\nconst NOW = Date.parse(\"2026-09-12T12:00:00.000Z\");\nconst D = (character) => `sha256:${character.repeat(64)}`;\n\nfunction context(model, permissionDigest) {\n  return {\n    schema: EVAL_CONTEXT_SCHEMA,\n    provider: \"openai\",\n    model,\n    modelRevision: `${model}@rev-1`,\n    environmentDigest: D(\"e\"),\n    permissionDigest,\n    inferenceDigest: D(\"i\"),\n  };\n}\n\nfunction comparison(\n  model = \"gpt-base\",\n  { permissionDigest = D(\"p\"), node = \"v22.22.2\" } = {},\n) {\n  return createEvalComparison({\n    suite: \"builtin\",\n    corpusDigest: D(\"c\"),\n    provider: \"openai\",\n    model,\n    context: context(model, permissionDigest),\n    platform: \"linux\",\n    arch: \"x64\",\n    node,\n  });\n}\n\nfunction record(\n  index,\n  comparisonValue,\n  pairs = [\n    [\"t1\", true],\n    [\"t2\", true],\n  ],\n) {\n  const passed = pairs.filter(([, pass]) => pass).length;\n  return createEvalHistoryRecord(\n    {\n      total: pairs.length,\n      passed,\n      failed: pairs.length - passed,\n      passRate: passed / pairs.length,\n      unrelatedChangeRate: 0,\n      results: pairs.map(([id, pass]) => ({\n        id,\n        pass,\n        artifactCheckPassed: pass,\n        executionSucceeded: true,\n        agentOk: true,\n        executionEvidence: {\n          protocol: EVAL_EXECUTION_PROTOCOL,\n          exitCode: 0,\n          signal: null,\n          terminalVerified: true,\n          observedFallback: false,\n        },\n        error: null,\n        detail: \"checked\",\n        changedFiles: [],\n        unrelatedChanges: [],\n      })),\n    },\n    {\n      comparison: comparisonValue,\n      runId: `run-${index}`,\n      ranAt: new Date(NOW - (3 - index) * 1000).toISOString(),\n    },\n  );\n}\n\nconst gate = (runs) =>\n  evaluateStrictEvalGate({ runs, issues: [] }, { now: NOW });\nconst BASE = comparison(\"gpt-base\");\n\ndescribe(\"comparison identity strictly isolates same-task runs (verify-24)\", () => {\n  it(\"accepts the same task under an identical model/permission/runtime identity\", () => {\n    const outcome = gate([record(1, BASE), record(2, BASE)]);\n    expect(outcome).toMatchObject({ passed: true, status: \"PASS\" });\n    expect(outcome.reasons).toEqual([]);\n  });\n\n  it(\"refuses to count the same task as an improvement when the candidate model differs\", () => {\n    const outcome = gate([\n      record(1, BASE),\n      record(2, comparison(\"gpt-upgraded\")),\n    ]);\n    expect(outcome).toMatchObject({\n      passed: false,\n      status: \"INSUFFICIENT_EVIDENCE\",\n    });\n    expect(outcome.reasons).toEqual([\"comparison_identity_changed\"]);\n  });\n\n  it(\"refuses to count the same task when only the permission identity differs\", () => {\n    const outcome = gate([\n      record(1, BASE),\n      record(2, comparison(\"gpt-base\", { permissionDigest: D(\"q\") })),\n    ]);\n    expect(outcome).toMatchObject({\n      passed: false,\n      status: \"INSUFFICIENT_EVIDENCE\",\n    });\n    expect(outcome.reasons).toEqual([\"comparison_identity_changed\"]);\n  });\n\n  it(\"refuses to count the same task when only the runtime identity differs\", () => {\n    const outcome = gate([\n      record(1, BASE),\n      record(2, comparison(\"gpt-base\", { node: \"v24.0.0\" })),\n    ]);\n    expect(outcome).toMatchObject({\n      passed: false,\n      status: \"INSUFFICIENT_EVIDENCE\",\n    });\n    expect(outcome.reasons).toEqual([\"comparison_identity_changed\"]);\n  });\n\n  it(\"does not report a pass-rate improvement across a different model identity\", () => {\n    const base = record(\n      1,\n      BASE,\n      [\n        [\"t1\", true],\n        [\"t2\", false],\n      ],\n    );\n    const candidate = record(2, comparison(\"gpt-upgraded\"));\n    const outcome = gate([base, candidate]);\n    expect(outcome).toMatchObject({\n      passed: false,\n      status: \"INSUFFICIENT_EVIDENCE\",\n      baselineRunId: \"run-1\",\n      candidateRunId: \"run-2\",\n    });\n    // The apparent 50% -> 100% gain is deliberately never evaluated as a trend.\n    expect(outcome.reasons).toEqual([\"comparison_identity_changed\"]);\n    expect(outcome.trend).toBeUndefined();\n  });\n});\n"
+            },
+            "trace_id": "tr-f75c925b-b453-4775-8f8b-75bcd58b518c",
+            "seq": 14
+          },
+          {
+            "type": "tool_use",
+            "id": "call_dxco56l3fookaghbz0vmn2u9",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/verify-24.test.js",
+              "offset": 1,
+              "limit": 40
+            },
+            "trace_id": "tr-f75c925b-b453-4775-8f8b-75bcd58b518c",
+            "seq": 18
+          },
+          {
+            "type": "tool_use",
+            "id": "call_0zgg9yqhg1laxrkoma7iv8w2",
+            "tool": "read_file",
+            "args": {
+              "path": "packages/cli/__tests__/verify-24.test.js",
+              "offset": 100,
+              "limit": 60
+            },
+            "trace_id": "tr-f75c925b-b453-4775-8f8b-75bcd58b518c",
+            "seq": 25
+          }
+        ],
+        "toolResults": [
+          {
+            "type": "tool_result",
+            "id": "call_fup6rz02bou96aonh2d3qg2v",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-0SZu3H/5d444e9c-5e9a-4822-8fc6-2563123b8178/workspace/packages/cli/src/lib/eval/evidence.js",
+              "fileVersion": "11015:1791108223000:1793672577503.9727",
+              "readSpan": {
+                "start": 0,
+                "end": 11015,
+                "total": 11015
+              },
+              "hashed": false,
+              "content": "import { createHash, randomUUID } from \"node:crypto\";\nimport fs from \"node:fs\";\nimport { computeTrend } from \"./trend.js\";\nimport { redactSecrets } from \"../secret-scan.js\";\n\nexport const EVAL_HISTORY_SCHEMA = \"chainlesschain.eval-history/v1\";\nexport const EVAL_CONTEXT_SCHEMA = \"chainlesschain.eval-comparison-context/v1\";\nexport const EVAL_COMPARISON_SCHEMA = \"chainlesschain.eval-comparison/v1\";\nexport const EVAL_EXECUTION_PROTOCOL = \"cc-agent-stream-json/v1\";\nconst DIGEST = /^sha256:[a-f0-9]{64}$/u;\nconst MAX_HISTORY_BYTES = 16 * 1024 * 1024;\nconst CONTEXT_KEYS = [\n  \"schema\",\n  \"provider\",\n  \"model\",\n  \"modelRevision\",\n  \"environmentDigest\",\n  \"permissionDigest\",\n  \"inferenceDigest\",\n];\n\nfunction canonical(value) {\n  if (Array.isArray(value)) return `[${value.map(canonical).join(\",\")}]`;\n  if (value && typeof value === \"object\") {\n    return `{${Object.keys(value)\n      .sort()\n      .map((key) => `${JSON.stringify(key)}:${canonical(value[key])}`)\n      .join(\",\")}}`;\n  }\n  return JSON.stringify(value);\n}\n\nexport function evalDigest(value) {\n  return `sha256:${createHash(\"sha256\").update(value).digest(\"hex\")}`;\n}\n\nfunction nonempty(value) {\n  return (\n    typeof value === \"string\" && value.trim().length > 0 && value.length <= 1024\n  );\n}\n\n/** These are operator declarations, not observed provider state or PKI proofs. */\nexport function validateComparisonContext(value, { provider, model } = {}) {\n  if (\n    !value ||\n    typeof value !== \"object\" ||\n    Array.isArray(value) ||\n    Object.keys(value).length !== CONTEXT_KEYS.length ||\n    Object.keys(value).some((key) => !CONTEXT_KEYS.includes(key)) ||\n    value.schema !== EVAL_CONTEXT_SCHEMA ||\n    ![value.provider, value.model, value.modelRevision].every(nonempty) ||\n    ![\n      value.environmentDigest,\n      value.permissionDigest,\n      value.inferenceDigest,\n    ].every((v) => DIGEST.test(v || \"\"))\n  ) {\n    throw new Error(\n      \"comparison context requires its v1 schema, provider, model, modelRevision and environment/permission/inference sha256 digests\",\n    );\n  }\n  if (\n    (provider !== undefined && value.provider !== provider) ||\n    (model !== undefined && value.model !== model)\n  ) {\n    throw new Error(\n      \"comparison context must match explicit --provider and --model\",\n    );\n  }\n  return { ...value };\n}\n\nexport function readComparisonContext(file, selection) {\n  if (fs.statSync(file).size > 16 * 1024)\n    throw new Error(\"comparison context exceeds its size limit\");\n  const bytes = fs.readFileSync(file);\n  if (bytes.length === 0 || bytes.length > 16 * 1024) {\n    throw new Error(\"comparison context exceeds its size limit\");\n  }\n  return validateComparisonContext(\n    JSON.parse(bytes.toString(\"utf8\")),\n    selection,\n  );\n}\n\nexport function createEvalComparison({\n  suite,\n  corpusDigest,\n  provider,\n  model,\n  context,\n  platform = process.platform,\n  arch = process.arch,\n  node = process.version,\n} = {}) {\n  if (!context) return null;\n  if (!nonempty(provider) || !nonempty(model)) {\n    throw new Error(\n      \"--comparison-context requires explicit --provider and --model\",\n    );\n  }\n  if (!nonempty(suite) || !DIGEST.test(corpusDigest || \"\"))\n    throw new Error(\"eval corpus identity is required\");\n  const declared = validateComparisonContext(context, { provider, model });\n  return {\n    schema: EVAL_COMPARISON_SCHEMA,\n    basis: \"local-runtime-and-operator-declarations\",\n    suite,\n    corpusDigest,\n    provider,\n    model,\n    runtime: { platform, arch, node },\n    permissionMode: \"acceptEdits\",\n    executionProtocol: EVAL_EXECUTION_PROTOCOL,\n    declared,\n  };\n}\n\nexport function createEvalHistoryRecord(\n  summary,\n  {\n    comparison = null,\n    dryRun = false,\n    label = null,\n    ranAt = new Date().toISOString(),\n    runId = randomUUID(),\n  } = {},\n) {\n  return {\n    schema: EVAL_HISTORY_SCHEMA,\n    runId,\n    ranAt,\n    label,\n    dryRun,\n    comparison,\n    passed: summary.passed,\n    failed: summary.failed,\n    total: summary.total,\n    passRate: summary.passRate,\n    unrelatedChangeRate: summary.unrelatedChangeRate,\n    results: summary.results.map((result) => ({\n      id: result.id,\n      pass: result.pass,\n      artifactCheckPassed: result.artifactCheckPassed,\n      executionSucceeded: result.executionSucceeded,\n      agentOk: result.agentOk,\n      executionEvidence: result.executionEvidence,\n      usage: result.usage ?? null,\n      totalCostUsd: Number.isFinite(result.totalCostUsd)\n        ? result.totalCostUsd\n        : null,\n      error:\n        result.error == null\n          ? null\n          : redactSecrets(String(result.error)).slice(0, 2048),\n      detail: redactSecrets(String(result.detail || \"\")).slice(0, 2048),\n      ms: result.ms,\n      changedFiles: result.changedFiles,\n      unrelatedChanges: result.unrelatedChanges,\n    })),\n  };\n}\n\n/** Diagnostic callers may inspect valid rows, but must keep parse issues. */\nexport function parseEvalHistory(text) {\n  const runs = [],\n    issues = [];\n  if (Buffer.byteLength(text, \"utf8\") > MAX_HISTORY_BYTES) {\n    return { runs, issues: [{ code: \"history_too_large\" }] };\n  }\n  text.split(/\\r?\\n/u).forEach((line, index) => {\n    if (!line.trim()) return;\n    try {\n      const value = JSON.parse(line);\n      if (!value || typeof value !== \"object\" || Array.isArray(value))\n        throw new Error(\"not a record\");\n      runs.push(value);\n    } catch {\n      issues.push({ code: \"invalid_history_record\", line: index + 1 });\n    }\n  });\n  return { runs, issues };\n}\n\nexport function readEvalHistory(file) {\n  if (!fs.existsSync(file)) return { runs: [], issues: [] };\n  if (fs.statSync(file).size > MAX_HISTORY_BYTES) {\n    return { runs: [], issues: [{ code: \"history_too_large\" }] };\n  }\n  return parseEvalHistory(fs.readFileSync(file, \"utf8\"));\n}\n\nfunction validateComparison(value) {\n  try {\n    const rebuilt = createEvalComparison({\n      suite: value?.suite,\n      corpusDigest: value?.corpusDigest,\n      provider: value?.provider,\n      model: value?.model,\n      context: value?.declared,\n      platform: value?.runtime?.platform,\n      arch: value?.runtime?.arch,\n      node: value?.runtime?.node,\n    });\n    return (\n      rebuilt &&\n      Object.values(value.runtime).every(nonempty) &&\n      canonical(rebuilt) === canonical(value)\n    );\n  } catch {\n    return false;\n  }\n}\n\nexport function evalExecutionSucceeded(result) {\n  const execution = result?.executionEvidence;\n  return (\n    result?.executionSucceeded === true &&\n    result.error === null &&\n    execution?.protocol === EVAL_EXECUTION_PROTOCOL &&\n    execution.exitCode === 0 &&\n    execution.signal === null &&\n    execution.terminalVerified === true\n  );\n}\n\nexport function evalHistoryRecordIssues(record, now, maxAgeMs) {\n  if (!record || typeof record !== \"object\" || Array.isArray(record))\n    return [\"invalid_history_record\"];\n  const issues = [];\n  if (record.schema !== EVAL_HISTORY_SCHEMA || !nonempty(record.runId))\n    issues.push(\"legacy_or_missing_run_identity\");\n  if (record.dryRun !== false) issues.push(\"dry_run_or_missing_execution_mode\");\n  const epoch = Date.parse(record.ranAt);\n  if (\n    typeof record.ranAt !== \"string\" ||\n    !Number.isFinite(epoch) ||\n    new Date(epoch).toISOString() !== record.ranAt ||\n    epoch > now ||\n    now - epoch > maxAgeMs\n  )\n    issues.push(\"invalid_or_expired_evidence\");\n  if (!validateComparison(record.comparison))\n    issues.push(\"missing_comparison_identity\");\n  const results = record.results;\n  if (!Array.isArray(results) || results.length === 0)\n    return [...issues, \"missing_task_results\"];\n  const ids = new Set();\n  let passed = 0;\n  for (const result of results) {\n    if (!result || !nonempty(result.id) || ids.has(result.id)) {\n      issues.push(\"invalid_or_duplicate_task\");\n      continue;\n    }\n    ids.add(result.id);\n    const execution = result.executionEvidence;\n    if (\n      typeof result.pass !== \"boolean\" ||\n      typeof result.artifactCheckPassed !== \"boolean\" ||\n      typeof result.executionSucceeded !== \"boolean\" ||\n      result.agentOk !== result.executionSucceeded ||\n      result.pass !== (result.artifactCheckPassed && result.executionSucceeded)\n    )\n      issues.push(\"inconsistent_task_verdict\");\n    if (!evalExecutionSucceeded(result))\n      issues.push(\"execution_not_successful\");\n    if (execution?.observedFallback !== false)\n      issues.push(\"fallback_or_missing_model_continuity\");\n    if (result.pass === true) passed += 1;\n  }\n  if (\n    record.total !== results.length ||\n    record.passed !== passed ||\n    record.failed !== results.length - passed ||\n    record.passRate !== passed / results.length\n  )\n    issues.push(\"inconsistent_task_totals\");\n  return issues;\n}\n\n/**\n * A local comparison gate. It does not attest model checkpoints, configuration\n * declarations, edited JSONL, hidden holdouts, or production release authority.\n * Append order selects the pair; timestamps cannot silently select older rows.\n */\nexport function evaluateStrictEvalGate(\n  { runs = [], issues = [] } = {},\n  {\n    now = Date.now(),\n    maxAgeMs = 7 * 24 * 60 * 60 * 1000,\n    regressionThreshold = 0,\n  } = {},\n) {\n  const reasons = issues.map((issue) => issue.code);\n  if (\n    !Number.isFinite(now) ||\n    !Number.isFinite(maxAgeMs) ||\n    maxAgeMs <= 0 ||\n    !Number.isFinite(regressionThreshold) ||\n    regressionThreshold < 0 ||\n    regressionThreshold > 1\n  )\n    reasons.push(\"invalid_gate_options\");\n  if (!Array.isArray(runs) || runs.length < 2) reasons.push(\"missing_baseline\");\n  const pair = Array.isArray(runs) ? runs.slice(-2) : [];\n  for (const record of pair)\n    reasons.push(...evalHistoryRecordIssues(record, now, maxAgeMs));\n  if (pair.length === 2) {\n    const [baseline, candidate] = pair;\n    if (\n      baseline?.runId === candidate?.runId ||\n      Date.parse(baseline?.ranAt) >= Date.parse(candidate?.ranAt)\n    )\n      reasons.push(\"duplicate_or_unordered_runs\");\n    if (canonical(baseline?.comparison) !== canonical(candidate?.comparison))\n      reasons.push(\"comparison_identity_changed\");\n    const ids = (record) =>\n      (Array.isArray(record?.results) ? record.results : [])\n        .map((r) => r?.id)\n        .sort();\n    if (canonical(ids(baseline)) !== canonical(ids(candidate)))\n      reasons.push(\"task_population_changed\");\n  }\n  const uniqueReasons = [...new Set(reasons)];\n  const base = {\n    scope: \"local-eval-comparison\",\n    productionAttested: false,\n    baselineRunId: pair.length === 2 ? pair[0]?.runId || null : null,\n    candidateRunId: pair.at(-1)?.runId || null,\n  };\n  if (uniqueReasons.length)\n    return {\n      ...base,\n      status: \"INSUFFICIENT_EVIDENCE\",\n      passed: false,\n      reasons: uniqueReasons,\n    };\n  const trend = computeTrend(pair, { regressionThreshold });\n  const failed = trend.regressed || pair[1].passed !== pair[1].total;\n  return {\n    ...base,\n    status: failed ? \"FAIL\" : \"PASS\",\n    passed: !failed,\n    reasons: failed\n      ? [trend.regressed ? \"task_regression\" : \"candidate_tasks_failed\"]\n      : [],\n    trend,\n  };\n}\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793672876634,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/src/lib/eval/evidence.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 11,
+                "sessionId": "panel-1793672866893-310a66",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/src/lib/eval/evidence.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_fup6rz02bou96aonh2d3qg2v",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-f75c925b-b453-4775-8f8b-75bcd58b518c",
+            "seq": 7
+          },
+          {
+            "type": "tool_result",
+            "id": "call_42msclziyjs8rkzl4usadrcr",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-0SZu3H/5d444e9c-5e9a-4822-8fc6-2563123b8178/workspace/packages/cli/__tests__/unit/eval-evidence.test.js",
+              "fileVersion": "8168:1791108223000:1793672577338.9739",
+              "readSpan": {
+                "start": 0,
+                "end": 8168,
+                "total": 8168
+              },
+              "hashed": false,
+              "content": "import { describe, expect, it } from \"vitest\";\nimport {\n  createEvalComparison,\n  createEvalHistoryRecord,\n  EVAL_CONTEXT_SCHEMA,\n  EVAL_EXECUTION_PROTOCOL,\n  evaluateStrictEvalGate,\n  parseEvalHistory,\n  validateComparisonContext,\n} from \"../../src/lib/eval/evidence.js\";\nimport { computeTrend } from \"../../src/lib/eval/trend.js\";\n\nconst NOW = Date.parse(\"2026-09-12T12:00:00.000Z\");\nconst D = (character) => `sha256:${character.repeat(64)}`;\nconst context = () => ({\n  schema: EVAL_CONTEXT_SCHEMA,\n  provider: \"openai\",\n  model: \"test-model\",\n  modelRevision: \"test-model@revision-1\",\n  environmentDigest: D(\"a\"),\n  permissionDigest: D(\"b\"),\n  inferenceDigest: D(\"c\"),\n});\nconst comparison = () =>\n  createEvalComparison({\n    suite: \"builtin\",\n    corpusDigest: D(\"d\"),\n    provider: \"openai\",\n    model: \"test-model\",\n    context: context(),\n    platform: \"linux\",\n    arch: \"x64\",\n    node: \"v22.22.2\",\n  });\nfunction record(\n  index,\n  pairs = [\n    [\"a\", true],\n    [\"b\", true],\n  ],\n) {\n  const passed = pairs.filter(([, pass]) => pass).length;\n  return createEvalHistoryRecord(\n    {\n      total: pairs.length,\n      passed,\n      failed: pairs.length - passed,\n      passRate: passed / pairs.length,\n      unrelatedChangeRate: 0,\n      results: pairs.map(([id, pass]) => ({\n        id,\n        pass,\n        artifactCheckPassed: pass,\n        executionSucceeded: true,\n        agentOk: true,\n        executionEvidence: {\n          protocol: EVAL_EXECUTION_PROTOCOL,\n          exitCode: 0,\n          signal: null,\n          terminalVerified: true,\n          observedFallback: false,\n        },\n        error: null,\n        detail: \"checked\",\n        changedFiles: [],\n        unrelatedChanges: [],\n      })),\n    },\n    {\n      comparison: comparison(),\n      runId: `run-${index}`,\n      ranAt: new Date(NOW - (3 - index) * 1000).toISOString(),\n    },\n  );\n}\nconst gate = (runs, options = {}) =>\n  evaluateStrictEvalGate({ runs, issues: [] }, { now: NOW, ...options });\n\ndescribe(\"strict local Eval comparison\", () => {\n  it(\"accepts only a complete pair and explicitly limits the authority claim\", () => {\n    expect(gate([record(1), record(2)])).toMatchObject({\n      passed: true,\n      status: \"PASS\",\n      productionAttested: false,\n      scope: \"local-eval-comparison\",\n      baselineRunId: \"run-1\",\n      candidateRunId: \"run-2\",\n    });\n  });\n  it.each([[[]], [[record(1)]]])(\n    \"rejects missing baselines without changing diagnostic n/a\",\n    (runs) => {\n      expect(gate(runs).status).toBe(\"INSUFFICIENT_EVIDENCE\");\n      expect(computeTrend(runs)).toMatchObject({\n        direction: \"n/a\",\n        regressed: false,\n      });\n    },\n  );\n  it(\"rejects deleted or added tasks even if the aggregate stays at 100 percent\", () => {\n    for (const pairs of [\n      [[\"a\", true]],\n      [\n        [\"a\", true],\n        [\"b\", true],\n        [\"c\", true],\n      ],\n    ]) {\n      expect(gate([record(1), record(2, pairs)]).reasons).toContain(\n        \"task_population_changed\",\n      );\n    }\n  });\n  it.each([\"provider\", \"model\", \"corpusDigest\", \"runtime\", \"declared\"])(\n    \"rejects changed %s\",\n    (field) => {\n      const candidate = record(2);\n      if (field === \"runtime\") candidate.comparison.runtime.node = \"v24.0.0\";\n      else if (field === \"declared\")\n        candidate.comparison.declared.permissionDigest = D(\"e\");\n      else if (field === \"corpusDigest\")\n        candidate.comparison.corpusDigest = D(\"e\");\n      else {\n        candidate.comparison[field] = \"changed\";\n        candidate.comparison.declared[field] = \"changed\";\n      }\n      expect(gate([record(1), candidate]).reasons).toContain(\n        \"comparison_identity_changed\",\n      );\n    },\n  );\n  it(\"never substitutes older passing rows for the latest dry run\", () => {\n    const dry = { ...record(3), dryRun: true };\n    expect(computeTrend([record(1), record(2), dry]).runs).toBe(2);\n    expect(gate([record(1), record(2), dry]).reasons).toContain(\n      \"dry_run_or_missing_execution_mode\",\n    );\n  });\n  it(\"rejects legacy, duplicate, stale and future evidence\", () => {\n    const legacy = { ...record(2) };\n    delete legacy.comparison;\n    delete legacy.schema;\n    expect(gate([record(1), legacy]).passed).toBe(false);\n    expect(gate([record(1), record(1)]).reasons).toContain(\n      \"duplicate_or_unordered_runs\",\n    );\n    expect(gate([record(1), record(2)], { maxAgeMs: 500 }).reasons).toContain(\n      \"invalid_or_expired_evidence\",\n    );\n    expect(\n      gate([record(1), record(2)], { now: NOW - 10_000 }).reasons,\n    ).toContain(\"invalid_or_expired_evidence\");\n  });\n  it(\"rejects forged totals and duplicate task identities\", () => {\n    const forged = record(2);\n    forged.passed = 1;\n    expect(gate([record(1), forged]).reasons).toContain(\n      \"inconsistent_task_totals\",\n    );\n    const duplicate = record(2);\n    duplicate.results[1].id = \"a\";\n    expect(gate([record(1), duplicate]).reasons).toContain(\n      \"invalid_or_duplicate_task\",\n    );\n  });\n  it(\"fails on artifact regressions and rejects failed execution evidence\", () => {\n    expect(\n      gate([\n        record(1),\n        record(2, [\n          [\"a\", true],\n          [\"b\", false],\n        ]),\n      ]).status,\n    ).toBe(\"FAIL\");\n    const failed = record(2);\n    Object.assign(failed.results[0], {\n      pass: false,\n      agentOk: false,\n      executionSucceeded: false,\n      error: \"provider failed\",\n    });\n    failed.results[0].executionEvidence.exitCode = 1;\n    Object.assign(failed, { passed: 1, failed: 1, passRate: 0.5 });\n    expect(gate([record(1), failed]).reasons).toContain(\n      \"execution_not_successful\",\n    );\n  });\n  it(\"requires a verified terminal even when a caller claims ok\", () => {\n    const candidate = record(2);\n    candidate.results[0].executionEvidence.terminalVerified = false;\n    expect(gate([record(1), candidate]).reasons).toContain(\n      \"execution_not_successful\",\n    );\n  });\n  it(\"does not compare a fallback run as the originally declared model\", () => {\n    const candidate = record(2);\n    candidate.results[0].executionEvidence.observedFallback = true;\n    expect(gate([record(1), candidate]).reasons).toContain(\n      \"fallback_or_missing_model_continuity\",\n    );\n  });\n  it(\"rejects corrupted JSONL instead of comparing only its remaining valid lines\", () => {\n    const history = parseEvalHistory(\n      `${JSON.stringify(record(1))}\\nBROKEN\\n${JSON.stringify(record(2))}\\n`,\n    );\n    expect(history.runs).toHaveLength(2);\n    expect(history.issues).toEqual([\n      { code: \"invalid_history_record\", line: 2 },\n    ]);\n    expect(evaluateStrictEvalGate(history, { now: NOW })).toMatchObject({\n      status: \"INSUFFICIENT_EVIDENCE\",\n      passed: false,\n    });\n  });\n  it.each([NaN, 0, -1])(\"rejects invalid age %s\", (maxAgeMs) => {\n    expect(gate([record(1), record(2)], { maxAgeMs }).reasons).toContain(\n      \"invalid_gate_options\",\n    );\n  });\n  it(\"retains execution/artifact failures in history\", () => {\n    const source = record(1);\n    const result = source.results[0];\n    Object.assign(result, {\n      pass: false,\n      artifactCheckPassed: true,\n      executionSucceeded: false,\n      agentOk: false,\n      error: \"timed out\",\n    });\n    const stored = createEvalHistoryRecord(source);\n    expect(stored.results[0]).toMatchObject({\n      pass: false,\n      artifactCheckPassed: true,\n      executionSucceeded: false,\n      error: \"timed out\",\n    });\n  });\n});\n\ndescribe(\"Eval comparison metadata\", () => {\n  it(\"does not invent a fingerprint for undeclared environment or implicit model selection\", () => {\n    expect(createEvalComparison({})).toBeNull();\n    expect(() => createEvalComparison({ context: context() })).toThrow(\n      \"explicit --provider and --model\",\n    );\n    expect(() =>\n      validateComparisonContext(context(), { model: \"other-model\" }),\n    ).toThrow(\"must match\");\n  });\n  it(\"rejects missing digests and unknown context fields\", () => {\n    expect(() =>\n      validateComparisonContext({ ...context(), permissionDigest: \"unknown\" }),\n    ).toThrow(\"sha256\");\n    expect(() =>\n      validateComparisonContext({ ...context(), extra: true }),\n    ).toThrow(\"schema\");\n  });\n});\n",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793672879450,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/eval-evidence.test.js"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 3,
+                "sessionId": "panel-1793672866893-310a66",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/unit/eval-evidence.test.js"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_42msclziyjs8rkzl4usadrcr",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-f75c925b-b453-4775-8f8b-75bcd58b518c",
+            "seq": 11
+          },
+          {
+            "type": "tool_result",
+            "id": "call_gep7130o9fs6atu4m34k8lc9",
+            "tool": "write_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "success": true,
+              "path": "/tmp/cc-native-0SZu3H/5d444e9c-5e9a-4822-8fc6-2563123b8178/workspace/packages/cli/__tests__/verify-24.test.js",
+              "size": 4612,
+              "validation": {
+                "persisted": true,
+                "testsExecuted": false,
+                "relativeImports": "checked",
+                "message": "File saved. This file operation did not run tests. Any import feedback checks explicit JavaScript relative references only and does not establish test or task acceptance.",
+                "checkedReferences": 1,
+                "uncheckedReferences": 0,
+                "truncated": false,
+                "diagnosticsTruncated": false
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793672939083,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-24.test.js",
+                    "content": "import { describe, expect, it } from \"vitest\";\nimport {\n  createEvalComparison,\n  createEvalHistoryRecord,\n  EVAL_CONTEXT_SCHEMA,\n  EVAL_EXECUTION_PROTOCOL,\n  evaluateStrictEvalGate,\n} from \"../src/lib/eval/evidence.js\";\n\n// verify-24: \"比较身份严格隔离\" — the same task run under a different model,\n// permission or runtime identity must not be counted as a comparable improvement.\n// Each control keeps the identical task population (t1,t2), valid records, and a\n// single changed identity dimension, so only the comparison_identity_changed\n// guard may legitimately reject a differing-identity candidate.\n\nconst NOW = Date.parse(\"2026-09-12T12:00:00.000Z\");\nconst D = (character) => `sha256:${character.repeat(64)}`;\n\nfunction context(model, permissionDigest) {\n  return {\n    schema: EVAL_CONTEXT_SCHEMA,\n    provider: \"openai\",\n    model,\n    modelRevision: `${model}@rev-1`,\n    environmentDigest: D(\"e\"),\n    permissionDigest,\n    inferenceDigest: D(\"i\"),\n  };\n}\n\nfunction comparison(\n  model = \"gpt-base\",\n  { permissionDigest = D(\"p\"), node = \"v22.22.2\" } = {},\n) {\n  return createEvalComparison({\n    suite: \"builtin\",\n    corpusDigest: D(\"c\"),\n    provider: \"openai\",\n    model,\n    context: context(model, permissionDigest),\n    platform: \"linux\",\n    arch: \"x64\",\n    node,\n  });\n}\n\nfunction record(\n  index,\n  comparisonValue,\n  pairs = [\n    [\"t1\", true],\n    [\"t2\", true],\n  ],\n) {\n  const passed = pairs.filter(([, pass]) => pass).length;\n  return createEvalHistoryRecord(\n    {\n      total: pairs.length,\n      passed,\n      failed: pairs.length - passed,\n      passRate: passed / pairs.length,\n      unrelatedChangeRate: 0,\n      results: pairs.map(([id, pass]) => ({\n        id,\n        pass,\n        artifactCheckPassed: pass,\n        executionSucceeded: true,\n        agentOk: true,\n        executionEvidence: {\n          protocol: EVAL_EXECUTION_PROTOCOL,\n          exitCode: 0,\n          signal: null,\n          terminalVerified: true,\n          observedFallback: false,\n        },\n        error: null,\n        detail: \"checked\",\n        changedFiles: [],\n        unrelatedChanges: [],\n      })),\n    },\n    {\n      comparison: comparisonValue,\n      runId: `run-${index}`,\n      ranAt: new Date(NOW - (3 - index) * 1000).toISOString(),\n    },\n  );\n}\n\nconst gate = (runs) =>\n  evaluateStrictEvalGate({ runs, issues: [] }, { now: NOW });\nconst BASE = comparison(\"gpt-base\");\n\ndescribe(\"comparison identity strictly isolates same-task runs (verify-24)\", () => {\n  it(\"accepts the same task under an identical model/permission/runtime identity\", () => {\n    const outcome = gate([record(1, BASE), record(2, BASE)]);\n    expect(outcome).toMatchObject({ passed: true, status: \"PASS\" });\n    expect(outcome.reasons).toEqual([]);\n  });\n\n  it(\"refuses to count the same task as an improvement when the candidate model differs\", () => {\n    const outcome = gate([\n      record(1, BASE),\n      record(2, comparison(\"gpt-upgraded\")),\n    ]);\n    expect(outcome).toMatchObject({\n      passed: false,\n      status: \"INSUFFICIENT_EVIDENCE\",\n    });\n    expect(outcome.reasons).toEqual([\"comparison_identity_changed\"]);\n  });\n\n  it(\"refuses to count the same task when only the permission identity differs\", () => {\n    const outcome = gate([\n      record(1, BASE),\n      record(2, comparison(\"gpt-base\", { permissionDigest: D(\"q\") })),\n    ]);\n    expect(outcome).toMatchObject({\n      passed: false,\n      status: \"INSUFFICIENT_EVIDENCE\",\n    });\n    expect(outcome.reasons).toEqual([\"comparison_identity_changed\"]);\n  });\n\n  it(\"refuses to count the same task when only the runtime identity differs\", () => {\n    const outcome = gate([\n      record(1, BASE),\n      record(2, comparison(\"gpt-base\", { node: \"v24.0.0\" })),\n    ]);\n    expect(outcome).toMatchObject({\n      passed: false,\n      status: \"INSUFFICIENT_EVIDENCE\",\n    });\n    expect(outcome.reasons).toEqual([\"comparison_identity_changed\"]);\n  });\n\n  it(\"does not report a pass-rate improvement across a different model identity\", () => {\n    const base = record(\n      1,\n      BASE,\n      [\n        [\"t1\", true],\n        [\"t2\", false],\n      ],\n    );\n    const candidate = record(2, comparison(\"gpt-upgraded\"));\n    const outcome = gate([base, candidate]);\n    expect(outcome).toMatchObject({\n      passed: false,\n      status: \"INSUFFICIENT_EVIDENCE\",\n      baselineRunId: \"run-1\",\n      candidateRunId: \"run-2\",\n    });\n    // The apparent 50% -> 100% gain is deliberately never evaluated as a trend.\n    expect(outcome.reasons).toEqual([\"comparison_identity_changed\"]);\n    expect(outcome.trend).toBeUndefined();\n  });\n});\n"
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 26,
+                "sessionId": "panel-1793672866893-310a66",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-24.test.js",
+                    "content": "import { describe, expect, it } from \"vitest\";\nimport {\n  createEvalComparison,\n  createEvalHistoryRecord,\n  EVAL_CONTEXT_SCHEMA,\n  EVAL_EXECUTION_PROTOCOL,\n  evaluateStrictEvalGate,\n} from \"../src/lib/eval/evidence.js\";\n\n// verify-24: \"比较身份严格隔离\" — the same task run under a different model,\n// permission or runtime identity must not be counted as a comparable improvement.\n// Each control keeps the identical task population (t1,t2), valid records, and a\n// single changed identity dimension, so only the comparison_identity_changed\n// guard may legitimately reject a differing-identity candidate.\n\nconst NOW = Date.parse(\"2026-09-12T12:00:00.000Z\");\nconst D = (character) => `sha256:${character.repeat(64)}`;\n\nfunction context(model, permissionDigest) {\n  return {\n    schema: EVAL_CONTEXT_SCHEMA,\n    provider: \"openai\",\n    model,\n    modelRevision: `${model}@rev-1`,\n    environmentDigest: D(\"e\"),\n    permissionDigest,\n    inferenceDigest: D(\"i\"),\n  };\n}\n\nfunction comparison(\n  model = \"gpt-base\",\n  { permissionDigest = D(\"p\"), node = \"v22.22.2\" } = {},\n) {\n  return createEvalComparison({\n    suite: \"builtin\",\n    corpusDigest: D(\"c\"),\n    provider: \"openai\",\n    model,\n    context: context(model, permissionDigest),\n    platform: \"linux\",\n    arch: \"x64\",\n    node,\n  });\n}\n\nfunction record(\n  index,\n  comparisonValue,\n  pairs = [\n    [\"t1\", true],\n    [\"t2\", true],\n  ],\n) {\n  const passed = pairs.filter(([, pass]) => pass).length;\n  return createEvalHistoryRecord(\n    {\n      total: pairs.length,\n      passed,\n      failed: pairs.length - passed,\n      passRate: passed / pairs.length,\n      unrelatedChangeRate: 0,\n      results: pairs.map(([id, pass]) => ({\n        id,\n        pass,\n        artifactCheckPassed: pass,\n        executionSucceeded: true,\n        agentOk: true,\n        executionEvidence: {\n          protocol: EVAL_EXECUTION_PROTOCOL,\n          exitCode: 0,\n          signal: null,\n          terminalVerified: true,\n          observedFallback: false,\n        },\n        error: null,\n        detail: \"checked\",\n        changedFiles: [],\n        unrelatedChanges: [],\n      })),\n    },\n    {\n      comparison: comparisonValue,\n      runId: `run-${index}`,\n      ranAt: new Date(NOW - (3 - index) * 1000).toISOString(),\n    },\n  );\n}\n\nconst gate = (runs) =>\n  evaluateStrictEvalGate({ runs, issues: [] }, { now: NOW });\nconst BASE = comparison(\"gpt-base\");\n\ndescribe(\"comparison identity strictly isolates same-task runs (verify-24)\", () => {\n  it(\"accepts the same task under an identical model/permission/runtime identity\", () => {\n    const outcome = gate([record(1, BASE), record(2, BASE)]);\n    expect(outcome).toMatchObject({ passed: true, status: \"PASS\" });\n    expect(outcome.reasons).toEqual([]);\n  });\n\n  it(\"refuses to count the same task as an improvement when the candidate model differs\", () => {\n    const outcome = gate([\n      record(1, BASE),\n      record(2, comparison(\"gpt-upgraded\")),\n    ]);\n    expect(outcome).toMatchObject({\n      passed: false,\n      status: \"INSUFFICIENT_EVIDENCE\",\n    });\n    expect(outcome.reasons).toEqual([\"comparison_identity_changed\"]);\n  });\n\n  it(\"refuses to count the same task when only the permission identity differs\", () => {\n    const outcome = gate([\n      record(1, BASE),\n      record(2, comparison(\"gpt-base\", { permissionDigest: D(\"q\") })),\n    ]);\n    expect(outcome).toMatchObject({\n      passed: false,\n      status: \"INSUFFICIENT_EVIDENCE\",\n    });\n    expect(outcome.reasons).toEqual([\"comparison_identity_changed\"]);\n  });\n\n  it(\"refuses to count the same task when only the runtime identity differs\", () => {\n    const outcome = gate([\n      record(1, BASE),\n      record(2, comparison(\"gpt-base\", { node: \"v24.0.0\" })),\n    ]);\n    expect(outcome).toMatchObject({\n      passed: false,\n      status: \"INSUFFICIENT_EVIDENCE\",\n    });\n    expect(outcome.reasons).toEqual([\"comparison_identity_changed\"]);\n  });\n\n  it(\"does not report a pass-rate improvement across a different model identity\", () => {\n    const base = record(\n      1,\n      BASE,\n      [\n        [\"t1\", true],\n        [\"t2\", false],\n      ],\n    );\n    const candidate = record(2, comparison(\"gpt-upgraded\"));\n    const outcome = gate([base, candidate]);\n    expect(outcome).toMatchObject({\n      passed: false,\n      status: \"INSUFFICIENT_EVIDENCE\",\n      baselineRunId: \"run-1\",\n      candidateRunId: \"run-2\",\n    });\n    // The apparent 50% -> 100% gain is deliberately never evaluated as a trend.\n    expect(outcome.reasons).toEqual([\"comparison_identity_changed\"]);\n    expect(outcome.trend).toBeUndefined();\n  });\n});\n"
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "write_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_gep7130o9fs6atu4m34k8lc9",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-f75c925b-b453-4775-8f8b-75bcd58b518c",
+            "seq": 15
+          },
+          {
+            "type": "tool_result",
+            "id": "call_dxco56l3fookaghbz0vmn2u9",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-0SZu3H/5d444e9c-5e9a-4822-8fc6-2563123b8178/workspace/packages/cli/__tests__/verify-24.test.js",
+              "fileVersion": "4612:1793672939057.2578:1793672939057.2578",
+              "range": {
+                "startLine": 1,
+                "endLine": 40,
+                "totalLines": 159
+              },
+              "nextRead": {
+                "path": "packages/cli/__tests__/verify-24.test.js",
+                "offset": 41,
+                "limit": 40
+              },
+              "hint": "To read the next page, call read_file with nextRead. Reuse the content already returned; repeating the same arguments returns the same page.",
+              "readSpan": {
+                "start": 0,
+                "end": 1229,
+                "total": 4594
+              },
+              "hashed": false,
+              "content": "import { describe, expect, it } from \"vitest\";\nimport {\n  createEvalComparison,\n  createEvalHistoryRecord,\n  EVAL_CONTEXT_SCHEMA,\n  EVAL_EXECUTION_PROTOCOL,\n  evaluateStrictEvalGate,\n} from \"../src/lib/eval/evidence.js\";\n\n// verify-24: \"比较身份严格隔离\" — the same task run under a different model,\n// permission or runtime identity must not be counted as a comparable improvement.\n// Each control keeps the identical task population (t1,t2), valid records, and a\n// single changed identity dimension, so only the comparison_identity_changed\n// guard may legitimately reject a differing-identity candidate.\n\nconst NOW = Date.parse(\"2026-09-12T12:00:00.000Z\");\nconst D = (character) => `sha256:${character.repeat(64)}`;\n\nfunction context(model, permissionDigest) {\n  return {\n    schema: EVAL_CONTEXT_SCHEMA,\n    provider: \"openai\",\n    model,\n    modelRevision: `${model}@rev-1`,\n    environmentDigest: D(\"e\"),\n    permissionDigest,\n    inferenceDigest: D(\"i\"),\n  };\n}\n\nfunction comparison(\n  model = \"gpt-base\",\n  { permissionDigest = D(\"p\"), node = \"v22.22.2\" } = {},\n) {\n  return createEvalComparison({\n    suite: \"builtin\",\n    corpusDigest: D(\"c\"),\n    provider: \"openai\",\n    model,\n    context: context(model, permissionDigest),",
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793672943109,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-24.test.js",
+                    "offset": 1,
+                    "limit": 40
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 1,
+                "sessionId": "panel-1793672866893-310a66",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-24.test.js",
+                    "offset": 1,
+                    "limit": 40
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_dxco56l3fookaghbz0vmn2u9",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-f75c925b-b453-4775-8f8b-75bcd58b518c",
+            "seq": 19
+          },
+          {
+            "type": "tool_result",
+            "id": "call_0zgg9yqhg1laxrkoma7iv8w2",
+            "tool": "read_file",
+            "is_error": false,
+            "error": null,
+            "result": {
+              "path": "/tmp/cc-native-0SZu3H/5d444e9c-5e9a-4822-8fc6-2563123b8178/workspace/packages/cli/__tests__/verify-24.test.js",
+              "fileVersion": "4612:1793672939057.2578:1793672939057.2578",
+              "range": {
+                "startLine": 94,
+                "endLine": 158,
+                "totalLines": 159
+              },
+              "readSpan": {
+                "start": 2391,
+                "end": 4594,
+                "total": 4594
+              },
+              "hashed": false,
+              "content": "describe(\"comparison identity strictly isolates same-task runs (verify-24)\", () => {\n  it(\"accepts the same task under an identical model/permission/runtime identity\", () => {\n    const outcome = gate([record(1, BASE), record(2, BASE)]);\n    expect(outcome).toMatchObject({ passed: true, status: \"PASS\" });\n    expect(outcome.reasons).toEqual([]);\n  });\n\n  it(\"refuses to count the same task as an improvement when the candidate model differs\", () => {\n    const outcome = gate([\n      record(1, BASE),\n      record(2, comparison(\"gpt-upgraded\")),\n    ]);\n    expect(outcome).toMatchObject({\n      passed: false,\n      status: \"INSUFFICIENT_EVIDENCE\",\n    });\n    expect(outcome.reasons).toEqual([\"comparison_identity_changed\"]);\n  });\n\n  it(\"refuses to count the same task when only the permission identity differs\", () => {\n    const outcome = gate([\n      record(1, BASE),\n      record(2, comparison(\"gpt-base\", { permissionDigest: D(\"q\") })),\n    ]);\n    expect(outcome).toMatchObject({\n      passed: false,\n      status: \"INSUFFICIENT_EVIDENCE\",\n    });\n    expect(outcome.reasons).toEqual([\"comparison_identity_changed\"]);\n  });\n\n  it(\"refuses to count the same task when only the runtime identity differs\", () => {\n    const outcome = gate([\n      record(1, BASE),\n      record(2, comparison(\"gpt-base\", { node: \"v24.0.0\" })),\n    ]);\n    expect(outcome).toMatchObject({\n      passed: false,\n      status: \"INSUFFICIENT_EVIDENCE\",\n    });\n    expect(outcome.reasons).toEqual([\"comparison_identity_changed\"]);\n  });\n\n  it(\"does not report a pass-rate improvement across a different model identity\", () => {\n    const base = record(\n      1,\n      BASE,\n      [\n        [\"t1\", true],\n        [\"t2\", false],\n      ],\n    );\n    const candidate = record(2, comparison(\"gpt-upgraded\"));\n    const outcome = gate([base, candidate]);\n    expect(outcome).toMatchObject({\n      passed: false,\n      status: \"INSUFFICIENT_EVIDENCE\",\n      baselineRunId: \"run-1\",\n      candidateRunId: \"run-2\",\n    });\n    // The apparent 50% -> 100% gain is deliberately never evaluated as a trend.\n    expect(outcome.reasons).toEqual([\"comparison_identity_changed\"]);\n    expect(outcome.trend).toBeUndefined();\n  });\n});\n",
+              "sourceRecovery": {
+                "action": "complete-source-container",
+                "fileVersion": "4612:1793672939057.2578:1793672939057.2578",
+                "requestedRange": {
+                  "startLine": 100,
+                  "endLine": 159,
+                  "totalLines": 159
+                },
+                "requestedSpan": {
+                  "start": 2745,
+                  "end": 4594,
+                  "total": 4594
+                },
+                "note": "The requested excerpt cut a source container. These complete surrounding statements come from the same file version; the range and readSpan describe the content actually returned."
+              },
+              "readProgress": {
+                "newContent": true
+              },
+              "toolTelemetryRecord": {
+                "kind": "tool-execution",
+                "provider": null,
+                "model": null,
+                "source": "runtime",
+                "strategy": null,
+                "variant": null,
+                "savedTokens": null,
+                "originalTokens": null,
+                "compressedTokens": null,
+                "ratio": null,
+                "timestamp": 1793672957967,
+                "meta": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-24.test.js",
+                    "offset": 100,
+                    "limit": 60
+                  },
+                  "category": "tool",
+                  "tags": []
+                },
+                "toolName": null,
+                "category": "tool",
+                "status": "completed",
+                "durationMs": 20,
+                "sessionId": "panel-1793672866893-310a66",
+                "metadata": {
+                  "args": {
+                    "path": "packages/cli/__tests__/verify-24.test.js",
+                    "offset": 100,
+                    "limit": 60
+                  }
+                }
+              },
+              "toolAttribution": {
+                "tool": "read_file",
+                "source": "jetbrains-plugin",
+                "version": null,
+                "scope": null,
+                "tier": "mvp",
+                "callId": "call_0zgg9yqhg1laxrkoma7iv8w2",
+                "admitted": true,
+                "reason": "ok",
+                "unmet": []
+              }
+            },
+            "trace_id": "tr-f75c925b-b453-4775-8f8b-75bcd58b518c",
+            "seq": 26
+          }
+        ],
+        "usageEvents": [
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 2710,
+              "output_tokens": 48,
+              "cache_read_input_tokens": 2048,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-f75c925b-b453-4775-8f8b-75bcd58b518c",
+            "seq": 5
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 4929,
+              "output_tokens": 53,
+              "cache_read_input_tokens": 4096,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-f75c925b-b453-4775-8f8b-75bcd58b518c",
+            "seq": 9
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 4249,
+              "output_tokens": 6878,
+              "cache_read_input_tokens": 8192,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-f75c925b-b453-4775-8f8b-75bcd58b518c",
+            "seq": 13
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 11276,
+              "output_tokens": 96,
+              "cache_read_input_tokens": 11520,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-f75c925b-b453-4775-8f8b-75bcd58b518c",
+            "seq": 17
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 3050,
+              "output_tokens": 664,
+              "cache_read_input_tokens": 21760,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-f75c925b-b453-4775-8f8b-75bcd58b518c",
+            "seq": 21
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 1993,
+              "output_tokens": 252,
+              "cache_read_input_tokens": 23808,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-f75c925b-b453-4775-8f8b-75bcd58b518c",
+            "seq": 24
+          },
+          {
+            "type": "token_usage",
+            "provider": "volcengine",
+            "model": "deepseek-v4-flash-ga-260731",
+            "usage": {
+              "input_tokens": 19394,
+              "output_tokens": 799,
+              "cache_read_input_tokens": 4352,
+              "service_tier": "default"
+            },
+            "contextWindow": 32768,
+            "trace_id": "tr-f75c925b-b453-4775-8f8b-75bcd58b518c",
+            "seq": 30
+          }
+        ],
+        "unknownUsageEvents": [],
+        "observedUsage": {
+          "input_tokens": 47601,
+          "output_tokens": 8790,
+          "cache_read_input_tokens": 75776
+        },
+        "usageComplete": true,
+        "failureCategory": null,
+        "modelUsageRecordCount": 7,
+        "estimatedCostUSD": null,
+        "actualBilledCostUSD": null,
+        "final": {
+          "type": "result",
+          "subtype": "success",
+          "is_error": false,
+          "result": "I have the full deliverable content in context (both pages of the file: lines 1-40 and 94-158, plus the middle 41-93 which I authored and already verified in the write). Let me audit each requirement against the source and deliverable.\n\n**Requirement-to-assertion mapping (derived from the original task):**\n\nThe requirement: same task under different model/permission/runtime identity must not count as a comparable improvement.\n\n1. **Model identity** → negative control: `record(2, comparison(\"gpt-upgraded\"))` vs `BASE`. Candidate differs in `comparison.model` and `declared.model`. Production path: `evaluateStrictEvalGate` → `canonical(baseline.comparison) !== canonical(candidate.comparison)` → pushes `comparison_identity_changed`. Assertions: `passed:false`, `status:\"INSUFFICIENT_EVIDENCE\"`, `reasons:[\"comparison_identity_changed\"]`. The exact `reasons` equality proves the identity guard (not task_population or ordering) caused rejection.\n\n2. **Permission identity** → negative: `comparison(\"gpt-base\", { permissionDigest: D(\"q\") })`. Same model, only `declared.permissionDigest` differs. Same guard/assertions.\n\n3. **Runtime identity** → negative: `comparison(\"gpt-base\", { node: \"v24.0.0\" })`. Same model/permission, only `runtime.node` differs. Same guard/assertions.\n\n4. **Positive control** → `record(1, BASE), record(2, BASE)` identical identity → `PASS`, `reasons:[]`. Establishes that all prerequisites (task population, ordering, record validity, execution evidence, age) are valid — so in the negatives only the identity dimension differs, and the exact-reason assertion confirms no other guard masked a missing check.\n\n5. **Improvement-isolation** → baseline 50% (t2 false) → candidate 100% (both true), different model → still `INSUFFICIENT_EVIDENCE`, `trend: undefined`. This directly tests \"不能算可比改善\" — the apparent improvement is never evaluated as a trend.\n\nAll three identity dimensions go through the same single guard (`canonical comparison` compare → `comparison_identity_changed`), and each negative differs from the shared positive in exactly one identity field while keeping task population identical. The exact `reasons` equality on each negative is the strongest proof that no other guard fired and the intended check is reached.\n\n**Order-of-effects check**: `evaluateStrictEvalGate` runs `evalHistoryRecordIssues` (validates each record), then `uniqueReasons` collection, then `canonical(comparison)` compare, then trend computation only if `uniqueReasons` is empty. In all negatives, the records are internally valid (createEvalComparison rebuild with changed declared fields stays consistent), so no earlier guard rejects; only `comparison_identity_changed` fires, and `trend` is never computed. Confirmed.\n\n**Coverage audit**: All requirements covered. No gap. The task cap is 6; I used 5 tests. No merging needed.\n\n**Implementation defect check**: The frozen implementation correctly isolates differing identity → INSUFFICIENT_EVIDENCE before any trend evaluation. No defect; no source change warranted. No test relies on a masked alternative rejection path (exact-reasons assertions prevent that).\n\n**Limitations**: No execution tools were available, so tests were not run; only static verification against the source's exported API and canonical-compare logic. An independent checker will run the suite in Docker.\n\nThe deliverable is complete and matches all derived requirements. No repair needed.",
+          "session_id": "panel-1793672866893-310a66",
+          "turn": 1,
+          "usage": {
+            "input_tokens": 47601,
+            "output_tokens": 8790,
+            "cache_read_input_tokens": 75776,
+            "cache_creation_input_tokens": 0
+          },
+          "transcript_refs": {
+            "schema": "chainlesschain.session-transcript-references/v1",
+            "sessionId": "panel-1793672866893-310a66",
+            "assistantEventId": "a0ffc4e43fc84c1c4af387fdba9a60480bdbb7440eef7103efc5068cc20802c9",
+            "userEventId": "cab6a3d6c1f0df3e356171bae1df9ef96e1483c2dff78d95304695577f3f30bd",
+            "clientMessageId": "be405ff5-750a-41b1-ba87-1629e85f496f"
+          },
+          "trace_id": "tr-f75c925b-b453-4775-8f8b-75bcd58b518c",
+          "seq": 31
+        },
+        "scopePathComparison": "native-case-sensitive"
+      },
+      "brokerStatus": {
+        "physicalRequestsStarted": 7,
+        "usageCompleteRequests": 7,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "candidateAcceptancePassed": false,
+      "passed": false,
+      "generationAssessment": {
+        "passed": true,
+        "originalGenerationPassed": true,
+        "originalTerminalVerified": true,
+        "terminal": {
+          "terminalVerified": true,
+          "observedFallback": false,
+          "usage": {
+            "inputTokens": 47601,
+            "outputTokens": 8790,
+            "cacheReadInputTokens": 75776,
+            "cacheCreationInputTokens": 0
+          },
+          "totalCostUsd": null
+        },
+        "dialect": "persistent-IDE-with-validated-session-end"
+      },
+      "sourceScopePassed": true,
+      "unexpectedChanges": [],
+      "frozenSourceAssessment": {
+        "exact": true,
+        "contentVerified": true,
+        "filenameEncoding": "utf8"
+      },
+      "setup": {
+        "pass": true,
+        "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "receipt": "verify-24-setup-59dea447-80e6-45aa-9f2b-98ca636964a7.json",
+        "receiptDigest": "sha256:ebdff1f4d574f856f6c9f77ebb2c5b0bd422ad2721215fe91ffa2b08902086e1",
+        "scriptDigest": "sha256:72ba58e1473c8e4f288a8a77f8c90e0da098b9c9fc663c29dc338022a0109043",
+        "receiptPath": "pack/acceptance-evidence/verify-24-setup-59dea447-80e6-45aa-9f2b-98ca636964a7.json",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 22,
+            "passed": 22,
+            "failed": 0
+          }
+        ],
+        "mutations": []
+      },
+      "check": {
+        "pass": false,
+        "detail": "acceptance requires executed test cases",
+        "receipt": "verify-24-check-02254de5-fe6f-4a0b-ba19-e6cc46a4b53a.json",
+        "receiptDigest": "sha256:44a702e91ffdc385e8f9729630513d3ef4ea9281fa93fa613ae5d0657a38a34e",
+        "scriptDigest": "sha256:d1f2729b64b813aeb053f905a73299b296dea62ebd9c69478edd2b7ebf75e6a2",
+        "receiptPath": "pack/acceptance-evidence/verify-24-check-02254de5-fe6f-4a0b-ba19-e6cc46a4b53a.json",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 22,
+            "passed": 22,
+            "failed": 0
+          }
+        ],
+        "mutations": []
+      },
+      "finishedAt": "2026-11-03T03:53:12.773Z"
+    }
+  ],
+  "selectionScope": "operator-subset",
+  "selectedSampleIds": [
+    "verify-24"
+  ],
+  "passed": false,
+  "finishedAt": "2026-11-03T03:53:12.775Z"
+}

@@ -1,0 +1,97 @@
+{
+  "runId": 41585306414,
+  "executionSource": "ba504a7869c14c11787e1547dc8611eef9aace71",
+  "sampleId": "first-run-darwin-cli",
+  "physicalRequestsStarted": 16,
+  "usageCompleteRequests": 16,
+  "effectiveOutputLimit": 393216,
+  "allUpstreamHttp200": true,
+  "outputTruncated": false,
+  "terminalError": "Repeated file reads or identical large command outputs: the model did not resume the task after six no-progress batches and recovery guidance. The task is not complete. Use a targeted section or compute a bounded summary before retrying.",
+  "files": [
+    {
+      "path": "model-stream.ndjson",
+      "digest": "sha256:3a55b0269a7d4b517290336f573b2a5891584d5c14e7658f964611e51053790d"
+    },
+    {
+      "path": "broker/summary.json",
+      "digest": "sha256:af74d7b76d09b613ccbe17e5da171d1dde52333708eb158900fc81a886ac2de6"
+    },
+    {
+      "path": "broker/policy.json",
+      "digest": "sha256:d2220e65bc85678f5113f97fde5811e6d1f3f315b8c0bb6efe81c141e89edfe2"
+    },
+    {
+      "path": "broker/request-1.original.json",
+      "digest": "sha256:6090e633c698042b190a91918118bb49b38f0345ffb0cb38ba8f242c6030ea18"
+    },
+    {
+      "path": "broker/request-1.effective.json",
+      "digest": "sha256:3d56e114e641badf5d7313d9b1eac868dcf82592143b5647d1799b625cbf2c51"
+    },
+    {
+      "path": "broker/request-1.receipt.json",
+      "digest": "sha256:aa75ec5f32acf0bec64be67da6cbb79a94aebe3743bd7cefda160792fea55e2e"
+    },
+    {
+      "path": "broker/request-10.receipt.json",
+      "digest": "sha256:f72b8713b98c5605e18218649c975d901bca247c62360bc9895bd135a4c0e1cf"
+    },
+    {
+      "path": "broker/request-11.receipt.json",
+      "digest": "sha256:3cac2604a9f6f3a8376f759f7f4684cc9575ceb102e5c39ab1add18907092a52"
+    },
+    {
+      "path": "broker/request-12.receipt.json",
+      "digest": "sha256:52d4a4ee3bc898706d617354aaad19cfebfa2b29dd7dea70b8318e9ff5377803"
+    },
+    {
+      "path": "broker/request-13.receipt.json",
+      "digest": "sha256:7f7654806bf3915e205128d5284054d98b3cc0794d9aad31ad7408411da4d158"
+    },
+    {
+      "path": "broker/request-14.receipt.json",
+      "digest": "sha256:82fd405cfdb780a04cac3355bde7dba613173b6b1f3553f78d8d0405a2aaded7"
+    },
+    {
+      "path": "broker/request-15.receipt.json",
+      "digest": "sha256:187511f682d934a60706d70de44fd0ebc6810cf89282c13bd67ed7428b88e638"
+    },
+    {
+      "path": "broker/request-16.receipt.json",
+      "digest": "sha256:4fb509a35ef936b0fc59468166f67bd37f3e532315a3f89af5d72a0d1adcc274"
+    },
+    {
+      "path": "broker/request-2.receipt.json",
+      "digest": "sha256:d60ac553e2e137c58c74f64bb3a349022a053d68b820a797e28b87af8f3e85ec"
+    },
+    {
+      "path": "broker/request-3.receipt.json",
+      "digest": "sha256:51cfde25f79529380930b353689a09013af46cc3be10e7d60390c708aef3c3e5"
+    },
+    {
+      "path": "broker/request-4.receipt.json",
+      "digest": "sha256:2cb5c13e8e49e992a1ec32f5ddd15248ece6777f5fab22aab551ff60eff08430"
+    },
+    {
+      "path": "broker/request-5.receipt.json",
+      "digest": "sha256:dd99e7194dc04d78bc49916c334afd7dff6820436c4025f4d279986631c2656e"
+    },
+    {
+      "path": "broker/request-6.receipt.json",
+      "digest": "sha256:5f78f7cc01e96363d48eefe16420c6eeb69879dc0cb3ecc79c14603d5d07e240"
+    },
+    {
+      "path": "broker/request-7.receipt.json",
+      "digest": "sha256:54a21c893ea413a34577b768ec33b0c4971b16966ddba072a5ca53d40a6a7437"
+    },
+    {
+      "path": "broker/request-8.receipt.json",
+      "digest": "sha256:3174f8321bbfdcbbae7d6da2de0ef3b52d5b892fad6918313ca8c502e72dc40b"
+    },
+    {
+      "path": "broker/request-9.receipt.json",
+      "digest": "sha256:69652d6a4d240ff3031866a3eb418a1d162af5cdf70ae1bf14678374700e12cb"
+    }
+  ]
+}

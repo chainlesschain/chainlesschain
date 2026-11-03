@@ -1,0 +1,78 @@
+{
+  "scope": "verify01-operator-acceptance",
+  "taskId": "verify-36",
+  "stage": "check",
+  "productionAttested": false,
+  "providerAssessed": false,
+  "isolation": "docker",
+  "imageReference": "node:22.12.0-bookworm",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operator": {
+    "uid": 1001,
+    "gid": 1001
+  },
+  "tests": [
+    {
+      "kind": "baseline",
+      "total": 7,
+      "passed": 7,
+      "failed": 0
+    }
+  ],
+  "mutations": [],
+  "executions": [
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "setup": false,
+      "ms": 113,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "v22.12.0\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 545,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":7,\"numPassedTests\":7,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793678472422,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"background launch profile\"],\"fullName\":\"background launch profile refuses to capture an ephemeral profile that resume cannot preserve\",\"status\":\"passed\",\"title\":\"refuses to capture an ephemeral profile that resume cannot preserve\",\"duration\":2.2519499999999937,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background launch profile\"],\"fullName\":\"background launch profile captures a versioned effective envelope without prompt or credentials\",\"status\":\"passed\",\"title\":\"captures a versioned effective envelope without prompt or credentials\",\"duration\":9.432427999999987,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background launch profile\"],\"fullName\":\"background launch profile does not persist parent-only background worktree switches\",\"status\":\"passed\",\"title\":\"does not persist parent-only background worktree switches\",\"duration\":2.8122370000000103,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background launch profile\"],\"fullName\":\"background launch profile uses canonical JSON for stable fingerprints and changes on policy drift\",\"status\":\"passed\",\"title\":\"uses canonical JSON for stable fingerprints and changes on policy drift\",\"duration\":7.230300999999997,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background launch profile\"],\"fullName\":\"background launch profile rebuilds resumable argv while keeping redacted values out\",\"status\":\"passed\",\"title\":\"rebuilds resumable argv while keeping redacted values out\",\"duration\":0.9821189999999831,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background launch profile\"],\"fullName\":\"background launch profile detects configuration content changes and can refresh explicitly\",\"status\":\"passed\",\"title\":\"detects configuration content changes and can refresh explicitly\",\"duration\":3.0328820000000007,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background launch profile\"],\"fullName\":\"background launch profile sanitizes base URLs and strips both API key argv forms\",\"status\":\"passed\",\"title\":\"sanitizes base URLs and strips both API key argv forms\",\"duration\":0.5578429999999912,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793678472619,\"endTime\":1793678472645.5579,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/background-launch-profile.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 487,
+      "exitCode": 1,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":1,\"numPassedTestSuites\":0,\"numFailedTestSuites\":1,\"numPendingTestSuites\":0,\"numTotalTests\":0,\"numPassedTests\":0,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793678472970,\"success\":false,\"testResults\":[{\"assertionResults\":[],\"startTime\":1793678472970,\"endTime\":1793678472970,\"status\":\"failed\",\"message\":\"No test suite found in file /workspace/packages/cli/__tests__/verify-36.test.js\",\"name\":\"/workspace/packages/cli/__tests__/verify-36.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "pass": false,
+  "detail": "acceptance requires executed test cases"
+}

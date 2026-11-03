@@ -1,0 +1,1210 @@
+{
+  "schema": "chainlesschain.verify01-native-task-campaign/v1",
+  "executionSourceCommit": "92f480b24de7d6419ce00c5ff58ec3fd20e137c3",
+  "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+  "frozenArchiveDigest": "sha256:0cd894ce05bd6fcbc5673f3728a1cde0b27337eb6f7d43ee8e4cf9cc1bfbb1bc",
+  "versions": {
+    "cli": "0.166.139",
+    "vscode": "0.37.175",
+    "jetbrains": "0.4.192",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "modelTransport": {
+    "provider": "volcengine",
+    "model": "deepseek-v4-flash-ga-260731",
+    "endpoint": "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
+    "policyDigest": "sha256:0e94c4a754ac2d88255cd1c6046eaaa14846b0c8ad62c6239e86195fd8d5f030",
+    "defaultThinkingPreserved": false,
+    "formalSample": false
+  },
+  "packageSetDigest": "sha256:7ac96aab19914fb001c91868a6a94c776639ef217fe3fd0e841e7bdff5d98e5f",
+  "actualPlatform": "linux",
+  "actualArch": "x64",
+  "actualEntry": "vscode",
+  "changeReview": {
+    "requested": true,
+    "observed": false
+  },
+  "startedAt": "2026-11-03T01:37:47.470Z",
+  "samples": [
+    {
+      "schema": "chainlesschain.verify01-native-task-sample/v1",
+      "sampleId": "first-run-linux-vscode",
+      "taskId": "verify-05",
+      "kind": "first-run",
+      "runId": "8cc74035-889d-4b44-9945-9b0344f59a4c",
+      "stratum": "linux-vscode-volcengine",
+      "declaredActualEntry": {
+        "platform": "linux",
+        "entry": "vscode"
+      },
+      "actualPlatform": "linux",
+      "actualEntry": "vscode",
+      "changeReview": {
+        "requested": true,
+        "observed": false,
+        "reminderCount": 0,
+        "evidence": "model-stream.ndjson:iteration_warning",
+        "completed": null
+      },
+      "executionSourceCommit": "92f480b24de7d6419ce00c5ff58ec3fd20e137c3",
+      "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+      "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+      "versions": {
+        "cli": "0.166.139",
+        "vscode": "0.37.175",
+        "jetbrains": "0.4.192",
+        "vscodeHost": "1.132.0",
+        "jetbrainsHost": "2025.2"
+      },
+      "packageSetDigest": "sha256:7ac96aab19914fb001c91868a6a94c776639ef217fe3fd0e841e7bdff5d98e5f",
+      "expectedFiles": [
+        "packages/cli/__tests__/verify-05.test.js"
+      ],
+      "startedAt": "2026-11-03T01:37:47.472Z",
+      "deadline": "2026-11-03T02:07:47.472Z",
+      "candidates": [
+        {
+          "file": "packages/cli/__tests__/verify-05.test.js",
+          "path": "first-run-linux-vscode/candidate/packages/cli/__tests__/verify-05.test.js",
+          "digest": "sha256:72fbf404fca2ae7ca520e83e3a00108ef01918c00f238439b0b28e1db37c40fa",
+          "bytes": 27
+        }
+      ],
+      "sourceScopePassed": true,
+      "metadataChanges": [],
+      "unexpectedChanges": [],
+      "generationPassed": false,
+      "passed": false,
+      "acceptancePending": true,
+      "formalSample": false,
+      "install": {
+        "passed": true,
+        "startedAt": "2026-11-03T01:37:49.127Z",
+        "finishedAt": "2026-11-03T01:38:15.046Z",
+        "lifecycleScriptsEnabled": true,
+        "sampleId": "first-run-linux-vscode",
+        "locked": {
+          "version": "0.166.139",
+          "resolved": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.139.tgz",
+          "integrity": "sha512-X0frBGhYvdNLxnz4oYtqo07vJvFHpi99yyZ1n1q7xI82x6v6BEx/jPy420YfZIidKlJG+HSF5SeQG38idwSW1w==",
+          "hasInstallScript": true,
+          "license": "MIT",
+          "dependencies": {
+            "@aws-sdk/client-s3": "^3.700.0",
+            "@chainlesschain/context-memory-kernel": "0.1.11",
+            "@chainlesschain/core-config": "0.1.2",
+            "@chainlesschain/core-db": "0.1.5",
+            "@chainlesschain/core-env": "0.1.2",
+            "@chainlesschain/core-infra": "0.1.1",
+            "@chainlesschain/core-mtc": "0.2.3",
+            "@chainlesschain/core-multisig": "0.1.4",
+            "@chainlesschain/personal-data-hub": "0.4.66",
+            "@chainlesschain/session-core": "0.3.24",
+            "@chainlesschain/shared-logger": "0.1.1",
+            "@inquirer/prompts": "^7.2.0",
+            "@noble/curves": "^1.9.7",
+            "@tootallnate/quickjs-emscripten": "^0.23.0",
+            "acorn": "8.17.0",
+            "ajv": "^8.20.0",
+            "ajv-formats": "^3.0.1",
+            "chalk": "^5.4.1",
+            "commander": "^12.1.0",
+            "esbuild-wasm": "0.28.1",
+            "js-yaml": "^3.15.1",
+            "koffi": "^2.16.3",
+            "ora": "^8.1.1",
+            "pac-resolver": "^7.0.1",
+            "semver": "^7.6.3",
+            "sql.js": "^1.14.1",
+            "undici": "^7.30.1",
+            "webdav": "^5.10.0",
+            "ws": "^8.14.2"
+          },
+          "bin": {
+            "cc": "bin/chainlesschain.js",
+            "chainlesschain": "bin/chainlesschain.js",
+            "clc": "bin/chainlesschain.js",
+            "clchain": "bin/chainlesschain.js"
+          },
+          "engines": {
+            "node": ">=22.12.0"
+          },
+          "optionalDependencies": {
+            "better-sqlite3": "^12.1.0",
+            "node-pty": "^1.0.0",
+            "pdf-parse": "^1.1.1"
+          },
+          "peerDependencies": {
+            "playwright": "^1.40.0"
+          },
+          "peerDependenciesMeta": {
+            "playwright": {
+              "optional": true
+            }
+          }
+        }
+      },
+      "configure": {
+        "passed": true,
+        "accountKeyInHost": false,
+        "independentProfile": true
+      },
+      "host": {
+        "passed": false,
+        "failure": "CLI model task failed: unsuccessful terminal result",
+        "restartRequired": true
+      },
+      "capturePath": "first-run-linux-vscode/capture",
+      "model": {
+        "pass": false,
+        "terminal": {
+          "terminalVerified": false,
+          "observedFallback": false,
+          "usage": null,
+          "totalCostUsd": null
+        },
+        "identity": false,
+        "fileOnlyToolSurface": true,
+        "plannedTools": [
+          "read_file",
+          "write_file",
+          "edit_file",
+          "edit_file_hashed",
+          "search_files",
+          "list_dir"
+        ],
+        "scoped": true,
+        "settled": true,
+        "preExecutionDenials": [],
+        "delivered": false,
+        "init": {
+          "type": "system",
+          "subtype": "init",
+          "protocol_version": 1,
+          "session_id": "panel-3fea4d09-c614-48ed-837e-da97d6852a8f",
+          "session_persistence": true,
+          "input_receipts": {
+            "version": 1
+          },
+          "task_worklog": null,
+          "model": "deepseek-v4-flash-ga-260731",
+          "provider": "volcengine",
+          "permission_mode": "acceptEdits",
+          "permission_mode_state": {
+            "correlation_id": "0a3f5191-5d80-41b1-8392-dca098ad1d32",
+            "requested": "acceptEdits",
+            "effective": "acceptEdits",
+            "policy_revision": "b4d0151996d5d9e3"
+          },
+          "tools": [
+            "read_file",
+            "search_files",
+            "list_dir",
+            "write_file",
+            "edit_file",
+            "edit_file_hashed"
+          ],
+          "tools_hash": "eba35f3546a7a50a",
+          "policy_digest": "b4d0151996d5d9e3",
+          "loaded_sources": [
+            "project-memory",
+            "memory-recall",
+            "plugins"
+          ],
+          "slash_commands": [
+            "status",
+            "doctor",
+            "mcp",
+            "hooks",
+            "permissions",
+            "agents",
+            "tasks",
+            "memory"
+          ],
+          "input_format": "stream-json",
+          "additional_directories": [],
+          "resumed_messages": 0,
+          "trace_id": "tr-8679e45d-8da7-428e-9b17-ada36fb956b3",
+          "seq": 1
+        },
+        "tools": [],
+        "toolResults": [],
+        "usageEvents": [],
+        "unknownUsageEvents": [],
+        "observedUsage": {},
+        "usageComplete": false,
+        "failureCategory": "agent-error",
+        "modelUsageRecordCount": 0,
+        "estimatedCostUSD": null,
+        "actualBilledCostUSD": null,
+        "final": {
+          "type": "result",
+          "subtype": "error",
+          "is_error": true,
+          "error": "volcengine API error: HTTP 403 — DIAGNOSTIC_NON_200_NO_RETRY.",
+          "turn": 1,
+          "trace_id": "tr-8679e45d-8da7-428e-9b17-ada36fb956b3",
+          "seq": 5
+        },
+        "scopePathComparison": "native-case-sensitive"
+      },
+      "brokerStatus": {
+        "physicalRequestsStarted": 1,
+        "usageCompleteRequests": 0,
+        "passed": false,
+        "poisoned": "DIAGNOSTIC_NON_200_NO_RETRY",
+        "errorCode": null
+      },
+      "broker": {
+        "formalSample": false,
+        "physicalRequestsStarted": 1,
+        "usageCompleteRequests": 0,
+        "tasks": [
+          {
+            "taskId": "first-run-linux-vscode",
+            "requests": 1,
+            "errorCode": null
+          }
+        ],
+        "poisoned": "DIAGNOSTIC_NON_200_NO_RETRY",
+        "actualBilledCostCny": null,
+        "tokenOnlyEstimateCny": null,
+        "knownTokenOnlyEstimateCny": 0,
+        "fxRate": null
+      },
+      "changedPaths": [],
+      "finishedAt": "2026-11-03T01:38:34.034Z"
+    },
+    {
+      "schema": "chainlesschain.verify01-native-task-sample/v1",
+      "sampleId": "verify-05",
+      "taskId": "verify-05",
+      "kind": "task",
+      "runId": "28a37047-13ad-489b-95c7-2ab2829dc666",
+      "stratum": "linux-vscode-volcengine",
+      "declaredActualEntry": {
+        "platform": "linux",
+        "entry": "vscode"
+      },
+      "actualPlatform": "linux",
+      "actualEntry": "vscode",
+      "changeReview": {
+        "requested": true,
+        "observed": false,
+        "reminderCount": 0,
+        "evidence": "model-stream.ndjson:iteration_warning",
+        "completed": null
+      },
+      "executionSourceCommit": "92f480b24de7d6419ce00c5ff58ec3fd20e137c3",
+      "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+      "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+      "versions": {
+        "cli": "0.166.139",
+        "vscode": "0.37.175",
+        "jetbrains": "0.4.192",
+        "vscodeHost": "1.132.0",
+        "jetbrainsHost": "2025.2"
+      },
+      "packageSetDigest": "sha256:7ac96aab19914fb001c91868a6a94c776639ef217fe3fd0e841e7bdff5d98e5f",
+      "expectedFiles": [
+        "packages/cli/__tests__/verify-05.test.js"
+      ],
+      "startedAt": "2026-11-03T01:38:34.036Z",
+      "deadline": "2026-11-03T01:58:34.036Z",
+      "candidates": [
+        {
+          "file": "packages/cli/__tests__/verify-05.test.js",
+          "path": "verify-05/candidate/packages/cli/__tests__/verify-05.test.js",
+          "digest": "sha256:72fbf404fca2ae7ca520e83e3a00108ef01918c00f238439b0b28e1db37c40fa",
+          "bytes": 27
+        }
+      ],
+      "sourceScopePassed": true,
+      "metadataChanges": [],
+      "unexpectedChanges": [],
+      "generationPassed": false,
+      "passed": false,
+      "acceptancePending": true,
+      "formalSample": false,
+      "install": {
+        "reusedHostInstallation": true,
+        "independentProfile": true,
+        "evidence": "package-lock.json"
+      },
+      "configure": {
+        "passed": true,
+        "accountKeyInHost": false,
+        "independentProfile": true
+      },
+      "host": {
+        "passed": false,
+        "failure": "CLI model task failed: unsuccessful terminal result",
+        "restartRequired": true
+      },
+      "capturePath": "verify-05/capture",
+      "model": {
+        "pass": false,
+        "terminal": {
+          "terminalVerified": false,
+          "observedFallback": false,
+          "usage": null,
+          "totalCostUsd": null
+        },
+        "identity": false,
+        "fileOnlyToolSurface": true,
+        "plannedTools": [
+          "read_file",
+          "write_file",
+          "edit_file",
+          "edit_file_hashed",
+          "search_files",
+          "list_dir"
+        ],
+        "scoped": true,
+        "settled": true,
+        "preExecutionDenials": [],
+        "delivered": false,
+        "init": {
+          "type": "system",
+          "subtype": "init",
+          "protocol_version": 1,
+          "session_id": "panel-63b5db0e-bf67-4ae1-b098-eca353ca47b2",
+          "session_persistence": true,
+          "input_receipts": {
+            "version": 1
+          },
+          "task_worklog": null,
+          "model": "deepseek-v4-flash-ga-260731",
+          "provider": "volcengine",
+          "permission_mode": "acceptEdits",
+          "permission_mode_state": {
+            "correlation_id": "ce4ea3c0-15e1-4d63-ac18-acd6530397ee",
+            "requested": "acceptEdits",
+            "effective": "acceptEdits",
+            "policy_revision": "b4d0151996d5d9e3"
+          },
+          "tools": [
+            "read_file",
+            "search_files",
+            "list_dir",
+            "write_file",
+            "edit_file",
+            "edit_file_hashed"
+          ],
+          "tools_hash": "eba35f3546a7a50a",
+          "policy_digest": "b4d0151996d5d9e3",
+          "loaded_sources": [
+            "project-memory",
+            "memory-recall",
+            "plugins"
+          ],
+          "slash_commands": [
+            "status",
+            "doctor",
+            "mcp",
+            "hooks",
+            "permissions",
+            "agents",
+            "tasks",
+            "memory"
+          ],
+          "input_format": "stream-json",
+          "additional_directories": [],
+          "resumed_messages": 0,
+          "trace_id": "tr-99ca712d-fe1b-45d4-8e7b-f1464b840721",
+          "seq": 1
+        },
+        "tools": [],
+        "toolResults": [],
+        "usageEvents": [],
+        "unknownUsageEvents": [],
+        "observedUsage": {},
+        "usageComplete": false,
+        "failureCategory": "agent-error",
+        "modelUsageRecordCount": 0,
+        "estimatedCostUSD": null,
+        "actualBilledCostUSD": null,
+        "final": {
+          "type": "result",
+          "subtype": "error",
+          "is_error": true,
+          "error": "volcengine API error: HTTP 403 — DIAGNOSTIC_NON_200_NO_RETRY.",
+          "turn": 1,
+          "trace_id": "tr-99ca712d-fe1b-45d4-8e7b-f1464b840721",
+          "seq": 5
+        },
+        "scopePathComparison": "native-case-sensitive"
+      },
+      "brokerStatus": {
+        "physicalRequestsStarted": 1,
+        "usageCompleteRequests": 0,
+        "passed": false,
+        "poisoned": "DIAGNOSTIC_NON_200_NO_RETRY",
+        "errorCode": null
+      },
+      "broker": {
+        "formalSample": false,
+        "physicalRequestsStarted": 1,
+        "usageCompleteRequests": 0,
+        "tasks": [
+          {
+            "taskId": "verify-05",
+            "requests": 1,
+            "errorCode": null
+          }
+        ],
+        "poisoned": "DIAGNOSTIC_NON_200_NO_RETRY",
+        "actualBilledCostCny": null,
+        "tokenOnlyEstimateCny": null,
+        "knownTokenOnlyEstimateCny": 0,
+        "fxRate": null
+      },
+      "changedPaths": [],
+      "finishedAt": "2026-11-03T01:38:49.127Z"
+    },
+    {
+      "schema": "chainlesschain.verify01-native-task-sample/v1",
+      "sampleId": "verify-14",
+      "taskId": "verify-14",
+      "kind": "task",
+      "runId": "b9403613-82a2-4228-b452-18379a502ce6",
+      "stratum": "linux-vscode-volcengine",
+      "declaredActualEntry": {
+        "platform": "linux",
+        "entry": "vscode"
+      },
+      "actualPlatform": "linux",
+      "actualEntry": "vscode",
+      "changeReview": {
+        "requested": true,
+        "observed": false,
+        "reminderCount": 0,
+        "evidence": "model-stream.ndjson:iteration_warning",
+        "completed": null
+      },
+      "executionSourceCommit": "92f480b24de7d6419ce00c5ff58ec3fd20e137c3",
+      "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+      "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+      "versions": {
+        "cli": "0.166.139",
+        "vscode": "0.37.175",
+        "jetbrains": "0.4.192",
+        "vscodeHost": "1.132.0",
+        "jetbrainsHost": "2025.2"
+      },
+      "packageSetDigest": "sha256:7ac96aab19914fb001c91868a6a94c776639ef217fe3fd0e841e7bdff5d98e5f",
+      "expectedFiles": [
+        "packages/cli/__tests__/verify-14.test.js"
+      ],
+      "startedAt": "2026-11-03T01:38:49.128Z",
+      "deadline": "2026-11-03T01:58:49.128Z",
+      "candidates": [
+        {
+          "file": "packages/cli/__tests__/verify-14.test.js",
+          "path": "verify-14/candidate/packages/cli/__tests__/verify-14.test.js",
+          "digest": "sha256:72fbf404fca2ae7ca520e83e3a00108ef01918c00f238439b0b28e1db37c40fa",
+          "bytes": 27
+        }
+      ],
+      "sourceScopePassed": true,
+      "metadataChanges": [],
+      "unexpectedChanges": [],
+      "generationPassed": false,
+      "passed": false,
+      "acceptancePending": true,
+      "formalSample": false,
+      "install": {
+        "reusedHostInstallation": true,
+        "independentProfile": true,
+        "evidence": "package-lock.json"
+      },
+      "configure": {
+        "passed": true,
+        "accountKeyInHost": false,
+        "independentProfile": true
+      },
+      "host": {
+        "passed": false,
+        "failure": "CLI model task failed: unsuccessful terminal result",
+        "restartRequired": true
+      },
+      "capturePath": "verify-14/capture",
+      "model": {
+        "pass": false,
+        "terminal": {
+          "terminalVerified": false,
+          "observedFallback": false,
+          "usage": null,
+          "totalCostUsd": null
+        },
+        "identity": false,
+        "fileOnlyToolSurface": true,
+        "plannedTools": [
+          "read_file",
+          "write_file",
+          "edit_file",
+          "edit_file_hashed",
+          "search_files",
+          "list_dir"
+        ],
+        "scoped": true,
+        "settled": true,
+        "preExecutionDenials": [],
+        "delivered": false,
+        "init": {
+          "type": "system",
+          "subtype": "init",
+          "protocol_version": 1,
+          "session_id": "panel-8557fd87-7217-4950-b3c4-aecf0b59a7c3",
+          "session_persistence": true,
+          "input_receipts": {
+            "version": 1
+          },
+          "task_worklog": null,
+          "model": "deepseek-v4-flash-ga-260731",
+          "provider": "volcengine",
+          "permission_mode": "acceptEdits",
+          "permission_mode_state": {
+            "correlation_id": "20b18dad-1c81-4fa4-9dcc-5fb46ceaa3f3",
+            "requested": "acceptEdits",
+            "effective": "acceptEdits",
+            "policy_revision": "b4d0151996d5d9e3"
+          },
+          "tools": [
+            "read_file",
+            "search_files",
+            "list_dir",
+            "write_file",
+            "edit_file",
+            "edit_file_hashed"
+          ],
+          "tools_hash": "eba35f3546a7a50a",
+          "policy_digest": "b4d0151996d5d9e3",
+          "loaded_sources": [
+            "project-memory",
+            "memory-recall",
+            "plugins"
+          ],
+          "slash_commands": [
+            "status",
+            "doctor",
+            "mcp",
+            "hooks",
+            "permissions",
+            "agents",
+            "tasks",
+            "memory"
+          ],
+          "input_format": "stream-json",
+          "additional_directories": [],
+          "resumed_messages": 0,
+          "trace_id": "tr-af2b0605-1267-4af6-9d90-8aa34a150a63",
+          "seq": 1
+        },
+        "tools": [],
+        "toolResults": [],
+        "usageEvents": [],
+        "unknownUsageEvents": [],
+        "observedUsage": {},
+        "usageComplete": false,
+        "failureCategory": "agent-error",
+        "modelUsageRecordCount": 0,
+        "estimatedCostUSD": null,
+        "actualBilledCostUSD": null,
+        "final": {
+          "type": "result",
+          "subtype": "error",
+          "is_error": true,
+          "error": "volcengine API error: HTTP 403 — DIAGNOSTIC_NON_200_NO_RETRY.",
+          "turn": 1,
+          "trace_id": "tr-af2b0605-1267-4af6-9d90-8aa34a150a63",
+          "seq": 5
+        },
+        "scopePathComparison": "native-case-sensitive"
+      },
+      "brokerStatus": {
+        "physicalRequestsStarted": 1,
+        "usageCompleteRequests": 0,
+        "passed": false,
+        "poisoned": "DIAGNOSTIC_NON_200_NO_RETRY",
+        "errorCode": null
+      },
+      "broker": {
+        "formalSample": false,
+        "physicalRequestsStarted": 1,
+        "usageCompleteRequests": 0,
+        "tasks": [
+          {
+            "taskId": "verify-14",
+            "requests": 1,
+            "errorCode": null
+          }
+        ],
+        "poisoned": "DIAGNOSTIC_NON_200_NO_RETRY",
+        "actualBilledCostCny": null,
+        "tokenOnlyEstimateCny": null,
+        "knownTokenOnlyEstimateCny": 0,
+        "fxRate": null
+      },
+      "changedPaths": [],
+      "finishedAt": "2026-11-03T01:39:04.456Z"
+    },
+    {
+      "schema": "chainlesschain.verify01-native-task-sample/v1",
+      "sampleId": "verify-23",
+      "taskId": "verify-23",
+      "kind": "task",
+      "runId": "a3dbd4f0-bcf5-4290-917c-f64dfa59228d",
+      "stratum": "linux-vscode-volcengine",
+      "declaredActualEntry": {
+        "platform": "linux",
+        "entry": "vscode"
+      },
+      "actualPlatform": "linux",
+      "actualEntry": "vscode",
+      "changeReview": {
+        "requested": true,
+        "observed": false,
+        "reminderCount": 0,
+        "evidence": "model-stream.ndjson:iteration_warning",
+        "completed": null
+      },
+      "executionSourceCommit": "92f480b24de7d6419ce00c5ff58ec3fd20e137c3",
+      "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+      "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+      "versions": {
+        "cli": "0.166.139",
+        "vscode": "0.37.175",
+        "jetbrains": "0.4.192",
+        "vscodeHost": "1.132.0",
+        "jetbrainsHost": "2025.2"
+      },
+      "packageSetDigest": "sha256:7ac96aab19914fb001c91868a6a94c776639ef217fe3fd0e841e7bdff5d98e5f",
+      "expectedFiles": [
+        "packages/cli/__tests__/verify-23.test.js"
+      ],
+      "startedAt": "2026-11-03T01:39:04.458Z",
+      "deadline": "2026-11-03T01:59:04.458Z",
+      "candidates": [
+        {
+          "file": "packages/cli/__tests__/verify-23.test.js",
+          "path": "verify-23/candidate/packages/cli/__tests__/verify-23.test.js",
+          "digest": "sha256:72fbf404fca2ae7ca520e83e3a00108ef01918c00f238439b0b28e1db37c40fa",
+          "bytes": 27
+        }
+      ],
+      "sourceScopePassed": true,
+      "metadataChanges": [],
+      "unexpectedChanges": [],
+      "generationPassed": false,
+      "passed": false,
+      "acceptancePending": true,
+      "formalSample": false,
+      "install": {
+        "reusedHostInstallation": true,
+        "independentProfile": true,
+        "evidence": "package-lock.json"
+      },
+      "configure": {
+        "passed": true,
+        "accountKeyInHost": false,
+        "independentProfile": true
+      },
+      "host": {
+        "passed": false,
+        "failure": "CLI model task failed: unsuccessful terminal result",
+        "restartRequired": true
+      },
+      "capturePath": "verify-23/capture",
+      "model": {
+        "pass": false,
+        "terminal": {
+          "terminalVerified": false,
+          "observedFallback": false,
+          "usage": null,
+          "totalCostUsd": null
+        },
+        "identity": false,
+        "fileOnlyToolSurface": true,
+        "plannedTools": [
+          "read_file",
+          "write_file",
+          "edit_file",
+          "edit_file_hashed",
+          "search_files",
+          "list_dir"
+        ],
+        "scoped": true,
+        "settled": true,
+        "preExecutionDenials": [],
+        "delivered": false,
+        "init": {
+          "type": "system",
+          "subtype": "init",
+          "protocol_version": 1,
+          "session_id": "panel-8d62a315-e673-4592-bfa6-fde6f78a9f5b",
+          "session_persistence": true,
+          "input_receipts": {
+            "version": 1
+          },
+          "task_worklog": null,
+          "model": "deepseek-v4-flash-ga-260731",
+          "provider": "volcengine",
+          "permission_mode": "acceptEdits",
+          "permission_mode_state": {
+            "correlation_id": "ac76c187-ad79-4030-b299-c4c75d93f7ef",
+            "requested": "acceptEdits",
+            "effective": "acceptEdits",
+            "policy_revision": "b4d0151996d5d9e3"
+          },
+          "tools": [
+            "read_file",
+            "search_files",
+            "list_dir",
+            "write_file",
+            "edit_file",
+            "edit_file_hashed"
+          ],
+          "tools_hash": "eba35f3546a7a50a",
+          "policy_digest": "b4d0151996d5d9e3",
+          "loaded_sources": [
+            "project-memory",
+            "memory-recall",
+            "plugins"
+          ],
+          "slash_commands": [
+            "status",
+            "doctor",
+            "mcp",
+            "hooks",
+            "permissions",
+            "agents",
+            "tasks",
+            "memory"
+          ],
+          "input_format": "stream-json",
+          "additional_directories": [],
+          "resumed_messages": 0,
+          "trace_id": "tr-32b7bad4-34c9-458e-8770-31f10c99c9ea",
+          "seq": 1
+        },
+        "tools": [],
+        "toolResults": [],
+        "usageEvents": [],
+        "unknownUsageEvents": [],
+        "observedUsage": {},
+        "usageComplete": false,
+        "failureCategory": "agent-error",
+        "modelUsageRecordCount": 0,
+        "estimatedCostUSD": null,
+        "actualBilledCostUSD": null,
+        "final": {
+          "type": "result",
+          "subtype": "error",
+          "is_error": true,
+          "error": "volcengine API error: HTTP 403 — DIAGNOSTIC_NON_200_NO_RETRY.",
+          "turn": 1,
+          "trace_id": "tr-32b7bad4-34c9-458e-8770-31f10c99c9ea",
+          "seq": 5
+        },
+        "scopePathComparison": "native-case-sensitive"
+      },
+      "brokerStatus": {
+        "physicalRequestsStarted": 1,
+        "usageCompleteRequests": 0,
+        "passed": false,
+        "poisoned": "DIAGNOSTIC_NON_200_NO_RETRY",
+        "errorCode": null
+      },
+      "broker": {
+        "formalSample": false,
+        "physicalRequestsStarted": 1,
+        "usageCompleteRequests": 0,
+        "tasks": [
+          {
+            "taskId": "verify-23",
+            "requests": 1,
+            "errorCode": null
+          }
+        ],
+        "poisoned": "DIAGNOSTIC_NON_200_NO_RETRY",
+        "actualBilledCostCny": null,
+        "tokenOnlyEstimateCny": null,
+        "knownTokenOnlyEstimateCny": 0,
+        "fxRate": null
+      },
+      "changedPaths": [],
+      "finishedAt": "2026-11-03T01:39:19.733Z"
+    },
+    {
+      "schema": "chainlesschain.verify01-native-task-sample/v1",
+      "sampleId": "verify-32",
+      "taskId": "verify-32",
+      "kind": "task",
+      "runId": "7da9d8dc-ce18-42a4-a842-410edcad7199",
+      "stratum": "linux-vscode-volcengine",
+      "declaredActualEntry": {
+        "platform": "linux",
+        "entry": "vscode"
+      },
+      "actualPlatform": "linux",
+      "actualEntry": "vscode",
+      "changeReview": {
+        "requested": true,
+        "observed": false,
+        "reminderCount": 0,
+        "evidence": "model-stream.ndjson:iteration_warning",
+        "completed": null
+      },
+      "executionSourceCommit": "92f480b24de7d6419ce00c5ff58ec3fd20e137c3",
+      "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+      "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+      "versions": {
+        "cli": "0.166.139",
+        "vscode": "0.37.175",
+        "jetbrains": "0.4.192",
+        "vscodeHost": "1.132.0",
+        "jetbrainsHost": "2025.2"
+      },
+      "packageSetDigest": "sha256:7ac96aab19914fb001c91868a6a94c776639ef217fe3fd0e841e7bdff5d98e5f",
+      "expectedFiles": [
+        "packages/vscode-extension/__tests__/verify-32.test.js"
+      ],
+      "startedAt": "2026-11-03T01:39:19.735Z",
+      "deadline": "2026-11-03T01:59:19.735Z",
+      "candidates": [
+        {
+          "file": "packages/vscode-extension/__tests__/verify-32.test.js",
+          "path": "verify-32/candidate/packages/vscode-extension/__tests__/verify-32.test.js",
+          "digest": "sha256:72fbf404fca2ae7ca520e83e3a00108ef01918c00f238439b0b28e1db37c40fa",
+          "bytes": 27
+        }
+      ],
+      "sourceScopePassed": true,
+      "metadataChanges": [],
+      "unexpectedChanges": [],
+      "generationPassed": false,
+      "passed": false,
+      "acceptancePending": true,
+      "formalSample": false,
+      "install": {
+        "reusedHostInstallation": true,
+        "independentProfile": true,
+        "evidence": "package-lock.json"
+      },
+      "configure": {
+        "passed": true,
+        "accountKeyInHost": false,
+        "independentProfile": true
+      },
+      "host": {
+        "passed": false,
+        "failure": "CLI model task failed: unsuccessful terminal result",
+        "restartRequired": true
+      },
+      "capturePath": "verify-32/capture",
+      "model": {
+        "pass": false,
+        "terminal": {
+          "terminalVerified": false,
+          "observedFallback": false,
+          "usage": null,
+          "totalCostUsd": null
+        },
+        "identity": false,
+        "fileOnlyToolSurface": true,
+        "plannedTools": [
+          "read_file",
+          "write_file",
+          "edit_file",
+          "edit_file_hashed",
+          "search_files",
+          "list_dir"
+        ],
+        "scoped": true,
+        "settled": true,
+        "preExecutionDenials": [],
+        "delivered": false,
+        "init": {
+          "type": "system",
+          "subtype": "init",
+          "protocol_version": 1,
+          "session_id": "panel-d15171cb-4d35-4ef8-a508-44a25a0d2e4a",
+          "session_persistence": true,
+          "input_receipts": {
+            "version": 1
+          },
+          "task_worklog": null,
+          "model": "deepseek-v4-flash-ga-260731",
+          "provider": "volcengine",
+          "permission_mode": "acceptEdits",
+          "permission_mode_state": {
+            "correlation_id": "d88b76fe-1d29-42c6-8f71-55e64f306d20",
+            "requested": "acceptEdits",
+            "effective": "acceptEdits",
+            "policy_revision": "b4d0151996d5d9e3"
+          },
+          "tools": [
+            "read_file",
+            "search_files",
+            "list_dir",
+            "write_file",
+            "edit_file",
+            "edit_file_hashed"
+          ],
+          "tools_hash": "eba35f3546a7a50a",
+          "policy_digest": "b4d0151996d5d9e3",
+          "loaded_sources": [
+            "project-memory",
+            "memory-recall",
+            "plugins"
+          ],
+          "slash_commands": [
+            "status",
+            "doctor",
+            "mcp",
+            "hooks",
+            "permissions",
+            "agents",
+            "tasks",
+            "memory"
+          ],
+          "input_format": "stream-json",
+          "additional_directories": [],
+          "resumed_messages": 0,
+          "trace_id": "tr-f5f8f273-0325-43b5-812d-a9171982eda5",
+          "seq": 1
+        },
+        "tools": [],
+        "toolResults": [],
+        "usageEvents": [],
+        "unknownUsageEvents": [],
+        "observedUsage": {},
+        "usageComplete": false,
+        "failureCategory": "agent-error",
+        "modelUsageRecordCount": 0,
+        "estimatedCostUSD": null,
+        "actualBilledCostUSD": null,
+        "final": {
+          "type": "result",
+          "subtype": "error",
+          "is_error": true,
+          "error": "volcengine API error: HTTP 403 — DIAGNOSTIC_NON_200_NO_RETRY.",
+          "turn": 1,
+          "trace_id": "tr-f5f8f273-0325-43b5-812d-a9171982eda5",
+          "seq": 5
+        },
+        "scopePathComparison": "native-case-sensitive"
+      },
+      "brokerStatus": {
+        "physicalRequestsStarted": 1,
+        "usageCompleteRequests": 0,
+        "passed": false,
+        "poisoned": "DIAGNOSTIC_NON_200_NO_RETRY",
+        "errorCode": null
+      },
+      "broker": {
+        "formalSample": false,
+        "physicalRequestsStarted": 1,
+        "usageCompleteRequests": 0,
+        "tasks": [
+          {
+            "taskId": "verify-32",
+            "requests": 1,
+            "errorCode": null
+          }
+        ],
+        "poisoned": "DIAGNOSTIC_NON_200_NO_RETRY",
+        "actualBilledCostCny": null,
+        "tokenOnlyEstimateCny": null,
+        "knownTokenOnlyEstimateCny": 0,
+        "fxRate": null
+      },
+      "changedPaths": [],
+      "finishedAt": "2026-11-03T01:39:35.544Z"
+    }
+  ],
+  "selectionScope": "full-native-group",
+  "selectedSampleIds": [
+    "first-run-linux-vscode",
+    "verify-05",
+    "verify-14",
+    "verify-23",
+    "verify-32"
+  ],
+  "generationPassed": false,
+  "acceptancePending": true,
+  "formalSample": false,
+  "limitations": [
+    "Native generation; independent Linux acceptance pending",
+    "Broker thinking disabled, six file tools only, 20 model turns, 24 requests, 180 second request timeout, 8192 output tokens, 16 MiB response transport limit",
+    "IDE context bridges and optional task worklog disabled; real UI and restart retained",
+    "No prior candidates or repair seeds supplied"
+  ],
+  "cohortKind": "volcengine-native-diagnostic",
+  "executionIdentityDigest": "sha256:9c572c8094470b98356f6db37029b56c3e345d675d8ce01eb267ac8dff088283",
+  "group": "linux-vscode",
+  "entry": "vscode",
+  "platform": "linux",
+  "executionSourceBindings": [
+    {
+      "file": "packages/cli/scripts/verify01-native-task-campaign.mjs",
+      "digest": "sha256:8f7136bb7775f5da8d970f9ad543b78a7b60d2be705be205c0c229a24c5b1bd3"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-task-diagnostic.mjs",
+      "digest": "sha256:4f9710a91e70a88d11a0378b17ffd59a1fc35721dd71ebced4541583fe82781e"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-volcengine-diagnostic-broker.mjs",
+      "digest": "sha256:b524cd15758946fcefe14e932b0461d4d568e1ed4a459cfaa066324f31e5ca43"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-native-provider-profile.mjs",
+      "digest": "sha256:4e5ee5f64128891453acf36f5f91057ba9d0e7e22ff00fcbd54ad62a25991dd8"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-openai-diagnostic-broker.mjs",
+      "digest": "sha256:72b9b54ddf8d4f916ffdf75acde808e9ea19d66b0bc67e96b0d2be44ef65cebe"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-openai-transport-preload.mjs",
+      "digest": "sha256:d3deaf2d2465537c7ecff4be95b044f5fbc4ae3c6a6a035dc816dcb27b9c345a"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-review-specs.mjs",
+      "digest": "sha256:202eec83bb24f5b271d19ae9114d7ef5c9ec024a7592895a04bbdd164cc91f1d"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-project-revision.mjs",
+      "digest": "sha256:a3bca91a5b5d6174b64c3011e245505e7eef51540ff890f17ac39d9f0d1db50f"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-prerelease-package-set.mjs",
+      "digest": "sha256:324b67e2405916eecabd4abd459aa7fb7c4ed036029ee22d13e742d32f51dfa8"
+    },
+    {
+      "file": "packages/cli/src/lib/eval/stream-terminal.js",
+      "digest": "sha256:4440c2821c65afac8bfa5e79cee5671434e89702dacb8128e09480f329451114"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-first-run-cli-diagnostic.mjs",
+      "digest": "sha256:ad10cb2f362a8d163d024bbae7da09137e8f102956f4212e8af004f134474b7b"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/plan.json",
+      "digest": "sha256:aa55909d4cb3d83ac94127168ae6114ee7ceb7b6584b64fcb985904add297f35"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/tasks.json",
+      "digest": "sha256:c1be59b0b754f5442e571e3e9d9290bd5c72c13f324ae603d4b629a6b06852d2"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/comparison-bindings.json",
+      "digest": "sha256:32ba5c28f69146fcddda04d3fc0f2aba649fdae4d607f48168af3bd3b773432c"
+    },
+    {
+      "file": "docs/research/cli/verify01-plan-2026-10-13-volcengine/plan.sha256",
+      "digest": "sha256:73d2473d0e205379b5b654a245ec96b3f19b524a3906e979682ee4ad84e0202e"
+    },
+    {
+      "file": "packages/vscode-extension/test/extension-host/verify01-run.cjs",
+      "digest": "sha256:69ef72bcf8f0d5e040f16514cd8e99ea41cc6af0cd47cf8e2dd08d2d3f35fce5"
+    },
+    {
+      "file": "packages/vscode-extension/test/extension-host/driver/verify01.cjs",
+      "digest": "sha256:a4a8a1d3d0e83227f22943e36920883d234fcdc847fb0f9faa08a969abf0c177"
+    },
+    {
+      "file": "packages/vscode-extension/test/extension-host/driver/verify01-composer.cjs",
+      "digest": "sha256:3309c665f3bcb2941a27941ab4a096047869dd85deab78052c4932bf8f425554"
+    },
+    {
+      "file": "packages/vscode-extension/test/extension-host/driver/noop.cjs",
+      "digest": "sha256:06a84182b7e81818c35b47c64170139b572a665645dbf9561de7fd521517bbb6"
+    },
+    {
+      "file": "packages/vscode-extension/test/extension-host/driver/failure-receipt.cjs",
+      "digest": "sha256:802abcf31cb2dcbfb4e3873e29a440e9b1e8a5399ba6e8bb05883d1a36494c84"
+    },
+    {
+      "file": "packages/vscode-extension/test/extension-host/cdp-journey.cjs",
+      "digest": "sha256:31d467277d6eee1f7ecbe5551ae20e318d9ead0363b692a1ab106e64e388cfd0"
+    },
+    {
+      "file": "packages/vscode-extension/test/extension-host/run.cjs",
+      "digest": "sha256:761393469af5d77dea596dffe0fff8e984e93445949796474a281f3f68b635f1"
+    }
+  ],
+  "install": {
+    "passed": true,
+    "startedAt": "2026-11-03T01:37:49.127Z",
+    "finishedAt": "2026-11-03T01:38:15.046Z",
+    "lifecycleScriptsEnabled": true,
+    "sampleId": "first-run-linux-vscode",
+    "locked": {
+      "version": "0.166.139",
+      "resolved": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.139.tgz",
+      "integrity": "sha512-X0frBGhYvdNLxnz4oYtqo07vJvFHpi99yyZ1n1q7xI82x6v6BEx/jPy420YfZIidKlJG+HSF5SeQG38idwSW1w==",
+      "hasInstallScript": true,
+      "license": "MIT",
+      "dependencies": {
+        "@aws-sdk/client-s3": "^3.700.0",
+        "@chainlesschain/context-memory-kernel": "0.1.11",
+        "@chainlesschain/core-config": "0.1.2",
+        "@chainlesschain/core-db": "0.1.5",
+        "@chainlesschain/core-env": "0.1.2",
+        "@chainlesschain/core-infra": "0.1.1",
+        "@chainlesschain/core-mtc": "0.2.3",
+        "@chainlesschain/core-multisig": "0.1.4",
+        "@chainlesschain/personal-data-hub": "0.4.66",
+        "@chainlesschain/session-core": "0.3.24",
+        "@chainlesschain/shared-logger": "0.1.1",
+        "@inquirer/prompts": "^7.2.0",
+        "@noble/curves": "^1.9.7",
+        "@tootallnate/quickjs-emscripten": "^0.23.0",
+        "acorn": "8.17.0",
+        "ajv": "^8.20.0",
+        "ajv-formats": "^3.0.1",
+        "chalk": "^5.4.1",
+        "commander": "^12.1.0",
+        "esbuild-wasm": "0.28.1",
+        "js-yaml": "^3.15.1",
+        "koffi": "^2.16.3",
+        "ora": "^8.1.1",
+        "pac-resolver": "^7.0.1",
+        "semver": "^7.6.3",
+        "sql.js": "^1.14.1",
+        "undici": "^7.30.1",
+        "webdav": "^5.10.0",
+        "ws": "^8.14.2"
+      },
+      "bin": {
+        "cc": "bin/chainlesschain.js",
+        "chainlesschain": "bin/chainlesschain.js",
+        "clc": "bin/chainlesschain.js",
+        "clchain": "bin/chainlesschain.js"
+      },
+      "engines": {
+        "node": ">=22.12.0"
+      },
+      "optionalDependencies": {
+        "better-sqlite3": "^12.1.0",
+        "node-pty": "^1.0.0",
+        "pdf-parse": "^1.1.1"
+      },
+      "peerDependencies": {
+        "playwright": "^1.40.0"
+      },
+      "peerDependenciesMeta": {
+        "playwright": {
+          "optional": true
+        }
+      }
+    }
+  },
+  "finishedAt": "2026-11-03T01:39:35.545Z"
+}

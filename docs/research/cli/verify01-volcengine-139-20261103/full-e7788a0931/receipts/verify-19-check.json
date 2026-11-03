@@ -1,0 +1,117 @@
+{
+  "scope": "verify01-operator-acceptance",
+  "taskId": "verify-19",
+  "stage": "check",
+  "productionAttested": false,
+  "providerAssessed": false,
+  "isolation": "docker",
+  "imageReference": "node:22.12.0-bookworm",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operator": {
+    "uid": 1001,
+    "gid": 1001
+  },
+  "tests": [
+    {
+      "kind": "baseline",
+      "total": 17,
+      "passed": 17,
+      "failed": 0
+    },
+    {
+      "kind": "candidate",
+      "total": 6,
+      "passed": 6,
+      "failed": 0
+    }
+  ],
+  "mutations": [],
+  "executions": [
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "setup": false,
+      "ms": 132,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "v22.12.0\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 5724,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":3,\"numPassedTestSuites\":3,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":17,\"numPassedTests\":17,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793677054321,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"parseInputEvent — approval verdicts\"],\"fullName\":\"parseInputEvent — approval verdicts parses approve/deny and rejects malformed ones\",\"status\":\"passed\",\"title\":\"parses approve/deny and rejects malformed ones\",\"duration\":2.7007770000000164,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"parseInputEvent — approval verdicts\"],\"fullName\":\"parseInputEvent — approval verdicts carries an optional approval binding when present\",\"status\":\"passed\",\"title\":\"carries an optional approval binding when present\",\"duration\":0.4672409999998308,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"parseInputEvent — approval verdicts\"],\"fullName\":\"parseInputEvent — approval verdicts validates structured decisions and fails closed on drift\",\"status\":\"passed\",\"title\":\"validates structured decisions and fails closed on drift\",\"duration\":63.824028,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"interactive approvals round-trip\"],\"fullName\":\"interactive approvals round-trip approve: the blocked tool gets true; request + resolution are emitted\",\"status\":\"passed\",\"title\":\"approve: the blocked tool gets true; request + resolution are emitted\",\"duration\":238.55088100000012,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"interactive approvals round-trip\"],\"fullName\":\"interactive approvals round-trip caller abort settles a pending approval and retires live stdin\",\"status\":\"passed\",\"title\":\"caller abort settles a pending approval and retires live stdin\",\"duration\":43.1599369999999,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"interactive approvals round-trip\"],\"fullName\":\"interactive approvals round-trip deny: the tool gets false\",\"status\":\"passed\",\"title\":\"deny: the tool gets false\",\"duration\":111.65239199999996,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"interactive approvals round-trip\"],\"fullName\":\"interactive approvals round-trip a structured decision must echo the advertised binding\",\"status\":\"passed\",\"title\":\"a structured decision must echo the advertised binding\",\"duration\":115.4346300000002,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"interactive approvals round-trip\"],\"fullName\":\"interactive approvals round-trip rejects a structured approval that omits the binding\",\"status\":\"passed\",\"title\":\"rejects a structured approval that omits the binding\",\"duration\":113.82574900000009,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"interactive approvals round-trip\"],\"fullName\":\"interactive approvals round-trip reuses an exact acceptForTurn grant without opening a second card\",\"status\":\"passed\",\"title\":\"reuses an exact acceptForTurn grant without opening a second card\",\"duration\":155.96183999999948,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"interactive approvals round-trip\"],\"fullName\":\"interactive approvals round-trip downgrades a session grant to acceptOnce when authority persistence fails\",\"status\":\"passed\",\"title\":\"downgrades a session grant to acceptOnce when authority persistence fails\",\"duration\":117.13419599999997,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"interactive approvals round-trip\"],\"fullName\":\"interactive approvals round-trip restores a persisted exact session grant before the resumed turn\",\"status\":\"passed\",\"title\":\"restores a persisted exact session grant before the resumed turn\",\"duration\":142.3505580000001,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"interactive approvals round-trip\"],\"fullName\":\"interactive approvals round-trip discards a corrupt persisted grant ledger and asks again\",\"status\":\"passed\",\"title\":\"discards a corrupt persisted grant ledger and asks again\",\"duration\":109.82089300000007,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"interactive approvals round-trip\"],\"fullName\":\"interactive approvals round-trip a mismatched binding is rejected (deny, fail closed) — replay/param-substitution\",\"status\":\"passed\",\"title\":\"a mismatched binding is rejected (deny, fail closed) — replay/param-substitution\",\"duration\":107.14313500000026,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"interactive approvals round-trip\"],\"fullName\":\"interactive approvals round-trip timeout fails closed\",\"status\":\"passed\",\"title\":\"timeout fails closed\",\"duration\":424.4628130000001,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"interactive approvals round-trip\"],\"fullName\":\"interactive approvals round-trip stdin close while pending fails closed (no hang)\",\"status\":\"passed\",\"title\":\"stdin close while pending fails closed (no hang)\",\"duration\":107.08538000000044,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"interactive approvals round-trip\"],\"fullName\":\"interactive approvals round-trip flag off → no permissionConfirm is injected (fail-closed stays)\",\"status\":\"passed\",\"title\":\"flag off → no permissionConfirm is injected (fail-closed stays)\",\"duration\":24.240781000000425,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"interactive approvals round-trip\"],\"fullName\":\"interactive approvals round-trip the ApprovalGate confirmer is swapped only when the flag is on\",\"status\":\"passed\",\"title\":\"the ApprovalGate confirmer is swapped only when the flag is on\",\"duration\":49.99399499999981,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793677057684,\"endTime\":1793677059612.994,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/headless-stream-approvals.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 633,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":6,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793677060051,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"normalizePermissionRequest (verify-19)\"],\"fullName\":\"normalizePermissionRequest (verify-19) adopts a literal command string verbatim (positive) vs argv fallback\",\"status\":\"passed\",\"title\":\"adopts a literal command string verbatim (positive) vs argv fallback\",\"duration\":1.6862439999999879,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"normalizePermissionRequest (verify-19)\"],\"fullName\":\"normalizePermissionRequest (verify-19) quotes argv tokens containing shell metacharacters; plain tokens stay bare\",\"status\":\"passed\",\"title\":\"quotes argv tokens containing shell metacharacters; plain tokens stay bare\",\"duration\":0.306555000000003,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"normalizePermissionRequest (verify-19)\"],\"fullName\":\"normalizePermissionRequest (verify-19) builds a path->destination detail when both are present (positive vs one-sided)\",\"status\":\"passed\",\"title\":\"builds a path->destination detail when both are present (positive vs one-sided)\",\"duration\":0.20772300000001565,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"normalizePermissionRequest (verify-19)\"],\"fullName\":\"normalizePermissionRequest (verify-19) prefers command detail over path detail for run-style requests\",\"status\":\"passed\",\"title\":\"prefers command detail over path detail for run-style requests\",\"duration\":0.3830979999999897,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"normalizePermissionRequest (verify-19)\"],\"fullName\":\"normalizePermissionRequest (verify-19) normalizes an unknown tool to the sentinel and keeps non-object args\",\"status\":\"passed\",\"title\":\"normalizes an unknown tool to the sentinel and keeps non-object args\",\"duration\":0.753881999999976,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"normalizePermissionRequest (verify-19)\"],\"fullName\":\"normalizePermissionRequest (verify-19) freezes the returned object (caller cannot mutate the canonical form)\",\"status\":\"passed\",\"title\":\"freezes the returned object (caller cannot mutate the canonical form)\",\"duration\":0.6047690000000046,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793677060250,\"endTime\":1793677060254.6047,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-19.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "/workspace/packages/cli/src/runtime/headless-stream.js"
+      ],
+      "setup": false,
+      "ms": 144,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 644,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":6,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793677060838,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"normalizePermissionRequest (verify-19)\"],\"fullName\":\"normalizePermissionRequest (verify-19) adopts a literal command string verbatim (positive) vs argv fallback\",\"status\":\"passed\",\"title\":\"adopts a literal command string verbatim (positive) vs argv fallback\",\"duration\":1.7028450000000248,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"normalizePermissionRequest (verify-19)\"],\"fullName\":\"normalizePermissionRequest (verify-19) quotes argv tokens containing shell metacharacters; plain tokens stay bare\",\"status\":\"passed\",\"title\":\"quotes argv tokens containing shell metacharacters; plain tokens stay bare\",\"duration\":0.3139380000000074,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"normalizePermissionRequest (verify-19)\"],\"fullName\":\"normalizePermissionRequest (verify-19) builds a path->destination detail when both are present (positive vs one-sided)\",\"status\":\"passed\",\"title\":\"builds a path->destination detail when both are present (positive vs one-sided)\",\"duration\":0.20685900000000856,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"normalizePermissionRequest (verify-19)\"],\"fullName\":\"normalizePermissionRequest (verify-19) prefers command detail over path detail for run-style requests\",\"status\":\"passed\",\"title\":\"prefers command detail over path detail for run-style requests\",\"duration\":0.3154910000000086,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"normalizePermissionRequest (verify-19)\"],\"fullName\":\"normalizePermissionRequest (verify-19) normalizes an unknown tool to the sentinel and keeps non-object args\",\"status\":\"passed\",\"title\":\"normalizes an unknown tool to the sentinel and keeps non-object args\",\"duration\":0.7351419999999962,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"normalizePermissionRequest (verify-19)\"],\"fullName\":\"normalizePermissionRequest (verify-19) freezes the returned object (caller cannot mutate the canonical form)\",\"status\":\"passed\",\"title\":\"freezes the returned object (caller cannot mutate the canonical form)\",\"duration\":0.6331460000000106,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793677061042,\"endTime\":1793677061046.633,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-19.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "pass": false,
+  "detail": "candidate tests did not reject the behavioral mutant"
+}

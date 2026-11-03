@@ -1,0 +1,125 @@
+{
+  "scope": "verify01-operator-acceptance",
+  "taskId": "verify-18",
+  "stage": "check",
+  "productionAttested": false,
+  "providerAssessed": false,
+  "isolation": "docker",
+  "imageReference": "node:22.12.0-bookworm",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operator": {
+    "uid": 1001,
+    "gid": 1001
+  },
+  "tests": [
+    {
+      "kind": "baseline",
+      "total": 2,
+      "passed": 2,
+      "failed": 0
+    },
+    {
+      "kind": "candidate",
+      "total": 6,
+      "passed": 6,
+      "failed": 0
+    }
+  ],
+  "mutations": [
+    {
+      "name": "ignore-unresolved-in-memory-owner",
+      "sourceSha256": "3cb4e78f5ba587f705a9760cf119077875b612d91e4f4ead7b018315991ccf1d",
+      "total": 6,
+      "passed": 3,
+      "failed": 3
+    }
+  ],
+  "executions": [
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "setup": false,
+      "ms": 158,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "v22.12.0\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 1514,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":2,\"numPassedTests\":2,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793678360962,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"Broker process ownership quarantine\"],\"fullName\":\"Broker process ownership quarantine does not confuse spawn or ordinary signal errors with lost tree ownership\",\"status\":\"passed\",\"title\":\"does not confuse spawn or ordinary signal errors with lost tree ownership\",\"duration\":76.13951599999999,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"Broker process ownership quarantine\"],\"fullName\":\"Broker process ownership quarantine fences every process API before native launch, including new Brokers and reentry\",\"status\":\"passed\",\"title\":\"fences every process API before native launch, including new Brokers and reentry\",\"duration\":687.3415640000001,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793678361200,\"endTime\":1793678361963.3416,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/process-ownership-quarantine.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 819,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":6,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793678362482,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"ownership unknown keeps execution blocked\"],\"fullName\":\"ownership unknown keeps execution blocked supervisor disappearing (close) does not clear an unconfirmed-ownership block\",\"status\":\"passed\",\"title\":\"supervisor disappearing (close) does not clear an unconfirmed-ownership block\",\"duration\":92.10730200000003,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ownership unknown keeps execution blocked\"],\"fullName\":\"ownership unknown keeps execution blocked block persists even if the root emits close before the unconfirmed evidence is delivered\",\"status\":\"passed\",\"title\":\"block persists even if the root emits close before the unconfirmed evidence is delivered\",\"duration\":3.668493000000012,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ownership unknown keeps execution blocked\"],\"fullName\":\"ownership unknown keeps execution blocked a root that disappears with confirmed cleanup is not blocked\",\"status\":\"passed\",\"title\":\"a root that disappears with confirmed cleanup is not blocked\",\"duration\":4.965028999999959,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ownership unknown keeps execution blocked\"],\"fullName\":\"ownership unknown keeps execution blocked a root that disappears without any cleanup evidence is not blocked\",\"status\":\"passed\",\"title\":\"a root that disappears without any cleanup evidence is not blocked\",\"duration\":2.6152229999999577,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ownership unknown keeps execution blocked\"],\"fullName\":\"ownership unknown keeps execution blocked unknown ownership blocks before the root disappears\",\"status\":\"passed\",\"title\":\"unknown ownership blocks before the root disappears\",\"duration\":2.8590180000000487,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ownership unknown keeps execution blocked\"],\"fullName\":\"ownership unknown keeps execution blocked two independent executions retain distinct unresolved ids while blocked\",\"status\":\"passed\",\"title\":\"two independent executions retain distinct unresolved ids while blocked\",\"duration\":4.36767100000003,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793678362703,\"endTime\":1793678362813.3677,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-18.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "/workspace/packages/cli/src/lib/process-execution-broker/process-ownership-quarantine.js"
+      ],
+      "setup": false,
+      "ms": 166,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 800,
+      "exitCode": 1,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":0,\"numFailedTestSuites\":2,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":3,\"numFailedTests\":3,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793678363462,\"success\":false,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"ownership unknown keeps execution blocked\"],\"fullName\":\"ownership unknown keeps execution blocked supervisor disappearing (close) does not clear an unconfirmed-ownership block\",\"status\":\"failed\",\"title\":\"supervisor disappearing (close) does not clear an unconfirmed-ownership block\",\"duration\":88.83024,\"failureMessages\":[\"AssertionError: expected function to throw an error, but it didn't\\n    at /workspace/packages/cli/__tests__/verify-18.test.js:40:55\\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ownership unknown keeps execution blocked\"],\"fullName\":\"ownership unknown keeps execution blocked block persists even if the root emits close before the unconfirmed evidence is delivered\",\"status\":\"failed\",\"title\":\"block persists even if the root emits close before the unconfirmed evidence is delivered\",\"duration\":5.062551999999982,\"failureMessages\":[\"AssertionError: expected function to throw an error, but it didn't\\n    at /workspace/packages/cli/__tests__/verify-18.test.js:58:55\\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ownership unknown keeps execution blocked\"],\"fullName\":\"ownership unknown keeps execution blocked a root that disappears with confirmed cleanup is not blocked\",\"status\":\"passed\",\"title\":\"a root that disappears with confirmed cleanup is not blocked\",\"duration\":3.626234000000011,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ownership unknown keeps execution blocked\"],\"fullName\":\"ownership unknown keeps execution blocked a root that disappears without any cleanup evidence is not blocked\",\"status\":\"passed\",\"title\":\"a root that disappears without any cleanup evidence is not blocked\",\"duration\":2.9052950000000237,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ownership unknown keeps execution blocked\"],\"fullName\":\"ownership unknown keeps execution blocked unknown ownership blocks before the root disappears\",\"status\":\"failed\",\"title\":\"unknown ownership blocks before the root disappears\",\"duration\":4.927036999999984,\"failureMessages\":[\"AssertionError: expected function to throw an error, but it didn't\\n    at /workspace/packages/cli/__tests__/verify-18.test.js:94:55\\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ownership unknown keeps execution blocked\"],\"fullName\":\"ownership unknown keeps execution blocked two independent executions retain distinct unresolved ids while blocked\",\"status\":\"passed\",\"title\":\"two independent executions retain distinct unresolved ids while blocked\",\"duration\":2.5954459999999813,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793678363683,\"endTime\":1793678363790.5955,\"status\":\"failed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-18.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "pass": true,
+  "detail": "Independent operator checks passed; this is not a provider or task-outcome sample."
+}

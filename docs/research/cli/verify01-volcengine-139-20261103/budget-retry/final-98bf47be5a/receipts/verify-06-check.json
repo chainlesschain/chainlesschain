@@ -1,0 +1,78 @@
+{
+  "scope": "verify01-operator-acceptance",
+  "taskId": "verify-06",
+  "stage": "check",
+  "productionAttested": false,
+  "providerAssessed": false,
+  "isolation": "docker",
+  "imageReference": "node:22.12.0-bookworm",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operator": {
+    "uid": 1001,
+    "gid": 1001
+  },
+  "tests": [
+    {
+      "kind": "baseline",
+      "total": 31,
+      "passed": 31,
+      "failed": 0
+    }
+  ],
+  "mutations": [],
+  "executions": [
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "setup": false,
+      "ms": 113,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "v22.12.0\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 2513,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":7,\"numPassedTestSuites\":7,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":31,\"numPassedTests\":31,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793678529030,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"Orchestrator: task lifecycle\"],\"fullName\":\"Orchestrator: task lifecycle rejects CLI-only routing before model work, notifications and Run creation\",\"status\":\"passed\",\"title\":\"rejects CLI-only routing before model work, notifications and Run creation\",\"duration\":4.823605999999927,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"Orchestrator: task lifecycle\"],\"fullName\":\"Orchestrator: task lifecycle completes a task with CI pass → status COMPLETED\",\"status\":\"passed\",\"title\":\"completes a task with CI pass → status COMPLETED\",\"duration\":3.569782000000032,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"Orchestrator: task lifecycle\"],\"fullName\":\"Orchestrator: task lifecycle emits task:complete event on success\",\"status\":\"passed\",\"title\":\"emits task:complete event on success\",\"duration\":1.0445580000000518,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"Orchestrator: task lifecycle\"],\"fullName\":\"Orchestrator: task lifecycle records failed admission before dispatch: factory-error\",\"status\":\"passed\",\"title\":\"records failed admission before dispatch: factory-error\",\"duration\":0.9237149999999019,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"Orchestrator: task lifecycle\"],\"fullName\":\"Orchestrator: task lifecycle records failed admission before dispatch: unbranded\",\"status\":\"passed\",\"title\":\"records failed admission before dispatch: unbranded\",\"duration\":0.6263260000000628,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"Orchestrator: task lifecycle\"],\"fullName\":\"Orchestrator: task lifecycle waits for evolution settlement before success (CI=true)\",\"status\":\"passed\",\"title\":\"waits for evolution settlement before success (CI=true)\",\"duration\":0.8487019999997756,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"Orchestrator: task lifecycle\"],\"fullName\":\"Orchestrator: task lifecycle waits for evolution settlement before success (CI=false)\",\"status\":\"passed\",\"title\":\"waits for evolution settlement before success (CI=false)\",\"duration\":0.5649230000003627,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"Orchestrator: task lifecycle\"],\"fullName\":\"Orchestrator: task lifecycle does not announce success when evolution settlement fails (CI=true)\",\"status\":\"passed\",\"title\":\"does not announce success when evolution settlement fails (CI=true)\",\"duration\":0.8026419999996506,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"Orchestrator: task lifecycle\"],\"fullName\":\"Orchestrator: task lifecycle does not announce success when evolution settlement fails (CI=false)\",\"status\":\"passed\",\"title\":\"does not announce success when evolution settlement fails (CI=false)\",\"duration\":0.7740489999996498,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"Orchestrator: task lifecycle\"],\"fullName\":\"Orchestrator: task lifecycle calls notifyStart and notifySuccess on successful pipeline\",\"status\":\"passed\",\"title\":\"calls notifyStart and notifySuccess on successful pipeline\",\"duration\":0.7414300000000367,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"Orchestrator: task lifecycle\"],\"fullName\":\"Orchestrator: task lifecycle skips CI when runCI=false\",\"status\":\"passed\",\"title\":\"skips CI when runCI=false\",\"duration\":0.5236110000000735,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"Orchestrator: task lifecycle\"],\"fullName\":\"Orchestrator: task lifecycle records completedAt timestamp on success\",\"status\":\"passed\",\"title\":\"records completedAt timestamp on success\",\"duration\":0.7501729999999043,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"Orchestrator: LLM decomposition\"],\"fullName\":\"Orchestrator: LLM decomposition decomposes task into multiple subtasks\",\"status\":\"passed\",\"title\":\"decomposes task into multiple subtasks\",\"duration\":0.7723559999999452,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"Orchestrator: LLM decomposition\"],\"fullName\":\"Orchestrator: LLM decomposition stops before execution when decomposition fails terminally: {\\\"code\\\":\\\"CC_AGENT_EVOLUTION_INGRESS_FAILED\\\"}\",\"status\":\"passed\",\"title\":\"stops before execution when decomposition fails terminally: {\\\"code\\\":\\\"CC_AGENT_EVOLUTION_INGRESS_FAILED\\\"}\",\"duration\":0.8039739999999256,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"Orchestrator: LLM decomposition\"],\"fullName\":\"Orchestrator: LLM decomposition stops before execution when decomposition fails terminally: {\\\"runtimeLedgerPersistence\\\":true}\",\"status\":\"passed\",\"title\":\"stops before execution when decomposition fails terminally: {\\\"runtimeLedgerPersistence\\\":true}\",\"duration\":0.5033800000001065,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"Orchestrator: LLM decomposition\"],\"fullName\":\"Orchestrator: LLM decomposition stops before execution when decomposition fails terminally: {\\\"workflowEffectOutcomeUnknown\\\":true}\",\"status\":\"passed\",\"title\":\"stops before execution when decomposition fails terminally: {\\\"workflowEffectOutcomeUnknown\\\":true}\",\"duration\":0.42177700000002005,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"Orchestrator: LLM decomposition\"],\"fullName\":\"Orchestrator: LLM decomposition stops before execution when decomposition fails terminally: {\\\"code\\\":\\\"CC_SESSION_BUDGET_EXCEEDED\\\"}\",\"status\":\"passed\",\"title\":\"stops before execution when decomposition fails terminally: {\\\"code\\\":\\\"CC_SESSION_BUDGET_EXCEEDED\\\"}\",\"duration\":0.47172299999965617,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"Orchestrator: LLM decomposition\"],\"fullName\":\"Orchestrator: LLM decomposition stops before execution when decomposition fails terminally: {\\\"name\\\":\\\"AbortError\\\"}\",\"status\":\"passed\",\"title\":\"stops before execution when decomposition fails terminally: {\\\"name\\\":\\\"AbortError\\\"}\",\"duration\":0.4175709999999526,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"Orchestrator: LLM decomposition\"],\"fullName\":\"Orchestrator: LLM decomposition falls back to single subtask when LLM returns invalid JSON\",\"status\":\"passed\",\"title\":\"falls back to single subtask when LLM returns invalid JSON\",\"duration\":0.746958000000177,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"Orchestrator: LLM decomposition\"],\"fullName\":\"Orchestrator: LLM decomposition emits task:decomposed event with subtasks\",\"status\":\"passed\",\"title\":\"emits task:decomposed event with subtasks\",\"duration\":0.7595670000000609,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"Orchestrator: CI failure and retry\"],\"fullName\":\"Orchestrator: CI failure and retry retries when CI fails and eventually succeeds\",\"status\":\"passed\",\"title\":\"retries when CI fails and eventually succeeds\",\"duration\":0.9723790000002737,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"Orchestrator: CI failure and retry\"],\"fullName\":\"Orchestrator: CI failure and retry fails task after exhausting max retries\",\"status\":\"passed\",\"title\":\"fails task after exhausting max retries\",\"duration\":0.7861669999997503,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"Orchestrator: CI failure and retry\"],\"fullName\":\"Orchestrator: CI failure and retry calls notifyFailure for each CI failure\",\"status\":\"passed\",\"title\":\"calls notifyFailure for each CI failure\",\"duration\":0.9034040000001369,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"Orchestrator: CI failure and retry\"],\"fullName\":\"Orchestrator: CI failure and retry re-dispatches with error context on retry\",\"status\":\"passed\",\"title\":\"re-dispatches with error context on retry\",\"duration\":0.7429919999999584,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"Orchestrator: status()\"],\"fullName\":\"Orchestrator: status() returns tasks and pool info\",\"status\":\"passed\",\"title\":\"returns tasks and pool info\",\"duration\":0.31639799999993556,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"Orchestrator: status()\"],\"fullName\":\"Orchestrator: status() runs CI with a generous maxBuffer so verbose passing output isn't a false failure\",\"status\":\"passed\",\"title\":\"runs CI with a generous maxBuffer so verbose passing output isn't a false failure\",\"duration\":0.9640260000001035,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"Orchestrator: cron watch\"],\"fullName\":\"Orchestrator: cron watch starts and stops cron\",\"status\":\"passed\",\"title\":\"starts and stops cron\",\"duration\":0.6526760000001559,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"Orchestrator: cron watch\"],\"fullName\":\"Orchestrator: cron watch does not create duplicate timers on multiple startCronWatch calls\",\"status\":\"passed\",\"title\":\"does not create duplicate timers on multiple startCronWatch calls\",\"duration\":0.3575999999998203,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"Orchestrator: task map cap\"],\"fullName\":\"Orchestrator: task map cap defaults maxTasks to 500 and accepts a positive override\",\"status\":\"passed\",\"title\":\"defaults maxTasks to 500 and accepts a positive override\",\"duration\":0.3714310000000296,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"Orchestrator: task map cap\"],\"fullName\":\"Orchestrator: task map cap evicts the oldest completed tasks beyond maxTasks, keeping the newest\",\"status\":\"passed\",\"title\":\"evicts the oldest completed tasks beyond maxTasks, keeping the newest\",\"duration\":0.895151999999598,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"Orchestrator: task map cap\"],\"fullName\":\"Orchestrator: task map cap _pruneTasks never drops an in-flight task even past the cap\",\"status\":\"passed\",\"title\":\"_pruneTasks never drops an in-flight task even past the cap\",\"duration\":0.30826500000011947,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793678531179,\"endTime\":1793678531207.3083,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/integration/orchestrator-workflow.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 471,
+      "exitCode": 1,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":1,\"numPassedTestSuites\":0,\"numFailedTestSuites\":1,\"numPendingTestSuites\":0,\"numTotalTests\":0,\"numPassedTests\":0,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793678531555,\"success\":false,\"testResults\":[{\"assertionResults\":[],\"startTime\":1793678531555,\"endTime\":1793678531555,\"status\":\"failed\",\"message\":\"No test suite found in file /workspace/packages/cli/__tests__/verify-06.test.js\",\"name\":\"/workspace/packages/cli/__tests__/verify-06.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "pass": false,
+  "detail": "acceptance requires executed test cases"
+}

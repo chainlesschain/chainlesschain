@@ -1,0 +1,78 @@
+{
+  "scope": "verify01-operator-acceptance",
+  "taskId": "verify-17",
+  "stage": "check",
+  "productionAttested": false,
+  "providerAssessed": false,
+  "isolation": "docker",
+  "imageReference": "node:22.12.0-bookworm",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operator": {
+    "uid": 1001,
+    "gid": 1001
+  },
+  "tests": [
+    {
+      "kind": "baseline",
+      "total": 11,
+      "passed": 11,
+      "failed": 0
+    }
+  ],
+  "mutations": [],
+  "executions": [
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "setup": false,
+      "ms": 151,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "v22.12.0\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 3454,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":11,\"numPassedTests\":11,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793678343199,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"durable process ownership journal\"],\"fullName\":\"durable process ownership journal admits local parallel launches but fences a fresh runtime until every real settlement\",\"status\":\"passed\",\"title\":\"admits local parallel launches but fences a fresh runtime until every real settlement\",\"duration\":11.236840999999998,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"durable process ownership journal\"],\"fullName\":\"durable process ownership journal retains a lost lease across fresh instances regardless of PID reuse or age\",\"status\":\"passed\",\"title\":\"retains a lost lease across fresh instances regardless of PID reuse or age\",\"duration\":3.1079929999999933,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"durable process ownership journal\"],\"fullName\":\"durable process ownership journal rejects json state without overwriting it\",\"status\":\"passed\",\"title\":\"rejects json state without overwriting it\",\"duration\":3.0956999999999937,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"durable process ownership journal\"],\"fullName\":\"durable process ownership journal rejects schema state without overwriting it\",\"status\":\"passed\",\"title\":\"rejects schema state without overwriting it\",\"duration\":2.915463000000017,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"durable process ownership journal\"],\"fullName\":\"durable process ownership journal rejects extra-field state without overwriting it\",\"status\":\"passed\",\"title\":\"rejects extra-field state without overwriting it\",\"duration\":2.62789699999999,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"durable process ownership journal\"],\"fullName\":\"durable process ownership journal rejects oversize state without overwriting it\",\"status\":\"passed\",\"title\":\"rejects oversize state without overwriting it\",\"duration\":2634.989013,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"durable process ownership journal\"],\"fullName\":\"durable process ownership journal rejects symlink state without overwriting it\",\"status\":\"passed\",\"title\":\"rejects symlink state without overwriting it\",\"duration\":2.5516139999999723,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"durable process ownership journal\"],\"fullName\":\"durable process ownership journal rejects hardlink state without overwriting it\",\"status\":\"passed\",\"title\":\"rejects hardlink state without overwriting it\",\"duration\":2.3050539999999273,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"durable process ownership journal\"],\"fullName\":\"durable process ownership journal rejects permissions state without overwriting it\",\"status\":\"passed\",\"title\":\"rejects permissions state without overwriting it\",\"duration\":2.458430000000135,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"durable process ownership journal\"],\"fullName\":\"durable process ownership journal refuses state deletion and failed durable settlement without forgetting the launch\",\"status\":\"passed\",\"title\":\"refuses state deletion and failed durable settlement without forgetting the launch\",\"duration\":3.7514350000001286,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"durable process ownership journal\"],\"fullName\":\"durable process ownership journal rejects linked or replaced authority directories\",\"status\":\"passed\",\"title\":\"rejects linked or replaced authority directories\",\"duration\":1.354870000000119,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793678343487,\"endTime\":1793678346158.355,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/process-ownership-journal.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 778,
+      "exitCode": 1,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":0,\"numFailedTestSuites\":2,\"numPendingTestSuites\":0,\"numTotalTests\":5,\"numPassedTests\":1,\"numFailedTests\":4,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793678346645,\"success\":false,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"process ownership journal integrity and persistence\"],\"fullName\":\"process ownership journal integrity and persistence treats a journal with an invalid execution id as unavailable, not idle\",\"status\":\"failed\",\"title\":\"treats a journal with an invalid execution id as unavailable, not idle\",\"duration\":20.911775000000006,\"failureMessages\":[\"Error: Process ownership is pending in another runtime; confirmed cleanup is required before execution\\n    at ProcessOwnershipJournal.#assertState (/workspace/packages/cli/src/lib/process-execution-broker/process-ownership-journal.js:193:21)\\n    at failIfUnavailable (/workspace/packages/cli/src/lib/process-execution-broker/process-ownership-journal.js:242:28)\\n    at withFileLock (/workspace/packages/cli/src/lib/with-file-lock.js:189:14)\\n    at /workspace/packages/cli/src/lib/process-execution-broker/process-ownership-journal.js:238:19\\n    at ProcessOwnershipJournal.#withDirectory (/workspace/packages/cli/src/lib/process-execution-broker/process-ownership-journal.js:120:22)\\n    at ProcessOwnershipJournal.prepare (/workspace/packages/cli/src/lib/process-execution-broker/process-ownership-journal.js:237:24)\\n    at seed (/workspace/packages/cli/__tests__/verify-17.test.js:37:46)\\n    at /workspace/packages/cli/__tests__/verify-17.test.js:61:7\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"process ownership journal integrity and persistence\"],\"fullName\":\"process ownership journal integrity and persistence treats a journal with an out-of-range ownerPid as unavailable, not idle\",\"status\":\"failed\",\"title\":\"treats a journal with an out-of-range ownerPid as unavailable, not idle\",\"duration\":4.892363999999986,\"failureMessages\":[\"Error: Process ownership is pending in another runtime; confirmed cleanup is required before execution\\n    at ProcessOwnershipJournal.#assertState (/workspace/packages/cli/src/lib/process-execution-broker/process-ownership-journal.js:193:21)\\n    at failIfUnavailable (/workspace/packages/cli/src/lib/process-execution-broker/process-ownership-journal.js:242:28)\\n    at withFileLock (/workspace/packages/cli/src/lib/with-file-lock.js:189:14)\\n    at /workspace/packages/cli/src/lib/process-execution-broker/process-ownership-journal.js:238:19\\n    at ProcessOwnershipJournal.#withDirectory (/workspace/packages/cli/src/lib/process-execution-broker/process-ownership-journal.js:120:22)\\n    at ProcessOwnershipJournal.prepare (/workspace/packages/cli/src/lib/process-execution-broker/process-ownership-journal.js:237:24)\\n    at seed (/workspace/packages/cli/__tests__/verify-17.test.js:37:46)\\n    at /workspace/packages/cli/__tests__/verify-17.test.js:79:7\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"process ownership journal integrity and persistence\"],\"fullName\":\"process ownership journal integrity and persistence treats a journal with duplicate execution ids as unavailable, not idle\",\"status\":\"failed\",\"title\":\"treats a journal with duplicate execution ids as unavailable, not idle\",\"duration\":3.4525959999999714,\"failureMessages\":[\"Error: Process ownership is pending in another runtime; confirmed cleanup is required before execution\\n    at ProcessOwnershipJournal.#assertState (/workspace/packages/cli/src/lib/process-execution-broker/process-ownership-journal.js:193:21)\\n    at failIfUnavailable (/workspace/packages/cli/src/lib/process-execution-broker/process-ownership-journal.js:242:28)\\n    at withFileLock (/workspace/packages/cli/src/lib/with-file-lock.js:189:14)\\n    at /workspace/packages/cli/src/lib/process-execution-broker/process-ownership-journal.js:238:19\\n    at ProcessOwnershipJournal.#withDirectory (/workspace/packages/cli/src/lib/process-execution-broker/process-ownership-journal.js:120:22)\\n    at ProcessOwnershipJournal.prepare (/workspace/packages/cli/src/lib/process-execution-broker/process-ownership-journal.js:237:24)\\n    at seed (/workspace/packages/cli/__tests__/verify-17.test.js:37:46)\\n    at /workspace/packages/cli/__tests__/verify-17.test.js:99:7\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"process ownership journal integrity and persistence\"],\"fullName\":\"process ownership journal integrity and persistence fences at the pending-capacity boundary and rejects the first overflow\",\"status\":\"failed\",\"title\":\"fences at the pending-capacity boundary and rejects the first overflow\",\"duration\":12.026581999999962,\"failureMessages\":[\"Error: Process ownership is pending in another runtime; confirmed cleanup is required before execution\\n    at ProcessOwnershipJournal.#assertState (/workspace/packages/cli/src/lib/process-execution-broker/process-ownership-journal.js:193:21)\\n    at failIfUnavailable (/workspace/packages/cli/src/lib/process-execution-broker/process-ownership-journal.js:242:28)\\n    at withFileLock (/workspace/packages/cli/src/lib/with-file-lock.js:189:14)\\n    at /workspace/packages/cli/src/lib/process-execution-broker/process-ownership-journal.js:238:19\\n    at ProcessOwnershipJournal.#withDirectory (/workspace/packages/cli/src/lib/process-execution-broker/process-ownership-journal.js:120:22)\\n    at ProcessOwnershipJournal.prepare (/workspace/packages/cli/src/lib/process-execution-broker/process-ownership-journal.js:237:24)\\n    at seed (/workspace/packages/cli/__tests__/verify-17.test.js:37:46)\\n    at /workspace/packages/cli/__tests__/verify-17.test.js:125:7\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"process ownership journal integrity and persistence\"],\"fullName\":\"process ownership journal integrity and persistence persists a valid pending record across fresh instances until settlement\",\"status\":\"passed\",\"title\":\"persists a valid pending record across fresh instances until settlement\",\"duration\":3.410206999999957,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793678346925,\"endTime\":1793678346970.4102,\"status\":\"failed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-17.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "pass": false,
+  "detail": "candidate or baseline regression failed"
+}

@@ -1,0 +1,1474 @@
+{
+  "schema": "chainlesschain.verify01-runtime-repair-trace-evidence/v1",
+  "runId": 41599436044,
+  "executionSource": "c811dbc46478ec87ba10ebfe1ba7d9467e56d7f6",
+  "runtimeSource": "284bb5f24c95faed45e9d7e2503640888de92766",
+  "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "samples": [
+    {
+      "sampleId": "first-run-darwin-cli",
+      "artifact": {
+        "id": 13213954046,
+        "node_id": "MDg6QXJ0aWZhY3QxMzIxMzk1NDA0Ng==",
+        "name": "verify01-native-delivery-darwin-cli-first-run-darwin-cli-c811dbc46478ec87ba10ebfe1ba7d9467e56d7f6",
+        "size_in_bytes": 3809227,
+        "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/13213954046",
+        "archive_download_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/13213954046/zip",
+        "expired": false,
+        "digest": "sha256:6f3ea441890a6c002988f841009d3917e9d175b1da32b02708d462644351d9fd",
+        "created_at": "2026-11-03T08:03:53Z",
+        "updated_at": "2026-11-03T08:03:53Z",
+        "expires_at": "2026-11-17T08:03:51Z",
+        "workflow_run": {
+          "id": 41599436044,
+          "repository_id": 1107348698,
+          "head_repository_id": 1107348698,
+          "head_branch": "verify01-volc139-history11-c811dbc464",
+          "head_sha": "c811dbc46478ec87ba10ebfe1ba7d9467e56d7f6"
+        }
+      },
+      "generationPassed": true,
+      "taskAcceptance": null,
+      "physicalRequests": 22,
+      "tools": {
+        "read_file": 15,
+        "write_file": 1,
+        "search_files": 12
+      },
+      "toolBatchSizes": [
+        2,
+        1,
+        2,
+        1,
+        2,
+        2,
+        1,
+        2,
+        1,
+        2,
+        1,
+        1,
+        2,
+        1,
+        1,
+        2,
+        2,
+        1,
+        1
+      ],
+      "compactions": 1,
+      "omittedReadResults": 3,
+      "policy": {
+        "endpoint": "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
+        "model": "deepseek-v4-flash-ga-260731",
+        "maximumRequestsPerTask": 48,
+        "maximumRequestBytes": 262144,
+        "maximumResponseBytes": 16777216,
+        "maximumAnswerTokens": 393216,
+        "timeoutMs": 180000,
+        "connectionAttemptTimeoutMs": 10000,
+        "thinking": "disabled",
+        "formalSample": false,
+        "parallelToolCalls": null,
+        "allowedTaskIds": [
+          "first-run-darwin-cli"
+        ],
+        "allowTextOnlyRequests": true,
+        "retries": 0,
+        "redirects": false,
+        "fallback": false,
+        "credentialsInModelChild": false,
+        "actualBilledCostCny": null,
+        "fxRate": null,
+        "defaultThinkingPreserved": false,
+        "providerHardQuotaVerified": false
+      },
+      "raw": [
+        {
+          "path": "first-run-darwin-cli/summary.json.gz",
+          "digest": "sha256:5a973496d677375dd5cc7088ed5c918833053f2630e0b61d91c77771ea3f3724",
+          "bytes": 50689,
+          "originalDigest": "sha256:6dcfa16446c1e2476977c819a7bc69c7298ac0e7070d31040c2717c76f60dcb5",
+          "originalBytes": 282958
+        },
+        {
+          "path": "first-run-darwin-cli/first-run-darwin-cli/summary.json.gz",
+          "digest": "sha256:4979a49fce256f827943703f6870ea5f744368e46f1064202f9f92bedf35ceb1",
+          "bytes": 46981,
+          "originalDigest": "sha256:de7ff4585e34eea6ec2395c3165e83f411a05b76f97f49808ca273d7662896e3",
+          "originalBytes": 257225
+        },
+        {
+          "path": "first-run-darwin-cli/first-run-darwin-cli/model-stream.ndjson.gz",
+          "digest": "sha256:3b2d6fe9ff6c11a69b27dd14cdd65392dc55e50c5638bbe9da2f3a1fe66bdb02",
+          "bytes": 408197,
+          "originalDigest": "sha256:3efe02fb757566ce2193675b32d70dd166337d5d5fb574eb4beacff18f6fb834",
+          "originalBytes": 1860672
+        },
+        {
+          "path": "first-run-darwin-cli/first-run-darwin-cli/prompt.txt.gz",
+          "digest": "sha256:f1eb3500787c9faf14699a7c22c224d69319fb7c2b6bfef358020e97733c3628",
+          "bytes": 1591,
+          "originalDigest": "sha256:70cae91a88cc8905f45568612ad18b05b64c489590477d37cd8d680321bfcd48",
+          "originalBytes": 2919
+        },
+        {
+          "path": "first-run-darwin-cli/first-run-darwin-cli/broker/policy.json.gz",
+          "digest": "sha256:d2db6883115b45dcb06b8503ea1df5d84f4d7c32f368d4971442c141a440750e",
+          "bytes": 411,
+          "originalDigest": "sha256:030e4d99bf6751793c6c9f5f4ec304f9319720d7e4ce8e4b12d65b5db53ac449",
+          "originalBytes": 702
+        },
+        {
+          "path": "first-run-darwin-cli/first-run-darwin-cli/broker/request-1.effective.json.gz",
+          "digest": "sha256:9768c5fac8f4cd05b5c49ba666562716dab21746df20f8f5d3378d6a819a033b",
+          "bytes": 5612,
+          "originalDigest": "sha256:341d1d08082248941b79a4146176dae98b8aea3d82095efd5699935ed262f6e2",
+          "originalBytes": 17431
+        },
+        {
+          "path": "first-run-darwin-cli/first-run-darwin-cli/broker/request-1.receipt.json.gz",
+          "digest": "sha256:420a1d88d87f5060e75b36b26e0856656c4b22000086b4345ad2cd61e71a0a0f",
+          "bytes": 589,
+          "originalDigest": "sha256:04e7b63d9c00897802c048f0b04de5e027df5fa095e019a24264372a4e016293",
+          "originalBytes": 1319
+        }
+      ],
+      "candidates": [
+        {
+          "path": "first-run-darwin-cli/candidate/packages/cli/__tests__/verify-07.test.js.txt",
+          "digest": "sha256:d438339cf245ab03f415908e188c06a0e6539c5b76c17b3860dc95f5a8bc3b5c",
+          "bytes": 4306
+        }
+      ]
+    },
+    {
+      "sampleId": "first-run-darwin-jetbrains",
+      "artifact": {
+        "id": 13214507042,
+        "node_id": "MDg6QXJ0aWZhY3QxMzIxNDUwNzA0Mg==",
+        "name": "verify01-native-delivery-darwin-jetbrains-first-run-darwin-jetbrains-c811dbc46478ec87ba10ebfe1ba7d9467e56d7f6",
+        "size_in_bytes": 4373621,
+        "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/13214507042",
+        "archive_download_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/13214507042/zip",
+        "expired": false,
+        "digest": "sha256:1589770c97c8b3e470cc7767497d39315c89f0b2c1240a9723e044acdba288a3",
+        "created_at": "2026-11-03T08:17:49Z",
+        "updated_at": "2026-11-03T08:17:49Z",
+        "expires_at": "2026-11-17T08:17:46Z",
+        "workflow_run": {
+          "id": 41599436044,
+          "repository_id": 1107348698,
+          "head_repository_id": 1107348698,
+          "head_branch": "verify01-volc139-history11-c811dbc464",
+          "head_sha": "c811dbc46478ec87ba10ebfe1ba7d9467e56d7f6"
+        }
+      },
+      "generationPassed": true,
+      "taskAcceptance": null,
+      "physicalRequests": 17,
+      "tools": {
+        "read_file": 8,
+        "search_files": 6,
+        "write_file": 2,
+        "edit_file": 1
+      },
+      "toolBatchSizes": [
+        3,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        2,
+        1,
+        1,
+        1
+      ],
+      "compactions": 1,
+      "omittedReadResults": 0,
+      "policy": {
+        "endpoint": "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
+        "model": "deepseek-v4-flash-ga-260731",
+        "maximumRequestsPerTask": 48,
+        "maximumRequestBytes": 262144,
+        "maximumResponseBytes": 16777216,
+        "maximumAnswerTokens": 393216,
+        "timeoutMs": 180000,
+        "connectionAttemptTimeoutMs": 10000,
+        "thinking": "disabled",
+        "formalSample": false,
+        "parallelToolCalls": null,
+        "allowedTaskIds": [
+          "first-run-darwin-jetbrains"
+        ],
+        "allowTextOnlyRequests": true,
+        "retries": 0,
+        "redirects": false,
+        "fallback": false,
+        "credentialsInModelChild": false,
+        "actualBilledCostCny": null,
+        "fxRate": null,
+        "defaultThinkingPreserved": false,
+        "providerHardQuotaVerified": false
+      },
+      "raw": [
+        {
+          "path": "first-run-darwin-jetbrains/summary.json.gz",
+          "digest": "sha256:50cde8f74dc6132a846afff3dd9441cc190777616bbeafcebc4e22584711bfdd",
+          "bytes": 27739,
+          "originalDigest": "sha256:dd55ebae08d455b56e5db0b306d283ae702c7efd635c37fb4eba67ddaef48872",
+          "originalBytes": 193908
+        },
+        {
+          "path": "first-run-darwin-jetbrains/first-run-darwin-jetbrains/summary.json.gz",
+          "digest": "sha256:1f263b7a46d19a9b155cc4bf1fb1f60c2c5bcf49937664dd27f4ff6ef12b960e",
+          "bytes": 23834,
+          "originalDigest": "sha256:d54dafff5ebaf0bc943571924cda987ccec483583c89426a1a875780eb6c71b9",
+          "originalBytes": 167778
+        },
+        {
+          "path": "first-run-darwin-jetbrains/first-run-darwin-jetbrains/model-stream.ndjson.gz",
+          "digest": "sha256:86c45091c5d0260b329df820fa996e088cb804f6f0716e3d1be66ccbbe7c9551",
+          "bytes": 386667,
+          "originalDigest": "sha256:0a8883d28cdcfa0705d24439278cf528ed8b0d33f42346af4490c881069f54ca",
+          "originalBytes": 1646028
+        },
+        {
+          "path": "first-run-darwin-jetbrains/first-run-darwin-jetbrains/prompt.txt.gz",
+          "digest": "sha256:8a1974c9799decda3b9526f63005ea2217e7557248183f372eaa4c80cbfd4912",
+          "bytes": 1582,
+          "originalDigest": "sha256:58c881cdf0336a603dcb1906666a7865e3f421f6d2f5a88e9ba66655b4596412",
+          "originalBytes": 2916
+        },
+        {
+          "path": "first-run-darwin-jetbrains/first-run-darwin-jetbrains/broker/policy.json.gz",
+          "digest": "sha256:11ed5c6e5960a5f7c1581a83acf7029a4bc0204a2236ab9be9a269bca1d682e8",
+          "bytes": 416,
+          "originalDigest": "sha256:40de6a4ed56486ec5cda71cf22b2a210ec47d8dfade9367ad1d24b4e82babc2f",
+          "originalBytes": 708
+        },
+        {
+          "path": "first-run-darwin-jetbrains/first-run-darwin-jetbrains/broker/request-1.effective.json.gz",
+          "digest": "sha256:e5fa4176e2cd271a2930dd9429c10cf294349bd9dabfcd021b14ff6799bbbe17",
+          "bytes": 8916,
+          "originalDigest": "sha256:d6aa9e28b221d68ddbcb6819767638b02d37d6ca4077e552af551d3a9c650f5f",
+          "originalBytes": 24902
+        },
+        {
+          "path": "first-run-darwin-jetbrains/first-run-darwin-jetbrains/broker/request-1.receipt.json.gz",
+          "digest": "sha256:6ff1d7fd66fbcaf8a4376a4c8fdc60ec203ddf5d1a674202aa74ed12ba3e30b3",
+          "bytes": 595,
+          "originalDigest": "sha256:c41d86de4af2d83a2436b54a0b926946e6f0d47c37439db6901e0c08288f96b5",
+          "originalBytes": 1339
+        }
+      ],
+      "candidates": [
+        {
+          "path": "first-run-darwin-jetbrains/candidate/packages/cli/__tests__/verify-09.test.js.txt",
+          "digest": "sha256:bb227624524aae4d5ae25759b06307a40dc216f0d5f03f255b0850982551ff1f",
+          "bytes": 5705
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-04",
+      "artifact": {
+        "id": 13213414466,
+        "node_id": "MDg6QXJ0aWZhY3QxMzIxMzQxNDQ2Ng==",
+        "name": "verify01-native-delivery-linux-cli-verify-04-c811dbc46478ec87ba10ebfe1ba7d9467e56d7f6",
+        "size_in_bytes": 5905904,
+        "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/13213414466",
+        "archive_download_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/13213414466/zip",
+        "expired": false,
+        "digest": "sha256:59063ab93763d7c05725c7ede584ce50ff326d93c6933810d55e02e29b444db5",
+        "created_at": "2026-11-03T08:06:30Z",
+        "updated_at": "2026-11-03T08:06:30Z",
+        "expires_at": "2026-11-17T08:06:29Z",
+        "workflow_run": {
+          "id": 41599436044,
+          "repository_id": 1107348698,
+          "head_repository_id": 1107348698,
+          "head_branch": "verify01-volc139-history11-c811dbc464",
+          "head_sha": "c811dbc46478ec87ba10ebfe1ba7d9467e56d7f6"
+        }
+      },
+      "generationPassed": true,
+      "taskAcceptance": null,
+      "physicalRequests": 42,
+      "tools": {
+        "read_file": 27,
+        "search_files": 23,
+        "write_file": 2,
+        "list_dir": 1
+      },
+      "toolBatchSizes": [
+        2,
+        2,
+        2,
+        1,
+        1,
+        1,
+        1,
+        2,
+        2,
+        1,
+        2,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        2,
+        2,
+        1,
+        1,
+        2,
+        2,
+        1,
+        3,
+        2,
+        2,
+        2,
+        1,
+        1,
+        1,
+        1
+      ],
+      "compactions": 2,
+      "omittedReadResults": 2,
+      "policy": {
+        "endpoint": "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
+        "model": "deepseek-v4-flash-ga-260731",
+        "maximumRequestsPerTask": 48,
+        "maximumRequestBytes": 262144,
+        "maximumResponseBytes": 16777216,
+        "maximumAnswerTokens": 393216,
+        "timeoutMs": 180000,
+        "connectionAttemptTimeoutMs": 10000,
+        "thinking": "disabled",
+        "formalSample": false,
+        "parallelToolCalls": null,
+        "allowedTaskIds": [
+          "verify-04"
+        ],
+        "allowTextOnlyRequests": true,
+        "retries": 0,
+        "redirects": false,
+        "fallback": false,
+        "credentialsInModelChild": false,
+        "actualBilledCostCny": null,
+        "fxRate": null,
+        "defaultThinkingPreserved": false,
+        "providerHardQuotaVerified": false
+      },
+      "raw": [
+        {
+          "path": "verify-04/summary.json.gz",
+          "digest": "sha256:034d0200eea5a723ad3fb7bb94257e2c1bd8e036bc1312e89bb2e34b4b93a933",
+          "bytes": 68408,
+          "originalDigest": "sha256:86a66bff8087bed75b8f6f07d963ec3ce9f4e2bf7200896de688c92d98d2617b",
+          "originalBytes": 457525
+        },
+        {
+          "path": "verify-04/verify-04/summary.json.gz",
+          "digest": "sha256:2d12dea134d852e0ebfb168f4d6def9cef47cf849d98070fe8a54cfc5f1e2272",
+          "bytes": 63439,
+          "originalDigest": "sha256:1ec5d38f9fc44419638fc84d9c6fc820751656f09ed170e18d9f73ff2984fe50",
+          "originalBytes": 413551
+        },
+        {
+          "path": "verify-04/verify-04/model-stream.ndjson.gz",
+          "digest": "sha256:bbeccfcbb564bbb724739554b82fb99b57ff564f9bb22568250dfe405d793fc2",
+          "bytes": 938980,
+          "originalDigest": "sha256:e17fb5ce0a8ea2c1e4dc41ac7cb4f78a4ad525b3df6f44d3ffa9bf539695e1f9",
+          "originalBytes": 4269299
+        },
+        {
+          "path": "verify-04/verify-04/prompt.txt.gz",
+          "digest": "sha256:b5b333640c99ff5d28dfbdf1bcf17055b4a46df2184775fdbaf446b3b925371f",
+          "bytes": 1628,
+          "originalDigest": "sha256:a4ec10da89de2e7492e567ca409236e2d5c4cb7936f3334c4c98f76e87d54654",
+          "originalBytes": 2964
+        },
+        {
+          "path": "verify-04/verify-04/broker/policy.json.gz",
+          "digest": "sha256:ca0a7627432ffab19a4f3931b2e67ee75035db889b9e6a6637f322220b239316",
+          "bytes": 406,
+          "originalDigest": "sha256:53949cca690f8f549698cddc25f87f4c638e9c222e4966c019e92a3e70ac5f4b",
+          "originalBytes": 691
+        },
+        {
+          "path": "verify-04/verify-04/broker/request-1.effective.json.gz",
+          "digest": "sha256:2aa1f4aa1e0bd4cef3c921795fba76fc3fdc78f5b727883c4487c0a75294229b",
+          "bytes": 5660,
+          "originalDigest": "sha256:3394dbacac11a479f1684f3185e148b34bd9d246db8655b2b481e6c442ce0895",
+          "originalBytes": 17476
+        },
+        {
+          "path": "verify-04/verify-04/broker/request-1.receipt.json.gz",
+          "digest": "sha256:c597caec7927b59bf98ebe0225712a1d145c0b90a798ab83785f1b8efa1d1849",
+          "bytes": 583,
+          "originalDigest": "sha256:aa795b48fa9da86a42732625c27b854a4b8e29dede97052e10554250218022f5",
+          "originalBytes": 1310
+        }
+      ],
+      "candidates": [
+        {
+          "path": "verify-04/candidate/packages/cli/__tests__/verify-04.test.js.txt",
+          "digest": "sha256:ed2b3539052b702a6796f7ba3c95d684e1a6e64441682df72161af4fd733552d",
+          "bytes": 7209
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-07",
+      "artifact": {
+        "id": 13214411445,
+        "node_id": "MDg6QXJ0aWZhY3QxMzIxNDQxMTQ0NQ==",
+        "name": "verify01-native-delivery-darwin-cli-verify-07-c811dbc46478ec87ba10ebfe1ba7d9467e56d7f6",
+        "size_in_bytes": 3147697,
+        "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/13214411445",
+        "archive_download_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/13214411445/zip",
+        "expired": false,
+        "digest": "sha256:4763116000aca1657262b09c6736be72728a9cddcd6e59b68f3236729901f265",
+        "created_at": "2026-11-03T08:04:30Z",
+        "updated_at": "2026-11-03T08:04:30Z",
+        "expires_at": "2026-11-17T08:04:28Z",
+        "workflow_run": {
+          "id": 41599436044,
+          "repository_id": 1107348698,
+          "head_repository_id": 1107348698,
+          "head_branch": "verify01-volc139-history11-c811dbc464",
+          "head_sha": "c811dbc46478ec87ba10ebfe1ba7d9467e56d7f6"
+        }
+      },
+      "generationPassed": true,
+      "taskAcceptance": null,
+      "physicalRequests": 14,
+      "tools": {
+        "read_file": 12,
+        "write_file": 1,
+        "search_files": 1
+      },
+      "toolBatchSizes": [
+        2,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        3,
+        1,
+        1
+      ],
+      "compactions": 1,
+      "omittedReadResults": 1,
+      "policy": {
+        "endpoint": "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
+        "model": "deepseek-v4-flash-ga-260731",
+        "maximumRequestsPerTask": 48,
+        "maximumRequestBytes": 262144,
+        "maximumResponseBytes": 16777216,
+        "maximumAnswerTokens": 393216,
+        "timeoutMs": 180000,
+        "connectionAttemptTimeoutMs": 10000,
+        "thinking": "disabled",
+        "formalSample": false,
+        "parallelToolCalls": null,
+        "allowedTaskIds": [
+          "verify-07"
+        ],
+        "allowTextOnlyRequests": true,
+        "retries": 0,
+        "redirects": false,
+        "fallback": false,
+        "credentialsInModelChild": false,
+        "actualBilledCostCny": null,
+        "fxRate": null,
+        "defaultThinkingPreserved": false,
+        "providerHardQuotaVerified": false
+      },
+      "raw": [
+        {
+          "path": "verify-07/summary.json.gz",
+          "digest": "sha256:91d39155a079eeca2a1519d95d76916135615486c4bf408253355fe236cb80c9",
+          "bytes": 48060,
+          "originalDigest": "sha256:86953ec8f68a43d195828a63dcb06b2feabe1ddcb18a9f852560a04a3abfa7c2",
+          "originalBytes": 245248
+        },
+        {
+          "path": "verify-07/verify-07/summary.json.gz",
+          "digest": "sha256:d934b89c0b8757cad243b571fdfa88d2c62aab1db7feb30f7a6f716cc246010b",
+          "bytes": 44484,
+          "originalDigest": "sha256:098b32a75c27ec51f2307cc15526eb93b1db5f62feef2fc43927ca2f0522b0bc",
+          "originalBytes": 223929
+        },
+        {
+          "path": "verify-07/verify-07/model-stream.ndjson.gz",
+          "digest": "sha256:8de79c080762ecdbbcb916934547008e7c9603cbe70742ffb9481c4a7614bf71",
+          "bytes": 235299,
+          "originalDigest": "sha256:97e9a35f5f301a066c81750dea859ac677234aab6a630b1519ba42d327bb2489",
+          "originalBytes": 1032542
+        },
+        {
+          "path": "verify-07/verify-07/prompt.txt.gz",
+          "digest": "sha256:18cc996fde9047d208273617e323c052b4e30bade209baaca67217c365104287",
+          "bytes": 1588,
+          "originalDigest": "sha256:b0aea8788dd7a180f747e8dec08897819a7c3c68e165e35b6bd6386365409565",
+          "originalBytes": 2903
+        },
+        {
+          "path": "verify-07/verify-07/broker/policy.json.gz",
+          "digest": "sha256:8a6c22523aad6fd2ab391c5da5651c669c1131fe945d22601dd2814989a95b97",
+          "bytes": 405,
+          "originalDigest": "sha256:add131c4636440cdb3bdf1d87a4f9fc5575a9bca0534efa6f3db52a1720816a3",
+          "originalBytes": 691
+        },
+        {
+          "path": "verify-07/verify-07/broker/request-1.effective.json.gz",
+          "digest": "sha256:81a8850c600f19772fca499df9fbec6c313acb0f9b756e754e4f39ec5056f408",
+          "bytes": 5611,
+          "originalDigest": "sha256:a570686a64f43cb113132efcd11a5cdf7944de7b5ce80141feae707dde89b62c",
+          "originalBytes": 17415
+        },
+        {
+          "path": "verify-07/verify-07/broker/request-1.receipt.json.gz",
+          "digest": "sha256:9bfdf8dd61ef5aa339624bc968ab7573677c232833bec7c3d2c47a09fddd4ae4",
+          "bytes": 578,
+          "originalDigest": "sha256:09644ad5bf1b471f5d204fa929befdddfef9aedad1ce2a235c5b65b2ceaacb4f",
+          "originalBytes": 1308
+        }
+      ],
+      "candidates": [
+        {
+          "path": "verify-07/candidate/packages/cli/__tests__/verify-07.test.js.txt",
+          "digest": "sha256:7abf5ff4aac3916378000f081de2dd1135f437f74f7ce1b7af4453ed8c0ff32f",
+          "bytes": 5804
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-08",
+      "artifact": {
+        "id": 13213734290,
+        "node_id": "MDg6QXJ0aWZhY3QxMzIxMzczNDI5MA==",
+        "name": "verify01-native-delivery-darwin-vscode-verify-08-c811dbc46478ec87ba10ebfe1ba7d9467e56d7f6",
+        "size_in_bytes": 5347523,
+        "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/13213734290",
+        "archive_download_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/13213734290/zip",
+        "expired": false,
+        "digest": "sha256:2667ecebd594ea2f7ae03f014c41d68cfa49a221df7cd4075a0c8522c43401e0",
+        "created_at": "2026-11-03T08:03:52Z",
+        "updated_at": "2026-11-03T08:03:52Z",
+        "expires_at": "2026-11-17T08:03:49Z",
+        "workflow_run": {
+          "id": 41599436044,
+          "repository_id": 1107348698,
+          "head_repository_id": 1107348698,
+          "head_branch": "verify01-volc139-history11-c811dbc464",
+          "head_sha": "c811dbc46478ec87ba10ebfe1ba7d9467e56d7f6"
+        }
+      },
+      "generationPassed": true,
+      "taskAcceptance": null,
+      "physicalRequests": 25,
+      "tools": {
+        "read_file": 19,
+        "search_files": 4,
+        "write_file": 1,
+        "edit_file": 1
+      },
+      "toolBatchSizes": [
+        2,
+        1,
+        1,
+        1,
+        2,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "compactions": 2,
+      "omittedReadResults": 4,
+      "policy": {
+        "endpoint": "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
+        "model": "deepseek-v4-flash-ga-260731",
+        "maximumRequestsPerTask": 48,
+        "maximumRequestBytes": 262144,
+        "maximumResponseBytes": 16777216,
+        "maximumAnswerTokens": 393216,
+        "timeoutMs": 180000,
+        "connectionAttemptTimeoutMs": 10000,
+        "thinking": "disabled",
+        "formalSample": false,
+        "parallelToolCalls": null,
+        "allowedTaskIds": [
+          "verify-08"
+        ],
+        "allowTextOnlyRequests": true,
+        "retries": 0,
+        "redirects": false,
+        "fallback": false,
+        "credentialsInModelChild": false,
+        "actualBilledCostCny": null,
+        "fxRate": null,
+        "defaultThinkingPreserved": false,
+        "providerHardQuotaVerified": false
+      },
+      "raw": [
+        {
+          "path": "verify-08/summary.json.gz",
+          "digest": "sha256:fba62f7f8dc9331d9b7f5117cff50dd15a8b241b54a65a4819b29e36daf489ba",
+          "bytes": 49025,
+          "originalDigest": "sha256:766f767c8134ff951657e2e4a7367fa002e1fb3d52ecf7c367ab52a823ca727f",
+          "originalBytes": 320457
+        },
+        {
+          "path": "verify-08/verify-08/summary.json.gz",
+          "digest": "sha256:ce0021a105f9c79c2aa5fda78f5da038f52994bc5b96ce4e24437765fe273123",
+          "bytes": 44925,
+          "originalDigest": "sha256:b9fb336d2c1de69753c170de932c4e5655a74dc538e02f510f641ba3c43b8337",
+          "originalBytes": 291126
+        },
+        {
+          "path": "verify-08/verify-08/model-stream.ndjson.gz",
+          "digest": "sha256:ac53b5d9246bd27cc8e37fb5ae347d396c765dafc1d12cd800b27dab8ad70e46",
+          "bytes": 567173,
+          "originalDigest": "sha256:2f2b975c280589a3af4eb51ae8ec74a82e27ac8e58105f05e76c8d4e49f24cbe",
+          "originalBytes": 2482235
+        },
+        {
+          "path": "verify-08/verify-08/prompt.txt.gz",
+          "digest": "sha256:cacb490b0d440deb9fe81162249fd1834c16ca074594447240030afbb3ed0aed",
+          "bytes": 1605,
+          "originalDigest": "sha256:9586981501ef7084037c2c4d1f480b9ac77b6be0895c8ee9f2e610e04f7b08f2",
+          "originalBytes": 2951
+        },
+        {
+          "path": "verify-08/verify-08/broker/policy.json.gz",
+          "digest": "sha256:8a622899d658f909c8045649ba0a04fe0a8ebca482e39a46f6679ba178025850",
+          "bytes": 405,
+          "originalDigest": "sha256:a40ed38f56b3535c48d4d3a1e7e23e5094484f7acda415c4c675af2a1047b85f",
+          "originalBytes": 691
+        },
+        {
+          "path": "verify-08/verify-08/broker/request-1.effective.json.gz",
+          "digest": "sha256:98d428aedbd8265948d8efb5c4609c4f57d554e4390647dbd3883c9fb1945251",
+          "bytes": 8941,
+          "originalDigest": "sha256:3d1c511ff138443ca923b54c915575ac4093c993e99519ada3e79d1632e59331",
+          "originalBytes": 24938
+        },
+        {
+          "path": "verify-08/verify-08/broker/request-1.receipt.json.gz",
+          "digest": "sha256:f3c2001fadfc87cdc22b76045729b409db4f9d273ef7d918bf216ed0ccffd59e",
+          "bytes": 580,
+          "originalDigest": "sha256:a74e7dc857118c77cfe8f5b3b11f6a5b66dbb45958d9e20f4aeab8ed9e9dee16",
+          "originalBytes": 1323
+        }
+      ],
+      "candidates": [
+        {
+          "path": "verify-08/candidate/packages/cli/__tests__/verify-08.test.js.txt",
+          "digest": "sha256:fd663df229725f7a6c121d9d7780a464b7cab2a2882bd4538b14519e88a92fc3",
+          "bytes": 6515
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-09",
+      "artifact": {
+        "id": 13215336873,
+        "node_id": "MDg6QXJ0aWZhY3QxMzIxNTMzNjg3Mw==",
+        "name": "verify01-native-delivery-darwin-jetbrains-verify-09-c811dbc46478ec87ba10ebfe1ba7d9467e56d7f6",
+        "size_in_bytes": 3087049,
+        "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/13215336873",
+        "archive_download_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/13215336873/zip",
+        "expired": false,
+        "digest": "sha256:c34b9bc48d6676fc47c8a2544c6b91792746c31dd38b2d5ec9b41ffced31e7b5",
+        "created_at": "2026-11-03T08:21:23Z",
+        "updated_at": "2026-11-03T08:21:23Z",
+        "expires_at": "2026-11-17T08:21:22Z",
+        "workflow_run": {
+          "id": 41599436044,
+          "repository_id": 1107348698,
+          "head_repository_id": 1107348698,
+          "head_branch": "verify01-volc139-history11-c811dbc464",
+          "head_sha": "c811dbc46478ec87ba10ebfe1ba7d9467e56d7f6"
+        }
+      },
+      "generationPassed": true,
+      "taskAcceptance": null,
+      "physicalRequests": 7,
+      "tools": {
+        "read_file": 5,
+        "write_file": 1
+      },
+      "toolBatchSizes": [
+        2,
+        1,
+        1,
+        1,
+        1
+      ],
+      "compactions": 0,
+      "omittedReadResults": 0,
+      "policy": {
+        "endpoint": "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
+        "model": "deepseek-v4-flash-ga-260731",
+        "maximumRequestsPerTask": 48,
+        "maximumRequestBytes": 262144,
+        "maximumResponseBytes": 16777216,
+        "maximumAnswerTokens": 393216,
+        "timeoutMs": 180000,
+        "connectionAttemptTimeoutMs": 10000,
+        "thinking": "disabled",
+        "formalSample": false,
+        "parallelToolCalls": null,
+        "allowedTaskIds": [
+          "verify-09"
+        ],
+        "allowTextOnlyRequests": true,
+        "retries": 0,
+        "redirects": false,
+        "fallback": false,
+        "credentialsInModelChild": false,
+        "actualBilledCostCny": null,
+        "fxRate": null,
+        "defaultThinkingPreserved": false,
+        "providerHardQuotaVerified": false
+      },
+      "raw": [
+        {
+          "path": "verify-09/summary.json.gz",
+          "digest": "sha256:9b0b2b33991ddee48ed8c56e65ae2b46abbf5ff7f8457caf3a8a5d535a9dd2a3",
+          "bytes": 20086,
+          "originalDigest": "sha256:3467cb9950bbd49dc384d531521fea8dd27abf50ac1a3ea2f07c9afb3e6ecb82",
+          "originalBytes": 107199
+        },
+        {
+          "path": "verify-09/verify-09/summary.json.gz",
+          "digest": "sha256:054bd216514136c95970daa9d9fb93e434ce130a33f50619c28dd7ca7865d772",
+          "bytes": 16305,
+          "originalDigest": "sha256:2d603f5ccd5aecd1ac0bd8978aeb48e20ac6fbb0a6b6904c3707366d6d76c80a",
+          "originalBytes": 86659
+        },
+        {
+          "path": "verify-09/verify-09/model-stream.ndjson.gz",
+          "digest": "sha256:b407f5f49f8926a2a7ac223ad80bc5c498d359f68f62b2a9bff4f22ca7847b65",
+          "bytes": 149561,
+          "originalDigest": "sha256:e8773afcd1afc2be6b05171c59664cd3a3135579bfe481f1cfc7543b05989b50",
+          "originalBytes": 679183
+        },
+        {
+          "path": "verify-09/verify-09/prompt.txt.gz",
+          "digest": "sha256:4a452bdd3f923371c0a3bf3ccc0288e9dab00a3c5af1dc39fe0974e5e975b3b0",
+          "bytes": 1580,
+          "originalDigest": "sha256:974f982bc059cfeae9b3afc7b2a779634c900fc39b9f01ba381b03a1e4ddc4a9",
+          "originalBytes": 2894
+        },
+        {
+          "path": "verify-09/verify-09/broker/policy.json.gz",
+          "digest": "sha256:77b62a450df3af8d568c8815d39bd679e7d6191502ef8b2f884008ee71775e6a",
+          "bytes": 405,
+          "originalDigest": "sha256:406073b68ad28d41ec94d95d40f41d4981965439b4ee60c3893f177b8e4adcfd",
+          "originalBytes": 691
+        },
+        {
+          "path": "verify-09/verify-09/broker/request-1.effective.json.gz",
+          "digest": "sha256:df4c559c1b2df81e8fe4eb418af4a4a0728bccee9565f5c186c8cd65ee28f53c",
+          "bytes": 8907,
+          "originalDigest": "sha256:8a86ee072ebdedb0e6d43d6234bfa1689a5a569f9c8eb8f838c1386743b266a6",
+          "originalBytes": 24880
+        },
+        {
+          "path": "verify-09/verify-09/broker/request-1.receipt.json.gz",
+          "digest": "sha256:92019cad368d0c4955ce0dd430c772f39c46529d42ae6f78417bbc47cb1c6c95",
+          "bytes": 582,
+          "originalDigest": "sha256:6cb6769a576dfb943f5309f9bef52709378e6177330b9181d80aeda17579cce4",
+          "originalBytes": 1324
+        }
+      ],
+      "candidates": [
+        {
+          "path": "verify-09/candidate/packages/cli/__tests__/verify-09.test.js.txt",
+          "digest": "sha256:ce6a9b5c98a6a71063968f291727c89d4172992075b2d0d143ddd80a0397b502",
+          "bytes": 4911
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-10",
+      "artifact": {
+        "id": 13213824263,
+        "node_id": "MDg6QXJ0aWZhY3QxMzIxMzgyNDI2Mw==",
+        "name": "verify01-native-delivery-win32-cli-verify-10-c811dbc46478ec87ba10ebfe1ba7d9467e56d7f6",
+        "size_in_bytes": 2740337,
+        "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/13213824263",
+        "archive_download_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/13213824263/zip",
+        "expired": false,
+        "digest": "sha256:70fd5c45bbd741682fbab0415ce1c8769d95d81a8c1802bc7f82f19736147003",
+        "created_at": "2026-11-03T08:04:32Z",
+        "updated_at": "2026-11-03T08:04:32Z",
+        "expires_at": "2026-11-17T08:04:31Z",
+        "workflow_run": {
+          "id": 41599436044,
+          "repository_id": 1107348698,
+          "head_repository_id": 1107348698,
+          "head_branch": "verify01-volc139-history11-c811dbc464",
+          "head_sha": "c811dbc46478ec87ba10ebfe1ba7d9467e56d7f6"
+        }
+      },
+      "generationPassed": true,
+      "taskAcceptance": null,
+      "physicalRequests": 8,
+      "tools": {
+        "read_file": 7,
+        "write_file": 1,
+        "list_dir": 1
+      },
+      "toolBatchSizes": [
+        2,
+        1,
+        1,
+        2,
+        2,
+        1
+      ],
+      "compactions": 0,
+      "omittedReadResults": 1,
+      "policy": {
+        "endpoint": "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
+        "model": "deepseek-v4-flash-ga-260731",
+        "maximumRequestsPerTask": 48,
+        "maximumRequestBytes": 262144,
+        "maximumResponseBytes": 16777216,
+        "maximumAnswerTokens": 393216,
+        "timeoutMs": 180000,
+        "connectionAttemptTimeoutMs": 10000,
+        "thinking": "disabled",
+        "formalSample": false,
+        "parallelToolCalls": null,
+        "allowedTaskIds": [
+          "verify-10"
+        ],
+        "allowTextOnlyRequests": true,
+        "retries": 0,
+        "redirects": false,
+        "fallback": false,
+        "credentialsInModelChild": false,
+        "actualBilledCostCny": null,
+        "fxRate": null,
+        "defaultThinkingPreserved": false,
+        "providerHardQuotaVerified": false
+      },
+      "raw": [
+        {
+          "path": "verify-10/summary.json.gz",
+          "digest": "sha256:4ee88af2c786a9d197193d1b19c9e7398eb754e1dc70f265b16afd5c13de9083",
+          "bytes": 20066,
+          "originalDigest": "sha256:ab7a8a220d383c3e77b5b3e87e7a6ebfa198f20bb4050d898d69fb62822ffdaf",
+          "originalBytes": 112512
+        },
+        {
+          "path": "verify-10/verify-10/summary.json.gz",
+          "digest": "sha256:9cbbd56c3d837d4daaeaecab38e826e9b09eb33f3bf916f8198093af0d1401ee",
+          "bytes": 16598,
+          "originalDigest": "sha256:d799d10b0708177abe676b658d82a48ca962b58a400ee6b0b5574eadd304ab41",
+          "originalBytes": 93216
+        },
+        {
+          "path": "verify-10/verify-10/model-stream.ndjson.gz",
+          "digest": "sha256:f79ea9f0370d3d624a35faa070ff5b93c0a78245045db376d0f99aab56f59a6d",
+          "bytes": 135497,
+          "originalDigest": "sha256:91d335d84499bd7d5c1e598cf60c497afd31bc16c0748e97ba7d8965501f461a",
+          "originalBytes": 632717
+        },
+        {
+          "path": "verify-10/verify-10/prompt.txt.gz",
+          "digest": "sha256:d5fe5141f87e5339ad3b006f97a7f261c74960e110a21bbf0db3dd0be4f4a9a4",
+          "bytes": 1591,
+          "originalDigest": "sha256:1f918c32eca17d39dc500eb4b6ff1f43b3d4210e24aff9af99a9f0fc88d4a2ed",
+          "originalBytes": 2907
+        },
+        {
+          "path": "verify-10/verify-10/broker/policy.json.gz",
+          "digest": "sha256:e7e7c38b8cec8fa0732af8e12f9dcb5330f63532a58a71b5c900b78111a33765",
+          "bytes": 405,
+          "originalDigest": "sha256:2fe3452daef7ae30e936b3bd555f10901f3c344feaef3ddf83844033fdf099d5",
+          "originalBytes": 691
+        },
+        {
+          "path": "verify-10/verify-10/broker/request-1.effective.json.gz",
+          "digest": "sha256:0fbc76aa6c9174e2c761f5562f21b002fccb343e5fa37744e30d73a05c2fd0c7",
+          "bytes": 5621,
+          "originalDigest": "sha256:1b8fc18d413e3ab1c7885a7d9b15b2dde0f451e638b67dc288e50bf51abe7ead",
+          "originalBytes": 17419
+        },
+        {
+          "path": "verify-10/verify-10/broker/request-1.receipt.json.gz",
+          "digest": "sha256:66f381bf4b4759aaf0ac503dc469fbe6b3f295a014165cade963a45bdd7ff402",
+          "bytes": 579,
+          "originalDigest": "sha256:4fdc6cdec806351883223e480075a01cbc20d3131eea26d68f33a016f0fca459",
+          "originalBytes": 1310
+        }
+      ],
+      "candidates": [
+        {
+          "path": "verify-10/candidate/packages/cli/__tests__/verify-10.test.js.txt",
+          "digest": "sha256:c702dde1f77d04cc7abe1b0df03f08286e2e16ddd74f78d936a34ad8f42d6dbe",
+          "bytes": 4897
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-11",
+      "artifact": {
+        "id": 13214426953,
+        "node_id": "MDg6QXJ0aWZhY3QxMzIxNDQyNjk1Mw==",
+        "name": "verify01-native-delivery-win32-vscode-verify-11-c811dbc46478ec87ba10ebfe1ba7d9467e56d7f6",
+        "size_in_bytes": 4334046,
+        "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/13214426953",
+        "archive_download_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/13214426953/zip",
+        "expired": false,
+        "digest": "sha256:8169e2f68de13dfd6083f3df10ce605d609aca11831d5cb59d905ff6bcda4d8e",
+        "created_at": "2026-11-03T08:07:25Z",
+        "updated_at": "2026-11-03T08:07:25Z",
+        "expires_at": "2026-11-17T08:07:23Z",
+        "workflow_run": {
+          "id": 41599436044,
+          "repository_id": 1107348698,
+          "head_repository_id": 1107348698,
+          "head_branch": "verify01-volc139-history11-c811dbc464",
+          "head_sha": "c811dbc46478ec87ba10ebfe1ba7d9467e56d7f6"
+        }
+      },
+      "generationPassed": true,
+      "taskAcceptance": null,
+      "physicalRequests": 17,
+      "tools": {
+        "read_file": 8,
+        "write_file": 1,
+        "search_files": 13
+      },
+      "toolBatchSizes": [
+        2,
+        1,
+        2,
+        2,
+        2,
+        3,
+        1,
+        1,
+        2,
+        1,
+        2,
+        1,
+        1,
+        1
+      ],
+      "compactions": 1,
+      "omittedReadResults": 2,
+      "policy": {
+        "endpoint": "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
+        "model": "deepseek-v4-flash-ga-260731",
+        "maximumRequestsPerTask": 48,
+        "maximumRequestBytes": 262144,
+        "maximumResponseBytes": 16777216,
+        "maximumAnswerTokens": 393216,
+        "timeoutMs": 180000,
+        "connectionAttemptTimeoutMs": 10000,
+        "thinking": "disabled",
+        "formalSample": false,
+        "parallelToolCalls": null,
+        "allowedTaskIds": [
+          "verify-11"
+        ],
+        "allowTextOnlyRequests": true,
+        "retries": 0,
+        "redirects": false,
+        "fallback": false,
+        "credentialsInModelChild": false,
+        "actualBilledCostCny": null,
+        "fxRate": null,
+        "defaultThinkingPreserved": false,
+        "providerHardQuotaVerified": false
+      },
+      "raw": [
+        {
+          "path": "verify-11/summary.json.gz",
+          "digest": "sha256:2bb47df5bf18a7a5600b5cc17a4d4ba1094af73406f3517376a641c8caf29aa7",
+          "bytes": 32812,
+          "originalDigest": "sha256:8c00f924f801dcef6cfcb2258932859c66035c92535a0bc6be81fcb2e2691373",
+          "originalBytes": 223926
+        },
+        {
+          "path": "verify-11/verify-11/summary.json.gz",
+          "digest": "sha256:42b8d1ff6b51528d0bf64e30693223f1f0930d41ed295952c61ba31e715638d4",
+          "bytes": 28851,
+          "originalDigest": "sha256:39b50db0e70fa23c2bede82a28b8da3154c21ee9ae56dfb71ef6144aecfb2e80",
+          "originalBytes": 196402
+        },
+        {
+          "path": "verify-11/verify-11/model-stream.ndjson.gz",
+          "digest": "sha256:756419ce1648e988ea4c4aa54fdc57ce3d587dab6bbff8b3747a806336ef36e2",
+          "bytes": 380357,
+          "originalDigest": "sha256:293e6f68205bdfdebcdc2265b6f1dedcc091b5c7f70cb5593fd0aa972130f104",
+          "originalBytes": 1785467
+        },
+        {
+          "path": "verify-11/verify-11/prompt.txt.gz",
+          "digest": "sha256:76fb9b4e1065c570add7fd4ad0941a8e6cfdb05e65d1b630c1701f554112ee99",
+          "bytes": 1584,
+          "originalDigest": "sha256:2d3a498ea37fc180660a31d133ff76cf87d9347776aba37ba7a5c48526f6e59b",
+          "originalBytes": 2913
+        },
+        {
+          "path": "verify-11/verify-11/broker/policy.json.gz",
+          "digest": "sha256:800dd71938c61814b5256086b0b0356fc81aa89e3e5abec05af784c8736f0162",
+          "bytes": 405,
+          "originalDigest": "sha256:e35bbe742f2b52d14228878a79c15ec42d3f86d57528d5f6d095424275686657",
+          "originalBytes": 691
+        },
+        {
+          "path": "verify-11/verify-11/broker/request-1.effective.json.gz",
+          "digest": "sha256:10c0194112731d3fe67c02cf6b5e0dffac30d433c6fafed785f25f0d70fee82d",
+          "bytes": 8940,
+          "originalDigest": "sha256:42241e0e6534fc2e16036b27ffb34a84d3fca62f3ad449938a4e7ba0d71a20af",
+          "originalBytes": 24931
+        },
+        {
+          "path": "verify-11/verify-11/broker/request-1.receipt.json.gz",
+          "digest": "sha256:717f8dd74bef84a5d5a4d45cffa868e8f13364fde06a25f445a18835655237e6",
+          "bytes": 579,
+          "originalDigest": "sha256:c1f4edaa35f8df18e0a7eefca7b75a063a2a615783c43d61833dfd5b6c856970",
+          "originalBytes": 1311
+        }
+      ],
+      "candidates": [
+        {
+          "path": "verify-11/candidate/packages/cli/__tests__/verify-11.test.js.txt",
+          "digest": "sha256:b5967d370c7d1ef36ff228c5d715d8451a807c2ee031b783e5e1512a2862a1bd",
+          "bytes": 7015
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-13",
+      "artifact": {
+        "id": 13213297955,
+        "node_id": "MDg6QXJ0aWZhY3QxMzIxMzI5Nzk1NQ==",
+        "name": "verify01-native-delivery-linux-cli-verify-13-c811dbc46478ec87ba10ebfe1ba7d9467e56d7f6",
+        "size_in_bytes": 2948251,
+        "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/13213297955",
+        "archive_download_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/13213297955/zip",
+        "expired": false,
+        "digest": "sha256:d9561854012bda8df32b0c66021c933ee3624a2ef7d39449894b04b5491de2aa",
+        "created_at": "2026-11-03T08:00:07Z",
+        "updated_at": "2026-11-03T08:00:07Z",
+        "expires_at": "2026-11-17T08:00:05Z",
+        "workflow_run": {
+          "id": 41599436044,
+          "repository_id": 1107348698,
+          "head_repository_id": 1107348698,
+          "head_branch": "verify01-volc139-history11-c811dbc464",
+          "head_sha": "c811dbc46478ec87ba10ebfe1ba7d9467e56d7f6"
+        }
+      },
+      "generationPassed": true,
+      "taskAcceptance": null,
+      "physicalRequests": 11,
+      "tools": {
+        "read_file": 10,
+        "write_file": 1,
+        "list_dir": 1,
+        "search_files": 1
+      },
+      "toolBatchSizes": [
+        2,
+        2,
+        1,
+        1,
+        1,
+        3,
+        1,
+        1,
+        1
+      ],
+      "compactions": 0,
+      "omittedReadResults": 0,
+      "policy": {
+        "endpoint": "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
+        "model": "deepseek-v4-flash-ga-260731",
+        "maximumRequestsPerTask": 48,
+        "maximumRequestBytes": 262144,
+        "maximumResponseBytes": 16777216,
+        "maximumAnswerTokens": 393216,
+        "timeoutMs": 180000,
+        "connectionAttemptTimeoutMs": 10000,
+        "thinking": "disabled",
+        "formalSample": false,
+        "parallelToolCalls": null,
+        "allowedTaskIds": [
+          "verify-13"
+        ],
+        "allowTextOnlyRequests": true,
+        "retries": 0,
+        "redirects": false,
+        "fallback": false,
+        "credentialsInModelChild": false,
+        "actualBilledCostCny": null,
+        "fxRate": null,
+        "defaultThinkingPreserved": false,
+        "providerHardQuotaVerified": false
+      },
+      "raw": [
+        {
+          "path": "verify-13/summary.json.gz",
+          "digest": "sha256:0ab544da3197db2c818f658c213f45faea9d37e4729c36d170d7dc8ab2b64bb9",
+          "bytes": 24901,
+          "originalDigest": "sha256:738867420e2a19ff32fadbaa3db6a07552e0a4bfb030a8482a820b122d920612",
+          "originalBytes": 127708
+        },
+        {
+          "path": "verify-13/verify-13/summary.json.gz",
+          "digest": "sha256:32671fde6fae6313e8d21867e50952975c38aa5a3128705cd3625c00ce402f30",
+          "bytes": 21505,
+          "originalDigest": "sha256:7542eedc428096e5779e1d7aa7c3595f58949c78dac644207e0c1b1dd6f580ef",
+          "originalBytes": 107022
+        },
+        {
+          "path": "verify-13/verify-13/model-stream.ndjson.gz",
+          "digest": "sha256:cf046a4deb66529364e82a1701a37b170e17478cc659f35e9c0271fd2eba9862",
+          "bytes": 192274,
+          "originalDigest": "sha256:7cf8217eac7dd76da2d817d16f2a1a7483485c954d090e5506d3f66c32524698",
+          "originalBytes": 822395
+        },
+        {
+          "path": "verify-13/verify-13/prompt.txt.gz",
+          "digest": "sha256:9204ccbe7cc670099d1ff9185252b3da879733e430ef5466ff23b078d5147d41",
+          "bytes": 1597,
+          "originalDigest": "sha256:4c3eebb07fc36b6da0b052594a7c757172dbb901a0f85538244c4d03ccb950cd",
+          "originalBytes": 2886
+        },
+        {
+          "path": "verify-13/verify-13/broker/policy.json.gz",
+          "digest": "sha256:ad8efd56889a3b19de7be6ab9705e670c5edb79b8aebde020c49415859325481",
+          "bytes": 405,
+          "originalDigest": "sha256:7c13e2194e57f65d6700e7db7a6e719b0e9572e164b0b1891bf206a1c2ce724d",
+          "originalBytes": 691
+        },
+        {
+          "path": "verify-13/verify-13/broker/request-1.effective.json.gz",
+          "digest": "sha256:722ba6f15afa01fc9a9524080680804a1ec3b7b31e0099d6c728229eebcb813d",
+          "bytes": 5624,
+          "originalDigest": "sha256:d6fd8289bc7b4ee20e91faeac45272baca716bdaaba13250e2c31dfb5a1f0864",
+          "originalBytes": 17398
+        },
+        {
+          "path": "verify-13/verify-13/broker/request-1.receipt.json.gz",
+          "digest": "sha256:869ecb7ce565444f8a4894511c30839d1fe339d23dbf02d0bc69016b13cac88d",
+          "bytes": 579,
+          "originalDigest": "sha256:70b6c0d86b67a58daafc62d756098d5d613d1639830da4890375400507ceef1a",
+          "originalBytes": 1319
+        }
+      ],
+      "candidates": [
+        {
+          "path": "verify-13/candidate/packages/cli/__tests__/verify-13.test.js.txt",
+          "digest": "sha256:247102b485a405a2f86e72e29441fdd135775b6ed7b195bf6e686ab059e2e20a",
+          "bytes": 4110
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-19",
+      "artifact": {
+        "id": 13213749774,
+        "node_id": "MDg6QXJ0aWZhY3QxMzIxMzc0OTc3NA==",
+        "name": "verify01-native-delivery-win32-cli-verify-19-c811dbc46478ec87ba10ebfe1ba7d9467e56d7f6",
+        "size_in_bytes": 4018998,
+        "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/13213749774",
+        "archive_download_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/13213749774/zip",
+        "expired": false,
+        "digest": "sha256:e71825e7abb5e7d53c33cbd6a31c3c8469b964bdfed930fc31dec45e56203439",
+        "created_at": "2026-11-03T08:07:11Z",
+        "updated_at": "2026-11-03T08:07:11Z",
+        "expires_at": "2026-11-17T08:07:09Z",
+        "workflow_run": {
+          "id": 41599436044,
+          "repository_id": 1107348698,
+          "head_repository_id": 1107348698,
+          "head_branch": "verify01-volc139-history11-c811dbc464",
+          "head_sha": "c811dbc46478ec87ba10ebfe1ba7d9467e56d7f6"
+        }
+      },
+      "generationPassed": true,
+      "taskAcceptance": null,
+      "physicalRequests": 20,
+      "tools": {
+        "read_file": 16,
+        "write_file": 2,
+        "search_files": 6,
+        "list_dir": 1
+      },
+      "toolBatchSizes": [
+        2,
+        1,
+        1,
+        3,
+        2,
+        2,
+        1,
+        2,
+        1,
+        2,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "compactions": 0,
+      "omittedReadResults": 1,
+      "policy": {
+        "endpoint": "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
+        "model": "deepseek-v4-flash-ga-260731",
+        "maximumRequestsPerTask": 48,
+        "maximumRequestBytes": 262144,
+        "maximumResponseBytes": 16777216,
+        "maximumAnswerTokens": 393216,
+        "timeoutMs": 180000,
+        "connectionAttemptTimeoutMs": 10000,
+        "thinking": "disabled",
+        "formalSample": false,
+        "parallelToolCalls": null,
+        "allowedTaskIds": [
+          "verify-19"
+        ],
+        "allowTextOnlyRequests": true,
+        "retries": 0,
+        "redirects": false,
+        "fallback": false,
+        "credentialsInModelChild": false,
+        "actualBilledCostCny": null,
+        "fxRate": null,
+        "defaultThinkingPreserved": false,
+        "providerHardQuotaVerified": false
+      },
+      "raw": [
+        {
+          "path": "verify-19/summary.json.gz",
+          "digest": "sha256:f7dcc417074ad30820e1f44e60b1b39aaf2b6501df43755aa79244827747c157",
+          "bytes": 43877,
+          "originalDigest": "sha256:984157612d1bd45a66ee0b96c8a9eb06adab9e54aacb4631c7cca767e968a9b6",
+          "originalBytes": 297091
+        },
+        {
+          "path": "verify-19/verify-19/summary.json.gz",
+          "digest": "sha256:5c08ff38de6f3c2bfd853fcb5b540a2f9d22bcaf0c979d07099b8cdd3b7cc7c9",
+          "bytes": 40226,
+          "originalDigest": "sha256:4058829f9bedc04563e2aacc81a6927d37524fab0b63d7a26bb1d03a243de166",
+          "originalBytes": 268499
+        },
+        {
+          "path": "verify-19/verify-19/model-stream.ndjson.gz",
+          "digest": "sha256:52851b8e4bdcdf084af22fd536926a744f5246c0ccd7c5646e92ff3b1e4b2de7",
+          "bytes": 466922,
+          "originalDigest": "sha256:bae65c511d6b2eb3c46657f8ccab94ca37d934064fcdde4541467b8d122166e5",
+          "originalBytes": 2249057
+        },
+        {
+          "path": "verify-19/verify-19/prompt.txt.gz",
+          "digest": "sha256:7ee5acd67d56283f3c84e2baac8c14d206fbd2bf9dba34d25b8c7e66a4729175",
+          "bytes": 1594,
+          "originalDigest": "sha256:8c2a0838b3849ab610440fcf3b9c80234961de243c1abbebe916d015a9b384e5",
+          "originalBytes": 2887
+        },
+        {
+          "path": "verify-19/verify-19/broker/policy.json.gz",
+          "digest": "sha256:5c67a649f9c386b8c2c61e35dc0d38b9e6ced8515d5651cd7e72b20d337f3d11",
+          "bytes": 405,
+          "originalDigest": "sha256:4cea6a1d695cd967cf9da43fa6075392f12de713e3115926bf25f3236bb1e57c",
+          "originalBytes": 691
+        },
+        {
+          "path": "verify-19/verify-19/broker/request-1.effective.json.gz",
+          "digest": "sha256:959e815ba0d4c06c9d1343edb712dd0e705c0096aa74c2ad8b7bbb10a1a87847",
+          "bytes": 5618,
+          "originalDigest": "sha256:f2983860230709110cafa59a252782d5c0e7d931123bf6fadf1544a2bbeaae63",
+          "originalBytes": 17399
+        },
+        {
+          "path": "verify-19/verify-19/broker/request-1.receipt.json.gz",
+          "digest": "sha256:1c098a2eb182bcfe2e0575fe8a66eaf71ff8babf1624f46c134b6fc1d2f993da",
+          "bytes": 580,
+          "originalDigest": "sha256:495c6905cc78ad89dc5fac06fbd3ff8622f430eaf15bdb5a2ae5be19e66dd1f9",
+          "originalBytes": 1312
+        }
+      ],
+      "candidates": [
+        {
+          "path": "verify-19/candidate/packages/cli/__tests__/verify-19.test.js.txt",
+          "digest": "sha256:a2808a8de1e6255c83ef90bebee8a013ee934bdde74baa7848059dc1db567885",
+          "bytes": 7366
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-30",
+      "artifact": {
+        "id": 13214521590,
+        "node_id": "MDg6QXJ0aWZhY3QxMzIxNDUyMTU5MA==",
+        "name": "verify01-native-delivery-win32-jetbrains-verify-30-c811dbc46478ec87ba10ebfe1ba7d9467e56d7f6",
+        "size_in_bytes": 2908392,
+        "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/13214521590",
+        "archive_download_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/13214521590/zip",
+        "expired": false,
+        "digest": "sha256:8d7cd54bab9cc2fc526707223cb723e78132bb59ed7deaea5f3735c72222ec35",
+        "created_at": "2026-11-03T08:11:53Z",
+        "updated_at": "2026-11-03T08:11:53Z",
+        "expires_at": "2026-11-17T08:11:52Z",
+        "workflow_run": {
+          "id": 41599436044,
+          "repository_id": 1107348698,
+          "head_repository_id": 1107348698,
+          "head_branch": "verify01-volc139-history11-c811dbc464",
+          "head_sha": "c811dbc46478ec87ba10ebfe1ba7d9467e56d7f6"
+        }
+      },
+      "generationPassed": true,
+      "taskAcceptance": null,
+      "physicalRequests": 5,
+      "tools": {
+        "read_file": 3,
+        "write_file": 1
+      },
+      "toolBatchSizes": [
+        2,
+        1,
+        1
+      ],
+      "compactions": 0,
+      "omittedReadResults": 0,
+      "policy": {
+        "endpoint": "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
+        "model": "deepseek-v4-flash-ga-260731",
+        "maximumRequestsPerTask": 48,
+        "maximumRequestBytes": 262144,
+        "maximumResponseBytes": 16777216,
+        "maximumAnswerTokens": 393216,
+        "timeoutMs": 180000,
+        "connectionAttemptTimeoutMs": 10000,
+        "thinking": "disabled",
+        "formalSample": false,
+        "parallelToolCalls": null,
+        "allowedTaskIds": [
+          "verify-30"
+        ],
+        "allowTextOnlyRequests": true,
+        "retries": 0,
+        "redirects": false,
+        "fallback": false,
+        "credentialsInModelChild": false,
+        "actualBilledCostCny": null,
+        "fxRate": null,
+        "defaultThinkingPreserved": false,
+        "providerHardQuotaVerified": false
+      },
+      "raw": [
+        {
+          "path": "verify-30/summary.json.gz",
+          "digest": "sha256:5648226615bc775cf03e0c4865cbdcb364549b66c41bb452c475260dfa12e6c7",
+          "bytes": 18781,
+          "originalDigest": "sha256:2fb72049b1303ffcf75be7679e5cd0f33204b1bd6bb73e3ebb8e70946226c5f0",
+          "originalBytes": 82660
+        },
+        {
+          "path": "verify-30/verify-30/summary.json.gz",
+          "digest": "sha256:a862ac7bc5e4ef481936d5f03b01c00333c95883a5d7bd1f155139a4d9bcb33f",
+          "bytes": 15007,
+          "originalDigest": "sha256:1209485736dbd2dec896cb0c5064edf6d4a020cedb767372cc2d24c874ea67a3",
+          "originalBytes": 62959
+        },
+        {
+          "path": "verify-30/verify-30/model-stream.ndjson.gz",
+          "digest": "sha256:6cfb0d425f6be4b89958179b7ba9d0ad04dfca3b2c555faf5fbdf140c24a28fa",
+          "bytes": 120580,
+          "originalDigest": "sha256:697ff493dd338daae9a3ff45366de6188b607fd09489ce1610b5f5fc4dd62a0e",
+          "originalBytes": 463478
+        },
+        {
+          "path": "verify-30/verify-30/prompt.txt.gz",
+          "digest": "sha256:96c2dbdaa2ab3301eaea23198089a294957aa7ceea9bd32991ddf4cb8c1c1104",
+          "bytes": 1611,
+          "originalDigest": "sha256:b9f7be781e9a518f1ac41f67515b587083540d42adfe64814bb7ea30939f543c",
+          "originalBytes": 2929
+        },
+        {
+          "path": "verify-30/verify-30/broker/policy.json.gz",
+          "digest": "sha256:7b4d81f973860b5729d1601e167150eae4be1b3655229f576b3ef373fd384103",
+          "bytes": 405,
+          "originalDigest": "sha256:941897c525a3276a086dfd09cd0fa2edb369cf6ed715c0e3a153b1da8e0f9f01",
+          "originalBytes": 691
+        },
+        {
+          "path": "verify-30/verify-30/broker/request-1.effective.json.gz",
+          "digest": "sha256:31095d5fe404239c7847355e4454ef45e310d08bf24334633e9079c4f2e56e7f",
+          "bytes": 8973,
+          "originalDigest": "sha256:91ae7dc45686a37c34c67221b83af8a5e8264a6fa47dceb615826eadd665e2b6",
+          "originalBytes": 24947
+        },
+        {
+          "path": "verify-30/verify-30/broker/request-1.receipt.json.gz",
+          "digest": "sha256:987698b0117859ca10df2af2dd828e0f267d1aecf6a00652a4dfaa0a914e19f2",
+          "bytes": 583,
+          "originalDigest": "sha256:ae513b055c0db295b56d804500ae95e7094897d753b85eb39f41bf4ab85be742",
+          "originalBytes": 1328
+        }
+      ],
+      "candidates": [
+        {
+          "path": "verify-30/candidate/packages/vscode-extension/__tests__/verify-30.test.js.txt",
+          "digest": "sha256:a519cb689699cb153c92a3c75213c9f6e03156d6d8a3d7b51c57fe56f723ce09",
+          "bytes": 2066
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "These selected traces explain execution; independent acceptance is recorded separately.",
+    "Runtime repair and provider-default batching changed together, so their isolated effects are not measured."
+  ]
+}

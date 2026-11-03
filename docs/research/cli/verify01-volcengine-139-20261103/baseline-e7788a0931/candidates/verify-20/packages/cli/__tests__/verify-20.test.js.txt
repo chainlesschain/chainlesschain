@@ -1,0 +1,82 @@
+import { describe, expect, it } from "vitest";
+import { buildPermissionDecision } from "../src/lib/permission-decision.js";
+
+/**
+ * Regression coverage for "deny 决策不降级": an explicitly denied or
+ * unknown-strategy gated result must never be downgraded to "allow" by any
+ * fallback. In the builder, the only fallback is the `||` precedence chain
+ * (policy -> approval -> terminal outcome). These tests assert deny and
+ * unknown values pass through unchanged, and that a higher-priority deny /
+ * unknown wins over a lower-priority "allow" in the chain.
+ */
+describe("PermissionDecision: deny/unknown decisions are not downgraded", () => {
+  it("preserves an explicit deny from the policy decision", () => {
+    const decision = buildPermissionDecision({
+      toolUseId: "tu-a",
+      tool: "run_shell",
+      result: { policy: { decision: "deny" } },
+    });
+
+    expect(decision.decision).toBe("deny");
+  });
+
+  it("keeps a policy deny over a lower-priority 'allow' chain outcome", () => {
+    const decision = buildPermissionDecision({
+      toolUseId: "tu-b",
+      result: {
+        policy: { decision: "deny" },
+        permissionChain: [{ outcome: "allow" }],
+      },
+    });
+
+    expect(decision.decision).toBe("deny");
+    expect(decision.decision).not.toBe("allow");
+  });
+
+  it("preserves an unknown strategy value instead of coercing it to allow", () => {
+    const decision = buildPermissionDecision({
+      toolUseId: "tu-c",
+      result: { policy: { decision: "ask" } },
+    });
+
+    expect(decision.decision).toBe("ask");
+    expect(decision.decision).not.toBe("allow");
+  });
+
+  it("keeps an unknown strategy over a lower-priority 'allow' chain outcome", () => {
+    const decision = buildPermissionDecision({
+      toolUseId: "tu-d",
+      result: {
+        policy: { decision: "review" },
+        permissionChain: [{ outcome: "allow" }],
+      },
+    });
+
+    expect(decision.decision).toBe("review");
+    expect(decision.decision).not.toBe("allow");
+  });
+
+  it("preserves a deny sourced from the approval decision", () => {
+    const decision = buildPermissionDecision({
+      toolUseId: "tu-e",
+      result: { approval: { decision: "deny", via: "managed" } },
+    });
+
+    expect(decision.decision).toBe("deny");
+    expect(decision.via).toBe("managed");
+  });
+
+  it("preserves a deny sourced from the terminal chain outcome", () => {
+    const decision = buildPermissionDecision({
+      toolUseId: "tu-f",
+      result: {
+        permissionChain: [
+          { layer: "settings-rules", outcome: "no-match" },
+          { layer: "approval-gate", outcome: "deny" },
+        ],
+      },
+    });
+
+    expect(decision.decision).toBe("deny");
+  });
+});

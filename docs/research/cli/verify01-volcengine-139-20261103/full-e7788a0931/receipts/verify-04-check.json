@@ -1,0 +1,78 @@
+{
+  "scope": "verify01-operator-acceptance",
+  "taskId": "verify-04",
+  "stage": "check",
+  "productionAttested": false,
+  "providerAssessed": false,
+  "isolation": "docker",
+  "imageReference": "node:22.12.0-bookworm",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operator": {
+    "uid": 1001,
+    "gid": 1001
+  },
+  "tests": [
+    {
+      "kind": "baseline",
+      "total": 22,
+      "passed": 22,
+      "failed": 0
+    }
+  ],
+  "mutations": [],
+  "executions": [
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "setup": false,
+      "ms": 110,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "v22.12.0\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 874,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":7,\"numPassedTestSuites\":7,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":22,\"numPassedTests\":22,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793676992656,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts preserves request pricing through durable projection, budget and Eval\",\"status\":\"passed\",\"title\":\"preserves request pricing through durable projection, budget and Eval\",\"duration\":5.594274999999982,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts preserves pricing conditions in crash-recovery settlements\",\"status\":\"passed\",\"title\":\"preserves pricing conditions in crash-recovery settlements\",\"duration\":2.170126000000039,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts resolves gpt-6-astra only at the official endpoint\",\"status\":\"passed\",\"title\":\"resolves gpt-6-astra only at the official endpoint\",\"duration\":1.7562810000000013,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts resolves gpt-6-sol only at the official endpoint\",\"status\":\"passed\",\"title\":\"resolves gpt-6-sol only at the official endpoint\",\"duration\":0.4615770000000339,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts resolves gpt-6-luna only at the official endpoint\",\"status\":\"passed\",\"title\":\"resolves gpt-6-luna only at the official endpoint\",\"duration\":0.4543459999999868,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts resolves Opus 5.5 without changing a custom gateway's assumptions\",\"status\":\"passed\",\"title\":\"resolves Opus 5.5 without changing a custom gateway's assumptions\",\"duration\":0.849392000000023,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts prices cached tokens and long prompts at the request boundary\",\"status\":\"passed\",\"title\":\"prices cached tokens and long prompts at the request boundary\",\"duration\":0.3429779999999596,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts keeps separate request tiers when aggregating one or many sessions\",\"status\":\"passed\",\"title\":\"keeps separate request tiers when aggregating one or many sessions\",\"duration\":1.795300999999995,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts preserves response service tier for budget settlement\",\"status\":\"passed\",\"title\":\"preserves response service tier for budget settlement\",\"duration\":0.45890299999996387,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts uses the same prices in the legacy database, preserving unknown as NULL\",\"status\":\"passed\",\"title\":\"uses the same prices in the legacy database, preserving unknown as NULL\",\"duration\":2.489708999999948,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793676993072,\"endTime\":1793676993088.4897,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/model-release-contract.test.js\"},{\"assertionResults\":[{\"ancestorTitles\":[\"session-usage\",\"extractUsage\"],\"fullName\":\"session-usage extractUsage reads a token_usage event\",\"status\":\"passed\",\"title\":\"reads a token_usage event\",\"duration\":1.3833379999999806,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"session-usage\",\"extractUsage\"],\"fullName\":\"session-usage extractUsage reads usage embedded in assistant_message\",\"status\":\"passed\",\"title\":\"reads usage embedded in assistant_message\",\"duration\":0.4672750000000008,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"session-usage\",\"extractUsage\"],\"fullName\":\"session-usage extractUsage returns null for events without usage\",\"status\":\"passed\",\"title\":\"returns null for events without usage\",\"duration\":0.15161900000001083,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"session-usage\",\"extractUsage\"],\"fullName\":\"session-usage extractUsage returns null for unknown event types\",\"status\":\"passed\",\"title\":\"returns null for unknown event types\",\"duration\":0.1704780000000028,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"session-usage\",\"extractUsage\"],\"fullName\":\"session-usage extractUsage returns null when all counts are zero\",\"status\":\"passed\",\"title\":\"returns null when all counts are zero\",\"duration\":0.13769800000000032,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"session-usage\",\"aggregateUsage\"],\"fullName\":\"session-usage aggregateUsage rolls up total + per-model\",\"status\":\"passed\",\"title\":\"rolls up total + per-model\",\"duration\":0.9427230000000009,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"session-usage\",\"aggregateUsage\"],\"fullName\":\"session-usage aggregateUsage ignores events without usage\",\"status\":\"passed\",\"title\":\"ignores events without usage\",\"duration\":0.1795709999999815,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"session-usage\",\"aggregateUsage\"],\"fullName\":\"session-usage aggregateUsage handles empty + nullish input\",\"status\":\"passed\",\"title\":\"handles empty + nullish input\",\"duration\":0.08736100000001557,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"session-usage\",\"aggregateUsage\"],\"fullName\":\"session-usage aggregateUsage sorts byModel descending by totalTokens\",\"status\":\"passed\",\"title\":\"sorts byModel descending by totalTokens\",\"duration\":0.33074999999999477,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"session-usage\",\"allSessionsUsage (resilient roll-up)\"],\"fullName\":\"session-usage allSessionsUsage (resilient roll-up) aggregates across sessions and skips one that fails to read\",\"status\":\"passed\",\"title\":\"aggregates across sessions and skips one that fails to read\",\"duration\":0.9821420000000103,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"session-usage\",\"allSessionsUsage (resilient roll-up)\"],\"fullName\":\"session-usage allSessionsUsage (resilient roll-up) reports zero skipped when every session reads cleanly\",\"status\":\"passed\",\"title\":\"reports zero skipped when every session reads cleanly\",\"duration\":0.27609699999999293,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"session-usage\",\"allSessionsUsage (resilient roll-up)\"],\"fullName\":\"session-usage allSessionsUsage (resilient roll-up) sessionUsage rolls up a single session via the injected reader\",\"status\":\"passed\",\"title\":\"sessionUsage rolls up a single session via the injected reader\",\"duration\":0.2532030000000134,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1793676993238,\"endTime\":1793676993244.2532,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/session-usage.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 465,
+      "exitCode": 1,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":1,\"numPassedTestSuites\":0,\"numFailedTestSuites\":1,\"numPendingTestSuites\":0,\"numTotalTests\":0,\"numPassedTests\":0,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1793676993550,\"success\":false,\"testResults\":[{\"assertionResults\":[],\"startTime\":1793676993550,\"endTime\":1793676993550,\"status\":\"failed\",\"message\":\"No test suite found in file /workspace/packages/cli/__tests__/verify-04.test.js\",\"name\":\"/workspace/packages/cli/__tests__/verify-04.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "pass": false,
+  "detail": "acceptance requires executed test cases"
+}
