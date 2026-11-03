@@ -545,5 +545,24 @@
       "marketplaceUpdateId": null,
       "publicListingVerified": false
     }
+  },
+  "solTaskCoverage": {
+    "provider": "openai",
+    "model": "gpt-6.1-sol",
+    "accepted": 45,
+    "total": 45,
+    "tasks": {
+      "accepted": 36,
+      "total": 36
+    },
+    "firstRuns": {
+      "accepted": 9,
+      "total": 9
+    },
+    "scope": "cross-version-with-repaired-project-sources",
+    "originalFrozenProjectAccepted": 41,
+    "manuallyAssistedRepairsIncluded": false,
+    "evidenceSha256": "bdef63a1002820fcb94ad6ec01726d66c28073319f4cb266c17870eacb57e060",
+    "evidenceUrl": "https://github.com/chainlesschain/chainlesschain/blob/d62866538c1988258b93998f9705c2cdd76ee105/docs/research/cli/verify01-volcengine-139-20261103/sol-comparison/cumulative-coverage.json"
   }
 }

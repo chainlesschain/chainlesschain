@@ -149,6 +149,10 @@ const badges = [
         </div>
 
         <p class="animate-fade-in-delay-3 mt-5 text-sm text-muted max-w-3xl">
+          <a class="font-semibold text-ember hover:underline" href="#sol-verification">OpenAI / Sol: all 36 project tasks + 9 independent first runs have accepted results, 45/45 →</a>
+          <span class="block mt-1">Cumulative across versions, including retests on repaired sources; the original frozen-project 41/45 remains separate.</span>
+        </p>
+        <p class="animate-fade-in-delay-3 mt-5 text-sm text-muted max-w-3xl">
           Release note: CLI <code class="font-mono">{CLI_VERSION}</code> recovers rejected tool arguments and preserves authenticated image/reasoning digests with projection v10. The .140 full 36+9 Volcengine retest has no verified final score. Historical .138 retest: 2/4 accepted. Historical {releaseStatus.cumulativeAcceptedDeliveries}/{releaseStatus.totalTaskSamples} and previous .137 0/5 retain separate scopes. Kernel 0.1.11 and client {releaseStatus.productVersion} remain independent. <a class="text-ember hover:underline" href={releaseStatus.upgradeGuide}>Upgrade guidance and limits →</a>
         </p>
         <p class="mt-3 text-xs text-muted leading-relaxed max-w-3xl">
