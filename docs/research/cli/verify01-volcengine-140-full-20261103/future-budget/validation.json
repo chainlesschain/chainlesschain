@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "checkedAt": "2026-11-03T15:54:33.357318+00:00",
+  "checkedAt": "2026-11-03T16:49:36.387552+00:00",
   "scope": "Future bounded diagnostic policy and user hold; no retest generation dispatched",
   "tests": {
     "files": 30,
@@ -9,7 +9,7 @@
     "skipped": 0,
     "tap": {
       "path": "docs/research/cli/verify01-volcengine-140-full-20261103/future-budget/contracts.tap.txt",
-      "digest": "sha256:51f8890e848ffffab6b66716c3be2d4181d0ec139db816d6d2decd2c383221e4"
+      "digest": "sha256:8b93f15b5fb46df8f95ed61d662a83488084713b7c73666133ac4387d457355f"
     }
   },
   "sourceSnapshot": "Working tree bytes bound individually; not claiming the prior HEAD includes these uncommitted changes",
@@ -40,7 +40,7 @@
     },
     {
       "path": "packages/cli/scripts/budget-egress-reviewed-sources.json",
-      "digest": "sha256:90ee9fd3c3a8bcd6323d136b391e624a5bb18648700ad244d4cb1fe1f10162c3"
+      "digest": "sha256:cb22822cb21302e35abf6856a472b4625046a63a6e58585789b67f157d24d72b"
     },
     {
       "path": "docs/research/cli/verify01-volcengine-140-full-20261103/execution-policy.json",
@@ -52,7 +52,10 @@
     "updatedAt": "2026-11-03T15:17:00Z",
     "provider": "volcengine",
     "newRetestsHeld": true,
-    "currentDispatchedFullRoundsContinue": [41630636517, 41638188839],
+    "currentDispatchedFullRoundsContinue": [
+      41630636517,
+      41638188839
+    ],
     "continueIndependentAcceptanceOfExistingDeliveries": true,
     "futureSolTokenBudgetMultiple": 2,
     "futureInternalSummaryTokenBudgetMultiple": 2,
@@ -72,8 +75,8 @@
     "interpretation": "Use Sol's configured token allowances multiplied by2 for future new tests; both normal output and internal summaries remain bounded. Retain current dispatched rounds and independently accept existing deliveries. No additional model generation for already tested samples until the user explicitly resumes retesting."
   },
   "egress": {
-    "capturedAt": "2026-11-03T15:52:40.023Z",
-    "sourceTreeDigest": "sha256:6f252c96bfc2deb87a6729be0a1a34aa6ffdcb41d888fd9028270b98020b6425",
+    "capturedAt": "2026-11-03T16:47:51.396Z",
+    "sourceTreeDigest": "sha256:f985e9ea4a4d57f3f3947a8eda514089aeb82d15a02c56c8efb8f3ac6b964ea9",
     "sourceReviewPassed": true,
     "candidateFiles": 88,
     "parseErrors": 0,
@@ -91,5 +94,17 @@
     "reported input beyond its conservative reservation is rejected",
     "user hold rejects an otherwise valid future recovery dispatch",
     "historical policies, identity and complete45 selectors retain their contracts"
-  ]
+  ],
+  "localRuntime": {
+    "platform": "Windows",
+    "node": "v22.22.2"
+  },
+  "integratedMainCommit": "508935adc8402b75dacc5c6174bed77ca2658363",
+  "cliCiRegistration": {
+    "path": ".github/workflows/cli-ci.yml",
+    "digest": "sha256:2983928c0735dff2aa1d5eb3094cc565ad4dbe52497967988614a07297b6cb5a",
+    "yamlParsed": true,
+    "prettierChecked": true,
+    "cloudRunNotClaimedByThisLocalCheck": true
+  }
 }
