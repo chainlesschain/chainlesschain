@@ -64,6 +64,11 @@ import {
 import { ReadFileLoopGuard } from "../lib/read-file-loop-guard.js";
 const READ_FILE_REQUEST_CONTEXT = Symbol("read-file-request-context");
 import { gitToolInputError } from "../lib/git-tool-input.js";
+import {
+  parseToolArguments,
+  projectRejectedToolArguments,
+  TOOL_ARGUMENTS_INVALID_CODE,
+} from "./tool-argument-recovery.js";
 import { shellOutputPage, shellOutputPreview } from "../lib/shell-output.js";
 import {
   boundedToolResultText,
@@ -12262,6 +12267,7 @@ function _openAIProviderRequestReceipt(response, data, clientRequestId) {
  * @returns {Promise<object>} response with .message
  */
 export async function chatWithTools(rawMessages, options) {
+  rawMessages = projectRejectedToolArguments(rawMessages);
   if (options.serviceTier != null) {
     resolveModelServiceTier(
       resolveModelCapabilityProfile(options),
@@ -17477,6 +17483,7 @@ export async function* agentLoop(messages, options) {
       toolCalls.every(
         (c) =>
           typeof c?.function?.name === "string" &&
+          parseToolArguments(c.function.arguments) !== null &&
           !pausedTools.has(c.function.name) &&
           _CHECKPOINT_READ_ONLY.has(c.function.name),
       );
@@ -17485,15 +17492,7 @@ export async function* agentLoop(messages, options) {
       const turnId = `${runId}:t${budget.consumed}`;
       const toolBatchRecords = [];
       const prepared = toolCalls.map((call) => {
-        let toolArgs;
-        try {
-          toolArgs =
-            typeof call.function.arguments === "string"
-              ? JSON.parse(call.function.arguments)
-              : call.function.arguments;
-        } catch {
-          toolArgs = {};
-        }
+        const toolArgs = parseToolArguments(call.function.arguments);
         const workflowBinding = _workflowToolEffectBinding(
           workflowEffectId,
           workflowEffectId ? (workflowChildEffectSequence += 1) : 0,
@@ -17698,15 +17697,39 @@ export async function* agentLoop(messages, options) {
         });
         continue;
       }
-      let toolArgs;
-
-      try {
-        toolArgs =
-          typeof fn.arguments === "string"
-            ? JSON.parse(fn.arguments)
-            : fn.arguments;
-      } catch {
-        toolArgs = {};
+      const toolArgs = parseToolArguments(fn.arguments);
+      if (toolArgs === null) {
+        const result = {
+          code: TOOL_ARGUMENTS_INVALID_CODE,
+          execution_started: false,
+          error:
+            "Tool arguments must be a valid JSON object. No tool was executed. " +
+            "Issue a new call with valid arguments if still appropriate.",
+        };
+        yield {
+          type: "tool-pre-execution-denied",
+          tool: toolName,
+          tool_use_id: call.id,
+          turn_id: turnId,
+          preExecutionDenied: true,
+          execution_started: false,
+        };
+        yield {
+          type: "tool-result",
+          tool: toolName,
+          result,
+          error: result.error,
+          tool_use_id: call.id,
+          turn_id: turnId,
+          preExecutionDenied: true,
+          execution_started: false,
+        };
+        appendMessages({
+          role: "tool",
+          content: JSON.stringify(result),
+          tool_call_id: call.id,
+        });
+        continue;
       }
 
       // Capability and exact-path authority must settle before any checkpoint,
