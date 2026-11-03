@@ -8,6 +8,8 @@
 
 **累计统计更正（2026-11-03）：火山历史自动交付仍为 34/45（任务 27/36、首次安装 7/9，75.6%）。** 此前成功按样本 ID 去重保留，后续复跑失败不从累计中扣除。`.139` 这批新诊断内部累计 17/45，不是全部火山历史累计；最近补测通过的 `verify-01`、`verify-32` 均已在历史成功名单中，不能再加成 36/45。见[累计核对账本](./verify01-volcengine-139-20261103/history-reconciliation/cumulative-status.json)。
 
+**失败补测进行中（2026-11-03）：** [运行 41599436044](https://github.com/chainlesschain/chainlesschain/actions/runs/41599436044) 仅选择上述累计中尚未通过的 11 项，采用明确未发布的 CLI/IDE 修复候选包，任务仍使用原始冻结源码。目前等待全部原生生成及独立验收，尚不增加累计成功数。已确认修复读取恢复提示、取消测试 broker 强制串行工具调用；Sol 对照的原始生成和验收证据见[逐项比较](./verify01-volcengine-139-20261103/sol-comparison/README.md)，修复与运行身份见[补测记录](./verify01-volcengine-139-20261103/historical11-runtime-repair/README.md)。
+
 ## 36 项任务速查表
 
 以下任务正式执行状态均为 `NOT_RUN`；点击编号可跳转至原始提示词、交付文件和完整验收条件。

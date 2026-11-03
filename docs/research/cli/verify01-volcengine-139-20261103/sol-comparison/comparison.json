@@ -1,0 +1,1157 @@
+{
+  "schema": "chainlesschain.verify01-sol-deepseek-evidence-comparison/v1",
+  "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "solReport": {
+    "path": "sol133/results.json.gz",
+    "digest": "sha256:907710dc54db1f58fb8f2e4faee45daafd6054d7a357b6324325a618eef6af6f",
+    "bytes": 32023,
+    "originalDigest": "sha256:865cbc17804d0fc97868cd9a52ae9ddd82c70c053e3680da81d7e88d15328e4d",
+    "originalBytes": 215853
+  },
+  "solIndependentAcceptanceReverified": true,
+  "samples": [
+    {
+      "label": "sol133",
+      "sampleId": "verify-04",
+      "artifactProvenance": {
+        "runId": "41117741513",
+        "executionSource": "0d063552701fc1609aaf5674dfacf42efb1e2154",
+        "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+        "artifact": {
+          "id": 13007476514,
+          "name": "verify01-native-delivery-linux-cli-0d063552701fc1609aaf5674dfacf42efb1e2154",
+          "digest": "sha256:4c1d89f1d6c10214f4da0cef2a884e59a6257f164b6d9cc48727a5e40a00ddae",
+          "summaryDigest": "sha256:4aa1d4e6caa94a8ecac101a46da63c2e412902b54ddb318dd41d85afeb14febf",
+          "sizeInBytes": 16501800,
+          "expiresAt": "2026-11-13T19:52:59Z",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41117741513/artifacts/13007476514"
+        },
+        "selectedSamples": [
+          "verify-04"
+        ]
+      },
+      "physicalRequests": 13,
+      "toolCalls": {
+        "read_file": 23,
+        "search_files": 3,
+        "write_file": 1,
+        "edit_file": 3
+      },
+      "toolBatchSizes": [
+        4,
+        6,
+        1,
+        1,
+        3,
+        5,
+        1,
+        1,
+        1,
+        1,
+        4,
+        2
+      ],
+      "maxToolsPerResponse": 6,
+      "compactions": 0,
+      "omittedReadResults": 0,
+      "generationAndAcceptance": {
+        "sampleId": "verify-04",
+        "taskId": "verify-04",
+        "kind": "task",
+        "group": "linux-cli",
+        "task": "请求级缓存与阶梯费用",
+        "generationPassed": true,
+        "acceptancePassed": true,
+        "candidateAcceptancePassed": true,
+        "requests": 13,
+        "usageCompleteRequests": 13,
+        "knownTokenOnlyEstimateUsd": 0.6725537999999999,
+        "actualBilledCostUsd": null,
+        "generationFailure": null,
+        "checkerFailure": null,
+        "generation": {
+          "artifact": "verify01-native-delivery-linux-cli-0d063552701fc1609aaf5674dfacf42efb1e2154",
+          "summaryDigest": "sha256:4aa1d4e6caa94a8ecac101a46da63c2e412902b54ddb318dd41d85afeb14febf",
+          "hostPassed": true,
+          "sourceScopePassed": true,
+          "identityPassed": true,
+          "terminalVerified": true,
+          "candidates": [
+            {
+              "file": "packages/cli/__tests__/verify-04.test.js",
+              "path": "verify-04/candidate/packages/cli/__tests__/verify-04.test.js",
+              "digest": "sha256:e51c28d3f50c39cdb45b669038bbf5df062a22294b1b70db491b3e3d78776a94",
+              "bytes": 5413
+            }
+          ],
+          "startedAt": "2026-10-30T19:48:17.061Z",
+          "finishedAt": "2026-10-30T19:49:33.242Z"
+        },
+        "acceptance": {
+          "artifact": "verify01-native-acceptance-linux-cli-0d063552701fc1609aaf5674dfacf42efb1e2154",
+          "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+          "reviewDigest": "sha256:a45bec6a5f51a5c0018e409a24715002c04fd3a24cceb4f06398e2035dc14d63",
+          "checkerSourceCommit": "0d063552701fc1609aaf5674dfacf42efb1e2154",
+          "generationAssessment": {
+            "passed": true,
+            "originalGenerationPassed": true,
+            "originalTerminalVerified": true,
+            "terminal": {
+              "terminalVerified": true,
+              "observedFallback": false,
+              "usage": {
+                "inputTokens": 3302,
+                "outputTokens": 4703,
+                "cacheReadInputTokens": 30278,
+                "cacheCreationInputTokens": 307946
+              },
+              "totalCostUsd": 0
+            },
+            "dialect": "one-shot"
+          },
+          "frozenSourceAssessment": {
+            "exact": true,
+            "contentVerified": true,
+            "filenameEncoding": "utf8"
+          },
+          "setup": {
+            "pass": true,
+            "receipt": "verify-04-setup-4e881c34-c0ff-4610-b63b-33ee2df7721e.json",
+            "receiptDigest": "sha256:51e58dfebc373e996f29bc80a62d24f50c22204dc6291cc2086dccd5c68676ea",
+            "scriptDigest": "sha256:eed6c6b11b7e9345d7b158d4e33ba925eccbf9b2533d569e5383dc381dbcb269",
+            "tests": [
+              {
+                "kind": "baseline",
+                "total": 22,
+                "passed": 22,
+                "failed": 0
+              }
+            ],
+            "mutations": [],
+            "detail": "Independent operator checks passed; this is not a provider or task-outcome sample."
+          },
+          "check": {
+            "pass": true,
+            "receipt": "verify-04-check-6a01bc3a-dacf-4f0f-9e07-70c05f44188a.json",
+            "receiptDigest": "sha256:e3c67d6b14c6a9367f7ea35bdbe96fc1b469d772f48194e7ef0ff91e0c99bc83",
+            "scriptDigest": "sha256:2c6f2cdbc568babf93c4b99ac47aa055ce9230c4a16aa0da741e861ba1491765",
+            "tests": [
+              {
+                "kind": "baseline",
+                "total": 22,
+                "passed": 22,
+                "failed": 0
+              },
+              {
+                "kind": "candidate",
+                "total": 5,
+                "passed": 5,
+                "failed": 0
+              }
+            ],
+            "mutations": [
+              {
+                "name": "merge-short-and-long-request-price-buckets",
+                "sourceSha256": "7b8898a171561e61a4803ef8aa05ffc947aea3cd85e194c2b8ca6898a535b86c",
+                "total": 5,
+                "passed": 2,
+                "failed": 3
+              },
+              {
+                "name": "drop-cache-tokens-from-request-threshold",
+                "sourceSha256": "63b0dbf58bfccf374c4b480da32f78b06c96ff461905e294005ac9047e7a5abd",
+                "total": 5,
+                "passed": 3,
+                "failed": 2
+              }
+            ],
+            "detail": "Independent operator checks passed; this is not a provider or task-outcome sample."
+          },
+          "finishedAt": "2026-10-30T20:37:12.251Z"
+        }
+      },
+      "requestConfiguration": {
+        "model": "gpt-6.1-sol",
+        "max_output_tokens": 8192
+      },
+      "raw": [
+        {
+          "path": "sol133/verify-04/model-stream.ndjson.gz",
+          "digest": "sha256:373019c3cd88e53b11fff9ac1195be9ec8b13b04c097cc951dfab68767f3ced1",
+          "bytes": 405037,
+          "originalDigest": "sha256:d037174cfa01a8894a048193ac6dd41bce830225ccd27a754579de3bc8e906ae",
+          "originalBytes": 1863566
+        },
+        {
+          "path": "sol133/verify-04/summary.json.gz",
+          "digest": "sha256:15f25a1910efa9a0f30823a4a1508e2385d44c33d8421fb94b10e42710be45d7",
+          "bytes": 27422,
+          "originalDigest": "sha256:c4891860632e126787d28901019c6574d7aa6ab5ceaad97acec0414c1b8f4511",
+          "originalBytes": 191900
+        },
+        {
+          "path": "sol133/verify-04/prompt.txt.gz",
+          "digest": "sha256:b44f74ad15944882c1b84c56fb9e047e96b2250d7128d50d403899cd3ace6f75",
+          "bytes": 1307,
+          "originalDigest": "sha256:0f2519b2b4add2f128205c30b0e35d466c144d9a9866112fa7dfa4d5410ffc00",
+          "originalBytes": 2171
+        },
+        {
+          "path": "sol133/verify-04/request-1.effective.json.gz",
+          "digest": "sha256:4eae0f5e5fa3521426991dfab380beaf59e86afaaac1d6280293fdf5a519f9a5",
+          "bytes": 5273,
+          "originalDigest": "sha256:94cb44909442547d37841c48892b1e2e3a825cfa4e87a2d479cefce59114f5ab",
+          "originalBytes": 16072
+        },
+        {
+          "path": "sol133/verify-04/request-1.receipt.json.gz",
+          "digest": "sha256:143a571f3d0d2b134096be86aecde61f2263d6e06f00230f8f14dcece2ad35fe",
+          "bytes": 687,
+          "originalDigest": "sha256:30232c02f42c49d449781fb2ef602e3cecc554a4b44cf01b1fa7d5ab3304c283",
+          "originalBytes": 1517
+        }
+      ],
+      "candidates": [
+        {
+          "path": "sol133/verify-04/candidate/packages/cli/__tests__/verify-04.test.js.txt",
+          "digest": "sha256:e51c28d3f50c39cdb45b669038bbf5df062a22294b1b70db491b3e3d78776a94",
+          "bytes": 5413
+        }
+      ]
+    },
+    {
+      "label": "sol133",
+      "sampleId": "verify-07",
+      "artifactProvenance": {
+        "runId": "41117741513",
+        "executionSource": "0d063552701fc1609aaf5674dfacf42efb1e2154",
+        "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+        "artifact": {
+          "id": 13008003581,
+          "name": "verify01-native-delivery-darwin-cli-0d063552701fc1609aaf5674dfacf42efb1e2154",
+          "digest": "sha256:2d578475aaaa95112113b3f5e984d0fcb8110cb292bc681a494f0683fab33b5f",
+          "summaryDigest": "sha256:dc66a97ec9e582db58c2ecb6308373bde6935a12181be3e4caaccae90ed99419",
+          "sizeInBytes": 17406224,
+          "expiresAt": "2026-11-13T20:13:15Z",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41117741513/artifacts/13008003581"
+        },
+        "selectedSamples": [
+          "verify-07",
+          "first-run-darwin-cli"
+        ]
+      },
+      "physicalRequests": 15,
+      "toolCalls": {
+        "read_file": 21,
+        "search_files": 6,
+        "write_file": 1,
+        "edit_file": 4
+      },
+      "toolBatchSizes": [
+        3,
+        4,
+        4,
+        4,
+        1,
+        1,
+        1,
+        1,
+        3,
+        1,
+        3,
+        1,
+        4,
+        1
+      ],
+      "maxToolsPerResponse": 4,
+      "compactions": 0,
+      "omittedReadResults": 2,
+      "generationAndAcceptance": {
+        "sampleId": "verify-07",
+        "taskId": "verify-07",
+        "kind": "task",
+        "group": "darwin-cli",
+        "task": "持久正文分页边界",
+        "generationPassed": true,
+        "acceptancePassed": true,
+        "candidateAcceptancePassed": true,
+        "requests": 15,
+        "usageCompleteRequests": 15,
+        "knownTokenOnlyEstimateUsd": 0.755319,
+        "actualBilledCostUsd": null,
+        "generationFailure": null,
+        "checkerFailure": null,
+        "generation": {
+          "artifact": "verify01-native-delivery-darwin-cli-0d063552701fc1609aaf5674dfacf42efb1e2154",
+          "summaryDigest": "sha256:dc66a97ec9e582db58c2ecb6308373bde6935a12181be3e4caaccae90ed99419",
+          "hostPassed": true,
+          "sourceScopePassed": true,
+          "identityPassed": true,
+          "terminalVerified": true,
+          "candidates": [
+            {
+              "file": "packages/cli/__tests__/verify-07.test.js",
+              "path": "verify-07/candidate/packages/cli/__tests__/verify-07.test.js",
+              "digest": "sha256:88dc2540593d4ff357734e608299a223f78f284d77781686e2f7c4f56a8ee560",
+              "bytes": 9710
+            }
+          ],
+          "startedAt": "2026-10-30T20:05:55.319Z",
+          "finishedAt": "2026-10-30T20:07:44.587Z"
+        },
+        "acceptance": {
+          "artifact": "verify01-native-acceptance-darwin-cli-0d063552701fc1609aaf5674dfacf42efb1e2154",
+          "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+          "reviewDigest": "sha256:a45bec6a5f51a5c0018e409a24715002c04fd3a24cceb4f06398e2035dc14d63",
+          "checkerSourceCommit": "0d063552701fc1609aaf5674dfacf42efb1e2154",
+          "generationAssessment": {
+            "passed": true,
+            "originalGenerationPassed": true,
+            "originalTerminalVerified": true,
+            "terminal": {
+              "terminalVerified": true,
+              "observedFallback": false,
+              "usage": {
+                "inputTokens": 2689,
+                "outputTokens": 5819,
+                "cacheReadInputTokens": 34710,
+                "cacheCreationInputTokens": 344140
+              },
+              "totalCostUsd": 0
+            },
+            "dialect": "one-shot"
+          },
+          "frozenSourceAssessment": {
+            "exact": true,
+            "contentVerified": true,
+            "filenameEncoding": "utf8"
+          },
+          "setup": {
+            "pass": true,
+            "receipt": "verify-07-setup-9e6ac345-34d1-40fe-9322-3da385b69dd7.json",
+            "receiptDigest": "sha256:b43f25a4545be67ae9c13263489e97a8c5208225653bd1af6f56583a51da43d6",
+            "scriptDigest": "sha256:950880ded0874cae94eb828c8b0c291f81447f2c628e0a7177020ebbdda48999",
+            "tests": [
+              {
+                "kind": "baseline",
+                "total": 39,
+                "passed": 39,
+                "failed": 0
+              }
+            ],
+            "mutations": [],
+            "detail": "Independent operator checks passed; this is not a provider or task-outcome sample."
+          },
+          "check": {
+            "pass": true,
+            "receipt": "verify-07-check-044fde08-4bf7-462a-a024-6966dc1000fe.json",
+            "receiptDigest": "sha256:c18e95e6720205c820e79a668be0fd214f4c14c511b02a8c05f3dde655879151",
+            "scriptDigest": "sha256:6b2f6509219d4c0fbcf82fb6cb54de815af27aa2c997e2fc9b1badd709a77b0c",
+            "tests": [
+              {
+                "kind": "baseline",
+                "total": 39,
+                "passed": 39,
+                "failed": 0
+              },
+              {
+                "kind": "candidate",
+                "total": 5,
+                "passed": 5,
+                "failed": 0
+              }
+            ],
+            "mutations": [
+              {
+                "name": "repeat-before-cursor-boundary",
+                "sourceSha256": "c18d8ec76cb2a921bc3e4e59b6bb6f89b9eaef805cc63b4db104efa93f097118",
+                "total": 5,
+                "passed": 0,
+                "failed": 5
+              },
+              {
+                "name": "skip-after-cursor-first-row",
+                "sourceSha256": "f82f745d16970deb25ac822bb3e061c73c0a3f74369dcc792a7731c3955f4d2b",
+                "total": 5,
+                "passed": 2,
+                "failed": 3
+              }
+            ],
+            "detail": "Independent operator checks passed; this is not a provider or task-outcome sample."
+          },
+          "finishedAt": "2026-10-30T20:41:52.668Z"
+        }
+      },
+      "requestConfiguration": {
+        "model": "gpt-6.1-sol",
+        "max_output_tokens": 8192
+      },
+      "raw": [
+        {
+          "path": "sol133/verify-07/model-stream.ndjson.gz",
+          "digest": "sha256:701235d14d85f1166aa0927dc9a56ac0329bb77b11a7f941377bdebd7fff30cb",
+          "bytes": 474962,
+          "originalDigest": "sha256:47b43c97b95670eb0595a248a59410be20b731c38c1316858b276ee2afe90bd5",
+          "originalBytes": 2323919
+        },
+        {
+          "path": "sol133/verify-07/summary.json.gz",
+          "digest": "sha256:59882b759f436cc7f9947cf9140260b64db49162e0f63908a6740e742412a505",
+          "bytes": 32023,
+          "originalDigest": "sha256:89bc5e2453a9cb8d2da045a38b52d4a02355d3edb4effe9c7b6725e6bb2107d2",
+          "originalBytes": 250444
+        },
+        {
+          "path": "sol133/verify-07/prompt.txt.gz",
+          "digest": "sha256:3c894c416688c03c2540f3aafb84f75ddde4457ba07724f2af5951a57081a2d9",
+          "bytes": 1266,
+          "originalDigest": "sha256:8eeda8307331e7524f2761dc309fd2ad374bda1ff3c6f8615b0f491c87b0f42b",
+          "originalBytes": 2110
+        },
+        {
+          "path": "sol133/verify-07/request-1.effective.json.gz",
+          "digest": "sha256:3174ac003ffb2dcd3dd268558f31602878f4f5e44b55ddb3bbdb276d7d0f94b6",
+          "bytes": 5231,
+          "originalDigest": "sha256:493bedc596fa730345da9a68faebb60e62bdae6ea1a89e6fa3660867d43c8843",
+          "originalBytes": 16011
+        },
+        {
+          "path": "sol133/verify-07/request-1.receipt.json.gz",
+          "digest": "sha256:119c75c9ac0e9c98ae7011d109755471947b1d59345a88596953538e7fda49e0",
+          "bytes": 689,
+          "originalDigest": "sha256:2c7472c2abb586cc7ad7ab9fb72c19ba1ccdbb8b32b1936e86286f8bb98fb746",
+          "originalBytes": 1517
+        }
+      ],
+      "candidates": [
+        {
+          "path": "sol133/verify-07/candidate/packages/cli/__tests__/verify-07.test.js.txt",
+          "digest": "sha256:88dc2540593d4ff357734e608299a223f78f284d77781686e2f7c4f56a8ee560",
+          "bytes": 9710
+        }
+      ]
+    },
+    {
+      "label": "sol133",
+      "sampleId": "first-run-darwin-cli",
+      "artifactProvenance": {
+        "runId": "41117741513",
+        "executionSource": "0d063552701fc1609aaf5674dfacf42efb1e2154",
+        "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+        "artifact": {
+          "id": 13008003581,
+          "name": "verify01-native-delivery-darwin-cli-0d063552701fc1609aaf5674dfacf42efb1e2154",
+          "digest": "sha256:2d578475aaaa95112113b3f5e984d0fcb8110cb292bc681a494f0683fab33b5f",
+          "summaryDigest": "sha256:dc66a97ec9e582db58c2ecb6308373bde6935a12181be3e4caaccae90ed99419",
+          "sizeInBytes": 17406224,
+          "expiresAt": "2026-11-13T20:13:15Z",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41117741513/artifacts/13008003581"
+        },
+        "selectedSamples": [
+          "verify-07",
+          "first-run-darwin-cli"
+        ]
+      },
+      "physicalRequests": 13,
+      "toolCalls": {
+        "read_file": 16,
+        "search_files": 3,
+        "write_file": 1,
+        "edit_file": 4
+      },
+      "toolBatchSizes": [
+        3,
+        4,
+        4,
+        3,
+        1,
+        1,
+        1,
+        1,
+        3,
+        1,
+        1,
+        1
+      ],
+      "maxToolsPerResponse": 4,
+      "compactions": 0,
+      "omittedReadResults": 1,
+      "generationAndAcceptance": {
+        "sampleId": "first-run-darwin-cli",
+        "taskId": "verify-07",
+        "kind": "first-run",
+        "group": "darwin-cli",
+        "task": "持久正文分页边界",
+        "generationPassed": true,
+        "acceptancePassed": true,
+        "candidateAcceptancePassed": true,
+        "requests": 13,
+        "usageCompleteRequests": 13,
+        "knownTokenOnlyEstimateUsd": 0.6330612,
+        "actualBilledCostUsd": null,
+        "generationFailure": null,
+        "checkerFailure": null,
+        "generation": {
+          "artifact": "verify01-native-delivery-darwin-cli-0d063552701fc1609aaf5674dfacf42efb1e2154",
+          "summaryDigest": "sha256:dc66a97ec9e582db58c2ecb6308373bde6935a12181be3e4caaccae90ed99419",
+          "hostPassed": true,
+          "sourceScopePassed": true,
+          "identityPassed": true,
+          "terminalVerified": true,
+          "candidates": [
+            {
+              "file": "packages/cli/__tests__/verify-07.test.js",
+              "path": "first-run-darwin-cli/candidate/packages/cli/__tests__/verify-07.test.js",
+              "digest": "sha256:8ea4b40b30a24f94e9992fa7446c721fe2dffb7d6177065706729626b81360a9",
+              "bytes": 7727
+            }
+          ],
+          "startedAt": "2026-10-30T20:03:57.386Z",
+          "finishedAt": "2026-10-30T20:05:55.302Z"
+        },
+        "acceptance": {
+          "artifact": "verify01-native-acceptance-darwin-cli-0d063552701fc1609aaf5674dfacf42efb1e2154",
+          "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+          "reviewDigest": "sha256:a45bec6a5f51a5c0018e409a24715002c04fd3a24cceb4f06398e2035dc14d63",
+          "checkerSourceCommit": "0d063552701fc1609aaf5674dfacf42efb1e2154",
+          "generationAssessment": {
+            "passed": true,
+            "originalGenerationPassed": true,
+            "originalTerminalVerified": true,
+            "terminal": {
+              "terminalVerified": true,
+              "observedFallback": false,
+              "usage": {
+                "inputTokens": 1768,
+                "outputTokens": 5065,
+                "cacheReadInputTokens": 28152,
+                "cacheCreationInputTokens": 288030
+              },
+              "totalCostUsd": 0
+            },
+            "dialect": "one-shot"
+          },
+          "frozenSourceAssessment": {
+            "exact": true,
+            "contentVerified": true,
+            "filenameEncoding": "utf8"
+          },
+          "setup": {
+            "pass": true,
+            "receipt": "verify-07-setup-f13a2f68-381d-450f-9e88-b291abb1e8cc.json",
+            "receiptDigest": "sha256:598946c12e734af7407b849b302743a9e481110e25962768c52b968a81274cc0",
+            "scriptDigest": "sha256:950880ded0874cae94eb828c8b0c291f81447f2c628e0a7177020ebbdda48999",
+            "tests": [
+              {
+                "kind": "baseline",
+                "total": 39,
+                "passed": 39,
+                "failed": 0
+              }
+            ],
+            "mutations": [],
+            "detail": "Independent operator checks passed; this is not a provider or task-outcome sample."
+          },
+          "check": {
+            "pass": true,
+            "receipt": "verify-07-check-5cb5104f-92d4-4839-b948-14b4298c09f8.json",
+            "receiptDigest": "sha256:fb953f792bae2f0e8c7b6532062e7a1310e50059fbce50af1b8f5dde2e6815e1",
+            "scriptDigest": "sha256:6b2f6509219d4c0fbcf82fb6cb54de815af27aa2c997e2fc9b1badd709a77b0c",
+            "tests": [
+              {
+                "kind": "baseline",
+                "total": 39,
+                "passed": 39,
+                "failed": 0
+              },
+              {
+                "kind": "candidate",
+                "total": 6,
+                "passed": 6,
+                "failed": 0
+              }
+            ],
+            "mutations": [
+              {
+                "name": "repeat-before-cursor-boundary",
+                "sourceSha256": "c18d8ec76cb2a921bc3e4e59b6bb6f89b9eaef805cc63b4db104efa93f097118",
+                "total": 6,
+                "passed": 3,
+                "failed": 3
+              },
+              {
+                "name": "skip-after-cursor-first-row",
+                "sourceSha256": "f82f745d16970deb25ac822bb3e061c73c0a3f74369dcc792a7731c3955f4d2b",
+                "total": 6,
+                "passed": 3,
+                "failed": 3
+              }
+            ],
+            "detail": "Independent operator checks passed; this is not a provider or task-outcome sample."
+          },
+          "finishedAt": "2026-10-30T20:40:36.422Z"
+        }
+      },
+      "requestConfiguration": {
+        "model": "gpt-6.1-sol",
+        "max_output_tokens": 8192
+      },
+      "raw": [
+        {
+          "path": "sol133/first-run-darwin-cli/model-stream.ndjson.gz",
+          "digest": "sha256:494d585b112d662a98f642398e1b744f84e1a84218b69264fd29cdeb4f7857e3",
+          "bytes": 449968,
+          "originalDigest": "sha256:d859af4be4e6fce1ea03abc025f8eea2cdbe47ca1672d13009bf6c8129f2656f",
+          "originalBytes": 1983935
+        },
+        {
+          "path": "sol133/first-run-darwin-cli/summary.json.gz",
+          "digest": "sha256:ab8905136126865bfd0279faa9bb65b029759e10ad3ecc4f20897d3a77c125cf",
+          "bytes": 30029,
+          "originalDigest": "sha256:a114933962b31d6ebff9b107eba765b71bffe3e4a339c7294d0d6eed0aeb3e48",
+          "originalBytes": 221014
+        },
+        {
+          "path": "sol133/first-run-darwin-cli/prompt.txt.gz",
+          "digest": "sha256:29fda074effed96f14cb2a7b5a7b0dfc23d6b165be935142aafc1bba3d700d1b",
+          "bytes": 1269,
+          "originalDigest": "sha256:d0b92df484d0dec53bd1de3637afb72124f18d3e3b27fb1c84b70b8c24e43cce",
+          "originalBytes": 2126
+        },
+        {
+          "path": "sol133/first-run-darwin-cli/request-1.effective.json.gz",
+          "digest": "sha256:1510c825683405b8212c15d2d673bdaed6dc89a534afa1471d3219fd7b2f40e2",
+          "bytes": 5234,
+          "originalDigest": "sha256:7b494da7d0f121105a5e2f72e03bd8ec6f6388f40033764d3856aad7793fe780",
+          "originalBytes": 16027
+        },
+        {
+          "path": "sol133/first-run-darwin-cli/request-1.receipt.json.gz",
+          "digest": "sha256:74d6130ba66d251c5028d7c98d3fa8c69fff0ee8280e429f4c9660806552e530",
+          "bytes": 697,
+          "originalDigest": "sha256:0dd9a87e1aadc0e4ce32616919644ce6256f06dcee25e3bb7e134ea0226364e4",
+          "originalBytes": 1535
+        }
+      ],
+      "candidates": [
+        {
+          "path": "sol133/first-run-darwin-cli/candidate/packages/cli/__tests__/verify-07.test.js.txt",
+          "digest": "sha256:8ea4b40b30a24f94e9992fa7446c721fe2dffb7d6177065706729626b81360a9",
+          "bytes": 7727
+        }
+      ]
+    },
+    {
+      "label": "outputmax",
+      "sampleId": "verify-04",
+      "artifactProvenance": {
+        "runId": 41585306414,
+        "executionSource": "ba504a7869c14c11787e1547dc8611eef9aace71",
+        "projectCommit": null,
+        "artifact": {
+          "id": 13208097483,
+          "name": "verify01-native-delivery-linux-cli-verify-04-ba504a7869c14c11787e1547dc8611eef9aace71",
+          "digest": "sha256:3241a35adebde1aee6626f398c6a6d91e683be89637f06dc16bef080afe87b80",
+          "summaryDigest": "sha256:cd17197f5d02522ae4a9a94d9fc1ce2e2fccae99f3179c47485c7e0bf043813c"
+        },
+        "selectedSamples": [
+          "verify-04"
+        ]
+      },
+      "physicalRequests": 24,
+      "toolCalls": {
+        "read_file": 12,
+        "search_files": 9,
+        "write_file": 1
+      },
+      "toolBatchSizes": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "maxToolsPerResponse": 1,
+      "compactions": 0,
+      "omittedReadResults": 0,
+      "generationAndAcceptance": {
+        "sampleId": "verify-04",
+        "group": "linux-cli",
+        "cellId": "linux-cli-verify-04",
+        "accepted": false,
+        "candidateAcceptancePassed": false,
+        "generationPassed": true,
+        "sourceScopePassed": true,
+        "deliveryAvailable": true,
+        "acceptanceAvailable": true,
+        "modelFailure": null,
+        "modelError": null,
+        "modelResultSubtype": "success",
+        "error": null,
+        "setup": {
+          "pass": true,
+          "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+          "receipt": "verify-04-setup-2cf46d4c-04a1-4e00-b1e2-398a84efcf5a.json",
+          "receiptDigest": "sha256:6e25f3ae22c2c3063139f8198beab604aa201502bcbe7da863bb6d18fa1a880a",
+          "scriptDigest": "sha256:eed6c6b11b7e9345d7b158d4e33ba925eccbf9b2533d569e5383dc381dbcb269",
+          "receiptPath": "pack/acceptance-evidence/verify-04-setup-2cf46d4c-04a1-4e00-b1e2-398a84efcf5a.json",
+          "tests": [
+            {
+              "kind": "baseline",
+              "total": 22,
+              "passed": 22,
+              "failed": 0
+            }
+          ],
+          "mutations": []
+        },
+        "check": {
+          "pass": false,
+          "detail": "candidate tests did not reject the behavioral mutant",
+          "receipt": "verify-04-check-2d5c8fe7-6a4a-4d5b-9998-e984c7f4e3e6.json",
+          "receiptDigest": "sha256:3cfe1dae87e6436632db5d63043abae997e29e5398778db85e34b8d48743a6c7",
+          "scriptDigest": "sha256:2c6f2cdbc568babf93c4b99ac47aa055ce9230c4a16aa0da741e861ba1491765",
+          "receiptPath": "pack/acceptance-evidence/verify-04-check-2d5c8fe7-6a4a-4d5b-9998-e984c7f4e3e6.json",
+          "tests": [
+            {
+              "kind": "baseline",
+              "total": 22,
+              "passed": 22,
+              "failed": 0
+            },
+            {
+              "kind": "candidate",
+              "total": 6,
+              "passed": 6,
+              "failed": 0
+            }
+          ],
+          "mutations": [
+            {
+              "name": "merge-short-and-long-request-price-buckets",
+              "sourceSha256": "7b8898a171561e61a4803ef8aa05ffc947aea3cd85e194c2b8ca6898a535b86c",
+              "total": 6,
+              "passed": 5,
+              "failed": 1
+            }
+          ]
+        },
+        "broker": {
+          "physicalRequestsStarted": 24,
+          "usageCompleteRequests": 24,
+          "passed": true,
+          "poisoned": null,
+          "errorCode": null
+        },
+        "observedUsage": {
+          "input_tokens": 138213,
+          "output_tokens": 16501,
+          "cache_read_input_tokens": 205056
+        }
+      },
+      "requestConfiguration": {
+        "model": "deepseek-v4-flash-ga-260731",
+        "stream": false,
+        "thinking": {
+          "type": "disabled"
+        },
+        "max_tokens": 393216,
+        "parallel_tool_calls": false
+      },
+      "raw": [
+        {
+          "path": "outputmax/verify-04/model-stream.ndjson.gz",
+          "digest": "sha256:6f7c3455e98dfe85ccf38d8835be0edd09fd0b8006aad1dfab682f19ce60d202",
+          "bytes": 398836,
+          "originalDigest": "sha256:3c229a1f0be7dc323034649f67c15ccdcd491b50dfa9892cafd145048f3d678c",
+          "originalBytes": 1903653
+        },
+        {
+          "path": "outputmax/verify-04/summary.json.gz",
+          "digest": "sha256:c662fc473a2fe783681d802ab5068d49439c3de844062bdd99d5029b5ba62840",
+          "bytes": 27068,
+          "originalDigest": "sha256:d1fa37360f621b1d110814484d6d0449e1deff368e66d9b5223760bfcb012a33",
+          "originalBytes": 168758
+        },
+        {
+          "path": "outputmax/verify-04/prompt.txt.gz",
+          "digest": "sha256:b5b333640c99ff5d28dfbdf1bcf17055b4a46df2184775fdbaf446b3b925371f",
+          "bytes": 1628,
+          "originalDigest": "sha256:a4ec10da89de2e7492e567ca409236e2d5c4cb7936f3334c4c98f76e87d54654",
+          "originalBytes": 2964
+        },
+        {
+          "path": "outputmax/verify-04/request-1.effective.json.gz",
+          "digest": "sha256:9559f25c7962a3a08ee1d327b96bb87021e902b4a9e42c4788640356141b959b",
+          "bytes": 5676,
+          "originalDigest": "sha256:54673c4c1afc2e357d27be1ac5073d08e142de9ccd1569b4e5ddad502f00dec3",
+          "originalBytes": 17508
+        },
+        {
+          "path": "outputmax/verify-04/request-1.receipt.json.gz",
+          "digest": "sha256:3cd9d5a5728cc619d94e92ab7aafe99128b81b2f12baafddfa2b5abc6fa98ceb",
+          "bytes": 582,
+          "originalDigest": "sha256:d9b3fb2a1198262931300b2c31e5979c507d36b70227f940822d7e09c25d0aa1",
+          "originalBytes": 1309
+        }
+      ],
+      "candidates": [
+        {
+          "path": "outputmax/verify-04/candidate/packages/cli/__tests__/verify-04.test.js.txt",
+          "digest": "sha256:0f998d24993a65cc29ccd6fec0487bd01c2443af85171d2dca381f0bcecd18f2",
+          "bytes": 5832
+        }
+      ]
+    },
+    {
+      "label": "outputmax",
+      "sampleId": "verify-07",
+      "artifactProvenance": null,
+      "physicalRequests": 37,
+      "toolCalls": {
+        "read_file": 26,
+        "search_files": 5,
+        "write_file": 2,
+        "edit_file_hashed": 1,
+        "edit_file": 1
+      },
+      "toolBatchSizes": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "maxToolsPerResponse": 1,
+      "compactions": 1,
+      "omittedReadResults": 9,
+      "generationAndAcceptance": {
+        "sampleId": "verify-07",
+        "group": "darwin-cli",
+        "cellId": "darwin-cli-verify-07",
+        "accepted": false,
+        "candidateAcceptancePassed": false,
+        "generationPassed": true,
+        "sourceScopePassed": true,
+        "deliveryAvailable": true,
+        "acceptanceAvailable": true,
+        "modelFailure": null,
+        "modelError": null,
+        "modelResultSubtype": "success",
+        "error": null,
+        "setup": {
+          "pass": true,
+          "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+          "receipt": "verify-07-setup-3b7a8210-d068-4b55-8cea-cad3a83fd4a2.json",
+          "receiptDigest": "sha256:cfaa2f7a2b5d1e247e47517338bc2410bdd168528816b9fe496e97a329bfb5d8",
+          "scriptDigest": "sha256:950880ded0874cae94eb828c8b0c291f81447f2c628e0a7177020ebbdda48999",
+          "receiptPath": "pack/acceptance-evidence/verify-07-setup-3b7a8210-d068-4b55-8cea-cad3a83fd4a2.json",
+          "tests": [
+            {
+              "kind": "baseline",
+              "total": 39,
+              "passed": 39,
+              "failed": 0
+            }
+          ],
+          "mutations": []
+        },
+        "check": {
+          "pass": false,
+          "detail": "candidate tests did not reject the behavioral mutant",
+          "receipt": "verify-07-check-1ad724a8-724f-4c81-8d60-39915ddec16c.json",
+          "receiptDigest": "sha256:f1c1c392bc72033876ae11e6a2d398f22922c4694f4b3ceeceabefd84a15023b",
+          "scriptDigest": "sha256:6b2f6509219d4c0fbcf82fb6cb54de815af27aa2c997e2fc9b1badd709a77b0c",
+          "receiptPath": "pack/acceptance-evidence/verify-07-check-1ad724a8-724f-4c81-8d60-39915ddec16c.json",
+          "tests": [
+            {
+              "kind": "baseline",
+              "total": 39,
+              "passed": 39,
+              "failed": 0
+            },
+            {
+              "kind": "candidate",
+              "total": 3,
+              "passed": 3,
+              "failed": 0
+            }
+          ],
+          "mutations": [
+            {
+              "name": "repeat-before-cursor-boundary",
+              "sourceSha256": "c18d8ec76cb2a921bc3e4e59b6bb6f89b9eaef805cc63b4db104efa93f097118",
+              "total": 3,
+              "passed": 0,
+              "failed": 3
+            }
+          ]
+        },
+        "broker": {
+          "physicalRequestsStarted": 37,
+          "usageCompleteRequests": 37,
+          "passed": true,
+          "poisoned": null,
+          "errorCode": null
+        },
+        "observedUsage": {
+          "input_tokens": 335198,
+          "output_tokens": 20840,
+          "cache_read_input_tokens": 291072
+        }
+      },
+      "requestConfiguration": {
+        "model": "deepseek-v4-flash-ga-260731",
+        "stream": false,
+        "thinking": {
+          "type": "disabled"
+        },
+        "max_tokens": 393216,
+        "parallel_tool_calls": false
+      },
+      "raw": [
+        {
+          "path": "outputmax/verify-07/model-stream.ndjson.gz",
+          "digest": "sha256:2f4db1361c13be56b5364c7c88bb128db346136f74431e63993d57a2a8e3320e",
+          "bytes": 750874,
+          "originalDigest": "sha256:26c7896283999af2d8c175f06bd65bd68458c29d2a88ec9ad029beb256ff7ac8",
+          "originalBytes": 3635882
+        },
+        {
+          "path": "outputmax/verify-07/summary.json.gz",
+          "digest": "sha256:0976d61dea9c3a7434491bc012c740d3fdd5ad14b3247367a009cb2ecb5f15ab",
+          "bytes": 47682,
+          "originalDigest": "sha256:2d9791a595aa67e5d820c4f6576532cf459eb1096f035cebf2e4713cc1849683",
+          "originalBytes": 287597
+        },
+        {
+          "path": "outputmax/verify-07/prompt.txt.gz",
+          "digest": "sha256:18cc996fde9047d208273617e323c052b4e30bade209baaca67217c365104287",
+          "bytes": 1588,
+          "originalDigest": "sha256:b0aea8788dd7a180f747e8dec08897819a7c3c68e165e35b6bd6386365409565",
+          "originalBytes": 2903
+        },
+        {
+          "path": "outputmax/verify-07/request-1.effective.json.gz",
+          "digest": "sha256:3f22fa31818689820b68390abdc8c5279e5977146a8296db5a6c14d1cae13846",
+          "bytes": 5627,
+          "originalDigest": "sha256:a5280aa9357c2e63e0c330e47824c730e5616a3e3d14f6d170d6b097b3169ab2",
+          "originalBytes": 17447
+        },
+        {
+          "path": "outputmax/verify-07/request-1.receipt.json.gz",
+          "digest": "sha256:f5ec8acea9c207ab86e3c390ff69e0bdb3ef099f888b7db8d6867c222d1d444c",
+          "bytes": 580,
+          "originalDigest": "sha256:7d2449eafe9d9ac2c29d0ff8117888d89ab6e16da59fc16f5ff2f98eae7bdfa1",
+          "originalBytes": 1319
+        }
+      ],
+      "candidates": [
+        {
+          "path": "outputmax/verify-07/candidate/packages/cli/__tests__/verify-07.test.js.txt",
+          "digest": "sha256:d585bd1a131331cbd38927eb897a53b1191747113b7fc4606d73f3acc5253b44",
+          "bytes": 3747
+        }
+      ]
+    },
+    {
+      "label": "outputmax",
+      "sampleId": "first-run-darwin-cli",
+      "artifactProvenance": null,
+      "physicalRequests": 16,
+      "toolCalls": {
+        "read_file": 15,
+        "search_files": 1
+      },
+      "toolBatchSizes": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "maxToolsPerResponse": 1,
+      "compactions": 1,
+      "omittedReadResults": 6,
+      "generationAndAcceptance": {
+        "sampleId": "first-run-darwin-cli",
+        "group": "darwin-cli",
+        "cellId": "darwin-cli-first-run-darwin-cli",
+        "accepted": false,
+        "candidateAcceptancePassed": false,
+        "generationPassed": false,
+        "sourceScopePassed": true,
+        "deliveryAvailable": true,
+        "acceptanceAvailable": true,
+        "modelFailure": "agent-error",
+        "modelError": "Repeated file reads or identical large command outputs: the model did not resume the task after six no-progress batches and recovery guidance. The task is not complete. Use a targeted section or compute a bounded summary before retrying.",
+        "modelResultSubtype": "error",
+        "error": null,
+        "setup": {
+          "pass": true,
+          "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+          "receipt": "verify-07-setup-d8c957f4-cb69-4f9b-9451-14af0c5c1dbf.json",
+          "receiptDigest": "sha256:a42e2a960d6b63607ec728dad9e4dc4fa188efd93985e438e6e0c1a7f0a8b802",
+          "scriptDigest": "sha256:950880ded0874cae94eb828c8b0c291f81447f2c628e0a7177020ebbdda48999",
+          "receiptPath": "pack/acceptance-evidence/verify-07-setup-d8c957f4-cb69-4f9b-9451-14af0c5c1dbf.json",
+          "tests": [
+            {
+              "kind": "baseline",
+              "total": 39,
+              "passed": 39,
+              "failed": 0
+            }
+          ],
+          "mutations": []
+        },
+        "check": {
+          "pass": false,
+          "detail": "acceptance requires executed test cases",
+          "receipt": "verify-07-check-5b1df1e7-8b29-46f3-8952-3a155636ac49.json",
+          "receiptDigest": "sha256:c687198f2b2fc212fd49e167b80a7bc9f0a936c394ee089a99ec85e5da107eaf",
+          "scriptDigest": "sha256:6b2f6509219d4c0fbcf82fb6cb54de815af27aa2c997e2fc9b1badd709a77b0c",
+          "receiptPath": "pack/acceptance-evidence/verify-07-check-5b1df1e7-8b29-46f3-8952-3a155636ac49.json",
+          "tests": [
+            {
+              "kind": "baseline",
+              "total": 39,
+              "passed": 39,
+              "failed": 0
+            }
+          ],
+          "mutations": []
+        },
+        "broker": {
+          "physicalRequestsStarted": 16,
+          "usageCompleteRequests": 16,
+          "passed": true,
+          "poisoned": null,
+          "errorCode": null
+        },
+        "observedUsage": {
+          "input_tokens": 105329,
+          "output_tokens": 5356,
+          "cache_read_input_tokens": 94464
+        }
+      },
+      "requestConfiguration": {
+        "model": "deepseek-v4-flash-ga-260731",
+        "stream": false,
+        "thinking": {
+          "type": "disabled"
+        },
+        "max_tokens": 393216,
+        "parallel_tool_calls": false
+      },
+      "raw": [
+        {
+          "path": "outputmax/first-run-darwin-cli/model-stream.ndjson.gz",
+          "digest": "sha256:eeba91604905376e75ac47123bf4e320a2679798d74348ed2057ec2d133ac377",
+          "bytes": 252522,
+          "originalDigest": "sha256:3a55b0269a7d4b517290336f573b2a5891584d5c14e7658f964611e51053790d",
+          "originalBytes": 1187926
+        },
+        {
+          "path": "outputmax/first-run-darwin-cli/summary.json.gz",
+          "digest": "sha256:15a78baab30bf6e3c9350e73029735286bfc0c72bafb4119fdeb5763630372fa",
+          "bytes": 21705,
+          "originalDigest": "sha256:4e5abd73fba021bc1e2d037876b4a465953afadb37332ed262630115da350bcc",
+          "originalBytes": 118861
+        },
+        {
+          "path": "outputmax/first-run-darwin-cli/prompt.txt.gz",
+          "digest": "sha256:f1eb3500787c9faf14699a7c22c224d69319fb7c2b6bfef358020e97733c3628",
+          "bytes": 1591,
+          "originalDigest": "sha256:70cae91a88cc8905f45568612ad18b05b64c489590477d37cd8d680321bfcd48",
+          "originalBytes": 2919
+        },
+        {
+          "path": "outputmax/first-run-darwin-cli/request-1.effective.json.gz",
+          "digest": "sha256:c54061c3394da1ce4b2f9b450bc014ded9a1c60f399351bf4bac410a0c6de7eb",
+          "bytes": 5628,
+          "originalDigest": "sha256:3d56e114e641badf5d7313d9b1eac868dcf82592143b5647d1799b625cbf2c51",
+          "originalBytes": 17463
+        },
+        {
+          "path": "outputmax/first-run-darwin-cli/request-1.receipt.json.gz",
+          "digest": "sha256:8b0e6881d0f746b7c09248206071acf866d49fd256d237af964c5224fd307a47",
+          "bytes": 587,
+          "originalDigest": "sha256:aa75ec5f32acf0bec64be67da6cbb79a94aebe3743bd7cefda160792fea55e2e",
+          "originalBytes": 1318
+        }
+      ],
+      "candidates": [
+        {
+          "path": "outputmax/first-run-darwin-cli/candidate/packages/cli/__tests__/verify-07.test.js.txt",
+          "digest": "sha256:72fbf404fca2ae7ca520e83e3a00108ef01918c00f238439b0b28e1db37c40fa",
+          "bytes": 27
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "Sol CLI .133 versus DeepSeek CLI .139; runtime versions differ.",
+    "Sol preserves default thinking/Responses while this DeepSeek cohort disables thinking/uses Chat Completions.",
+    "Independent review and physical/turn/output budgets differ; this is observational comparison, not a controlled model-only experiment.",
+    "The historical 34/45 union and recent cohorts must remain separate.",
+    "Archived comparison candidates are never supplied as retry prompts or task workspace inputs."
+  ]
+}

@@ -1,0 +1,207 @@
+import { describe, expect, it } from "vitest";
+import { estimateCost, priceRollup } from "../src/lib/llm-pricing.js";
+import { aggregateUsage } from "../src/lib/session-usage.js";
+import { GPT6_PRICING_TERMS } from "../src/lib/model-context-catalog.js";
+
+/**
+ * Request-level caching and tiered pricing regression.
+ *
+ * The contract under test is the aggregate pricing path:
+ *   priceRollup(aggregateUsage(events)).cost.totalCost
+ * must equal the sum of the per-request `estimateCost` contracts for the same
+ * request distribution, for any distribution of cache / long-context tokens.
+ * That is: identical total token counts with different cache/long-context
+ * request distributions are costed per-request, never merged lossily.
+ *
+ * The reference ("per-request contract") is computed independently with the
+ * same estimator on each request's own token components and multipliers.
+ */
+const PROVIDER = "openai";
+const MODEL = "gpt-6-sol";
+const LONG_THRESHOLD = GPT6_PRICING_TERMS.longContext.threshold;
+
+/** Build a token_usage event exactly as extractUsage consumes it. */
+function tokenEvent({
+  input_tokens = 0,
+  output_tokens = 0,
+  cache_read_input_tokens = 0,
+  cache_creation_input_tokens = 0,
+  service_tier,
+  regional_processing,
+}) {
+  const data = {
+    provider: PROVIDER,
+    model: MODEL,
+    input_tokens,
+    output_tokens,
+    cache_read_input_tokens,
+    cache_creation_input_tokens,
+    ...(service_tier !== undefined ? { service_tier } : {}),
+    ...(regional_processing !== undefined ? { regional_processing } : {}),
+  };
+  return { type: "token_usage", data };
+}
+
+/** Independent per-request contract: cost of one usage record. */
+function perRequestCost(r) {
+  return estimateCost({
+    provider: PROVIDER,
+    model: MODEL,
+    inputTokens: r.input_tokens,
+    outputTokens: r.output_tokens,
+    cacheReadTokens: r.cache_read_input_tokens,
+    cacheCreationTokens: r.cache_creation_input_tokens,
+    serviceTier: r.service_tier ?? "standard",
+    regionalProcessing: r.regional_processing === true,
+  }).totalCost;
+}
+
+/** Aggregate path under test → total cost. */
+function aggregateCost(records) {
+  return priceRollup(
+    aggregateUsage(records.map((r) => tokenEvent(r))),
+  ).cost.totalCost;
+}
+
+/** Per-request contract sum for the same records. */
+function referenceCost(records) {
+  return records.reduce((sum, r) => sum + perRequestCost(r), 0);
+}
+
+describe("verify-04: request-level caching and tiered pricing", () => {
+  it("prices cache read/creation tokens per request, preserving total tokens", () => {
+    // Same total prompt tokens below the long threshold; the only difference
+    // is which request holds the cache read vs cache creation component.
+    const records = [
+      {
+        input_tokens: 200000,
+        cache_read_input_tokens: 10000,
+        cache_creation_input_tokens: 0,
+        output_tokens: 1000,
+      },
+      {
+        input_tokens: 200000,
+        cache_read_input_tokens: 0,
+        cache_creation_input_tokens: 10000,
+        output_tokens: 1000,
+      },
+    ];
+    const aggregated = aggregateCost(records);
+    const reference = referenceCost(records);
+    expect(aggregated).toBeCloseTo(reference, 10);
+    expect(aggregated).toBeGreaterThan(0);
+  });
+
+  it("changes the bill when only the cache request distribution changes", () => {
+    // Same total tokens (410000 prompt, 2000 output) but the cache-read token
+    // now sits on the other request. Cache read bills below input rate, cache
+    // creation above, so the per-request contract differs from the first case.
+    const records = [
+      {
+        input_tokens: 190000,
+        cache_read_input_tokens: 10000,
+        cache_creation_input_tokens: 10000,
+        output_tokens: 1000,
+      },
+      {
+        input_tokens: 200000,
+        cache_read_input_tokens: 0,
+        cache_creation_input_tokens: 0,
+        output_tokens: 1000,
+      },
+    ];
+    const aggregated = aggregateCost(records);
+    const reference = referenceCost(records);
+    expect(aggregated).toBeCloseTo(reference, 10);
+  });
+
+  it("separates a long-context request at the boundary into its own bucket", () => {
+    // One request above the long threshold, one below: the long-context input
+    // multiplier (2x) applies only to the request that crossed the boundary.
+    const records = [
+      {
+        input_tokens: LONG_THRESHOLD + 1000,
+        output_tokens: 1000,
+        service_tier: "fast",
+        regional_processing: true,
+      },
+      {
+        input_tokens: LONG_THRESHOLD - 1000,
+        output_tokens: 1000,
+        service_tier: "fast",
+        regional_processing: true,
+      },
+    ];
+    const aggregated = aggregateCost(records);
+    const reference = referenceCost(records);
+    expect(aggregated).toBeCloseTo(reference, 10);
+
+    const row = priceRollup(aggregateUsage(records.map((r) => tokenEvent(r))))
+      .byModel[0];
+    expect(row.pricingBuckets).toHaveLength(2);
+  });
+
+  it("costs equal total tokens differently across the long-context boundary", () => {
+    // Both distributions total 500000 prompt tokens, but A crosses the long
+    // threshold on one request while B keeps both requests short. The 2x input
+    // multiplier applies only to A's long request, so per-request contracts
+    // differ even though total tokens match.
+    const distA = [
+      { input_tokens: 300000, output_tokens: 1000, service_tier: "fast" },
+      { input_tokens: 200000, output_tokens: 1000, service_tier: "fast" },
+    ];
+    const distB = [
+      { input_tokens: 250000, output_tokens: 1000, service_tier: "fast" },
+      { input_tokens: 250000, output_tokens: 1000, service_tier: "fast" },
+    ];
+    const costA = aggregateCost(distA);
+    const costB = aggregateCost(distB);
+    expect(costA).toBeCloseTo(referenceCost(distA), 10);
+    expect(costB).toBeCloseTo(referenceCost(distB), 10);
+    expect(costA).not.toBeCloseTo(costB, 10);
+  });
+
+  it("prices regional processing per request, not per aggregate total", () => {
+    const records = [
+      {
+        input_tokens: 200000,
+        output_tokens: 1000,
+        service_tier: "fast",
+        regional_processing: true,
+      },
+      {
+        input_tokens: 200000,
+        output_tokens: 1000,
+        service_tier: "fast",
+        regional_processing: false,
+      },
+    ];
+    const aggregated = aggregateCost(records);
+    const reference = referenceCost(records);
+    expect(aggregated).toBeCloseTo(reference, 10);
+    // The 1.1x regional multiplier applies to exactly one of the two requests.
+    const bothRegional = aggregateCost(
+      records.map((r) => ({ ...r, regional_processing: true })),
+    );
+    expect(aggregated).not.toBeCloseTo(bothRegional, 10);
+  });
+
+  it("prices service tier per request across a mixed fast/flex batch", () => {
+    const records = [
+      {
+        input_tokens: 200000,
+        output_tokens: 1000,
+        service_tier: "fast",
+      },
+      {
+        input_tokens: 200000,
+        output_tokens: 1000,
+        service_tier: "flex",
+      },
+    ];
+    const aggregated = aggregateCost(records);
+    const reference = referenceCost(records);
+    expect(aggregated).toBeCloseTo(reference, 10);
+    expect(aggregated).toBeGreaterThan(0);
+  });
+});

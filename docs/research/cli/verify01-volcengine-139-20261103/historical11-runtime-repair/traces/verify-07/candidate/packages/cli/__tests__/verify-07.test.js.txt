@@ -1,0 +1,151 @@
+import { afterAll, describe, expect, it, vi } from "vitest";
+import { mkdtempSync, rmSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
+
+const root = mkdtempSync(join(tmpdir(), "cc-verify07-"));
+vi.mock("../src/lib/paths.js", () => ({
+  getHomeDir: () => join(root, "home"),
+  getClaudeProjectStorageDir: () => null,
+  getStatePath: () => join(root, "home", "state"),
+  getMachineSecurityAnchorDir: () => join(root, "security"),
+}));
+const store = await import("../src/harness/jsonl-session-store.js");
+const { readSessionTranscriptHistory } = await import(
+  "../src/lib/session-transcript-history.js"
+);
+
+afterAll(() => rmSync(root, { recursive: true, force: true }));
+
+function texts(page) {
+  return page.messages.map((m) => m.text);
+}
+function rewriteCursor(cursor, patch) {
+  return Buffer.from(
+    JSON.stringify({
+      ...JSON.parse(Buffer.from(cursor, "base64url").toString("utf8")),
+      ...patch,
+    }),
+  ).toString("base64url");
+}
+// Two displayable rows per turn, matching appendUserMessage + appendAssistantMessage.
+function build(id, pairs) {
+  store.startSession(id, { provider: "test", model: "test" });
+  const expected = [];
+  for (let i = 0; i < pairs; i++) {
+    store.appendUserMessage(id, `q${i}`);
+    expected.push(`q${i}`);
+    store.appendAssistantMessage(id, `a${i}`);
+    expected.push(`a${i}`);
+  }
+  return expected;
+}
+function walkPages(id, limit) {
+  const pages = [];
+  let page = readSessionTranscriptHistory(id, { limit });
+  pages.push(page);
+  let cursor = page.nextCursor;
+  while (cursor) {
+    page = readSessionTranscriptHistory(id, { limit, cursor });
+    pages.push(page);
+    cursor = page.nextCursor;
+  }
+  return pages;
+}
+
+describe("persistent transcript body pagination boundary", () => {
+  it("walks every cursor page and recovers the full persistent body without omitting the final message", () => {
+    const id = "verify07-full-walk";
+    const expected = build(id, 6);
+    const pages = walkPages(id, 4);
+    const covered = pages.flatMap((p) => p.messages.map((m) => m.ordinal));
+    // Every body row appears exactly once and spans the full [0, totalMessages).
+    expect([...covered].sort((a, b) => a - b)).toEqual(
+      expected.map((_, i) => i),
+    );
+    expect(new Set(covered).size).toBe(expected.length);
+    expect(covered).toContain(expected.length - 1); // final body not omitted
+    // Document order (oldest first) reproduces the appended persistent body.
+    expect([...pages].reverse().flatMap((p) => texts(p))).toEqual(expected);
+  });
+
+  it("emits the page-boundary row in exactly one of two adjacent pages", () => {
+    const id = "verify07-boundary-once";
+    build(id, 6);
+    const first = readSessionTranscriptHistory(id, { limit: 4 });
+    const second = readSessionTranscriptHistory(id, {
+      limit: 4,
+      cursor: first.nextCursor,
+    });
+    const firstOrd = first.messages.map((m) => m.ordinal);
+    const secondOrd = second.messages.map((m) => m.ordinal);
+    expect(firstOrd).toEqual([8, 9, 10, 11]);
+    expect(secondOrd).toEqual([4, 5, 6, 7]);
+    // The boundary (lowest row of the later page) is not duplicated on the older page.
+    expect(secondOrd).not.toContain(firstOrd[0]);
+    expect(new Set([...firstOrd, ...secondOrd]).size).toBe(8);
+  });
+
+  it("accepts the latest `before` cursor and rejects the first value past the body", () => {
+    const id = "verify07-before-boundary";
+    build(id, 3);
+    const first = readSessionTranscriptHistory(id, { limit: 2 });
+    const count = first.totalMessages; // 6
+    // Accepted boundary: before === count still reads every retained row.
+    const atBoundary = rewriteCursor(first.nextCursor, { before: count });
+    expect(
+      readSessionTranscriptHistory(id, {
+        limit: 2,
+        cursor: atBoundary,
+      }).messages.map((m) => m.ordinal),
+    ).toEqual([4, 5]);
+    // First rejected value: one past the last message would silently skip the tail.
+    const over = rewriteCursor(first.nextCursor, { before: count + 1 });
+    expect(() =>
+      readSessionTranscriptHistory(id, { limit: 2, cursor: over }),
+    ).toThrow("history changed");
+  });
+
+  it("terminates at a null nextCursor and holds the final body in the first page", () => {
+    const id = "verify07-terminal";
+    build(id, 6);
+    const pages = walkPages(id, 4);
+    const terminal = pages[pages.length - 1];
+    expect(terminal.nextCursor).toBeNull();
+    // The oldest page ends at ordinal 3; nothing remains to page further.
+    expect(terminal.messages[terminal.messages.length - 1].ordinal).toBe(3);
+    // The final body (ordinal 11) is covered on the latest page, never dropped.
+    expect(pages[0].messages.map((m) => m.ordinal)).toContain(11);
+  });
+
+  it("issues a sync baseline only on the first page, not on cursor navigation", () => {
+    const id = "verify07-sync-baseline";
+    build(id, 3);
+    const first = readSessionTranscriptHistory(id, { limit: 2 });
+    expect(first.syncCursor).toBeTruthy();
+    const older = readSessionTranscriptHistory(id, {
+      limit: 2,
+      cursor: first.nextCursor,
+    });
+    expect(older.syncCursor).toBeNull();
+    expect(older.nextCursor).toBeTruthy();
+  });
+
+  it("re-reading the same cursor is deterministic and does not emit a duplicate boundary page", () => {
+    const id = "verify07-same-cursor";
+    build(id, 6);
+    const first = readSessionTranscriptHistory(id, { limit: 4 });
+    const again = readSessionTranscriptHistory(id, {
+      limit: 4,
+      cursor: first.nextCursor,
+    });
+    const third = readSessionTranscriptHistory(id, {
+      limit: 4,
+      cursor: first.nextCursor,
+    });
+    expect(again.messages.map((m) => m.ordinal)).toEqual(
+      third.messages.map((m) => m.ordinal),
+    );
+    expect(again.nextCursor).toEqual(third.nextCursor);
+  });
+});

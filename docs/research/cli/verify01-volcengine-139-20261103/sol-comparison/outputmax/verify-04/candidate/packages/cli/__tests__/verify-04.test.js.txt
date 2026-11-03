@@ -1,0 +1,154 @@
+import { describe, expect, it } from "vitest";
+import {
+  mergeUsagePricingBucket,
+  projectUsagePricingContext,
+} from "../src/lib/usage-pricing-context.js";
+
+// GPT6_PRICING_TERMS.longContext.threshold === 272000
+// Requests are bucketed per-request by whether the prompt crosses the
+// long-context threshold, and cache-read tokens are preserved separately so
+// the per-request pricing contract (cacheReadMultiplier 0.1) stays intact.
+const LONG_THRESHOLD = 272000;
+
+describe("request-level cache & long-context pricing buckets", () => {
+  it("keeps same-total requests in separate buckets when long-context membership differs", () => {
+    const entry = { provider: "openai", model: "gpt-6-sol" };
+    // Both requests total 281000 tokens; the difference is the per-request
+    // prompt distribution (one crosses the long-context threshold, one does not).
+    mergeUsagePricingBucket(entry, {
+      inputTokens: 280000,
+      outputTokens: 1000,
+    });
+    mergeUsagePricingBucket(entry, {
+      inputTokens: 250000,
+      outputTokens: 31000,
+    });
+
+    expect(entry.pricingBuckets).toHaveLength(2);
+    const longBucket = entry.pricingBuckets.find(
+      (b) => b.requestInputTokens > LONG_THRESHOLD,
+    );
+    const shortBucket = entry.pricingBuckets.find(
+      (b) => b.requestInputTokens <= LONG_THRESHOLD,
+    );
+    expect(longBucket).toMatchObject({ inputTokens: 280000, calls: 1 });
+    expect(shortBucket).toMatchObject({ inputTokens: 250000, calls: 1 });
+  });
+
+  it("does not split requests that stay below the threshold", () => {
+    const entry = { provider: "openai", model: "gpt-6-sol" };
+    mergeUsagePricingBucket(entry, { inputTokens: 100000, outputTokens: 1000 });
+    mergeUsagePricingBucket(entry, { inputTokens: 60000, outputTokens: 1000 });
+
+    // Negative control: both short requests merge into one bucket (summed).
+    expect(entry.pricingBuckets).toHaveLength(1);
+    expect(entry.pricingBuckets[0]).toMatchObject({
+      inputTokens: 160000,
+      calls: 2,
+      requestInputTokens: 100000,
+    });
+  });
+
+  it("records cache-read tokens separately so identical totals price differently", () => {
+    const cached = { provider: "openai", model: "gpt-6-sol" };
+    mergeUsagePricingBucket(cached, {
+      inputTokens: 150000,
+      cacheReadTokens: 50000,
+      outputTokens: 1000,
+    });
+    mergeUsagePricingBucket(cached, {
+      inputTokens: 200000,
+      cacheReadTokens: 0,
+      outputTokens: 1000,
+    });
+    // Same total promptTokens (200000 per request) but a different
+    // cache-read split; the merged bucket keeps cacheReadTokens distinct from
+    // fresh inputTokens so the 0.1x cacheReadMultiplier can be applied.
+    expect(cached.pricingBuckets[0]).toMatchObject({
+      inputTokens: 350000,
+      cacheReadTokens: 50000,
+      calls: 2,
+    });
+
+    const fresh = { provider: "openai", model: "gpt-6-sol" };
+    mergeUsagePricingBucket(fresh, {
+      inputTokens: 200000,
+      cacheReadTokens: 0,
+      outputTokens: 1000,
+    });
+    mergeUsagePricingBucket(fresh, {
+      inputTokens: 200000,
+      cacheReadTokens: 0,
+      outputTokens: 1000,
+    });
+    expect(fresh.pricingBuckets[0]).toMatchObject({
+      inputTokens: 400000,
+      cacheReadTokens: 0,
+      calls: 2,
+    });
+    // Same 2 calls × 201000 tokens, but the cached distribution carries
+    // separate cacheReadTokens (priced at cacheReadMultiplier).
+    expect(cached.pricingBuckets[0].cacheReadTokens).toBeGreaterThan(0);
+    expect(fresh.pricingBuckets[0].cacheReadTokens).toBe(0);
+  });
+
+  it("treats requestInputTokens as authoritative for the long-context test", () => {
+    const entry = { provider: "openai", model: "gpt-6-sol" };
+    // Composed input+cache would be short, but the explicit per-request
+    // requestInputTokens claims the long tier.
+    mergeUsagePricingBucket(entry, {
+      inputTokens: 50000,
+      cacheReadTokens: 50000,
+      requestInputTokens: 300000,
+      outputTokens: 1000,
+    });
+    expect(entry.pricingBuckets).toHaveLength(1);
+    expect(entry.pricingBuckets[0]).toMatchObject({
+      requestInputTokens: 300000,
+      inputTokens: 50000,
+      cacheReadTokens: 50000,
+    });
+    expect(entry.pricingBuckets[0].requestInputTokens).toBeGreaterThan(
+      LONG_THRESHOLD,
+    );
+  });
+
+  it("honors the accepted boundary and first rejected long-context value", () => {
+    const at = { provider: "openai", model: "gpt-6-sol" };
+    mergeUsagePricingBucket(at, {
+      inputTokens: LONG_THRESHOLD,
+      outputTokens: 1000,
+    });
+    expect(at.pricingBuckets[0].requestInputTokens).toBe(LONG_THRESHOLD);
+
+    const over = { provider: "openai", model: "gpt-6-sol" };
+    mergeUsagePricingBucket(over, {
+      inputTokens: LONG_THRESHOLD + 1,
+      outputTokens: 1000,
+    });
+    // The bucket identity differs once the threshold is crossed.
+    expect(at.pricingBuckets[0].requestInputTokens).toBe(LONG_THRESHOLD);
+    expect(over.pricingBuckets[0].requestInputTokens).toBe(LONG_THRESHOLD + 1);
+    expect(
+      over.pricingBuckets[0].requestInputTokens > LONG_THRESHOLD,
+    ).toBe(true);
+    expect(
+      at.pricingBuckets[0].requestInputTokens > LONG_THRESHOLD,
+    ).toBe(false);
+  });
+
+  it("does not open a pricing bucket for a non-OpenAI or undocumented model", () => {
+    const anthropic = { provider: "anthropic", model: "gpt-6-sol" };
+    mergeUsagePricingBucket(anthropic, { inputTokens: 300000 });
+    expect(anthropic.pricingBuckets).toBeUndefined();
+
+    const future = { provider: "openai", model: "gpt-6-sol-future" };
+    mergeUsagePricingBucket(future, { inputTokens: 300000 });
+    expect(future.pricingBuckets).toBeUndefined();
+
+    // projectUsagePricingContext still projects a non-boolean regional flag.
+    expect(() =>
+      projectUsagePricingContext({ regional_processing: "yes" }),
+    ).toThrow(TypeError);
+  });
+});

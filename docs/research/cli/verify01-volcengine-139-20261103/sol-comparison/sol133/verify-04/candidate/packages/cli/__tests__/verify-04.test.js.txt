@@ -1,0 +1,123 @@
+import { describe, expect, it } from "vitest";
+// From packages/cli/__tests__, ../src resolves to packages/cli/src.
+import { aggregateUsage } from "../src/lib/session-usage.js";
+import { priceRollup } from "../src/lib/llm-pricing.js";
+
+// These are normalized ledger counters: cache counts are separate from input.
+// Sol's USD/M rates are input=2, output=10, read=0.2, write=2.5.
+// Prompts >272000 multiply input/read/write by 2 and output by 1.5.
+function event(input, read = 0, write = 0, metadata = {}) {
+  return {
+    type: "token_usage",
+    data: {
+      provider: "openai",
+      model: "gpt-6-sol",
+      usage: {
+        input_tokens: input,
+        output_tokens: 1000,
+        cache_read_input_tokens: read,
+        cache_creation_input_tokens: write,
+        total_tokens: input + read + write + 1000,
+        ...metadata,
+      },
+    },
+  };
+}
+
+function priced(events, components) {
+  // Real path: event extraction -> request pricing buckets -> cost report.
+  const aggregate = aggregateUsage(events);
+  const result = priceRollup(aggregate);
+  expect(result.byModel).toHaveLength(1);
+  expect(result.byModel[0]).toMatchObject({ matched: true, currency: "USD" });
+  expect(result.cost.unpricedCount).toBe(0);
+  for (const [field, value] of Object.entries(components)) {
+    expect(result.byModel[0][field]).toBeCloseTo(value, 10);
+  }
+  expect(result.cost.totalCost).toBeCloseTo(components.cost, 10);
+  return aggregate;
+}
+
+describe("request-level cache and stepped pricing regression", () => {
+  it("does not price equal session totals as one long request", () => {
+    const short = priced([event(200000), event(200000)], {
+      inputCost: 0.8, outputCost: 0.02, cost: 0.82,
+    });
+    const mixed = priced([event(100000), event(300000)], {
+      inputCost: 1.4, outputCost: 0.025, cost: 1.425,
+    });
+    expect(short.total).toEqual(mixed.total);
+    expect(short.total).toMatchObject({ totalTokens: 402000, calls: 2 });
+    expect(short.byModel[0].pricingBuckets).toHaveLength(1);
+    expect(short.byModel[0].pricingBuckets[0]).toMatchObject({
+      calls: 2, inputTokens: 400000, requestInputTokens: 200000,
+    });
+    expect(mixed.byModel[0].pricingBuckets).toHaveLength(2);
+  });
+
+  it("includes cache reads in the strict request threshold, not the session sum", () => {
+    const atBoundary = [event(200000, 72000), event(200000, 72000)];
+    const redistributed = [event(200000, 72001), event(200000, 71999)];
+    const a = priced(atBoundary, {
+      inputCost: 0.8, cacheReadCost: 0.0288, outputCost: 0.02, cost: 0.8488,
+    });
+    const expected = {
+      inputCost: 1.2, cacheReadCost: 0.0432002, outputCost: 0.025, cost: 1.2682002,
+    };
+    const b = priced(redistributed, expected);
+    expect(a.total).toEqual(b.total);
+    expect(a.total).toMatchObject({ cacheReadTokens: 144000, totalTokens: 546000 });
+    expect(a.byModel[0].pricingBuckets).toHaveLength(1);
+    expect(b.byModel[0].pricingBuckets).toHaveLength(2);
+    priced([...redistributed].reverse(), expected);
+  });
+
+  it("includes cache creation in request length and bills writes separately", () => {
+    const a = priced([event(200000, 0, 72000), event(200000, 0, 72000)], {
+      inputCost: 0.8, cacheCreationCost: 0.36, cacheReadCost: 0,
+      outputCost: 0.02, cost: 1.18,
+    });
+    const b = priced([event(200000, 0, 73000), event(200000, 0, 71000)], {
+      inputCost: 1.2, cacheCreationCost: 0.5425, cacheReadCost: 0,
+      outputCost: 0.025, cost: 1.7675,
+    });
+    expect(a.total).toEqual(b.total);
+    expect(a.total).toMatchObject({ cacheCreationTokens: 144000, totalTokens: 546000 });
+    expect(a.byModel[0].pricingBuckets).toHaveLength(1);
+    expect(b.byModel[0].pricingBuckets).toHaveLength(2);
+  });
+
+  it("keeps service and regional conditions attached to their own requests", () => {
+    const fast = { service_tier: "fast", regional_processing: true };
+    const flex = { serviceTier: "flex", regionalProcessing: false };
+    const a = priced([
+      event(200000, 0, 0, fast), event(200000, 0, 0, fast),
+      event(100000, 0, 0, flex),
+    ], { inputCost: 1.86, outputCost: 0.049, cost: 1.909 });
+    const b = priced([
+      event(200000, 0, 0, flex), event(200000, 0, 0, fast),
+      event(100000, 0, 0, fast),
+    ], { inputCost: 1.52, outputCost: 0.049, cost: 1.569 });
+    expect(a.total).toEqual(b.total);
+    for (const aggregate of [a, b]) {
+      expect(aggregate.byModel[0].pricingBuckets).toHaveLength(2);
+      expect(aggregate.byModel[0].pricingBuckets).toEqual(expect.arrayContaining([
+        expect.objectContaining({ serviceTier: "fast", regionalProcessing: true, calls: 2 }),
+        expect.objectContaining({ serviceTier: "flex", regionalProcessing: false, calls: 1 }),
+      ]));
+    }
+  });
+
+  it("reports a multi-call legacy total as unpriced instead of inventing request tiers", () => {
+    const aggregate = priced([event(200000, 72000), event(200000, 72000)], {
+      inputCost: 0.8, cacheReadCost: 0.0288, outputCost: 0.02, cost: 0.8488,
+    });
+    const { pricingBuckets, ...legacy } = aggregate.byModel[0];
+    expect(pricingBuckets).toHaveLength(1);
+    const result = priceRollup({ total: aggregate.total, byModel: [legacy] });
+    expect(result.cost.totalCost).toBe(0);
+    expect(result.cost.unpricedCount).toBe(1);
+    expect(result.byModel[0]).toMatchObject({ matched: false, cost: 0 });
+    expect(result.total).toEqual(aggregate.total);
+  });
+});

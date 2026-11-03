@@ -1,0 +1,181 @@
+import { createHash } from "node:crypto";
+import { describe, expect, it } from "vitest";
+// From __tests__/verify-07.test.js, ../src resolves to packages/cli/src.
+import { createSessionTranscriptHistoryProjection } from "../src/lib/session-transcript-history.js";
+
+const sessionId = "verify-07-durable-body";
+
+// The exported projection consumes verified persistence events, as in the
+// existing history byte-budget test. No replacement pagination implementation
+// or mocked history reader is involved here.
+function fixture(large = false) {
+  const body = large ? "中".repeat(180000) : "complete body";
+  const contents = [
+    "origin body",
+    "same text, distinct persisted identity",
+    "same text, distinct persisted identity",
+    `middle:${body}:middle-end`,
+    "small row after the first large body",
+    `penultimate:${body}:penultimate-end`,
+    "small row after the second large body",
+    `FINAL:${body}:FINAL-END`,
+  ];
+  const events = [];
+  const expected = [];
+  function add(type, data) {
+    const hash = createHash("sha256")
+      .update(JSON.stringify([events.length, type, data]))
+      .digest("hex");
+    events.push({ type, data, hash });
+    return hash;
+  }
+  contents.forEach((text, ordinal) => {
+    // These persisted records must not become rows or shift row cursors.
+    add("system", { role: "system", content: `metadata-${ordinal}` });
+    const role = ordinal === contents.length - 1 || ordinal % 2 === 0
+      ? "assistant"
+      : "user";
+    const eventId = add(`${role}_message`, { role, content: text });
+    expected.push({
+      id: `${sessionId}:${eventId}:0`,
+      eventId,
+      itemIndex: 0,
+      ordinal,
+      role,
+      text,
+    });
+  });
+  return { events, expected };
+}
+
+function read(events, options = {}) {
+  const projection = createSessionTranscriptHistoryProjection(sessionId, options);
+  for (const event of events) projection.accept(event);
+  return projection.finish({
+    headHash: events.at(-1).hash,
+    eventCount: events.length,
+  });
+}
+
+function tamperRevision(cursor) {
+  const anchor = JSON.parse(Buffer.from(cursor, "base64url").toString("utf8"));
+  anchor.revision = "f".repeat(64);
+  return Buffer.from(JSON.stringify(anchor)).toString("base64url");
+}
+
+function expectRows(rows, expected) {
+  // Expected content and provenance come from fixture construction, not another
+  // invocation of the history projection. Equal text is not deduplicated.
+  expect(rows.map(({ id, eventId, itemIndex, ordinal, role, text }) => ({
+    id, eventId, itemIndex, ordinal, role, text,
+  }))).toEqual(expected);
+  expect(new Set(rows.map((row) => row.id)).size).toBe(expected.length);
+  expect(rows.every((row) => !row.truncated)).toBe(true);
+}
+
+const boundaries = [
+  { name: "one-row pages", limit: 1, large: false },
+  { name: "partial last page", limit: 3, large: false },
+  { name: "byte budget before row limit", limit: 100, large: true },
+];
+
+describe("durable transcript body pagination boundaries", () => {
+  it.each(boundaries)("reads latest to origin without overlap: $name", ({ limit, large }) => {
+    const { events, expected } = fixture(large);
+    const latest = read(events, { limit });
+    expect(latest.schema).toBe("chainlesschain.session-transcript-page/v2");
+    expect(latest.totalMessages).toBe(expected.length);
+    expect(latest.eventCount).toBe(events.length);
+    expect(latest.revision).toBe(events.at(-1).hash);
+    expect(latest.syncCursor).toEqual(expect.any(String));
+    expect(latest.nextCursor).toEqual(expect.any(String));
+    if (large) {
+      expect(latest.messages.length).toBeLessThan(limit);
+      expect(Buffer.byteLength(JSON.stringify(latest.messages))).toBeLessThanOrEqual(1024 * 1024);
+    }
+    expectRows(latest.messages, expected.slice(-latest.messages.length));
+    // In particular, the final body must not be lost at the newest boundary.
+    expect(latest.messages.at(-1).text).toBe(expected.at(-1).text);
+
+    expect(() => read(events, {
+      limit, cursor: tamperRevision(latest.nextCursor),
+    })).toThrow(expect.objectContaining({ code: "SESSION_TRANSCRIPT_CURSOR_STALE" }));
+
+    const rows = [...latest.messages];
+    const cursors = new Set();
+    let cursor = latest.nextCursor;
+    for (let pageNumber = 0; cursor !== null; pageNumber += 1) {
+      expect(pageNumber).toBeLessThan(expected.length);
+      expect(cursors.has(cursor)).toBe(false);
+      cursors.add(cursor);
+      const page = read(events, { limit, cursor });
+      expect(page.messages.length).toBeGreaterThan(0);
+      expect(page.messages.length).toBeLessThanOrEqual(limit);
+      expect(page.totalMessages).toBe(expected.length);
+      expect(page.syncCursor).toBeNull();
+      expect(page.messages.at(-1).ordinal).toBe(rows[0].ordinal - 1);
+      rows.unshift(...page.messages);
+      cursor = page.nextCursor;
+    }
+    expectRows(rows, expected);
+    expect(rows[0].ordinal).toBe(0);
+  });
+
+  it.each(boundaries)("reads appended bodies through the terminal cursor: $name", ({ limit, large }) => {
+    const { events, expected } = fixture(large);
+    // Establish a real sync baseline at the persisted origin row, then expose
+    // the append-only suffix. Never synthesize an offset cursor for this path.
+    const baseline = read(events.slice(0, 2), { limit });
+    expectRows(baseline.messages, expected.slice(0, 1));
+    expect(baseline.nextCursor).toBeNull();
+    const initialCursor = baseline.syncCursor;
+    expect(initialCursor).toEqual(expect.any(String));
+    expect(() => read(events, {
+      limit, after: tamperRevision(initialCursor),
+    })).toThrow(expect.objectContaining({ code: "SESSION_TRANSCRIPT_CURSOR_STALE" }));
+
+    const rows = [...baseline.messages];
+    const cursors = new Set();
+    let cursor = initialCursor;
+    let terminal;
+    for (let pageNumber = 0; pageNumber < expected.length; pageNumber += 1) {
+      expect(cursors.has(cursor)).toBe(false);
+      cursors.add(cursor);
+      const page = read(events, { limit, after: cursor });
+      expect(page.schema).toBe("chainlesschain.session-transcript-changes/v1");
+      expect(page.totalMessages).toBe(expected.length);
+      expect(page.eventCount).toBe(events.length);
+      expect(page.from).toBe(rows.length);
+      expect(page.messages.length).toBeGreaterThan(0);
+      expect(page.messages.length).toBeLessThanOrEqual(limit);
+      // A byte-full page must be a contiguous prefix, never skip a large
+      // next body in order to admit a smaller, later persistence event.
+      expectRows(page.messages, expected.slice(rows.length, rows.length + page.messages.length));
+      if (large) {
+        expect(Buffer.byteLength(JSON.stringify(page.messages))).toBeLessThanOrEqual(1024 * 1024);
+      }
+      rows.push(...page.messages);
+      expect(page.hasMore).toBe(rows.length < expected.length);
+      cursor = page.nextCursor;
+      expect(cursor).toEqual(expect.any(String));
+      if (!page.hasMore) {
+        terminal = page;
+        break;
+      }
+    }
+    expect(terminal).toBeDefined();
+    expectRows(rows, expected);
+    expect(terminal.messages.at(-1).text).toBe(expected.at(-1).text);
+
+    // The end cursor is pollable, but the final event must not reappear.
+    const empty = read(events, { limit, after: cursor });
+    expect(empty.messages).toEqual([]);
+    expect(empty.from).toBe(expected.length);
+    expect(empty.hasMore).toBe(false);
+    expect(empty.nextCursor).toBe(cursor);
+    expect(read(events, { limit, after: empty.nextCursor }).messages).toEqual([]);
+    // Replaying the initial cursor is deterministic and does not consume it.
+    expectRows(read(events, { limit, after: initialCursor }).messages,
+      expected.slice(1, 1 + read(events, { limit, after: initialCursor }).messages.length));
+  });
+});
