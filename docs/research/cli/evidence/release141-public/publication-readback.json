@@ -1,0 +1,94 @@
+{
+  "schema": 1,
+  "checkedAt": "2026-11-04T10:59:34.766935+00:00",
+  "releaseSource": "df9295e33ad04aec0aa74cab4dd242766d5556a4",
+  "versions": {
+    "cli": "0.166.141",
+    "vscode": "0.37.177",
+    "jetbrains": "0.4.194"
+  },
+  "cliStatus": "verified-public",
+  "openVsxStatus": "verified-public",
+  "jetBrainsStatus": "verified-public",
+  "modelRequests": 0,
+  "microsoftMarketplace": "deferred",
+  "upstreamVersionsChanged": false,
+  "evidenceFiles": {
+    "chainlesschain-npm-provenance.json": {
+      "sha256": "b14c197a823f5b05789aeced4a9465ed1f59a9fce8d3db752a7ea9a87a6add24",
+      "bytes": 833
+    },
+    "chainlesschain-npm-readback.json": {
+      "sha256": "84d07fd83071275789d856fcfc489351933abd096b9b7175a80f6550f225a8d9",
+      "bytes": 582
+    },
+    "chainlesschain-release.json": {
+      "sha256": "0ec1a27bb8c14b7bb729622261ea0c1933d8828cb31730a3657bf2dc90769c12",
+      "bytes": 2610
+    },
+    "cli.json": {
+      "sha256": "74dfce76628cda38280877300e995db0978fabd99016bab1b465785ae70b3af6",
+      "bytes": 2009
+    },
+    "documentation-review.json": {
+      "sha256": "09b14b099dd909daf6f1e373c41a60c4cbb2c1f79cf7cba1f99f7bc83735659a",
+      "bytes": 553
+    },
+    "documentation-validation.json": {
+      "sha256": "37f17e348b535cc090d103299e5a46b5eb6c26d0cc11287ee5f7493e2af46f09",
+      "bytes": 1373
+    },
+    "gates.json": {
+      "sha256": "61166cf0a2499c7bc3af4b621e3e0a5c59fbfd6d9e20a59e48f2995d8ac9722c",
+      "bytes": 126924
+    },
+    "jetbrains-listing.json": {
+      "sha256": "8416aefc609c9e64d6908d461dfe9baa30c17548f6b274f890270b636d76e825",
+      "bytes": 80626
+    },
+    "jetbrains.json": {
+      "sha256": "86eab10719543a4407c8442a2bcf1930a40cfa016f1d7f120bd1591c69fa84f4",
+      "bytes": 550
+    },
+    "open-vsx-raw.json": {
+      "sha256": "8a2893599cfbfe9f363b99c624cdf9982feaee1a4fba9ed71c358c99e227dc58",
+      "bytes": 449
+    },
+    "open-vsx.json": {
+      "sha256": "3ae83538484a3c19b85bba6528b58bb2888fb196f845b419d2ded97b372061fa",
+      "bytes": 783
+    },
+    "workflows.json": {
+      "sha256": "f7a9e8f027a875ab43a0916be8880904f1b02a8875444d58893d1a6eefe77b94",
+      "bytes": 188850
+    },
+    "publisher/agent-protocol-npm-provenance.json": {
+      "sha256": "10b8afd68f0e1b4152d53e9e23fc1aeb51a355f80f3031f676abe930063c9b10",
+      "bytes": 1207
+    },
+    "publisher/agent-sdk-npm-provenance.json": {
+      "sha256": "817be164cc15af04673373bcc108bb7bb0ed9c23e678767c65cdcbc56d99a839",
+      "bytes": 1199
+    },
+    "publisher/chainlesschain-npm-provenance.json": {
+      "sha256": "0668b9b816cdba6984da1d1c0b2ae45e76f5720b00a0d98a2fc98332c50f4d01",
+      "bytes": 833
+    },
+    "publisher/chainlesschain-release.json": {
+      "sha256": "0ec1a27bb8c14b7bb729622261ea0c1933d8828cb31730a3657bf2dc90769c12",
+      "bytes": 2610
+    },
+    "publisher/cli-public-child-install.json": {
+      "sha256": "0dd23a8ae130de8a71430c796f171766a7e2645400936429d26ee437c2276c23",
+      "bytes": 3285
+    },
+    "publisher/context-memory-kernel-npm-provenance.json": {
+      "sha256": "0c2e24956eda450dc2394800366c3c0c28d1f8af0a23e74c3e83ba661bc1522d",
+      "bytes": 1223
+    },
+    "publisher/session-core-npm-provenance.json": {
+      "sha256": "65df312912439c035a89f6412a4f5b50cd9ca75d07a79ba498fb9c6be1242983",
+      "bytes": 1205
+    }
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "schema": 1,
+  "scope": "Documentation and local three-site builds; exact runtime source cloud release gates are recorded separately.",
+  "releaseContracts": {
+    "passed": 40,
+    "failed": 0
+  },
+  "ideMetadataAndPrerequisiteTests": {
+    "passed": 39,
+    "failed": 0
+  },
+  "userDocStructure": {
+    "files": 333,
+    "requiredSections": 11,
+    "passed": true
+  },
+  "sites": {
+    "www.chainlesschain.com": {
+      "files": 45,
+      "html": 20,
+      "directory": "docs-website-v2/dist"
+    },
+    "docs.chainlesschain.com": {
+      "files": 2049,
+      "html": 674,
+      "directory": "docs-site/docs/.vitepress/dist"
+    },
+    "design.chainlesschain.com": {
+      "files": 911,
+      "html": 295,
+      "directory": "docs-site-design/docs/.vitepress/dist"
+    }
+  },
+  "renderedPageChecks": 13,
+  "newReleaseLinksResolve": true,
+  "historical128PairingPreservedInRenderedPage": true,
+  "logSha256": {
+    "build-www.log": "c7e8a552f9bb462d9236a1e15b83e23cbbe9e977111252364332bae21d820e0f",
+    "build-docs.log": "3c0cfe9ebaa51b6d8764d726426ae2043d9cc6520c4b852b5c3f6019c3b4fb65",
+    "build-design.log": "d027750480cf43eeb98faba8a0551d8dac754ce07c29f0c3711ece39113d26b8",
+    "metadata-tests.tap": "0dee3b3f81b6ebb6ecc171738cb8c5d1e7c6a4a8af0d99bc213421ff2bb7203e"
+  },
+  "paidModelRequests": 0,
+  "serverDeployment": "Not yet executed at this preflight."
+}

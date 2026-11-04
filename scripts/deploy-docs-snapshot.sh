@@ -18,23 +18,23 @@ printf 'Deployment stamp: %s\nSource commit: %s\nLocal evidence: %s\n' "$stamp" 
 
 for site in docs design www; do
   case "$site" in
-    docs) dist="$repo_root/docs-site/docs/.vitepress/dist"; minimum=600; required="chainlesschain/cli-ide-update-2026-11-03-140.html" ;;
-    design) dist="$repo_root/docs-site-design/docs/.vitepress/dist"; minimum=250; required="release-runtime-update-2026-11-03-140.html" ;;
+    docs) dist="$repo_root/docs-site/docs/.vitepress/dist"; minimum=600; required="chainlesschain/cli-ide-update-2026-11-04-141.html" ;;
+    design) dist="$repo_root/docs-site-design/docs/.vitepress/dist"; minimum=250; required="release-runtime-update-2026-11-04-141.html" ;;
     www) dist="$repo_root/docs-website-v2/dist"; minimum=18; required="index.html" ;;
   esac
   test -f "$dist/index.html" && test -f "$dist/$required"
   if [ "$site" != www ]; then
-    grep -Fq '0.166.140' "$dist/$required"
+    grep -Fq '0.166.141' "$dist/$required"
     grep -Fq '2/4' "$dist/$required"
   fi
   html_count="$(find "$dist" -type f -name '*.html' | wc -l | tr -d ' ')"
   file_count="$(find "$dist" -type f | wc -l | tr -d ' ')"
   test "$html_count" -ge "$minimum"
   if [ "$site" = www ]; then
-    grep -Fq '0.166.140' "$dist/index.html"
+    grep -Fq '0.166.141' "$dist/index.html"
     grep -Fq '2/4' "$dist/index.html"
-    grep -Fq '0.37.176' "$dist/index.html"
-    grep -Fq '0.4.193' "$dist/index.html"
+    grep -Fq '0.37.177' "$dist/index.html"
+    grep -Fq '0.4.194' "$dist/index.html"
     grep -Fq 'v5.0.3.144' "$dist/index.html"
     grep -Fq '6 万+' "$dist/index.html"
   fi
@@ -130,9 +130,9 @@ while IFS=$'\t' read -r site sha html files; do
   test "$(find "$stage" -type f -name '*.html' | wc -l)" -eq "$html"
   test "$(find "$stage" -type f | wc -l)" -eq "$files"
   case "$site" in
-    docs) test -f "$stage/chainlesschain/cli-ide-update-2026-11-03-140.html"; grep -Fq '0.166.140' "$stage/chainlesschain/cli-ide-update-2026-11-03-140.html"; test -f "$stage/chainlesschain/agent-input-and-recovery.html" ;;
-    design) test -f "$stage/release-runtime-update-2026-11-03-140.html"; grep -Fq '0.166.140' "$stage/release-runtime-update-2026-11-03-140.html" ;;
-    www) grep -Fq '0.166.140' "$stage/index.html"; grep -Fq '0.37.176' "$stage/index.html"; grep -Fq '0.4.193' "$stage/index.html"; grep -Fq 'v5.0.3.144' "$stage/index.html"; grep -Fq '6 万+' "$stage/index.html" ;;
+    docs) test -f "$stage/chainlesschain/cli-ide-update-2026-11-04-141.html"; grep -Fq '0.166.141' "$stage/chainlesschain/cli-ide-update-2026-11-04-141.html"; test -f "$stage/chainlesschain/agent-input-and-recovery.html" ;;
+    design) test -f "$stage/release-runtime-update-2026-11-04-141.html"; grep -Fq '0.166.141' "$stage/release-runtime-update-2026-11-04-141.html" ;;
+    www) grep -Fq '0.166.141' "$stage/index.html"; grep -Fq '0.37.177' "$stage/index.html"; grep -Fq '0.4.194' "$stage/index.html"; grep -Fq 'v5.0.3.144' "$stage/index.html"; grep -Fq '6 万+' "$stage/index.html" ;;
   esac
   # Keep operational files, old pages, and hashed assets still used by cached HTML.
   # New build files win where the paths are identical.
@@ -159,11 +159,11 @@ for site in "${staged[@]}"; do
   test -f "$live/index.html"
   echo "LIVE $site; rollback directory: $backup"
 done
-curl --resolve docs.chainlesschain.com:443:127.0.0.1 -fsSL --max-time 30 https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-11-03-140.html -o "$prefix-origin-docs.html"
-curl --resolve design.chainlesschain.com:443:127.0.0.1 -fsSL --max-time 30 https://design.chainlesschain.com/release-runtime-update-2026-11-03-140.html -o "$prefix-origin-design.html"
+curl --resolve docs.chainlesschain.com:443:127.0.0.1 -fsSL --max-time 30 https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-11-04-141.html -o "$prefix-origin-docs.html"
+curl --resolve design.chainlesschain.com:443:127.0.0.1 -fsSL --max-time 30 https://design.chainlesschain.com/release-runtime-update-2026-11-04-141.html -o "$prefix-origin-design.html"
 curl --resolve www.chainlesschain.com:443:127.0.0.1 -fsSL --max-time 30 https://www.chainlesschain.com/ -o "$prefix-origin-www.html"
 for site in docs design www; do
-  for version in 0.166.140 0.37.176 0.4.193; do
+  for version in 0.166.141 0.37.177 0.4.194; do
     grep -Fq "$version" "$prefix-origin-$site.html"
   done
   grep -Fq '2/4' "$prefix-origin-$site.html"

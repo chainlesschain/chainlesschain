@@ -11,16 +11,8 @@ const jetBrainsPending = [
   "uploaded-pending-review",
 ].includes(releaseStatus.jetBrainsPublicationStatus);
 const items = english
-  ? [
-      ["Resume after rejected tool arguments", "Malformed arguments are rejected before execution. The model can submit a complete call on the next turn; durable history is preserved and rejected calls are never replayed."],
-      ["Preserve authenticated transport digests", "Projection v10 prevents image and reasoning SHA-256 metadata from triggering phone-number checks. User text, forged markers and sensitive data remain checked."],
-      ["Separate product downloads", `Kernel ${releaseStatus.contextMemoryKernelVersion} stays unchanged. PC/mobile ${releaseStatus.productVersion} remain independent releases; the IDE updates recommend the paired CLI without a separate UI change.`],
-    ]
-  : [
-      ["损坏工具参数拒绝后可续接", "非法参数在执行前拒绝，模型可在下一回合重新提交完整调用；保留原会话历史，被拒绝调用不会重放，权限与预算继续生效。"],
-      ["可信图片与推理摘要保留", "投影 v10 避免可信图片、推理传输块的 SHA-256 被误判为手机号；用户文本、伪造标记及敏感信息仍接受原有检查。"],
-      ["客户端继续独立升级", `Kernel ${releaseStatus.contextMemoryKernelVersion} 不变，PC / 移动端 ${releaseStatus.productVersion} 继续独立发行；本轮 IDE 更新推荐配套 CLI，没有单独的界面改动。`],
-    ];
+  ? [["Complete source previews", "Valid bounded spread expressions remain visible."], ["Actionable read recovery", "Reread hints follow the remaining source recovery allowance."], ["Shared evaluation scope", "CLI and IDE share launcher-authorized exact file scope in isolated evaluations."]]
+  : [["完整源码预览", "保留合法的有界展开表达式。"], ["可执行的读取恢复", "重读提示与实际剩余恢复额度一致。"], ["统一评测文件范围", "CLI 和 IDE 在隔离评测中使用启动器授权的精确文件范围。"]];
 ---
 
 <section class="py-16 border-t border-line bg-cream" aria-labelledby="source-update-title">
@@ -81,13 +73,13 @@ const items = english
     </aside>
     <p class="mt-6 text-sm text-muted">
       {english
-        ? `Public .138 retest: 2/4 accepted. verify-08 and verify-36 passed candidate tests but exhausted 20/20 author turns before review. All 80/80 physical requests have complete usage records. Historical ${releaseStatus.cumulativeAcceptedDeliveries}/${releaseStatus.totalTaskSamples}, previous .137 0/5 and the image follow-up 0/1 retain separate scopes. Accepted samples are skipped in later retests; engineering checks and publication add no model acceptance.`
-        : `公开 .138 四项复验 2/4：verify-08、verify-36 的候选测试通过，但作者阶段 20/20 轮耗尽，未进入审阅，仍失败。80/80 个物理请求用量完整。历史 ${releaseStatus.cumulativeAcceptedDeliveries}/${releaseStatus.totalTaskSamples}、前轮 .137 的 0/5 与图像专项 0/1 分别保留；已通过项后续跳过，工程检查与发布不增加模型通过数。`}
+        ? `Public .138 retest: 2/4 accepted. verify-08 and verify-36 passed candidate tests but exhausted 20/20 author turns before review. All 80/80 physical requests have complete usage records. Sol original frozen-project history ${releaseStatus.cumulativeAcceptedDeliveries}/${releaseStatus.totalTaskSamples}, previous .137 0/5 and the image follow-up 0/1 retain separate scopes. Accepted samples are skipped in later retests; engineering checks and publication add no model acceptance.`
+        : `公开 .138 四项复验 2/4：verify-08、verify-36 的候选测试通过，但作者阶段 20/20 轮耗尽，未进入审阅，仍失败。80/80 个物理请求用量完整。Sol 原冻结项目历史 ${releaseStatus.cumulativeAcceptedDeliveries}/${releaseStatus.totalTaskSamples}、前轮 .137 的 0/5 与图像专项 0/1 分别保留；已通过项后续跳过，工程检查与发布不增加模型通过数。`}
     </p>
     <p class="mt-3 text-sm text-muted">
       {english
-        ? `The .140 full 36+9 Volcengine retest has no verified final score yet; the follow-up adapter repair preserves smaller internal output limits and is tracked separately. Later main-branch read-recovery hints and Web Panel bundle fixes are outside the immutable CLI .140 source. NOT_PAID_READY / NOT_ADMITTED / HOLD remain. Microsoft Marketplace is deferred.`
-        : `公开 .140 的火山 36+9 全量复测尚无已核验最终成绩；保留内部较小输出限制的适配器修复另行记录。后续主线读取恢复提示与 Web Panel bundle 修复不在不可变 CLI .140 发行源中。NOT_PAID_READY / NOT_ADMITTED / HOLD 保留，Microsoft Marketplace 暂缓。`}
+        ? `No new .141 model retest. Volcengine corrected .140 round: generation39/45, strict24/45; historical36/45,9 remaining, including verify-06 candidate-only qualification. Sol original frozen41/45, cross-version45/45 and separate repaired four2/4 remain distinct. NOT_PAID_READY / NOT_ADMITTED / HOLD remain. Microsoft Marketplace is deferred.`
+        : `本次 .141 未新增模型复测。火山 .140 修正轮生成39/45、严格24/45；历史累计36/45、剩9，保留 verify-06 仅候选通过的限定。Sol 原冻结41/45、跨版本45/45、独立修正四项2/4分别保留。NOT_PAID_READY / NOT_ADMITTED / HOLD 保留，Microsoft Marketplace 暂缓。`}
     </p>
     <div class="mt-6 flex flex-wrap gap-4">
       <a class="btn-ghost" href={`https://open-vsx.org/api/chainlesschain/chainlesschain-ide/${releaseStatus.openVsxVersion}/file/chainlesschain.chainlesschain-ide-${releaseStatus.openVsxVersion}.vsix`}>{english ? "Download VSIX" : "下载 VSIX"} {releaseStatus.openVsxVersion} ↗</a>

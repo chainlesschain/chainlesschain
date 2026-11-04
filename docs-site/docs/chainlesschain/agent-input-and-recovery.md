@@ -1,5 +1,15 @@
 # Agent 输入、图片预算与会话恢复
 
+## 当前发行与读取恢复（2026-11-04）
+
+CLI **0.166.141** 已通过 GitHub Actions OIDC 发布；Open VSX **0.37.177** 和 JetBrains **0.4.194** 均已公开，均推荐 CLI **0.166.141**。CLI 公开字节与签名来源、仅 registry 的 `--ignore-scripts` 安装及 Agent capability 启动探测已核验；两款插件公开 payload 与正式构建一致。
+
+本版保留完整源码预览中的合法展开表达式，提供与实际可恢复范围一致的读取提示，并统一正式隔离评测中 CLI 与 IDE 的文件范围。诊断 broker 在读取预算选项前拒绝正式预算作用域；普通交互权限、IDE 协议与有限预算策略保持既有行为。
+
+安装 `npm i -g chainlesschain@0.166.141 --registry https://registry.npmjs.org`，重启聊天宿主后运行 `cc --version`、`cc doctor`。遇到 `Text omitted` 时按仍有效的 `recoveryRead` 参数有界重读；额度耗尽后按精确符号搜索，必要正文仍不可得时报告限制。不要把工具调用成功当作正文已送达或任务完成。详见[当前升级指南](./cli-ide-update-2026-11-04-141)。
+
+下文带日期章节保留历史版本与验证范围。
+
 <!-- docs-code-git-sync-2026-10-28 -->
 
 ## Goal 检查点与复查输出
@@ -18,7 +28,7 @@
 
 ## 概述
 
-当前公开 CLI 为 **0.166.128**，保留此前完整有界 JSON、代码投影、图片/文本预算和工具结算修复，并增加 Goal 检查点错误暴露与可选交付复查。当前 IDE 为 **0.37.166** / **0.4.183**，均推荐 `.128`；下文带日期发布段落用于历史追溯。
+历史 .128 发行快照中的 CLI 为 **0.166.128**，保留此前完整有界 JSON、代码投影、图片/文本预算和工具结算修复，并增加 Goal 检查点错误暴露与可选交付复查。该快照的 IDE 为 **0.37.166** / **0.4.183**，均推荐 `.128`；下文带日期发布段落用于历史追溯。
 
 ## CLI 0.166.121 已公开发布（2026-10-26）
 
@@ -51,7 +61,7 @@ CLI 0.166.121 已通过同一提交的三平台 CLI CI 和 CLI Strict Sandbox，
 使用 Node.js **22.12.0 或更新版本**，安装已公开版本：
 
 ```bash
-npm i -g chainlesschain@0.166.128 --registry https://registry.npmjs.org
+npm i -g chainlesschain@0.166.141 --registry https://registry.npmjs.org
 cc --version
 cc doctor
 ```

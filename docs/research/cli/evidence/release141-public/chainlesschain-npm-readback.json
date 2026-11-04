@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "verifiedAt": "2026-11-04T06:08:36.403Z",
+  "package": "chainlesschain",
+  "version": "0.166.141",
+  "commit": "df9295e33ad04aec0aa74cab4dd242766d5556a4",
+  "ref": "refs/tags/v-npm-0-166-141",
+  "publishRunId": 41781533170,
+  "publishAttempt": 1,
+  "artifact": "chainlesschain-0.166.141.tgz",
+  "bytes": 9543278,
+  "sha256": "9c071ace777848adadc99f35fa4d0f66c6a7e3255f6be92accf837b394948216",
+  "sha512": "06da3f0b3ca7967601397647ef01f91ab10cb1245d56779ff8d25536def71d8ebcf4ef746da0e8644fb7879b70415727c861fde6270c609a1cd173f52b58d238",
+  "byteIdentical": true
+}

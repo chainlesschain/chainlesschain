@@ -1,0 +1,4538 @@
+{
+  "cliCi": {
+    "id": 41771520923,
+    "source": "df9295e33ad04aec0aa74cab4dd242766d5556a4",
+    "conclusion": "success",
+    "attempt": 1,
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41771520923",
+    "jobs": [
+      {
+        "id": 126382071645,
+        "name": "Scoped documentation check / Detect and validate scoped documentation",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Classify complete diff and validate allowed documentation",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126382276487,
+        "name": "PDH native release tests (windows-latest)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Enforce exact-source documentation decision",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-python@v6",
+            "conclusion": "success"
+          },
+          {
+            "name": "Test complete PDH suite with host-native drivers",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload PDH native identity and full test report",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/setup-python@v6",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126382276499,
+        "name": "linux-subreaper / Linux packaged subreaper (arm64)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify source and native build architecture",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+            "conclusion": "success"
+          },
+          {
+            "name": "Build static helper from canonical source",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify packaged execution without compiler or network",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload tested architecture payload",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload no-compiler cleanup evidence",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126382276509,
+        "name": "PDH native release tests (macos-latest)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Enforce exact-source documentation decision",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-python@v6",
+            "conclusion": "success"
+          },
+          {
+            "name": "Test complete PDH suite with host-native drivers",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload PDH native identity and full test report",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/setup-python@v6",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126382276514,
+        "name": "Build and audit reviewed runtime sources before test fan-out",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify committed changelog before test fan-out",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify diagnostic budget refusal before test fan-out",
+            "conclusion": "success"
+          },
+          {
+            "name": "Build the reviewed Web Panel distribution assets",
+            "conclusion": "success"
+          },
+          {
+            "name": "Audit exact runtime and diagnostic source identities",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126382276515,
+        "name": "PDH native release tests (ubuntu-latest)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Enforce exact-source documentation decision",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-python@v6",
+            "conclusion": "success"
+          },
+          {
+            "name": "Test complete PDH suite with host-native drivers",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload PDH native identity and full test report",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/setup-python@v6",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126382276544,
+        "name": "Native campaign preflight (ubuntu-latest)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-java@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-python@v6",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify native campaign dispatch and acceptance preflight without provider execution",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/setup-python@v6",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/setup-java@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126382276625,
+        "name": "linux-subreaper / Linux packaged subreaper (x64)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify source and native build architecture",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+            "conclusion": "success"
+          },
+          {
+            "name": "Build static helper from canonical source",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify packaged execution without compiler or network",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload tested architecture payload",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload no-compiler cleanup evidence",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126382276632,
+        "name": "Native campaign preflight (windows-latest)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-java@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-python@v6",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify native campaign dispatch and acceptance preflight without provider execution",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/setup-python@v6",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/setup-java@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126382276651,
+        "name": "Native campaign preflight (macos-latest)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-java@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-python@v6",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify native campaign dispatch and acceptance preflight without provider execution",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/setup-python@v6",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/setup-java@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387530802,
+        "name": "test-ubuntu / unit (ubuntu-latest, shard 2/4)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest unit shard 2/4",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed unit report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387530817,
+        "name": "test-ubuntu / unit (ubuntu-latest, shard 4/4)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest unit shard 4/4",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed unit report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387530821,
+        "name": "test-ubuntu / e2e (ubuntu-latest, shard 2/4)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest e2e shard 2/4",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed e2e report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387530839,
+        "name": "test-ubuntu / e2e (ubuntu-latest, shard 1/4)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest e2e shard 1/4",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed e2e report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387530857,
+        "name": "test-ubuntu / unit (ubuntu-latest, shard 1/4)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest unit shard 1/4",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed unit report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387530858,
+        "name": "test-windows / e2e (windows-latest, shard 2/4)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest e2e shard 2/4",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed e2e report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387530872,
+        "name": "test-ubuntu / e2e (ubuntu-latest, shard 3/4)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest e2e shard 3/4",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed e2e report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387530877,
+        "name": "test-ubuntu / e2e (ubuntu-latest, shard 4/4)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest e2e shard 4/4",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed e2e report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387530879,
+        "name": "test-macos / e2e (macos-latest, shard 2/4)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest e2e shard 2/4",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed e2e report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387530903,
+        "name": "test-windows / e2e (windows-latest, shard 4/4)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest e2e shard 4/4",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed e2e report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387530905,
+        "name": "test-macos / unit (macos-latest, shard 2/4)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest unit shard 2/4",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed unit report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387530912,
+        "name": "test-ubuntu / unit (ubuntu-latest, shard 3/4)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest unit shard 3/4",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed unit report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387530918,
+        "name": "test-macos / unit (macos-latest, shard 3/4)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest unit shard 3/4",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed unit report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387530920,
+        "name": "test-macos / unit (macos-latest, shard 1/4)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest unit shard 1/4",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed unit report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387530926,
+        "name": "test-windows / integration (windows-latest, shard 6/8)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest integration shard 6/8",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed integration report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387530932,
+        "name": "test-windows / e2e (windows-latest, shard 1/4)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest e2e shard 1/4",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed e2e report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387530935,
+        "name": "test-ubuntu / integration (ubuntu-latest, shard 5/8)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest integration shard 5/8",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed integration report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387530937,
+        "name": "test-windows / integration (windows-latest, shard 4/8)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest integration shard 4/8",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed integration report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387530939,
+        "name": "test-windows / integration (windows-latest, shard 7/8)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest integration shard 7/8",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed integration report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387530943,
+        "name": "test-windows / integration (windows-latest, shard 3/8)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest integration shard 3/8",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed integration report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387530950,
+        "name": "test-macos / integration (macos-latest, shard 4/8)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest integration shard 4/8",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed integration report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387530957,
+        "name": "test-macos / integration (macos-latest, shard 3/8)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest integration shard 3/8",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed integration report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387530961,
+        "name": "test-macos / unit (macos-latest, shard 4/4)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest unit shard 4/4",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed unit report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387530966,
+        "name": "test-macos / e2e (macos-latest, shard 4/4)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest e2e shard 4/4",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed e2e report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387530969,
+        "name": "test-ubuntu / integration (ubuntu-latest, shard 7/8)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest integration shard 7/8",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed integration report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387530971,
+        "name": "test-ubuntu / integration (ubuntu-latest, shard 3/8)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest integration shard 3/8",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed integration report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387530981,
+        "name": "test-macos / e2e (macos-latest, shard 3/4)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest e2e shard 3/4",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed e2e report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387530984,
+        "name": "test-macos / integration (macos-latest, shard 5/8)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest integration shard 5/8",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed integration report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387530986,
+        "name": "test-ubuntu / integration (ubuntu-latest, shard 2/8)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest integration shard 2/8",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed integration report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387530994,
+        "name": "test-windows / e2e (windows-latest, shard 3/4)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest e2e shard 3/4",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed e2e report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387531004,
+        "name": "test-macos / e2e (macos-latest, shard 1/4)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest e2e shard 1/4",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed e2e report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387531014,
+        "name": "test-ubuntu / integration (ubuntu-latest, shard 6/8)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest integration shard 6/8",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed integration report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387531016,
+        "name": "test-macos / integration (macos-latest, shard 6/8)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest integration shard 6/8",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed integration report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387531028,
+        "name": "test-macos / integration (macos-latest, shard 1/8)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest integration shard 1/8",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed integration report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387531030,
+        "name": "test-windows / integration (windows-latest, shard 2/8)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest integration shard 2/8",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed integration report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387531040,
+        "name": "test-windows / integration (windows-latest, shard 1/8)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest integration shard 1/8",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed integration report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387531048,
+        "name": "test-ubuntu / integration (ubuntu-latest, shard 4/8)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest integration shard 4/8",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed integration report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387531064,
+        "name": "test-ubuntu / integration (ubuntu-latest, shard 1/8)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest integration shard 1/8",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed integration report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387531069,
+        "name": "test-windows / integration (windows-latest, shard 5/8)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest integration shard 5/8",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed integration report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387531073,
+        "name": "test-macos / integration (macos-latest, shard 7/8)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest integration shard 7/8",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed integration report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387531081,
+        "name": "test-windows / integration (windows-latest, shard 8/8)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest integration shard 8/8",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed integration report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387531083,
+        "name": "test-ubuntu / integration (ubuntu-latest, shard 8/8)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest integration shard 8/8",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed integration report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387531099,
+        "name": "test-macos / integration (macos-latest, shard 2/8)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest integration shard 2/8",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed integration report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387531145,
+        "name": "test-macos / integration (macos-latest, shard 8/8)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest integration shard 8/8",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed integration report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387531170,
+        "name": "test-windows / unit (windows-latest, shard 5/16)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest unit shard 5/16",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed unit report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387531206,
+        "name": "test-windows / unit (windows-latest, shard 4/16)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest unit shard 4/16",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed unit report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387531241,
+        "name": "test-windows / unit (windows-latest, shard 7/16)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest unit shard 7/16",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed unit report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387531243,
+        "name": "test-windows / unit (windows-latest, shard 10/16)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest unit shard 10/16",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed unit report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387531267,
+        "name": "test-windows / unit (windows-latest, shard 6/16)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest unit shard 6/16",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed unit report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387531285,
+        "name": "test-windows / unit (windows-latest, shard 9/16)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest unit shard 9/16",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed unit report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387531286,
+        "name": "test-windows / unit (windows-latest, shard 14/16)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest unit shard 14/16",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed unit report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387531297,
+        "name": "test-windows / unit (windows-latest, shard 1/16)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest unit shard 1/16",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed unit report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387531309,
+        "name": "test-windows / unit (windows-latest, shard 13/16)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest unit shard 13/16",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed unit report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387531354,
+        "name": "test-windows / unit (windows-latest, shard 11/16)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest unit shard 11/16",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed unit report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387531383,
+        "name": "test-windows / unit (windows-latest, shard 12/16)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest unit shard 12/16",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed unit report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387531447,
+        "name": "test-windows / unit (windows-latest, shard 2/16)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest unit shard 2/16",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed unit report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387531602,
+        "name": "test-windows / unit (windows-latest, shard 8/16)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest unit shard 8/16",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed unit report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387531717,
+        "name": "test-windows / unit (windows-latest, shard 3/16)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest unit shard 3/16",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed unit report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387532854,
+        "name": "test-windows / unit (windows-latest, shard 15/16)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest unit shard 15/16",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed unit report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126387533049,
+        "name": "test-windows / unit (windows-latest, shard 16/16)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "vitest unit shard 16/16",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload failed unit report",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126395424426,
+        "name": "pack-linux-dryrun",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Checkout code",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Setup Node.js",
+            "conclusion": "success"
+          },
+          {
+            "name": "Install dependencies (workspace-aware)",
+            "conclusion": "success"
+          },
+          {
+            "name": "Ensure web-panel dist exists (stub)",
+            "conclusion": "success"
+          },
+          {
+            "name": "Build fixed Linux process supervision asset for dry-run",
+            "conclusion": "success"
+          },
+          {
+            "name": "cc pack --dry-run for linux-x64",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Setup Node.js",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Checkout code",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126395424435,
+        "name": "dry-run-publish",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Checkout code",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Setup Node.js",
+            "conclusion": "success"
+          },
+          {
+            "name": "Install dependencies (workspace-aware)",
+            "conclusion": "success"
+          },
+          {
+            "name": "Dry-run publish",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Setup Node.js",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Checkout code",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126409694105,
+        "name": "verify-cli (windows-latest)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-java@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify provider role projection without changing session authority",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify assisted pricing, pagination, history, attachment and launch policy regressions",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify calibration capture accounting and public install identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify formal budget authority with native SQLite and process fault recovery",
+            "conclusion": "success"
+          },
+          {
+            "name": "Build reviewed Web Panel assets from locked sources",
+            "conclusion": "success"
+          },
+          {
+            "name": "Audit reviewed runtime and diagnostic script identities without paid admission",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify native review preparation and receipt contracts without provider execution",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify local soak observer identity and rejection history",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run exact-SHA PM exploration recovery drill",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload exact-SHA PM exploration recovery evidence",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify asynchronous PR recovery without GitHub writes",
+            "conclusion": "success"
+          },
+          {
+            "name": "Test Core DB release payload source",
+            "conclusion": "success"
+          },
+          {
+            "name": "Test Session Core release payload source",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify packed scheduler host boundary",
+            "conclusion": "success"
+          },
+          {
+            "name": "Test Agent SDK release payload source",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run mapped Claude security delta tests",
+            "conclusion": "success"
+          },
+          {
+            "name": "Produce advisory canonical SEC-DELTA fragment",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload Claude security delta evidence",
+            "conclusion": "success"
+          },
+          {
+            "name": "Produce required canonical RC-DEFAULT fragment",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload RC-DEFAULT audit evidence",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify 32-process cross-session message fabric",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload cross-session message fabric evidence",
+            "conclusion": "success"
+          },
+          {
+            "name": "Produce canonical MCP lifecycle compatibility evidence",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload MCP lifecycle evidence",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify CLI --version",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify CLI --help",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify settings permission revision and mutation contracts",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify stream session budget declaration",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify REPL budget resume declaration",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify command surface and top-level growth gate",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify command lifecycle evidence contract",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify generated command help index",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify shared CLI and IDE onboarding presets",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify generated shell completions",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify canonical Agent stream causal conformance",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify CLI startup SLOs",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/setup-java@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126409694168,
+        "name": "verify-cli (ubuntu-latest)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-java@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify provider role projection without changing session authority",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify assisted pricing, pagination, history, attachment and launch policy regressions",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify calibration capture accounting and public install identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify formal budget authority with native SQLite and process fault recovery",
+            "conclusion": "success"
+          },
+          {
+            "name": "Build reviewed Web Panel assets from locked sources",
+            "conclusion": "success"
+          },
+          {
+            "name": "Audit reviewed runtime and diagnostic script identities without paid admission",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify native review preparation and receipt contracts without provider execution",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify local soak observer identity and rejection history",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run exact-SHA PM exploration recovery drill",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload exact-SHA PM exploration recovery evidence",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify asynchronous PR recovery without GitHub writes",
+            "conclusion": "success"
+          },
+          {
+            "name": "Test Core DB release payload source",
+            "conclusion": "success"
+          },
+          {
+            "name": "Test Session Core release payload source",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify packed scheduler host boundary",
+            "conclusion": "success"
+          },
+          {
+            "name": "Test Agent SDK release payload source",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run mapped Claude security delta tests",
+            "conclusion": "success"
+          },
+          {
+            "name": "Produce advisory canonical SEC-DELTA fragment",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload Claude security delta evidence",
+            "conclusion": "success"
+          },
+          {
+            "name": "Produce required canonical RC-DEFAULT fragment",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload RC-DEFAULT audit evidence",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify 32-process cross-session message fabric",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload cross-session message fabric evidence",
+            "conclusion": "success"
+          },
+          {
+            "name": "Produce canonical MCP lifecycle compatibility evidence",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload MCP lifecycle evidence",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify CLI --version",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify CLI --help",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify settings permission revision and mutation contracts",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify stream session budget declaration",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify REPL budget resume declaration",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify command surface and top-level growth gate",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify command lifecycle evidence contract",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify generated command help index",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify shared CLI and IDE onboarding presets",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify generated shell completions",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify canonical Agent stream causal conformance",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify CLI startup SLOs",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/setup-java@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126409694218,
+        "name": "verify-cli (macos-latest)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-java@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify provider role projection without changing session authority",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify assisted pricing, pagination, history, attachment and launch policy regressions",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify calibration capture accounting and public install identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify formal budget authority with native SQLite and process fault recovery",
+            "conclusion": "success"
+          },
+          {
+            "name": "Build reviewed Web Panel assets from locked sources",
+            "conclusion": "success"
+          },
+          {
+            "name": "Audit reviewed runtime and diagnostic script identities without paid admission",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify native review preparation and receipt contracts without provider execution",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify local soak observer identity and rejection history",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run exact-SHA PM exploration recovery drill",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload exact-SHA PM exploration recovery evidence",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify asynchronous PR recovery without GitHub writes",
+            "conclusion": "success"
+          },
+          {
+            "name": "Test Core DB release payload source",
+            "conclusion": "success"
+          },
+          {
+            "name": "Test Session Core release payload source",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify packed scheduler host boundary",
+            "conclusion": "success"
+          },
+          {
+            "name": "Test Agent SDK release payload source",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run mapped Claude security delta tests",
+            "conclusion": "success"
+          },
+          {
+            "name": "Produce advisory canonical SEC-DELTA fragment",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload Claude security delta evidence",
+            "conclusion": "success"
+          },
+          {
+            "name": "Produce required canonical RC-DEFAULT fragment",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload RC-DEFAULT audit evidence",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify 32-process cross-session message fabric",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload cross-session message fabric evidence",
+            "conclusion": "success"
+          },
+          {
+            "name": "Produce canonical MCP lifecycle compatibility evidence",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload MCP lifecycle evidence",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify CLI --version",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify CLI --help",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify settings permission revision and mutation contracts",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify stream session budget declaration",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify REPL budget resume declaration",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify command surface and top-level growth gate",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify command lifecycle evidence contract",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify generated command help index",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify shared CLI and IDE onboarding presets",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify generated shell completions",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify canonical Agent stream causal conformance",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify CLI startup SLOs",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/setup-java@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126413456069,
+        "name": "Test-only PM exploration recovery three-OS aggregate",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Refuse an incomplete PM recovery platform matrix",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Checkout exact PM recovery commit",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Download exact-SHA PM recovery evidence",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify complete test-only PM recovery evidence matrix",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload immutable test-only PM recovery aggregate",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Checkout exact PM recovery commit",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      }
+    ]
+  },
+  "strictSandbox": {
+    "id": 41771520789,
+    "source": "df9295e33ad04aec0aa74cab4dd242766d5556a4",
+    "conclusion": "success",
+    "attempt": 1,
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/41771520789",
+    "jobs": [
+      {
+        "id": 126382070692,
+        "name": "Scoped documentation check / Detect and validate scoped documentation",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Classify complete diff and validate allowed documentation",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126382265472,
+        "name": "strict native boundary (ubuntu-24.04-arm)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity and native ARM64 runner",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "Record native environment",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify synchronous settings authority on native ARM64",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify native anonymous tmpfile support",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-linux-bwrap",
+            "conclusion": "success"
+          },
+          {
+            "name": "Record bubblewrap version",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run native broker and MCP capsule boundary",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run native bubblewrap boundary",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run native Docker egress boundary",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload native ARM64 evidence",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/upload-artifact@v6",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126382265525,
+        "name": "strict native boundary (macos-15)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run mapped Claude security delta tests",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify synchronous settings authority at supported Node floor",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify Windows helper source contract",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Set up Linux kernel sandbox backend",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Verify native Windows capsule transport and unchanged v1 limits",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Upload native Windows capsule transport evidence",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Run platform sandbox contract tests",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run background agent supervisor contract tests",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run native ProcessExecutionBroker strict boundary",
+            "conclusion": "success"
+          },
+          {
+            "name": "Produce advisory canonical SEC-DELTA fragment",
+            "conclusion": "success"
+          },
+          {
+            "name": "Capture macOS sandbox diagnostics",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Upload strict sandbox result",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run Linux bubblewrap filesystem and network boundary",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Run Linux Docker egress boundary with real containers",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126382265526,
+        "name": "strict native boundary (windows-latest)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run mapped Claude security delta tests",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify synchronous settings authority at supported Node floor",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify Windows helper source contract",
+            "conclusion": "success"
+          },
+          {
+            "name": "Set up Linux kernel sandbox backend",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Verify native Windows capsule transport and unchanged v1 limits",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload native Windows capsule transport evidence",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run platform sandbox contract tests",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run background agent supervisor contract tests",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run native ProcessExecutionBroker strict boundary",
+            "conclusion": "success"
+          },
+          {
+            "name": "Produce advisory canonical SEC-DELTA fragment",
+            "conclusion": "success"
+          },
+          {
+            "name": "Capture macOS sandbox diagnostics",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Upload strict sandbox result",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run Linux bubblewrap filesystem and network boundary",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Run Linux Docker egress boundary with real containers",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126382265555,
+        "name": "macOS latest native capability",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "Probe current macOS Seatbelt capability with a real process",
+            "conclusion": "success"
+          },
+          {
+            "name": "Upload capability evidence",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 126382265575,
+        "name": "strict native boundary (ubuntu-24.04)",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify exact source identity",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run ./.github/actions/setup-node-deps",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run mapped Claude security delta tests",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify synchronous settings authority at supported Node floor",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify Windows helper source contract",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Set up Linux kernel sandbox backend",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify native Windows capsule transport and unchanged v1 limits",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Upload native Windows capsule transport evidence",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Run platform sandbox contract tests",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run background agent supervisor contract tests",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run native ProcessExecutionBroker strict boundary",
+            "conclusion": "success"
+          },
+          {
+            "name": "Produce advisory canonical SEC-DELTA fragment",
+            "conclusion": "success"
+          },
+          {
+            "name": "Capture macOS sandbox diagnostics",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Upload strict sandbox result",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run Linux bubblewrap filesystem and network boundary",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run Linux Docker egress boundary with real containers",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/setup-node@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@v5",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      }
+    ]
+  }
+}

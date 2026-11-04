@@ -1,18 +1,28 @@
 # ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
-<!-- release141-candidate:start -->
+<!-- release141-current:start -->
 
-## CLI 0.166.141 / 配套 IDE 新版准备
+## 当前公开 CLI：0.166.141 / 配套 IDE 修复
 
-源码候选 CLI **0.166.141**、VS Code **0.37.177**、JetBrains **0.4.194** 正在执行发布验证，尚未据此宣称新版已公开。修复合法源码展开表达式在读取预览中被误省略的问题，保留可执行的读取恢复提示，并统一 CLI 与 IDE 的隔离评测文件范围；普通交互权限和 IDE 协议保持原有行为。
+CLI **0.166.141** 已通过 GitHub Actions OIDC 发布；Open VSX **0.37.177** 和 JetBrains **0.4.194** 均已公开，均推荐 CLI **0.166.141**。CLI 公开字节与签名来源、仅 registry 的 `--ignore-scripts` 安装及 Agent capability 启动探测已核验；两款插件公开 payload 与正式构建一致。
 
-子 npm 包版本不变，仍须逐包核验公开字节与安装。只有准确发行提交的 Linux、Windows、macOS CLI CI / CLI Strict Sandbox 全矩阵通过，才通过 Actions OIDC 发布 CLI；确认公开安装可用后再发布 IDE。已测模型任务暂不重测，历史成绩不因发版变化。
+准确发行源码：`df9295e33ad04aec0aa74cab4dd242766d5556a4`。CLI CI **76/76** / Strict Sandbox **6/6** 跨 Linux、Windows、macOS 全部通过。
 
-<!-- release141-candidate:end -->
+本版保留完整源码预览中的合法展开表达式，提供与实际可恢复范围一致的读取提示，并统一正式隔离评测中 CLI 与 IDE 的文件范围。诊断 broker 在读取预算选项前拒绝正式预算作用域；普通交互权限、IDE 协议与有限预算策略保持既有行为。
+
+安装 `npm i -g chainlesschain@0.166.141 --registry https://registry.npmjs.org`，重启 CLI / IDE 聊天宿主，再运行 `cc --version`、`cc doctor`。
+
+本次未新增模型任务复测。火山最新 `.140` 修正轮生成 **39/45**、严格验收 **24/45**；历史自动交付去重累计 **36/45**，剩 **9** 项，保留 verify-06 仅候选验收通过的限定。Sol 原冻结项目历史 **41/45**、含修正源码的跨版本累计 **45/45**、独立 `.140` 修正项目四项 **2/4** 分别保留。
+
+[Publication evidence](docs/research/cli/evidence/release141-public/README.md) · [45-task ledger](docs/research/cli/verify01-36-plus-9-task-list.md)
+
+SDK **0.2.17**、Protocol **0.1.12**、Kernel **0.1.11** 和子 npm 包版本不变，发布前已核验公开子包字节及依赖安装。PC / 移动端 **v5.0.3.144** 保持独立发行。Microsoft Marketplace 暂缓；NOT_PAID_READY / NOT_ADMITTED / HOLD 保留。
+
+<!-- release141-current:end -->
 
 <!-- release140-current:start -->
 
-## 当前公开 CLI：0.166.140 / IDE 恢复补丁
+## 上版发行快照：CLI 0.166.140 / IDE 恢复补丁
 
 截至 **2026-11-03T11:42:31.329Z**，CLI **0.166.140** 已通过 [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/41610020835) 公开发布，准确发行源码为 `e2a91bf54332ff3d252c40ecc25c5887e0f0430d`。公开 npm 字节、来源签名、安装与启动均已核验；同一源码的 Linux、Windows、macOS CLI CI / CLI Strict Sandbox 全部配置作业通过。
 
