@@ -1,5 +1,15 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+<!-- release141-candidate:start -->
+
+## CLI 0.166.141 / paired IDE release preparation
+
+Source candidates CLI **0.166.141**, VS Code **0.37.177** and JetBrains **0.4.194** are undergoing release validation; this does not declare public availability. The CLI preserves legitimate source spread expressions in read previews, keeps read recovery actionable, and aligns launcher-owned hermetic evaluation file scope across CLI and IDE. Ordinary interactive permissions and the IDE protocol retain their existing behavior.
+
+Child npm versions remain unchanged and must pass public-byte reuse and installation checks. Publish CLI through Actions OIDC only after every configured Linux, Windows and macOS CLI CI / CLI Strict Sandbox job passes for the exact release commit. Publish IDE packages after public CLI installation is verified. No already tested model task is rerun, and publication does not change historical scores.
+
+<!-- release141-candidate:end -->
+
 <!-- release140-current:start -->
 
 ## CLI 0.166.140 / rejected tool argument recovery
@@ -21,7 +31,6 @@ The focused Windows checks passed **129 tests**. The earlier v9 recovery check u
 Earlier candidate `eb0fe7a8a1` failed at the Windows ArtifactStore post-index integrity guard, then passed a complete three-OS loopback rerun. The exact rejected condition remains unresolved; the guard stays enforced. The [original failure](docs/research/cli/evidence/tool-argument-recovery-20261103/windows-eb-trajectory-attempt1-failure.json) and [complete rerun](docs/research/cli/evidence/tool-argument-recovery-20261103/windows-eb-trajectory-attempt2-aggregate.json) retain their historical source scope. The final release source separately passed 100 loopback runs on each of three operating systems; these 300 structural-envelope-only runs are not paid-provider task acceptance or a replacement for CLI CI / Strict Sandbox. Local composition runs timed out on both the v10 source and the earlier baseline and are not counted as passing.
 
 Agent SDK **0.2.17**, Protocol **0.1.12**, Kernel **0.1.11** and the other child packages retain their published versions; required upstream packages were fetched and dependency alignment verified before CLI publication. Microsoft Marketplace remains deferred. PC/mobile **v5.0.3.144** is already public as an independent release; this CLI/IDE follow-up does not republish clients. Historical .138 **2/4**, .137 **0/5** and cumulative **41/45** retain separate scopes.
-
 
 Documentation reviewed against `main@d62866538c` on **2026-11-03**. The later read-recovery hint and Web Panel bundle fixes are outside the immutable CLI .140 release source. The .140 full 36+9 Volcengine campaign has no verified final score yet; the internal-output-limit adapter repair is tracked separately. Historical original-project **41/45**, .138 **2/4**, and Sol cross-revision coverage **45/45** (including repaired project sources) retain separate scopes. [Current design](docs/design/release-runtime-update-2026-11-03-140.md) · [Upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-11-03-140.html).
 

@@ -4,6 +4,10 @@ ChainlessChain agent workspace for VS Code-compatible editors with streaming
 chat, inline assistance, governed review, sessions, automation, and a localhost
 MCP bridge.
 
+## Next release candidate
+
+Source candidate **0.37.177** recommends CLI **0.166.141**. The extension has not been published. Publish this pairing only after the exact CLI release is publicly installable and the complete IDE host gates pass. It pairs with JetBrains **0.4.194** and carries the CLI source-preview and evaluation-entry repairs. No new model-task acceptance is claimed.
+
 ## Current release
 
 <!-- release176-status -->
@@ -339,7 +343,7 @@ Checked on 2026-10-20: npm CLI **0.166.107**, Session Core **0.3.20**, Open VSX 
 
 ## Release compatibility
 
-Candidate Open VSX **0.37.173** recommends CLI **`0.166.135`** and pairs with JetBrains **0.4.189** after verified CLI publication; Kernel remains **0.1.11**. The CLI carries Responses disconnect recovery and launch-policy preservation. Microsoft Marketplace remains deferred.
+Candidate Open VSX **0.37.177** recommends CLI **`0.166.141`** and pairs with JetBrains **0.4.194** after verified CLI publication; Kernel remains **0.1.11**. The CLI preserves legitimate complete-source read previews and aligns launcher-owned evaluation entry boundaries. Microsoft Marketplace remains deferred.
 
 ### What's new in 0.37.159
 

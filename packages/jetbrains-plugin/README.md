@@ -182,7 +182,7 @@ See the [verified publication evidence](https://github.com/chainlesschain/chainl
 
 ## Release compatibility
 
-Plugin **0.4.193** is the current release candidate. It recommends `chainlesschain@0.166.140` and pairs with Open VSX **0.37.176**. Kernel remains **0.1.11**. This pairing carries the CLI rejected-tool-argument recovery without changing the IDE protocol. Publish after verified public CLI installation and complete exact-source host gates; report Marketplace upload and public listing separately. Microsoft Marketplace remains deferred.
+Plugin **0.4.194** is the current release candidate. It recommends `chainlesschain@0.166.141` and pairs with Open VSX **0.37.177**. Kernel remains **0.1.11**. This pairing carries the CLI complete-source preview and launcher-owned evaluation-entry repairs without changing ordinary permissions or the IDE protocol. Publish after verified public CLI installation and complete exact-source host gates; report Marketplace upload and public listing separately. Microsoft Marketplace remains deferred.
 
 ## Previous candidates and development notes
 
