@@ -604,6 +604,7 @@ export function volcengineBudgetRetryPolicy(budgets) {
 }
 
 export async function createVolcengineDiagnosticBroker(options) {
+  requireUnscopedModelTransport();
   const policy = volcengineBudgetRetryPolicy(options.executionBudgets);
   const usageOptions = {
     maximumAnswerTokens: policy.maximumAnswerTokens,
