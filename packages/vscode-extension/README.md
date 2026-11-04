@@ -4,6 +4,16 @@ ChainlessChain agent workspace for VS Code-compatible editors with streaming
 chat, inline assistance, governed review, sessions, automation, and a localhost
 MCP bridge.
 
+## Next release candidate
+
+Source candidate **0.37.178** recommends CLI **`0.166.142`** and pairs with
+JetBrains **0.4.195**. The extension has not been published. It adds explicit
+authorized desktop goal observation and retained-history recovery through native
+connection/checkpoint pickers, with bounded plain-text results, cancellation and
+explicit next-page controls. It supports the admitted combined delivery scenario;
+native source consent and task confirmation remain separate. Publication follows
+verified Session Core 0.3.25 and CLI 0.166.142 and exact-source host gates.
+
 ## Working-tree retained goal history (unreleased)
 
 The matching local CLI also ships the combined

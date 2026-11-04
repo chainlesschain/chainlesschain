@@ -1,6 +1,6 @@
 {
   "schema": "chainlesschain.budget-egress-source-review/v1",
-  "reviewedAt": "2026-11-04",
+  "reviewedAt": "2026-11-05",
   "scope": ["packages/cli/src", "packages/cli/scripts"],
   "basis": "Implementation source inspection; byte-bound classifications only. Not an independent financial/OS admission decision.",
   "entries": [
@@ -480,9 +480,9 @@
     },
     {
       "path": "packages/cli/src/lib/project-goal-connection.js",
-      "digest": "sha256:0f17956415810f8fa76ba4c7b10b2141e148af7ea642128940e010b84671a269",
+      "digest": "sha256:c70f158cbb656ffcfa86f6683b12f33102e5e439f4007b7aa851c68cdb2f0c2e",
       "category": "LOCAL_IPC",
-      "rationale": "Reads a bounded private descriptor, then authenticates short-lived 127.0.0.1 HTTP requests with HMAC, nonce and descriptor identity checks for project-goal summaries or evidence. A v3 descriptor delegates to the draft client, which also supports draft operations. This is local desktop IPC, not remote model egress."
+      "rationale": "Reads a bounded owner-private descriptor and authenticates short-lived exact-loopback 127.0.0.1 HTTP with HMAC, nonce, descriptor identity and bounded response/deadline checks. Separate v4 events and v5 retained-history paths cannot inherit v1-v3 authority; the validated opaque after cursor is bound into the complete signed request path, and v5 error status/body into the response signature. The v3 descriptor still delegates pending-draft operations. Local desktop IPC only, not remote model egress or financial admission."
     },
     {
       "path": "packages/cli/src/lib/project-goal-draft-connection.js",

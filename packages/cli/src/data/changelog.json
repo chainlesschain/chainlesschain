@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.142",
+      "cliVersions": ["0.166.142"],
+      "date": "2026-11-05",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Added - cc CLI 0.166.142: authorized goal events and retained recovery (candidate, 2026-11-05)",
+          "body": "- Add standalone status and separately authorized native risk/action observation, plus a transactional retained event journal in Session Core 0.3.25.\n- Add one-page CLI replay with durable new/resume checkpoints, at-least-once delivery, and explicit VS Code / JetBrains recovery controls.\n- Compose the data-only project-delivery-assistant 0.2.0 scenario with full declaration consent and per-operation capability limits; native confirmation remains separate from pending drafts.\n- Pair Open VSX 0.37.178 and JetBrains 0.4.195 only after the exact-source CLI matrices, OIDC publication and public package verification. Real GUI and business-effect acceptance remain separate."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.141",
       "cliVersions": ["0.166.141"],
       "date": "2026-11-04",
