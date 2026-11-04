@@ -3,6 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { agentLoop } from "../helpers/test-model-egress.js";
+import { isFormalQualityHermeticRuntime } from "../../src/lib/formal-quality-eval-runtime.js";
 
 const bindingEnv = "CC_FORMAL_QUALITY_EVAL_ALLOWED_FILES";
 const mutationNames = ["write_file", "edit_file", "edit_file_hashed"];
@@ -26,14 +27,21 @@ const writeCall = (file) => ({
 });
 
 beforeEach(() => {
-  workspace = fs.realpathSync(
-    fs.mkdtempSync(path.join(os.tmpdir(), "cc-formal-entry-scope-")),
+  const temporaryWorkspace = fs.mkdtempSync(
+    path.join(os.tmpdir(), "cc-formal-entry-scope-"),
   );
+  workspace = fs.realpathSync(temporaryWorkspace);
   for (const file of ["allowed.js", "second.js", "sibling.js"]) {
     fs.writeFileSync(path.join(workspace, file), "// placeholder\n");
   }
   vi.stubEnv("CC_FORMAL_QUALITY_EVAL_HERMETIC", "1");
-  vi.stubEnv("CHAINLESSCHAIN_HOME", path.join(workspace, "isolated-home"));
+  // Match the launcher's temporary coordinate. On macOS realpath resolves
+  // /var to /private/var, while launcher admission uses the os.tmpdir alias.
+  vi.stubEnv(
+    "CHAINLESSCHAIN_HOME",
+    path.join(temporaryWorkspace, "isolated-home"),
+  );
+  expect(isFormalQualityHermeticRuntime(process.env)).toBe(true);
   vi.stubEnv(bindingEnv, JSON.stringify(["allowed.js"]));
   requests = [];
   firstReply = null;
