@@ -1,5 +1,15 @@
 # ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+<!-- release141-candidate:start -->
+
+## CLI 0.166.141 / 配套 IDE 新版准备
+
+源码候选 CLI **0.166.141**、VS Code **0.37.177**、JetBrains **0.4.194** 正在执行发布验证，尚未据此宣称新版已公开。修复合法源码展开表达式在读取预览中被误省略的问题，保留可执行的读取恢复提示，并统一 CLI 与 IDE 的隔离评测文件范围；普通交互权限和 IDE 协议保持原有行为。
+
+子 npm 包版本不变，仍须逐包核验公开字节与安装。只有准确发行提交的 Linux、Windows、macOS CLI CI / CLI Strict Sandbox 全矩阵通过，才通过 Actions OIDC 发布 CLI；确认公开安装可用后再发布 IDE。已测模型任务暂不重测，历史成绩不因发版变化。
+
+<!-- release141-candidate:end -->
+
 <!-- release140-current:start -->
 
 ## 当前公开 CLI：0.166.140 / IDE 恢复补丁
@@ -21,7 +31,6 @@ Windows 聚焦检查 **129 项通过**。较早 v9 恢复实测共 **5 次真实
 旧候选 `eb0fe7a8a1` 曾在 Windows ArtifactStore post-index 完整性组合校验处失败，随后完整三平台回环复测通过；具体拒绝子条件仍未知，校验继续生效。[原始失败](docs/research/cli/evidence/tool-argument-recovery-20261103/windows-eb-trajectory-attempt1-failure.json)与[完整复测](docs/research/cli/evidence/tool-argument-recovery-20261103/windows-eb-trajectory-attempt2-aggregate.json)保留历史源码范围。最终发行源码另有三平台各 100 次回环通过，共 300 次仅覆盖结构封套，不代表付费模型任务验收，也不替代 CLI CI / Strict Sandbox。本地 composition 在 v10 源码与较早基线上均出现超时，未计为通过。
 
 Agent SDK **0.2.17**、Protocol **0.1.12**、Kernel **0.1.11** 和其他子包沿用已公开版本；CLI 发布前已回读必需上游包并核验依赖对齐。Microsoft Marketplace 继续暂缓。PC/移动端 **v5.0.3.144** 已独立公开，本次 CLI/IDE 后续不重复发布客户端。历史 .138 **2/4**、.137 **0/5**、累计 **41/45** 各自范围保留。
-
 
 文档于 **2026-11-03** 按 `main@d62866538c` 核对：后续读取恢复提示与 Web Panel bundle 修复不在不可变 CLI .140 发行源中。火山 .140 全量 **36+9** 最终成绩尚未核验，内部输出限制适配器修复另行记录。原冻结项目历史 **41/45**、.138 **2/4** 与含修复项目的 Sol 跨版本覆盖 **45/45** 分别保留。[最新设计](docs/design/release-runtime-update-2026-11-03-140.md) · [升级指南](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-11-03-140.html)。
 

@@ -2,6 +2,20 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
 
+<!-- release141-pairing:start -->
+
+## CLI 0.166.141 / complete source preview recovery
+
+Release candidate **0.166.141** preserves legitimate source spread expressions in complete file-read previews and keeps read-recovery guidance actionable. Launcher-owned hermetic evaluations use the same exact mutation scope through the CLI and IDE gateway; ordinary interactive permissions and the IDE protocol retain their existing behavior.
+
+The intended pairing is VS Code **0.37.177** and JetBrains **0.4.194**. Child npm versions are unchanged. Publication remains pending until this exact source passes every configured Linux, Windows and macOS CLI CI / CLI Strict Sandbox job, then GitHub Actions OIDC publishes and verifies the public npm archive. IDE publication follows verified CLI installation.
+
+After public availability is verified, install `npm i -g chainlesschain@0.166.141 --registry https://registry.npmjs.org`, restart the CLI and IDE hosts, and run `cc --version` and `cc doctor`.
+
+This release does not run additional model-task retests or rescore historical results. Volcengine historical coverage remains 36/45 with its original qualification limits; the latest complete round is 24/45. Sol original-project history is 41/45, the latest repaired-source four-case cohort is 2/4, and cross-version coverage is 45/45. Diagnostic future budgets remain finite; these are not automatic increases to ordinary user requests.
+
+<!-- release141-pairing:end -->
+
 <!-- release140-pairing:start -->
 
 ## CLI 0.166.140 / rejected tool argument recovery
@@ -23,7 +37,6 @@ The focused Windows checks passed **129 tests**. The earlier v9 recovery check u
 Earlier candidate `eb0fe7a8a1` failed at the Windows ArtifactStore post-index integrity guard, then passed a complete three-OS loopback rerun. The exact rejected condition remains unresolved; the guard stays enforced. The [original failure](../../docs/research/cli/evidence/tool-argument-recovery-20261103/windows-eb-trajectory-attempt1-failure.json) and [complete rerun](../../docs/research/cli/evidence/tool-argument-recovery-20261103/windows-eb-trajectory-attempt2-aggregate.json) retain their historical source scope. The final release source separately passed 100 loopback runs on each of three operating systems; these 300 structural-envelope-only runs are not paid-provider task acceptance or a replacement for CLI CI / Strict Sandbox. Local composition runs timed out on both the v10 source and the earlier baseline and are not counted as passing.
 
 Agent SDK **0.2.17**, Protocol **0.1.12**, Kernel **0.1.11** and the other child packages retain their published versions; required upstream packages were fetched and dependency alignment verified before CLI publication. Microsoft Marketplace remains deferred. PC/mobile **v5.0.3.144** is already public as an independent release; this CLI/IDE follow-up does not republish clients. Historical .138 **2/4**, .137 **0/5** and cumulative **41/45** retain separate scopes.
-
 
 Documentation reviewed against `main@d62866538c` on **2026-11-03**. The later read-recovery hint and Web Panel bundle fixes are outside the immutable CLI .140 release source. The .140 full 36+9 Volcengine campaign has no verified final score yet; the internal-output-limit adapter repair is tracked separately. Historical original-project **41/45**, .138 **2/4**, and Sol cross-revision coverage **45/45** (including repaired project sources) retain separate scopes. [Current design](../../docs/design/release-runtime-update-2026-11-03-140.md) · [Upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-11-03-140.html).
 

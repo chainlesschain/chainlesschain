@@ -2,6 +2,13 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.177] - complete source preview recovery pairing (2026-11-04)
+
+- Recommend CLI 0.166.141 and pair with JetBrains 0.4.194 after verified CLI publication.
+- Carry the shared runtime repair that preserves legitimate source spread expressions in file-read previews and keeps recovery instructions actionable.
+- Align the CLI and IDE entry boundaries in launcher-owned hermetic evaluations without changing ordinary interactive permissions or the IDE protocol.
+- Retain historical model results and finite diagnostic budgets. This release performs no additional paid model-task retests.
+
 ## [0.37.176] - rejected tool argument recovery pairing (candidate, 2026-11-03)
 
 - Recommend CLI 0.166.140 and pair with JetBrains 0.4.193 after verified upstream publication.

@@ -1,5 +1,15 @@
 # CLI 文档
 
+<!-- release141-candidate:start -->
+
+## CLI 0.166.141 / 新版源码候选
+
+CLI **0.166.141** 修复合法源码展开表达式被读取预览误省略的问题，并统一隔离评测中的 CLI / IDE 文件范围。配套候选为 VS Code **0.37.177**、JetBrains **0.4.194**，普通交互权限和 IDE 协议保持原有行为。
+
+当前仍在验证阶段：准确提交的 Linux、Windows、macOS CLI CI / CLI Strict Sandbox 全矩阵通过后，通过 GitHub Actions OIDC 发布 CLI；公开安装与来源核验通过后才发布 IDE。新版本公开前，下面已核验的 `.140` 安装说明继续有效。此次不启动模型任务复测，不改写历史验收成绩。
+
+<!-- release141-candidate:end -->
+
 <!-- release140-current:start -->
 
 ## 当前公开 CLI：0.166.140 / IDE 恢复补丁
