@@ -144,6 +144,8 @@ jobs:
       - name: Verify committed changelog before test fan-out
         working-directory: packages/cli
         run: npm test -- __tests__/unit/changelog-artifact-parity.test.js
+      - name: Verify diagnostic budget refusal before test fan-out
+        run: node --test packages/cli/test-node/budget-diagnostic-boundaries.node-test.mjs
       # These distribution assets are ignored by Git. A clean checkout must
       # construct their actual locked-source bytes before the unchanged audit;
       # a developer's cached bundle cannot stand in for release evidence.
