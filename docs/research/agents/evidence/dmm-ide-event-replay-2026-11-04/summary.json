@@ -1,0 +1,256 @@
+{
+  "taskIds": ["DMM-07"],
+  "recordedAt": "2026-11-04T15:29:47.731Z",
+  "result": "Explicit retained-history recovery in both IDEs, native new/resume selection, bounded one-page replay, success only after CLI exit zero and protocol validation, host-bound continuation, owned cancellation and honest unknown checkpoint outcomes.",
+  "source": {
+    "baseCommit": "5717128e51b486b3a2c6232c2886a709a29e49f6",
+    "state": "Uncommitted shared worktree, preserving earlier DMM batches; no version bump or publication.",
+    "sha256": {
+      "packages/vscode-extension/src/goal-history.js": "b2867f43ef29a8773a25e44ebde1982e46744dacc5ba5b9197dc1a54223675c4",
+      "packages/vscode-extension/src/goal-events.js": "f48d3427ba52176da89a00c59f11bc13e585dd6a97d70d1dae980b8a4f9bd7ed",
+      "packages/vscode-extension/src/ui/plugin-manager-view.js": "079112afe99bf147c4e6af3912daa00408511bd0c323e924fdcabe50c3d14cc4",
+      "packages/vscode-extension/src/plugin-manager.js": "3b6f41ebd7b376c1600144e5ad811e07e06045cf781b0d9d9f2d90967c096b73",
+      "packages/vscode-extension/src/chat/stop-agent-process.js": "580dab9b7ee089ab8a3ea688c2c90e56183ba300b77dfbbd9b5037607c2e386f",
+      "packages/vscode-extension/src/hardened-env.js": "4579cee63bcd65bb0e67469f0064145d0da93bcac163fc09abb2786e1b467f4b",
+      "packages/vscode-extension/src/win-shell.js": "a5c8579edd89e7aa2de6ecc48035ec2e93ac8759e49b33fbfc8b32e584900c56",
+      "packages/cli/src/commands/goal.js": "3205720dbf454d99c5a68767869f4f2e9f6263c41878074b99f68d5febb1884f",
+      "packages/cli/src/lib/plugin-runtime/cli-goal-event-history.js": "b0065b2ffe2e416fca00c34b579e1f7d21556052ceabdac8a3587f173b4f6ff4",
+      "packages/cli/src/command-help-index.json": "ef620362086af1f67657b754e6b3958279273f06a578225104e9f7b45630b8c4",
+      "packages/cli/__tests__/fixtures/goal-history.cjs": "c542561a1336d38bfabbc17040bb012f01ce110ca100285f4ac855bd14f1ef0f",
+      "packages/cli/__tests__/unit/vscode-ext-goal-history.test.js": "6bc50a786bad63b01d8b15892edcd6896c5d348bd478efc1b2bbfc81dd523952",
+      "packages/cli/__tests__/unit/vscode-ext-goal-history-view.test.js": "0dedff5cc724efa62c2d90082afe8a6ede3d56116ca963acdead04611e0ce096",
+      "packages/cli/__tests__/integration/vscode-goal-history-process.test.js": "bd29a0c810c93c2a3a70f056798972e1c7d8ac8d6c21cdc18ea37198e70007e4",
+      "packages/cli/__tests__/unit/cli-goal-event-history.test.js": "1c4d9e910468d8d39f36caecbf167c8a98b7f24250da528980e6a85aa3c7f63c",
+      "packages/cli/__tests__/unit/vscode-ext-goal-events.test.js": "de4f2a74ced87f0d8677a04a8efc8f20be4e974f54998bd9cb868640c1af41ec",
+      "packages/cli/__tests__/unit/vscode-ext-goal-events-view.test.js": "239a01ea000fb295f6b29da99b03530eec47cdf1c71bbcb5d60fefb116592039",
+      "packages/cli/__tests__/integration/vscode-goal-events-process.test.js": "9257a872bb64785802ba0ab1f779ca12d747437a524f37838c0606db4de24419",
+      "packages/cli/__tests__/unit/vscode-ext-goal-panels-view.test.js": "baf937708db128137e181ea24016f7312eb0c607cfccb6c354a5e1ef2ef81838",
+      "packages/cli/__tests__/unit/vscode-ext-goal-drafts.test.js": "0a1002ed19603b63b8ae1ce9afdb55ff80ecdd52aa5a319ef7825face1bc1abe",
+      "packages/cli/__tests__/unit/vscode-ext-goal-draft-request-view.test.js": "f4de525633232331a91d8df7e4d90165458fa994a7c54fafb341235f749095f0",
+      "packages/cli/__tests__/unit/vscode-ext-plugin-manager.test.js": "f6e7a2970e2f646c73919958dc97d4b7e1e6b186f8674052b09d1d70d848cfe1",
+      "packages/cli/__tests__/unit/plugin-goal-extension.test.js": "d3b9f3f8f928bee398bff5850b8a82e4545c3c0d1a666883dee94e86262635a7",
+      "packages/cli/__tests__/unit/cli-project-goal-events.test.js": "72a70665824f1dade7f5537cb79d549820ba0f3b61e809b7712e06515ddb2220",
+      "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/GoalHistoryReplay.java": "59312c956e37178950a5fb487ec7aa2a25bd6a62eea2b4efc41ecb366cdb859d",
+      "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/GoalEventObserver.java": "65612edc8e439db5a6dcda902bb71726115989dcc567755f91b9d206f7e1f139",
+      "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/PluginManagerAction.java": "fe4b8d91747d5e93a7c3eae8752ca4a8eb6ef569dd12e049627103533b197cfa",
+      "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/AgentChatSession.java": "3146b03c1967d372d0799cf717dec04d47d6ad1dfeff7e52ddaa9018978e9c01",
+      "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/PluginManager.java": "50ae9e86989c03f9fb5900379b2f833d36ed9d971449d3bd1cb302869f46e259",
+      "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/GoalHistoryReplayTest.java": "2f215a5ba4bd138e422735f9b46e07af65b9da2d0d0d7d3795a61959f10ea8fb",
+      "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/GoalHistoryFixture.java": "3c5cf1cc02f757f9f213cf13b610f89ae67a15acff62645a5c2c69bb3fc95ddb",
+      "packages/cli/README.md": "90a8b2fbc6ad95ae145969b8d024c8a704585de1e4d0d38f875aad6d64953cc6",
+      "packages/vscode-extension/README.md": "67661cfd71915640b308c70c17debfe7e1be4390fbc4ee852ca2d8f82e974be8",
+      "packages/jetbrains-plugin/README.md": "15e55f821d62944e5002c5f38a59beb54d8a82315ff0563fca4b9b40fdde0bf4",
+      "docs/research/agents/README.md": "725db803c60ce7a31523904a22947c6686ad11b2b6145654f43135081c2bbce9",
+      "docs/research/agents/chainlesschain-dots-muse-mods-analysis-2026-10-06.md": "4d17784af85ceaafd72dbfa5f64be8159c4dae374f3ddd5f55ce6f9ea44294da",
+      "docs/research/agents/dots-muse-mods-implementation-progress-2026-10-07.md": "20b5a06eb09d9e823d5e511b03a0533c261fa1164f359dbe2ad20f3cd2c12480",
+      "docs/research/agents/evidence/dmm-ide-event-replay-2026-11-04/README.md": "1a80a1a7e7a403e2432613e8e83d7078769b941ef40e4578a1e91f5d7629d109",
+      "docs/research/agents/evidence/dmm-ide-event-replay-2026-11-04/verify-artifacts.mjs": "b6f14d728662880cea6571230e2315cea23a55ec8e59cfe495fc9a213ba637b4"
+    }
+  },
+  "host": {
+    "platform": "win32",
+    "arch": "x64",
+    "osRelease": "10.0.19045",
+    "node": "v22.22.2",
+    "vitest": "4.1.10",
+    "jdk": "Existing IDEA 2025.3 jbr, Java 21",
+    "gradle": "8.7, offline cache"
+  },
+  "totals": {
+    "fileOrClassCount": 16,
+    "passed": 230,
+    "failed": 0,
+    "skipped": 0
+  },
+  "tests": {
+    "node": {
+      "cwd": "packages/cli",
+      "command": "node node_modules/vitest/vitest.mjs run __tests__/unit/vscode-ext-goal-history.test.js __tests__/unit/vscode-ext-goal-history-view.test.js __tests__/integration/vscode-goal-history-process.test.js __tests__/unit/cli-goal-event-history.test.js __tests__/unit/vscode-ext-goal-events.test.js __tests__/unit/vscode-ext-goal-events-view.test.js __tests__/integration/vscode-goal-events-process.test.js __tests__/unit/vscode-ext-goal-panels-view.test.js __tests__/unit/vscode-ext-goal-drafts.test.js __tests__/unit/vscode-ext-goal-draft-request-view.test.js __tests__/unit/vscode-ext-plugin-manager.test.js __tests__/unit/plugin-goal-extension.test.js __tests__/unit/cli-project-goal-events.test.js --reporter=json --outputFile=../../docs/research/agents/evidence/dmm-ide-event-replay-2026-11-04/cli-tests.json",
+      "report": {
+        "path": "docs/research/agents/evidence/dmm-ide-event-replay-2026-11-04/cli-tests.json",
+        "sha256": "284d99642c7071c6268ff90fd3d55075c60750914745310730a26a3fce306bfb"
+      },
+      "files": [
+        {
+          "path": "__tests__/integration/vscode-goal-events-process.test.js",
+          "passed": 3,
+          "failed": 0
+        },
+        {
+          "path": "__tests__/integration/vscode-goal-history-process.test.js",
+          "passed": 4,
+          "failed": 0
+        },
+        {
+          "path": "__tests__/unit/cli-goal-event-history.test.js",
+          "passed": 15,
+          "failed": 0
+        },
+        {
+          "path": "__tests__/unit/cli-project-goal-events.test.js",
+          "passed": 21,
+          "failed": 0
+        },
+        {
+          "path": "__tests__/unit/plugin-goal-extension.test.js",
+          "passed": 47,
+          "failed": 0
+        },
+        {
+          "path": "__tests__/unit/vscode-ext-goal-draft-request-view.test.js",
+          "passed": 3,
+          "failed": 0
+        },
+        {
+          "path": "__tests__/unit/vscode-ext-goal-drafts.test.js",
+          "passed": 10,
+          "failed": 0
+        },
+        {
+          "path": "__tests__/unit/vscode-ext-goal-events-view.test.js",
+          "passed": 10,
+          "failed": 0
+        },
+        {
+          "path": "__tests__/unit/vscode-ext-goal-events.test.js",
+          "passed": 18,
+          "failed": 0
+        },
+        {
+          "path": "__tests__/unit/vscode-ext-goal-history-view.test.js",
+          "passed": 11,
+          "failed": 0
+        },
+        {
+          "path": "__tests__/unit/vscode-ext-goal-history.test.js",
+          "passed": 30,
+          "failed": 0
+        },
+        {
+          "path": "__tests__/unit/vscode-ext-goal-panels-view.test.js",
+          "passed": 12,
+          "failed": 0
+        },
+        {
+          "path": "__tests__/unit/vscode-ext-plugin-manager.test.js",
+          "passed": 12,
+          "failed": 0
+        }
+      ]
+    },
+    "jetbrains": {
+      "cwd": "packages/jetbrains-plugin",
+      "javaHome": "C:/Users/longfa/AppData/Local/Programs/idea-2025.3/jbr",
+      "command": ".\\gradlew.bat '-Dorg.gradle.java.installations.paths=C:/Users/longfa/AppData/Local/Programs/idea-2025.3/jbr' --offline --no-daemon test --tests com.chainlesschain.ide.GoalHistoryReplayTest --tests com.chainlesschain.ide.GoalEventObserverTest --tests com.chainlesschain.ide.PluginManagerTest buildPlugin --console=plain",
+      "exitCode": 0,
+      "reports": [
+        {
+          "path": "docs/research/agents/evidence/dmm-ide-event-replay-2026-11-04/jetbrains-history-tests.xml",
+          "sha256": "f1f7efba682cdd115c29093f771db8fb7b5b5c05afed3d356d9c9cb6000985ab",
+          "tests": 9,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "path": "docs/research/agents/evidence/dmm-ide-event-replay-2026-11-04/jetbrains-observer-tests.xml",
+          "sha256": "7995ed7100174763c1a293248c1f553bca31d4a8acbc4b902bde20ce79867b0c",
+          "tests": 8,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "path": "docs/research/agents/evidence/dmm-ide-event-replay-2026-11-04/jetbrains-plugin-manager-tests.xml",
+          "sha256": "e42e7934721c88ea7fdb8ea3fc2eb7f879b8a3c6ad3c33bd74c7730a3a3db2a9",
+          "tests": 17,
+          "failed": 0,
+          "skipped": 0
+        }
+      ]
+    }
+  },
+  "artifacts": {
+    "report": {
+      "path": "docs/research/agents/evidence/dmm-ide-event-replay-2026-11-04/artifacts.json",
+      "sha256": "c6e162755369a404d9c8db3ee1e7ccfd3b688d4d7568d545b39e6bac50856508"
+    },
+    "verificationScript": {
+      "path": "docs/research/agents/evidence/dmm-ide-event-replay-2026-11-04/verify-artifacts.mjs",
+      "sha256": "b6f14d728662880cea6571230e2315cea23a55ec8e59cfe495fc9a213ba637b4"
+    },
+    "localOnly": true,
+    "published": false,
+    "realGuiRun": false
+  },
+  "checks": [
+    {
+      "cwd": ".",
+      "command": "node packages/cli/scripts/gen-command-manifest.mjs --check",
+      "exitCode": 0
+    },
+    {
+      "cwd": ".",
+      "command": "node packages/cli/scripts/gen-command-help-index.mjs --check",
+      "exitCode": 0
+    },
+    {
+      "cwd": ".",
+      "command": "node packages/cli/scripts/gen-shell-completions.mjs --check",
+      "exitCode": 0
+    },
+    {
+      "cwd": "packages/vscode-extension",
+      "command": "node C:/Users/longfa/AppData/Local/npm-cache/_npx/3a91968533d026da/node_modules/@vscode/vsce/vsce package --no-dependencies --out <Windows-Temp>/dmm-ide-event-replay-20261104/chainlesschain-goal-history-local.vsix",
+      "exitCode": 0
+    },
+    {
+      "cwd": ".",
+      "command": "node packages/vscode-extension/scripts/verify-vsix.mjs <local-vsix>",
+      "exitCode": 0,
+      "checksPassed": 18
+    },
+    {
+      "cwd": ".",
+      "command": "node docs/research/agents/evidence/dmm-ide-event-replay-2026-11-04/verify-artifacts.mjs <local-vsix> packages/jetbrains-plugin/build/distributions/chainlesschain-ide-bridge-0.4.194.zip",
+      "exitCode": 0,
+      "vsixJsMatched": 6,
+      "jetbrainsClassesMatched": 10
+    },
+    {
+      "cwd": ".",
+      "command": "node node_modules/prettier/bin/prettier.cjs --check packages/vscode-extension/src/goal-history.js packages/vscode-extension/src/ui/plugin-manager-view.js packages/cli/src/commands/goal.js packages/cli/src/lib/plugin-runtime/cli-goal-event-history.js packages/cli/__tests__/fixtures/goal-history.cjs packages/cli/__tests__/unit/vscode-ext-goal-history.test.js packages/cli/__tests__/unit/vscode-ext-goal-history-view.test.js packages/cli/__tests__/integration/vscode-goal-history-process.test.js packages/cli/__tests__/unit/cli-goal-event-history.test.js packages/vscode-extension/README.md packages/jetbrains-plugin/README.md packages/cli/README.md docs/research/agents/README.md docs/research/agents/chainlesschain-dots-muse-mods-analysis-2026-10-06.md docs/research/agents/dots-muse-mods-implementation-progress-2026-10-07.md docs/research/agents/evidence/dmm-ide-event-replay-2026-11-04/README.md docs/research/agents/evidence/dmm-ide-event-replay-2026-11-04/verify-artifacts.mjs docs/research/agents/evidence/dmm-ide-event-replay-2026-11-04/summary.json docs/research/agents/evidence/dmm-ide-event-replay-2026-11-04/artifacts.json",
+      "exitCode": 0
+    },
+    {
+      "cwd": ".",
+      "command": "git diff --check",
+      "exitCode": 0
+    }
+  ],
+  "boundaries": {
+    "real": [
+      "CLI strict-lock checkpoint new/resume behavior with real temporary files and SQLite journal",
+      "VS Code owned real Node child: success, valid stdout with nonzero exit, malformed packet and cancellation",
+      "JetBrains real child JVM, Windows command shim and independent PID closure verification",
+      "Full JetBrains source compile and local plugin archive/source byte verification"
+    ],
+    "testControls": [
+      "VS Code picker, webview and workspace lifecycle API substitutes",
+      "Protocol-only child fixtures, not production business data",
+      "JetBrains pure JDK tests and source compilation; UI interaction not run"
+    ],
+    "notRun": [
+      "Real VS Code, JetBrains or Electron GUI journey",
+      "Linux/macOS host and process validation",
+      "New native database/HMAC HTTP integration; previous batch retains separate evidence",
+      "Independent business-effect evaluation and complete installable delivery assistant",
+      "Exact-release-commit GitHub Actions matrices, publication or version changes"
+    ]
+  },
+  "notes": [
+    "Intermediate Node assertions and Java fixture classpath failures are described in README; only final JSON/XML is counted. One Gradle option-order invocation was rejected before tests; the recorded final command passed.",
+    "Final VS Code source formatting changed whitespace only after the Node suite. Repackaged VSIX bytes match the final source.",
+    "Gradle searchable-options task is headless packaging, not GUI acceptance.",
+    "Existing VSIX bundling recommendation remains; metadata passed. README link rewriting is separate from executable JS equality.",
+    "At-least-once display does not acknowledge downstream consumption. Cancelled/unconfirmed recovery may have advanced its checkpoint; the IDE retains it for explicit resume."
+  ]
+}

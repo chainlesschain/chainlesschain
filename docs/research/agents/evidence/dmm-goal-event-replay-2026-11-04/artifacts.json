@@ -1,0 +1,39 @@
+{
+  "core": {
+    "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\dmm-goal-replay-pack-20261104\\chainlesschain-session-core-0.3.24.tgz",
+    "sha256": "159a563f5271f705c2be7be01137392c7889475fb9b9824fe67f3c51702d82ee",
+    "sourceMatches": {
+      "lib/project-goal-event-journal.js": "f40a26e9eceb13a792e3e81ac9a849cc61122e584fa54c4c49333ee11543ed76",
+      "lib/project-goal-monitoring.js": "9fae4557fa7e9f3cb15f8939c34df1dd35620ed181d666aa4290af01ac5b87ee",
+      "lib/project-goal-workflow.js": "fbace8bc8c95f0067a65f21a7b783e9b554ca304b5cb1721c350b1229238004a",
+      "lib/project-goal-evidence-reader.js": "d7d1ceb0b76b2997979c36414cb9cbc093ee206dd0d38152ff52e9c53d66bf29",
+      "lib/goal-evidence-contract.js": "31872b77c57162e53540b203c1679ae9d3f316d1cf01dcff19826c61c01aa66d"
+    },
+    "published": false,
+    "version": "0.3.24",
+    "entryCount": 81,
+    "probes": {
+      "publicExportMap": true,
+      "commonJs": true,
+      "esmHelpers": true,
+      "realNativeJournalAppend": true,
+      "readOnlyReplay": true,
+      "nativeDriverProvidedByHost": true,
+      "registryInstall": false
+    }
+  },
+  "cli": {
+    "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\dmm-goal-replay-cli-pack-20261104\\chainlesschain-0.166.141.tgz",
+    "sha256": "a0fe94c94a600822646bf802c72680bafc2d2ee0016574a71235733693af8af3",
+    "sourceMatches": {
+      "src/lib/plugin-runtime/cli-goal-event-history.js": "a6de9db34355545b94da7a54bf78a0c0b2d08be531fc2df07882bca08d8900d1",
+      "src/commands/goal.js": "5e2be8ada7f7a2d1088b1e50a2d1ae97fbc40ea62eefb9a4400f1969ec72bf36",
+      "src/command-help-index.json": "ef620362086af1f67657b754e6b3958279273f06a578225104e9f7b45630b8c4"
+    },
+    "published": false,
+    "version": "0.166.141",
+    "entryCount": 1853,
+    "isolatedRuntime": false
+  },
+  "releaseGatePassed": false
+}

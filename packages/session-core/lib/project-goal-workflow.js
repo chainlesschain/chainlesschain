@@ -11,6 +11,7 @@ const {
   ProjectRiskReviewService,
 } = require("./project-risk-review-service.js");
 const { GoalUsageLedger } = require("./goal-usage-ledger.js");
+const { ProjectGoalEventJournal } = require("./project-goal-event-journal.js");
 const { ApprovalGate } = require("./approval-gate.js");
 const {
   validateGoalExtensionIntentRef,
@@ -174,6 +175,7 @@ class ProjectGoalWorkflow {
         now: () => new Date(epoch(clock())).toISOString(),
       });
     this.adapter = this.goals.adapter;
+    this.events = new ProjectGoalEventJournal(db);
     this.risk =
       risk || new ProjectRiskReviewService({ db, getActor, now: clock });
     this.usage = usage || new GoalUsageLedger({ db });
@@ -971,6 +973,20 @@ class ProjectGoalWorkflow {
       }
     }
     this._save({ ...intent, runId: run.id, status: run.status }, "intent");
+    this.events.append({
+      goalRef: {
+        id: intent.goalId,
+        storeId: intent.storeId,
+        revision: intent.goalRevision,
+        controlGeneration: intent.controlGeneration,
+      },
+      actor,
+      sourceId: run.id,
+      type: "action.receipt.updated",
+      state: run.status === "running" ? "unresolved" : run.status,
+      actionType: run.actionType,
+      recordedAt: run.completedAt || run.startedAt,
+    });
     return { recorded: true };
   }
   _intentResult(intent, actor) {

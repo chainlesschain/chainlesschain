@@ -5,7 +5,11 @@ import http from "node:http";
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { inspectPrivatePath } from "@chainlesschain/session-core/private-storage";
 import { goalExtensionRef } from "@chainlesschain/session-core/goal-extension-proposal-contract";
-import { validateGoalEvidenceProjection } from "@chainlesschain/session-core/goal-evidence-contract";
+import {
+  validateGoalEvidenceProjection,
+  validateGoalEventHistoryPage,
+  parseGoalEventCursor,
+} from "@chainlesschain/session-core/goal-evidence-contract";
 import { validateGoalDraftDescriptor } from "@chainlesschain/session-core/goal-draft-connection-contract";
 import { createProjectGoalDraftClient } from "./project-goal-draft-connection.js";
 function fail() {
@@ -59,17 +63,32 @@ export function createProjectGoalConnection(file) {
     }
     const evidence =
       descriptor.schema === "chainlesschain.project-goal-connection/v2";
-    const endpointPath = evidence ? "/goal-evidence" : "/goal-summary";
+    const events =
+      descriptor.schema === "chainlesschain.project-goal-connection/v4";
+    const history =
+      descriptor.schema === "chainlesschain.project-goal-connection/v5";
+    const endpointPath = history
+      ? "/goal-event-history"
+      : events
+        ? "/goal-events"
+        : evidence
+          ? "/goal-evidence"
+          : "/goal-summary";
     if (
       Object.keys(descriptor).sort().join() !==
-        (evidence
+        (evidence || events || history
           ? "capability,endpoint,expiresAt,goalRef,key,schema"
           : "endpoint,expiresAt,goalRef,key,schema") ||
-      (evidence
-        ? descriptor.capability !== "goal.evidence"
-        : descriptor.schema !== "chainlesschain.project-goal-connection/v1") ||
+      (history
+        ? descriptor.capability !== "goal.event-history"
+        : events
+          ? descriptor.capability !== "goal.events"
+          : evidence
+            ? descriptor.capability !== "goal.evidence"
+            : descriptor.schema !==
+              "chainlesschain.project-goal-connection/v1") ||
       typeof descriptor.endpoint !== "string" ||
-      !/^http:\/\/127\.0\.0\.1:[1-9][0-9]{0,4}\/goal-(?:summary|evidence)$/.test(
+      !/^http:\/\/127\.0\.0\.1:[1-9][0-9]{0,4}\/goal-(?:summary|evidence|events|event-history)$/.test(
         descriptor.endpoint,
       ) ||
       new URL(descriptor.endpoint).pathname !== endpointPath ||
@@ -93,22 +112,26 @@ export function createProjectGoalConnection(file) {
       createHmac("sha256", Buffer.from(descriptor.key, "hex"))
         .update(value)
         .digest("hex");
-    async function read(id = ref.id) {
+    async function read(id = ref.id, { signal, after } = {}) {
       validate();
       if (id !== ref.id) fail();
+      if (after !== undefined && !history) fail();
+      if (after !== undefined) parseGoalEventCursor(after);
+      const requestPath =
+        endpointPath + (after === undefined ? "" : `?after=${after}`);
       const nonce = randomBytes(32).toString("hex");
       try {
         const result = await new Promise((resolve, reject) => {
           const request = http.get(
-            descriptor.endpoint,
+            descriptor.endpoint +
+              (after === undefined ? "" : `?after=${after}`),
             {
               agent: false,
+              signal,
               maxHeaderSize: 4096,
               headers: {
                 "X-CC-Nonce": nonce,
-                "X-CC-Signature": mac(
-                  `request\nGET\n${endpointPath}\n${nonce}`,
-                ),
+                "X-CC-Signature": mac(`request\nGET\n${requestPath}\n${nonce}`),
               },
             },
             (response) => {
@@ -124,19 +147,48 @@ export function createProjectGoalConnection(file) {
                 const body = Buffer.concat(chunks).toString("utf8"),
                   signature = response.headers["x-cc-signature"];
                 if (
-                  response.statusCode !== 200 ||
+                  (!history && response.statusCode !== 200) ||
                   typeof signature !== "string" ||
                   !/^[a-f0-9]{64}$/.test(signature) ||
                   !timingSafeEqual(
                     Buffer.from(signature),
-                    Buffer.from(mac(`response\n${nonce}\n${body}`)),
+                    Buffer.from(
+                      mac(
+                        history
+                          ? `response\n${nonce}\n${response.statusCode}\n${body}`
+                          : `response\n${nonce}\n${body}`,
+                      ),
+                    ),
                   )
                 ) {
                   reject(new Error("signature"));
                   return;
                 }
                 try {
-                  resolve(JSON.parse(body));
+                  const parsed = JSON.parse(body);
+                  if (history && response.statusCode !== 200) {
+                    if (
+                      [409, 410].includes(response.statusCode) &&
+                      Object.keys(parsed).join() === "error" &&
+                      [
+                        "GOAL_EVENT_CURSOR_INVALID",
+                        "GOAL_EVENT_HISTORY_GAP",
+                        "GOAL_EVENT_HISTORY_REGRESSED",
+                        "GOAL_EVENT_HISTORY_UNAVAILABLE",
+                        "GOAL_EVENT_HISTORY_INVALID",
+                      ].includes(parsed.error)
+                    ) {
+                      reject(
+                        Object.assign(new Error(parsed.error), {
+                          code: parsed.error,
+                        }),
+                      );
+                      return;
+                    }
+                    reject(new Error("status"));
+                    return;
+                  }
+                  resolve(parsed);
                 } catch {
                   reject(new Error("json"));
                 }
@@ -152,34 +204,66 @@ export function createProjectGoalConnection(file) {
           request.on("error", reject);
         });
         validate();
+        if (history) return validateGoalEventHistoryPage(result, ref, after);
         if (
           Object.keys(result).sort().join() !==
-            (evidence
-              ? "goalRef,objective,receipts,risk,schema,status"
-              : "goalRef,objective,schema,status") ||
+            (events
+              ? "goalRef,receipts,risk,schema"
+              : evidence
+                ? "goalRef,objective,receipts,risk,schema,status"
+                : "goalRef,objective,schema,status") ||
           result.schema !==
-            (evidence
-              ? "chainlesschain.project-goal-evidence/v1"
-              : "chainlesschain.project-goal-summary/v1") ||
+            (events
+              ? "chainlesschain.project-goal-events/v1"
+              : evidence
+                ? "chainlesschain.project-goal-evidence/v1"
+                : "chainlesschain.project-goal-summary/v1") ||
           JSON.stringify(goalExtensionRef(result.goalRef)) !==
             JSON.stringify(ref) ||
-          typeof result.objective !== "string" ||
-          result.objective.length > 4096 ||
-          result.status !== "active"
+          (!events &&
+            (typeof result.objective !== "string" ||
+              result.objective.length > 4096 ||
+              result.status !== "active"))
         )
           fail();
-        if (evidence)
+        if (evidence || events)
           validateGoalEvidenceProjection({
             risk: result.risk,
             receipts: result.receipts,
           });
         return { ...result, goalRef: ref };
-      } catch {
+      } catch (error) {
+        if (
+          history &&
+          [
+            "GOAL_EVENT_CURSOR_INVALID",
+            "GOAL_EVENT_HISTORY_GAP",
+            "GOAL_EVENT_HISTORY_REGRESSED",
+            "GOAL_EVENT_HISTORY_UNAVAILABLE",
+            "GOAL_EVENT_HISTORY_INVALID",
+          ].includes(error.code)
+        )
+          throw error;
         fail();
       }
     }
     validate();
-    return Object.freeze({ goalRef: ref, evidence, read });
+    return history
+      ? Object.freeze({
+          goalRef: ref,
+          eventHistory: true,
+          readEventPage: (after, options = {}) =>
+            read(ref.id, { ...options, after }),
+          read: async () => fail(),
+        })
+      : events
+        ? Object.freeze({
+            goalRef: ref,
+            events: true,
+            readEvents: read,
+            read: async () => fail(),
+          })
+        : Object.freeze({ goalRef: ref, evidence, read });
   } catch {
     fail();
   } finally {

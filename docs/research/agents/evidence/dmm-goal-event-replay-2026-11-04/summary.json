@@ -1,0 +1,276 @@
+{
+  "taskIds": ["DMM-07", "DMM-09"],
+  "recordedAt": "2026-11-04T14:59:18.313Z",
+  "result": "Transactional native goal event journal, separately authorized v5 retained-history connection and explicit CLI replay with acknowledged-output checkpoint. Bounded at-least-once delivery; IDE history UI, actual GUI and release gates remain pending.",
+  "source": {
+    "baseCommit": "5717128e51b486b3a2c6232c2886a709a29e49f6",
+    "state": "Uncommitted shared worktree including earlier event/IDE batches. No version bump, publication or exact-commit release CI.",
+    "sha256": {
+      "packages/session-core/lib/project-goal-event-journal.js": "f40a26e9eceb13a792e3e81ac9a849cc61122e584fa54c4c49333ee11543ed76",
+      "packages/session-core/lib/project-goal-evidence-reader.js": "d7d1ceb0b76b2997979c36414cb9cbc093ee206dd0d38152ff52e9c53d66bf29",
+      "packages/session-core/lib/project-goal-monitoring.js": "9fae4557fa7e9f3cb15f8939c34df1dd35620ed181d666aa4290af01ac5b87ee",
+      "packages/session-core/lib/project-goal-workflow.js": "fbace8bc8c95f0067a65f21a7b783e9b554ca304b5cb1721c350b1229238004a",
+      "packages/session-core/lib/goal-evidence-contract.js": "31872b77c57162e53540b203c1679ae9d3f316d1cf01dcff19826c61c01aa66d",
+      "packages/cli/src/lib/plugin-runtime/cli-goal-event-history.js": "a6de9db34355545b94da7a54bf78a0c0b2d08be531fc2df07882bca08d8900d1",
+      "packages/cli/src/lib/project-goal-connection.js": "c70f158cbb656ffcfa86f6683b12f33102e5e439f4007b7aa851c68cdb2f0c2e",
+      "packages/cli/src/commands/goal.js": "5e2be8ada7f7a2d1088b1e50a2d1ae97fbc40ea62eefb9a4400f1969ec72bf36",
+      "packages/cli/src/command-help-index.json": "ef620362086af1f67657b754e6b3958279273f06a578225104e9f7b45630b8c4",
+      "packages/cli/__tests__/unit/project-goal-event-journal.test.js": "104b6a0acb3777911dd108dd2ef87ad8600ea00bec6a1e740315eec3c5f314db",
+      "packages/cli/__tests__/unit/cli-goal-event-history.test.js": "049cb2ac26dfa452a9bb2bed89991cf54f05edf0a3597529cbfa55a702b27372",
+      "desktop-app-vue/src/main/task/project-goal-cli-bridge.js": "e8cc4a46da165db0dbd3c2ecb30ea8ed9a4ad4dbab962ff5cabb02d2fef8cfe7",
+      "desktop-app-vue/src/main/task/project-goal-ipc.js": "6d4d4439a2a2ef38864be4c19185ce12a35aad651eac0e782eded627aac72df4",
+      "desktop-app-vue/src/main/task/__tests__/project-goal-event-history-ipc.test.js": "fa42bb84f6aca8a99a558f511500d3d9f9f6ebb1db1d6bddffb84b80238fd34b",
+      "desktop-app-vue/src/renderer/components/projects/ProjectGoalCliConnectionPanel.vue": "e64f48acfb61166f53f6ed28ca421e1b1900e9b8fa535d3b6c73700b55f50bac",
+      "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-cli-connection-panel.test.ts": "e9f692940a51a29c9d94979564aea90f8b890f923786d978e5b282e8f3133c4f",
+      "desktop-app-vue/vitest.business-actions.config.mjs": "45ebee990bcbec7fb1fe1cd4ce27ca855ff89c824ba6e6e7b1d68e8eba3e9910",
+      "packages/session-core/README.md": "8601d5a9c27a60223a54770623daa575a1d61bc67b5cb0df27ab03f8133183be",
+      "packages/cli/README.md": "1fe73b2f207e94cd524d46e2850004c481e9c91f09d86a0049bcbcaf621e6d7e",
+      "docs/research/agents/README.md": "faf6f58f853bdbec4db6d460f4e1d0f04329c68017ef30cc95044d5782f696ac",
+      "docs/research/agents/chainlesschain-dots-muse-mods-analysis-2026-10-06.md": "7ba6771ea1ac185514c5749950fa42a60c40a3b06637c04cfb5fe13dfb298af8",
+      "docs/research/agents/dots-muse-mods-implementation-progress-2026-10-07.md": "7fdaa0816019e4e11a7ac6d9285f30dae0dc1fcd71854c379de3521b195548e3",
+      "docs/research/agents/evidence/dmm-goal-event-replay-2026-11-04/README.md": "2133328248207dbf910da06f444168f740cffe70bab8f10e34ac08a8c7a63ce2"
+    }
+  },
+  "host": {
+    "platform": "win32",
+    "arch": "x64",
+    "osRelease": "10.0.19045",
+    "node": "v22.22.2",
+    "vitest": "4.1.10",
+    "nativeSqlite": "12.11.1"
+  },
+  "totals": {
+    "fileCount": 19,
+    "passed": 399,
+    "failed": 0,
+    "skipped": 0
+  },
+  "tests": {
+    "cli": {
+      "cwd": "packages/cli",
+      "command": "node node_modules/vitest/vitest.mjs run __tests__/unit/project-goal-event-journal.test.js __tests__/unit/cli-goal-event-history.test.js __tests__/unit/project-goal-workflow.test.js __tests__/unit/project-goal-monitoring.test.js __tests__/unit/project-goal-evidence-reader.test.js __tests__/unit/project-goal-completion.test.js __tests__/unit/goal-usage-ledger.test.js __tests__/unit/project-goal-notifications.test.js __tests__/unit/plugin-goal-extension.test.js __tests__/unit/cli-project-goal-events.test.js __tests__/unit/cli-goal-events.test.js __tests__/integration/project-goal-process-recovery.test.js __tests__/integration/project-goal-workflow-process-recovery.test.js __tests__/integration/goal-extension-conversion-process.test.js --reporter=json --outputFile=../../docs/research/agents/evidence/dmm-goal-event-replay-2026-11-04/cli-tests.json",
+      "report": {
+        "path": "docs/research/agents/evidence/dmm-goal-event-replay-2026-11-04/cli-tests.json",
+        "sha256": "75b9ee2885e779eeed567ed11649ce3d4ad8f6ef91e3b0fb011f8385e8d6185c"
+      },
+      "fileCount": 14,
+      "passed": 336,
+      "failed": 0,
+      "skipped": 0,
+      "files": [
+        {
+          "path": "packages/cli/__tests__/integration/goal-extension-conversion-process.test.js",
+          "passed": 2,
+          "failed": 0
+        },
+        {
+          "path": "packages/cli/__tests__/integration/project-goal-process-recovery.test.js",
+          "passed": 10,
+          "failed": 0
+        },
+        {
+          "path": "packages/cli/__tests__/integration/project-goal-workflow-process-recovery.test.js",
+          "passed": 3,
+          "failed": 0
+        },
+        {
+          "path": "packages/cli/__tests__/unit/cli-goal-event-history.test.js",
+          "passed": 13,
+          "failed": 0
+        },
+        {
+          "path": "packages/cli/__tests__/unit/cli-goal-events.test.js",
+          "passed": 28,
+          "failed": 0
+        },
+        {
+          "path": "packages/cli/__tests__/unit/cli-project-goal-events.test.js",
+          "passed": 21,
+          "failed": 0
+        },
+        {
+          "path": "packages/cli/__tests__/unit/goal-usage-ledger.test.js",
+          "passed": 26,
+          "failed": 0
+        },
+        {
+          "path": "packages/cli/__tests__/unit/plugin-goal-extension.test.js",
+          "passed": 47,
+          "failed": 0
+        },
+        {
+          "path": "packages/cli/__tests__/unit/project-goal-completion.test.js",
+          "passed": 34,
+          "failed": 0
+        },
+        {
+          "path": "packages/cli/__tests__/unit/project-goal-event-journal.test.js",
+          "passed": 17,
+          "failed": 0
+        },
+        {
+          "path": "packages/cli/__tests__/unit/project-goal-evidence-reader.test.js",
+          "passed": 14,
+          "failed": 0
+        },
+        {
+          "path": "packages/cli/__tests__/unit/project-goal-monitoring.test.js",
+          "passed": 69,
+          "failed": 0
+        },
+        {
+          "path": "packages/cli/__tests__/unit/project-goal-notifications.test.js",
+          "passed": 20,
+          "failed": 0
+        },
+        {
+          "path": "packages/cli/__tests__/unit/project-goal-workflow.test.js",
+          "passed": 32,
+          "failed": 0
+        }
+      ]
+    },
+    "desktop": {
+      "cwd": "desktop-app-vue",
+      "command": "node ../packages/cli/node_modules/vitest/vitest.mjs run --config vitest.business-actions.config.mjs src/main/task/__tests__/project-goal-event-history-ipc.test.js src/main/task/__tests__/project-goal-cli-bridge.test.js src/main/task/__tests__/project-goal-workflow-ipc.test.js src/main/task/__tests__/project-goal-external-drafts-ipc.test.js --reporter=json --outputFile=../docs/research/agents/evidence/dmm-goal-event-replay-2026-11-04/desktop-tests.json",
+      "report": {
+        "path": "docs/research/agents/evidence/dmm-goal-event-replay-2026-11-04/desktop-tests.json",
+        "sha256": "d62ed9b21235143fb0030091ba84f43a940e7a3d4a35d2b817d8ef2014274132"
+      },
+      "fileCount": 4,
+      "passed": 56,
+      "failed": 0,
+      "skipped": 0,
+      "files": [
+        {
+          "path": "desktop-app-vue/src/main/task/__tests__/project-goal-cli-bridge.test.js",
+          "passed": 33,
+          "failed": 0
+        },
+        {
+          "path": "desktop-app-vue/src/main/task/__tests__/project-goal-event-history-ipc.test.js",
+          "passed": 4,
+          "failed": 0
+        },
+        {
+          "path": "desktop-app-vue/src/main/task/__tests__/project-goal-external-drafts-ipc.test.js",
+          "passed": 5,
+          "failed": 0
+        },
+        {
+          "path": "desktop-app-vue/src/main/task/__tests__/project-goal-workflow-ipc.test.js",
+          "passed": 14,
+          "failed": 0
+        }
+      ]
+    },
+    "renderer": {
+      "cwd": "desktop-app-vue",
+      "command": "node ../packages/cli/node_modules/vitest/vitest.mjs run --config vitest.business-actions-renderer.config.mjs src/renderer/components/projects/__tests__/project-goal-cli-connection-panel.test.ts --reporter=json --outputFile=../docs/research/agents/evidence/dmm-goal-event-replay-2026-11-04/renderer-tests.json",
+      "report": {
+        "path": "docs/research/agents/evidence/dmm-goal-event-replay-2026-11-04/renderer-tests.json",
+        "sha256": "e8f7780140ae58398606bbe0ad1355946ab1e11b9056b5e194e2998e983614a2"
+      },
+      "fileCount": 1,
+      "passed": 7,
+      "failed": 0,
+      "skipped": 0,
+      "files": [
+        {
+          "path": "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-cli-connection-panel.test.ts",
+          "passed": 7,
+          "failed": 0
+        }
+      ]
+    }
+  },
+  "artifacts": {
+    "report": {
+      "path": "docs/research/agents/evidence/dmm-goal-event-replay-2026-11-04/artifacts.json",
+      "sha256": "b7ed929961845f04513aa1608bbce01054272a4da78ebdb463c1e401b619bf02"
+    },
+    "published": false,
+    "registryInstall": false,
+    "isolatedCoreProbe": true
+  },
+  "checks": [
+    {
+      "cwd": "packages/cli",
+      "command": "node scripts/gen-command-manifest.mjs --check",
+      "exitCode": 0
+    },
+    {
+      "cwd": "packages/cli",
+      "command": "node scripts/gen-command-help-index.mjs --check",
+      "exitCode": 0
+    },
+    {
+      "cwd": "packages/cli",
+      "command": "node scripts/gen-shell-completions.mjs --check",
+      "exitCode": 0
+    },
+    {
+      "cwd": ".",
+      "command": "node desktop-app-vue/scripts/verify-fixed-renderer-ipc.mjs",
+      "exitCode": 0,
+      "exactChannels": 1369,
+      "unregisteredChannelsDenied": 156
+    },
+    {
+      "cwd": ".",
+      "command": "node node_modules/prettier/bin/prettier.cjs --check <changed source, tests and docs>",
+      "exitCode": 0
+    },
+    {
+      "cwd": ".",
+      "command": "git diff --check",
+      "exitCode": 0
+    },
+    {
+      "cwd": "packages/session-core",
+      "command": "npm.cmd pack --ignore-scripts --json --pack-destination <Temp>/dmm-goal-replay-pack-20261104 --cache <same>/cache",
+      "exitCode": 0
+    },
+    {
+      "cwd": "packages/cli",
+      "command": "npm.cmd pack --ignore-scripts --json --pack-destination <Temp>/dmm-goal-replay-cli-pack-20261104 --cache <same>/cache",
+      "exitCode": 0
+    }
+  ],
+  "boundaries": {
+    "real": [
+      "Native SQLite event/check/action transaction atomicity and rollback",
+      "Readonly query_only and total_changes verification",
+      "Persistent stream HMAC cursors and retained chain integrity",
+      "Real private Windows DACL, nonce/status-bound HMAC HTTP",
+      "CLI subprocess plugin installation, trust and consent",
+      "Force-killed live CLI after stdout acknowledgement before checkpoint commit; same event IDs replayed then next page resumed",
+      "Strict checkpoint file lock and concurrent publication guard",
+      "Isolated Session Core public CJS/ESM exports, real native append and readonly replay"
+    ],
+    "testControls": [
+      "Electron native dialogs, windows and authentication contexts injected",
+      "CLI security state locations redirected to temporary files",
+      "Third history read held after output in a test-only child bootstrap; live timer ensures the child survives until forced kill",
+      "Synthetic journal entries for retention/corruption/page-budget storage cases",
+      "Controlled authorization readers and publisher callbacks for revocation/output failure",
+      "Vue component environment through existing Temp dependencies and a Happy DOM resolve hook"
+    ],
+    "notRun": [
+      "Real Electron/IDE GUI",
+      "IDE retained-history restoration interface",
+      "Linux/macOS real hosts",
+      "Pre-instrumentation or older-client history backfill",
+      "Independent business-effect evaluation",
+      "Exact-release-commit three-platform GitHub Actions gates"
+    ]
+  },
+  "notes": [
+    "Retention is 1000 events per actor/goal, at most 4096 duplicate identities; pages at most 20 entries and 16 KiB. Cursor metadata is not authorization.",
+    "Checkpoints bind plugin version/declaration and exact goal revision. Output callbacks acknowledge stdout acceptance, not downstream durable consumption. At-least-once duplicates remain possible.",
+    "A final relative managed-policy path fix binds policy lookup to the captured workspace. The final CLI and desktop reports were rerun after that change; the CLI archive was regenerated.",
+    "Initial test helper used the wrong workflow proposal-list method and expected an unwrapped storage error; corrected to the actual API and domain error. Only final reports are counted.",
+    "Native DACL suites run outside the sandbox with approval; renderer uses the same temporary Vue dependency/import-hook setup as the prior batch. No manifest or lockfile changed.",
+    "GNU tar treated a Windows drive prefix as a remote archive; System32 tar extraction passed. Local artifacts are not release or registry verification."
+  ]
+}

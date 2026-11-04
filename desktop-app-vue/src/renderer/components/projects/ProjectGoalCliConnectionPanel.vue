@@ -25,6 +25,26 @@
     </button>
     <button
       :disabled="busy || goal.status !== 'active'"
+      data-testid="open-goal-cli-events"
+      @click="act('events')"
+    >
+      另行授权风险与动作事件订阅
+    </button>
+    <button
+      :disabled="busy || goal.status !== 'active'"
+      data-testid="open-goal-cli-event-history"
+      @click="act('eventHistory')"
+    >
+      另行授权保留的事件历史
+    </button>
+    <p>
+      历史连接可分页恢复账本启用后保留的事件，过期游标会报告缺口，不会补造旧历史。
+    </p>
+    <p>
+      事件连接仅供轮询检查与回执摘要，不含目标说明，没有历史重放。停止连接即可撤销后续读取。
+    </p>
+    <button
+      :disabled="busy || goal.status !== 'active'"
       data-testid="open-goal-cli-drafts"
       @click="act('drafts')"
     >
@@ -81,7 +101,14 @@ const status = ref<Status | null>(null),
   error = ref("");
 let generation = 0;
 async function act(
-  method: "open" | "evidence" | "drafts" | "close" | "status",
+  method:
+    | "open"
+    | "evidence"
+    | "drafts"
+    | "events"
+    | "eventHistory"
+    | "close"
+    | "status",
 ) {
   if (!available.value || busy.value) return;
   const stamp = generation;
@@ -90,7 +117,11 @@ async function act(
   status.value = null;
   try {
     const result =
-      method === "open" || method === "evidence" || method === "drafts"
+      method === "open" ||
+      method === "evidence" ||
+      method === "drafts" ||
+      method === "events" ||
+      method === "eventHistory"
         ? await api().openGoalCliConnection({
             goalRef: {
               id: props.goal.id,
@@ -100,6 +131,8 @@ async function act(
             },
             ...(method === "evidence" ? { evidence: true } : {}),
             ...(method === "drafts" ? { drafts: true } : {}),
+            ...(method === "events" ? { events: true } : {}),
+            ...(method === "eventHistory" ? { eventHistory: true } : {}),
           })
         : method === "close"
           ? await api().closeGoalCliConnection()

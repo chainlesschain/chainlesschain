@@ -36,6 +36,33 @@ function setup() {
   return api;
 }
 describe("explicit desktop connection controls", () => {
+  it("requests retained event history through a separate explicit native confirmation", async () => {
+    const api = setup();
+    await flushPromises();
+    expect(api.openGoalCliConnection).not.toHaveBeenCalled();
+    await wrapper
+      .get('[data-testid="open-goal-cli-event-history"]')
+      .trigger("click");
+    await flushPromises();
+    const { status, ...goalRef } = goal;
+    expect(api.openGoalCliConnection).toHaveBeenCalledExactlyOnceWith({
+      goalRef,
+      eventHistory: true,
+    });
+  });
+  it("requests event access only through the dedicated native confirmation flow", async () => {
+    const api = setup();
+    await flushPromises();
+    expect(api.openGoalCliConnection).not.toHaveBeenCalled();
+    await wrapper.get('[data-testid="open-goal-cli-events"]').trigger("click");
+    await flushPromises();
+    const { status, ...goalRef } = goal;
+    expect(api.openGoalCliConnection).toHaveBeenCalledExactlyOnceWith({
+      goalRef,
+      events: true,
+    });
+    expect(wrapper.text()).toContain("没有历史重放");
+  });
   it("requests drafts through its separate native consent endpoint without renderer paths", async () => {
     const api = setup();
     await flushPromises();

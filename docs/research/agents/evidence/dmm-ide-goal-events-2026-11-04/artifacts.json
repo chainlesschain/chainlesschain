@@ -1,0 +1,32 @@
+{
+  "vscode": {
+    "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\dmm-ide-events-20261104\\chainlesschain-goal-events-local.vsix",
+    "sha256": "ba6fe733c903457414694cd5c189c19554f299d3f78a77155130c30a1a998891",
+    "version": "0.37.177",
+    "published": false,
+    "metadataChecksPassed": 18,
+    "sourceMatches": {
+      "src/goal-events.js": "f48d3427ba52176da89a00c59f11bc13e585dd6a97d70d1dae980b8a4f9bd7ed",
+      "src/ui/plugin-manager-view.js": "697c72f447bad12d0b23cdc8fddeece5de2253be42b92dff9f22687a83b6baf6"
+    },
+    "readme": {
+      "packagedSha256": "41280daf9ec6304b0b4903ff7f8585d7228c602b520cc682a049b22d22c9ef3a",
+      "sourceSha256": "65d8d37f5d0e2e0e9412cb25206489eb5f117b983975393eca5d5fea1c87d969",
+      "note": "vsce rewrites relative README links for Marketplace distribution; executable JS sources are compared byte-for-byte."
+    }
+  },
+  "jetbrains": {
+    "path": "packages/jetbrains-plugin/build/distributions/chainlesschain-ide-bridge-0.4.194.zip",
+    "sha256": "cba0d1328a1de8eb05e868d5db53d810347970add4815ed48b2ac74aad69c0ac",
+    "version": "0.4.194",
+    "published": false,
+    "jar": "chainlesschain-ide-bridge/lib/chainlesschain-ide-bridge-0.4.194.jar",
+    "classMatches": {
+      "com/chainlesschain/ide/GoalEventObserver.class": "4efdac857662a03a493e756f19d572c77650fef3b7879f1da31aa48566b32c38",
+      "com/chainlesschain/ide/GoalEventObserver$Decoder.class": "6290bc02b5445ce70d16e25658fc9c5ddd8f9f159ebf30996dfeca623bd4c36e",
+      "com/chainlesschain/ide/intellij/PluginManagerAction.class": "a905998703f85bcba647e2cd79096b3acc3adaa594b7d1af6c01e0da59b7301d"
+    }
+  },
+  "realGuiRun": false,
+  "releaseGatePassed": false
+}

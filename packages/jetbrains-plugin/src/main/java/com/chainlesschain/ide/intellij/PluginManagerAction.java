@@ -4,6 +4,8 @@ import com.chainlesschain.ide.AgentChatSession;
 import com.chainlesschain.ide.MiniJson;
 import com.chainlesschain.ide.PluginManager;
 import com.chainlesschain.ide.PluginQuality;
+import com.chainlesschain.ide.GoalEventObserver;
+import com.chainlesschain.ide.GoalHistoryReplay;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.application.ApplicationManager;
@@ -62,6 +64,51 @@ public final class PluginManagerAction extends AnAction {
         final AtomicReference<List<Map<String, Object>>> mcp = new AtomicReference<>();
         final AtomicReference<List<Map<String, Object>>> skills = new AtomicReference<>();
         final AtomicInteger goalPanelGeneration = new AtomicInteger();
+        final AtomicReference<AutoCloseable> goalObserver = new AtomicReference<>();
+        final java.util.concurrent.ExecutorService goalEventWorker = java.util.concurrent.Executors.newSingleThreadExecutor(r -> {
+            Thread thread = new Thread(r, "cc-goal-event-view"); thread.setDaemon(true); return thread;
+        });
+        final JTextArea goalEvents = new JTextArea();
+        goalEvents.setEditable(false);
+        final JTextArea goalHistory = new JTextArea();
+        goalHistory.setEditable(false);
+        final JButton nextHistory = new JButton("Read next page / check again");
+        nextHistory.setEnabled(false);
+        record Continuation(GoalHistoryReplay.Selection selection, GoalHistoryReplay.Binding binding) { }
+        final AtomicReference<Continuation> historyNext = new AtomicReference<>();
+        final Runnable stopGoalEvents = () -> {
+            AutoCloseable previous = goalObserver.getAndSet(null);
+            if (previous != null) try { previous.close(); } catch (Exception ignored) { }
+            goalEvents.setText("");
+            goalHistory.setText("");
+            historyNext.set(null);
+            nextHistory.setEnabled(false);
+        };
+        final java.util.function.BiConsumer<GoalHistoryReplay.Selection, GoalHistoryReplay.Binding> readHistory = (selection, binding) -> {
+            int generation = goalPanelGeneration.incrementAndGet();
+            stopGoalEvents.run();
+            GoalHistoryReplay replay = new GoalHistoryReplay();
+            goalObserver.set(replay);
+            goalHistory.setText("Reading one retained page; waiting for CLI checkpoint commit…");
+            goalEventWorker.submit(() -> {
+                if (!goalRequestCurrent(project, generation, goalPanelGeneration) || goalObserver.get() != replay) { replay.close(); return; }
+                GoalHistoryReplay.Outcome outcome = replay.run(AgentChatSession.resolveBinary(), selection, binding, cwd);
+                ApplicationManager.getApplication().invokeLater(() -> {
+                    if (!goalRequestCurrent(project, generation, goalPanelGeneration) || goalObserver.get() != replay) return;
+                    goalObserver.compareAndSet(replay, null);
+                    if (outcome.page() != null) {
+                        historyNext.set(new Continuation(selection.resume(), outcome.page().binding()));
+                        nextHistory.setEnabled(true);
+                        goalHistory.setText(outcome.page().text());
+                    } else { goalHistory.setText(outcome.message()); }
+                    goalHistory.setCaretPosition(0);
+                });
+            });
+        };
+        nextHistory.addActionListener(ev -> {
+            Continuation next = historyNext.get();
+            if (next != null) readHistory.accept(next.selection(), next.binding());
+        });
 
         DefaultListModel<String> pluginModel = new DefaultListModel<>();
         DefaultListModel<String> mcpModel = new DefaultListModel<>();
@@ -81,6 +128,7 @@ public final class PluginManagerAction extends AnAction {
 
         Runnable refresh = () -> {
             goalPanelGeneration.incrementAndGet();
+            stopGoalEvents.run();
             status.setText("loading…");
             ApplicationManager.getApplication().executeOnPooledThread(() -> {
                 String pluginsOut = AgentChatSession.runCapture(
@@ -168,6 +216,8 @@ public final class PluginManagerAction extends AnAction {
         JButton capabilities = new JButton("Capabilities…");
         JButton details = new JButton("Supply-chain details…");
         JButton goalPanels = new JButton("CLI goal panels…");
+        JButton observeGoalEvents = new JButton("Observe desktop events…");
+        JButton recoverGoalHistory = new JButton("Recover retained history…");
         JButton goalDraftRequest = new JButton("Export goal draft request…");
         JButton goalDraftAccess = new JButton("Export draft access…");
         JButton goalDraftSend = new JButton("Send online draft…");
@@ -311,12 +361,71 @@ public final class PluginManagerAction extends AnAction {
             runThenRefreshSlow(PluginManager.buildPluginAddArgs(
                     source.trim(), registry.trim()), cwd, refresh, status);
         });
+        observeGoalEvents.addActionListener(ev -> withSelectedPlugin(project, pluginList, plugins.get(), p -> {
+            int generation = goalPanelGeneration.incrementAndGet();
+            stopGoalEvents.run();
+            var picker = FileChooserDescriptorFactory.createSingleFileDescriptor("json");
+            picker.setTitle("Select separately authorized v4 event connection");
+            VirtualFile selected = FileChooser.chooseFile(picker, project, null);
+            if (selected == null || !goalRequestCurrent(project, generation, goalPanelGeneration)) return;
+            String id = Messages.showInputDialog(project, "Goal ID shown in the desktop connection panel", "Observe desktop goal events", null);
+            if (id == null || !goalRequestCurrent(project, generation, goalPanelGeneration)) return;
+            final String goalId = id.trim(), name = String.valueOf(p.get("name")), scope = scopeOf(p), connection = selected.getPath();
+            try { GoalEventObserver.arguments(goalId, name, scope, connection); }
+            catch (IllegalArgumentException error) { status.setText("Invalid goal event selection"); return; }
+            GoalEventObserver observer = new GoalEventObserver();
+            goalObserver.set(observer);
+            status.setText("starting 60-second event observer…");
+            goalEventWorker.submit(() -> {
+                if (!goalRequestCurrent(project, generation, goalPanelGeneration) || goalObserver.get() != observer) { observer.close(); return; }
+                observer.run(AgentChatSession.resolveBinary(), goalId, name, scope, connection, cwd,
+                    text -> ApplicationManager.getApplication().invokeLater(() -> {
+                        if (goalRequestCurrent(project, generation, goalPanelGeneration) && goalObserver.get() == observer) goalEvents.setText(text);
+                    }),
+                    outcome -> ApplicationManager.getApplication().invokeLater(() -> {
+                        if (!goalRequestCurrent(project, generation, goalPanelGeneration)) return;
+                        goalObserver.compareAndSet(observer, null);
+                        if ("unavailable".equals(outcome)) goalEvents.setText("Observer unavailable; check the CLI version, connection and plugin authorization.");
+                        status.setText("Observer " + outcome + "; displayed records are historical observations.");
+                    }));
+            });
+        }));
+        recoverGoalHistory.addActionListener(ev -> withSelectedPlugin(project, pluginList, plugins.get(), p -> {
+            int generation = goalPanelGeneration.incrementAndGet();
+            stopGoalEvents.run();
+            var picker = FileChooserDescriptorFactory.createSingleFileDescriptor("json");
+            picker.setTitle("Select separately authorized v5 history connection");
+            VirtualFile connection = FileChooser.chooseFile(picker, project, null);
+            if (connection == null || !goalRequestCurrent(project, generation, goalPanelGeneration)) return;
+            String id = Messages.showInputDialog(project, "Goal ID shown in the desktop connection panel", "Recover retained goal history", null);
+            if (id == null || !goalRequestCurrent(project, generation, goalPanelGeneration)) return;
+            String mode = ChoiceDialog.choose(project, "History checkpoint", "Choose how to read one retained page", List.of("Create new checkpoint", "Resume existing checkpoint"), "Create new checkpoint");
+            if (mode == null || !goalRequestCurrent(project, generation, goalPanelGeneration)) return;
+            boolean create = "Create new checkpoint".equals(mode);
+            String checkpoint;
+            if (create) {
+                checkpoint = saveDraftFile(project, "Choose a new history checkpoint file", "Existing files are refused by the CLI", "goal-history-checkpoint.json");
+            } else {
+                picker.setTitle("Resume original history checkpoint");
+                VirtualFile selected = FileChooser.chooseFile(picker, project, null);
+                checkpoint = selected == null ? null : selected.getPath();
+            }
+            if (checkpoint == null || !goalRequestCurrent(project, generation, goalPanelGeneration)) return;
+            var selection = new GoalHistoryReplay.Selection(id.trim(), String.valueOf(p.get("name")), scopeOf(p), connection.getPath(), checkpoint, create ? "new" : "resume");
+            try { GoalHistoryReplay.arguments(selection); readHistory.accept(selection, null); }
+            catch (IllegalArgumentException error) { goalHistory.setText("Invalid history selection; no recovery started."); }
+        }));
+        for (JButton goalAction : java.util.Arrays.asList(goalPanels, goalDraftRequest, goalDraftAccess, goalDraftSend, goalDraftReceipt))
+            goalAction.addActionListener(ev -> stopGoalEvents.run());
+        pluginList.addListSelectionListener(ev -> {
+            if (!ev.getValueIsAdjusting()) { goalPanelGeneration.incrementAndGet(); stopGoalEvents.run(); }
+        });
         JPanel pluginTab = tab(
                 pluginList, lifecycle, upgrade, trust, untrust, versions,
-                capabilities, details, goalPanels, goalDraftRequest, goalDraftAccess, goalDraftSend, goalDraftReceipt, uninstall, add);
+                capabilities, details, goalPanels, observeGoalEvents, recoverGoalHistory, goalDraftRequest, goalDraftAccess, goalDraftSend, goalDraftReceipt, uninstall, add);
         for (JButton mutation : java.util.Arrays.asList(
                 lifecycle, upgrade, trust, untrust, versions, capabilities, uninstall, add)) {
-            mutation.addActionListener(ev -> goalPanelGeneration.incrementAndGet());
+            mutation.addActionListener(ev -> { goalPanelGeneration.incrementAndGet(); stopGoalEvents.run(); });
         }
 
         // ---- MCP tab -----------------------------------------------------
@@ -364,6 +473,26 @@ public final class PluginManagerAction extends AnAction {
 
         JTabbedPane tabs = new JTabbedPane();
         tabs.addTab("Plugins", pluginTab);
+        JPanel eventTab = new JPanel(new BorderLayout(4, 4));
+        JPanel eventTop = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 2));
+        JButton stopEvents = new JButton("Stop and clear");
+        stopEvents.addActionListener(ev -> { goalPanelGeneration.incrementAndGet(); stopGoalEvents.run(); status.setText("Observer stop requested"); });
+        eventTop.add(stopEvents);
+        eventTop.add(new JLabel("Explicit 60-second polling; latest 50 observations, no history replay."));
+        eventTab.add(eventTop, BorderLayout.NORTH);
+        eventTab.add(new JScrollPane(goalEvents), BorderLayout.CENTER);
+        tabs.addTab("Goal events", eventTab);
+        JPanel historyTab = new JPanel(new BorderLayout(4, 4));
+        JPanel historyTop = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 2));
+        JButton cancelHistory = new JButton("Cancel and clear");
+        cancelHistory.addActionListener(ev -> {
+            goalPanelGeneration.incrementAndGet(); stopGoalEvents.run();
+            goalHistory.setText("Recovery cancelled. Keep the checkpoint; it may already have advanced. Explicitly resume to continue; duplicates are possible.");
+        });
+        historyTop.add(nextHistory); historyTop.add(cancelHistory);
+        historyTab.add(historyTop, BorderLayout.NORTH);
+        historyTab.add(new JScrollPane(goalHistory), BorderLayout.CENTER);
+        tabs.addTab("Retained history", historyTab);
         tabs.addTab(CcBundle.message("plugins.quality.tab"), qualityTab);
         tabs.addTab("MCP servers", mcpTab);
         tabs.addTab("Skills", skillTab);
@@ -391,8 +520,12 @@ public final class PluginManagerAction extends AnAction {
         b.setTitle("ChainlessChain — Plugins & MCP");
         b.setCenterPanel(root);
         b.addOkAction().setText("Close");
-        b.show();
-        goalPanelGeneration.incrementAndGet();
+        try { b.show(); }
+        finally {
+            goalPanelGeneration.incrementAndGet();
+            stopGoalEvents.run();
+            goalEventWorker.shutdownNow();
+        }
     }
 
     private static boolean goalRequestCurrent(Project project, int generation, AtomicInteger current) {

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.GoalEventObserverTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-11-04T15:27:18" hostname="DESKTOP-MTMV2RE" time="1.931">
+  <properties/>
+  <testcase name="acceptsReadyThenInertUnicodeSummary()" classname="com.chainlesschain.ide.GoalEventObserverTest" time="0.008"/>
+  <testcase name="fixedArgumentsKeepNativePathsAndBoundedDuration()" classname="com.chainlesschain.ide.GoalEventObserverTest" time="0.003"/>
+  <testcase name="rejectsEventsBeforeReadyAndMissingReady()" classname="com.chainlesschain.ide.GoalEventObserverTest" time="0.003"/>
+  <testcase name="boundsHistoryAndTotalOutputAndRejectsBadUtf8()" classname="com.chainlesschain.ide.GoalEventObserverTest" time="0.208"/>
+  <testcase name="realNaturalProcessEndIsDistinctFromCancellation()" classname="com.chainlesschain.ide.GoalEventObserverTest" time="0.757"/>
+  <testcase name="realMalformedProcessIsTerminatedWithoutForwardingItsPayload()" classname="com.chainlesschain.ide.GoalEventObserverTest" time="0.397"/>
+  <testcase name="realProcessCancellationReapsTheCliDescendant()" classname="com.chainlesschain.ide.GoalEventObserverTest" time="0.538"/>
+  <testcase name="rejectsExtraAuthorityFieldsAndChangedBindings()" classname="com.chainlesschain.ide.GoalEventObserverTest" time="0.006"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

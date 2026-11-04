@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.PluginManagerTest" tests="17" skipped="0" failures="0" errors="0" timestamp="2026-11-04T13:47:20" hostname="DESKTOP-MTMV2RE" time="0.099">
+  <properties/>
+  <testcase name="goalDeclarationsNeverImplyRuntimeAdmission()" classname="com.chainlesschain.ide.PluginManagerTest" time="0.019"/>
+  <testcase name="sourcePagesAreBoundedAndPinTheExactGrantAcrossNativeSelection()" classname="com.chainlesschain.ide.PluginManagerTest" time="0.006"/>
+  <testcase name="parsesTransactionalUpgradeActivationAndRollback()" classname="com.chainlesschain.ide.PluginManagerTest" time="0.001"/>
+  <testcase name="parsesMcpServersWithPolicyAnnotations()" classname="com.chainlesschain.ide.PluginManagerTest" time="0.001"/>
+  <testcase name="distinguishesUnreadableFromEmpty()" classname="com.chainlesschain.ide.PluginManagerTest" time="0.006"/>
+  <testcase name="draftRequestsUsePinnedNativePathsAndCannotMasqueradeAsSavedActions()" classname="com.chainlesschain.ide.PluginManagerTest" time="0.004"/>
+  <testcase name="desktopConnectionRequiresExplicitSelectionAndPinsNativeStore()" classname="com.chainlesschain.ide.PluginManagerTest" time="0.005"/>
+  <testcase name="savedNotFoundAndUnknownAreDistinctAndRetainTheOriginalReference()" classname="com.chainlesschain.ide.PluginManagerTest" time="0.011"/>
+  <testcase name="targetsUnifiedRuntimeCommands()" classname="com.chainlesschain.ide.PluginManagerTest" time="0.001"/>
+  <testcase name="submissionParsersRejectCrossGoalPluginPathRequestAndImpossibleStates()" classname="com.chainlesschain.ide.PluginManagerTest" time="0.003"/>
+  <testcase name="parsesAndFiltersSkills()" classname="com.chainlesschain.ide.PluginManagerTest" time="0.001"/>
+  <testcase name="boundedCatalogProjectsMetadataAndPinsTheStore()" classname="com.chainlesschain.ide.PluginManagerTest" time="0.004"/>
+  <testcase name="submissionParsersRejectChangedDeclarationVersionAndGrantDuringSend()" classname="com.chainlesschain.ide.PluginManagerTest" time="0.002"/>
+  <testcase name="draftAccessExportsAreLabelsAndNeverSavedSubmissions()" classname="com.chainlesschain.ide.PluginManagerTest" time="0.002"/>
+  <testcase name="cliGoalPanelsAreScopedPlainTextSnapshots()" classname="com.chainlesschain.ide.PluginManagerTest" time="0.004"/>
+  <testcase name="parsesPluginRowsAndFormatsLines()" classname="com.chainlesschain.ide.PluginManagerTest" time="0.001"/>
+  <testcase name="onlineDraftBuildersKeepNativePathsInSingleArgumentsAndRequireReferences()" classname="com.chainlesschain.ide.PluginManagerTest" time="0.004"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,126 @@
+{
+  "localOnly": true,
+  "published": false,
+  "realGuiRun": false,
+  "vsix": {
+    "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\dmm-ide-event-replay-20261104\\chainlesschain-goal-history-local.vsix",
+    "bytes": 759931,
+    "sha256": "715dab57a5c794f5da1c4872ae2c2b614dae4e123da9f76e03b9423c46c7ae1c",
+    "metadataChecksPassed": 18,
+    "matches": [
+      {
+        "entry": "extension/src/goal-history.js",
+        "source": "packages/vscode-extension/src/goal-history.js",
+        "sha256": "b2867f43ef29a8773a25e44ebde1982e46744dacc5ba5b9197dc1a54223675c4",
+        "equal": true
+      },
+      {
+        "entry": "extension/src/goal-events.js",
+        "source": "packages/vscode-extension/src/goal-events.js",
+        "sha256": "f48d3427ba52176da89a00c59f11bc13e585dd6a97d70d1dae980b8a4f9bd7ed",
+        "equal": true
+      },
+      {
+        "entry": "extension/src/ui/plugin-manager-view.js",
+        "source": "packages/vscode-extension/src/ui/plugin-manager-view.js",
+        "sha256": "079112afe99bf147c4e6af3912daa00408511bd0c323e924fdcabe50c3d14cc4",
+        "equal": true
+      },
+      {
+        "entry": "extension/src/chat/stop-agent-process.js",
+        "source": "packages/vscode-extension/src/chat/stop-agent-process.js",
+        "sha256": "580dab9b7ee089ab8a3ea688c2c90e56183ba300b77dfbbd9b5037607c2e386f",
+        "equal": true
+      },
+      {
+        "entry": "extension/src/plugin-manager.js",
+        "source": "packages/vscode-extension/src/plugin-manager.js",
+        "sha256": "3b6f41ebd7b376c1600144e5ad811e07e06045cf781b0d9d9f2d90967c096b73",
+        "equal": true
+      },
+      {
+        "entry": "extension/src/win-shell.js",
+        "source": "packages/vscode-extension/src/win-shell.js",
+        "sha256": "a5c8579edd89e7aa2de6ecc48035ec2e93ac8759e49b33fbfc8b32e584900c56",
+        "equal": true
+      }
+    ]
+  },
+  "jetbrains": {
+    "path": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\build\\distributions\\chainlesschain-ide-bridge-0.4.194.zip",
+    "bytes": 1582840,
+    "sha256": "0facf284a9fc1952546907814371c6221c3f538372a7c6680b37936d7dbf66ea",
+    "matches": [
+      {
+        "jar": "chainlesschain-ide-bridge/lib/chainlesschain-ide-bridge-0.4.194.jar",
+        "entry": "com/chainlesschain/ide/GoalEventObserver$Decoder.class",
+        "source": "packages/jetbrains-plugin/build/classes/java/main/com/chainlesschain/ide/GoalEventObserver$Decoder.class",
+        "sha256": "6290bc02b5445ce70d16e25658fc9c5ddd8f9f159ebf30996dfeca623bd4c36e",
+        "equal": true
+      },
+      {
+        "jar": "chainlesschain-ide-bridge/lib/chainlesschain-ide-bridge-0.4.194.jar",
+        "entry": "com/chainlesschain/ide/GoalEventObserver.class",
+        "source": "packages/jetbrains-plugin/build/classes/java/main/com/chainlesschain/ide/GoalEventObserver.class",
+        "sha256": "4efdac857662a03a493e756f19d572c77650fef3b7879f1da31aa48566b32c38",
+        "equal": true
+      },
+      {
+        "jar": "chainlesschain-ide-bridge/lib/chainlesschain-ide-bridge-0.4.194.jar",
+        "entry": "com/chainlesschain/ide/GoalHistoryReplay$Binding.class",
+        "source": "packages/jetbrains-plugin/build/classes/java/main/com/chainlesschain/ide/GoalHistoryReplay$Binding.class",
+        "sha256": "ab80e3e746d826b1be4847b4d9d3bf0d720b0aa1a9128b9178275e421c54b840",
+        "equal": true
+      },
+      {
+        "jar": "chainlesschain-ide-bridge/lib/chainlesschain-ide-bridge-0.4.194.jar",
+        "entry": "com/chainlesschain/ide/GoalHistoryReplay$Outcome.class",
+        "source": "packages/jetbrains-plugin/build/classes/java/main/com/chainlesschain/ide/GoalHistoryReplay$Outcome.class",
+        "sha256": "b3abca64cae34db3eff1a04f46d8b85c1524c5f3e57a5214a8dfa3db05c8ce5a",
+        "equal": true
+      },
+      {
+        "jar": "chainlesschain-ide-bridge/lib/chainlesschain-ide-bridge-0.4.194.jar",
+        "entry": "com/chainlesschain/ide/GoalHistoryReplay$Page.class",
+        "source": "packages/jetbrains-plugin/build/classes/java/main/com/chainlesschain/ide/GoalHistoryReplay$Page.class",
+        "sha256": "f12a430790d3064820857a14f45667c33809b773f8304e15c9c1f74d8f6ac231",
+        "equal": true
+      },
+      {
+        "jar": "chainlesschain-ide-bridge/lib/chainlesschain-ide-bridge-0.4.194.jar",
+        "entry": "com/chainlesschain/ide/GoalHistoryReplay$Selection.class",
+        "source": "packages/jetbrains-plugin/build/classes/java/main/com/chainlesschain/ide/GoalHistoryReplay$Selection.class",
+        "sha256": "881fa4c79c1f4734d8954a56392807b70cbe235e63709aa1be3caf74aa17a575",
+        "equal": true
+      },
+      {
+        "jar": "chainlesschain-ide-bridge/lib/chainlesschain-ide-bridge-0.4.194.jar",
+        "entry": "com/chainlesschain/ide/GoalHistoryReplay.class",
+        "source": "packages/jetbrains-plugin/build/classes/java/main/com/chainlesschain/ide/GoalHistoryReplay.class",
+        "sha256": "62f7d1fa50f3a495e254b9b161eb12a717ba58174ff44df4270f8f22e23c8f50",
+        "equal": true
+      },
+      {
+        "jar": "chainlesschain-ide-bridge/lib/chainlesschain-ide-bridge-0.4.194.jar",
+        "entry": "com/chainlesschain/ide/intellij/PluginManagerAction$1.class",
+        "source": "packages/jetbrains-plugin/build/classes/java/main/com/chainlesschain/ide/intellij/PluginManagerAction$1.class",
+        "sha256": "54e762e83b19323eb3fcf88ab52e588cf1c76307dcaf0ad72b0b32c6e34efd1a",
+        "equal": true
+      },
+      {
+        "jar": "chainlesschain-ide-bridge/lib/chainlesschain-ide-bridge-0.4.194.jar",
+        "entry": "com/chainlesschain/ide/intellij/PluginManagerAction$1Continuation.class",
+        "source": "packages/jetbrains-plugin/build/classes/java/main/com/chainlesschain/ide/intellij/PluginManagerAction$1Continuation.class",
+        "sha256": "462fbf4f2983d08d175394384e3556c8ce7e32c655429a15b0f1c7c3bb487b87",
+        "equal": true
+      },
+      {
+        "jar": "chainlesschain-ide-bridge/lib/chainlesschain-ide-bridge-0.4.194.jar",
+        "entry": "com/chainlesschain/ide/intellij/PluginManagerAction.class",
+        "source": "packages/jetbrains-plugin/build/classes/java/main/com/chainlesschain/ide/intellij/PluginManagerAction.class",
+        "sha256": "d5fe2172364af14f88f0b5e94054431a786c5f87a9bc2bc4841340f3de9be389",
+        "equal": true
+      }
+    ]
+  }
+}

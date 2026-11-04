@@ -4,6 +4,46 @@ ChainlessChain agent workspace for VS Code-compatible editors with streaming
 chat, inline assistance, governed review, sessions, automation, and a localhost
 MCP bridge.
 
+## Working-tree retained goal history (unreleased)
+
+In the plugin manager choose **Recover retained history…** for an admitted
+`goal-project-observer` plugin. Select a separately authorized v5
+`goal.event-history` connection, enter the desktop goal ID, then explicitly
+choose **Create new checkpoint…** or **Resume existing checkpoint…** using native
+file dialogs. The IDE passes paths to the selected CLI; it never opens credentials
+or checkpoint contents. Use matching local Session Core, desktop and CLI builds;
+the published versions below do not include this feature.
+
+Each click reads one page, scanning at most 20 events. **Read next page / check
+again** uses the host's captured target/plugin binding and original checkpoint;
+there is no automatic loop or retry. A validated result appears only after CLI
+exit zero confirms checkpoint commit. Event IDs and sequence numbers help identify
+duplicates under at-least-once delivery. **Cancel and clear**, refresh, plugin
+operations, workspace changes and closing the manager cancel the owned process
+and invalidate continuation. Keep the checkpoint after interruption: it may
+already have advanced. Explicitly resume to continue. Retention gaps, database
+regression and changed bindings require inspection or an explicit new checkpoint.
+The newest 1000 instrumented events are retained, with no earlier-history backfill.
+Real IDE GUI and cross-platform acceptance remain pending.
+
+## Working-tree desktop goal event observer (unreleased)
+
+The plugin manager includes **Observe desktop events…** for an installed goal
+extension. First export a separately authorized v4 `goal.events` connection from
+the desktop, then select that file with the native picker and enter the goal ID
+shown in the desktop connection panel. Use a matching local CLI build and the
+trusted/consented `goal-project-observer` sample; the published version pairing
+below does not yet include this addition.
+
+The observer runs `goal watch` for at most 60 seconds and shows the latest 50
+observations as plain text. **Stop and clear**, refresh, plugin operations,
+workspace changes and closing the manager stop the owned CLI process and discard
+late results. Invalid streams clear the display. The extension never reads or
+displays the connection credential. Polling can miss intermediate changes and has
+no durable cursor or history replay; records do not prove current risk or goal
+completion. Protocol and real child-process tests are separate from a real
+VS Code GUI journey, which remains pending.
+
 ## Current release
 
 <!-- release177-status -->

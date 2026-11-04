@@ -214,3 +214,7 @@ docs/research/cli/evidence/native131-assisted-verify10-2026-10-30/** -text !eol 
 docs/research/cli/verify01-openai-137/public-generator-*/** -text !eol -whitespace
 docs/research/cli/verify01-openai-137/*.raw.json -text !eol -whitespace
 docs/research/cli/evidence/native131-assisted-integration-2026-10-30/** -text !eol -whitespace
+
+# Preserve the byte-digest-bound JUnit reports from local DMM IDE validation.
+docs/research/agents/evidence/dmm-ide-event-replay-2026-11-04/jetbrains-*-tests.xml -text !eol -whitespace
+docs/research/agents/evidence/dmm-ide-goal-events-2026-11-04/jetbrains-*-tests.xml -text !eol -whitespace

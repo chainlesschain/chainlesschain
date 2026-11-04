@@ -870,6 +870,20 @@ class ProjectGoalMonitoringState {
           Date.parse(result.checkedAt),
           finished - started,
         );
+      this.workflow.events.append({
+        goalRef: {
+          id: goal.id,
+          storeId: goal.storeId,
+          revision: goal.revision,
+          controlGeneration: goal.controlGeneration,
+        },
+        actor,
+        sourceId: review.review.id,
+        type: "risk.review.completed",
+        state: result.status,
+        riskTaskCount: result.riskTaskCount,
+        recordedAt: result.checkedAt,
+      });
       this.notifications.observeInTransaction({
         goalId: goal.id,
         occurrenceId: context.occurrence.id,

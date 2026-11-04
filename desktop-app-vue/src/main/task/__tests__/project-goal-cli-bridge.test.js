@@ -112,6 +112,448 @@ afterEach(async () => {
 // Real Windows DACL operations launch PowerShell and exceed the ordinary 30s
 // host-test budget on this machine. This is functional validation, not an SLO.
 describe("explicit desktop goal connection", { timeout: 90_000 }, () => {
+  it("separately authorizes events, restricts its routes, and observes real checks and action receipts without read writes", async () => {
+    const {
+      ProjectGoalMonitoringState,
+    } = require("@chainlesschain/session-core/project-goal-monitoring");
+    db.exec(`CREATE TABLE project_tasks(id TEXT PRIMARY KEY,project_id TEXT,task_type TEXT,description TEXT,status TEXT,created_at INTEGER,updated_at INTEGER,deleted INTEGER DEFAULT 0,sync_status TEXT,due_date INTEGER,blocked_by TEXT);
+      INSERT INTO project_tasks VALUES('t1','p1','query_info','PRIVATE BODY','pending',10,10,0,'synced',20,NULL);`);
+    goal = host.revise(event, {
+      id: goal.id,
+      expectedRevision: goal.revision,
+      patch: { allowedActionTypes: ["task.update-description"] },
+    });
+    const state = new ProjectGoalMonitoringState({
+      db,
+      getActor: () => actor,
+      clock: () => now,
+    });
+    function check(requestId) {
+      state.prepareManual(
+        { id: goal.id, expectedRevision: goal.revision, requestId },
+        () => 1,
+      );
+      return state.perform(
+        {
+          occurrence: {
+            id: requestId,
+            payload: {
+              storeId: goal.storeId,
+              goalId: goal.id,
+              goalRevision: goal.revision,
+              controlGeneration: goal.controlGeneration,
+              monitorRevision: null,
+              schedulerPolicyRevision: 1,
+              requestId,
+            },
+          },
+          renewLease: () => {},
+          signal: { aborted: false },
+        },
+        () => {},
+      );
+    }
+    await open();
+    const old = descriptor();
+    expect((await request(old, { pathname: "/goal-events" })).status).toBe(403);
+    const oldFile = file;
+    file = path.join(dir, "goal-connections", "events.json");
+    await host.openCliConnection(event, { goalRef: ref(), events: true });
+    expect(descriptor()).toMatchObject({
+      schema: "chainlesschain.project-goal-connection/v4",
+      capability: "goal.events",
+    });
+    expect(
+      electron.dialog.showMessageBox.mock.calls.at(-1)[1].detail,
+    ).toContain("没有历史重放");
+    const source = createProjectGoalConnection(file);
+    expect(source.events).toBe(true);
+    await expect(source.read()).rejects.toThrow("CONNECTION_UNAVAILABLE");
+    await expect(readProjectGoalCatalog({ connection: file })).rejects.toThrow(
+      "CONNECTION_UNAVAILABLE",
+    );
+    for (const pathname of [
+      "/goal-summary",
+      "/goal-evidence",
+      "/goal-drafts",
+      "/goal-events?goal=other",
+    ])
+      expect((await request(descriptor(), { pathname })).status).toBe(403);
+    expect(
+      (
+        await request(descriptor(), {
+          pathname: "/goal-events",
+          method: "POST",
+        })
+      ).status,
+    ).toBe(403);
+    const nonce = "a".repeat(64);
+    expect(
+      (await request(descriptor(), { pathname: "/goal-events", nonce })).status,
+    ).toBe(200);
+    expect(
+      (await request(descriptor(), { pathname: "/goal-events", nonce })).status,
+    ).toBe(429);
+
+    const cliRoot = pathToFileURL(
+      path.resolve(__dirname, "../../../../../packages/cli") + path.sep,
+    );
+    const { watchCliProjectGoalEvents } = await import(
+      "../../../../../packages/cli/src/lib/plugin-runtime/cli-project-goal-events.js"
+    );
+    const { trustPlugin, _deps: trustDeps } = await import(
+      "../../../../../packages/cli/src/lib/plugin-runtime/trust.js"
+    );
+    const { consentPluginCapabilities, _deps: consentDeps } = await import(
+      "../../../../../packages/cli/src/lib/plugin-runtime/capability-consent.js"
+    );
+    const { normalizeCapabilities } = await import(
+      "../../../../../packages/cli/src/lib/plugin-runtime/capabilities.js"
+    );
+    const sample = JSON.parse(
+      fs.readFileSync(
+        new URL(
+          "src/lib/plugin-runtime/examples/goal-project-observer/plugin.json",
+          cliRoot,
+        ),
+        "utf8",
+      ),
+    );
+    const cwd = path.join(dir, "events-workspace"),
+      pluginDir = path.join(cwd, ".chainlesschain", "plugins", sample.name);
+    fs.mkdirSync(path.join(pluginDir, sample.version), { recursive: true });
+    fs.writeFileSync(
+      path.join(pluginDir, sample.version, "plugin.json"),
+      JSON.stringify(sample),
+    );
+    fs.writeFileSync(path.join(pluginDir, ".active"), sample.version);
+    vi.spyOn(trustDeps, "storePath").mockReturnValue(
+      path.join(dir, "trust.json"),
+    );
+    vi.spyOn(trustDeps, "workspaceTrustStorePath").mockReturnValue(
+      path.join(dir, "workspace-trust.json"),
+    );
+    vi.spyOn(consentDeps, "storePath").mockReturnValue(
+      path.join(dir, "consent.json"),
+    );
+    const options = {
+      cwd,
+      connection: file,
+      plugin: sample.name,
+      scope: "project",
+      intervalMs: 250,
+      durationMs: 60000,
+      managedSettingsFile: path.join(dir, "managed.json"),
+      env: {
+        ...process.env,
+        CC_PLUGINS: "1",
+        CC_PLUGIN_SCOPES: "project",
+        CC_PLUGIN_TRANSACTION_HOME: path.join(dir, "transactions"),
+      },
+    };
+    trustPlugin(sample.name, {
+      scope: "project",
+      version: sample.version,
+      workspaceRoot: cwd,
+    });
+    consentPluginCapabilities(sample.name, {
+      scope: "project",
+      version: sample.version,
+      capabilities: normalizeCapabilities(sample.permissions),
+    });
+    await expect(
+      watchCliProjectGoalEvents(goal.id, {
+        ...options,
+        connection: oldFile,
+      }).next(),
+    ).rejects.toThrow("EVENT_CONNECTION_REQUIRED");
+    const stream = watchCliProjectGoalEvents(goal.id, options);
+    try {
+      const writes = db.prepare("SELECT total_changes() AS n").get().n;
+      db.pragma("query_only=ON");
+      const ready = (await stream.next()).value;
+      expect(ready).toMatchObject({
+        kind: "ready",
+        source: "desktop-project",
+        goalRef: ref(),
+      });
+      expect(db.prepare("SELECT total_changes() AS n").get().n).toBe(writes);
+      db.pragma("query_only=OFF");
+      const checked = check("event-check-1");
+      const afterCheck = db.prepare("SELECT total_changes() AS n").get().n;
+      db.pragma("query_only=ON");
+      const riskEvent = (await stream.next()).value;
+      expect(riskEvent.event.type).toBe("risk.review.completed");
+      expect(riskEvent.event.summary).toContain(checked.reviewId);
+      expect(db.prepare("SELECT total_changes() AS n").get().n).toBe(
+        afterCheck,
+      );
+      db.pragma("query_only=OFF");
+      const proposal = host
+        .proposals(event, { goalId: goal.id })
+        .proposals.find(
+          (item) => item.proposal.actionType === "task.update-description",
+        ).proposal;
+      const prepared = host.prepareIntent(event, {
+        goalId: goal.id,
+        proposalId: proposal.id,
+        expectedRevision: goal.revision,
+        requestId: "event-action-1",
+        description: "PRIVATE ACTION BODY",
+      });
+      const executed = await host.executeIntent(event, {
+        intentId: prepared.intent.id,
+      });
+      const afterAction = db.prepare("SELECT total_changes() AS n").get().n;
+      db.pragma("query_only=ON");
+      const actionEvent = (await stream.next()).value;
+      expect(actionEvent.event.type).toBe("action.receipt.updated");
+      expect(actionEvent.event.summary).toContain(executed.run.id);
+      const snapshot = await source.readEvents();
+      expect(Object.keys(snapshot).sort()).toEqual([
+        "goalRef",
+        "receipts",
+        "risk",
+        "schema",
+      ]);
+      expect(
+        JSON.stringify([ready, riskEvent, actionEvent, snapshot]),
+      ).not.toMatch(
+        /PRIVATE BODY|PRIVATE ACTION BODY|Private delivery objective|approvalRef|preview/,
+      );
+      expect(db.prepare("SELECT total_changes() AS n").get().n).toBe(
+        afterAction,
+      );
+      await stream.return();
+      db.pragma("query_only=OFF");
+      // Exercise the real CLI dispatcher, redirecting only security storage.
+      const bootstrap = path.join(dir, "event-security-stores.mjs");
+      fs.writeFileSync(
+        bootstrap,
+        `import { _deps as trust } from ${JSON.stringify(new URL("src/lib/plugin-runtime/trust.js", cliRoot).href)};
+import { _deps as consent } from ${JSON.stringify(new URL("src/lib/plugin-runtime/capability-consent.js", cliRoot).href)};
+trust.storePath=()=>process.env.DMM_TEST_TRUST_FILE;
+trust.workspaceTrustStorePath=()=>process.env.DMM_TEST_WORKSPACE_TRUST_FILE;
+consent.storePath=()=>process.env.DMM_TEST_CONSENT_FILE;`,
+      );
+      const execution = promisify(execFile)(
+        process.execPath,
+        [
+          "--import",
+          pathToFileURL(bootstrap).href,
+          fileURLToPath(new URL("bin/chainlesschain.js", cliRoot)),
+          "goal",
+          "watch",
+          goal.id,
+          "--connection",
+          file,
+          "--expected-store",
+          goal.storeId,
+          "--plugin",
+          sample.name,
+          "--scope",
+          "project",
+          "--interval",
+          "250",
+          "--duration",
+          "15",
+          "--json",
+        ],
+        {
+          cwd,
+          env: {
+            ...options.env,
+            CHAINLESSCHAIN_HOME: path.join(dir, "home"),
+            CC_MANAGED_SETTINGS: options.managedSettingsFile,
+            DMM_TEST_TRUST_FILE: path.join(dir, "trust.json"),
+            DMM_TEST_WORKSPACE_TRUST_FILE: path.join(
+              dir,
+              "workspace-trust.json",
+            ),
+            DMM_TEST_CONSENT_FILE: path.join(dir, "consent.json"),
+          },
+          encoding: "utf8",
+          windowsHide: true,
+          timeout: 30000,
+        },
+      );
+      const completion = execution.then(
+        (result) => ({ code: 0, ...result }),
+        (failure) => ({
+          code: failure.code,
+          stdout: failure.stdout,
+          stderr: failure.stderr,
+        }),
+      );
+      let pendingLines = "",
+        childCheck,
+        callbackError;
+      execution.child.stdout.on("data", (chunk) => {
+        try {
+          pendingLines += chunk.toString();
+          const lines = pendingLines.split("\n");
+          pendingLines = lines.pop();
+          for (const line of lines.filter(Boolean)) {
+            const record = JSON.parse(line);
+            if (record.kind === "ready")
+              childCheck = check("event-check-child");
+            if (record.kind === "event") host.closeCliConnection(event);
+          }
+        } catch (error) {
+          callbackError = error;
+          execution.child.kill();
+        }
+      });
+      const finished = await completion;
+      if (callbackError) throw callbackError;
+      expect(finished.code).toBe(1);
+      const records = finished.stdout
+        .trim()
+        .split("\n")
+        .map((line) => JSON.parse(line));
+      expect(records.map((record) => record.kind)).toEqual(["ready", "event"]);
+      expect(records[1].event.summary).toContain(childCheck.reviewId);
+      expect(finished.stderr).toContain("CONNECTION_UNAVAILABLE");
+      await expect(source.readEvents()).rejects.toThrow(
+        "CONNECTION_UNAVAILABLE",
+      );
+    } finally {
+      db.pragma("query_only=OFF");
+      await stream.return();
+    }
+  }, 180000);
+  it.each([
+    { events: "yes" },
+    { events: true, evidence: true },
+    { events: true, drafts: true },
+  ])(
+    "rejects invalid or combined event consent %j before opening a dialog",
+    async (mode) => {
+      await expect(
+        host.openCliConnection(event, { goalRef: ref(), ...mode }),
+      ).rejects.toThrow("GOAL_BRIDGE_UNAVAILABLE");
+      expect(electron.dialog.showMessageBox).not.toHaveBeenCalled();
+    },
+  );
+  it.each(["cancel", "navigation", "identity"])(
+    "does not export an event credential after %s during confirmation",
+    async (mode) => {
+      electron.dialog.showMessageBox.mockImplementation(async () => {
+        if (mode === "navigation") event.sender.emit("did-start-navigation");
+        if (mode === "identity") generation++;
+        return { response: mode === "cancel" ? 0 : 1 };
+      });
+      const opening = host.openCliConnection(event, {
+        goalRef: ref(),
+        events: true,
+      });
+      if (mode === "cancel")
+        expect(await opening).toMatchObject({ enabled: false });
+      else await expect(opening).rejects.toThrow("GOAL_BRIDGE_UNAVAILABLE");
+      expect(fs.existsSync(file)).toBe(false);
+    },
+  );
+  it.each(["navigation", "login", "revision"])(
+    "invalidates event reads after %s",
+    async (mode) => {
+      await host.openCliConnection(event, { goalRef: ref(), events: true });
+      const source = createProjectGoalConnection(file);
+      expect((await source.readEvents()).goalRef).toEqual(ref());
+      if (mode === "navigation") event.sender.emit("did-navigate-in-page");
+      if (mode === "login") clearProjectGoalAuth();
+      if (mode === "revision")
+        goal = host.revise(event, {
+          id: goal.id,
+          expectedRevision: goal.revision,
+          patch: { objective: "Revised" },
+        });
+      await expect(source.readEvents()).rejects.toThrow(
+        "CONNECTION_UNAVAILABLE",
+      );
+      expect(host.cliConnectionStatus(event).enabled).toBe(false);
+    },
+  );
+  it("validates v4 descriptor capabilities, signed response fields and cancellation during HTTP", async () => {
+    await host.openCliConnection(event, { goalRef: ref(), events: true });
+    const original = descriptor();
+    let payload = await createProjectGoalConnection(file).readEvents();
+    const valid = structuredClone(payload);
+    let signed = true,
+      hold = false,
+      received;
+    const fake = http.createServer((request, response) => {
+      if (hold) {
+        received?.();
+        return;
+      }
+      const body = JSON.stringify(payload);
+      response.setHeader(
+        "X-CC-Signature",
+        signed
+          ? createHmac("sha256", Buffer.from(original.key, "hex"))
+              .update(`response\n${request.headers["x-cc-nonce"]}\n${body}`)
+              .digest("hex")
+          : "0".repeat(64),
+      );
+      response.end(body);
+    });
+    await new Promise((resolve) => fake.listen(0, "127.0.0.1", resolve));
+    const descriptorForFake = {
+      ...original,
+      endpoint: `http://127.0.0.1:${fake.address().port}/goal-events`,
+    };
+    try {
+      fs.writeFileSync(
+        file,
+        JSON.stringify({ ...descriptorForFake, capability: "goal.evidence" }),
+      );
+      expect(() => createProjectGoalConnection(file)).toThrow(
+        "CONNECTION_UNAVAILABLE",
+      );
+      fs.writeFileSync(file, JSON.stringify(descriptorForFake));
+      expect(await createProjectGoalConnection(file).readEvents()).toEqual(
+        valid,
+      );
+      for (const invalid of [
+        { ...valid, objective: "must not be exposed" },
+        { ...valid, goalRef: { ...ref(), id: "another" } },
+        {
+          ...valid,
+          receipts: { ...valid.receipts, entries: [{ id: "forged" }] },
+        },
+        { ...valid, schema: "chainlesschain.project-goal-evidence/v1" },
+        { ...valid, extra: "x".repeat(17000) },
+      ]) {
+        payload = invalid;
+        await expect(
+          createProjectGoalConnection(file).readEvents(),
+        ).rejects.toThrow("CONNECTION_UNAVAILABLE");
+      }
+      payload = valid;
+      signed = false;
+      await expect(
+        createProjectGoalConnection(file).readEvents(),
+      ).rejects.toThrow("CONNECTION_UNAVAILABLE");
+      signed = true;
+      hold = true;
+      const arrival = new Promise((resolve) => {
+        received = resolve;
+      });
+      const controller = new AbortController();
+      const pending = createProjectGoalConnection(file).readEvents(goal.id, {
+        signal: controller.signal,
+      });
+      const rejected = expect(pending).rejects.toThrow(
+        "CONNECTION_UNAVAILABLE",
+      );
+      await arrival;
+      controller.abort();
+      await rejected;
+    } finally {
+      fake.closeAllConnections();
+      await new Promise((resolve) => fake.close(resolve));
+    }
+  });
   it("requires separate native evidence consent and transports validated real checks/receipts with zero read writes", async () => {
     const {
       ProjectGoalMonitoringState,
@@ -212,14 +654,18 @@ describe("explicit desktop goal connection", { timeout: 90_000 }, () => {
       const cliRoot = pathToFileURL(
         path.resolve(__dirname, "../../../../../packages/cli") + path.sep,
       );
-      const { readCliGoalExtensionPanels } =
-        await import("../../../../../packages/cli/src/lib/plugin-runtime/cli-goal-extension-host.js");
-      const { trustPlugin, _deps: trustDeps } =
-        await import("../../../../../packages/cli/src/lib/plugin-runtime/trust.js");
-      const { consentPluginCapabilities, _deps: consentDeps } =
-        await import("../../../../../packages/cli/src/lib/plugin-runtime/capability-consent.js");
-      const { normalizeCapabilities } =
-        await import("../../../../../packages/cli/src/lib/plugin-runtime/capabilities.js");
+      const { readCliGoalExtensionPanels } = await import(
+        "../../../../../packages/cli/src/lib/plugin-runtime/cli-goal-extension-host.js"
+      );
+      const { trustPlugin, _deps: trustDeps } = await import(
+        "../../../../../packages/cli/src/lib/plugin-runtime/trust.js"
+      );
+      const { consentPluginCapabilities, _deps: consentDeps } = await import(
+        "../../../../../packages/cli/src/lib/plugin-runtime/capability-consent.js"
+      );
+      const { normalizeCapabilities } = await import(
+        "../../../../../packages/cli/src/lib/plugin-runtime/capabilities.js"
+      );
       const sample = JSON.parse(
         fs.readFileSync(
           new URL(

@@ -1,0 +1,13 @@
+{
+  "name": "goal-status-observer",
+  "version": "0.1.0",
+  "description": "Observe status changes of one explicitly selected standalone CLI goal",
+  "permissions": { "goalExtension": ["event:goal.status.changed"] },
+  "goalExtension": {
+    "apiVersion": "1.0.0",
+    "hosts": { "cli": ">=0.166.141" },
+    "events": ["goal.status.changed"],
+    "panels": [],
+    "proposals": []
+  }
+}

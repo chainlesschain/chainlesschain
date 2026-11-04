@@ -197,6 +197,33 @@ class ProjectGoalEvidenceReader {
         })
         .deferred();
     };
+    this.readEventPage = (raw, after) => {
+      const ref = goalExtensionRef(raw);
+      return view
+        .transaction(() => {
+          const actor = workflow.adapter._actor();
+          const goal = workflow._goal(ref.id, actor);
+          const binding = {
+            storeId: ref.storeId,
+            goalRevision: ref.revision,
+            controlGeneration: ref.controlGeneration,
+          };
+          workflow._live(goal, binding, actor);
+          const page = workflow.events.page(ref, actor, after);
+          if (
+            workflow.adapter._actor() !== actor ||
+            digest(workflow._goal(ref.id, actor)) !== digest(goal)
+          )
+            fail();
+          workflow._live(goal, binding, actor);
+          return {
+            schema: "chainlesschain.goal-event-history/v1",
+            goalRef: ref,
+            ...page,
+          };
+        })
+        .deferred();
+    };
     Object.freeze(this);
   }
 }

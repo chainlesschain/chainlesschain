@@ -287,6 +287,167 @@ export function registerGoalCommand(program) {
     });
 
   goal
+    .command("replay <id>")
+    .description(
+      "Read one retained event-history page and checkpoint acknowledged output",
+    )
+    .requiredOption(
+      "--connection <file>",
+      "Select a separately authorized v5 history connection",
+    )
+    .requiredOption(
+      "--checkpoint <file>",
+      "New or existing body-free event checkpoint",
+    )
+    .requiredOption("--plugin <name>", "Select the admitted event observer")
+    .option(
+      "--checkpoint-mode <mode>",
+      "auto|new|resume; new refuses existing files, resume requires one",
+      "auto",
+    )
+    .requiredOption(
+      "--scope <scope>",
+      "Select its user, project or local install scope",
+    )
+    .option(
+      "--expected-store <storeId>",
+      "Require the selected native goal store",
+    )
+    .option(
+      "--json",
+      "Output one bounded page as JSON; exit zero means checkpoint committed",
+    )
+    .action(async (id, options) => {
+      const controller = new AbortController(),
+        stop = () => controller.abort();
+      process.on("SIGINT", stop);
+      process.on("SIGTERM", stop);
+      const selection = {
+        connection: options.connection,
+        checkpoint: options.checkpoint,
+        checkpointMode: options.checkpointMode,
+        plugin: options.plugin,
+        scope: options.scope,
+        expectedStore: options.expectedStore,
+        signal: controller.signal,
+      };
+      const json = options.json;
+      try {
+        const { replayCliGoalEvents } = await import(
+          "../lib/plugin-runtime/cli-goal-event-history.js"
+        );
+        await replayCliGoalEvents(id, selection, async (page) => {
+          const output = json
+            ? JSON.stringify(page) + "\n"
+            : stripVTControlCharacters(
+                [
+                  `Retained history for ${page.goalRef.id}; at-least-once delivery.`,
+                  ...(page.truncated
+                    ? ["Earlier history is outside the retention window."]
+                    : []),
+                  ...page.entries.map(
+                    (entry) =>
+                      `${entry.sequence} ${entry.recordedAt} ${entry.event.summary}`,
+                  ),
+                  page.hasMore
+                    ? "More retained events remain; run the same command with the same checkpoint."
+                    : "Reached this page's recorded watermark; this does not prove goal completion.",
+                ].join("\n") + "\n",
+              );
+          await new Promise((resolve, reject) => {
+            const abort = () => reject(new Error("GOAL_EVENT_REPLAY_ABORTED"));
+            controller.signal.addEventListener("abort", abort, { once: true });
+            if (controller.signal.aborted) {
+              controller.signal.removeEventListener("abort", abort);
+              abort();
+              return;
+            }
+            process.stdout.write(output, (error) => {
+              controller.signal.removeEventListener("abort", abort);
+              if (error) reject(error);
+              else resolve();
+            });
+          });
+          return true;
+        });
+      } catch (error) {
+        fail("replay", error);
+      } finally {
+        controller.abort();
+        process.removeListener("SIGINT", stop);
+        process.removeListener("SIGTERM", stop);
+      }
+    });
+
+  goal
+    .command("watch <id>")
+    .description("Observe authorized goal changes for a bounded time")
+    .requiredOption("--plugin <name>", "Select one installed event observer")
+    .option(
+      "--connection <file>",
+      "Use a separately authorized desktop event connection",
+    )
+    .option(
+      "--scope <scope>",
+      "Select its user, project or local install scope",
+    )
+    .option(
+      "--expected-store <storeId>",
+      "Require the store selected from goal catalog",
+    )
+    .option(
+      "--interval <ms>",
+      "Polling interval (250–60000 milliseconds)",
+      "1000",
+    )
+    .option("--duration <seconds>", "Stop after 1–900 seconds", "60")
+    .option(
+      "--json",
+      "Output ready and event records as newline-delimited JSON",
+    )
+    .action(async (id, options) => {
+      const controller = new AbortController();
+      const stop = () => controller.abort();
+      process.on("SIGINT", stop);
+      process.on("SIGTERM", stop);
+      try {
+        const selection = {
+          plugin: options.plugin,
+          scope: options.scope,
+          expectedStore: options.expectedStore,
+          connection: options.connection,
+          intervalMs: Number(options.interval),
+          durationMs: Number(options.duration) * 1000,
+          signal: controller.signal,
+        };
+        const json = options.json;
+        const watch =
+          selection.connection !== undefined
+            ? (await import("../lib/plugin-runtime/cli-project-goal-events.js"))
+                .watchCliProjectGoalEvents
+            : (await import("../lib/plugin-runtime/cli-goal-events.js"))
+                .watchCliGoalExtensionEvents;
+        for await (const record of watch(id, selection)) {
+          if (json) console.log(JSON.stringify(record));
+          else
+            logger.log(
+              stripVTControlCharacters(
+                record.kind === "ready"
+                  ? `Observing ${record.goalRef.id}; polling, no history replay. Ctrl+C to stop.`
+                  : `${record.observedAt} ${record.event.summary}`,
+              ),
+            );
+        }
+      } catch (err) {
+        fail("watch", err);
+      } finally {
+        controller.abort();
+        process.removeListener("SIGINT", stop);
+        process.removeListener("SIGTERM", stop);
+      }
+    });
+
+  goal
     .command("draft-request <id>")
     .description(
       "Export an untrusted description request for explicit desktop adoption",

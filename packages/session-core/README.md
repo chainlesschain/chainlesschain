@@ -190,6 +190,26 @@ Recent drafts cannot hide receipts. Missing stores remain unavailable, unknown
 risk remains null, and running actions remain unresolved. Projections contain
 bounded metadata only, explicitly historical, with no task bodies or approvals.
 The shared contract strictly validates fields and formats bounded plaintext.
+The working tree additionally adds `ProjectGoalEvidenceReader.readEventPage(goalRef,
+after)` and `validateGoalEventHistoryPage` / `parseGoalEventCursor` from the existing
+`./goal-evidence-contract` export. Native monitoring and goal actions append compact
+events in their business transactions, including both running and terminal action
+states. A failed append rolls back that transaction. The private journal keeps a
+monotone per-actor/goal sequence, keyed entry integrity, 1000 retained entries and
+at most 4096 durable duplicate identities. No task, goal or memory body is copied.
+
+Pages are authorized read-only views over an exact active personal goal, at most
+20 entries and 16 KiB. Cursors are signed by persistent per-stream keys and bind
+actor, store, goal revision and control generation; they survive connection/server
+restart without becoming authorization. Eviction, missing records, corruption or
+restoring a database behind the cursor fails explicitly. Missing journal storage
+is unavailable, not empty. Only newly instrumented native transactions enter the
+journal: old data and writes from older clients are not backfilled. CLI replay and
+v5 native authorization are distinct from the v4 latest-snapshot observer.
+
+This is an unreleased child-package change. Exact-source cross-platform validation
+and child-first OIDC publication remain required before downstream CLI/IDE releases.
+
 Hosts must still provide current authenticated identity and explicit evidence
 consent; the desktop uses a distinct capability-bound connection rather than
 expanding an existing summary lease. These exports are not yet published.

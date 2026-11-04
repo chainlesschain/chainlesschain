@@ -1,5 +1,44 @@
 # ChainlessChain IDE Bridge (JetBrains)
 
+## Working-tree retained goal history (unreleased)
+
+In the plugin manager select the admitted `goal-project-observer` plugin and
+choose **Recover retained history…**. Native dialogs select the separately
+authorized v5 `goal.event-history` connection, desktop goal ID, and either a new
+checkpoint or the original existing checkpoint. Results appear as plain text in
+**Retained history** after the CLI exits zero and the bounded result passes
+validation. The IDE never reads credentials or checkpoint contents.
+
+**Read next page / check again** performs one explicit page, scanning at most
+20 events, with the captured target/plugin binding and original checkpoint.
+There is no automatic loop or retry. Event IDs identify potential duplicates
+under at-least-once delivery. **Cancel and clear**, refresh, plugin selection
+or operations and closing the dialog invalidate continuation and cancel the
+owned CLI process. Keep the checkpoint after interruption: it may already have
+advanced. Explicitly resume to continue. Retention gaps, database regression and
+binding changes are not reset automatically. Only the newest 1000 instrumented
+events are retained, with no earlier-history backfill. Use matching local Session
+Core, CLI and desktop builds; public versions below do not include this feature.
+Real JetBrains GUI and cross-platform acceptance remain pending.
+
+## Working-tree desktop goal event observer (unreleased)
+
+In the plugin manager select the installed, trusted/consented
+`goal-project-observer` extension and choose **Observe desktop events…**. Select
+a separately authorized v4 `goal.events` connection using the native file picker,
+then enter the goal ID shown in the desktop. Read-only results appear in the
+**Goal events** tab with **Stop and clear**. Use matching local CLI and desktop
+builds; the public versions below do not include this addition.
+
+The observer runs `goal watch` for at most 60 seconds, retains the latest 50 plain
+text observations and checks each record against the initial target/plugin
+binding. Stop, refresh, plugin selection or operations, and closing the dialog
+cancel the owned CLI process; delayed callbacks cannot restore cleared results.
+Credentials and raw stderr stay out of the UI. Polling may miss changes and has
+no durable cursor or history replay; observations do not prove current business
+outcomes. Compilation and real process lifecycle tests do not replace the pending
+real JetBrains GUI journey.
+
 ## CLI 0.166.141 / verified public pairing
 
 CLI **0.166.141** is public through GitHub Actions OIDC. Open VSX **0.37.177** and JetBrains **0.4.194** are public and both recommend CLI **0.166.141**. CLI public bytes, signed provenance, registry-only `--ignore-scripts` installation and the Agent capability startup probe passed. Both public IDE payloads match their official builds.

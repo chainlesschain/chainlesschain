@@ -47,6 +47,22 @@ let _panel = null;
 let _chatProvider = null;
 let _goalPanelGeneration = 0;
 let _workspaceCwd;
+let _goalWatch = null;
+let _goalWatchStop = Promise.resolve();
+let _goalHistoryNext = null;
+function clearGoalHistory() {
+  _goalHistoryNext = null;
+  post({ type: "goalHistory", text: "", canRead: false });
+}
+function stopGoalWatch() {
+  const watch = _goalWatch;
+  _goalWatch = null;
+  if (watch) {
+    _goalWatchStop = watch.stop();
+    _goalWatchStop.catch(() => {});
+  }
+  return _goalWatchStop;
+}
 
 async function runCli(args, timeoutMs = 30000, cwd = _workspaceCwd) {
   const { runCliText } = require("../chat/introspect-commands.js");
@@ -116,6 +132,9 @@ function post(payload) {
 
 async function refresh() {
   _goalPanelGeneration++;
+  clearGoalHistory();
+  void stopGoalWatch();
+  post({ type: "goalEvents", text: "" });
   post({ type: "goalPanels", text: "" });
   post({ type: "busy" });
   post(await snapshot());
@@ -287,8 +306,20 @@ function openPluginManager(vscode, chatProvider) {
   _panel.webview.onDidReceiveMessage((msg) => {
     handleMessage(vscode, msg).catch(() => {});
   });
+  const workspaceChanges = vscode.workspace?.onDidChangeWorkspaceFolders?.(
+    () => {
+      _goalPanelGeneration++;
+      clearGoalHistory();
+      void stopGoalWatch();
+      post({ type: "goalEvents", text: "" });
+      post({ type: "goalPanels", text: "" });
+    },
+  );
   _panel.onDidDispose(() => {
     _goalPanelGeneration++;
+    _goalHistoryNext = null;
+    void stopGoalWatch();
+    workspaceChanges?.dispose();
     _panel = null;
   });
   refresh().catch(() => {});
@@ -297,12 +328,226 @@ function openPluginManager(vscode, chatProvider) {
 
 async function handleMessage(vscode, msg) {
   if (!msg || typeof msg.command !== "string") return;
-  if (msg.command.startsWith("plugin") || msg.command === "clearGoalPanels") {
+  const continuation =
+    msg.command === "nextGoalHistory" ? _goalHistoryNext : null;
+  if (
+    msg.command.startsWith("plugin") ||
+    msg.command === "clearGoalPanels" ||
+    msg.command === "stopGoalEvents" ||
+    msg.command === "nextGoalHistory" ||
+    msg.command === "stopGoalHistory"
+  ) {
     _goalPanelGeneration++;
+    clearGoalHistory();
+    void stopGoalWatch();
+    post({ type: "goalEvents", text: "" });
     post({ type: "goalPanels", text: "" });
   }
   if (msg.command === "refresh") return refresh();
   if (msg.command === "clearGoalPanels") return;
+  if (msg.command === "stopGoalHistory") {
+    const generation = _goalPanelGeneration,
+      panel = _panel;
+    try {
+      await stopGoalWatch();
+    } catch {
+      /* The outcome remains unknown. */
+    }
+    if (generation === _goalPanelGeneration && panel === _panel)
+      post({
+        type: "goalHistory",
+        canRead: false,
+        text: "Recovery cancelled. Keep the checkpoint; it may already have advanced. Explicitly resume to continue; duplicates are possible.",
+      });
+    return;
+  }
+  if (["pluginGoalHistory", "nextGoalHistory"].includes(msg.command)) {
+    const generation = _goalPanelGeneration,
+      panel = _panel,
+      cwd = _workspaceCwd;
+    const current = () =>
+      generation === _goalPanelGeneration && panel === _panel;
+    const history = require("../goal-history");
+    try {
+      let input, expected;
+      if (msg.command === "nextGoalHistory") {
+        if (!continuation) return;
+        ({ input, binding: expected } = continuation);
+      } else {
+        const files = await vscode.window.showOpenDialog({
+          canSelectMany: false,
+          canSelectFolders: false,
+          openLabel: "Select separately authorized v5 history connection",
+          filters: { "Goal history connection": ["json"] },
+        });
+        if (!files?.[0] || !current()) return;
+        const id = await vscode.window.showInputBox({
+          title: "Recover retained goal history",
+          prompt: "Goal ID shown in the desktop connection panel",
+          ignoreFocusOut: true,
+        });
+        if (!id?.trim() || !current()) return;
+        const mode = await vscode.window.showQuickPick(
+          [
+            { label: "Create new checkpoint…", mode: "new" },
+            { label: "Resume existing checkpoint…", mode: "resume" },
+          ],
+          { title: "Select checkpoint explicitly", ignoreFocusOut: true },
+        );
+        if (!mode || !current()) return;
+        const checkpoint =
+          mode.mode === "new"
+            ? (
+                await vscode.window.showSaveDialog({
+                  title: "Choose a new history checkpoint file",
+                  filters: { "History checkpoint": ["json"] },
+                })
+              )?.fsPath
+            : (
+                await vscode.window.showOpenDialog({
+                  canSelectMany: false,
+                  canSelectFolders: false,
+                  openLabel: "Resume original history checkpoint",
+                  filters: { "History checkpoint": ["json"] },
+                })
+              )?.[0]?.fsPath;
+        if (!checkpoint || !current()) return;
+        input = Object.freeze({
+          id: id.trim(),
+          name: String(msg.name || ""),
+          scope: String(msg.scope || "user"),
+          connection: files[0].fsPath,
+          checkpoint,
+          checkpointMode: mode.mode,
+        });
+      }
+      history.buildGoalReplayArgs(input);
+      await stopGoalWatch();
+      if (!current()) return;
+      post({
+        type: "goalHistory",
+        text: "Reading one retained page; waiting for CLI checkpoint commit…",
+        canRead: false,
+      });
+      _goalWatch = history.startGoalReplay({
+        command: require("../cli-binary").getResolvedCli(),
+        cwd,
+        input,
+        expected,
+        onEnd(outcome) {
+          if (!current()) return;
+          _goalWatch = null;
+          if (outcome.state === "saved") {
+            _goalHistoryNext = {
+              input: Object.freeze({ ...input, checkpointMode: "resume" }),
+              binding: outcome.page.binding,
+            };
+            post({
+              type: "goalHistory",
+              text: outcome.page.text,
+              canRead: true,
+            });
+          } else {
+            clearGoalHistory();
+            post({
+              type: "goalHistory",
+              text: outcome.message,
+              canRead: false,
+            });
+          }
+        },
+      });
+    } catch {
+      if (current()) {
+        clearGoalHistory();
+        post({
+          type: "goalHistory",
+          text: history.historyFailure(""),
+          canRead: false,
+        });
+      }
+    }
+    return;
+  }
+  if (msg.command === "stopGoalEvents") {
+    const generation = _goalPanelGeneration,
+      panel = _panel;
+    try {
+      await stopGoalWatch();
+      if (panel === _panel && generation === _goalPanelGeneration)
+        post({ type: "goalEvents", text: "Observer stopped." });
+    } catch {
+      if (panel === _panel && generation === _goalPanelGeneration)
+        post({
+          type: "goalEvents",
+          text: "Stop not confirmed; check the local CLI process.",
+        });
+    }
+    return;
+  }
+  if (msg.command === "pluginGoalEvents") {
+    const generation = _goalPanelGeneration,
+      panel = _panel,
+      cwd = _workspaceCwd;
+    const current = () =>
+      panel === _panel && generation === _goalPanelGeneration;
+    const name = String(msg.name || ""),
+      scope = String(msg.scope || "user");
+    try {
+      const files = await vscode.window.showOpenDialog({
+        canSelectMany: false,
+        canSelectFolders: false,
+        openLabel: "Select separately authorized v4 event connection",
+        filters: { "Goal event connection": ["json"] },
+      });
+      if (!files?.[0] || !current()) return;
+      const id = await vscode.window.showInputBox({
+        title: "Observe desktop goal events",
+        prompt: "Goal ID shown in the desktop connection panel",
+        ignoreFocusOut: true,
+      });
+      if (!id?.trim() || !current()) return;
+      const events = require("../goal-events");
+      const input = { id: id.trim(), name, scope, connection: files[0].fsPath };
+      events.buildGoalWatchArgs(input);
+      await stopGoalWatch();
+      if (!current()) return;
+      const lines = [];
+      _goalWatch = events.startGoalWatch({
+        command: require("../cli-binary").getResolvedCli(),
+        cwd,
+        input,
+        onRecord(record) {
+          if (!current()) return;
+          lines.push(record.text);
+          while (lines.length > 50 || lines.join("\n").length > 60000)
+            lines.shift();
+          post({ type: "goalEvents", text: lines.join("\n") });
+        },
+        onEnd(outcome) {
+          if (!current()) return;
+          _goalWatch = null;
+          post({
+            type: "goalEvents",
+            text:
+              outcome === "unavailable"
+                ? "Observer unavailable; check the CLI version, connection and plugin authorization."
+                : [
+                    ...lines,
+                    `Observer ${outcome}; displayed records are historical observations.`,
+                  ].join("\n"),
+          });
+        },
+      });
+    } catch {
+      if (current())
+        post({
+          type: "goalEvents",
+          text: "Observer unavailable; check the selected CLI, connection and plugin.",
+        });
+    }
+    return;
+  }
   if (
     [
       "pluginGoalDraftAccess",
@@ -871,6 +1116,12 @@ function renderHtml() {
   <div id="plugins"></div>
   <h2>CLI goal snapshot <button id="clearGoalPanels" class="sec">Clear</button></h2>
   <pre id="goalPanels" style="white-space:pre-wrap"></pre>
+  <h2>Desktop goal events <button id="stopGoalEvents" class="sec">Stop and clear</button></h2>
+  <p>Explicit 60-second polling; latest 50 observations, no history replay.</p>
+  <pre id="goalEvents" style="white-space:pre-wrap"></pre>
+  <h2>Retained goal history <button id="nextGoalHistory" class="sec" disabled>Read next page / check again</button><button id="stopGoalHistory" class="sec">Cancel and clear</button></h2>
+  <p>One page per explicit action. Keep checkpoints after cancellation; delivery may repeat records.</p>
+  <pre id="goalHistory" style="white-space:pre-wrap"></pre>
 
   <h2>Quality</h2>
   <div id="quality"><p class="muted">Analyzing…</p></div>
@@ -890,6 +1141,9 @@ function renderHtml() {
   document.getElementById('pluginAdd').addEventListener('click', ()=>vscode.postMessage({command:'pluginAdd'}));
   document.getElementById('pluginReload').addEventListener('click', ()=>vscode.postMessage({command:'pluginReload'}));
   document.getElementById('clearGoalPanels').addEventListener('click', ()=>vscode.postMessage({command:'clearGoalPanels'}));
+  document.getElementById('stopGoalEvents').addEventListener('click', ()=>vscode.postMessage({command:'stopGoalEvents'}));
+  document.getElementById('nextGoalHistory').addEventListener('click', ()=>vscode.postMessage({command:'nextGoalHistory'}));
+  document.getElementById('stopGoalHistory').addEventListener('click', ()=>vscode.postMessage({command:'stopGoalHistory'}));
   document.getElementById('skillFilter').addEventListener('input', ()=>{ if(last) renderSkills(last.skills); });
 
   function renderPlugins(rows){
@@ -919,6 +1173,8 @@ function renderHtml() {
         + '<td>'
         + (p.goalExtension && p.goalExtension.hosts.cli
           ? '<button class="sec" data-act="pluginGoalPanels" data-name="'+esc(p.name)+'" data-scope="'+esc(p.scope)+'">CLI goal panels…</button><button class="sec" data-act="pluginGoalDraftRequest" data-name="'+esc(p.name)+'" data-scope="'+esc(p.scope)+'">Export goal draft request…</button><button class="sec" data-act="pluginGoalDraftAccess" data-name="'+esc(p.name)+'" data-scope="'+esc(p.scope)+'">Export online draft access…</button><button class="sec" data-act="pluginGoalDraftSend" data-name="'+esc(p.name)+'" data-scope="'+esc(p.scope)+'">Submit pending draft…</button><button class="sec" data-act="pluginGoalDraftReceipt" data-name="'+esc(p.name)+'" data-scope="'+esc(p.scope)+'">Look up draft receipt…</button>' : '')
+        + (p.goalExtension && p.goalExtension.hosts.cli ? '<button class="sec" data-act="pluginGoalEvents" data-name="'+esc(p.name)+'" data-scope="'+esc(p.scope)+'">Observe desktop events…</button>' : '')
+        + (p.goalExtension && p.goalExtension.hosts.cli ? '<button class="sec" data-act="pluginGoalHistory" data-name="'+esc(p.name)+'" data-scope="'+esc(p.scope)+'">Recover retained history…</button>' : '')
         + '<button class="sec" data-act="pluginLifecycle" data-name="'+esc(p.name)+'" data-scope="'+esc(p.scope)+'">'+(p.enabled?'Disable':'Enable')+'</button>'
         + '<button class="sec" data-act="pluginUpgrade" data-name="'+esc(p.name)+'" data-scope="'+esc(p.scope)+'">Upgrade</button>'
         + '<button class="sec" data-act="trust" data-name="'+esc(p.name)+'" data-scope="'+esc(p.scope)+'">Trust</button>'
@@ -974,6 +1230,8 @@ function renderHtml() {
     else if (act === 'pluginUpgrade') vscode.postMessage({command:'pluginUpgrade', name, scope, source:row&&row.source});
     else if (act === 'pluginDetails') vscode.postMessage({command:'pluginDetails', name, scope, version:row&&row.version, enabled:row&&row.enabled, source:row&&row.source, integrity:row&&row.integrity, policy:row&&row.policy});
     else if (act === 'pluginGoalPanels') vscode.postMessage({command:'pluginGoalPanels', name, scope});
+    else if (act === 'pluginGoalEvents') vscode.postMessage({command:'pluginGoalEvents', name, scope});
+    else if (act === 'pluginGoalHistory') vscode.postMessage({command:'pluginGoalHistory', name, scope});
     else if (act === 'pluginGoalDraftRequest') vscode.postMessage({command:'pluginGoalDraftRequest', name, scope});
     else if (['pluginGoalDraftAccess','pluginGoalDraftSend','pluginGoalDraftReceipt'].includes(act)) vscode.postMessage({command:act, name, scope});
     else if (act === 'pluginUse') {
@@ -993,6 +1251,8 @@ function renderHtml() {
     if (m.type === 'busy'){ document.getElementById('busy').textContent = '· working…'; return; }
     if (m.type === 'note'){ document.getElementById('note').textContent = m.text || ''; return; }
     if (m.type === 'goalPanels'){ document.getElementById('goalPanels').textContent = m.text || ''; return; }
+    if (m.type === 'goalEvents'){ document.getElementById('goalEvents').textContent = m.text || ''; return; }
+    if (m.type === 'goalHistory'){ document.getElementById('goalHistory').textContent = m.text || ''; document.getElementById('nextGoalHistory').disabled = !m.canRead; return; }
     if (m.type === 'update'){
       document.getElementById('busy').textContent = '';
       last = m;

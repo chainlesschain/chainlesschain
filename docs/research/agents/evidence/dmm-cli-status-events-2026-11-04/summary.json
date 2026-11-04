@@ -1,0 +1,148 @@
+{
+  "taskIds": ["DMM-07"],
+  "recordedAt": "2026-11-04T12:40:42.644Z",
+  "result": "Bounded explicit standalone CLI status polling through the admitted read-only event SDK; project event subscriptions remain pending.",
+  "source": {
+    "baseCommit": "5717128e51b486b3a2c6232c2886a709a29e49f6",
+    "state": "Uncommitted local worktree; no version increment or publication; not exact-commit release CI.",
+    "sha256": {
+      "packages/cli/src/commands/goal.js": "fbdadbd1872decfe3e9ec354f48826d800c1364f584de939246b4750851db150",
+      "packages/cli/src/command-help-index.json": "faf03a2ffce2bf9a2a179cabd3ee18e8d360486d34c81ca60216563acee75182",
+      "packages/cli/src/lib/plugin-runtime/cli-goal-events.js": "e7d68c9e5630d0910d6b472c76b4abdefc09ee44e21a862ab6406bf2bf1f6a8b",
+      "packages/cli/src/lib/plugin-runtime/examples/goal-status-observer/plugin.json": "10dd27a456ee07ada8f972d6d6daef269f268cddf72726311e9f6ee5938a03b1",
+      "packages/cli/src/lib/plugin-runtime/goal-extensions.js": "c481936f30abab17353044d133ddd22d12a1879d5d1bb8257750a789cdf0e2f8",
+      "packages/cli/src/lib/plugin-runtime/goal-extension-contract.js": "dc514a9b07388859e4431bb480b88f55f344e28d4b0687f7dc6df4379b8b6b10",
+      "packages/cli/src/lib/cli-goal-source.js": "287e8338d0cb27d57f776ffdefd1b25b9fa0e8b9fd183ae23a3699f6f21e2c7d",
+      "packages/cli/src/lib/goal-store.js": "a3633db0ed1773d86aff8fb6f419d035046a18a0b6a028b2adc684bf5bb68542",
+      "packages/cli/__tests__/unit/cli-goal-events.test.js": "fb8a5fe75d2c1f80f1f8e672dccdc745394d2e4b23448bcbab74f7344512b551",
+      "packages/cli/__tests__/integration/cli-goal-events.test.js": "3dda29ee95da987e016cc262a50773ea285fa06ad2db9c0a59121c5352758e6e",
+      "packages/cli/README.md": "2aef9399b0b6350f42e6d343c66f3f5fc0991d9d14e9712e86cc960fba5e0c8d",
+      "docs/research/agents/README.md": "e1c9ce1e6187cae3950f8061e46568babbde0fc232659ba7b5dc1789258b9f48",
+      "docs/research/agents/chainlesschain-dots-muse-mods-analysis-2026-10-06.md": "f0dcd6e28fd1badbef270ffd0d98b7d39de9fe4ac9e18ee2b65df7556aea178d",
+      "docs/research/agents/dots-muse-mods-implementation-progress-2026-10-07.md": "0b5266daf24a8c802482a166b93438d71f75bd0eb70953ebf6ae212f27594701",
+      "docs/research/agents/evidence/dmm-cli-status-events-2026-11-04/README.md": "ecf3523facc5d065fc1f6866f03695adbb4f7a85e3e99310f88e01db894464ef"
+    }
+  },
+  "host": {
+    "platform": "win32",
+    "arch": "x64",
+    "osRelease": "10.0.19045",
+    "node": "v22.22.2",
+    "vitest": "4.1.10"
+  },
+  "tests": {
+    "cwd": "packages/cli",
+    "command": "node node_modules/vitest/vitest.mjs run __tests__/unit/cli-goal-events.test.js __tests__/integration/cli-goal-events.test.js __tests__/unit/plugin-goal-extension.test.js __tests__/unit/cli-goal-extension-host.test.js __tests__/unit/cli-goal-catalog.test.js __tests__/integration/cli-goal-panels.test.js --reporter=json --outputFile=../../docs/research/agents/evidence/dmm-cli-status-events-2026-11-04/cli-tests.json",
+    "report": {
+      "path": "docs/research/agents/evidence/dmm-cli-status-events-2026-11-04/cli-tests.json",
+      "sha256": "9cdaa3aa29126b600601ac19fb23c41463f2efdce87bad41cb06bd87e511cc8e"
+    },
+    "fileCount": 6,
+    "passed": 107,
+    "failed": 0,
+    "skipped": 3,
+    "files": [
+      {
+        "path": "__tests__/integration/cli-goal-events.test.js",
+        "passed": 1,
+        "failed": 0,
+        "skipped": []
+      },
+      {
+        "path": "__tests__/integration/cli-goal-panels.test.js",
+        "passed": 1,
+        "failed": 0,
+        "skipped": []
+      },
+      {
+        "path": "__tests__/unit/cli-goal-catalog.test.js",
+        "passed": 12,
+        "failed": 0,
+        "skipped": [
+          "bounded standalone goal catalog rejects a dangling store symlink instead of calling it empty",
+          "bounded standalone goal catalog rejects symlink source metadata"
+        ]
+      },
+      {
+        "path": "__tests__/unit/cli-goal-events.test.js",
+        "passed": 28,
+        "failed": 0,
+        "skipped": []
+      },
+      {
+        "path": "__tests__/unit/cli-goal-extension-host.test.js",
+        "passed": 18,
+        "failed": 0,
+        "skipped": [
+          "standalone CLI goal extension host rejects a symlinked source without reading its target"
+        ]
+      },
+      {
+        "path": "__tests__/unit/plugin-goal-extension.test.js",
+        "passed": 47,
+        "failed": 0,
+        "skipped": []
+      }
+    ]
+  },
+  "checks": [
+    {
+      "cwd": "packages/cli",
+      "command": "node scripts/gen-command-manifest.mjs --check",
+      "exitCode": 0
+    },
+    {
+      "cwd": "packages/cli",
+      "command": "node scripts/gen-command-help-index.mjs --check",
+      "exitCode": 0
+    },
+    {
+      "cwd": "packages/cli",
+      "command": "node scripts/gen-shell-completions.mjs --check",
+      "exitCode": 0
+    },
+    {
+      "cwd": ".",
+      "command": "node node_modules/prettier/bin/prettier.cjs --check <changed code, tests, READMEs and analysis/progress docs>",
+      "exitCode": 0
+    },
+    {
+      "cwd": ".",
+      "command": "git diff --check",
+      "exitCode": 0
+    }
+  ],
+  "packageInventory": {
+    "cwd": "packages/cli",
+    "command": "npm.cmd pack --dry-run --ignore-scripts --json --cache <Windows-Temp>/dmm-cli-status-pack-cache",
+    "exitCode": 0,
+    "name": "chainlesschain",
+    "version": "0.166.141",
+    "entryCount": 1850,
+    "included": [
+      "src/commands/goal.js",
+      "src/lib/plugin-runtime/cli-goal-events.js",
+      "src/lib/plugin-runtime/examples/goal-status-observer/plugin.json"
+    ],
+    "artifactProduced": false,
+    "published": false
+  },
+  "boundaries": {
+    "real": [
+      "Standalone goal files and CAS lifecycle",
+      "SDK projection and mandatory plugin admission",
+      "Persistent workspace trust and capability consent",
+      "CLI subprocess install, trust, consent, watch, pause and disable"
+    ],
+    "testControls": [
+      "Security storage paths redirected to isolated temporary directories",
+      "Projection wrappers inject revocation, source mutation and cancellation races"
+    ],
+    "notRun": [
+      "Electron or IDE GUI",
+      "Desktop project event authorization and durable delivery",
+      "Independent business-effect evaluation",
+      "Exact release commit cross-platform GitHub Actions gates"
+    ]
+  }
+}

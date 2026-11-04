@@ -168,12 +168,27 @@ function createProjectGoalHost({
           !input ||
           !Object.hasOwn(input, "goalRef") ||
           Object.keys(input).some(
-            (key) => !["goalRef", "evidence", "drafts"].includes(key),
+            (key) =>
+              ![
+                "goalRef",
+                "evidence",
+                "drafts",
+                "events",
+                "eventHistory",
+              ].includes(key),
           ) ||
           (input.evidence !== undefined &&
             typeof input.evidence !== "boolean") ||
           (input.drafts !== undefined && typeof input.drafts !== "boolean") ||
-          (input.drafts === true && input.evidence === true)
+          (input.events !== undefined && typeof input.events !== "boolean") ||
+          (input.eventHistory !== undefined &&
+            typeof input.eventHistory !== "boolean") ||
+          [
+            input.drafts,
+            input.evidence,
+            input.events,
+            input.eventHistory,
+          ].filter((value) => value === true).length > 1
         )
           throw error("GOAL_INVALID_REQUEST");
         const ref =
@@ -186,6 +201,8 @@ function createProjectGoalHost({
         } = require("@chainlesschain/session-core/project-goal-evidence-reader");
         const reader = new ProjectGoalEvidenceReader({ db, getActor, clock });
         const evidence = input.evidence === true;
+        const eventsConnection = input.events === true;
+        const historyConnection = input.eventHistory === true;
         const draftsConnection = input.drafts === true;
         let native = null,
           access = null,
@@ -208,6 +225,8 @@ function createProjectGoalHost({
         const context = {
           parent,
           evidence,
+          events: eventsConnection,
+          eventHistory: historyConnection,
           drafts: draftsConnection,
           get access() {
             return access;
@@ -235,6 +254,20 @@ function createProjectGoalHost({
             const result = reader.read(ref);
             this.read();
             return { ...summary, ...result };
+          },
+          readEvents() {
+            const summary = this.read();
+            if (!eventsConnection) throw error("GOAL_BRIDGE_UNAVAILABLE");
+            const result = reader.read(ref);
+            this.read();
+            return { goalRef: summary.goalRef, ...result };
+          },
+          readEventPage(after) {
+            this.read();
+            if (!historyConnection) throw error("GOAL_BRIDGE_UNAVAILABLE");
+            const result = reader.readEventPage(ref, after);
+            this.read();
+            return result;
           },
           authorizeDrafts() {
             if (!draftsConnection || !native || !beforeGrant)

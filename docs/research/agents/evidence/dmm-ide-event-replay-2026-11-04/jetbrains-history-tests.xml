@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.GoalHistoryReplayTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-11-04T15:27:15" hostname="DESKTOP-MTMV2RE" time="2.453">
+  <properties/>
+  <testcase name="realInvalidPacketIsNotSuccess()" classname="com.chainlesschain.ide.GoalHistoryReplayTest" time="0.651"/>
+  <testcase name="realSuccessfulChildCommitsOnlyAfterExit()" classname="com.chainlesschain.ide.GoalHistoryReplayTest" time="0.605"/>
+  <testcase name="errorMappingNeverForwardsRawPayloads()" classname="com.chainlesschain.ide.GoalHistoryReplayTest" time="0.003"/>
+  <testcase name="rejectsMalformedAuthorityAndSequenceBounds()" classname="com.chainlesschain.ide.GoalHistoryReplayTest" time="0.029"/>
+  <testcase name="acceptsEmptyJournalButRejectsInvalidUtf8AndOversize()" classname="com.chainlesschain.ide.GoalHistoryReplayTest" time="0.003"/>
+  <testcase name="acceptsFilteredGapsAndPinsBinding()" classname="com.chainlesschain.ide.GoalHistoryReplayTest" time="0.012"/>
+  <testcase name="realValidStdoutWithNonzeroExitIsNotSuccess()" classname="com.chainlesschain.ide.GoalHistoryReplayTest" time="0.575"/>
+  <testcase name="realCancellationReapsCliAndRetainsUnknownCheckpointOutcome()" classname="com.chainlesschain.ide.GoalHistoryReplayTest" time="0.558"/>
+  <testcase name="fixedArgumentsRequireExplicitNativeSelection()" classname="com.chainlesschain.ide.GoalHistoryReplayTest" time="0.004"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

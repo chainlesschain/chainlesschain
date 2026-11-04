@@ -1,0 +1,235 @@
+{
+  "taskIds": ["DMM-07"],
+  "recordedAt": "2026-11-04T13:23:32.539Z",
+  "result": "Separately consented native v4 goal.events lease with read-only risk/receipt polling, SDK admission and output revalidation, bounded cancellation, and real CLI-over-HTTP journey. Durable event replay and IDE event UI remain pending.",
+  "source": {
+    "baseCommit": "5717128e51b486b3a2c6232c2886a709a29e49f6",
+    "state": "Uncommitted local worktree including the earlier standalone status observer batch; no version increment or publication; not release CI.",
+    "sha256": {
+      "desktop-app-vue/src/main/task/project-goal-cli-bridge.js": "cfedad97b3b7bd84892e01f1c044257ac5dc8a15d57bc76ff851e43e38ab57e9",
+      "desktop-app-vue/src/main/task/project-goal-ipc.js": "6135def3c3ab98e1d75a0fa3f97379b6694888ec0ab3e27a5463a1a9295ff0b3",
+      "desktop-app-vue/src/main/task/__tests__/project-goal-cli-bridge.test.js": "00655cef7d759b718d0478b77c1ec35d4104808600da5b26b6ce033a5650b543",
+      "desktop-app-vue/src/renderer/components/projects/ProjectGoalCliConnectionPanel.vue": "2d7ccae1dd06b16a79ac1b8fb013d37183a90d61d4f3a9fee7c5cf9882772f17",
+      "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-cli-connection-panel.test.ts": "60715dae0c8629dc80b18abb91555aaeb1df03e9ed9707297eccbd9b22c15921",
+      "packages/cli/src/lib/project-goal-connection.js": "e9ed1fee30f5db402222280fa1c32cdeca487c56fe929d164fb5c24d4c1ac284",
+      "packages/cli/src/lib/plugin-runtime/cli-project-goal-events.js": "742f62145d5b8a2a3f2040bca9b59b1b21b55546430734482156d56b541c9f58",
+      "packages/cli/src/lib/plugin-runtime/examples/goal-project-observer/plugin.json": "e9beda45b83c585199e79ce3ead143e00be3ae1a5443b5c48b312da6580b8d4f",
+      "packages/cli/src/lib/plugin-runtime/cli-goal-events.js": "e7d68c9e5630d0910d6b472c76b4abdefc09ee44e21a862ab6406bf2bf1f6a8b",
+      "packages/cli/src/lib/plugin-runtime/goal-extensions.js": "c481936f30abab17353044d133ddd22d12a1879d5d1bb8257750a789cdf0e2f8",
+      "packages/cli/src/commands/goal.js": "24cf6a700fd530a984c3cadd9d01622ca868d97ac065ff2107dc38aeb531e415",
+      "packages/cli/src/command-help-index.json": "db02030d2fae87cec147d27d5a75fca7583cde343b8f68474b83c98f72b2a7c1",
+      "packages/cli/__tests__/unit/cli-project-goal-events.test.js": "72a70665824f1dade7f5537cb79d549820ba0f3b61e809b7712e06515ddb2220",
+      "packages/session-core/lib/project-goal-evidence-reader.js": "b399bc088d8dd8fef54c89246303a4013f1dde96f7c0e25d0955cba087a1f798",
+      "packages/session-core/lib/goal-evidence-contract.js": "bea1a233537c0eb03190901bc63e156356b3d4f4399e17cb5145558885e5c598",
+      "packages/cli/README.md": "ac178bce3cf26e2d67fa3dca4ef5a146ec59e8683618ecfdfe8d6e1d1184fa2e",
+      "docs/research/agents/README.md": "95d95f66d8c3f56862227959c0ca65ec0782b3537c021f62580a0de27850bb91",
+      "docs/research/agents/chainlesschain-dots-muse-mods-analysis-2026-10-06.md": "b5a1786463f5d7aae9dbe31d675ab4ef81d5c4a0761cc405275dca0171e25936",
+      "docs/research/agents/dots-muse-mods-implementation-progress-2026-10-07.md": "aaad3a122614fe13e3f2bed95f69eea94b3d958823a5724c875e8ad9028a2b4f",
+      "docs/research/agents/evidence/dmm-cli-project-events-2026-11-04/README.md": "5cb53e810a0ada921e4e1bcf2322deb4d2853dfca7c720cc21747ac78fd459e5"
+    }
+  },
+  "host": {
+    "platform": "win32",
+    "arch": "x64",
+    "osRelease": "10.0.19045",
+    "node": "v22.22.2",
+    "vitest": "4.1.10",
+    "rendererDependencies": {
+      "vue": "3.5.40",
+      "@vue/test-utils": "2.5.1",
+      "@vitejs/plugin-vue": "6.0.6",
+      "happy-dom": "20.11.0",
+      "vite": "7.2.7"
+    }
+  },
+  "totals": {
+    "fileCount": 12,
+    "passed": 204,
+    "failed": 0,
+    "skipped": 1
+  },
+  "tests": {
+    "cli": {
+      "cwd": "packages/cli",
+      "command": "node node_modules/vitest/vitest.mjs run __tests__/unit/cli-project-goal-events.test.js __tests__/unit/cli-goal-events.test.js __tests__/unit/plugin-goal-extension.test.js __tests__/unit/cli-goal-evidence-host.test.js __tests__/unit/cli-goal-extension-host.test.js __tests__/unit/project-goal-evidence-reader.test.js __tests__/integration/cli-goal-events.test.js --reporter=json --outputFile=../../docs/research/agents/evidence/dmm-cli-project-events-2026-11-04/cli-tests.json",
+      "report": {
+        "path": "docs/research/agents/evidence/dmm-cli-project-events-2026-11-04/cli-tests.json",
+        "sha256": "0a4462ed55df791c899de6971072c6fac8e6e3187b676652e22b8796713e4075"
+      },
+      "fileCount": 7,
+      "passed": 134,
+      "failed": 0,
+      "skipped": 1,
+      "files": [
+        {
+          "path": "packages/cli/__tests__/integration/cli-goal-events.test.js",
+          "passed": 1,
+          "skipped": []
+        },
+        {
+          "path": "packages/cli/__tests__/unit/cli-goal-events.test.js",
+          "passed": 28,
+          "skipped": []
+        },
+        {
+          "path": "packages/cli/__tests__/unit/cli-goal-evidence-host.test.js",
+          "passed": 5,
+          "skipped": []
+        },
+        {
+          "path": "packages/cli/__tests__/unit/cli-goal-extension-host.test.js",
+          "passed": 18,
+          "skipped": [
+            "standalone CLI goal extension host rejects a symlinked source without reading its target"
+          ]
+        },
+        {
+          "path": "packages/cli/__tests__/unit/cli-project-goal-events.test.js",
+          "passed": 21,
+          "skipped": []
+        },
+        {
+          "path": "packages/cli/__tests__/unit/plugin-goal-extension.test.js",
+          "passed": 47,
+          "skipped": []
+        },
+        {
+          "path": "packages/cli/__tests__/unit/project-goal-evidence-reader.test.js",
+          "passed": 14,
+          "skipped": []
+        }
+      ]
+    },
+    "desktop": {
+      "cwd": "desktop-app-vue",
+      "command": "node ../packages/cli/node_modules/vitest/vitest.mjs run --config vitest.business-actions.config.mjs src/main/task/__tests__/project-goal-cli-bridge.test.js src/main/task/__tests__/project-goal-ipc.test.js src/main/task/__tests__/project-goal-external-drafts-ipc.test.js src/main/task/__tests__/project-goal-auth-session.test.js --reporter=json --outputFile=../docs/research/agents/evidence/dmm-cli-project-events-2026-11-04/desktop-tests.json",
+      "report": {
+        "path": "docs/research/agents/evidence/dmm-cli-project-events-2026-11-04/desktop-tests.json",
+        "sha256": "69c7895a558ad5cef5d1899df954f0f7c1f0f5c704b7ba458b5a01556170fa95"
+      },
+      "fileCount": 4,
+      "passed": 64,
+      "failed": 0,
+      "skipped": 0,
+      "files": [
+        {
+          "path": "desktop-app-vue/src/main/task/__tests__/project-goal-auth-session.test.js",
+          "passed": 21,
+          "skipped": []
+        },
+        {
+          "path": "desktop-app-vue/src/main/task/__tests__/project-goal-cli-bridge.test.js",
+          "passed": 33,
+          "skipped": []
+        },
+        {
+          "path": "desktop-app-vue/src/main/task/__tests__/project-goal-external-drafts-ipc.test.js",
+          "passed": 5,
+          "skipped": []
+        },
+        {
+          "path": "desktop-app-vue/src/main/task/__tests__/project-goal-ipc.test.js",
+          "passed": 5,
+          "skipped": []
+        }
+      ]
+    },
+    "renderer": {
+      "cwd": "desktop-app-vue",
+      "command": "node ../packages/cli/node_modules/vitest/vitest.mjs run --config vitest.business-actions-renderer.config.mjs src/renderer/components/projects/__tests__/project-goal-cli-connection-panel.test.ts --reporter=json --outputFile=../docs/research/agents/evidence/dmm-cli-project-events-2026-11-04/renderer-tests.json",
+      "report": {
+        "path": "docs/research/agents/evidence/dmm-cli-project-events-2026-11-04/renderer-tests.json",
+        "sha256": "3ea17b92e8bd09c1a487945ae7a024102808f9615c1020a1d53269a9c4c538cc"
+      },
+      "fileCount": 1,
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0,
+      "files": [
+        {
+          "path": "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-cli-connection-panel.test.ts",
+          "passed": 6,
+          "skipped": []
+        }
+      ]
+    }
+  },
+  "checks": [
+    {
+      "cwd": "packages/cli",
+      "command": "node scripts/gen-command-manifest.mjs --check",
+      "exitCode": 0
+    },
+    {
+      "cwd": "packages/cli",
+      "command": "node scripts/gen-command-help-index.mjs --check",
+      "exitCode": 0
+    },
+    {
+      "cwd": "packages/cli",
+      "command": "node scripts/gen-shell-completions.mjs --check",
+      "exitCode": 0
+    },
+    {
+      "cwd": ".",
+      "command": "node desktop-app-vue/scripts/verify-fixed-renderer-ipc.mjs",
+      "exitCode": 0,
+      "exactChannels": 1369,
+      "unregisteredRendererChannelsDenied": 156
+    },
+    {
+      "cwd": ".",
+      "command": "node node_modules/prettier/bin/prettier.cjs --check <changed code, tests and documentation>",
+      "exitCode": 0
+    },
+    {
+      "cwd": ".",
+      "command": "git diff --check",
+      "exitCode": 0
+    }
+  ],
+  "packageInventory": {
+    "cwd": "packages/cli",
+    "command": "npm.cmd pack --dry-run --ignore-scripts --json --cache <Windows-Temp>/dmm-cli-project-events-pack-cache",
+    "exitCode": 0,
+    "name": "chainlesschain",
+    "version": "0.166.141",
+    "entryCount": 1852,
+    "included": [
+      "src/command-help-index.json",
+      "src/commands/goal.js",
+      "src/lib/plugin-runtime/cli-project-goal-events.js",
+      "src/lib/plugin-runtime/examples/goal-project-observer/plugin.json",
+      "src/lib/project-goal-connection.js"
+    ],
+    "artifactProduced": false,
+    "published": false
+  },
+  "environmentNotes": [
+    "Sandboxed desktop execution failed native owner-only Windows ACL verification, including pre-existing summary tests. The same suite passed outside the sandbox with real DACL checks unchanged.",
+    "Renderer dependencies were downloaded into Windows Temp and linked only into ignored desktop node_modules. No repository dependency manifest or lockfile changed.",
+    "Cached Vitest needed a temporary node:module registerHooks resolve hook for happy-dom. The final renderer report contains 6 executed passing tests; earlier environment startup failures ran no Vue tests.",
+    "The renderer hook only resolves happy-dom to its installed Temp lib/index.js; all other specifiers go to the normal resolver."
+  ],
+  "boundaries": {
+    "real": [
+      "Native SQLite, query_only and total_changes write checks",
+      "Windows owner-only DACL and private descriptors",
+      "Nonce-bound HMAC HTTP",
+      "Actual CLI child and SDK admission using persistent plugin trust/consent"
+    ],
+    "testControls": [
+      "Injected Electron windows, authentication and native dialogs",
+      "Controlled snapshot readers in CLI unit tests",
+      "Projection wrappers injecting revocation or source changes",
+      "Security state paths redirected for child CLI",
+      "Vue DOM component environment"
+    ],
+    "notRun": [
+      "Real Electron or IDE GUI",
+      "Durable cursor replay or exactly-once event delivery",
+      "Independent business-effect evaluation",
+      "Exact-release-commit three-OS GitHub Actions gates"
+    ]
+  }
+}

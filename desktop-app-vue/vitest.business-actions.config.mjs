@@ -18,6 +18,7 @@ export default defineConfig({
       "src/main/task/__tests__/project-goal-draft-imports-ipc.test.js",
       "src/main/task/__tests__/project-goal-external-drafts-ipc.test.js",
       "src/main/task/__tests__/project-goal-cli-bridge.test.js",
+      "src/main/task/__tests__/project-goal-event-history-ipc.test.js",
       "src/main/task/__tests__/project-goal-completion-ipc.test.js",
       "src/main/task/__tests__/project-goal-memory-ipc.test.js",
       "src/main/task/__tests__/project-goal-monitoring-host.test.js",

@@ -1,5 +1,15 @@
 # Dots / Muse / Mods 借鉴：实施进度
 
+2026-11-04 最新续作：DMM-07 补齐 VS Code / JetBrains 的 v5 历史恢复入口，原生选择新建/续用检查点、显式逐页读取、退出成功后展示和取消后的未知结果提示。以下同日各批保留为历史记录，不相加。
+
+2026-11-04 最新续作：DMM-07 增加与原生业务事务原子保存的事件账本、独立 v5 历史授权及 CLI 有界重放/检查点。以下同日旧摘要和各批数字保留为历史记录，不相加；最新范围见本批小节。
+
+2026-11-04 最新续作：DMM-07 接入 VS Code / JetBrains 事件观察界面，新增严格 NDJSON 校验、有限历史展示与拥有进程的停止控制；详见本批小节。同日桌面连接、独立 CLI 观察及 2026-10-18 的数字保留为历史批次，不相加。
+
+2026-11-04 最新续作：DMM-07 增加桌面 v4 独立事件授权与 CLI 风险/动作摘要订阅。下节为本批实现和验证；同日独立 CLI 状态订阅及 2026-10-18 的记录均保留为历史批次，数字不相加。
+
+最新续作日期：2026-11-04。本批以 `main@5717128e51` 为基线推进 DMM-07 独立 CLI 状态订阅，详见下节；以下 2026-10-18 的基线、数字及发行限制保留为历史记录，不作为本批或当前公开版本的验收结论。
+
 更新日期：2026-10-18。原 `feature/dots-muse-mods-foundation` 已通过 `58a30cbae7` 完整合入 `main`。开始实施时基线：`1de6f0f8d052eb1186a06ce6d30d0aa2dfffe85b`。2026-10-18 CLI/IDE 批次在 `7111f3f78725c82c35927fd5bada0e0b1be5983c` 基础的共享工作树验证，按用户要求将已完成的九批内容整理至独立 `feature/dmm-cli-ide-20261018`，保留并行任务改动。见下文新批次；历史回归数字不与本批相加。
 
 依据：[分析与实施计划](./chainlesschain-dots-muse-mods-analysis-2026-10-06.md)。B0/B1 目标基础与公共持久调度模块已提交为 `f74ae00de0`，首个风险巡检宿主与目标面板为 `ae8b2c5b57`，持久建议/原生动作与恢复为 `e8b5c87951`。独立完成检查器、停止单次执行、结束跟进及桌面验收面板已进入 `5c5a742a6b`，并随功能分支合入主分支；目标记忆原生驱动、引用/授权/恢复服务及桌面 IPC 已完成本地验证，记忆面板已完成本地组件回归，持久站内通知、静默策略与深链接已完成本地回归，扩展及实际业务验收仍需继续交付。
@@ -15,9 +25,103 @@
 | DMM-04 受控动作      | 原生动作回执与独立完成复核已接通         | goal→risk review→intent/admission→ActionRun；当前版本预览、原生确认、同事务血缘与 usage；未解决动作阻止验收；暂停/修订/到期/撤权/退出阻止旧确认；未知结果不换键重放 | 真实 Electron 旅程及更完整的审计展示                                                                    |
 | DMM-05 记忆与通知    | 记忆与持久站内通知本地回归完成           | 记忆分类/修正/撤权/删除/恢复；监控事务内通知投影、语义去重、静默时段、已读、源授权复核与目标深链接；身份失效清空与迟到响应防护                                      | 真实 GUI；模型输出阶段 Memory 授权 adapter；业务效果与发布门                                            |
 | DMM-06 工作区闭环    | 目标/动作/验收与结束控制界面回归完成     | 建议分页、范围设置、草稿恢复、当前预览、原生确认、回执/风险证据；验收配置/检查/完成历史、停止本次与结束跟进；跨身份/版本丢弃迟到响应及失效证据                      | 真正 Electron GUI 旅程与最终产品验收                                                                    |
-| DMM-07 扩展 SDK      | 只读、离线采纳与在线待审提议接通 | 严格准入、CLI/IDE 面板/目录；独立 v3 入队、持久授权/撤权、来源分页、先存请求引用及未知结果查询；原生预览/确认/回执 | 事件订阅与真实 GUI 旅程 |
-| DMM-08 场景包        | 只读与提议样例可接入，完整助手仍原型 | 只读 viewer 与 `goal-description-drafter`；两端 IDE 原生提议入口、风险来源绑定与原生确认恢复 | 完整可安装项目交付助手装配、扩权升级及重新安装后显式恢复 |
+| DMM-07 扩展 SDK      | 只读、待审提议、观察与两端 IDE 恢复接通  | CLI/IDE 面板、v3 草稿与回执、v4 观察；原生事务账本、v5 独立历史授权、签名游标、检查点与两端 IDE 显式逐页恢复                                                        | 真实 GUI/跨平台候选验证                                                                                 |
+| DMM-08 场景包        | 只读与提议样例可接入，完整助手仍原型     | 只读 viewer 与 `goal-description-drafter`；两端 IDE 原生提议入口、风险来源绑定与原生确认恢复                                                                        | 完整可安装项目交付助手装配、扩权升级及重新安装后显式恢复                                                |
 | DMM-09/10 效果与发行 | 恢复演练已补，待业务与发行验收           | 13 项真实进程演练；CLI 默认单元/集成集合及桌面固定配置包含新回归；本批 545 项独立证据                                                                               | 实际业务样本、准确候选提交三平台 CI、默认关闭开关、灰度和迁移/回退；发行时遵守 OIDC 与子包→CLI→IDE 顺序 |
+
+## IDE 历史恢复入口（2026-11-04）
+
+VS Code / JetBrains 插件管理器新增 **Recover retained history…**。用户选择已准入的 `goal-project-observer`，经原生文件选择器提供独立 v5 `goal.event-history` 连接、桌面目标 ID 和新建/续用检查点。IDE 不读取凭据或检查点正文。CLI 新增 `--checkpoint-mode new|resume|auto`：锁内 new 拒绝已有文件，resume 拒绝缺失文件且不建立替代检查点；默认 auto 保留原 CLI 行为。
+
+[VS Code 单页宿主](../../../packages/vscode-extension/src/goal-history.js)和 [JetBrains 对应实现](../../../packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/GoalHistoryReplay.java)缓冲最多 128 KiB stdout / 64 KiB stderr，45 秒期限；仅当 CLI 以零退出码结束且完整报文通过 UTF-8、固定字段、目标/插件版本、事件身份及序号/保留范围校验后展示“检查点已提交”。stdout 本身不能证明提交；原始 stderr 不进入界面，只将固定错误码映射为可操作提示。展示包含事件 ID、序号、原生记录时间与只读摘要，用于识别至少一次交付的重复记录；过滤事件造成的序号间隔合法。
+
+**Read next page / check again** 每次只处理一页，续读参数和目标/插件绑定保留在宿主，webview 消息不能替换路径、目标或检查点。不因 `hasMore=true` 自动循环，也不因 `hasMore=false` 宣称目标完成。新选择、刷新、插件变化、关闭及 VS Code 工作区变化使旧结果与续读失效；**Cancel and clear** 清除展示和续读，取消拥有的子进程，但不删除磁盘检查点。取消、非零退出或无效输出均提示保留检查点并显式续用，因为中断时它可能已经推进；不宣称取消回滚。缺口、数据库回退及绑定变化不自动重置游标。
+
+本批 **16 个不重叠测试文件/类，230 项通过、0 失败、0 跳过**：Node 13 文件 196 项，JetBrains 3 类 34 项。两端新增真实进程测试各 4 项，覆盖成功、有效输出后非零退出、无效报文与取消后的回收；已有观察、面板、草稿与插件准入回归同时通过。VSIX 元数据 18 项校验通过，6 个 JS 文件和 JetBrains ZIP 内 10 个生产编译类与工作树一致；打包检查不计入 230 项测试，不与旧批次相加。
+
+本批源码、精确命令及报告见[证据说明](./evidence/dmm-ide-event-replay-2026-11-04/README.md)与[汇总](./evidence/dmm-ide-event-replay-2026-11-04/summary.json)。原生选择器与 VS Code webview 使用 API 替身，JetBrains UI 编译与真实子进程验证不替代实际 IDE GUI。版本未提升、未发布，既有公开配对不自动具备此功能。真实 GUI、Linux/macOS 宿主、完整场景包、模型 adapter、业务效果和准确候选提交发行门仍未完成。
+
+## 持久事件游标与 CLI 重放（2026-11-04）
+
+以下为同日上一批快照；后续两端 IDE 恢复见上节。
+
+[事件账本](../../../packages/session-core/lib/project-goal-event-journal.js)在风险检查保存和原生动作 admission/终态回执事务内追加有界摘要，包括同一 ActionRun 的 unresolved→succeeded/denied/cancelled。序号按 actor/goal 单调推进，事务失败不消耗序号；事件写入失败回滚对应业务事务，不留下“动作成功但无事件”的本地提交。已有流程的重试沿原事件身份去重；每流保留最近 1000 条及最多 4096 个去重身份，容量耗尽明确拒绝，不扩大授权。
+
+事件只存 sourceRef、来源 ID、状态/动作类型/风险数和原生记录时间，不复制任务/目标/记忆正文。哈希链与持久流密钥校验记录，游标签名绑定流 epoch、actor/完整目标版本引用、序号和摘要；断连、新连接及宿主/数据库正常重启不改游标身份。窗口以外返回 `GOAL_EVENT_HISTORY_GAP`，数据库恢复至游标之前返回 `GOAL_EVENT_HISTORY_REGRESSED`，篡改、缺表/缺行和错误身份/目标版本拒绝，不自动当成空页或换键重放。初始页通过 `truncated` 明确已淘汰早期账本记录。
+
+`ProjectGoalEvidenceReader.readEventPage(goalRef, after)` 使用只读 native view，deferred 事务内前后核对当前身份与目标授权；每页至多 20 条，按 UTF-8 报文预算进一步缩小，外部报文不超过 16 KiB。读取不创建表、不恢复动作、不更新 usage。账本从新代码接入原生检查/动作事务后开始记录；启用前、旧客户端及未接入路径不补录，不能将此账本称为完整历史审计。
+
+桌面增加“另行授权保留的事件历史”，经独立原生确认导出 v5 `goal.event-history`，固定 `/goal-event-history` 路径；v1–v4 不扩权。HMAC 请求绑定完整查询游标，响应同时绑定 nonce、HTTP 状态及正文；游标错误仅返回固定错误码。连接、窗口、当前登录/导航/数据库、目标版本及 15 分钟/512 次请求限制沿用已有边界；游标不是访问凭据，重新连接仍需当前原生确认。
+
+[CLI 重放宿主](../../../packages/cli/src/lib/plugin-runtime/cli-goal-event-history.js)和 `goal replay` 复用事件插件的受信、持久能力同意、策略及只读投影。每次只处理一页；固定工作区/目标/插件版本/声明/路径，持有严格检查点锁跨越读取与输出确认。先核验整页，再输出并等待 stdout 回调，随后重验原生来源/准入并通过 fsync 与原子 rename 推进无正文、无凭据检查点。输出回调不证明下游已消费，退出码 0 才说明检查点保存；输出后、保存前崩溃会重复同一事件 ID，语义为至少一次，不宣称恰好一次或自动恢复。
+
+```powershell
+# 仓库根目录；先安装、信任并同意 goal-project-observer，再在桌面另行授权历史连接。
+node packages/cli/bin/chainlesschain.js goal replay <goal-id> --connection "<history-connection.json>" --checkpoint "<new-or-existing-checkpoint.json>" --plugin goal-project-observer --scope project --json
+# 使用相同检查点再次运行以取下一页；hasMore=false 只表示到达该页记录的水位。
+```
+
+本批 **19 个独立测试文件，399 项通过、0 失败、0 跳过**：CLI/共享核心 336、桌面 56、Vue 7。见 [本批证据](./evidence/dmm-goal-event-replay-2026-11-04/README.md)及[汇总](./evidence/dmm-goal-event-replay-2026-11-04/summary.json)。真实 SQLite 覆盖事务回滚、双态回执历史、重启、淘汰/缺口、篡改/回退及读取零写入；真实 DACL/HMAC HTTP 与 CLI 子进程覆盖独立授权、断连重启和输出后强制终止再重放。原有进程恢复、独立完成、预算、通知和旧连接回归同时通过。隔离 Session Core 包验证公共 CJS/ESM 加载、真实账本写入与只读恢复；CLI 归档核对新命令/帮助/实现。打包检查不计入 399 项用例，不与旧批次相加。
+
+该批结束时只有 CLI 历史恢复入口，IDE 为 v4 最新快照观察；后续 v5 IDE 恢复见上节，各连接不互相升级授权。真实 GUI、跨平台准确候选提交验证、模型 adapter、完整交付助手、业务样本和 DMM-10 仍未完成。新增 Session Core 能力尚未发布；将来先发行并验证所需子包，再按 CLI→IDE→移动/PC 顺序推进，继续使用 OIDC 与准确提交全平台门禁。
+
+## IDE 事件观察入口（2026-11-04）
+
+以下为同日上一批快照；历史游标与 CLI 恢复见上节。
+
+VS Code 和 JetBrains 插件管理器新增 **Observe desktop events…**。用户选择已安装的观察插件，再经原生选择器选取独立 v4 事件连接并输入桌面展示的目标 ID；webview 不能指定文件路径、目标或额外 CLI 参数。IDE 不打开连接文件、不解析或显示凭据，只通过已选 CLI 的 `goal watch --connection` 读取严格摘要。先在 CLI 信任并同意 `goal-project-observer` 样例；两端入口自身不授予权限。旧 CLI 或旧连接返回不支持时显示不可用，不回退到其他能力。
+
+[VS Code 协议与进程宿主](../../../packages/vscode-extension/src/goal-events.js)及 [JetBrains 对应实现](../../../packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/GoalEventObserver.java)要求先收到唯一 `ready`，再接受 `risk.review.completed` / `action.receipt.updated`。每行只接受固定字段，绑定源类型、goalRef 全部版本/控制代次及插件名称/范围/版本；严格 UTF-8，单行最多 16 KiB、整次 stdout 最多 256 KiB，stderr 最多 64 KiB 且不转发正文。摘要通过 `textContent` / 只读 `JTextArea` 展示。时间是观察时间，不冒充业务提交时间。
+
+每次显式启动固定 60 秒轮询，额外 70 秒宿主期限兜底；只保留最近 50 条、最多 60000 字符。**Stop and clear**、刷新、插件操作、目标视图切换或关闭管理器会清空展示并取消拥有的子进程，旧回调不得重建结果；VS Code 工作区目录变化、JetBrains 插件选择变化同样失效。VS Code 在确认旧进程树退出前不启动替代订阅；JetBrains 单工作线程串行运行并在每次启动前核验界面代次。进程异常或协议污染清除历史展示；正常结束保留带历史限定的有限观察。不因 CLI `kill()` 返回真就标记退出。
+
+本批 **11 个互不重叠测试文件/类、161 项通过、0 失败、0 跳过**：Node/Vitest 9 文件 136 项、JetBrains JUnit 2 类 25 项，其中两端各有 3 项真实子进程旅程，覆盖正常结束、停止和协议污染后的进程关闭。VS Code 原生选择器、webview 与生命周期使用 API 替身；JetBrains UI 编译通过，尚未运行真实 IDE GUI。测试夹具修正了 Java 局部变量遮蔽包名及 Gradle 测试类无 CodeSource 的类路径取得问题，最终报告单独保留，不累加中间结果。
+
+JetBrains 全源码编译及 `buildPlugin`、VSIX 打包与 metadata 校验通过；归档源码/编译类与本批工作树核对一致。见 [本批验证](./evidence/dmm-ide-goal-events-2026-11-04/README.md)及[来源与制品汇总](./evidence/dmm-ide-goal-events-2026-11-04/summary.json)。制品仅供本地检查，版本未提升、未发布；真实三平台宿主、完整交付助手、持久事件游标/重放与 DMM-09/10 仍未完成。
+
+## 桌面风险与动作事件订阅（2026-11-04）
+
+以下为同日上一批快照；后续 IDE 观察入口见上节。
+
+桌面连接面板新增“另行授权风险与动作事件订阅”。原生确认固定目标/版本/当前登录身份后，在私有连接目录独占保存 `chainlesschain.project-goal-connection/v4`，capability 为 `goal.events`，固定 `/goal-events` 路径。确认说明范围、轮询遗漏和停止语义；与摘要、历史证据及草稿授权互斥，不复用旧同意。凭据只到用户选择的私有文件，renderer 不取得密钥。
+
+复用现有 `ProjectGoalEvidenceReader` 的只读 native view，验证持久风险检查和动作回执后仅投影 `{goalRef,risk,receipts}`；不包含目标说明、任务正文、记忆、预览或审批材料，不初始化表、不恢复动作、不结算 usage。双向 HMAC、精确方法/路径/Host、nonce 去重、16 KiB 报文、5 秒 HTTP 期限、最多 512 次授权读取及 15 分钟 lease 沿用现有防护。退出、导航、数据库或目标版本变化、停止及到期使连接失效；暂停/修订后的新目标须重新授权。
+
+[CLI 项目事件宿主](../../../packages/cli/src/lib/plugin-runtime/cli-project-goal-events.js)和 [goal-project-observer 样例](../../../packages/cli/src/lib/plugin-runtime/examples/goal-project-observer/plugin.json)仅支持 `risk.review.completed` 与 `action.receipt.updated`。`goal watch --connection` 显式选择该宿主；旧连接被拒绝，v4 不可用于面板/目录/草稿。固定工作区、环境、完整插件声明/版本及目标引用，每轮重验受信、能力同意和策略；异步事件投影后重新请求原生快照并复核一致性，撤权或源变化时丢弃迟到输出。终态回执倒退或已记录来源变为不可读时停止，不能把缺失当作完成。
+
+```powershell
+# 仓库根目录；先在桌面选择独立事件授权并保存连接文件。
+node packages/cli/bin/chainlesschain.js plugin add packages/cli/src/lib/plugin-runtime/examples/goal-project-observer --scope project --json
+node packages/cli/bin/chainlesschain.js plugin trust goal-project-observer --scope project
+node packages/cli/bin/chainlesschain.js plugin consent goal-project-observer --scope project --grant --json
+node packages/cli/bin/chainlesschain.js goal watch <goal-id> --connection "<event-connection.json>" --plugin goal-project-observer --scope project --duration 60 --json
+```
+
+初始 `ready` 从当前历史建立基线，不重放已有结果；新检查或回执变化通过 SDK 只读事件输出有界文本摘要。时长与间隔沿用 1–900 秒、250–60000 ms；单调期限和 AbortSignal 同时覆盖轮询等待及在途 HTTP，CLI 清理 SIGINT/SIGTERM 监听。请求数或 lease 耗尽可提前结束，重新连接须用户确认。较频繁的更新在投影重验期间再次变化时终止，须明确重新启动观察；不输出混合快照。
+
+本批 **12 个独立测试文件，204 项通过、0 失败、1 项既有 Windows 符号链接跳过**：CLI/共享核心 134、桌面 64、Vue 6。见 [验证说明](./evidence/dmm-cli-project-events-2026-11-04/README.md)及[源码/命令/报告摘要](./evidence/dmm-cli-project-events-2026-11-04/summary.json)。真实 SQLite `query_only` 与 `total_changes()` 验证读取不写库；真实 CLI 子进程通过私有凭据与 HTTP 收到新风险事件，断连后退出。原生窗口/确认、登录上下文和 Vue 为测试替身；初次桌面执行因沙箱 ACL 限制失败，获准在沙箱外运行真实 DACL 后通过。Vue 依赖放入 Windows Temp，通过局部 junction 和仅重定位 Happy DOM 的 import hook 运行，未改 manifest/lockfile。
+
+这仍是最新持久证据的有界轮询：两轮之间的新检查或超过最近 20 条的回执可能遗漏，没有持久事件游标、历史重放或恰好一次投递；时间表示观察时间。IDE 事件界面、真实 GUI、完整交付助手和准确候选提交发行验证仍未完成。本批不发布或升级版本，不把本地回归等同于 DMM-07 或整体计划完成。
+
+## 独立 CLI 目标状态订阅（2026-11-04）
+
+新增 [CLI 事件宿主](../../../packages/cli/src/lib/plugin-runtime/cli-goal-events.js)、`goal watch <id> --plugin <name>` 和 [goal-status-observer 样例](../../../packages/cli/src/lib/plugin-runtime/examples/goal-status-observer/plugin.json)。样例仅声明 `event:goal.status.changed`，不提供代码入口、面板或动作提议。初始输出 `ready` 只确认订阅建立，后续通过现有 `projectGoalExtensionEvent` 输出观察到的状态转换；目标正文、记忆、风险详情及审批不进入事件。
+
+固定工作区/环境、插件名称/安装范围/版本/完整声明和目标存储目录身份；不自动选择新版本或同名的其他安装。逐轮重新读取受信、持久能力同意和 managed policy，无源变化时也检查撤权；发现禁用、卸载、声明/策略/信任变化便终止，不自动恢复。文件读取沿用同一 FD、64 KiB、符号链接拒绝及原始字节摘要；源删除、损坏、目录替换和版本倒退终止订阅。异步投影结束后再查准入与当前源，拒绝迟到结果。
+
+默认每秒轮询、运行 60 秒，间隔允许 250–60000 ms，时长允许 1–900 秒。使用单调时钟计算期限，不积累事件队列；Ctrl+C、SIGTERM 或宿主 AbortSignal 取消等待并清理监听。每次重开从当前状态建立基线，已观察到的同一状态不重复输出；进度或备注变化不冒充状态事件。JSON 模式逐行输出固定 schema `chainlesschain.goal-extension-stream/v1`。
+
+```powershell
+# 仓库根目录；本批为源码能力，未发布。
+node packages/cli/bin/chainlesschain.js plugin add packages/cli/src/lib/plugin-runtime/examples/goal-status-observer --scope project --json
+node packages/cli/bin/chainlesschain.js plugin trust goal-status-observer --scope project
+node packages/cli/bin/chainlesschain.js plugin consent goal-status-observer --scope project --grant --json
+node packages/cli/bin/chainlesschain.js goal watch <id> --plugin goal-status-observer --scope project --expected-store <catalog-store-id> --interval 1000 --duration 60 --json
+```
+
+限制：这是独立文件目标的按需轮询，没有持久游标、历史重放或恰好一次投递。两轮之间的短暂状态/授权变化可能无法观察；`occurredAt` 与 `observedAt` 均为宿主观察时间，不声称业务提交时间。已有 v1/v2/v3 桌面连接不获得事件权限，显式传入连接时拒绝，不回退到独立文件。桌面风险检查/动作回执订阅仍需独立原生授权与持久事件源，IDE 订阅界面、真实 GUI、完整可安装交付助手及候选提交发行门仍未完成。
+
+本批验证与源码摘要见 [独立证据](./evidence/dmm-cli-status-events-2026-11-04/README.md)。测试覆盖真实文件与持久信任/同意、撤权和投影竞态，以及真实 CLI 安装→授权→订阅→状态变化→禁用退出旅程；仅安全存储路径重定位至临时目录。未运行 Electron/IDE GUI、独立业务效果或远端发行矩阵；未发布或升级版本，不把局部订阅实现标记为整个 DMM-07 完成。
 
 ## CLI/IDE 在线待审草稿连接（2026-10-18）
 

@@ -2720,6 +2720,105 @@ cc plugin consent goal-progress-viewer --scope project --grant --json
 cc goal panels <id> --plugin goal-progress-viewer --scope project
 ```
 
+The working tree also supports a bounded, explicitly started **standalone goal
+status observer**. This addition is unreleased; use the local CLI source:
+
+```bash
+node packages/cli/bin/chainlesschain.js plugin add packages/cli/src/lib/plugin-runtime/examples/goal-status-observer --scope project --json
+node packages/cli/bin/chainlesschain.js plugin trust goal-status-observer --scope project
+node packages/cli/bin/chainlesschain.js plugin consent goal-status-observer --scope project --grant --json
+node packages/cli/bin/chainlesschain.js goal watch <id> --plugin goal-status-observer --scope project --expected-store <catalog-store-id> --interval 1000 --duration 60 --json
+```
+
+Run these commands from the repository root. `watch` prints a `ready` record,
+then newline-delimited JSON for observed `goal.status.changed` transitions.
+It polls every 1000 ms for 60 seconds by default (interval 250–60000 ms,
+duration 1–900 seconds). Ctrl+C stops it. Every poll rechecks plugin trust,
+consent and policy; revocation, uninstall or an invalid source stops the stream.
+Events contain status transitions and versioned goal references, without the
+objective or task body. This is polling with no history replay: intermediate
+transitions may be missed and timestamps describe observation time. A new run
+starts from the current state. Existing summary/evidence/draft connections grant
+no event access. IDE event UI still requires separate work.
+
+The working tree additionally supports a separately authorized **desktop event
+connection**. In the desktop goal connection panel choose the dedicated risk/action
+event authorization, approve the native dialog, and save a new private connection
+file. This exports v4 `goal.events`; it contains no goal objective and cannot be
+used for goal catalogs, panels or drafts. From the repository root:
+
+```bash
+node packages/cli/bin/chainlesschain.js plugin add packages/cli/src/lib/plugin-runtime/examples/goal-project-observer --scope project --json
+node packages/cli/bin/chainlesschain.js plugin trust goal-project-observer --scope project
+node packages/cli/bin/chainlesschain.js plugin consent goal-project-observer --scope project --grant --json
+node packages/cli/bin/chainlesschain.js goal watch <goal-id> --connection "<event-connection.json>" --plugin goal-project-observer --scope project --duration 60 --json
+```
+
+After `ready`, this observer emits `risk.review.completed` and
+`action.receipt.updated` summaries when new native evidence is observed. Baseline
+history is not replayed. Reads remain bounded to the latest persisted risk check
+and latest 20 receipts, so intermediate changes can be missed. Timestamps describe
+observation time, and neither a check nor an action receipt proves goal completion.
+Disconnect, logout, navigation, target revision, expiry or authorization changes
+stop the observer. Snapshot changes during projection also stop it; explicitly
+restart to observe the current state. The 15-minute connection and 512-read quota
+can end a watch before its requested duration. Cancellation interrupts pending HTTP.
+This source capability is unreleased and does not add durable event replay.
+
+Matching working-tree VS Code and JetBrains builds expose **Observe desktop
+events…** in the plugin manager. Select the admitted observer plugin, choose the
+v4 file with the native picker and enter the goal ID shown in the desktop. The
+IDE starts a fixed 60-second watch, validates the NDJSON target/plugin binding,
+and shows only the latest 50 plain text observations. **Stop and clear**, plugin
+operations, refresh or closing the manager stop the owned CLI process and reject
+late output. These entries need local matching builds; real IDE GUI acceptance
+and cross-platform release gates remain separate.
+
+The working tree separately supports **retained event replay**. The desktop's
+**另行授权保留的事件历史** button exports a v5 `goal.event-history` connection.
+v1–v4 grants are not expanded, and v5 does not grant catalogs, panels, live watch
+or draft submission. Use the admitted `goal-project-observer` sample above:
+
+```bash
+node packages/cli/bin/chainlesschain.js goal replay <goal-id> --connection "<history-connection.json>" --checkpoint "<new-or-existing-checkpoint.json>" --plugin goal-project-observer --scope project --json
+```
+
+Run the same command again with the same checkpoint to read the next page. Each
+page scans at most 20 retained events and stays within 16 KiB. The checkpoint
+contains only the target/plugin/declaration binding and opaque cursor, with no
+credentials or event bodies. The command holds a strict file lock, acknowledges
+stdout, rechecks current native and plugin access, then atomically advances it.
+Exit zero means the checkpoint committed. A crash after output but before commit
+can repeat the same event IDs: delivery is **at least once**, and stdout acceptance
+does not prove downstream consumption. A failed write or revoked access does not
+advance the old cursor; no automatic retry or reconnect runs.
+
+`--checkpoint-mode new` refuses an existing checkpoint; `--checkpoint-mode resume`
+requires the original file and never creates a replacement. The default `auto`
+keeps the existing create-or-resume CLI behavior. All modes check the binding
+and hold the same checkpoint lock through output and commit.
+
+The journal retains the newest 1000 events per actor/goal and starts with the new
+instrumentation; earlier checks, old-version writes and other execution paths are
+not backfilled. The first page reports `truncated` when older journal entries were
+evicted. An expired cursor reports `GOAL_EVENT_HISTORY_GAP`; a cursor ahead of a
+restored database reports `GOAL_EVENT_HISTORY_REGRESSED`. Neither is silently reset.
+After an explicit new desktop authorization, reconnect with the new connection
+file and the same checkpoint for the same active goal revision and plugin. Changed
+identity, goal revision/control generation or plugin declaration requires a new
+explicit checkpoint; an opaque cursor never grants access.
+
+Matching working-tree VS Code and JetBrains plugin managers expose **Recover
+retained history…**, with native v5 connection and new/resume checkpoint selection.
+**Read next page / check again** runs one explicit page. Results appear only after
+successful CLI exit and validation; cancellation clears continuation and warns
+that the checkpoint may already have advanced. Keep it and explicitly resume.
+The IDE never reads credentials or checkpoint bodies. Real GUI acceptance is pending.
+This unreleased change requires matching Session Core, CLI and desktop sources.
+Release the required child package first, verify
+the exact three-OS CLI gates and OIDC publication, then align downstream IDE/client
+releases; local replay tests are not a release gate.
+
 VS Code and JetBrains expose **CLI goal panels…** in the plugin manager. Select
 a goal from the native paged picker, or choose **Enter goal ID…**. The picker uses
 `goal catalog --json`; its opaque `nextCursor` continues with `--after <cursor>`.

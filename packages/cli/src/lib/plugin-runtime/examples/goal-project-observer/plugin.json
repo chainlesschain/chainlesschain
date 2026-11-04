@@ -1,0 +1,18 @@
+{
+  "name": "goal-project-observer",
+  "version": "0.1.0",
+  "description": "Observe bounded native risk-check and action-receipt summaries through a separately authorized desktop event connection",
+  "permissions": {
+    "goalExtension": [
+      "event:risk.review.completed",
+      "event:action.receipt.updated"
+    ]
+  },
+  "goalExtension": {
+    "apiVersion": "1.0.0",
+    "hosts": { "cli": ">=0.166.141" },
+    "events": ["risk.review.completed", "action.receipt.updated"],
+    "panels": [],
+    "proposals": []
+  }
+}
