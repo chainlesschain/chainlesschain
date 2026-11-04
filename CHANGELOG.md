@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Preserve legitimate bounded source spread expressions in host-created read previews instead of omitting valid code. Keep strict JSON, sensitive-data and source-identity checks enforced.
 - Keep focused read recovery instructions actionable and retain the existing shared author/review turn budget.
 - Bind launcher-owned hermetic evaluation file scope consistently at the shared CLI/IDE agent loop, preserving caller narrowing and empty/read-only tool sets. Ordinary interactive permissions and the IDE protocol retain their existing behavior.
+- Reject diagnostic broker construction under a formal budget before reading its options, while preserving the existing finite diagnostic limits.
 - Pair with Open VSX 0.37.177 and JetBrains 0.4.194 after verified CLI publication. Child npm packages are unchanged; require their public-byte reuse checks and the complete exact-source CLI CI / Strict Sandbox matrices.
 - Preserve the recorded Volcengine full-round results and OpenAI four-case results. Engineering checks and publication add no model-task acceptance; already tested samples are not retested.
 
