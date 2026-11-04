@@ -1,10 +1,12 @@
-# Project delivery assistant 0.2.0 (unreleased)
+# Project delivery assistant 0.2.0
 
 This data-only scenario package combines evidence panels, bounded observations,
 retained event replay and user-selected task-description drafts. It runs through
-the existing CLI and both IDE plugin managers. Use matching local CLI, Session
-Core and desktop builds; the version ranges in the manifest are compatibility
-floors, and the currently published builds do not include this assembly.
+the existing CLI and both IDE plugin managers. Requires CLI 0.166.142, Session
+Core 0.3.25 and a matching desktop build with the separately authorized goal
+connections. Paired IDE releases are Open VSX 0.37.178 and JetBrains 0.4.195.
+The version ranges in the manifest are compatibility floors; each operation
+still needs its native source authorization.
 
 The package contains no hooks, binaries, arbitrary code or autonomous scheduler.
 It does not create tasks, choose a description for you, approve actions or mark a

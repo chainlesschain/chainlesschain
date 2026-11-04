@@ -2,6 +2,13 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.178] - authorized goal events and retained history (2026-11-05)
+
+- Recommend CLI 0.166.142 and pair with JetBrains 0.4.195 after verified upstream publication.
+- Add explicit desktop event observation and retained-history recovery with native connection/checkpoint selection, bounded plain-text results, cancellation and host-bound next-page controls.
+- Use CLI exit zero plus protocol validation to confirm checkpoint commit; interruption retains an unknown checkpoint outcome.
+- Support the admitted project-delivery-assistant 0.2.0 scenario through existing evidence and pending-description controls. Native consent remains required.
+
 ## [0.37.177] - complete source preview recovery pairing (2026-11-04)
 
 - Recommend CLI 0.166.141 and pair with JetBrains 0.4.194 after verified CLI publication.

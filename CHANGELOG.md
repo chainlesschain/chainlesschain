@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - cc CLI 0.166.142: authorized goal events and retained recovery (candidate, 2026-11-05)
+
+- Add standalone status and separately authorized native risk/action observation, plus a transactional retained event journal in Session Core 0.3.25.
+- Add one-page CLI replay with durable new/resume checkpoints, at-least-once delivery, and explicit VS Code / JetBrains recovery controls.
+- Compose the data-only project-delivery-assistant 0.2.0 scenario with full declaration consent and per-operation capability limits; native confirmation remains separate from pending drafts.
+- Pair Open VSX 0.37.178 and JetBrains 0.4.195 only after the exact-source CLI matrices, OIDC publication and public package verification. Real GUI and business-effect acceptance remain separate.
+
 ### Fixed - cc CLI 0.166.141: preserve complete source previews and evaluation entry scope (2026-11-04)
 
 - Preserve legitimate bounded source spread expressions in host-created read previews instead of omitting valid code. Keep strict JSON, sensitive-data and source-identity checks enforced.

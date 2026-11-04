@@ -4,6 +4,15 @@ Shared session lifecycle, trace, agent definition, memory, approval, sandbox,
 evolution receipt, and recovery primitives used by ChainlessChain Desktop and
 the CLI.
 
+## Release 0.3.25
+
+Adds a bounded transactional goal-event journal, signed persistent cursors and
+read-only retained-history pages through the existing evidence reader. Risk
+checks and action receipts append with their native business transaction.
+Retention gaps, corruption and restored-database regression fail explicitly.
+Publication requires exact-source Linux, Windows and macOS verification and
+GitHub Actions OIDC; CLI 0.166.142 depends on this version.
+
 ## Release 0.3.24
 
 Reuses an isolated Windows native ACL worker instead of starting a process for

@@ -10,7 +10,9 @@
   },
   "goalExtension": {
     "apiVersion": "1.0.0",
-    "hosts": { "cli": ">=0.166.141" },
+    "hosts": {
+      "cli": ">=0.166.142"
+    },
     "events": ["risk.review.completed", "action.receipt.updated"],
     "panels": [],
     "proposals": []

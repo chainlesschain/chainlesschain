@@ -246,7 +246,7 @@ See the [verified publication evidence](https://github.com/chainlesschain/chainl
 
 ## Release compatibility
 
-Plugin **0.4.194** is the current public release. It recommends `chainlesschain@0.166.141`. It is approved, listed and publicly downloadable; all original payload entries match the official build. Install `npm i -g chainlesschain@0.166.141 --registry https://registry.npmjs.org`, restart the chat host, then run `cc --version` and `cc doctor`.
+Plugin **0.4.195** is the current release candidate. It recommends `chainlesschain@0.166.142`. Publish only after the paired CLI is publicly verified. Install `npm i -g chainlesschain@0.166.142 --registry https://registry.npmjs.org` after publication, restart the chat host, then run `cc --version` and `cc doctor`.
 
 ## Previous candidates and development notes
 

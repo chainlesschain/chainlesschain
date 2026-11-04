@@ -2,6 +2,21 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
 
+## CLI 0.166.142 / authorized goal events and history
+
+Release pairing: Session Core **0.3.25**, CLI **0.166.142**, Open VSX **0.37.178**
+and JetBrains **0.4.195**. This adds authorized goal observation, transactional
+retained history, durable replay checkpoints, explicit recovery in both IDEs and
+the data-only `project-delivery-assistant` 0.2.0 scenario. Separate desktop consent
+and native confirmation remain required; replay is at least once and does not
+prove business completion. Real GUI/business-effect evaluation remains separate.
+
+Publication requires exact-source three-OS CLI CI / Strict Sandbox and OIDC.
+Publish and verify Session Core first, then CLI, then IDE extensions. After public
+verification install `npm i -g chainlesschain@0.166.142 --registry https://registry.npmjs.org`.
+PC/mobile releases follow the verified IDE stage. The block below retains the
+previous verified public pairing.
+
 <!-- release141-current:start -->
 
 ## CLI 0.166.141 / verified public pairing

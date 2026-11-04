@@ -45,7 +45,7 @@ const declaration = normalizeGoalExtension(
 );
 const host = {
   id: "cli",
-  version: "0.166.141",
+  version: "0.166.142",
   capabilities: requiredGoalExtensionCapabilities(declaration),
 };
 const ref = { name: sample.name, version: sample.version, scope: "project" };
@@ -141,7 +141,7 @@ describe("goal extension real files and management output", () => {
     expect(result.goalExtensionSummary).toMatchObject({
       status: "declaration-only",
       runtimeAvailable: false,
-      hosts: { cli: ">=0.166.141", jetbrains: ">=0.4.194" },
+      hosts: { cli: ">=0.166.142", jetbrains: ">=0.4.195" },
     });
     expect(result.goalExtension.proposals).toContain("task.description.update");
   });

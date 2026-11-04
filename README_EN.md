@@ -1,5 +1,7 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+Release preparation: Session Core **0.3.25** → CLI **0.166.142** → Open VSX **0.37.178** / JetBrains **0.4.195**. This adds authorized goal events, retained-history recovery and a minimal combined delivery scenario. Exact-source three-OS gates and public artifact readback are required before marking these public. PC/mobile remain on verified **v5.0.3.144** until their upstream release stages pass.
+
 <!-- release141-current:start -->
 
 ## CLI 0.166.141 / verified public pairing
