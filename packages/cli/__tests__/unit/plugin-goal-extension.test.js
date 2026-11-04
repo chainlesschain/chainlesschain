@@ -45,7 +45,7 @@ const declaration = normalizeGoalExtension(
 );
 const host = {
   id: "cli",
-  version: "0.166.104",
+  version: "0.166.141",
   capabilities: requiredGoalExtensionCapabilities(declaration),
 };
 const ref = { name: sample.name, version: sample.version, scope: "project" };
@@ -141,14 +141,14 @@ describe("goal extension real files and management output", () => {
     expect(result.goalExtensionSummary).toMatchObject({
       status: "declaration-only",
       runtimeAvailable: false,
-      hosts: { cli: ">=0.166.104", jetbrains: ">=0.4.166" },
+      hosts: { cli: ">=0.166.141", jetbrains: ">=0.4.194" },
     });
-    expect(result.goalExtension.proposals).toContain("task.create");
+    expect(result.goalExtension.proposals).toContain("task.description.update");
   });
 });
 
 describe("goal extension declarations and consent", () => {
-  it("parses the shipped data-only prototype without legacy code components", () => {
+  it("parses the shipped data-only assistant without legacy code components", () => {
     const parsed = parsePluginManifest(sampleDir);
     expect(parsed.ok).toBe(true);
     expect(parsed.goalExtension).toEqual(declaration);
@@ -296,7 +296,7 @@ describe("goal extension declarations and consent", () => {
       capabilityConsentStatus(narrow, { capabilities: next }).consented,
     ).toBe(true);
     expect(diffCapabilities(old, next).added).toContain(
-      "goalExtension:proposal:task.create",
+      "goalExtension:proposal:task.description.update",
     );
     expect(describeCapabilities(next).join(" ")).toContain(
       "host authorization required",
@@ -459,7 +459,7 @@ describe("mandatory goal extension host boundary", () => {
       state: "pending-confirmation",
     });
     const proposal = {
-      type: "task.create",
+      type: "task.description.update",
       goalRef: source,
       sourceRef: "risk-review:1",
       requestId: "request-1",
@@ -494,7 +494,7 @@ describe("mandatory goal extension host boundary", () => {
         proposeGoalExtensionAction(
           ref,
           {
-            type: "task.create",
+            type: "task.description.update",
             goalRef: source,
             sourceRef: "r1",
             title: "x",
@@ -509,7 +509,7 @@ describe("mandatory goal extension host boundary", () => {
   );
   it("pins proposal parameters before async authorization and rejects disabled queues", async () => {
     const proposal = {
-      type: "task.create",
+      type: "task.description.update",
       goalRef: { ...source },
       sourceRef: "r1",
       requestId: "request-1",
@@ -577,7 +577,7 @@ describe("mandatory goal extension host boundary", () => {
       proposeGoalExtensionAction(
         ref,
         {
-          type: "task.create",
+          type: "task.description.update",
           goalRef: source,
           sourceRef: "r1",
           requestId: "request-1",

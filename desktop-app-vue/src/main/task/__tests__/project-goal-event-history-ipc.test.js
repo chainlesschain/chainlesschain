@@ -193,19 +193,21 @@ describe(
         "CONNECTION_UNAVAILABLE",
       );
     });
-    it("runs real CLI replay and recovers the same page after a child dies following output but before checkpoint commit", async () => {
-      for (let i = 0; i < 25; i++) check();
-      await open();
-      const workspace = path.join(directory, "workspace");
-      fs.mkdirSync(workspace);
-      const cliRoot = pathToFileURL(
-        path.resolve(__dirname, "../../../../../packages/cli") + path.sep,
-      );
-      const bootstrap = path.join(directory, "security-stores.mjs"),
-        marker = path.join(directory, "after-output.marker");
-      fs.writeFileSync(
-        bootstrap,
-        `import fs from 'node:fs';
+    it.each(["goal-project-observer", "project-delivery-assistant"])(
+      "runs real CLI replay for %s and recovers the same page after output-time termination",
+      async (pluginName) => {
+        for (let i = 0; i < 25; i++) check();
+        await open();
+        const workspace = path.join(directory, "workspace");
+        fs.mkdirSync(workspace);
+        const cliRoot = pathToFileURL(
+          path.resolve(__dirname, "../../../../../packages/cli") + path.sep,
+        );
+        const bootstrap = path.join(directory, "security-stores.mjs"),
+          marker = path.join(directory, "after-output.marker");
+        fs.writeFileSync(
+          bootstrap,
+          `import fs from 'node:fs';
 import { _deps as trust } from ${JSON.stringify(new URL("src/lib/plugin-runtime/trust.js", cliRoot).href)};
 import { _deps as consent } from ${JSON.stringify(new URL("src/lib/plugin-runtime/capability-consent.js", cliRoot).href)};
 import { _deps as replay } from ${JSON.stringify(new URL("src/lib/plugin-runtime/cli-goal-event-history.js", cliRoot).href)};
@@ -214,122 +216,141 @@ trust.workspaceTrustStorePath=()=>process.env.DMM_TEST_WORKSPACE_TRUST_FILE;
 consent.storePath=()=>process.env.DMM_TEST_CONSENT_FILE;
 if(process.env.DMM_TEST_OUTPUT_MARKER){const create=replay.createProjectGoalConnection;replay.createProjectGoalConnection=(...args)=>{const source=create(...args);let reads=0;return {...source,async readEventPage(...input){const value=await source.readEventPage(...input);if(++reads===3){fs.writeFileSync(process.env.DMM_TEST_OUTPUT_MARKER,'output-acknowledged');await new Promise(()=>setInterval(()=>{},1000));}return value;}};};}
 `,
-      );
-      const env = {
-        ...process.env,
-        CHAINLESSCHAIN_HOME: path.join(directory, "home"),
-        CC_PLUGINS: "1",
-        CC_PLUGIN_SCOPES: "project",
-        CC_PLUGIN_TRANSACTION_HOME: path.join(directory, "transactions"),
-        CC_MANAGED_SETTINGS: path.join(directory, "no-policy.json"),
-        DMM_TEST_TRUST_FILE: path.join(directory, "trust.json"),
-        DMM_TEST_WORKSPACE_TRUST_FILE: path.join(
-          directory,
-          "workspace-trust.json",
-        ),
-        DMM_TEST_CONSENT_FILE: path.join(directory, "consent.json"),
-      };
-      const bin = fileURLToPath(new URL("bin/chainlesschain.js", cliRoot)),
-        prefix = ["--import", pathToFileURL(bootstrap).href, bin];
-      async function cli(...args) {
-        return promisify(execFile)(process.execPath, [...prefix, ...args], {
-          cwd: workspace,
-          env,
-          encoding: "utf8",
-          windowsHide: true,
-          timeout: 30000,
-        });
-      }
-      const sample = fileURLToPath(
-        new URL(
-          "src/lib/plugin-runtime/examples/goal-project-observer",
-          cliRoot,
-        ),
-      );
-      await cli("plugin", "add", sample, "--scope", "project", "--json");
-      await cli(
-        "plugin",
-        "trust",
-        "goal-project-observer",
-        "--scope",
-        "project",
-      );
-      await cli(
-        "plugin",
-        "consent",
-        "goal-project-observer",
-        "--scope",
-        "project",
-        "--grant",
-        "--json",
-      );
-      const checkpoint = path.join(directory, "checkpoint.json"),
-        args = [
-          "goal",
-          "replay",
-          goal.id,
-          "--connection",
-          file,
-          "--checkpoint",
-          checkpoint,
-          "--plugin",
-          "goal-project-observer",
+        );
+        const env = {
+          ...process.env,
+          CHAINLESSCHAIN_HOME: path.join(directory, "home"),
+          CC_PLUGINS: "1",
+          CC_PLUGIN_SCOPES: "project",
+          CC_PLUGIN_TRANSACTION_HOME: path.join(directory, "transactions"),
+          CC_MANAGED_SETTINGS: path.join(directory, "no-policy.json"),
+          DMM_TEST_TRUST_FILE: path.join(directory, "trust.json"),
+          DMM_TEST_WORKSPACE_TRUST_FILE: path.join(
+            directory,
+            "workspace-trust.json",
+          ),
+          DMM_TEST_CONSENT_FILE: path.join(directory, "consent.json"),
+        };
+        const bin = fileURLToPath(new URL("bin/chainlesschain.js", cliRoot)),
+          prefix = ["--import", pathToFileURL(bootstrap).href, bin];
+        async function cli(...args) {
+          return promisify(execFile)(process.execPath, [...prefix, ...args], {
+            cwd: workspace,
+            env,
+            encoding: "utf8",
+            windowsHide: true,
+            timeout: 30000,
+          });
+        }
+        const sample = fileURLToPath(
+          new URL("src/lib/plugin-runtime/examples/" + pluginName, cliRoot),
+        );
+        await cli("plugin", "add", sample, "--scope", "project", "--json");
+        await cli("plugin", "trust", pluginName, "--scope", "project");
+        await cli(
+          "plugin",
+          "consent",
+          pluginName,
           "--scope",
           "project",
+          "--grant",
           "--json",
-        ];
-      const child = spawn(process.execPath, [...prefix, ...args], {
-        cwd: workspace,
-        env: { ...env, DMM_TEST_OUTPUT_MARKER: marker },
-        windowsHide: true,
-        stdio: ["ignore", "pipe", "pipe"],
-      });
-      const closed = once(child, "close");
-      let output = "",
-        stderr = "";
-      child.stdout.on("data", (chunk) => {
-        output += chunk;
-      });
-      child.stderr.on("data", (chunk) => {
-        stderr += chunk;
-      });
-      try {
-        await vi.waitFor(
-          () => {
-            expect(fs.existsSync(marker), stderr).toBe(true);
-          },
-          { timeout: 15000, interval: 25 },
         );
-        expect(child.exitCode).toBeNull();
-        expect(
-          JSON.parse(fs.readFileSync(checkpoint, "utf8")).after,
-        ).toBeNull();
-        const emitted = JSON.parse(output);
-        expect(emitted.entries).toHaveLength(20);
-        child.kill("SIGKILL");
-        await closed;
-        expect(
-          JSON.parse(fs.readFileSync(checkpoint, "utf8")).after,
-        ).toBeNull();
-        const replayed = JSON.parse((await cli(...args)).stdout);
-        expect(replayed.entries.map((x) => x.id)).toEqual(
-          emitted.entries.map((x) => x.id),
-        );
-        expect(JSON.parse(fs.readFileSync(checkpoint, "utf8")).after).toBe(
-          replayed.nextCursor,
-        );
-        const remaining = JSON.parse((await cli(...args)).stdout);
-        expect(remaining.entries.map((x) => x.sequence)).toEqual([
-          21, 22, 23, 24, 25,
-        ]);
-        expect(
-          JSON.stringify(JSON.parse(fs.readFileSync(checkpoint, "utf8"))),
-        ).not.toMatch(/PRIVATE|summary|"key"|endpoint|connection/);
-      } finally {
-        if (child.exitCode === null && child.signalCode === null)
+        const checkpoint = path.join(directory, "checkpoint.json"),
+          args = [
+            "goal",
+            "replay",
+            goal.id,
+            "--connection",
+            file,
+            "--checkpoint",
+            checkpoint,
+            "--plugin",
+            pluginName,
+            "--scope",
+            "project",
+            "--json",
+          ];
+        const child = spawn(process.execPath, [...prefix, ...args], {
+          cwd: workspace,
+          env: { ...env, DMM_TEST_OUTPUT_MARKER: marker },
+          windowsHide: true,
+          stdio: ["ignore", "pipe", "pipe"],
+        });
+        const closed = once(child, "close");
+        let output = "",
+          stderr = "";
+        child.stdout.on("data", (chunk) => {
+          output += chunk;
+        });
+        child.stderr.on("data", (chunk) => {
+          stderr += chunk;
+        });
+        try {
+          await vi.waitFor(
+            () => {
+              expect(fs.existsSync(marker), stderr).toBe(true);
+            },
+            { timeout: 15000, interval: 25 },
+          );
+          expect(child.exitCode).toBeNull();
+          expect(
+            JSON.parse(fs.readFileSync(checkpoint, "utf8")).after,
+          ).toBeNull();
+          const emitted = JSON.parse(output);
+          expect(emitted.entries).toHaveLength(20);
           child.kill("SIGKILL");
-        await closed;
-      }
-    });
+          await closed;
+          expect(
+            JSON.parse(fs.readFileSync(checkpoint, "utf8")).after,
+          ).toBeNull();
+          const replayed = JSON.parse((await cli(...args)).stdout);
+          expect(replayed.entries.map((x) => x.id)).toEqual(
+            emitted.entries.map((x) => x.id),
+          );
+          expect(JSON.parse(fs.readFileSync(checkpoint, "utf8")).after).toBe(
+            replayed.nextCursor,
+          );
+          const remaining = JSON.parse((await cli(...args)).stdout);
+          expect(remaining.entries.map((x) => x.sequence)).toEqual([
+            21, 22, 23, 24, 25,
+          ]);
+          if (pluginName === "project-delivery-assistant") {
+            const saved = fs.readFileSync(checkpoint),
+              count = db.prepare("SELECT total_changes() AS n").get().n;
+            await cli(
+              "plugin",
+              "disable",
+              pluginName,
+              "--scope",
+              "project",
+              "--json",
+            );
+            await expect(cli(...args)).rejects.toThrow("PLUGIN_UNAVAILABLE");
+            expect(fs.readFileSync(checkpoint)).toEqual(saved);
+            await cli("plugin", "uninstall", pluginName, "--scope", "project");
+            await expect(cli(...args)).rejects.toThrow("PLUGIN_UNAVAILABLE");
+            expect(fs.readFileSync(checkpoint)).toEqual(saved);
+            await cli("plugin", "add", sample, "--scope", "project", "--json");
+            // Reinstall alone does not read the database or advance the checkpoint.
+            expect(db.prepare("SELECT total_changes() AS n").get().n).toBe(
+              count,
+            );
+            expect(fs.readFileSync(checkpoint)).toEqual(saved);
+            expect(JSON.parse((await cli(...args)).stdout).entries).toEqual([]);
+            expect(db.prepare("SELECT total_changes() AS n").get().n).toBe(
+              count,
+            );
+          }
+          expect(
+            JSON.stringify(JSON.parse(fs.readFileSync(checkpoint, "utf8"))),
+          ).not.toMatch(/PRIVATE|summary|"key"|endpoint|connection/);
+        } finally {
+          if (child.exitCode === null && child.signalCode === null)
+            child.kill("SIGKILL");
+          await closed;
+        }
+      },
+    );
   },
 );

@@ -6,6 +6,13 @@ MCP bridge.
 
 ## Working-tree retained goal history (unreleased)
 
+The matching local CLI also ships the combined
+[`project-delivery-assistant` 0.2.0 scenario](../cli/src/lib/plugin-runtime/examples/project-delivery-assistant/README.md).
+Select that admitted plugin to use the existing evidence, event, replay and
+pending-description controls. Each surface keeps its separate desktop connection;
+installing the package starts no automatic work. Task creation and real GUI
+acceptance remain pending.
+
 In the plugin manager choose **Recover retained history…** for an admitted
 `goal-project-observer` plugin. Select a separately authorized v5
 `goal.event-history` connection, enter the desktop goal ID, then explicitly

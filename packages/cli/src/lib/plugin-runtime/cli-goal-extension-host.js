@@ -1,7 +1,7 @@
 /** Explicit goal panels from standalone files or a short-lived desktop read lease. */
 import path from "node:path";
 import { createHash } from "node:crypto";
-import { VERSION } from "../../constants.js";
+import { cliGoalExtensionHost } from "./cli-goal-capabilities.js";
 import { resolveConfigDataRoot } from "../paths.js";
 import { managedSettingsPath } from "../settings-loader.cjs";
 import { createCliGoalSnapshotReader } from "../cli-goal-source.js";
@@ -13,11 +13,9 @@ import {
 } from "./goal-extensions.js";
 
 export const CLI_GOAL_PANEL_SCHEMA = "chainlesschain.goal-extension-panels.v1";
-export const CLI_GOAL_EXTENSION_HOST = Object.freeze({
-  id: "cli",
-  version: VERSION,
-  capabilities: Object.freeze(["panel:goal.summary"]),
-});
+export const CLI_GOAL_EXTENSION_HOST = cliGoalExtensionHost([
+  "panel:goal.summary",
+]);
 export const _deps = { collectGoalExtensions, projectGoalExtensionPanel };
 
 function fail(code) {
@@ -95,13 +93,7 @@ export async function readCliGoalExtensionPanels(id, options = {}) {
     env,
     managedSettingsFile,
     host: connection?.evidence
-      ? Object.freeze({
-          ...CLI_GOAL_EXTENSION_HOST,
-          capabilities: Object.freeze([
-            "panel:goal.summary",
-            "panel:goal.evidence",
-          ]),
-        })
+      ? cliGoalExtensionHost(["panel:goal.summary", "panel:goal.evidence"])
       : CLI_GOAL_EXTENSION_HOST,
     async authorize(context) {
       if (
@@ -169,6 +161,22 @@ export async function readCliGoalExtensionPanels(id, options = {}) {
     const projected = [];
     try {
       for (const panel of plugin.declaration.panels) {
+        if (
+          !hostOptions.host.activeCapabilities.includes(`panel:${panel.slot}`)
+        ) {
+          if (
+            !dropped.some(
+              (entry) =>
+                entry.name === plugin.name && entry.scope === plugin.scope,
+            )
+          )
+            dropped.push({
+              name: plugin.name,
+              scope: plugin.scope,
+              reason: "unsupported_capabilities",
+            });
+          continue;
+        }
         projected.push({
           plugin: ref,
           ...(await _deps.projectGoalExtensionPanel(

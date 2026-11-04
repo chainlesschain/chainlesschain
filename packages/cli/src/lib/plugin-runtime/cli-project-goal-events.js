@@ -3,7 +3,7 @@ import path from "node:path";
 import { performance } from "node:perf_hooks";
 import { setTimeout as delay } from "node:timers/promises";
 import { createHash } from "node:crypto";
-import { VERSION } from "../../constants.js";
+import { cliGoalExtensionHost } from "./cli-goal-capabilities.js";
 import { managedSettingsPath } from "../settings-loader.cjs";
 import { createProjectGoalConnection } from "../project-goal-connection.js";
 import {
@@ -50,11 +50,7 @@ export function watchCliProjectGoalEvents(id, options = {}) {
     fail("CLI_GOAL_INVALID_WATCH_LIMIT");
   if (signal !== undefined && !(signal instanceof AbortSignal))
     fail("CLI_GOAL_INVALID_WATCH_SIGNAL");
-  const host = Object.freeze({
-    id: "cli",
-    version: VERSION,
-    capabilities: Object.freeze(TYPES.map((type) => `event:${type}`)),
-  });
+  const host = cliGoalExtensionHost(TYPES.map((type) => `event:${type}`));
   const admission = Object.freeze({ cwd, env, managedSettingsFile, host });
   return (async function* () {
     if (signal?.aborted) return;

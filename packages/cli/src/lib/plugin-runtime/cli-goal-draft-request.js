@@ -1,15 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
-import { VERSION } from "../../constants.js";
+import { cliGoalExtensionHost } from "./cli-goal-capabilities.js";
 import { createProjectGoalConnection } from "../project-goal-connection.js";
 import { collectGoalExtensions } from "./goal-extensions.js";
 import { createGoalDraftRequest } from "@chainlesschain/session-core/goal-draft-request-contract";
 import { digestBusinessObjectContent as digest } from "@chainlesschain/session-core/business-object-contract";
-const HOST = Object.freeze({
-  id: "cli",
-  version: VERSION,
-  capabilities: Object.freeze(["proposal:task.description.update"]),
-});
+const HOST = cliGoalExtensionHost(["proposal:task.description.update"]);
 function fail(code) {
   throw new Error(code);
 }

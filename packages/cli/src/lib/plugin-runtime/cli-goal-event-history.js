@@ -2,7 +2,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { createHash, randomUUID } from "node:crypto";
-import { VERSION } from "../../constants.js";
+import { cliGoalExtensionHost } from "./cli-goal-capabilities.js";
 import { managedSettingsPath } from "../settings-loader.cjs";
 import { withFileLockAsync } from "../with-file-lock.js";
 import { createProjectGoalConnection } from "../project-goal-connection.js";
@@ -99,11 +99,7 @@ export function replayCliGoalEvents(id, raw = {}, publish) {
     cwd,
     env,
     managedSettingsFile: policyFile,
-    host: Object.freeze({
-      id: "cli",
-      version: VERSION,
-      capabilities: Object.freeze(TYPES.map((type) => `event:${type}`)),
-    }),
+    host: cliGoalExtensionHost(TYPES.map((type) => `event:${type}`)),
   });
   return (async () => {
     const source = _deps.createProjectGoalConnection(connection);

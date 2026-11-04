@@ -2831,14 +2831,24 @@ the manual-ID path when catalog discovery is unavailable.
 
 Refresh or a new read checks current source and plugin authorization. Standalone
 goals provide objective/status snapshots. Historical project risk and receipt
-summaries require the separate desktop evidence connection below. The broader
-`project-delivery-assistant` example still requires a project host adapter.
+summaries require the separate desktop evidence connection below.
+
+The working-tree [`project-delivery-assistant` 0.2.0 scenario package](src/lib/plugin-runtime/examples/project-delivery-assistant/README.md)
+now combines those evidence panels, standalone status / native risk-receipt
+observations, retained replay and pending description drafts under one installed
+plugin. Install its directory, then explicitly trust it and consent to its full
+declared capability set. Each operation still needs the separate source/connection
+for that surface; an evidence connection cannot watch events or submit drafts.
+The same installed plugin works with both IDE plugin managers. Installation and
+reinstallation do not start an observer, retry or business action. Use matching
+local CLI/Desktop/Session Core sources; these additions are unreleased. The
+package does not yet offer task-creation proposals or automatic drafting.
 
 The working-tree SDK now shares its proposal contract with Session Core's native
 pending-draft queue. A trusted-host SQLite integration verifies source and
 admission checks, idempotency and revocation; the CLI still has no authenticated
 live project write entry. The desktop's separately consented built-in delivery
-draft rule is not an installed CLI plugin or the full `project-delivery-assistant`.
+draft rule is separate from the installed `project-delivery-assistant` scenario.
 The trusted desktop host can now explicitly convert a persisted draft into one
 native preview/intent, then use the existing native confirmation and receipt
 flow. Conversion IDs survive restart and lost responses; revocation blocks
@@ -2891,8 +2901,8 @@ not establish current risk or goal completion. Running actions remain unresolved
 The read path performs no initialization, recovery or usage settlement and
 exposes no task bodies, previews or approval evidence. Summary-only plugins
 cannot read evidence fields. Project writes and event subscriptions remain
-unavailable through either connection. The complete `project-delivery-assistant`
-example still requires those additional host capabilities.
+unavailable through either connection. The combined `project-delivery-assistant`
+uses separate v3 draft, v4 event and v5 replay authorization for those surfaces.
 
 The working tree also supports **request-file handoff** for task descriptions.
 Install the proposal-only example and explicitly trust/consent it:

@@ -1,0 +1,295 @@
+{
+  "taskIds": ["DMM-07", "DMM-08"],
+  "startedLocalDate": "2026-11-04",
+  "completedLocalDate": "2026-11-05",
+  "recordedAt": "2026-11-04T16:04:20.389Z",
+  "result": "Installable data-only project-delivery-assistant 0.2.0 combines existing evidence, status/native event observation, retained replay and pending description drafts. Full declaration compatibility/trust/consent remain mandatory; each operation is gated before source/queue callbacks by its immutable active capabilities.",
+  "source": {
+    "baseCommit": "f70dfffe75822986ac637d622b8a42b74403d2ea",
+    "state": "Uncommitted feature-branch worktree after the DMM-07 commit; local snapshots, not exact-release-commit CI.",
+    "sha256": {
+      "packages/cli/src/lib/plugin-runtime/cli-goal-capabilities.js": "796032cd91b1bedb0a34c27f9e8884d3fd85e7a66204b8e63beda387a288f4f3",
+      "packages/cli/src/lib/plugin-runtime/goal-extensions.js": "338a87907fff486d282162c19ce8473e44cdf42f2e0f999845edcb9649b59791",
+      "packages/cli/src/lib/plugin-runtime/cli-goal-extension-host.js": "e0d601717279821905265eebb8e7dbfde3685b331c947128b3925a24c392ecc7",
+      "packages/cli/src/lib/plugin-runtime/cli-goal-drafts.js": "db3f02f94304f4948537d10f9671101d6724041526708fbc95f2ee8b3a590260",
+      "packages/cli/src/lib/plugin-runtime/cli-goal-draft-request.js": "19e0b3bd3494e68b04f269188893ad3065c6d119307978b149eb34b50b48dcd7",
+      "packages/cli/src/lib/plugin-runtime/cli-goal-events.js": "bc058d9ba0e8f468556df1867c441eb308fe1cf4130744c7b7cdab220c9b87e2",
+      "packages/cli/src/lib/plugin-runtime/cli-project-goal-events.js": "1d8bec0e8cf5f4437c286948379d51e54f39fa3d966bbb429e96285a0d93d007",
+      "packages/cli/src/lib/plugin-runtime/cli-goal-event-history.js": "f620d0aca9ea143b47be782135fc840dfdf6b7bf7092a862e1340b8a9c5255ed",
+      "packages/cli/src/lib/plugin-runtime/examples/project-delivery-assistant/plugin.json": "81cc8e2bb35aa8bd2b865e670e9b77c079ca45d257ffa69aeeef4c8c56f06d12",
+      "packages/cli/src/lib/plugin-runtime/examples/project-delivery-assistant/README.md": "4ff67aeec79a6d7f1e73d860b548621f28cdbe74ae21a7e9ed2f804586e2e8e2",
+      "packages/cli/__tests__/unit/cli-goal-capabilities.test.js": "d990ba6fbe4f2908b68f09335001e037c64acbfac49d839e87156914f0b0b738",
+      "packages/cli/__tests__/unit/project-delivery-assistant-lifecycle.test.js": "2c70775de775c341269382280559a8544aec18b54acf4ee4e49f8023c45934bc",
+      "packages/cli/__tests__/unit/plugin-goal-extension.test.js": "4169b13734d0e449af6e7f380b65daf932f3cc5b2f0a3b8a7321852327068498",
+      "packages/cli/__tests__/unit/cli-goal-extension-host.test.js": "b9d272eb20efdf9d45f080ba34081ac85e7c6a18121a8639904bd0c44798d3ce",
+      "packages/cli/__tests__/unit/cli-goal-evidence-host.test.js": "c9c0f54c39d981841e9aca8ca5b68f25a5d97961516e0638295b67c40e8ba468",
+      "packages/cli/__tests__/unit/cli-goal-draft-request.test.js": "252841b6f89a738d6669fce00d730bf70cfd8b2d7a52f894d637446dc8d704f5",
+      "packages/cli/__tests__/unit/cli-goal-drafts.test.js": "335912694c378d007ddf89eebe8451087ff959501c0290f3a8806be072c4f5b6",
+      "packages/cli/__tests__/unit/cli-goal-drafts-command.test.js": "f73aa567ef0b88aa0d081269011a0487bdd7121c70a4e1f1f0a2ab61b9dabf1c",
+      "packages/cli/__tests__/unit/cli-goal-events.test.js": "fb8a5fe75d2c1f80f1f8e672dccdc745394d2e4b23448bcbab74f7344512b551",
+      "packages/cli/__tests__/unit/cli-project-goal-events.test.js": "72a70665824f1dade7f5537cb79d549820ba0f3b61e809b7712e06515ddb2220",
+      "packages/cli/__tests__/unit/cli-goal-event-history.test.js": "1c4d9e910468d8d39f36caecbf167c8a98b7f24250da528980e6a85aa3c7f63c",
+      "packages/cli/__tests__/unit/project-goal-extension-queue.test.js": "4d5a8f7c5c4afa15a9911249f735133d5fb5ac216a5fd3c95f7bedacd117b65d",
+      "packages/cli/__tests__/unit/plugin-runtime-capability-consent.test.js": "94f7d50232efc97ded9e1a8ec30221a291200932e05de633e573660a2874c2e0",
+      "packages/cli/__tests__/unit/plugin-consent-command.test.js": "4e0ab9b98491d3c661ead7d6f287b22d96b56da9ad5055ebb3f8ce3637107a7d",
+      "packages/cli/__tests__/integration/cli-goal-panels.test.js": "69ce1793bffd6df4278c9d4f1fc7c66e130d71ff24af76600e2907f6df9938c0",
+      "packages/cli/__tests__/integration/cli-goal-events.test.js": "3dda29ee95da987e016cc262a50773ea285fa06ad2db9c0a59121c5352758e6e",
+      "desktop-app-vue/src/main/task/__tests__/project-goal-external-drafts-ipc.test.js": "2780a2f2260c256bf66dd28d227632a8c79ff37e93f7d4329f9f0990c4c276d5",
+      "desktop-app-vue/src/main/task/__tests__/project-goal-event-history-ipc.test.js": "328930780b2238d436e096f09ea01f031b90576488a863b3f26510b4f8f6c925",
+      "packages/cli/README.md": "f98a9d94bada9d45c9df507c091d5a44fb866bae3077c02ec28a1b61ecb7c734",
+      "packages/vscode-extension/README.md": "8a224fd324395ab51059563caf0fced3fc999ffe831ba87683d96d2d20caa68e",
+      "packages/jetbrains-plugin/README.md": "163a223eea831429ef850fc8b628516d3fba9b04836a0470f0c8549cb653bdc1",
+      "docs/research/agents/README.md": "03699db5cafd2b8bdbccfd5bb625daa6df953dea129810e0ba4b21c298c6f0f0",
+      "docs/research/agents/chainlesschain-dots-muse-mods-analysis-2026-10-06.md": "e68e1fc5b147173301a4a0fbbd5045870d0736c0e11d9ace353f82c05cc1db57",
+      "docs/research/agents/dots-muse-mods-implementation-progress-2026-10-07.md": "e163bd42240afbf9976e0f15608c7f374be5442094e2e148e5cf9b2ba5de8d50",
+      "docs/research/agents/evidence/dmm-delivery-assistant-2026-11-04/README.md": "5778d6e2e3de3ee7d8d2db7494b698ee3e1d8c67bbf1ab82b5cf090c27ab28d6",
+      "docs/research/agents/evidence/dmm-delivery-assistant-2026-11-04/verify-package.mjs": "68f143c2885949e7239eb65bc7b89cd9e4b641f0146800d3f92863e41fa50144"
+    }
+  },
+  "host": {
+    "platform": "win32",
+    "arch": "x64",
+    "osRelease": "10.0.19045",
+    "node": "v22.22.2",
+    "vitest": "4.1.10",
+    "npm": "10.9.7"
+  },
+  "totals": {
+    "fileCount": 18,
+    "passed": 245,
+    "failed": 0,
+    "skipped": 1
+  },
+  "tests": {
+    "cli": {
+      "cwd": "packages/cli",
+      "command": "node node_modules/vitest/vitest.mjs run __tests__/unit/cli-goal-capabilities.test.js __tests__/unit/project-delivery-assistant-lifecycle.test.js __tests__/unit/plugin-goal-extension.test.js __tests__/unit/cli-goal-extension-host.test.js __tests__/unit/cli-goal-evidence-host.test.js __tests__/unit/cli-goal-draft-request.test.js __tests__/unit/cli-goal-drafts.test.js __tests__/unit/cli-goal-drafts-command.test.js __tests__/unit/cli-goal-events.test.js __tests__/unit/cli-project-goal-events.test.js __tests__/unit/cli-goal-event-history.test.js __tests__/unit/project-goal-extension-queue.test.js __tests__/unit/plugin-runtime-capability-consent.test.js __tests__/unit/plugin-consent-command.test.js __tests__/integration/cli-goal-panels.test.js __tests__/integration/cli-goal-events.test.js --reporter=json --outputFile=../../docs/research/agents/evidence/dmm-delivery-assistant-2026-11-04/cli-tests.json",
+      "report": {
+        "path": "docs/research/agents/evidence/dmm-delivery-assistant-2026-11-04/cli-tests.json",
+        "sha256": "e1cb5f0d3c865b2a0ac446b40d19b0359e5018e513697cfb93718abc127493a6"
+      },
+      "totals": {
+        "files": 16,
+        "passed": 234,
+        "failed": 0,
+        "skipped": 1
+      },
+      "files": [
+        {
+          "path": "__tests__/integration/cli-goal-events.test.js",
+          "passed": 1,
+          "failed": 0,
+          "skipped": []
+        },
+        {
+          "path": "__tests__/integration/cli-goal-panels.test.js",
+          "passed": 1,
+          "failed": 0,
+          "skipped": []
+        },
+        {
+          "path": "__tests__/unit/cli-goal-capabilities.test.js",
+          "passed": 11,
+          "failed": 0,
+          "skipped": []
+        },
+        {
+          "path": "__tests__/unit/cli-goal-draft-request.test.js",
+          "passed": 9,
+          "failed": 0,
+          "skipped": []
+        },
+        {
+          "path": "__tests__/unit/cli-goal-drafts-command.test.js",
+          "passed": 5,
+          "failed": 0,
+          "skipped": []
+        },
+        {
+          "path": "__tests__/unit/cli-goal-drafts.test.js",
+          "passed": 19,
+          "failed": 0,
+          "skipped": []
+        },
+        {
+          "path": "__tests__/unit/cli-goal-event-history.test.js",
+          "passed": 15,
+          "failed": 0,
+          "skipped": []
+        },
+        {
+          "path": "__tests__/unit/cli-goal-events.test.js",
+          "passed": 28,
+          "failed": 0,
+          "skipped": []
+        },
+        {
+          "path": "__tests__/unit/cli-goal-evidence-host.test.js",
+          "passed": 5,
+          "failed": 0,
+          "skipped": []
+        },
+        {
+          "path": "__tests__/unit/cli-goal-extension-host.test.js",
+          "passed": 18,
+          "failed": 0,
+          "skipped": [
+            "standalone CLI goal extension host rejects a symlinked source without reading its target"
+          ]
+        },
+        {
+          "path": "__tests__/unit/cli-project-goal-events.test.js",
+          "passed": 21,
+          "failed": 0,
+          "skipped": []
+        },
+        {
+          "path": "__tests__/unit/plugin-consent-command.test.js",
+          "passed": 5,
+          "failed": 0,
+          "skipped": []
+        },
+        {
+          "path": "__tests__/unit/plugin-goal-extension.test.js",
+          "passed": 47,
+          "failed": 0,
+          "skipped": []
+        },
+        {
+          "path": "__tests__/unit/plugin-runtime-capability-consent.test.js",
+          "passed": 17,
+          "failed": 0,
+          "skipped": []
+        },
+        {
+          "path": "__tests__/unit/project-delivery-assistant-lifecycle.test.js",
+          "passed": 3,
+          "failed": 0,
+          "skipped": []
+        },
+        {
+          "path": "__tests__/unit/project-goal-extension-queue.test.js",
+          "passed": 29,
+          "failed": 0,
+          "skipped": []
+        }
+      ]
+    },
+    "desktop": {
+      "cwd": "desktop-app-vue",
+      "command": "node ../packages/cli/node_modules/vitest/vitest.mjs run --config vitest.business-actions.config.mjs src/main/task/__tests__/project-goal-external-drafts-ipc.test.js src/main/task/__tests__/project-goal-event-history-ipc.test.js --reporter=json --outputFile=../docs/research/agents/evidence/dmm-delivery-assistant-2026-11-04/desktop-tests.json",
+      "report": {
+        "path": "docs/research/agents/evidence/dmm-delivery-assistant-2026-11-04/desktop-tests.json",
+        "sha256": "18f30947f64f4ad0e3ec85116a1735a49e7bcf5e8ca76ebfb4052e714d0aa90a"
+      },
+      "totals": {
+        "files": 2,
+        "passed": 11,
+        "failed": 0,
+        "skipped": 0
+      },
+      "files": [
+        {
+          "path": "src/main/task/__tests__/project-goal-event-history-ipc.test.js",
+          "passed": 5,
+          "failed": 0,
+          "skipped": []
+        },
+        {
+          "path": "src/main/task/__tests__/project-goal-external-drafts-ipc.test.js",
+          "passed": 6,
+          "failed": 0,
+          "skipped": []
+        }
+      ]
+    }
+  },
+  "artifacts": {
+    "report": {
+      "path": "docs/research/agents/evidence/dmm-delivery-assistant-2026-11-04/artifacts.json",
+      "sha256": "2b7d9eef9fb7ed2fd89282b1190f80779ee3d11cb37bf0e78861d4d6f0ef915f"
+    },
+    "verificationScript": {
+      "path": "docs/research/agents/evidence/dmm-delivery-assistant-2026-11-04/verify-package.mjs",
+      "sha256": "68f143c2885949e7239eb65bc7b89cd9e4b641f0146800d3f92863e41fa50144"
+    },
+    "localOnly": true,
+    "published": false,
+    "productVersionsChanged": false,
+    "scenarioVersion": "0.2.0",
+    "fullCliInstalledInIsolation": false
+  },
+  "checks": [
+    {
+      "cwd": ".",
+      "command": "node packages/cli/scripts/gen-command-manifest.mjs --check",
+      "exitCode": 0
+    },
+    {
+      "cwd": ".",
+      "command": "node packages/cli/scripts/gen-command-help-index.mjs --check",
+      "exitCode": 0
+    },
+    {
+      "cwd": ".",
+      "command": "node packages/cli/scripts/gen-shell-completions.mjs --check",
+      "exitCode": 0
+    },
+    {
+      "cwd": "packages/cli",
+      "command": "npm.cmd pack --ignore-scripts --json --pack-destination <Windows-Temp>/dmm-delivery-assistant-20261104 --cache <Windows-Temp>/dmm-delivery-assistant-20261104/npm-cache",
+      "exitCode": 0
+    },
+    {
+      "cwd": ".",
+      "command": "<SystemRoot>/System32/tar.exe -xzf <local-tarball> -C <Windows-Temp>/dmm-delivery-assistant-20261104/extracted",
+      "exitCode": 0
+    },
+    {
+      "cwd": ".",
+      "command": "node docs/research/agents/evidence/dmm-delivery-assistant-2026-11-04/verify-package.mjs <local-tarball> <extracted-package-root>",
+      "exitCode": 0,
+      "matchedFiles": 10,
+      "isolatedHostModuleLoaded": true
+    },
+    {
+      "cwd": ".",
+      "command": "node node_modules/prettier/bin/prettier.cjs --check desktop-app-vue/src/main/task/__tests__/project-goal-event-history-ipc.test.js desktop-app-vue/src/main/task/__tests__/project-goal-external-drafts-ipc.test.js docs/research/agents/README.md docs/research/agents/chainlesschain-dots-muse-mods-analysis-2026-10-06.md docs/research/agents/dots-muse-mods-implementation-progress-2026-10-07.md packages/cli/README.md packages/cli/__tests__/unit/plugin-goal-extension.test.js packages/cli/src/lib/plugin-runtime/cli-goal-draft-request.js packages/cli/src/lib/plugin-runtime/cli-goal-drafts.js packages/cli/src/lib/plugin-runtime/cli-goal-event-history.js packages/cli/src/lib/plugin-runtime/cli-goal-events.js packages/cli/src/lib/plugin-runtime/cli-goal-extension-host.js packages/cli/src/lib/plugin-runtime/cli-project-goal-events.js packages/cli/src/lib/plugin-runtime/examples/project-delivery-assistant/plugin.json packages/cli/src/lib/plugin-runtime/goal-extensions.js packages/jetbrains-plugin/README.md packages/vscode-extension/README.md docs/research/agents/evidence/dmm-delivery-assistant-2026-11-04/README.md docs/research/agents/evidence/dmm-delivery-assistant-2026-11-04/artifacts.json docs/research/agents/evidence/dmm-delivery-assistant-2026-11-04/summary.json docs/research/agents/evidence/dmm-delivery-assistant-2026-11-04/verify-package.mjs packages/cli/__tests__/unit/cli-goal-capabilities.test.js packages/cli/__tests__/unit/project-delivery-assistant-lifecycle.test.js packages/cli/src/lib/plugin-runtime/cli-goal-capabilities.js packages/cli/src/lib/plugin-runtime/examples/project-delivery-assistant/README.md",
+      "exitCode": 0
+    },
+    {
+      "cwd": ".",
+      "command": "git diff --check",
+      "exitCode": 0
+    }
+  ],
+  "boundaries": {
+    "real": [
+      "Actual install/enable/disable/uninstall APIs, immutable version directories, durable workspace trust and capability consent on isolated temporary storage",
+      "Capability expansion requires consent after version trust; uninstall preserves references; reinstall alone performs no export",
+      "Real Windows private connection ACL, mutual HMAC HTTP and SQLite evidence reads and pending description action confirmation",
+      "CLI child force-terminated after output and before checkpoint commit; the combined package repeats stable event IDs, rejects disabled/uninstalled recovery, retains checkpoint bytes and explicitly resumes after reinstall",
+      "Local npm tarball bytes and isolated module import without node_modules"
+    ],
+    "testControls": [
+      "Electron window, login context and native confirmation dialogs are injected API substitutes",
+      "Native data belongs to synthetic isolated test projects; no independent business sample",
+      "Package verification loads the new capability module only; full isolated CLI dependency installation was not run"
+    ],
+    "notRun": [
+      "Real Electron, VS Code or JetBrains GUI journey",
+      "Linux/macOS host and process validation",
+      "Automatic description generation or CLI task-creation proposal adapter",
+      "Independent business-effect evaluation",
+      "Exact candidate commit three-OS release CI, OIDC publication, IDE or client releases"
+    ]
+  },
+  "notes": [
+    "The directory uses the batch start date; local completion crossed into November 5.",
+    "The combined scenario omits task.create because the current CLI lacks its adapter. The generic SDK proposal type remains; unsupported declarations are refused.",
+    "The currently published product versions do not contain this assembly; manifest floors alone are insufficient without matching local source builds.",
+    "Existing standalone-source POSIX symlink test is skipped on Windows; no failed cases.",
+    "Historical batch evidence is preserved and not added to these totals.",
+    "No new model, Graph or Memory dispatch integration is claimed."
+  ]
+}

@@ -2,7 +2,7 @@
 import path from "node:path";
 import { performance } from "node:perf_hooks";
 import { setTimeout as delay } from "node:timers/promises";
-import { VERSION } from "../../constants.js";
+import { cliGoalExtensionHost } from "./cli-goal-capabilities.js";
 import { resolveConfigDataRoot } from "../paths.js";
 import { managedSettingsPath } from "../settings-loader.cjs";
 import { createCliGoalSnapshotReader } from "../cli-goal-source.js";
@@ -52,11 +52,7 @@ export function watchCliGoalExtensionEvents(id, options = {}) {
     fail("CLI_GOAL_INVALID_WATCH_LIMIT");
   if (signal !== undefined && !(signal instanceof AbortSignal))
     fail("CLI_GOAL_INVALID_WATCH_SIGNAL");
-  const host = Object.freeze({
-    id: "cli",
-    version: VERSION,
-    capabilities: Object.freeze([`event:${TYPE}`]),
-  });
+  const host = cliGoalExtensionHost([`event:${TYPE}`]);
   const admission = Object.freeze({ cwd, env, managedSettingsFile, host });
 
   return (async function* () {

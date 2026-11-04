@@ -36,12 +36,25 @@ function fixedHostOptions(options) {
       id: options.host?.id,
       version: options.host?.version,
       capabilities: Object.freeze([...(options.host?.capabilities || [])]),
+      activeCapabilities: Object.freeze([
+        ...(options.host?.activeCapabilities ??
+          options.host?.capabilities ??
+          []),
+      ]),
     }),
     authorize: options.authorize,
     readEvent: options.readEvent,
     readPanel: options.readPanel,
     enqueueProposal: options.enqueueProposal,
   });
+}
+
+function requireActiveCapability(options, capability) {
+  if (
+    !options.host.capabilities.includes(capability) ||
+    !options.host.activeCapabilities.includes(capability)
+  )
+    throw new Error("goal extension capability is inactive for this operation");
 }
 
 /** Compatibility and mandatory consent are independent of legacy policy flags. */
@@ -139,6 +152,7 @@ export async function projectGoalExtensionEvent(ref, request, options = {}) {
   options = fixedHostOptions(options);
   const type = request?.type;
   const plugin = admittedPlugin(ref, options, "events", type);
+  requireActiveCapability(options, `event:${type}`);
   const source = goalRef(request.goalRef);
   const context = Object.freeze({
     plugin: Object.freeze({
@@ -182,6 +196,7 @@ export async function projectGoalExtensionPanel(ref, request, options = {}) {
     (entry) => entry.id === request?.panelId,
   );
   if (!panel) throw new Error("goal extension panel is undeclared");
+  requireActiveCapability(options, `panel:${panel.slot}`);
   const source = goalRef(request.goalRef);
   const context = Object.freeze({
     plugin: Object.freeze({
@@ -229,6 +244,7 @@ export async function proposeGoalExtensionAction(ref, raw, options = {}) {
   raw = normalizeGoalExtensionProposal(raw);
   if (!plugin.declaration.proposals.includes(raw.type))
     throw new Error("goal extension proposal is undeclared");
+  requireActiveCapability(options, `proposal:${raw.type}`);
   const source = raw.goalRef;
   const title = raw.title;
   const description = raw.description;

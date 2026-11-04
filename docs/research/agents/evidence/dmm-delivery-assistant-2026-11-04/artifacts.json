@@ -1,0 +1,65 @@
+{
+  "localOnly": true,
+  "published": false,
+  "fullCliInstalledInIsolation": false,
+  "archive": {
+    "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\dmm-delivery-assistant-20261104\\chainlesschain-0.166.141.tgz",
+    "sha256": "f16c5ab9ecf13a4bd4892acc73989673652a69f359997c4d9861be889381a192",
+    "bytes": 8811638
+  },
+  "matches": [
+    {
+      "file": "src/lib/plugin-runtime/cli-goal-capabilities.js",
+      "sha256": "796032cd91b1bedb0a34c27f9e8884d3fd85e7a66204b8e63beda387a288f4f3",
+      "equal": true
+    },
+    {
+      "file": "src/lib/plugin-runtime/goal-extensions.js",
+      "sha256": "338a87907fff486d282162c19ce8473e44cdf42f2e0f999845edcb9649b59791",
+      "equal": true
+    },
+    {
+      "file": "src/lib/plugin-runtime/cli-goal-extension-host.js",
+      "sha256": "e0d601717279821905265eebb8e7dbfde3685b331c947128b3925a24c392ecc7",
+      "equal": true
+    },
+    {
+      "file": "src/lib/plugin-runtime/cli-goal-drafts.js",
+      "sha256": "db3f02f94304f4948537d10f9671101d6724041526708fbc95f2ee8b3a590260",
+      "equal": true
+    },
+    {
+      "file": "src/lib/plugin-runtime/cli-goal-draft-request.js",
+      "sha256": "19e0b3bd3494e68b04f269188893ad3065c6d119307978b149eb34b50b48dcd7",
+      "equal": true
+    },
+    {
+      "file": "src/lib/plugin-runtime/cli-goal-events.js",
+      "sha256": "bc058d9ba0e8f468556df1867c441eb308fe1cf4130744c7b7cdab220c9b87e2",
+      "equal": true
+    },
+    {
+      "file": "src/lib/plugin-runtime/cli-project-goal-events.js",
+      "sha256": "1d8bec0e8cf5f4437c286948379d51e54f39fa3d966bbb429e96285a0d93d007",
+      "equal": true
+    },
+    {
+      "file": "src/lib/plugin-runtime/cli-goal-event-history.js",
+      "sha256": "f620d0aca9ea143b47be782135fc840dfdf6b7bf7092a862e1340b8a9c5255ed",
+      "equal": true
+    },
+    {
+      "file": "src/lib/plugin-runtime/examples/project-delivery-assistant/plugin.json",
+      "sha256": "81cc8e2bb35aa8bd2b865e670e9b77c079ca45d257ffa69aeeef4c8c56f06d12",
+      "equal": true
+    },
+    {
+      "file": "src/lib/plugin-runtime/examples/project-delivery-assistant/README.md",
+      "sha256": "4ff67aeec79a6d7f1e73d860b548621f28cdbe74ae21a7e9ed2f804586e2e8e2",
+      "equal": true
+    }
+  ],
+  "isolatedHostModuleLoaded": true,
+  "productVersion": "0.166.141",
+  "scenarioVersion": "0.2.0"
+}

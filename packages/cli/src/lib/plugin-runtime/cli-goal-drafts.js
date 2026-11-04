@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { VERSION } from "../../constants.js";
+import { cliGoalExtensionHost } from "./cli-goal-capabilities.js";
 import { managedSettingsPath } from "../settings-loader.cjs";
 import { createProjectGoalConnection } from "../project-goal-connection.js";
 import {
@@ -20,11 +20,7 @@ import {
   validateGoalDraftSubmissionReference,
 } from "@chainlesschain/session-core/goal-draft-connection-contract";
 
-const HOST = Object.freeze({
-  id: "cli",
-  version: VERSION,
-  capabilities: Object.freeze(["proposal:task.description.update"]),
-});
+const HOST = cliGoalExtensionHost(["proposal:task.description.update"]);
 export const CLI_GOAL_DRAFT_SUBMISSION_SCHEMA =
   "chainlesschain.goal-draft-submission/v1";
 export const CLI_GOAL_DRAFT_SOURCES_SCHEMA =
