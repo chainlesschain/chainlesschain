@@ -1,5 +1,23 @@
 # ChainlessChain IDE Bridge (JetBrains)
 
+## CLI 0.166.141 / verified public pairing
+
+CLI **0.166.141** is public through GitHub Actions OIDC. Open VSX **0.37.177** and JetBrains **0.4.194** are public and both recommend CLI **0.166.141**. CLI public bytes, signed provenance, registry-only `--ignore-scripts` installation and the Agent capability startup probe passed. Both public IDE payloads match their official builds.
+
+Exact release source：`df9295e33ad04aec0aa74cab4dd242766d5556a4`。CLI CI **76/76** / Strict Sandbox **6/6** passed across Linux, Windows and macOS.
+
+This release preserves valid spread expressions in complete source previews, keeps read recovery actionable, and shares launcher-owned exact file scope across CLI and IDE evaluations. The diagnostic broker rejects a formal budget scope before reading options. Existing interactive permissions, IDE protocol and finite diagnostic limits remain.
+
+Install `npm i -g chainlesschain@0.166.141 --registry https://registry.npmjs.org`; restart CLI / IDE chat hosts, then run `cc --version` and `cc doctor`.
+
+No additional model-task retests were run. Volcengine corrected .140 round: generation **39/45**, strict acceptance **24/45**; historical automatic-deliverable union **36/45**, with **9** remaining and the verify-06 candidate-only qualification preserved. Sol original frozen-project history **41/45**, cross-version coverage including repaired sources **45/45**, and the separate .140 repaired-project four-case result **2/4** retain distinct scopes.
+
+[Publication evidence](../../docs/research/cli/evidence/release141-public/README.md) · [45-task ledger](../../docs/research/cli/verify01-36-plus-9-task-list.md)
+
+SDK **0.2.17**, Protocol **0.1.12**, Kernel **0.1.11** and child npm versions are unchanged; public child bytes and dependency installation were verified before CLI publication. PC/mobile **v5.0.3.144** remain independent. Microsoft Marketplace is deferred. NOT_PAID_READY / NOT_ADMITTED / HOLD remain.
+
+## Previous release snapshot (.193 / .140)
+
 <!-- release140-current:start -->
 
 ## CLI 0.166.140 / rejected tool argument recovery
@@ -182,7 +200,7 @@ See the [verified publication evidence](https://github.com/chainlesschain/chainl
 
 ## Release compatibility
 
-Plugin **0.4.194** is the current release candidate. It recommends `chainlesschain@0.166.141` and pairs with Open VSX **0.37.177**. Kernel remains **0.1.11**. This pairing carries the CLI complete-source preview and launcher-owned evaluation-entry repairs without changing ordinary permissions or the IDE protocol. Publish after verified public CLI installation and complete exact-source host gates; report Marketplace upload and public listing separately. Microsoft Marketplace remains deferred.
+Plugin **0.4.194** is the current public release. It recommends `chainlesschain@0.166.141`. It is approved, listed and publicly downloadable; all original payload entries match the official build. Install `npm i -g chainlesschain@0.166.141 --registry https://registry.npmjs.org`, restart the chat host, then run `cc --version` and `cc doctor`.
 
 ## Previous candidates and development notes
 

@@ -1,0 +1,16 @@
+{
+  "reviewedSourceCommit": "a60b9cdb35d9d598202930cb3317117b651948fd",
+  "immutableReleaseSource": "df9295e33ad04aec0aa74cab4dd242766d5556a4",
+  "checkedAt": "2026-11-04T10:59:34.766935+00:00",
+  "scope": [
+    "root/package README",
+    "current release status",
+    "user recovery guides",
+    "runtime design",
+    "website bilingual copy",
+    "historical cohort qualifications"
+  ],
+  "newModelTaskRetests": false,
+  "automaticAcceptanceAdded": 0,
+  "deploymentSource": "Record separately after building and deploying the documentation commit."
+}

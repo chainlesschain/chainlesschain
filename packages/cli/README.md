@@ -2,19 +2,25 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
 
-<!-- release141-pairing:start -->
+<!-- release141-current:start -->
 
-## CLI 0.166.141 / complete source preview recovery
+## CLI 0.166.141 / verified public pairing
 
-Release candidate **0.166.141** preserves legitimate source spread expressions in complete file-read previews and keeps read-recovery guidance actionable. Launcher-owned hermetic evaluations use the same exact mutation scope through the CLI and IDE gateway; ordinary interactive permissions and the IDE protocol retain their existing behavior.
+CLI **0.166.141** is public through GitHub Actions OIDC. Open VSX **0.37.177** and JetBrains **0.4.194** are public and both recommend CLI **0.166.141**. CLI public bytes, signed provenance, registry-only `--ignore-scripts` installation and the Agent capability startup probe passed. Both public IDE payloads match their official builds.
 
-The intended pairing is VS Code **0.37.177** and JetBrains **0.4.194**. Child npm versions are unchanged. Publication remains pending until this exact source passes every configured Linux, Windows and macOS CLI CI / CLI Strict Sandbox job, then GitHub Actions OIDC publishes and verifies the public npm archive. IDE publication follows verified CLI installation.
+Exact release source：`df9295e33ad04aec0aa74cab4dd242766d5556a4`。CLI CI **76/76** / Strict Sandbox **6/6** passed across Linux, Windows and macOS.
 
-After public availability is verified, install `npm i -g chainlesschain@0.166.141 --registry https://registry.npmjs.org`, restart the CLI and IDE hosts, and run `cc --version` and `cc doctor`.
+This release preserves valid spread expressions in complete source previews, keeps read recovery actionable, and shares launcher-owned exact file scope across CLI and IDE evaluations. The diagnostic broker rejects a formal budget scope before reading options. Existing interactive permissions, IDE protocol and finite diagnostic limits remain.
 
-This release does not run additional model-task retests or rescore historical results. Volcengine historical coverage remains 36/45 with its original qualification limits; the latest complete round is 24/45. Sol original-project history is 41/45, the latest repaired-source four-case cohort is 2/4, and cross-version coverage is 45/45. Diagnostic future budgets remain finite; these are not automatic increases to ordinary user requests.
+Install `npm i -g chainlesschain@0.166.141 --registry https://registry.npmjs.org`; restart CLI / IDE chat hosts, then run `cc --version` and `cc doctor`.
 
-<!-- release141-pairing:end -->
+No additional model-task retests were run. Volcengine corrected .140 round: generation **39/45**, strict acceptance **24/45**; historical automatic-deliverable union **36/45**, with **9** remaining and the verify-06 candidate-only qualification preserved. Sol original frozen-project history **41/45**, cross-version coverage including repaired sources **45/45**, and the separate .140 repaired-project four-case result **2/4** retain distinct scopes.
+
+[Publication evidence](../../docs/research/cli/evidence/release141-public/README.md) · [45-task ledger](../../docs/research/cli/verify01-36-plus-9-task-list.md)
+
+SDK **0.2.17**, Protocol **0.1.12**, Kernel **0.1.11** and child npm versions are unchanged; public child bytes and dependency installation were verified before CLI publication. PC/mobile **v5.0.3.144** remain independent. Microsoft Marketplace is deferred. NOT_PAID_READY / NOT_ADMITTED / HOLD remain.
+
+<!-- release141-current:end -->
 
 <!-- release140-pairing:start -->
 

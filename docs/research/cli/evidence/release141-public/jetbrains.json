@@ -1,0 +1,12 @@
+{
+  "releaseSource": "df9295e33ad04aec0aa74cab4dd242766d5556a4",
+  "version": "0.4.194",
+  "recommendedCliVersion": "0.166.141",
+  "status": "verified-public",
+  "publicReadbackVerified": true,
+  "workflow": "https://github.com/chainlesschain/chainlesschain/actions/runs/41783620938",
+  "marketplaceUpdateId": 1211770,
+  "allOriginalPayloadEntriesMatch": true,
+  "publicArchiveSha256": "ef8c8116fa9513ff0dcf38ff8cb1d8af530ca8c571bba59d7980e615eb3a3200",
+  "officialArchiveSha256": "d02cc2674292bff36c7c96436909532ddf2329405250e81d73c8fd14b18f15f6"
+}
