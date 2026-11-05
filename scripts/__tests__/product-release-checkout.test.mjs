@@ -82,7 +82,7 @@ test("restores product identity between the CLI exact-SHA gate and IDE prerequis
   const ide = steps.findIndex(
     (step) =>
       step.name ===
-      "Verify public IDE releases or the scoped authorized JetBrains upload",
+      "Require public paired IDE releases before mobile and PC builds",
   );
   assert.ok(gate >= 0 && gate < restoreIndex && restoreIndex < ide);
   assert.match(steps[gate].run, /git checkout --detach "\$TAG_SHA"/);

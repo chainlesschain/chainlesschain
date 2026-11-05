@@ -1666,7 +1666,9 @@ jobs:
       - name: Test scoped JetBrains upload authorization
         run: node --test scripts/__tests__/verify-product-jetbrains-upload.test.mjs
 
-      - name: Verify public IDE releases or the scoped authorized JetBrains upload
+      # Preserve the established step name used by the immutable CLI contract.
+      # Scoped user-authorized uploads are verified separately below.
+      - name: Require public paired IDE releases before mobile and PC builds
         shell: bash
         env:
           GITHUB_TOKEN: ${{ github.token }}
