@@ -1,10 +1,12 @@
 # ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
-发布准备中：Session Core **0.3.25** → CLI **0.166.142** → Open VSX **0.37.178** / JetBrains **0.4.195**。本批增加授权目标事件、持久历史恢复与最小组合交付助手；准确提交的三平台检查和公开制品回读通过后才标记已发布。PC/移动端当前公开版本仍为 **v5.0.3.144**，后续按上游验证顺序推进。
+当前公开 CLI **0.166.142**、Session Core **0.3.25** 和 Open VSX **0.37.178** 已完成正式发行核验。JetBrains **0.4.195** 已通过宿主检查并上传，等待商店审核或公开索引，尚未验证公开可用。准确发行源码为 `b78cf0af8c8b0491189465773b148ac77c332222`。
+
+本批增加另行授权的目标事件、保留历史恢复和最小组合交付助手。安装 `npm i -g chainlesschain@0.166.142 --registry https://registry.npmjs.org`，重启宿主后运行 `cc --version`、`cc doctor`。PC/移动端 **v5.0.3.145** 正在准备发行，当前已核验公开版本仍为 **v5.0.3.144**；用户已授权本轮客户端在核验 JetBrains 官方上传后先行发布，无需等待商店审核。新的原生目标历史功能需匹配新版桌面客户端；真实 GUI 和业务效果验收仍独立进行。[升级说明](docs-site/docs/chainlesschain/cli-ide-update-2026-11-05-142.md) · [发行证据](docs/research/cli/evidence/release142-public/README.md)
 
 <!-- release141-current:start -->
 
-## 当前公开 CLI：0.166.141 / 配套 IDE 修复
+## 上版发行快照：CLI 0.166.141 / 配套 IDE 修复
 
 CLI **0.166.141** 已通过 GitHub Actions OIDC 发布；Open VSX **0.37.177** 和 JetBrains **0.4.194** 均已公开，均推荐 CLI **0.166.141**。CLI 公开字节与签名来源、仅 registry 的 `--ignore-scripts` 安装及 Agent capability 启动探测已核验；两款插件公开 payload 与正式构建一致。
 

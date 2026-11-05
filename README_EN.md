@@ -1,10 +1,12 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
-Release preparation: Session Core **0.3.25** → CLI **0.166.142** → Open VSX **0.37.178** / JetBrains **0.4.195**. This adds authorized goal events, retained-history recovery and a minimal combined delivery scenario. Exact-source three-OS gates and public artifact readback are required before marking these public. PC/mobile remain on verified **v5.0.3.144** until their upstream release stages pass.
+CLI **0.166.142**, Session Core **0.3.25** and Open VSX **0.37.178** are verified public. JetBrains **0.4.195** passed its host checks and official upload; Marketplace approval/listing is pending and public availability is unverified. Immutable release source: `b78cf0af8c8b0491189465773b148ac77c332222`.
+
+This release adds separately authorized goal events, retained-history recovery and a minimal combined delivery scenario. Install `npm i -g chainlesschain@0.166.142 --registry https://registry.npmjs.org`, restart hosts, then run `cc --version` and `cc doctor`. PC/mobile **v5.0.3.145** is being prepared; the verified public product remains **v5.0.3.144**. The user authorized this client release after verification of the official JetBrains upload, without waiting for Marketplace review. Native retained history requires the matching newer desktop client; real GUI and business-effect acceptance remain separate. [Upgrade guide](docs-site/docs/chainlesschain/cli-ide-update-2026-11-05-142.md) · [Publication evidence](docs/research/cli/evidence/release142-public/README.md)
 
 <!-- release141-current:start -->
 
-## CLI 0.166.141 / verified public pairing
+## Previous release: CLI 0.166.141 / verified public pairing
 
 CLI **0.166.141** is public through GitHub Actions OIDC. Open VSX **0.37.177** and JetBrains **0.4.194** are public and both recommend CLI **0.166.141**. CLI public bytes, signed provenance, registry-only `--ignore-scripts` installation and the Agent capability startup probe passed. Both public IDE payloads match their official builds.
 

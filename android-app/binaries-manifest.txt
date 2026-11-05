@@ -20,9 +20,9 @@
 # that bloated .git history by ~1.2 GB / 24 cc-cli.tgz versions in v5.0.3.97
 # pre-slim state).
 
-# Public CLI 0.166.139, source eec8b97b6040d19004670bfead0bec1b8a27b71b.
-# Hydration evidence: android-cli-bundle-refresh.yml run 41435036901.
-e8760302604b8f257429a68aaac172158d04dbf798e4e54b1e7252e84806af8f  cc-cli.tgz                       android-app/feature-local-terminal/src/main/assets/local-terminal/cc-cli.tgz
+# Public CLI 0.166.142, source b78cf0af8c8b0491189465773b148ac77c332222.
+# Hydration evidence: android-cli-bundle-refresh.yml run 41955110058.
+730977d96b8fe41242999f0a3abafad8914bc1e9698860c70b009905eec8be08  cc-cli.tgz                       android-app/feature-local-terminal/src/main/assets/local-terminal/cc-cli.tgz
 47e6c97d178c00e3d0ba6d695d5d14bf94bf749b2f6170a789f480cf4021af2f  libnode.so                       android-app/feature-local-terminal/src/main/jniLibs/arm64-v8a/libnode.so
 b74d37b407a9092573671dd031ccaa8c36576bb067d21c9effa2edb748526400  libicudata.so                    android-app/feature-local-terminal/src/main/jniLibs/arm64-v8a/libicudata.so
 5c08255d1f0ca3529ec79daab5b3cd8d0064ed27efc66b2937415460e02522b1  libicui18n.so                    android-app/feature-local-terminal/src/main/jniLibs/arm64-v8a/libicui18n.so

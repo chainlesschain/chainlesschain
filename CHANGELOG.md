@@ -5,13 +5,20 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-> Public release scope: CLI **0.166.141**, Open VSX **0.37.177** and JetBrains **0.4.194** are verified public. Exact source `df9295e33ad04aec0aa74cab4dd242766d5556a4` passed CLI CI **76/76** and Strict Sandbox **6/6**. Actions OIDC, public byte/provenance checks, registry-only installation and Agent startup passed before IDE publication. Child packages and product **v5.0.3.144** retain their versions. See [release evidence](docs/research/cli/evidence/release141-public/README.md).
+> Public release scope: CLI **0.166.142**, Session Core **0.3.25** and Open VSX **0.37.178** are verified public from source `b78cf0af8c8b0491189465773b148ac77c332222`. CLI CI completed with **75 successful / 1 optional skipped** job; Strict Sandbox passed **6/6**. Actions OIDC publication and independent public-byte/provenance readback passed. JetBrains **0.4.195** passed host checks and the official upload, with Marketplace review/listing pending. Product **v5.0.3.145** is being prepared under the user's explicit authorization to proceed after that upload; **v5.0.3.144** remains the verified public client release. See [release evidence](docs/research/cli/evidence/release142-public/README.md).
 >
 > `Unreleased` is a rolling source-development log retaining historical candidate labels, not a publication ledger. Historical OpenAI acceptance is **41/45** across versions; the focused image follow-up remains **0/1**. Engineering checks add no model task acceptance. Microsoft Marketplace is deferred. PC/mobile **[v5.0.3.144](https://github.com/chainlesschain/chainlesschain/releases/tag/v5.0.3.144)** is public and latest as of **2026-11-03**, with all five platform builds, six required checks and 22 release assets verified. Windows/macOS packages are unsigned, macOS is not notarized, and iOS is signed for Ad Hoc distribution to registered devices; this release does not publish to App Store or Google Play.
 
 ## [Unreleased]
 
-### Added - cc CLI 0.166.142: authorized goal events and retained recovery (candidate, 2026-11-05)
+### Changed - desktop/mobile v5.0.3.145 (release preparation, 2026-11-05)
+
+- Align desktop to `5.0.3-alpha.145`, Android to versionName `5.0.3.145` / versionCode `503145`, and iOS to marketing version `5.0.3` / build `145`.
+- Consume verified public CLI `0.166.142`, Session Core `0.3.25` and Open VSX `0.37.178`, preserving the immutable npm package source tree.
+- Honor the user's authorization to release these clients before JetBrains review completes. Pin the exception to plugin `0.4.195`, CLI `.142`, its exact source/tag and successful official upload run `41950791667`; preserve all other package, build, signing and artifact checks.
+- Refresh Android's embedded public CLI while retaining the audited native runtime/binding policy, and require verified immutable rollover assets before the client tag.
+
+### Added - cc CLI 0.166.142: authorized goal events and retained recovery (released, 2026-11-05)
 
 - Add standalone status and separately authorized native risk/action observation, plus a transactional retained event journal in Session Core 0.3.25.
 - Add one-page CLI replay with durable new/resume checkpoints, at-least-once delivery, and explicit VS Code / JetBrains recovery controls.
