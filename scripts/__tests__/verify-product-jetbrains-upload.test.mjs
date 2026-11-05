@@ -2,23 +2,24 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   REVIEW_EXCEPTION,
+  REVIEW_EXCEPTIONS,
   allowsReviewException,
   verifyUploadAuthority,
 } from "../verify-product-jetbrains-upload.mjs";
 
-function fixture() {
+function fixture(exception = REVIEW_EXCEPTION) {
   return {
-    productVersion: REVIEW_EXCEPTION.productVersion,
-    version: REVIEW_EXCEPTION.version,
-    cliVersion: REVIEW_EXCEPTION.cliVersion,
-    tagSha: REVIEW_EXCEPTION.source,
+    productVersion: exception.productVersion,
+    version: exception.version,
+    cliVersion: exception.cliVersion,
+    tagSha: exception.source,
     run: {
-      id: REVIEW_EXCEPTION.runId,
-      repository: { full_name: REVIEW_EXCEPTION.repository },
+      id: exception.runId,
+      repository: { full_name: exception.repository },
       path: ".github/workflows/ide-extensions.yml",
       event: "push",
-      head_branch: REVIEW_EXCEPTION.tag,
-      head_sha: REVIEW_EXCEPTION.source,
+      head_branch: exception.tag,
+      head_sha: exception.source,
       status: "completed",
       conclusion: "success",
       run_attempt: 1,
@@ -26,7 +27,7 @@ function fixture() {
     jobs: [
       {
         id: 123,
-        run_id: REVIEW_EXCEPTION.runId,
+        run_id: exception.runId,
         name: "JetBrains plugin (build + publish)",
         status: "completed",
         conclusion: "success",
@@ -48,11 +49,24 @@ test("accepts the completed official immutable upload for the authorized pairing
   assert.equal(result.source, REVIEW_EXCEPTION.source);
 });
 
+test("accepts product145 only with its own verified .195 upload", () => {
+  const exception = REVIEW_EXCEPTIONS.find(
+    (entry) => entry.productVersion === "v5.0.3.145",
+  );
+  const result = verifyUploadAuthority(fixture(exception));
+  assert.equal(result.uploadVerified, true);
+  assert.equal(result.runId, 41950791667);
+  assert.equal(result.source, "b78cf0af8c8b0491189465773b148ac77c332222");
+  const reused = fixture(exception);
+  reused.run = fixture().run;
+  assert.throws(() => verifyUploadAuthority(reused));
+});
+
 for (const [name, mutate] of [
   [
     "another product",
     (f) => {
-      f.productVersion = "v5.0.3.145";
+      f.productVersion = "v5.0.3.146";
     },
   ],
   [
@@ -146,11 +160,13 @@ for (const [name, mutate] of [
     },
   ],
 ]) {
-  test(`rejects ${name}`, () => {
-    const f = fixture();
-    mutate(f);
-    assert.throws(() => verifyUploadAuthority(f));
-  });
+  for (const exception of REVIEW_EXCEPTIONS) {
+    test(`${exception.productVersion} rejects ${name}`, () => {
+      const f = fixture(exception);
+      mutate(f);
+      assert.throws(() => verifyUploadAuthority(f));
+    });
+  }
 }
 
 test("keeps all other product releases on the normal public verification path", () => {

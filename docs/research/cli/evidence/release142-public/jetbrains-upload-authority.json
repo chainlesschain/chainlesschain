@@ -1,0 +1,17 @@
+{
+  "verifiedAt": "2026-11-05T02:33:06.305Z",
+  "productVersion": "v5.0.3.145",
+  "cliVersion": "0.166.142",
+  "version": "0.4.195",
+  "uploadVerified": true,
+  "publicAvailabilityVerified": false,
+  "authorization": "User explicitly authorized clients before JetBrains Marketplace review on 2026-11-05",
+  "authority": {
+    "source": "b78cf0af8c8b0491189465773b148ac77c332222",
+    "tag": "ide-jetbrains-v0.4.195",
+    "runId": 41950791667,
+    "attempt": 1,
+    "jobId": 127001267266,
+    "uploadVerified": true
+  }
+}

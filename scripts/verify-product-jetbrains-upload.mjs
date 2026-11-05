@@ -17,12 +17,33 @@ export const REVIEW_EXCEPTION = Object.freeze({
   tag: "ide-jetbrains-v0.4.192",
 });
 
-export function allowsReviewException(productVersion, version, cliVersion) {
-  return (
-    productVersion === REVIEW_EXCEPTION.productVersion &&
-    version === REVIEW_EXCEPTION.version &&
-    cliVersion === REVIEW_EXCEPTION.cliVersion
+// User authorization (2026-11-05): publish product145 while JetBrains reviews
+// the already-tested and uploaded .195 plugin. This is a separate, exact-source
+// authorization; the product144 record and all other public gates stay intact.
+export const REVIEW_EXCEPTIONS = Object.freeze([
+  REVIEW_EXCEPTION,
+  Object.freeze({
+    productVersion: "v5.0.3.145",
+    cliVersion: "0.166.142",
+    version: "0.4.195",
+    source: "b78cf0af8c8b0491189465773b148ac77c332222",
+    runId: 41950791667,
+    repository: "chainlesschain/chainlesschain",
+    tag: "ide-jetbrains-v0.4.195",
+  }),
+]);
+
+function reviewException(productVersion, version, cliVersion) {
+  return REVIEW_EXCEPTIONS.find(
+    (entry) =>
+      productVersion === entry.productVersion &&
+      version === entry.version &&
+      cliVersion === entry.cliVersion,
   );
+}
+
+export function allowsReviewException(productVersion, version, cliVersion) {
+  return Boolean(reviewException(productVersion, version, cliVersion));
 }
 
 export function verifyUploadAuthority({
@@ -33,16 +54,17 @@ export function verifyUploadAuthority({
   run,
   jobs,
 }) {
+  const exception = reviewException(productVersion, version, cliVersion);
   assert.ok(
-    allowsReviewException(productVersion, version, cliVersion),
+    exception,
     "No user-authorized review exception for this product/IDE/CLI pairing",
   );
-  assert.equal(tagSha, REVIEW_EXCEPTION.source, "IDE tag source mismatch");
-  assert.equal(run.id, REVIEW_EXCEPTION.runId);
-  assert.equal(run.repository?.full_name, REVIEW_EXCEPTION.repository);
+  assert.equal(tagSha, exception.source, "IDE tag source mismatch");
+  assert.equal(run.id, exception.runId);
+  assert.equal(run.repository?.full_name, exception.repository);
   assert.equal(run.path, ".github/workflows/ide-extensions.yml");
   assert.equal(run.event, "push");
-  assert.equal(run.head_branch, REVIEW_EXCEPTION.tag);
+  assert.equal(run.head_branch, exception.tag);
   assert.equal(run.head_sha, tagSha);
   assert.equal(run.status, "completed");
   assert.equal(run.conclusion, "success");
@@ -62,7 +84,7 @@ export function verifyUploadAuthority({
   assert.equal(publish[0].conclusion, "success");
   return {
     source: tagSha,
-    tag: REVIEW_EXCEPTION.tag,
+    tag: exception.tag,
     runId: run.id,
     attempt: run.run_attempt,
     jobId: upload[0].id,
@@ -91,16 +113,17 @@ async function main() {
   const cliVersion = JSON.parse(
     fs.readFileSync("packages/cli/package.json", "utf8"),
   ).version;
-  assert.ok(allowsReviewException(productVersion, version, cliVersion));
-  assert.equal(process.env.GITHUB_REPOSITORY, REVIEW_EXCEPTION.repository);
+  const exception = reviewException(productVersion, version, cliVersion);
+  assert.ok(exception, "No user-authorized review exception for this pairing");
+  assert.equal(process.env.GITHUB_REPOSITORY, exception.repository);
   const token = process.env.GITHUB_TOKEN;
   assert.ok(token, "GITHUB_TOKEN is required to verify the official upload");
   const tagSha = execFileSync(
     "git",
-    ["rev-parse", `${REVIEW_EXCEPTION.tag}^{commit}`],
+    ["rev-parse", `${exception.tag}^{commit}`],
     { encoding: "utf8" },
   ).trim();
-  const base = `repos/${REVIEW_EXCEPTION.repository}/actions/runs/${REVIEW_EXCEPTION.runId}`;
+  const base = `repos/${exception.repository}/actions/runs/${exception.runId}`;
   const run = await githubJson(base, token);
   const jobs = [];
   for (let page = 1; ; page += 1) {
@@ -149,8 +172,7 @@ async function main() {
           ? "ready"
           : "uploaded-review-pending-authorized",
       publicAvailabilityVerified: marketplace.status === "ready",
-      authorization:
-        "User authorized product144 before JetBrains review completes",
+      authorization: `User authorized ${productVersion} before JetBrains review completes`,
       authority,
       marketplace,
     }),

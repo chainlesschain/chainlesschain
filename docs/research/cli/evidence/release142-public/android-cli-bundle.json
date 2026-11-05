@@ -1,0 +1,277 @@
+{
+  "schema": "chainlesschain.android-cli-registry-refresh.v1",
+  "cliVersion": "0.166.142",
+  "expectedCliSha": "b78cf0af8c8b0491189465773b148ac77c332222",
+  "registry": "https://registry.npmjs.org",
+  "cliProvenance": {
+    "schema": 1,
+    "verifiedAt": "2026-11-05T02:26:43.928Z",
+    "verifier": "npm audit signatures --include-attestations",
+    "package": "chainlesschain",
+    "version": "0.166.142",
+    "sha512": "25999270202254ca4b6334b5286e975e40c8504785afd5b1430fd730b3b960773953046c07e80720fba5b08a1e68e6b7ebdfc090bf31b74db8c16bbf69a04ed4",
+    "repository": "https://github.com/chainlesschain/chainlesschain",
+    "workflow": ".github/workflows/npm-publish.yml",
+    "ref": "refs/tags/v-npm-0-166-142",
+    "commit": "b78cf0af8c8b0491189465773b148ac77c332222",
+    "builder": "https://github.com/actions/runner/github-hosted",
+    "invocationId": "https://github.com/chainlesschain/chainlesschain/actions/runs/41887211826/attempts/2",
+    "runId": 41887211826,
+    "attempt": 2,
+    "anchorMode": "exact-release",
+    "audit": {
+      "invalid": 0,
+      "missing": 0
+    }
+  },
+  "cliSourceParity": {
+    "files": 1859,
+    "sourceDigest": "072f2eb5cb49579dadb8635e860b63f41ae438277d94e9e78024a82ba108db3c"
+  },
+  "dependencies": {
+    "schema": "chainlesschain.cli-public-dependency-install.v1",
+    "package": "chainlesschain",
+    "version": "0.166.142",
+    "cliSource": "public-npm-registry-lock",
+    "cliArchive": {
+      "resolved": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.142.tgz",
+      "integrity": "sha512-JZmScCAiVMpLYzS1KG6XXkDIUEeFr9WxQw/XMLO5YHc5UwRsB+gHIPulsIoeaOa369/AkL8xt024wWu/aaBO1A=="
+    },
+    "childrenSource": "https://registry.npmjs.org",
+    "children": [
+      {
+        "name": "@chainlesschain/core-db",
+        "version": "0.1.5",
+        "resolved": "https://registry.npmjs.org/@chainlesschain/core-db/-/core-db-0.1.5.tgz",
+        "integrity": "sha512-3vjD+llIhaNAe4ePYP+fySOPCgHBwJzMIo5tdVkJ7uI2ngTrK2VkODvvPXVskjUN5+2uTQH/RMWGre+OaNquiA=="
+      },
+      {
+        "name": "@chainlesschain/core-env",
+        "version": "0.1.2",
+        "resolved": "https://registry.npmjs.org/@chainlesschain/core-env/-/core-env-0.1.2.tgz",
+        "integrity": "sha512-H5BwptqoaVqAnlGKubyYMHc5WNlSrctZag/0VU30FwHpkeNqS43CTr9tsOCSO8+KCdWe2eko1Zr8BFeF2svj0Q=="
+      },
+      {
+        "name": "@chainlesschain/core-mtc",
+        "version": "0.2.3",
+        "resolved": "https://registry.npmjs.org/@chainlesschain/core-mtc/-/core-mtc-0.2.3.tgz",
+        "integrity": "sha512-xm6gZoJ8HqOFih1b5RlNPyQWNGRxokWq/hsV1oVTuCnNsxRmihTrxx40h10APiOKtKYPAEFDvMHcBfTEsB5tlA=="
+      },
+      {
+        "name": "@chainlesschain/core-infra",
+        "version": "0.1.1",
+        "resolved": "https://registry.npmjs.org/@chainlesschain/core-infra/-/core-infra-0.1.1.tgz",
+        "integrity": "sha512-DwhqG9zLbPPcKVo68QBEVLboRjXUA71u+rX86MHIBMmOr/8NabrisEsnr3AJ61FkFjdVDSVUxEk6XDoAwOMLpA=="
+      },
+      {
+        "name": "@chainlesschain/core-config",
+        "version": "0.1.2",
+        "resolved": "https://registry.npmjs.org/@chainlesschain/core-config/-/core-config-0.1.2.tgz",
+        "integrity": "sha512-6Qc4oxojh4G5OindihhupQDlEvHij9kOEkxLoqZEt/V4HTCOpaDFJUkIq1zzTrgm/qdEBpgq1L4Jlwm6s74Hpg=="
+      },
+      {
+        "name": "@chainlesschain/session-core",
+        "version": "0.3.25",
+        "resolved": "https://registry.npmjs.org/@chainlesschain/session-core/-/session-core-0.3.25.tgz",
+        "integrity": "sha512-CnuJYA7i7Bj6Ug8lM5LD//9G/V6EoPhGNo0i0CGY7wNxAQYt4vhjNpbc+qNJz8Fydbd6mA/mQc78jOX+wczYBg=="
+      },
+      {
+        "name": "@chainlesschain/core-multisig",
+        "version": "0.1.4",
+        "resolved": "https://registry.npmjs.org/@chainlesschain/core-multisig/-/core-multisig-0.1.4.tgz",
+        "integrity": "sha512-5YSmIQa1DRZYnCOeByb0Z8+vcrL8Qg62AMciK6YJQYwrjEiFwtdjhQ3GbQCcpepW1CvtGDiwrdyG5ufBYDwLxg=="
+      },
+      {
+        "name": "@chainlesschain/shared-logger",
+        "version": "0.1.1",
+        "resolved": "https://registry.npmjs.org/@chainlesschain/shared-logger/-/shared-logger-0.1.1.tgz",
+        "integrity": "sha512-owHSbZT79tYkkZEgaMoP5iuS6iuNqzmyya/TIp6ChFlQ7Ws87oBN0xlBlV1mo6cxpge/5jDMDLgH1TCzy0ZhHg=="
+      },
+      {
+        "name": "@chainlesschain/personal-data-hub",
+        "version": "0.4.66",
+        "resolved": "https://registry.npmjs.org/@chainlesschain/personal-data-hub/-/personal-data-hub-0.4.66.tgz",
+        "integrity": "sha512-RPcCHVIWcy0ytI+XtbrIxFVCJ8IJCvfKoF0ukI27iTypLv3kcGUX7PuVGH1KAg+F1C9rbRHozzGGPIw+FEt13Q=="
+      },
+      {
+        "name": "@chainlesschain/context-memory-kernel",
+        "version": "0.1.11",
+        "resolved": "https://registry.npmjs.org/@chainlesschain/context-memory-kernel/-/context-memory-kernel-0.1.11.tgz",
+        "integrity": "sha512-gdMoSbTUst5/0D7jQdJuzreOPZQoIUoxt6TKLj5xX+XGE0zE31bvkLOyyQFcyTKL+Pi3S9JGDExuxr41HXRXmA=="
+      }
+    ]
+  },
+  "children": [
+    {
+      "name": "@chainlesschain/core-db",
+      "version": "0.1.5",
+      "resolved": "https://registry.npmjs.org/@chainlesschain/core-db/-/core-db-0.1.5.tgz",
+      "integrity": "sha512-3vjD+llIhaNAe4ePYP+fySOPCgHBwJzMIo5tdVkJ7uI2ngTrK2VkODvvPXVskjUN5+2uTQH/RMWGre+OaNquiA==",
+      "parity": {
+        "files": 7,
+        "sourceDigest": "c3190fa5d7c490f55435a91498d2e020e5fec38f57f14a76a546b4b69635d967"
+      }
+    },
+    {
+      "name": "@chainlesschain/core-env",
+      "version": "0.1.2",
+      "resolved": "https://registry.npmjs.org/@chainlesschain/core-env/-/core-env-0.1.2.tgz",
+      "integrity": "sha512-H5BwptqoaVqAnlGKubyYMHc5WNlSrctZag/0VU30FwHpkeNqS43CTr9tsOCSO8+KCdWe2eko1Zr8BFeF2svj0Q==",
+      "parity": {
+        "files": 4,
+        "sourceDigest": "90435b3a2c0fb2306457a0b2499d6f24a083caf0a25429e929dca89c7a180726"
+      }
+    },
+    {
+      "name": "@chainlesschain/core-mtc",
+      "version": "0.2.3",
+      "resolved": "https://registry.npmjs.org/@chainlesschain/core-mtc/-/core-mtc-0.2.3.tgz",
+      "integrity": "sha512-xm6gZoJ8HqOFih1b5RlNPyQWNGRxokWq/hsV1oVTuCnNsxRmihTrxx40h10APiOKtKYPAEFDvMHcBfTEsB5tlA==",
+      "parity": {
+        "files": 19,
+        "sourceDigest": "3ac334842bf56933dda7e950b48b8dfc3076cf0a5971eecb2e806376fb0c6c00"
+      }
+    },
+    {
+      "name": "@chainlesschain/core-infra",
+      "version": "0.1.1",
+      "resolved": "https://registry.npmjs.org/@chainlesschain/core-infra/-/core-infra-0.1.1.tgz",
+      "integrity": "sha512-DwhqG9zLbPPcKVo68QBEVLboRjXUA71u+rX86MHIBMmOr/8NabrisEsnr3AJ61FkFjdVDSVUxEk6XDoAwOMLpA==",
+      "parity": {
+        "files": 5,
+        "sourceDigest": "0a5e9fb93fc723493c0d6bc4b10800f98eec21c5a527e57edd3d2a7b75076526"
+      }
+    },
+    {
+      "name": "@chainlesschain/core-config",
+      "version": "0.1.2",
+      "resolved": "https://registry.npmjs.org/@chainlesschain/core-config/-/core-config-0.1.2.tgz",
+      "integrity": "sha512-6Qc4oxojh4G5OindihhupQDlEvHij9kOEkxLoqZEt/V4HTCOpaDFJUkIq1zzTrgm/qdEBpgq1L4Jlwm6s74Hpg==",
+      "parity": {
+        "files": 4,
+        "sourceDigest": "45bee7b2a449461982599eac633726d9efc8c4fb8b679a5d2bbea0d965694d98"
+      }
+    },
+    {
+      "name": "@chainlesschain/session-core",
+      "version": "0.3.25",
+      "resolved": "https://registry.npmjs.org/@chainlesschain/session-core/-/session-core-0.3.25.tgz",
+      "integrity": "sha512-CnuJYA7i7Bj6Ug8lM5LD//9G/V6EoPhGNo0i0CGY7wNxAQYt4vhjNpbc+qNJz8Fydbd6mA/mQc78jOX+wczYBg==",
+      "parity": {
+        "files": 81,
+        "sourceDigest": "9ea83cd8900ed0ad94d09c28ef8d7913835d547e879c39d6bc41d6117761f9c7"
+      }
+    },
+    {
+      "name": "@chainlesschain/core-multisig",
+      "version": "0.1.4",
+      "resolved": "https://registry.npmjs.org/@chainlesschain/core-multisig/-/core-multisig-0.1.4.tgz",
+      "integrity": "sha512-5YSmIQa1DRZYnCOeByb0Z8+vcrL8Qg62AMciK6YJQYwrjEiFwtdjhQ3GbQCcpepW1CvtGDiwrdyG5ufBYDwLxg==",
+      "parity": {
+        "files": 8,
+        "sourceDigest": "1f7e9792838eea2e61246938daae60b8e1b56ce22d4cbde5e350dc1e9a3eb362"
+      }
+    },
+    {
+      "name": "@chainlesschain/shared-logger",
+      "version": "0.1.1",
+      "resolved": "https://registry.npmjs.org/@chainlesschain/shared-logger/-/shared-logger-0.1.1.tgz",
+      "integrity": "sha512-owHSbZT79tYkkZEgaMoP5iuS6iuNqzmyya/TIp6ChFlQ7Ws87oBN0xlBlV1mo6cxpge/5jDMDLgH1TCzy0ZhHg==",
+      "parity": {
+        "files": 3,
+        "sourceDigest": "eadcd5e5022d2462c1eb93b6a08ec31d98409851b46f6c063fe8eab8b20480e1"
+      }
+    },
+    {
+      "name": "@chainlesschain/personal-data-hub",
+      "version": "0.4.66",
+      "resolved": "https://registry.npmjs.org/@chainlesschain/personal-data-hub/-/personal-data-hub-0.4.66.tgz",
+      "integrity": "sha512-RPcCHVIWcy0ytI+XtbrIxFVCJ8IJCvfKoF0ukI27iTypLv3kcGUX7PuVGH1KAg+F1C9rbRHozzGGPIw+FEt13Q==",
+      "parity": {
+        "files": 334,
+        "sourceDigest": "aba4f9f4dbac9d7662af916b71ae527d5ecc2eb8bbfc1c3df743dbba66b44014"
+      }
+    },
+    {
+      "name": "@chainlesschain/context-memory-kernel",
+      "version": "0.1.11",
+      "resolved": "https://registry.npmjs.org/@chainlesschain/context-memory-kernel/-/context-memory-kernel-0.1.11.tgz",
+      "integrity": "sha512-gdMoSbTUst5/0D7jQdJuzreOPZQoIUoxt6TKLj5xX+XGE0zE31bvkLOyyQFcyTKL+Pi3S9JGDExuxr41HXRXmA==",
+      "parity": {
+        "files": 26,
+        "sourceDigest": "221aa0a2d2f6b6f45685f874b34eb3472dc7d3e5fe42f1053947f0affeac9aee"
+      }
+    }
+  ],
+  "retained": {
+    "version": "20260711",
+    "archiveSha256": "5aeb69646c92f94611fdba409c0b32b3c3d49c475dda7656b243e2b8bdf00c29",
+    "nodeSha256": "47e6c97d178c00e3d0ba6d695d5d14bf94bf749b2f6170a789f480cf4021af2f",
+    "nodeVersion": "26.2.0",
+    "abi": 147
+  },
+  "requiredNativeBindings": [
+    {
+      "name": "better-sqlite3-multiple-ciphers",
+      "version": "12.11.1",
+      "machine": "aarch64",
+      "abi": 147,
+      "needed": [
+        "liblog.so",
+        "libm.so",
+        "libdl.so",
+        "libc.so"
+      ],
+      "sha256": "068ec86bfc4f713a899b48aef7710fe911511b86e650f87f1eeb680e2828d858",
+      "bytes": 2695480,
+      "registryIntegrity": "sha512-pG72+3VkUipnmYx4LwQqoOXNG2CJ1HlmDrlvqgr7xQHgsE+cz5rAZEiaJHnUKTHaGfGifggA/C0Sv9qZlUrfow==",
+      "sourceParity": {
+        "files": 49,
+        "sourceDigest": "ece6bf6c8640ea12ed30d2bec2fe1db9bf69212fc08f18a99e6c02739daab03c"
+      },
+      "selectedBy": "@chainlesschain/personal-data-hub"
+    }
+  ],
+  "unsupportedOptionalNativeBindings": [
+    {
+      "owner": ".",
+      "name": "better-sqlite3",
+      "version": "12.11.1",
+      "supportedNativeBinding": false,
+      "fallback": "sql.js where supported; native SQLite-only features unavailable"
+    },
+    {
+      "owner": ".",
+      "name": "node-pty",
+      "version": "1.1.0",
+      "supportedNativeBinding": false,
+      "fallback": "Android app PTY is separate; CLI node-pty gateway unavailable"
+    },
+    {
+      "owner": "node_modules/@chainlesschain/core-db",
+      "name": "better-sqlite3-multiple-ciphers",
+      "version": "11.10.0",
+      "supportedNativeBinding": false,
+      "fallback": "core-db probes native drivers and uses sql.js"
+    },
+    {
+      "owner": "node_modules/@chainlesschain/core-db",
+      "name": "better-sqlite3",
+      "version": "11.10.0",
+      "supportedNativeBinding": false,
+      "fallback": "core-db probes native drivers and uses sql.js"
+    }
+  ],
+  "validation": {
+    "registryBytes": true,
+    "retainedBinaryIdentity": true,
+    "androidRuntimeExecution": false,
+    "note": "Static ABI/source verification; no Android device execution in this packaging job."
+  },
+  "artifact": {
+    "name": "cc-cli.tgz",
+    "bytes": 98872600,
+    "sha256": "730977d96b8fe41242999f0a3abafad8914bc1e9698860c70b009905eec8be08",
+    "format": "ustar"
+  }
+}

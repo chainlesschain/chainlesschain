@@ -1666,7 +1666,7 @@ jobs:
       - name: Test scoped JetBrains upload authorization
         run: node --test scripts/__tests__/verify-product-jetbrains-upload.test.mjs
 
-      - name: Require public paired IDE releases before mobile and PC builds
+      - name: Verify public IDE releases or the scoped authorized JetBrains upload
         shell: bash
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -1704,7 +1704,12 @@ jobs:
             ['open-vsx', vscode.version, 'product-release-open-vsx.json'],
             ['jetbrains', jetbrainsVersion, 'product-release-jetbrains.json'],
           ]) {
-            const authorizedUpload = productVersion === 'v5.0.3.144' && channel === 'jetbrains' && version === '0.4.192' && cliVersion === '0.166.139';
+            // User explicitly authorized each pairing before Marketplace review.
+            // The upload verifier separately pins its official run and source.
+            const authorizedUpload = channel === 'jetbrains' && (
+              (productVersion === 'v5.0.3.144' && version === '0.4.192' && cliVersion === '0.166.139') ||
+              (productVersion === 'v5.0.3.145' && version === '0.4.195' && cliVersion === '0.166.142')
+            );
             const verifier = authorizedUpload
               ? ['scripts/verify-product-jetbrains-upload.mjs', version]
               : ['scripts/verify-ide-marketplace.mjs', channel, version];
