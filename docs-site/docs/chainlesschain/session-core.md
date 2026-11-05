@@ -1,6 +1,8 @@
 # Session-Core 会话运行时共享包
 
-> **版本: v0.3.0 (2026-04-16) | 状态: ✅ 生产就绪 | 22 模块 | 452 测试 | CLI + Desktop 双端共用**
+> 当前公开版本 **0.3.25**（2026-11-05 核对），配套 CLI **0.166.142**。本次增加事务目标事件账本、独立历史授权与签名游标，详见[升级指南](./cli-ide-update-2026-11-05-142)。原生历史入口需要匹配的新版桌面客户端，候选 v5.0.3.145 尚在发行构建中。
+>
+> 下方 **v0.3.0 / 22 模块 / 452 测试** 为 2026-04-16 的历史基础范围，不代表当前包的完整模块或测试总量。
 >
 > `@chainlesschain/session-core` 是 Managed Agents 对标的核心产物，提供 SessionHandle / TraceStore / MemoryStore / ApprovalGate / StreamRouter / QualityGate 等 22 个模块，统一管理 Agent 会话生命周期、可观测性、记忆沉淀、审批策略、流式协议。CLI 与 Desktop 共用同一份实现，通过 file-adapters 做本地持久化。
 
@@ -11,6 +13,8 @@ Session-Core 解决的核心问题：ChainlessChain 的 CLI 和 Desktop 分别�
 包路径: `packages/session-core/`，npm 名: `@chainlesschain/session-core`
 
 ## 核心特性
+
+- **0.3.25 目标事件账本**：与原生事务衔接，保留最近 1000 条接入事件，使用签名游标与独立历史授权；旧版本记录不回填，缺口或数据库回退明确报错。下面的模块列表保留原基础说明。
 
 - 🔄 **会话状态机**: SessionHandle — created → running → idle → parked → closed，版本化快照
 - 📝 **结构化追踪**: TraceStore — assistant_message / tool_call / tool_result / error / custom 五种事件类型

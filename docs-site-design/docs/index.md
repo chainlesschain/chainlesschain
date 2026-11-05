@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 系统设计文档
-  tagline: "CLI 0.166.140 / Open VSX 0.37.176 已公开；JetBrains 0.4.193 已上传待公开核验；客户端 v5.0.3.144"
+  tagline: "CLI 0.166.142 / Open VSX 0.37.178 / JetBrains 0.4.195 已公开；目标事件、历史恢复与组合场景；客户端候选 .145 发行中"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -21,9 +21,9 @@ hero:
 
 features:
   - icon: 🛡️
-    title: 损坏工具参数恢复与可信摘要
-    details: "CLI .140 在执行前拒绝损坏参数，唯一配对的未执行调用可续接；投影 v10 保留可信图片与推理摘要，权限、脱敏与预算校验继续生效。"
-    link: /release-runtime-update-2026-11-03-140
+    title: 授权目标事件与显式历史恢复
+    details: "事务事件账本、独立 v4/v5 授权、签名游标和原子检查点，至少一次交付；两端 IDE 逐页恢复，组合声明包不自动执行任务。"
+    link: /release-runtime-update-2026-11-05-142
   - icon: 🏢
     title: 组织目标、授权记忆与站内通知（主线）
     details: 历史产品 .140 已包含显式巡检、多级审批、独立验收、共享记忆与授权通知；当前 .144 独立发行，记忆不自动注入模型。

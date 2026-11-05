@@ -1,8 +1,8 @@
 # ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
-当前公开 CLI **0.166.142**、Session Core **0.3.25** 和 Open VSX **0.37.178** 已完成正式发行核验。JetBrains **0.4.195** 已通过宿主检查并上传，等待商店审核或公开索引，尚未验证公开可用。准确发行源码为 `b78cf0af8c8b0491189465773b148ac77c332222`。
+当前公开 CLI **0.166.142**、Session Core **0.3.25**、Open VSX **0.37.178** 和 JetBrains **0.4.195** 已完成正式发行核验，两款 IDE 均推荐 CLI **0.166.142**。JetBrains 已获批、公开可下载，626 个原始 payload 文件与官方构建内容一致。准确发行源码为 `b78cf0af8c8b0491189465773b148ac77c332222`。
 
-本批增加另行授权的目标事件、保留历史恢复和最小组合交付助手。安装 `npm i -g chainlesschain@0.166.142 --registry https://registry.npmjs.org`，重启宿主后运行 `cc --version`、`cc doctor`。PC/移动端 **v5.0.3.145** 正在准备发行，当前已核验公开版本仍为 **v5.0.3.144**；用户已授权本轮客户端在核验 JetBrains 官方上传后先行发布，无需等待商店审核。新的原生目标历史功能需匹配新版桌面客户端；真实 GUI 和业务效果验收仍独立进行。[升级说明](docs-site/docs/chainlesschain/cli-ide-update-2026-11-05-142.md) · [发行证据](docs/research/cli/evidence/release142-public/README.md)
+本批增加另行授权的目标事件、保留历史恢复和最小组合交付助手。安装 `npm i -g chainlesschain@0.166.142 --registry https://registry.npmjs.org`，重启宿主后运行 `cc --version`、`cc doctor`。PC/移动端 **v5.0.3.145** 仍在正式构建中，尚未完整公开发行；当前下载安装使用已核验的 **v5.0.3.144**。新的原生目标历史功能需匹配新版桌面客户端，真实 DMM GUI 和业务效果验收仍独立进行。[升级说明](docs-site/docs/chainlesschain/cli-ide-update-2026-11-05-142.md) · [事件与历史设计](docs/design/release-runtime-update-2026-11-05-142.md) · [发行证据](docs/research/cli/evidence/release142-public/README.md)
 
 <!-- release141-current:start -->
 

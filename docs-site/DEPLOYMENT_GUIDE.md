@@ -1,7 +1,12 @@
 # 文档网站部署指南
 
 **版本**: v0.27.0
-**更新日期**: 2026-01-28
+**更新日期**: 2026-11-05
+
+当前三个正式站点使用同一已提交源码的快照流程：用户文档 `docs-site`、设计文档 `docs-site-design`、官网 `docs-website-v2`。
+先同步设计权威源、核对公开版本与候选状态并提交，再运行 `docs-snapshot-build.yml` 生成三个锁定依赖构建，校验归档 SHA-256 和完整页面数量。
+下载并核对该提交的三个归档后，从仓库根执行 `powershell -NoProfile -File scripts/deploy-docs-snapshot.ps1`，使用已配置的 SSH 身份部署到现有站点。
+部署包含服务器互斥锁、独立暂存目录、旧站备份和失败回滚；完成后检查三站新页面及 `/deployment-source.json`。以下其他托管选项保留作通用参考。
 
 ---
 
@@ -24,15 +29,15 @@
 
 ### 前置要求
 
-- Node.js 18+
+- Node.js 22.12.0+
 - npm 或 yarn
 - Git
 
 ### 验证环境
 
 ```bash
-node --version    # 应该 >= 18.0.0
-npm --version     # 应该 >= 9.0.0
+node --version    # 应该 >= 22.12.0
+npm --version     # 应该 >= 10.0.0
 ```
 
 ---
@@ -55,6 +60,7 @@ npm run dev
 访问: http://localhost:5173
 
 **开发服务器特性**:
+
 - ✅ 热重载 (修改文件自动刷新)
 - ✅ 快速启动 (Vite 驱动)
 - ✅ 实时预览
@@ -83,6 +89,7 @@ npm run build
 ```
 
 **输出**:
+
 - 目录: `docs/.vitepress/dist/`
 - 内容: 静态 HTML/CSS/JS 文件
 - 大小: 约 5-10MB
@@ -108,6 +115,7 @@ ls -lh docs/.vitepress/dist
 ```
 
 应该包含:
+
 ```
 dist/
 ├── assets/          # CSS/JS 资源
@@ -158,7 +166,7 @@ on:
     branches:
       - main
     paths:
-      - 'docs-site/**'
+      - "docs-site/**"
 
 permissions:
   contents: write
@@ -193,7 +201,7 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: docs-site/docs/.vitepress/dist
-          cname: docs.chainlesschain.com  # 可选：自定义域名
+          cname: docs.chainlesschain.com # 可选：自定义域名
 ```
 
 #### 配置 GitHub Pages
@@ -440,7 +448,7 @@ docker run -d -p 8080:80 --name docs chainlesschain-docs:v0.27.0
 
 ```yaml
 # docs-site/docker-compose.yml
-version: '3.8'
+version: "3.8"
 
 services:
   docs:
@@ -501,10 +509,10 @@ docs.chainlesschain.com   A   你的服务器IP
 
 ```javascript
 export default defineConfig({
-  title: 'ChainlessChain 文档',
-  base: '/',  // 根路径部署
+  title: "ChainlessChain 文档",
+  base: "/", // 根路径部署
   // base: '/chainlesschain/',  // 子路径部署（GitHub Pages）
-})
+});
 ```
 
 ---
@@ -516,6 +524,7 @@ export default defineConfig({
 **原因**: SPA 路由配置问题
 
 **解决**:
+
 - GitHub Pages: 创建 `docs/.vitepress/dist/404.html` 复制 `index.html`
 - Nginx: 配置 `try_files $uri $uri/ /index.html`
 - Vercel/Netlify: 会自动处理
@@ -525,17 +534,19 @@ export default defineConfig({
 **原因**: `base` 路径配置错误
 
 **解决**:
+
 ```javascript
 // 根路径部署
-base: '/'
+base: "/";
 
 // 子路径部署
-base: '/docs/'
+base: "/docs/";
 ```
 
 ### 问题 3: 构建失败
 
 **检查**:
+
 ```bash
 # 清除缓存
 rm -rf node_modules package-lock.json
@@ -551,6 +562,7 @@ npm run build
 **原因**: CSS 路径问题
 
 **解决**:
+
 ```bash
 # 检查构建输出
 npm run build
@@ -564,15 +576,16 @@ ls -lh docs/.vitepress/dist/assets/
 **原因**: 本地搜索索引未生成
 
 **解决**:
+
 ```javascript
 // config.js
 export default defineConfig({
   themeConfig: {
     search: {
-      provider: 'local'
-    }
-  }
-})
+      provider: "local",
+    },
+  },
+});
 ```
 
 ---
@@ -586,15 +599,15 @@ export default defineConfig({
 export default defineConfig({
   vite: {
     build: {
-      minify: 'terser',
+      minify: "terser",
       terserOptions: {
         compress: {
-          drop_console: true
-        }
-      }
-    }
-  }
-})
+          drop_console: true,
+        },
+      },
+    },
+  },
+});
 ```
 
 ### 2. 图片优化
@@ -648,12 +661,12 @@ location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg)$ {
 
 ## 🎉 推荐部署方案
 
-| 场景 | 推荐方案 | 理由 |
-|------|----------|------|
-| 开源项目 | GitHub Pages | 免费、简单、与代码同仓库 |
-| 快速上线 | Vercel | 零配置、自动部署、CDN 加速 |
-| 企业内部 | 自建服务器 | 数据安全、完全控制 |
-| 高流量 | Vercel + CDN | 全球加速、高可用 |
+| 场景     | 推荐方案     | 理由                       |
+| -------- | ------------ | -------------------------- |
+| 开源项目 | GitHub Pages | 免费、简单、与代码同仓库   |
+| 快速上线 | Vercel       | 零配置、自动部署、CDN 加速 |
+| 企业内部 | 自建服务器   | 数据安全、完全控制         |
+| 高流量   | Vercel + CDN | 全球加速、高可用           |
 
 ---
 

@@ -1,6 +1,14 @@
 # ChainlessChain IDE Bridge (JetBrains)
 
-## Working-tree retained goal history (unreleased)
+## Current public release (.195 / CLI .142)
+
+JetBrains **0.4.195** is approved, listed and publicly downloadable. It recommends
+CLI **0.166.142** and pairs with Open VSX **0.37.178**. All 626 original payload
+files match the official build from `b78cf0af8c8b0491189465773b148ac77c332222`.
+Native history needs the matching newer desktop client; product145 is not yet
+public. [Publication evidence](../../docs/research/cli/evidence/release142-public/README.md).
+
+## Retained goal history (.195)
 
 The matching local CLI also ships the combined
 [`project-delivery-assistant` 0.2.0 scenario](../cli/src/lib/plugin-runtime/examples/project-delivery-assistant/README.md).
@@ -25,17 +33,17 @@ owned CLI process. Keep the checkpoint after interruption: it may already have
 advanced. Explicitly resume to continue. Retention gaps, database regression and
 binding changes are not reset automatically. Only the newest 1000 instrumented
 events are retained, with no earlier-history backfill. Use matching local Session
-Core, CLI and desktop builds; public versions below do not include this feature.
+Core, CLI and desktop builds; older public pairings below predate this feature.
 Real JetBrains GUI and cross-platform acceptance remain pending.
 
-## Working-tree desktop goal event observer (unreleased)
+## Desktop goal event observer (.195)
 
 In the plugin manager select the installed, trusted/consented
 `goal-project-observer` extension and choose **Observe desktop events…**. Select
 a separately authorized v4 `goal.events` connection using the native file picker,
 then enter the goal ID shown in the desktop. Read-only results appear in the
 **Goal events** tab with **Stop and clear**. Use matching local CLI and desktop
-builds; the public versions below do not include this addition.
+builds; the older public pairings below predate this addition.
 
 The observer runs `goal watch` for at most 60 seconds, retains the latest 50 plain
 text observations and checks each record against the initial target/plugin
@@ -46,7 +54,7 @@ no durable cursor or history replay; observations do not prove current business
 outcomes. Compilation and real process lifecycle tests do not replace the pending
 real JetBrains GUI journey.
 
-## CLI 0.166.141 / verified public pairing
+## Previous CLI 0.166.141 / verified public pairing
 
 CLI **0.166.141** is public through GitHub Actions OIDC. Open VSX **0.37.177** and JetBrains **0.4.194** are public and both recommend CLI **0.166.141**. CLI public bytes, signed provenance, registry-only `--ignore-scripts` installation and the Agent capability startup probe passed. Both public IDE payloads match their official builds.
 
@@ -246,7 +254,7 @@ See the [verified publication evidence](https://github.com/chainlesschain/chainl
 
 ## Release compatibility
 
-Plugin **0.4.195** is the current release candidate. It recommends `chainlesschain@0.166.142`. Publish only after the paired CLI is publicly verified. Install `npm i -g chainlesschain@0.166.142 --registry https://registry.npmjs.org` after publication, restart the chat host, then run `cc --version` and `cc doctor`.
+Plugin **0.4.195** is the current public release and recommends `chainlesschain@0.166.142`. The paired CLI publication and public package verification passed before this plugin was uploaded. Install `npm i -g chainlesschain@0.166.142 --registry https://registry.npmjs.org`, restart the chat host, then run `cc --version` and `cc doctor`.
 
 ## Previous candidates and development notes
 

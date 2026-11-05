@@ -1428,6 +1428,10 @@ export default defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: "CLI .142 / IDE .178 / .195",
+                  link: "/chainlesschain/cli-ide-update-2026-11-05-142",
+                },
+                {
                   text: "CLI .141 / IDE .177 与 .194 升级",
                   link: "/chainlesschain/cli-ide-update-2026-11-04-141",
                 },
@@ -1493,6 +1497,10 @@ export default defineConfig({
               text: "运行时设计记录",
               collapsed: true,
               items: [
+                {
+                  text: "CLI .142: goal events and retained history",
+                  link: "/design/release-runtime-update-2026-11-05-142",
+                },
                 {
                   text: "CLI .141 源码预览与评测入口范围",
                   link: "/design/release-runtime-update-2026-11-04-141",
@@ -2450,6 +2458,10 @@ export default defineConfig({
               text: "运行时设计记录",
               collapsed: true,
               items: [
+                {
+                  text: "CLI .142: goal events and retained history",
+                  link: "/design/release-runtime-update-2026-11-05-142",
+                },
                 {
                   text: "CLI .141 源码预览与评测入口范围",
                   link: "/design/release-runtime-update-2026-11-04-141",

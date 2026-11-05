@@ -1,0 +1,15 @@
+{
+  "verifiedAt": "2026-11-05T04:38:05.108Z",
+  "releaseSource": "b78cf0af8c8b0491189465773b148ac77c332222",
+  "version": "0.4.195",
+  "recommendedCliVersion": "0.166.142",
+  "status": "verified-public",
+  "publicReadbackVerified": true,
+  "workflow": "https://github.com/chainlesschain/chainlesschain/actions/runs/41950791667",
+  "marketplaceUpdateId": 1212436,
+  "allOriginalPayloadEntriesMatch": true,
+  "comparedPayloadFiles": 626,
+  "publicArchiveSha256": "cfa8b290ddb40306605c564bda794e4b296ba2a583f1184026187d218dfe51a4",
+  "officialArchiveSha256": "27d38f83e3d90b411c77949539e2cb10ea776fac6ec7c64e9b3255116bc82eb9",
+  "comparison": "Complete original payload including decompressed nested JAR entries; ZIP container metadata excluded"
+}

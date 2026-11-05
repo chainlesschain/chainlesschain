@@ -1,6 +1,6 @@
 # ChainlessChain 官方网站
 
-`www.chainlesschain.com` 的 Astro 源码。2026-11-02 核对：CLI **0.166.138** / Agent SDK **0.2.17**、Open VSX **0.37.174** 已公开核验；JetBrains **0.4.191** 已获 Marketplace 批准并公开列出（update `1209507`）；公开 ZIP 与正式构建的负载一致性仍待核验。 两个新插件推荐 CLI .138。四项公开包复验 **2/4**、前轮 .137 **0/5**、历史 **41/45** 单列。PC / 移动端继续独立 **v5.0.3.143**。
+`www.chainlesschain.com` 的 Astro 源码。2026-11-05 核对：CLI **0.166.142**、Session Core **0.3.25**、Open VSX **0.37.178** 和 JetBrains **0.4.195** 均已公开核验，两个 IDE 推荐 CLI .142，准确源码为 `b78cf0af8c8b0491189465773b148ac77c332222`。中英文页面同步授权目标事件、历史恢复和组合交付场景的边界。公开客户端仍为 **v5.0.3.144**，候选 **v5.0.3.145** 尚未完整发行，不能用配置版本替代公开下载状态。
 
 ## 内容来源
 
@@ -10,7 +10,7 @@
 - `src/pages/`：官网中英文页面。
 - `../docs/design/`：设计文档权威源；两个 VitePress 站点通过同步脚本复制。
 
-更新公开版本前，核对 `../docs/research/cli/evidence/release138-public/README.md` 等对应发行回执。保留 CLI、IDE、原生产品的独立源码与版本，历史真实模型验收统计继续注明所属轮次。
+更新公开版本前，核对 `../docs/research/cli/evidence/release142-public/README.md` 等对应发行回执。保留 CLI、IDE、原生产品的独立源码与版本，历史真实模型验收统计继续注明所属轮次。
 
 ## 本地构建
 
@@ -37,9 +37,9 @@ powershell -NoProfile -File scripts/deploy-docs-snapshot.ps1
 
 ## 当前文档与验收范围
 
-- [CLI / IDE 升级指南](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-29-131.html)
+- [CLI / IDE 升级指南](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-11-05-142.html)
 - [自进化开关配置](https://docs.chainlesschain.com/chainlesschain/self-evolution-configuration.html)
 - [图片预算与会话恢复](https://docs.chainlesschain.com/chainlesschain/agent-input-and-recovery.html)
-- [最新运行时设计](https://design.chainlesschain.com/release-runtime-update-2026-10-29-131.html)
+- [最新运行时设计](https://design.chainlesschain.com/release-runtime-update-2026-11-05-142.html)
 
-本轮没有新增真实模型任务验收；历史跨版本 **34/45**、**NOT_PAID_READY**、**NOT_ADMITTED** 和自动晋升 **HOLD** 继续分别记录。文档站部署不改变 npm、IDE 或原生产品制品。
+本轮没有新增真实模型任务验收。Sol 原冻结项目 **41/45**、含修正项目的跨版本累计 **45/45**、独立修正四项 **2/4** 分别保留；**NOT_PAID_READY / NOT_ADMITTED / HOLD** 不变。文档部署不会重新发布 npm、IDE 或原生产品制品。
