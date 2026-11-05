@@ -137,6 +137,10 @@ export default defineConfig({
             link: "/modules/110-agent-platform-release-boundaries",
           },
           {
+            text: "CLI .142: goal events and retained history",
+            link: "/release-runtime-update-2026-11-05-142",
+          },
+          {
             text: "CLI .141 源码预览与评测入口范围",
             link: "/release-runtime-update-2026-11-04-141",
           },
@@ -1134,6 +1138,10 @@ export default defineConfig({
               text: "运行时设计记录",
               collapsed: true,
               items: [
+                {
+                  text: "CLI .142: goal events and retained history",
+                  link: "/release-runtime-update-2026-11-05-142",
+                },
                 {
                   text: "CLI .141 源码预览与评测入口范围",
                   link: "/release-runtime-update-2026-11-04-141",

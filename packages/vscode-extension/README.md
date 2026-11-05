@@ -4,17 +4,33 @@ ChainlessChain agent workspace for VS Code-compatible editors with streaming
 chat, inline assistance, governed review, sessions, automation, and a localhost
 MCP bridge.
 
-## Next release candidate
+## Current release
 
-Source candidate **0.37.178** recommends CLI **`0.166.142`** and pairs with
-JetBrains **0.4.195**. The extension has not been published. It adds explicit
+<!-- release178-status -->
+
+Open VSX version **0.37.178** pairs with public CLI `0.166.142`.
+
+| Component                 | Current public status                                          |
+| ------------------------- | -------------------------------------------------------------- |
+| VS Code extension         | **0.37.178**; verified public Open VSX release                 |
+| Recommended CLI           | **`chainlesschain@0.166.142`**; verified public npm package    |
+| Base bridge compatibility | `cc >= 0.162.190`; individual features can require a newer CLI |
+
+CLI `0.166.142` is the recommended public CLI. Using `@0.166.142` selects this verified pairing.
+Install `npm i -g chainlesschain@0.166.142 --registry https://registry.npmjs.org`, restart the host, then run `cc --version` and `cc doctor`.
+Immutable tag `ide-vscode-v0.37.178` identifies source `b78cf0af8c8b0491189465773b148ac77c332222`.
+Download [chainlesschain-ide-0.37.178.vsix](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.178/file/chainlesschain.chainlesschain-ide-0.37.178.vsix).
+
+Public Open VSX **0.37.178** recommends CLI **`0.166.142`** and pairs with
+public JetBrains **0.4.195**. Exact source is `b78cf0af8c8b0491189465773b148ac77c332222`. It adds explicit
 authorized desktop goal observation and retained-history recovery through native
 connection/checkpoint pickers, with bounded plain-text results, cancellation and
 explicit next-page controls. It supports the admitted combined delivery scenario;
-native source consent and task confirmation remain separate. Publication follows
-verified Session Core 0.3.25 and CLI 0.166.142 and exact-source host gates.
+native source consent and task confirmation remain separate. Session Core 0.3.25, CLI 0.166.142, complete host gates and public payload
+verification passed. Native history still requires the matching newer desktop
+client; product145 is not yet public. See [release evidence](../../docs/research/cli/evidence/release142-public/README.md).
 
-## Working-tree retained goal history (unreleased)
+## Retained goal history (.178)
 
 The matching local CLI also ships the combined
 [`project-delivery-assistant` 0.2.0 scenario](../cli/src/lib/plugin-runtime/examples/project-delivery-assistant/README.md).
@@ -29,7 +45,7 @@ In the plugin manager choose **Recover retained history…** for an admitted
 choose **Create new checkpoint…** or **Resume existing checkpoint…** using native
 file dialogs. The IDE passes paths to the selected CLI; it never opens credentials
 or checkpoint contents. Use matching local Session Core, desktop and CLI builds;
-the published versions below do not include this feature.
+the older public pairings below predate this feature.
 
 Each click reads one page, scanning at most 20 events. **Read next page / check
 again** uses the host's captured target/plugin binding and original checkpoint;
@@ -43,14 +59,13 @@ regression and changed bindings require inspection or an explicit new checkpoint
 The newest 1000 instrumented events are retained, with no earlier-history backfill.
 Real IDE GUI and cross-platform acceptance remain pending.
 
-## Working-tree desktop goal event observer (unreleased)
+## Desktop goal event observer (.178)
 
 The plugin manager includes **Observe desktop events…** for an installed goal
 extension. First export a separately authorized v4 `goal.events` connection from
 the desktop, then select that file with the native picker and enter the goal ID
 shown in the desktop connection panel. Use a matching local CLI build and the
-trusted/consented `goal-project-observer` sample; the published version pairing
-below does not yet include this addition.
+trusted/consented `goal-project-observer` sample; the older public pairing described below predates this addition.
 
 The observer runs `goal watch` for at most 60 seconds and shows the latest 50
 observations as plain text. **Stop and clear**, refresh, plugin operations,
@@ -61,7 +76,7 @@ no durable cursor or history replay; records do not prove current risk or goal
 completion. Protocol and real child-process tests are separate from a real
 VS Code GUI journey, which remains pending.
 
-## Current release
+## Previous verified release (.177 / .141)
 
 <!-- release177-status -->
 
@@ -75,7 +90,7 @@ Open VSX version **0.37.177** pairs with public CLI `0.166.141`.
 
 CLI `0.166.141` is the recommended public CLI. Using `@0.166.141` selects this verified pairing.
 
-## CLI 0.166.141 / verified public pairing
+## Previous CLI 0.166.141 / verified public pairing
 
 CLI **0.166.141** is public through GitHub Actions OIDC. Open VSX **0.37.177** and JetBrains **0.4.194** are public and both recommend CLI **0.166.141**. CLI public bytes, signed provenance, registry-only `--ignore-scripts` installation and the Agent capability startup probe passed. Both public IDE payloads match their official builds.
 

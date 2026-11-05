@@ -11,8 +11,8 @@ const jetBrainsPending = [
   "uploaded-pending-review",
 ].includes(releaseStatus.jetBrainsPublicationStatus);
 const items = english
-  ? [["Complete source previews", "Valid bounded spread expressions remain visible."], ["Actionable read recovery", "Reread hints follow the remaining source recovery allowance."], ["Shared evaluation scope", "CLI and IDE share launcher-authorized exact file scope in isolated evaluations."]]
-  : [["完整源码预览", "保留合法的有界展开表达式。"], ["可执行的读取恢复", "重读提示与实际剩余恢复额度一致。"], ["统一评测文件范围", "CLI 和 IDE 在隔离评测中使用启动器授权的精确文件范围。"]];
+  ? [["Authorized goal events", "Observe bounded summaries with separate native authorization; records do not prove goal completion."], ["Explicit history recovery", "Read one page at a time with at-least-once delivery; keep the checkpoint after interruption."], ["Combined delivery scenario", "A data-only package combines admitted capabilities; installation starts no automatic task execution."]]
+  : [["授权目标事件", "另行授权读取有界摘要，观察记录不代表目标完成。"], ["显式历史恢复", "逐页读取、至少一次交付；中断后保留检查点。"], ["组合交付场景", "数据声明组合已准入能力，安装不会自动创建或执行任务。"]];
 ---
 
 <section class="py-16 border-t border-line bg-cream" aria-labelledby="source-update-title">
@@ -25,8 +25,13 @@ const items = english
     </h2>
     <p class="mt-4 text-muted leading-relaxed max-w-4xl">
       {english
-        ? `CLI ${releaseStatus.recommendedCliVersion} and Agent SDK ${releaseStatus.agentSdkVersion} are public with verified bytes and provenance. Open VSX ${releaseStatus.openVsxVersion} recommends this CLI. The verified public JetBrains ${releaseStatus.jetBrainsMarketplaceVersion} still recommends CLI ${releaseStatus.jetBrainsRecommendedCliVersion}; its JAR payloads match the official build. Native product ${releaseStatus.productVersion} is independently public.`
-        : `CLI ${releaseStatus.recommendedCliVersion} 与 Agent SDK ${releaseStatus.agentSdkVersion} 已公开并完成字节与来源签名核验；Open VSX ${releaseStatus.openVsxVersion} 推荐该 CLI。已核验公开的 JetBrains ${releaseStatus.jetBrainsMarketplaceVersion} 仍推荐 CLI ${releaseStatus.jetBrainsRecommendedCliVersion}，商店包内 JAR 与正式构建一致。客户端 ${releaseStatus.productVersion} 已独立公开。`}
+        ? `CLI ${releaseStatus.recommendedCliVersion} and Session Core ${releaseStatus.sessionCoreVersion} are public with verified bytes and provenance. Open VSX ${releaseStatus.openVsxVersion} and JetBrains ${releaseStatus.jetBrainsMarketplaceVersion} both recommend this CLI; public payloads were verified against their official builds. Native product ${releaseStatus.productVersion} is independently public.`
+        : `CLI ${releaseStatus.recommendedCliVersion} 与 Session Core ${releaseStatus.sessionCoreVersion} 已公开并完成字节与来源签名核验；Open VSX ${releaseStatus.openVsxVersion} 和 JetBrains ${releaseStatus.jetBrainsMarketplaceVersion} 均推荐该 CLI，公开 payload 与正式构建内容已核验。客户端 ${releaseStatus.productVersion} 已独立公开。`}
+    </p>
+    <p class="mt-3 text-sm text-muted">
+      {english ? releaseStatus.productCandidateStatusEn : releaseStatus.productCandidateStatusZh}
+      {english ? " Native v5 history needs the matching newer desktop client. " : " 原生 v5 历史需要匹配的新版桌面客户端。"}
+      <a class="text-ember hover:underline" href={releaseStatus.productCandidateWorkflow}>{english ? "Client release progress ↗" : "客户端发行进度 ↗"}</a>
     </p>
     {jetBrainsPending && (
       <p class="mt-3 text-sm text-muted">
@@ -78,8 +83,8 @@ const items = english
     </p>
     <p class="mt-3 text-sm text-muted">
       {english
-        ? `No new .141 model retest. Volcengine corrected .140 round: generation39/45, strict24/45; historical36/45,9 remaining, including verify-06 candidate-only qualification. Sol original frozen41/45, cross-version45/45 and separate repaired four2/4 remain distinct. NOT_PAID_READY / NOT_ADMITTED / HOLD remain. Microsoft Marketplace is deferred.`
-        : `本次 .141 未新增模型复测。火山 .140 修正轮生成39/45、严格24/45；历史累计36/45、剩9，保留 verify-06 仅候选通过的限定。Sol 原冻结41/45、跨版本45/45、独立修正四项2/4分别保留。NOT_PAID_READY / NOT_ADMITTED / HOLD 保留，Microsoft Marketplace 暂缓。`}
+        ? `No new .142 model retest. Volcengine corrected .140 round: generation39/45, strict24/45; historical36/45,9 remaining, including verify-06 candidate-only qualification. Sol original frozen41/45, cross-version45/45 and separate repaired four2/4 remain distinct. NOT_PAID_READY / NOT_ADMITTED / HOLD remain. Microsoft Marketplace is deferred.`
+        : `本次 .142 未新增模型复测。火山 .140 修正轮生成39/45、严格24/45；历史累计36/45、剩9，保留 verify-06 仅候选通过的限定。Sol 原冻结41/45、跨版本45/45、独立修正四项2/4分别保留。NOT_PAID_READY / NOT_ADMITTED / HOLD 保留，Microsoft Marketplace 暂缓。`}
     </p>
     <div class="mt-6 flex flex-wrap gap-4">
       <a class="btn-ghost" href={`https://open-vsx.org/api/chainlesschain/chainlesschain-ide/${releaseStatus.openVsxVersion}/file/chainlesschain.chainlesschain-ide-${releaseStatus.openVsxVersion}.vsix`}>{english ? "Download VSIX" : "下载 VSIX"} {releaseStatus.openVsxVersion} ↗</a>

@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人 AI 管理平台
-  tagline: "CLI 0.166.140 / Open VSX 0.37.176 已公开；JetBrains 0.4.193 已上传待公开核验；客户端 v5.0.3.144"
+  tagline: "CLI 0.166.142 / Open VSX 0.37.178 / JetBrains 0.4.195 已公开；客户端 v5.0.3.144，候选 .145 尚未完整发行"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -21,9 +21,9 @@ hero:
 
 features:
   - icon: ⚠️
-    title: CLI .140 与 IDE 配套升级
-    details: "CLI 0.166.140 / Open VSX 0.37.176 已公开核验；JetBrains 0.4.193 已上传，公开可用性未核验，商店公开版 0.4.192 仍推荐 CLI .139。产品 v5.0.3.144 独立公开。"
-    link: /chainlesschain/agent-platform-release
+    title: CLI .142 目标事件与历史恢复
+    details: "另行授权观察事件，显式读取一页并提交检查点；两款 IDE 推荐 CLI .142。原生历史需新版桌面端，候选 .145 尚未公开；当前下载为 v5.0.3.144。"
+    link: /chainlesschain/cli-ide-update-2026-11-05-142
   - icon: 🔗
     title: CLI / IDE 与桌面目标草稿
     details: "CLI .140 修复损坏工具参数恢复与可信摘要；桌面目标草稿互通仍需匹配客户端构建、显式授权及原生确认，CLI 或插件发布不能替代产品验收。"

@@ -1,12 +1,14 @@
 # Agent 输入、图片预算与会话恢复
 
-## 当前发行与读取恢复（2026-11-04）
+## 当前发行与读取恢复（2026-11-05）
 
-CLI **0.166.141** 已通过 GitHub Actions OIDC 发布；Open VSX **0.37.177** 和 JetBrains **0.4.194** 均已公开，均推荐 CLI **0.166.141**。CLI 公开字节与签名来源、仅 registry 的 `--ignore-scripts` 安装及 Agent capability 启动探测已核验；两款插件公开 payload 与正式构建一致。
+CLI **0.166.142** 已通过 GitHub Actions OIDC 发布；Open VSX **0.37.178** 和 JetBrains **0.4.195** 均已公开，均推荐 CLI **0.166.142**。CLI 公开字节与签名来源、仅 registry 的 `--ignore-scripts` 安装及 Agent capability 启动探测已核验；两款插件公开 payload 与正式构建一致。
+
+原生目标事件可通过独立 v5 连接和 `cc goal replay` 显式逐页恢复；这与下文 Agent 会话的运行中 Goal 检查点不同，不能混用文件或用 `--goal-recovery-reviewed` 代替历史授权。事件检查点退出码 0 才表示提交，中断后保留原文件并按至少一次交付处理重复。步骤见[本轮升级指南](./cli-ide-update-2026-11-05-142)。原生入口需匹配新版桌面端，候选 v5.0.3.145 尚未公开。
 
 本版保留完整源码预览中的合法展开表达式，提供与实际可恢复范围一致的读取提示，并统一正式隔离评测中 CLI 与 IDE 的文件范围。诊断 broker 在读取预算选项前拒绝正式预算作用域；普通交互权限、IDE 协议与有限预算策略保持既有行为。
 
-安装 `npm i -g chainlesschain@0.166.141 --registry https://registry.npmjs.org`，重启聊天宿主后运行 `cc --version`、`cc doctor`。遇到 `Text omitted` 时按仍有效的 `recoveryRead` 参数有界重读；额度耗尽后按精确符号搜索，必要正文仍不可得时报告限制。不要把工具调用成功当作正文已送达或任务完成。详见[当前升级指南](./cli-ide-update-2026-11-04-141)。
+安装 `npm i -g chainlesschain@0.166.142 --registry https://registry.npmjs.org`，重启聊天宿主后运行 `cc --version`、`cc doctor`。遇到 `Text omitted` 时按仍有效的 `recoveryRead` 参数有界重读；额度耗尽后按精确符号搜索，必要正文仍不可得时报告限制。不要把工具调用成功当作正文已送达或任务完成。详见[当前升级指南](./cli-ide-update-2026-11-05-142)。
 
 下文带日期章节保留历史版本与验证范围。
 

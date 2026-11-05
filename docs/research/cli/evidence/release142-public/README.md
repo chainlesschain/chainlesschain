@@ -1,8 +1,11 @@
 # CLI 0.166.142 / DMM release record
 
-Checked 2026-11-05. Session Core **0.3.25**, CLI **0.166.142** and Open VSX
-**0.37.178** are verified public. JetBrains **0.4.195** passed the official host
-matrix, build and upload; Marketplace review/listing remains separate from upload.
+Checked 2026-11-05. Session Core **0.3.25**, CLI **0.166.142**, Open VSX
+**0.37.178** and JetBrains **0.4.195** are verified public. JetBrains update
+1212436 is approved, listed and downloadable; all 626 original payload files,
+including nested JAR entries, match the official build. Container metadata is
+excluded from payload comparison; [archive hashes and proof](jetbrains.json)
+remain explicit.
 PC/mobile **v5.0.3.145** is in preparation, not yet published.
 
 npm authentication uses the existing GitHub Actions OIDC Trusted Publishing
@@ -14,15 +17,15 @@ Immutable npm and IDE source: `b78cf0af8c8b0491189465773b148ac77c332222`.
 without changing that source SHA. Later product and documentation commits do not
 replace these immutable package identities.
 
-| Stage                                          | Result                                            | Official evidence                                                                                                                                                                        |
-| ---------------------------------------------- | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| CLI CI, all configured OSes                    | 75 successful, 1 optional dry-run skipped         | [41880645485, attempt 2](https://github.com/chainlesschain/chainlesschain/actions/runs/41880645485)                                                                                      |
-| CLI Strict Sandbox                             | 6/6 successful                                    | [41869752122](https://github.com/chainlesschain/chainlesschain/actions/runs/41869752122)                                                                                                 |
-| npm OIDC publication                           | successful, children before CLI                   | [41887211826, attempt 2](https://github.com/chainlesschain/chainlesschain/actions/runs/41887211826)                                                                                      |
-| Independent public bytes and signed provenance | successful, byte-identical                        | [41950556751](https://github.com/chainlesschain/chainlesschain/actions/runs/41950556751), [readback](chainlesschain-npm-readback.json), [provenance](chainlesschain-npm-provenance.json) |
-| Open VSX                                       | public payload verified by publishing job         | [41950792178](https://github.com/chainlesschain/chainlesschain/actions/runs/41950792178)                                                                                                 |
-| JetBrains                                      | upload successful; public availability unverified | [41950791667](https://github.com/chainlesschain/chainlesschain/actions/runs/41950791667)                                                                                                 |
-| IDE ARM64 hosts                                | 11/11 successful                                  | [41869752695, attempt 2](https://github.com/chainlesschain/chainlesschain/actions/runs/41869752695)                                                                                      |
+| Stage                                          | Result                                                | Official evidence                                                                                                                                                                        |
+| ---------------------------------------------- | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| CLI CI, all configured OSes                    | 75 successful, 1 optional dry-run skipped             | [41880645485, attempt 2](https://github.com/chainlesschain/chainlesschain/actions/runs/41880645485)                                                                                      |
+| CLI Strict Sandbox                             | 6/6 successful                                        | [41869752122](https://github.com/chainlesschain/chainlesschain/actions/runs/41869752122)                                                                                                 |
+| npm OIDC publication                           | successful, children before CLI                       | [41887211826, attempt 2](https://github.com/chainlesschain/chainlesschain/actions/runs/41887211826)                                                                                      |
+| Independent public bytes and signed provenance | successful, byte-identical                            | [41950556751](https://github.com/chainlesschain/chainlesschain/actions/runs/41950556751), [readback](chainlesschain-npm-readback.json), [provenance](chainlesschain-npm-provenance.json) |
+| Open VSX                                       | public payload verified by publishing job             | [41950792178](https://github.com/chainlesschain/chainlesschain/actions/runs/41950792178)                                                                                                 |
+| JetBrains                                      | public, approved; all626 original payload files match | [41950791667](https://github.com/chainlesschain/chainlesschain/actions/runs/41950791667), [readback](jetbrains.json)                                                                     |
+| IDE ARM64 hosts                                | 11/11 successful                                      | [41869752695, attempt 2](https://github.com/chainlesschain/chainlesschain/actions/runs/41869752695)                                                                                      |
 
 Publisher child-source and installation receipts are under [publisher/](publisher/).
 The registry install uses `--ignore-scripts`; it does not establish full native,
