@@ -1,0 +1,193 @@
+{
+  "schema": "chainlesschain.docs-sites-public-deployment.v1",
+  "verifiedAt": "2026-11-05T07:04:12.433Z",
+  "sourceCommit": "26c9c51c9911938e5a05bae2d906873ab2497fcc",
+  "deploymentStamp": "20261105-052326-26c9c51c99-docs",
+  "buildRun": 41971984902,
+  "buildAttempt": 1,
+  "buildWorkflow": "https://github.com/chainlesschain/chainlesschain/actions/runs/41971984902",
+  "buildManifests": [
+    {
+      "schema": "chainlesschain.docs-snapshot-build/v1",
+      "sourceCommit": "26c9c51c9911938e5a05bae2d906873ab2497fcc",
+      "runId": "41971984902",
+      "runAttempt": "1",
+      "site": "docs",
+      "archive": "docs.tar.gz",
+      "archiveSha256": "1471bf505cc167aca36d5db993976aed3a07c813a4bfd5280ed4fc9f8b9f061f",
+      "htmlPages": 676,
+      "files": 2055
+    },
+    {
+      "schema": "chainlesschain.docs-snapshot-build/v1",
+      "sourceCommit": "26c9c51c9911938e5a05bae2d906873ab2497fcc",
+      "runId": "41971984902",
+      "runAttempt": "1",
+      "site": "design",
+      "archive": "design.tar.gz",
+      "archiveSha256": "056a1755f846018ae5626ee4bc4ac1059a3f04a5f98bf0d14cfe685966585e9b",
+      "htmlPages": 296,
+      "files": 914
+    },
+    {
+      "schema": "chainlesschain.docs-snapshot-build/v1",
+      "sourceCommit": "26c9c51c9911938e5a05bae2d906873ab2497fcc",
+      "runId": "41971984902",
+      "runAttempt": "1",
+      "site": "www",
+      "archive": "www.tar.gz",
+      "archiveSha256": "45539c5c04d550fc87d37b9601bc5320b2ee9a739a6f2ac3dcf7244209b5bc7d",
+      "htmlPages": 20,
+      "files": 45
+    }
+  ],
+  "sites": [
+    {
+      "site": "docs",
+      "baseUrl": "https://docs.chainlesschain.com",
+      "deployment": {
+        "schema": "chainlesschain.site-deployment/v1",
+        "stamp": "20261105-052326-26c9c51c99-docs",
+        "sourceHeadCommit": "26c9c51c9911938e5a05bae2d906873ab2497fcc",
+        "sourceStatus": "clean-commit",
+        "site": "docs",
+        "archiveSha256": "6b6556aaeb1c7553fdbdd29005567f81f6de8c120f58bebc18babc8ef79fe34e",
+        "newHtmlPages": 676,
+        "newFiles": 2055
+      },
+      "backupDirectory": "/www/wwwroot/docs.chainlesschain.com.bak-20261105-052326-26c9c51c99-docs",
+      "pages": [
+        {
+          "url": "https://docs.chainlesschain.com/?source=26c9c51c9911938e5a05bae2d906873ab2497fcc",
+          "status": 200,
+          "sha256": "0ffc8196e9bf7ff2e37c4fc62b55fff1a8125cfbcab1aab1587db0b04552da3e",
+          "byteIdenticalToVerifiedBuild": true
+        },
+        {
+          "url": "https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-11-05-142.html?source=26c9c51c9911938e5a05bae2d906873ab2497fcc",
+          "status": 200,
+          "sha256": "4a335b2a70eb83a0757c2cb6c92e102b464b2288a6a9bddc6a21aec42d37f56e",
+          "byteIdenticalToVerifiedBuild": true
+        },
+        {
+          "url": "https://docs.chainlesschain.com/chainlesschain/agent-platform-release.html?source=26c9c51c9911938e5a05bae2d906873ab2497fcc",
+          "status": 200,
+          "sha256": "3b3a4641ed22f0e24f3ee4ac0bb32a1c808040e45efaf62231096f977950e9ca",
+          "byteIdenticalToVerifiedBuild": true
+        },
+        {
+          "url": "https://docs.chainlesschain.com/chainlesschain/agent-input-and-recovery.html?source=26c9c51c9911938e5a05bae2d906873ab2497fcc",
+          "status": 200,
+          "sha256": "48d2da0b782cd6a238399914df1288ef0b294daaede6750cb579380c2569261f",
+          "byteIdenticalToVerifiedBuild": true
+        },
+        {
+          "url": "https://docs.chainlesschain.com/chainlesschain/session-core.html?source=26c9c51c9911938e5a05bae2d906873ab2497fcc",
+          "status": 200,
+          "sha256": "76a7a4a931151021ac29398b06e5f317a1debee9fa2071c1ab0a1c9c8b0a77c9",
+          "byteIdenticalToVerifiedBuild": true
+        }
+      ],
+      "assets": [
+        {
+          "url": "https://docs.chainlesschain.com/vp-icons.css",
+          "status": 200,
+          "sha256": "c3179481ddd882c06c7a5c5888509946f5be5b9ba7e504e3b0ceef1004831786",
+          "byteIdenticalToVerifiedBuild": true
+        },
+        {
+          "url": "https://docs.chainlesschain.com/assets/index.md.-LFnzNYR.lean.js",
+          "status": 200,
+          "sha256": "a404186edcd7ba76000f51853df17c8d70ac9934688d8e3248a071b30f233936",
+          "byteIdenticalToVerifiedBuild": true
+        }
+      ]
+    },
+    {
+      "site": "design",
+      "baseUrl": "https://design.chainlesschain.com",
+      "deployment": {
+        "schema": "chainlesschain.site-deployment/v1",
+        "stamp": "20261105-052326-26c9c51c99-docs",
+        "sourceHeadCommit": "26c9c51c9911938e5a05bae2d906873ab2497fcc",
+        "sourceStatus": "clean-commit",
+        "site": "design",
+        "archiveSha256": "5074155a077860900e9c598c01a7221e29305ab671fd85e5e2c94af3d6a03e0a",
+        "newHtmlPages": 296,
+        "newFiles": 914
+      },
+      "backupDirectory": "/www/wwwroot/design.chainlesschain.com.bak-20261105-052326-26c9c51c99-docs",
+      "pages": [
+        {
+          "url": "https://design.chainlesschain.com/?source=26c9c51c9911938e5a05bae2d906873ab2497fcc",
+          "status": 200,
+          "sha256": "5bfd41711b47a2a3b4bd09727e0956aead11c939023556de7f4e4baacaac1353",
+          "byteIdenticalToVerifiedBuild": true
+        },
+        {
+          "url": "https://design.chainlesschain.com/release-runtime-update-2026-11-05-142.html?source=26c9c51c9911938e5a05bae2d906873ab2497fcc",
+          "status": 200,
+          "sha256": "454681f3268f2d5e3a9694e968c28c49cf196dcb0d88d6122f3d0f94c9432dbf",
+          "byteIdenticalToVerifiedBuild": true
+        }
+      ],
+      "assets": [
+        {
+          "url": "https://design.chainlesschain.com/vp-icons.css",
+          "status": 200,
+          "sha256": "c3179481ddd882c06c7a5c5888509946f5be5b9ba7e504e3b0ceef1004831786",
+          "byteIdenticalToVerifiedBuild": true
+        },
+        {
+          "url": "https://design.chainlesschain.com/assets/index.md.BAGofG7T.lean.js",
+          "status": 200,
+          "sha256": "aec9e42791c712cf3fb1ead0d448efd852a4bdb6c83bca4461ccd0f827c1bc38",
+          "byteIdenticalToVerifiedBuild": true
+        }
+      ]
+    },
+    {
+      "site": "www",
+      "baseUrl": "https://www.chainlesschain.com",
+      "deployment": {
+        "schema": "chainlesschain.site-deployment/v1",
+        "stamp": "20261105-052326-26c9c51c99-docs",
+        "sourceHeadCommit": "26c9c51c9911938e5a05bae2d906873ab2497fcc",
+        "sourceStatus": "clean-commit",
+        "site": "www",
+        "archiveSha256": "6c0ab16eac1af0e9252f29cc51dfb6e7d8614ebd02264d8d3c4abe0718f24f19",
+        "newHtmlPages": 20,
+        "newFiles": 45
+      },
+      "backupDirectory": "/www/wwwroot/www.chainlesschain.com.bak-20261105-052326-26c9c51c99-docs",
+      "pages": [
+        {
+          "url": "https://www.chainlesschain.com/?source=26c9c51c9911938e5a05bae2d906873ab2497fcc",
+          "status": 200,
+          "sha256": "1bee78d097c4ae1d63e3a88696a8832bd814664db945d0774fcc329d978d36c7",
+          "byteIdenticalToVerifiedBuild": true
+        },
+        {
+          "url": "https://www.chainlesschain.com/en/index.html?source=26c9c51c9911938e5a05bae2d906873ab2497fcc",
+          "status": 200,
+          "sha256": "ab64e8e0d5ea9a61ed2cf9d780f651e7601c259687aa807373f0c0b6242d55ad",
+          "byteIdenticalToVerifiedBuild": true
+        }
+      ],
+      "assets": [
+        {
+          "url": "https://www.chainlesschain.com/assets/desktop.Bg_wJyc8.css",
+          "status": 200,
+          "sha256": "48e12777a2c209d97a47c86fe9138c2aa69583f3f20121ee7e1792fa9ba05600",
+          "byteIdenticalToVerifiedBuild": true
+        },
+        {
+          "url": "https://www.chainlesschain.com/assets/about.ciFbCEc9.css",
+          "status": 200,
+          "sha256": "d91e4f0137c8ff8e537d7674cb69c64b41f088f243b6078dfbaf84108f35710e",
+          "byteIdenticalToVerifiedBuild": true
+        }
+      ]
+    }
+  ]
+}

@@ -73,3 +73,38 @@ explicit IDE recovery and a data-only combined delivery scenario. Native approva
 remains authoritative. Replay is at least once; records and description edits do
 not establish goal completion. Real GUI and business-effect acceptance remain
 separate from package publication.
+
+## Documentation and website deployment — 2026-11-05
+
+The design documents, user guides, Chinese/English official site and READMEs
+were updated from merged main and the immutable release sources above. All
+three production snapshot builds succeeded at documentation source
+`26c9c51c9911938e5a05bae2d906873ab2497fcc` in
+[run 41971984902, attempt 1](https://github.com/chainlesschain/chainlesschain/actions/runs/41971984902).
+
+| Site                                                      | Build HTML pages | Build files |
+| --------------------------------------------------------- | ---------------: | ----------: |
+| [User documentation](https://docs.chainlesschain.com)     |              676 |        2055 |
+| [Design documentation](https://design.chainlesschain.com) |              296 |         914 |
+| [Official website](https://www.chainlesschain.com)        |               20 |          45 |
+
+Deployment `20261105-052326-26c9c51c99-docs` completed on the existing server.
+After an SSH upload interruption, existing archives were checked by SHA-256
+before transport resumed. All three archives passed server-side hash and file
+count checks before staging and switching; previous site directories were
+retained for rollback. Origin checks passed.
+
+The [public deployment proof](site-deployment-2026-11-05.json) records all three
+source markers and archive identities. Nine public HTML pages and six
+build-owned CSS/JS samples returned HTTP 200 and were byte-identical to the
+verified builds. This is a public sample check, not a fetch of every built page.
+Cloud build archives and locally repacked deployment archives have distinct
+digests; both identities are retained explicitly. The evidence follow-up commit
+does not replace the deployed source commit above.
+
+Current public client downloads remain **v5.0.3.144**. Candidate
+**v5.0.3.145** is not yet a complete public release: its initial run passed
+Windows, macOS, Android and iOS, but Linux AppImage packaging exhausted runner
+disk space. A failed-job rerun of
+[41961242898](https://github.com/chainlesschain/chainlesschain/actions/runs/41961242898)
+was requested at the same product source; it does not establish publication.
