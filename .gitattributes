@@ -228,3 +228,8 @@ docs/research/agents/evidence/dmm-native-strict-ci-2026-11-07/verify-evidence.mj
 docs/research/agents/evidence/dmm-native-workspace-2026-11-07/** -text !eol -whitespace
 docs/research/agents/evidence/dmm-native-workspace-2026-11-07/README.md text eol=lf
 docs/research/agents/evidence/dmm-native-workspace-2026-11-07/verify-evidence.mjs text eol=lf
+
+# Native risk creation reports retain source-bound original bytes.
+docs/research/agents/evidence/dmm-native-risk-create-2026-11-07/** -text !eol -whitespace
+docs/research/agents/evidence/dmm-native-risk-create-2026-11-07/README.md text eol=lf
+docs/research/agents/evidence/dmm-native-risk-create-2026-11-07/verify-evidence.mjs text eol=lf
