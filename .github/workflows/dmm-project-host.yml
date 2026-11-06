@@ -79,13 +79,13 @@ jobs:
           --config vitest.business-actions-renderer.config.mjs
           --reporter=json --outputFile=test-results/dmm-renderer.json
 
-      - name: Verify shared organization host compatibility
+      # Login authority generations also bind organization actions/approvals.
+      # Exercise the full organization configuration after authentication fixes.
+      - name: Verify organization authority and shared host compatibility
         working-directory: desktop-app-vue
         run: >-
           npm exec --offline -- vitest run
           --config vitest.organization-authority.config.mjs
-          src/main/task/__tests__/organization-project-goal-host.test.js
-          src/main/task/__tests__/organization-project-goal-periodic-host.test.js
           --reporter=json --outputFile=test-results/dmm-organization-host.json
 
       - name: Upload exact-source diagnostic reports

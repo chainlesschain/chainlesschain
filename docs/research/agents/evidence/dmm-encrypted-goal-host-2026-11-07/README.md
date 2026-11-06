@@ -25,6 +25,8 @@ Electron/原生数据库模块必须匹配 ABI；探针失败时不退回 sql.js
 
 ## 尚未闭环
 
+**后续状态：**下面保留本批当时的原始观察。随后 [Windows 原生目标旅程批次](../dmm-native-goal-journey-2026-11-07/README.md)已在实际 Electron PID 上驱动真实原生按钮，并通过风险→intent→确认→真实写入/血缘→再检查→验收拒绝完成→结束及 70 秒停止观察；同时修复无关 UKey 轮询失效密码确认和 Vue Proxy 无法跨 IPC 克隆的问题。它使用合成数据，不代表独立业务或安装/跨平台验收通过，两个批次测试数量不相加。
+
 真实完整产品启动检查初次 30 秒窗口等待未完成；随后明确使用 180 秒窗口预算，在全新隔离配置、真实加密数据库和实际 production renderer 上读到登录表单并正常退出，见[启动观察](./product-startup.json)及[登录界面截图](./product-login.png)。随后一条[基础目标 GUI 旅程](./product-goal-gui.json)通过：实际 DID API 创建身份、真实密码表单登录、以匹配 DID 创建临时项目，在 Vue 表单保存目标、点击检查、回读 v2、看到检查 1 次并暂停。存档[运行脚本](./product-goal-gui-smoke.cjs)与[暂停界面截图](./product-goal-paused.png)保留修复任务入口和循环读取前的原始快照，截图中的任务错误未被隐藏。没有复制真实用户配置，脚本中的固定密码仅属于每次新建的测试 profile。先前遗漏项目 DID 归属的测试被 GOAL_NOT_FOUND_OR_DENIED 拒绝，修正 fixture 后成功，没有弱化归属检查。
 
 后续最新 renderer 生产重建返回 0；[实际产品复查](./product-followup-observation.json)再次通过基础目标 GUI，受控任务原生数据库错误为 0，模型拒绝列表仅记录 2 次，未再持续循环。原生确认框的 Windows UI Automation 尝试仍未找到目标对话框，整个扩展 runner 返回 1，不能计为通过，也未安装 dialog 或审批替身；该诊断结果与成功的基础 GUI 分开记录。

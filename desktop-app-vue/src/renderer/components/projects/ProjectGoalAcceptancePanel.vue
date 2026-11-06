@@ -392,7 +392,9 @@ async function acknowledge() {
   error.value = "";
   pendingAck.value ??= input();
   try {
-    const result = await api()!.acknowledgeGoalAcceptance(pendingAck.value);
+    const result = await api()!.acknowledgeGoalAcceptance({
+      ...pendingAck.value,
+    });
     if (!current(stamp)) return;
     if (result.acknowledgement.status !== "running") pendingAck.value = null;
     error.value =
@@ -422,8 +424,8 @@ async function check(complete: boolean) {
   pending.value ??= { mode, request: input() };
   try {
     const result = await (complete
-      ? api()!.completeGoal(pending.value.request)
-      : api()!.checkGoalAcceptance(pending.value.request));
+      ? api()!.completeGoal({ ...pending.value.request })
+      : api()!.checkGoalAcceptance({ ...pending.value.request }));
     if (!current(stamp)) return;
     if (result.goal.id !== props.goal.id)
       throw new Error("GOAL_NOT_FOUND_OR_DENIED");

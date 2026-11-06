@@ -524,7 +524,7 @@ async function control(
           requestId: crypto.randomUUID(),
         };
         pending.value[id] = request;
-        const outcome = await api()!.checkGoalNow(request);
+        const outcome = await api()!.checkGoalNow({ ...request });
         if (!current(stamp)) return;
         if (
           [
@@ -582,7 +582,7 @@ async function stopOccurrence(
   };
   stopPending.value[occurrence.id] = request;
   try {
-    const result = await api()!.stopGoalOccurrence!(request);
+    const result = await api()!.stopGoalOccurrence!({ ...request });
     if (!current(stamp)) return;
     if (result.goalId !== item.goal.id || result.occurrenceId !== occurrence.id)
       throw new Error("GOAL_NOT_FOUND_OR_DENIED");
