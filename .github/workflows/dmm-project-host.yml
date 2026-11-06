@@ -4,8 +4,11 @@ on:
   pull_request:
     paths:
       - ".github/workflows/dmm-project-host.yml"
+      - ".github/workflows/dmm-native-goal*.yml"
       - ".github/actions/setup-node-deps/action.yml"
       - "desktop-app-vue/src/main/task/**"
+      - "desktop-app-vue/scripts/project-goal-*-journey.mjs"
+      - "desktop-app-vue/scripts/lib/project-goal-*.cjs"
       - "desktop-app-vue/src/main/database/sqlcipher-wrapper.js"
       - "desktop-app-vue/src/renderer/components/projects/**"
       - "desktop-app-vue/vitest.business-actions*.config.mjs"

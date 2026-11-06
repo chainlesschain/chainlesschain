@@ -1,0 +1,51 @@
+{
+    "observedAt":  "2026-11-06T20:19:11.0509064Z",
+    "scope":  "Current branch candidate only. Parent 1fa checks are archived separately and do not approve this SHA or a release.",
+    "runs":  {
+                 "value":  [
+                               {
+                                   "conclusion":  "",
+                                   "databaseId":  42286592865,
+                                   "headSha":  "947f861886a7592753dc4d2de362413c8f0320e6",
+                                   "name":  "PR Tests",
+                                   "status":  "in_progress"
+                               },
+                               {
+                                   "conclusion":  "",
+                                   "databaseId":  42286593269,
+                                   "headSha":  "947f861886a7592753dc4d2de362413c8f0320e6",
+                                   "name":  "DMM Project Host",
+                                   "status":  "queued"
+                               },
+                               {
+                                   "conclusion":  "",
+                                   "databaseId":  42286593201,
+                                   "headSha":  "947f861886a7592753dc4d2de362413c8f0320e6",
+                                   "name":  "DMM Native Goal Journey",
+                                   "status":  "in_progress"
+                               },
+                               {
+                                   "conclusion":  "success",
+                                   "databaseId":  42286593053,
+                                   "headSha":  "947f861886a7592753dc4d2de362413c8f0320e6",
+                                   "name":  "CI Mask Audit (PR advisory)",
+                                   "status":  "completed"
+                               },
+                               {
+                                   "conclusion":  "success",
+                                   "databaseId":  42286592885,
+                                   "headSha":  "947f861886a7592753dc4d2de362413c8f0320e6",
+                                   "name":  "Cosmetic-Green Audit (PR advisory)",
+                                   "status":  "completed"
+                               },
+                               {
+                                   "conclusion":  "",
+                                   "databaseId":  42286593343,
+                                   "headSha":  "947f861886a7592753dc4d2de362413c8f0320e6",
+                                   "name":  "DMM Native Goal Transfer",
+                                   "status":  "in_progress"
+                               }
+                           ],
+                 "Count":  6
+             }
+}

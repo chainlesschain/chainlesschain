@@ -21,6 +21,9 @@ if (process.platform !== "win32" || !values.electron || !values.output)
 const require = createRequire(import.meta.url);
 const { _electron, expect } = require("@playwright/test");
 const { clickNativeDialog } = require("./lib/project-goal-native-dialog.cjs");
+const {
+  observeGoalJourneyErrors,
+} = require("./lib/project-goal-journey-observer.cjs");
 const desktop = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "..",
@@ -129,6 +132,9 @@ try {
   log = fs.createWriteStream(path.join(profile, "application.log"));
   app.process().stdout?.on("data", (bytes) => log.write(bytes));
   app.process().stderr?.on("data", (bytes) => log.write(bytes));
+  evidence.ipcErrors = observeGoalJourneyErrors(app.process(), {
+    secrets: [env.DEFAULT_PASSWORD],
+  });
   const pid = await app.evaluate(() => process.pid); // Windows launcher PID differs.
   nativePid = pid;
   window = await app.firstWindow({ timeout: 180000 });
@@ -517,6 +523,35 @@ try {
 } catch (error) {
   evidence.status = "failed";
   evidence.error = { message: error.message, stack: error.stack };
+  if (window && evidence.projectId) {
+    evidence.failureGoalReadback = await window
+      .evaluate(
+        async ({ projectId }) => {
+          try {
+            const goals = await window.electronAPI.project.listGoals({
+              projectId,
+            });
+            const statuses = [];
+            for (const goal of goals.slice(0, 3)) {
+              try {
+                statuses.push(
+                  await window.electronAPI.project.getGoalMonitoringStatus({
+                    id: goal.id,
+                  }),
+                );
+              } catch (error) {
+                statuses.push({ id: goal.id, error: String(error) });
+              }
+            }
+            return { goals, statuses };
+          } catch (error) {
+            return { error: String(error) };
+          }
+        },
+        { projectId: evidence.projectId },
+      )
+      .catch((error) => ({ error: String(error) }));
+  }
   if (window)
     await window
       .screenshot({ path: path.join(output, "failure.png"), fullPage: true })

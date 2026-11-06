@@ -31,6 +31,7 @@ const env = {
 };
 delete env.ELECTRON_RUN_AS_NODE;
 let diagnostics = "";
+let childFailure = null;
 await new Promise((resolve, reject) => {
   const child = spawn(executable, [fixture], {
     cwd: root,
@@ -59,11 +60,32 @@ await new Promise((resolve, reject) => {
       );
     else resolve();
   });
+}).catch((error) => {
+  childFailure = error;
 });
-const result = JSON.parse(fs.readFileSync(resultFile, "utf8"));
+const result = childFailure
+  ? {
+      schema: "chainlesschain.encrypted-goal-electron-probe/v1",
+      passed: false,
+      platform: process.platform,
+      error: {
+        message: childFailure.message.split(/\r?\n/u)[0],
+        relatedErrors: diagnostics
+          .split(/\r?\n/u)
+          .filter((line) =>
+            /ERR_[A-Z_]+|Error:|Cannot find module|GOAL_[A-Z_]+|SQLITE_[A-Z_]+/u.test(
+              line,
+            ),
+          )
+          .slice(-12),
+      },
+    }
+  : JSON.parse(fs.readFileSync(resultFile, "utf8"));
 if (
-  result.passed !== true ||
-  Object.values(result.checks).some((value) => typeof value !== "boolean")
+  !childFailure &&
+  (result.passed !== true ||
+    !result.checks ||
+    Object.values(result.checks).some((value) => typeof value !== "boolean"))
 )
   throw new Error("Invalid probe result");
 const sourceFiles = [
@@ -90,4 +112,6 @@ if (values.output)
     JSON.stringify(result, null, 2) + "\n",
     { flag: "wx" },
   );
+// Preserve a bounded structured failure artifact before failing the CI gate.
+if (childFailure) throw childFailure;
 console.log(JSON.stringify(result));

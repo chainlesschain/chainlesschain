@@ -1,0 +1,103 @@
+{
+  "schema": "chainlesschain.dmm-native-transfer-evidence/v1",
+  "createdAt": "2026-11-06T20:21:28.525Z",
+  "taskIds": [
+    "DMM-02",
+    "DMM-06",
+    "DMM-09",
+    "DMM-10"
+  ],
+  "runtimeSourceSha": "947f861886a7592753dc4d2de362413c8f0320e6",
+  "verificationCheckoutSha": "947f861886a7592753dc4d2de362413c8f0320e6",
+  "scenario": "Actual Windows Electron and real CLI goal handoff, signed rollback and changed-target refusal",
+  "sourceState": "Tracked runtime/test sources at runtimeSourceSha; evidence and documentation follow-up only. No business code changed from the successful parent matrix.",
+  "totals": {
+    "nativeBusinessReceipts": 22,
+    "pickerProbes": 2,
+    "cliCommands": 9,
+    "unitTestsAdded": 0
+  },
+  "parent": {
+    "sourceSha": "1fa51166b6391b178f8ceba75526b42b349bccf6",
+    "uniqueFilesPerPlatform": 52,
+    "uniquePassedPerPlatform": 954,
+    "platforms": [
+      "ubuntu-latest",
+      "windows-latest",
+      "macos-latest"
+    ],
+    "guiPassed": true,
+    "guiLockfileDriftObserved": true,
+    "newStrictGatesApproved": false
+  },
+  "commands": [
+    [
+      "node",
+      "desktop-app-vue/scripts/project-goal-transfer-native-journey.mjs",
+      "--electron",
+      "<verified Electron 39.8.10 executable>",
+      "--output",
+      "<new output directory>"
+    ],
+    [
+      "node",
+      "desktop-app-vue/scripts/verify-fixed-renderer-ipc.mjs"
+    ],
+    [
+      "node",
+      "packages/cli/scripts/implementation-plan-budget-egress.mjs",
+      "--check",
+      "--include-scripts"
+    ]
+  ],
+  "sources": {
+    "desktop-app-vue/scripts/project-goal-transfer-native-journey.mjs": "f054f60c73498c530513fa28692ede022e241e11b2c07d1093fd01fd5dc60073",
+    "desktop-app-vue/scripts/lib/project-goal-transfer-native.cjs": "f209900ba94d75aad66a46967711601e0f12641558ead8bf44f82463a0d0f033",
+    "desktop-app-vue/scripts/lib/project-goal-native-dialog.ps1": "88039fdb743598342b339e00d7b8d00dc23e2ba16c526e21838820e3712f06d4",
+    ".github/workflows/dmm-native-goal-journey.yml": "edd083bbd4f33b43cf8af907c11196e9ee221564ab538ff3543c1516ddd39ee6",
+    ".github/workflows/dmm-native-goal-transfer.yml": "a72bc86c08d5fcdf6973c4a580163ada1cb5ec2142589c4fefa0610bda3ea671",
+    ".github/workflows/dmm-project-host.yml": "141d22d137f2beb89cb66652e235e13ff47f3829e6a05ff5074c01399ea7e370",
+    "desktop-app-vue/src/main/task/project-goal-transfer-host.js": "b84cec9fa8f43ccb4f134bdfd4d639727ac5dcd02901175c95c157d1a4f1e3e0",
+    "desktop-app-vue/src/main/task/project-goal-auth-session.js": "c3ff33a0a9b43dceda49ad721a1348506e2c8202e21300c34f726a8c43ac6550",
+    "desktop-app-vue/src/main/task/project-goal-native-database.js": "932fc6473e599b7450fcd0cb9aebbb9eb0f13a650a79d88567984d19a3ca9338",
+    "desktop-app-vue/src/renderer/components/projects/ProjectGoalTransferPanel.vue": "aa88d35e2ab47881167379084a8891edfad11764bc27fe9900f3f335b5e1fa55",
+    "desktop-app-vue/src/renderer/components/projects/ProjectGoalMonitoringPanel.vue": "847a6e6634beb2d473658c85bfd7f6c390d65093bcd26ad4543aaa950694b99f",
+    "packages/cli/src/commands/goal.js": "71b30579c0fb119c126d3c183fa03d3aea17fa5437fbaaff3b2481012ecb628e",
+    "packages/cli/src/lib/goal-store.js": "509f1ab70b714853effb345ab42c738cfdc5bafc91736d4f340d900e4740eccb",
+    "packages/session-core/lib/project-goal-transfer.js": "5c74d7462c5611155ce43280241d143990ca2adb37dfaf1acc9552b023e71b77",
+    "packages/session-core/lib/goal-transfer-contract.js": "c5a711f957c02d8043f6eaf5367d0b09b4d15fa6323286ae240af18d439139c3",
+    "packages/session-core/lib/goal-transfer-files.js": "a8f44250598c2edb45d120976b2a9c2649357d2b7e9070a279e409b155e07992",
+    "packages/session-core/lib/business-object-contract.js": "2ff7af4d125ab4e585277f2308e454bbfc81929cabeab07465fb23af69adf133",
+    ".prettierignore": "e0e50c5509225d4c8797f98227a1b26ee20ab96100499dd88ad611568c8b0275"
+  },
+  "files": {
+    "README.md": "c0ad9fef05c63b23d13bbe24294273d1e9b67e194f516263b90fd3dd46f6c0d9",
+    "cancellation-reexport.json": "a7c31094081628de50985e8a8fdeffd6709279c17f804f5b606ad5a0e0368c39",
+    "cancellation.json": "a7c31094081628de50985e8a8fdeffd6709279c17f804f5b606ad5a0e0368c39",
+    "failed-caption-cache.json": "46018247e425426e5bed53985ee88539d321923a20025da011f63360909ae4e1",
+    "failed-open-control.json": "1e949001eb958ef52c5ae0fa2ffe50569616ad707d88e1dfb01a9ab38f05e47f",
+    "failed-picker-readiness.json": "73d12e1e848cd42c8dc9bef007de34c8331ea8fd507e404c4ee2a1fe7c1de330",
+    "journey.json": "9ef7df210916decd4db0728b92743dfadaade05eee3484a6525538dd91d21dad",
+    "original-backup.json": "40d6a472b872630f4091b4d0f135cb5c43f1cbd6805ca1628c77ba5c012f6bb3",
+    "parent-ci/goal-journey.json": "1342e057988da4daf807bd2edb34b3fdb4ace36c4ce85d74ebbeadeae4db5aa8",
+    "parent-ci/goal-stopped.png": "0c521fd558954a94fa85ddd8a20a5dacee465fd2871f01db94ffcd5991d6fe0d",
+    "parent-ci/goal-workflow-at-1fa.yml": "f2f01411c9c7cfcb298d215c7aee799831e261ec22d7f91636bff85655abf616",
+    "parent-ci/host-workflow-at-1fa.yml": "6a6ff00cd518445da2c807a524f73d26baf8baad09e84237cf7d39da6470de7a",
+    "parent-ci/macos-latest/dmm-host.json": "28ddc0ce351f51a242c96b08a3786afb0c5c0dc11d84a13b5f9795b14762db8b",
+    "parent-ci/macos-latest/dmm-organization-host.json": "f5c1717dfe87185492d5738b643fbc25a34cb04d5afb98f3d366849cfc0325c8",
+    "parent-ci/macos-latest/dmm-renderer.json": "80e41ec1ea98c8aad498e1ad659f5b98d73c7c5365c526dfda7eaf09aa53f64f",
+    "parent-ci/runs.json": "59b39ab79a9b97b0a4320db91b5017ab4bd671388497b6345e97f81a7797870e",
+    "parent-ci/ubuntu-latest/dmm-host.json": "4030e9de5a567d19ab20cebe6a7c339185412450c1f4412ef69a3bf2b7898709",
+    "parent-ci/ubuntu-latest/dmm-organization-host.json": "534717b05fe15ed005c5ab83b4bd1e8d14b35f612ff97e1a9a1cb5a0da151201",
+    "parent-ci/ubuntu-latest/dmm-renderer.json": "42400f9ae2da775959826ae890f959b3ffc88ff9d1786c0aca6e76c99b016b32",
+    "parent-ci/windows-latest/dmm-host.json": "fda6c16c6d25c416f709fc2bbb47625017c3fdcdc652828046cfb3951df58ea7",
+    "parent-ci/windows-latest/dmm-organization-host.json": "65c4307bb016a3bb6ee8565fabb0f42609b4d7364e1392266bfa3f9e982b7687",
+    "parent-ci/windows-latest/dmm-renderer.json": "c7110a1565360ca910aee642d8d21ef98a64ed4505e58790be0e76797fb07bd8",
+    "remote-checks.json": "5a2fb1d7770fbf16d9abc7ba38e1bc33634f17e05fee78330e3e014f0afd7dab",
+    "restored-source.json": "40d6a472b872630f4091b4d0f135cb5c43f1cbd6805ca1628c77ba5c012f6bb3",
+    "restored.png": "52cc70c1cddaf8a1908475c35c51989fa6940013c6ffd2e256abf3c926815eae",
+    "rollback-refused.png": "f4c30467c61f8655b62af5141ff84fd0d23c0d6d659cae1593f3746e7d46035f",
+    "transfer.json": "79a435d99087ad5a2d64f2728551e21a4d0d457dc7c2a7a9e04b73aced43fd51",
+    "verify-evidence.mjs": "9b5be86d97e0ea5ed9f302821c988af3a18d3a6f512eb6b38bdb9f98b5026d24"
+  }
+}
