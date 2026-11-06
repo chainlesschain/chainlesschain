@@ -15,9 +15,9 @@
   "goalExtension": {
     "apiVersion": "1.0.0",
     "hosts": {
-      "cli": ">=0.166.142",
-      "vscode": ">=0.37.178",
-      "jetbrains": ">=0.4.195"
+      "cli": ">=0.166.143",
+      "vscode": ">=0.37.179",
+      "jetbrains": ">=0.4.196"
     },
     "events": [
       "goal.status.changed",

@@ -5,7 +5,7 @@
   "permissions": { "goalExtension": ["proposal:task.create"] },
   "goalExtension": {
     "apiVersion": "1.0.0",
-    "hosts": { "cli": ">=0.166.142" },
+    "hosts": { "cli": ">=0.166.143" },
     "events": [],
     "panels": [],
     "proposals": ["task.create"]

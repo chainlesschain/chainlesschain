@@ -3,9 +3,9 @@
 This data-only scenario package combines evidence panels, bounded observations,
 retained event replay, user-selected task-description drafts and separately
 adopted task-creation request files, with separate CLI online creation drafts. It runs through
-the existing CLI and both IDE plugin managers. Requires CLI 0.166.142, Session
+the existing CLI and both IDE plugin managers. Requires CLI 0.166.143, Session
 Core 0.3.25 and a matching desktop build with the separately authorized goal
-connections. Paired IDE releases are Open VSX 0.37.178 and JetBrains 0.4.195.
+connections. Paired IDE releases are Open VSX 0.37.179 and JetBrains 0.4.196.
 The version ranges in the manifest are compatibility floors; each operation
 still needs its native source authorization.
 
