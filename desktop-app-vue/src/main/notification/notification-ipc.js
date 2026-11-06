@@ -6,6 +6,9 @@ const GOAL_NOTICE_SCHEMA = "chainlesschain.goal-notice-ref/v1";
 const SCAN_BATCH = 100;
 const { isProtectedBoardNotice } = require("./legacy-notification-filter");
 const {
+  currentProjectGoalDatabase,
+} = require("../task/project-goal-native-database.js");
+const {
   BOARD_NOTICE_SCHEMA,
   readBoardNoticeProjection,
 } = require("../task/board-notice-projection");
@@ -20,12 +23,10 @@ function errorCode(error) {
     : "NOTIFICATION_OPERATION_FAILED";
 }
 function notificationId(value) {
-  if (
-    !(
-      (typeof value === "string" && value.length > 0 && value.length <= 256) ||
-      (Number.isSafeInteger(value) && value >= 0)
-    )
-  )
+  if (!(
+    (typeof value === "string" && value.length > 0 && value.length <= 256) ||
+    (Number.isSafeInteger(value) && value >= 0)
+  ))
     fail("NOTIFICATION_INVALID_REQUEST");
   return String(value);
 }
@@ -82,10 +83,15 @@ function registerNotificationIPC({
       );
     platform.app.once("will-quit", unsubscribe);
   }
+  // The manager returns a SQLCipherWrapper in encrypted product sessions.
+  // Resolve its existing native connection without getHandle's auto-reopen,
+  // and compare that connection again throughout every notification operation.
   const currentDatabase = () =>
-    typeof database?.getDatabase === "function"
-      ? database.getDatabase()
-      : (database?.db ?? database);
+    currentProjectGoalDatabase(
+      typeof database?.getDatabase === "function"
+        ? database
+        : (database?.db ?? database),
+    );
 
   function currentWindow(event) {
     if (validateSender(event)?.trusted !== true)

@@ -518,10 +518,12 @@ async function save() {
   busy.value = true;
   error.value = "";
   try {
+    // Requests contain scalar fields; copy out of Vue refs before Electron's
+    // structured-clone boundary, retaining the original durable request ID.
     const result =
       pending.value.method === "recoverGoalMemoryOperation"
-        ? await api()!.recoverGoalMemoryOperation(pending.value.request)
-        : await api()![pending.value.method](pending.value.request);
+        ? await api()!.recoverGoalMemoryOperation({ ...pending.value.request })
+        : await api()![pending.value.method]({ ...pending.value.request });
     if (!current(stamp)) return;
     receipt(result);
     pending.value = null;
@@ -562,7 +564,7 @@ async function mutate(
   error.value = "";
   clearBodies();
   try {
-    const result = await api()![method](mutation.value.request);
+    const result = await api()![method]({ ...mutation.value.request });
     if (!current(stamp)) return;
     receipt(result);
     mutation.value = null;

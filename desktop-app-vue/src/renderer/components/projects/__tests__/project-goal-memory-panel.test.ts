@@ -1,5 +1,6 @@
 import { mount, flushPromises, type VueWrapper } from "@vue/test-utils";
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
+import { serialize } from "node:v8";
 import Panel from "../ProjectGoalMemoryPanel.vue";
 
 const goal = { id: "g1", revision: 2, status: "active" };
@@ -99,6 +100,22 @@ describe("goal memory renderer with fresh authority and durable request identity
         return unsubscribe;
       }),
     };
+    // Match Electron's native structured-clone boundary: Vue proxies must fail
+    // here instead of being silently accepted by an ordinary JavaScript mock.
+    for (const name of [
+      "createGoalMemory",
+      "correctGoalMemory",
+      "revokeGoalMemory",
+      "deleteGoalMemory",
+      "recoverGoalMemoryOperation",
+      "discardGoalMemoryOperation",
+    ]) {
+      const implementation = api[name].getMockImplementation();
+      api[name].mockImplementation(async (input: unknown) => {
+        serialize(input);
+        return implementation(input);
+      });
+    }
     (window as any).electronAPI = { project: api };
     wrapper = mount(Panel, { props: { goal, identityKey: "owner-auth-1" } });
   });

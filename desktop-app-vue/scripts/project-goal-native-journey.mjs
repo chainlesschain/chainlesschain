@@ -12,7 +12,11 @@ import { parseArgs } from "node:util";
 import { execFileSync } from "node:child_process";
 
 const { values } = parseArgs({
-  options: { electron: { type: "string" }, output: { type: "string" } },
+  options: {
+    electron: { type: "string" },
+    output: { type: "string" },
+    workspace: { type: "boolean", default: false },
+  },
 });
 if (process.platform !== "win32" || !values.electron || !values.output)
   throw new Error(
@@ -50,6 +54,7 @@ const evidence = {
   synthetic: true,
   setupSeeded: true,
   realBusinessAcceptance: false,
+  installedProductAcceptance: false,
   profileRetainedLocally: true,
   dialogs: [],
   stages: [],
@@ -424,7 +429,32 @@ try {
   });
   assert.equal(evidence.intent.executionState, "succeeded");
   assert.equal(evidence.intent.intent.runId, evidence.intent.receipt.run.id);
-  evidence.lineage = await api("getRiskLineage", { reviewId });
+  // An immediate scheduled occurrence and the explicit check may both have
+  // valid reviews. The proposal's current observation may advance again after
+  // preparation; the prepared intent retains the exact immutable source.
+  const intentReviewId = evidence.intent.intent.reviewId;
+  assert.equal(evidence.intent.intent.proposalId, proposalId);
+  assert.equal(intentReviewId, saved.intent.intent.reviewId);
+  evidence.intentSourceReview = await api("getRiskReview", {
+    reviewId: intentReviewId,
+  });
+  assert.equal(
+    evidence.intent.intent.reviewDigest,
+    require(
+      path.join(root, "packages/session-core/lib/business-object-contract.js"),
+    ).digestBusinessObjectContent(evidence.intentSourceReview),
+  );
+  assert.ok(
+    JSON.stringify(evidence.intentSourceReview).includes(
+      "OVERDUE_INCOMPLETE_TASK",
+    ),
+  );
+  assert.ok(
+    (await api("getGoalMonitoringStatus", { id: goalId })).history.some(
+      (item) => item.reviewId === intentReviewId,
+    ),
+  );
+  evidence.lineage = await api("getRiskLineage", { reviewId: intentReviewId });
   const linked = evidence.lineage.actionRuns.find(
     (item) => item.run.id === evidence.intent.receipt.run.id,
   );
@@ -439,7 +469,7 @@ try {
     ],
   );
   assert.equal(evidence.intent.intent.goalId, goalId);
-  assert.equal(evidence.intent.intent.reviewId, reviewId);
+  assert.equal(evidence.lineage.review.id, intentReviewId);
   stage("goal-native-confirmation-and-persisted-action-lineage");
 
   const checks = (await api("getGoalMonitoringStatus", { id: goalId })).usage
@@ -458,6 +488,28 @@ try {
   const stillActive = await api("readGoal", { id: goalId });
   assert.equal(stillActive.status, "active");
   assert.equal(stillActive.completion, null);
+  if (values.workspace) {
+    const helper = "./lib/project-goal-workspace-journey.cjs";
+    evidence.workspaceHelperSha256 = createHash("sha256")
+      .update(fs.readFileSync(new URL(helper, import.meta.url)))
+      .digest("hex");
+    evidence.workspace = {
+      synthetic: true,
+      realBusinessAcceptance: false,
+      status: "running",
+    };
+    await require(helper).exerciseGoalWorkspace({
+      window,
+      article,
+      api,
+      expect,
+      goalId,
+      projectId: project.id,
+      output,
+      stage,
+      result: evidence.workspace,
+    });
+  }
   const acceptance = article.locator('[data-testid="goal-acceptance-panel"]');
   for (const [index, checked] of [false, true, false, false].entries())
     await acceptance
