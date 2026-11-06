@@ -542,7 +542,7 @@ test("LLM webview preserves saved aliases and applies recommendations only on pr
       preset.id,
       "https://relay.example/v1",
       ["openai", "anthropic", "gemini", "ollama"].includes(preset.id)
-        ? "custom"
+        ? "relay"
         : preset.id,
     ]),
     ["openai", "https://api.openai.com/v1/", "openai"],

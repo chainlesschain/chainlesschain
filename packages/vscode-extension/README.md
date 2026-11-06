@@ -1,20 +1,836 @@
 # ChainlessChain IDE Bridge for VS Code
 
+ChainlessChain agent workspace for VS Code-compatible editors with streaming chat, inline assistance, governed review, sessions, automation, and a localhost MCP bridge.
+
+## Next release candidate
+
+Source candidate **0.37.179** recommends CLI **`0.166.143`** and pairs with JetBrains **0.4.196**. The extension has not been published. Session Core **0.3.26** and CLI **0.166.143** must pass exact-source gates, OIDC publication and public readback before IDE publication.
+
+This candidate adds local OpenAI-compatible compute configuration and explicit task-creation requests. Native creation requires matching desktop support and separate consent/confirmation; this release does not publish clients. LEXDATA real inference and real IDE GUI remain unverified. [Release stages](../../docs/research/cli/evidence/release143-public/README.md).
+
+## Current release
+
+<!-- release178-status -->
+
+Open VSX version **0.37.178** pairs with public CLI `0.166.142`.
+
+| Component                 | Current public status                                          |
+| ------------------------- | -------------------------------------------------------------- |
+| VS Code extension         | **0.37.178**; verified public Open VSX release                 |
+| Recommended CLI           | **`chainlesschain@0.166.142`**; verified public npm package    |
+| Base bridge compatibility | `cc >= 0.162.190`; individual features can require a newer CLI |
+
+CLI `0.166.142` is the recommended public CLI. Using `@0.166.142` selects this verified pairing.
+Install `npm i -g chainlesschain@0.166.142 --registry https://registry.npmjs.org`, restart the host, then run `cc --version` and `cc doctor`.
+Immutable tag `ide-vscode-v0.37.178` identifies source `b78cf0af8c8b0491189465773b148ac77c332222`.
+Download [chainlesschain-ide-0.37.178.vsix](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.178/file/chainlesschain.chainlesschain-ide-0.37.178.vsix).
+
+Public Open VSX **0.37.178** recommends CLI **`0.166.142`** and pairs with
+public JetBrains **0.4.195**. Exact source is `b78cf0af8c8b0491189465773b148ac77c332222`. It adds explicit
+authorized desktop goal observation and retained-history recovery through native
+connection/checkpoint pickers, with bounded plain-text results, cancellation and
+explicit next-page controls. It supports the admitted combined delivery scenario;
+native source consent and task confirmation remain separate. Session Core 0.3.25, CLI 0.166.142, complete host gates and public payload
+verification passed. Native history still requires the matching newer desktop
+client; product145 is not yet public. See [release evidence](../../docs/research/cli/evidence/release142-public/README.md).
+
+## Retained goal history (.178)
+
+The matching local CLI also ships the combined
+[`project-delivery-assistant` 0.2.0 scenario](../cli/src/lib/plugin-runtime/examples/project-delivery-assistant/README.md).
+Select that admitted plugin to use the existing evidence, event, replay and
+pending-description controls. Each surface keeps its separate desktop connection;
+installing the package starts no automatic work. Task creation and real GUI
+acceptance remain pending.
+
+In the plugin manager choose **Recover retained history…** for an admitted
+`goal-project-observer` plugin. Select a separately authorized v5
+`goal.event-history` connection, enter the desktop goal ID, then explicitly
+choose **Create new checkpoint…** or **Resume existing checkpoint…** using native
+file dialogs. The IDE passes paths to the selected CLI; it never opens credentials
+or checkpoint contents. Use matching local Session Core, desktop and CLI builds;
+the older public pairings below predate this feature.
+
+Each click reads one page, scanning at most 20 events. **Read next page / check
+again** uses the host's captured target/plugin binding and original checkpoint;
+there is no automatic loop or retry. A validated result appears only after CLI
+exit zero confirms checkpoint commit. Event IDs and sequence numbers help identify
+duplicates under at-least-once delivery. **Cancel and clear**, refresh, plugin
+operations, workspace changes and closing the manager cancel the owned process
+and invalidate continuation. Keep the checkpoint after interruption: it may
+already have advanced. Explicitly resume to continue. Retention gaps, database
+regression and changed bindings require inspection or an explicit new checkpoint.
+The newest 1000 instrumented events are retained, with no earlier-history backfill.
+Real IDE GUI and cross-platform acceptance remain pending.
+
+## Desktop goal event observer (.178)
+
+The plugin manager includes **Observe desktop events…** for an installed goal
+extension. First export a separately authorized v4 `goal.events` connection from
+the desktop, then select that file with the native picker and enter the goal ID
+shown in the desktop connection panel. Use a matching local CLI build and the
+trusted/consented `goal-project-observer` sample; the older public pairing described below predates this addition.
+
+The observer runs `goal watch` for at most 60 seconds and shows the latest 50
+observations as plain text. **Stop and clear**, refresh, plugin operations,
+workspace changes and closing the manager stop the owned CLI process and discard
+late results. Invalid streams clear the display. The extension never reads or
+displays the connection credential. Polling can miss intermediate changes and has
+no durable cursor or history replay; records do not prove current risk or goal
+completion. Protocol and real child-process tests are separate from a real
+VS Code GUI journey, which remains pending.
+
+## Previous verified release (.177 / .141)
+
+<!-- release177-status -->
+
+Open VSX version **0.37.177** pairs with public CLI `0.166.141`.
+
+| Component                 | Current public status                                          |
+| ------------------------- | -------------------------------------------------------------- |
+| VS Code extension         | **0.37.177**; verified public Open VSX release                 |
+| Recommended CLI           | **`chainlesschain@0.166.141`**; verified public npm package    |
+| Base bridge compatibility | `cc >= 0.162.190`; individual features can require a newer CLI |
+
+CLI `0.166.141` is the recommended public CLI. Using `@0.166.141` selects this verified pairing.
+
+## Previous CLI 0.166.141 / verified public pairing
+
+CLI **0.166.141** is public through GitHub Actions OIDC. Open VSX **0.37.177** and JetBrains **0.4.194** are public and both recommend CLI **0.166.141**. CLI public bytes, signed provenance, registry-only `--ignore-scripts` installation and the Agent capability startup probe passed. Both public IDE payloads match their official builds.
+
+Exact release source：`df9295e33ad04aec0aa74cab4dd242766d5556a4`。CLI CI **76/76** / Strict Sandbox **6/6** passed across Linux, Windows and macOS.
+
+This release preserves valid spread expressions in complete source previews, keeps read recovery actionable, and shares launcher-owned exact file scope across CLI and IDE evaluations. The diagnostic broker rejects a formal budget scope before reading options. Existing interactive permissions, IDE protocol and finite diagnostic limits remain.
+
+Install `npm i -g chainlesschain@0.166.141 --registry https://registry.npmjs.org`; restart CLI / IDE chat hosts, then run `cc --version` and `cc doctor`.
+
+No additional model-task retests were run. Volcengine corrected .140 round: generation **39/45**, strict acceptance **24/45**; historical automatic-deliverable union **36/45**, with **9** remaining and the verify-06 candidate-only qualification preserved. Sol original frozen-project history **41/45**, cross-version coverage including repaired sources **45/45**, and the separate .140 repaired-project four-case result **2/4** retain distinct scopes.
+
+[Publication evidence](../../docs/research/cli/evidence/release141-public/README.md) · [45-task ledger](../../docs/research/cli/verify01-36-plus-9-task-list.md)
+
+SDK **0.2.17**, Protocol **0.1.12**, Kernel **0.1.11** and child npm versions are unchanged; public child bytes and dependency installation were verified before CLI publication. PC/mobile **v5.0.3.144** remain independent. Microsoft Marketplace is deferred. NOT_PAID_READY / NOT_ADMITTED / HOLD remain.
+
+Immutable tag `ide-vscode-v0.37.177` identifies source `df9295e33ad04aec0aa74cab4dd242766d5556a4`. Download [chainlesschain-ide-0.37.177.vsix](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.177/file/chainlesschain.chainlesschain-ide-0.37.177.vsix). [Release workflow](https://github.com/chainlesschain/chainlesschain/actions/runs/41783621218).
+
+### Previous verified release (.176 / .140)
+
+<!-- release140-current:start -->
+
+## CLI 0.166.140 / rejected tool argument recovery
+
+As checked at **2026-11-03T11:42:31.329Z**, CLI **0.166.140** is verified public through [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/41610020835) from exact source `e2a91bf54332ff3d252c40ecc25c5887e0f0430d`. Public npm bytes, signed provenance, installation and startup have been verified. The same source passed every configured Linux, Windows and macOS CLI CI / CLI Strict Sandbox job.
+
+Open VSX **0.37.176** is public, listed and downloadable; its VSIX matches the official build byte for byte. JetBrains **0.4.193** has been uploaded and awaits Marketplace review or public indexing; public availability has not been verified. The previously verified public JetBrains release remains **0.4.192**, whose recommendation is CLI **0.166.139**. Both new IDE versions recommend CLI **0.166.140**.
+
+[Publication and channel receipts](../../docs/research/cli/evidence/release140-public/publication-readback.json) · [Exact-source gates](../../docs/research/cli/evidence/release140-public/gates.json) · [CLI public readback](../../docs/research/cli/evidence/release140-public/cli.json) · [Open VSX readback](../../docs/research/cli/evidence/release140-public/open-vsx.json) · [JetBrains status](../../docs/research/cli/evidence/release140-public/jetbrains.json)
+
+Install `npm i -g chainlesschain@0.166.140 --registry https://registry.npmjs.org`, restart the CLI and IDE chat hosts, then run `cc --version` and `cc doctor`.
+
+Malformed provider tool arguments are rejected before tool execution. A uniquely paired pre-execution rejection produces a model-only placeholder so the next turn can continue through strict self-evolution projection. Legacy run_code snapshot rejections can resume without replaying the rejected call; original durable history stays unchanged. Valid object arguments, duplicate-key rejection, nested JSON checks, redaction and decoding budgets retain their existing boundaries.
+
+Agent projection v10 also prevents genuine image and reasoning transport SHA-256 digests from being mistaken for phone numbers. Only authenticated protocol metadata uses the scan view; the original digest and byte-length restoration binding is unchanged. Real phone numbers, user-supplied digest-like text and forged markers retain their existing checks, and v1–v9 historical rules are preserved.
+
+The focused Windows checks passed **129 tests**. The earlier v9 recovery check used **five real Volcengine requests and 6,401 tokens**; its first scenario explicitly injected the exact logged malformed argument into one inbound model response. [Original scoped evidence](../../docs/research/cli/evidence/tool-argument-recovery-20261103/live-volcengine.json). The separate v10 check passed both recovery scenarios with **five real Volcengine requests and 6,501 tokens**, with runtime source hashes matching this release. [Additional scoped evidence](../../docs/research/cli/evidence/tool-argument-recovery-20261103/live-volcengine-v10.json). The complete related projector/agent-model tests passed **393/393**. These runs remain separate and add no historical model-task acceptance.
+
+Earlier candidate `eb0fe7a8a1` failed at the Windows ArtifactStore post-index integrity guard, then passed a complete three-OS loopback rerun. The exact rejected condition remains unresolved; the guard stays enforced. The [original failure](../../docs/research/cli/evidence/tool-argument-recovery-20261103/windows-eb-trajectory-attempt1-failure.json) and [complete rerun](../../docs/research/cli/evidence/tool-argument-recovery-20261103/windows-eb-trajectory-attempt2-aggregate.json) retain their historical source scope. The final release source separately passed 100 loopback runs on each of three operating systems; these 300 structural-envelope-only runs are not paid-provider task acceptance or a replacement for CLI CI / Strict Sandbox. Local composition runs timed out on both the v10 source and the earlier baseline and are not counted as passing.
+
+Agent SDK **0.2.17**, Protocol **0.1.12**, Kernel **0.1.11** and the other child packages retain their published versions; required upstream packages were fetched and dependency alignment verified before CLI publication. Microsoft Marketplace remains deferred. PC/mobile **v5.0.3.144** is already public as an independent release; this CLI/IDE follow-up does not republish clients. Historical .138 **2/4**, .137 **0/5** and cumulative **41/45** retain separate scopes.
+
+Immutable tag `ide-vscode-v0.37.176` identifies source `e2a91bf54332ff3d252c40ecc25c5887e0f0430d`. Download the verified [versioned VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.176/file/chainlesschain.chainlesschain-ide-0.37.176.vsix). [Official release workflow](https://github.com/chainlesschain/chainlesschain/actions/runs/41614441062).
+
+<!-- release140-current:end -->
+
+### Previous verified release (.175 / .139)
+
+<!-- release175-status -->
+
+Open VSX version **0.37.175** pairs with public CLI `0.166.139`.
+
+| Component                 | Current public status                                          |
+| ------------------------- | -------------------------------------------------------------- |
+| VS Code extension         | **0.37.175**; verified public release                          |
+| Recommended CLI           | **`chainlesschain@0.166.139`**; verified public npm package    |
+| Base bridge compatibility | `cc >= 0.162.190`; individual features can require a newer CLI |
+
+Immutable tag `ide-vscode-v0.37.175` identifies the release. Install `npm i -g chainlesschain@0.166.139`. Using `@0.166.139` selects this pairing. CLI `0.166.139` is the recommended public CLI. The public artifact is `chainlesschain-ide-0.37.175.vsix`: [versioned VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.175/file/chainlesschain.chainlesschain-ide-0.37.175.vsix). [Public verification](../../docs/research/cli/evidence/release139-public/open-vsx.json).
+
+<!-- release138-current:start -->
+
+## Previous public release: 0.37.174
+
+<!-- release174-status -->
+
+Open VSX version **0.37.174** pairs with public CLI `0.166.138`.
+
+CLI **0.166.138** and upstream Agent SDK **0.2.17** are published through GitHub Actions OIDC. Install `npm i -g chainlesschain@0.166.138 --registry https://registry.npmjs.org`, restart `cc ui` and IDE chat hosts, then run `cc --version` and `cc doctor`. Open VSX **0.37.174** publication succeeded. JetBrains **0.4.191** is uploaded and awaiting Marketplace approval/listing. Both new IDE versions recommend CLI **0.166.138**.
+
+Version **0.37.174** preserves provider/compaction diagnostics and saved tool-result identity across reload. Its complete [tagged release workflow](https://github.com/chainlesschain/chainlesschain/actions/runs/41316653600) passed. Install the [versioned VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.174/file/chainlesschain.chainlesschain-ide-0.37.174.vsix). [Publication evidence](../../docs/research/cli/evidence/release138-public/README.md).
+
+Main also contains the later standalone WebSocket host-model-policy repair (`2e97ce3d79`), awaiting its own fully validated CLI release. The published CLI 0.166.138 remains bound to its verified release source.
+
+Immutable tag `ide-vscode-v0.37.174` identifies this public extension release. The versioned download is `chainlesschain-ide-0.37.174.vsix`; its official workflow and publication evidence are linked above. Using `@0.166.138` selects this verified pairing. CLI `0.166.138` is the recommended public CLI for this extension.
+
+| Component                 | Current public status                                               |
+| ------------------------- | ------------------------------------------------------------------- |
+| VS Code extension         | **0.37.174**; public through the verified official release workflow |
+| Recommended CLI           | **`chainlesschain@0.166.138`**; verified public package             |
+| Base bridge compatibility | `cc >= 0.162.190`; individual features can require a newer CLI      |
+| Editor compatibility      | VS Code `>= 1.85.0` and compatible Open VSX editors                 |
+| Distribution              | Open VSX and versioned VSIX; Microsoft Marketplace deferred         |
+
+<!-- release138-current:end -->
+
+## Self-evolution switch
+
+完整中文配置与排查步骤见[CLI 与 IDE 自进化开关配置](../../docs/cli/SELF_EVOLUTION_CONFIGURATION.md)。
+
+Open **Skill 自进化配置** from the command palette to enable or disable self-evolution. It defaults to off and shares `evolution.enabled` in the CLI user `config.json` with `cc ui` and JetBrains. Enabling can initialize the local signed runtime; disabling keeps ordinary Agent use available and preserves deployment data. Stop and restart a running Agent session after switching. These controls require CLI 0.166.127 and the paired extension version below.
+
+## Previous public release: 0.37.173
+
+<!-- release173-status -->
+
+Open VSX version **0.37.173** pairs with public CLI `0.166.135`.
+
+The complete [release workflow](https://github.com/chainlesschain/chainlesschain/actions/runs/41171249316) passed, including real Linux, Windows and macOS host gates. The public VSIX matches the official candidate byte for byte. CLI `0.166.135` remains this extension's recommended public pairing; CLI **0.166.136** is also publicly available. JetBrains **0.4.189** is approved and publicly downloadable. Kernel remains **0.1.11**. [Public package verification](../../docs/research/cli/evidence/release136-public/README.md).
+
+Immutable tag `ide-vscode-v0.37.173` selects source `98db89940de30106f57ee73c063acf249d23bec0`. Download the [versioned VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.173/file/chainlesschain.chainlesschain-ide-0.37.173.vsix), `chainlesschain-ide-0.37.173.vsix`.
+
+Install CLI with `npm i -g chainlesschain@0.166.135 --registry https://registry.npmjs.org`. Using `@0.166.135` selects this verified pairing. Restart the chat host and run `cc --version` and `cc doctor`. This pairing carries CLI Responses recovery, bounded completion/cancellation, context-summary retention and saved launch-policy fixes. Historical OpenAI acceptance remains **39/45**, with no new model-task acceptance from publication.
+
+| Component                 | Current public status                                           |
+| ------------------------- | --------------------------------------------------------------- |
+| VS Code extension         | **0.37.173**; public and listed, with a verified immutable VSIX |
+| Recommended CLI           | **`chainlesschain@0.166.135`**; verified public package         |
+| Base bridge compatibility | `cc >= 0.162.190`; individual features can require a newer CLI  |
+| Editor compatibility      | VS Code `>= 1.85.0` and compatible Open VSX editors             |
+| Distribution              | Open VSX and versioned VSIX; Microsoft Marketplace deferred     |
+
+### Previous verified release (.171 / .133)
+
+<!-- release171-status -->
+
+Open VSX version **0.37.171** pairs with public CLI `0.166.133`.
+
+Public Open VSX **0.37.171** recommends public CLI **0.166.133**. Its [release workflow](https://github.com/chainlesschain/chainlesschain/actions/runs/41075702976) passed, and the downloaded VSIX matches the official candidate byte for byte. Paired JetBrains **0.4.188** is approved, listed and publicly downloadable; its original payload matches the official build and also recommends CLI **0.166.133**. Kernel remains **0.1.11**. The CLI fixes empty Responses reasoning-summary replay, honors disabled self-evolution across `cc ui`, supports custom OpenAI-compatible local/LAN platforms, and exposes canonical allowed mutation paths while retaining execution-time scope checks. [Release evidence](../../docs/research/cli/evidence/release133-public/README.md). No independent IDE UI change or new real-model task acceptance is claimed.
+
+Immutable tag `ide-vscode-v0.37.171` selects source `2eb0c5b1e048509362f9d980f94acee55c2ffa9f`. Download the [versioned VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.171/file/chainlesschain.chainlesschain-ide-0.37.171.vsix), `chainlesschain-ide-0.37.171.vsix`.
+
+Install CLI with `npm i -g chainlesschain@0.166.133 --registry https://registry.npmjs.org`. Using `@0.166.133` selects this verified pairing. CLI `0.166.133` is the recommended public release for this extension pairing. Restart the chat host and run `cc --version` and `cc doctor`.
+
+| Component                 | Current public status                                           |
+| ------------------------- | --------------------------------------------------------------- |
+| VS Code extension         | **0.37.171**; public and listed, with a verified immutable VSIX |
+| Recommended CLI           | **`chainlesschain@0.166.133`**; verified public package         |
+| Base bridge compatibility | `cc >= 0.162.190`; individual features can require a newer CLI  |
+| Editor compatibility      | VS Code `>= 1.85.0` and compatible Open VSX editors             |
+| Distribution              | Open VSX and versioned VSIX; Microsoft Marketplace deferred     |
+
+### Previous verified release (.170 / .132)
+
+<!-- release170-status -->
+
+Open VSX version **0.37.170** pairs with public CLI `0.166.132`.
+
+Open VSX **0.37.170** is public and listed, paired with approved JetBrains **0.4.187**. Immutable tag `ide-vscode-v0.37.170` selects [source 772fcdbda85bcf91df95bfced5b476dcf4c74614](https://github.com/chainlesschain/chainlesschain/commit/772fcdbda85bcf91df95bfced5b476dcf4c74614). The [release run](https://github.com/chainlesschain/chainlesschain/actions/runs/40987417858) passed; the [versioned VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.170/file/chainlesschain.chainlesschain-ide-0.37.170.vsix), `chainlesschain-ide-0.37.170.vsix`, matches [official candidate artifact 12947916372](https://github.com/chainlesschain/chainlesschain/actions/runs/40987417858/artifacts/12947916372) byte for byte. [Public readback](https://github.com/chainlesschain/chainlesschain/blob/0d57ebfea919ae941a36a1f11a9ee10964722120/docs/research/cli/evidence/release132-public/open-vsx.json) · [validation gates](https://github.com/chainlesschain/chainlesschain/blob/0d57ebfea919ae941a36a1f11a9ee10964722120/docs/research/cli/evidence/release132-public/gates.json) · [publication evidence](https://github.com/chainlesschain/chainlesschain/blob/0d57ebfea919ae941a36a1f11a9ee10964722120/docs/research/cli/evidence/release132-public/publication.json).
+
+Install CLI with `npm i -g chainlesschain@0.166.132 --registry https://registry.npmjs.org`. Using `@0.166.132` selects this verified pairing. Restart the chat host and run `cc --version` and `cc doctor`. This release pairs the CLI response completion and current-task protections; it contains no independent IDE UI change.
+
+| Component                 | Current public status                                           |
+| ------------------------- | --------------------------------------------------------------- |
+| VS Code extension         | **0.37.170**; public and listed, with a verified immutable VSIX |
+| Recommended CLI           | **`chainlesschain@0.166.132`**; verified public package         |
+| Base bridge compatibility | `cc >= 0.162.190`; individual features can require a newer CLI  |
+| Editor compatibility      | VS Code `>= 1.85.0` and compatible Open VSX editors             |
+| Distribution              | Open VSX and versioned VSIX; Microsoft Marketplace deferred     |
+
+At historical source `abbe13ad3658ff9e2e100989a4cfefc409d9261c`, the combined local suite actually ran **456 tests across 18 files + 10 real CLI tests across 3 files**, with no skips. Subsequent fixture and native-preflight repairs compared the selected runtime components byte for byte; release source `772fcdbda85bcf91df95bfced5b476dcf4c74614` did **not** repeat that combined local suite. [Component scope evidence](https://github.com/chainlesschain/chainlesschain/blob/0d57ebfea919ae941a36a1f11a9ee10964722120/docs/research/cli/evidence/release132-native-preflight-2026-10-30/review.json) and the release source's [cloud gates](https://github.com/chainlesschain/chainlesschain/blob/0d57ebfea919ae941a36a1f11a9ee10964722120/docs/research/cli/evidence/release132-public/gates.json) retain this distinction. Failed source `40753f179a3dc18760bd64a754b28a46ba718f57` and the earlier superseded `7f8ef64b4bd8b429f97d2e121c440143ed7ddf3b` remain historical; their successful checks do not transfer to this release.
+
+Automatic acceptance remains **34/45**, with **11** unfinished; **3 assisted deliveries** are recorded separately and are not added to that total. The original broker **403** and Memory cold SLO remain unresolved. Publication adds no task acceptance or paid/native admission: **NOT_PAID_READY / NOT_ADMITTED / HOLD** remain. Microsoft Marketplace remains deferred. PC/mobile **v5.0.3.143** remain independent.
+
+### Previous verified release (.169 / .131)
+
+<!-- release169-status -->
+
+Open VSX version **0.37.169** pairs with public CLI `0.166.131`.
+
+Open VSX **0.37.169** is public and recommends verified CLI **0.166.131**, paired with approved JetBrains **0.4.186**. Exact-source release [40866847689](https://github.com/chainlesschain/chainlesschain/actions/runs/40866847689) passed. The [versioned VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.169/file/chainlesschain.chainlesschain-ide-0.37.169.vsix) matches official candidate artifact **12893588967** byte for byte. [Public readback](../../docs/research/cli/evidence/release131-public/open-vsx.json). Microsoft Marketplace remains deferred. Install CLI with `npm i -g chainlesschain@0.166.131 --registry https://registry.npmjs.org`, restart the host and run `cc --version` and `cc doctor`. Acceptance remains **34/45**; older notes below retain their historical scope.
+
+Release identity: `ide-vscode-v0.37.169` selects source `c9d0bab231850697df38f2d476c2dd974cbcb6c0`; the versioned artifact is `chainlesschain-ide-0.37.169.vsix`. CLI `0.166.131` is the recommended public release. Using `@0.166.131` selects this verified pairing.
+
+| Component                 | Current public status                                                 |
+| ------------------------- | --------------------------------------------------------------------- |
+| VS Code extension         | **0.37.169**; public and listed, with a verified immutable VSIX       |
+| Recommended CLI           | **`chainlesschain@0.166.131`**; public recommendation of this release |
+| Base bridge compatibility | `cc >= 0.162.190`; newer features can require a newer CLI             |
+| Editor compatibility      | VS Code `>= 1.85.0` and compatible Open VSX editors                   |
+| Distribution              | Open VSX; versioned VSIX for stock Microsoft VS Code                  |
+
+### Previous verified release (.168 / .130)
+
+<!-- release168-status -->
+
+Open VSX version **0.37.168** pairs with public CLI `0.166.130`.
+
+Open VSX **0.37.168** is public and listed. Immutable tag `ide-vscode-v0.37.168` selects source `f3015e799624b81af564aaaa1b7701c0a5c70e26`; the [release workflow](https://github.com/chainlesschain/chainlesschain/actions/runs/40800404921) passed. The public [versioned VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.168/file/chainlesschain.chainlesschain-ide-0.37.168.vsix), artifact `chainlesschain-ide-0.37.168.vsix`, has verified archive content against tagged CI. Public SHA-256: `00da15be7656736cf6b9542a73e2b0c6263220aa9319616fc8882a10cc44f8c9`. [Public readback](../../docs/research/cli/evidence/release130-public/open-vsx.json).
+
+| Component                 | Current status                                                        |
+| ------------------------- | --------------------------------------------------------------------- |
+| VS Code extension         | **0.37.168**; public and listed, with a verified immutable VSIX       |
+| Recommended CLI           | **`chainlesschain@0.166.130`**; public recommendation of this release |
+| Base bridge compatibility | `cc >= 0.162.190`; newer features can require a newer CLI             |
+| Editor compatibility      | VS Code `>= 1.85.0` and compatible Open VSX editors                   |
+| Distribution              | Open VSX; versioned VSIX for stock Microsoft VS Code                  |
+
+CLI `0.166.130` is the recommended public release. Install with `npm i -g chainlesschain@0.166.130 --registry https://registry.npmjs.org`. Using `@0.166.130` selects this verified pairing. Restart the chat host, then check `cc --version`, `cc doctor` and the executable path. JetBrains **0.4.185** is approved and public. Microsoft Marketplace remains unpublished.
+
+This release retains shared model configuration, conversation isolation and clean-home onboarding validation. Historical cumulative accepted deliverables remain **34/45** (ordinary **27/36**, first-run **7/9**), with **11** unfinished. The frozen formal evaluation remains **NOT_RUN (0/36, 0/9)**. Publication and CI add no task acceptance; **NOT_PAID_READY / NOT_ADMITTED / HOLD** remain. Public `.130` pins `@chainlesschain/context-memory-kernel@0.1.10`. Later main-branch kernel `0.1.11`, independent `verify:` Goal checks, Memory disk cancellation/cache changes and Terra capability/billing work are unreleased and require a separate release with child publication and fresh exact-source gates. [Current upgrade guide](../../docs-site/docs/chainlesschain/agent-platform-release.md).
+
+### Previous verified release (.167 / .129)
+
+<!-- release167-status -->
+
+Open VSX version **0.37.167** pairs with public CLI `0.166.129`.
+
+Open VSX **0.37.167** is public and listed. Immutable tag `ide-vscode-v0.37.167` selects source `800e9cc99711f9f02eb3bbd78eb14600406bdba5`; the [release workflow](https://github.com/chainlesschain/chainlesschain/actions/runs/40724836985) passed. The public [versioned VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.167/file/chainlesschain.chainlesschain-ide-0.37.167.vsix), artifact `chainlesschain-ide-0.37.167.vsix`, matches the immutable CI archive: SHA-256 `daa1dfc582631c645037bac9720d26d5669ca5a47ba78075e9fac82535a375c8`. [Public readback](../../docs/research/cli/evidence/release129-public/open-vsx.json).
+
+| Component                 | Current status                                                        |
+| ------------------------- | --------------------------------------------------------------------- |
+| VS Code extension         | **0.37.167**; public and listed, with a verified immutable VSIX       |
+| Recommended CLI           | **`chainlesschain@0.166.129`**; public recommendation of this release |
+| Base bridge compatibility | `cc >= 0.162.190`; newer features can require a newer CLI             |
+| Editor compatibility      | VS Code `>= 1.85.0` and compatible Open VSX editors                   |
+| Distribution              | Open VSX; versioned VSIX for stock Microsoft VS Code                  |
+
+CLI `0.166.129` is the recommended public release. Install with `npm i -g chainlesschain@0.166.129 --registry https://registry.npmjs.org`. Using `@0.166.129` selects this verified pairing. Restart the chat host, then check `cc --version`, `cc doctor` and the executable path. JetBrains **0.4.184** is also approved and public. Microsoft Marketplace is deferred and remains unpublished.
+
+This release retains shared model configuration and conversation-local overrides and includes clean-home onboarding validation. Cumulative task acceptance is **34/45**, with **11** unfinished; **NOT_PAID_READY / NOT_ADMITTED / HOLD** remain. Later main-branch Goal, Memory and Terra changes are not included in these public artifacts. [Upgrade guide](../../docs-site/docs/chainlesschain/cli-ide-update-2026-10-29.md).
+
+### Previous verified release (.166 / .128)
+
+<!-- release166-status -->
+
+Open VSX version **0.37.166** pairs with public CLI `0.166.128`.
+
+Open VSX **0.37.166** is listed as latest and publicly downloadable. Immutable tag `ide-vscode-v0.37.166` selects source `6551a06c2f694bb93d0197fa8b82becd25a83173`; the [release workflow](https://github.com/chainlesschain/chainlesschain/actions/runs/40557016206) passed. The downloaded [versioned VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.166/file/chainlesschain.chainlesschain-ide-0.37.166.vsix) matches that workflow's artifact byte for byte: SHA-256 `632b87b1c22e627895b3a01c73ef9e7075176a96e5ab4335d0aad9b610169bb0`. Install its recommended CLI with `npm i -g chainlesschain@0.166.128 --registry https://registry.npmjs.org`. [Public readback](../../docs/research/cli/evidence/release128-public/open-vsx.json).
+
+| Component                 | Current status                                                        |
+| ------------------------- | --------------------------------------------------------------------- |
+| VS Code extension         | **0.37.166**; public and listed, with a verified immutable VSIX       |
+| Recommended CLI           | **`chainlesschain@0.166.128`**; public recommendation of this release |
+| Base bridge compatibility | `cc >= 0.162.190`; newer features can require a newer CLI             |
+| Editor compatibility      | VS Code `>= 1.85.0` and compatible Open VSX editors                   |
+| Distribution              | Open VSX; versioned VSIX for stock Microsoft VS Code                  |
+
+CLI `0.166.128` is the recommended public release. Using `@0.166.128` selects this verified pairing. Microsoft Marketplace remains unpublished.
+
+### Previous verified release (.165 / .127)
+
+<!-- release165-status -->
+
+Open VSX version **0.37.165** pairs with public CLI `0.166.127`. It is public and listed, preserves saved input attachments while an Agent may still read them, and rejects discard operations queued by an obsolete page or conversation. Exact source `43eff58a75c0702b17d7b99b2da5a199cef45a20` passed the Linux, Windows and macOS browser and host gates plus genuine Remote SSH verification in the [release workflow](https://github.com/chainlesschain/chainlesschain/actions/runs/40403003998). The public VSIX matches the immutable candidate by raw archive and canonical ZIP content hashes. [Publication evidence](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release127-public/open-vsx.json).
+
+Release identity: `ide-vscode-v0.37.165`. Download the [versioned VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.165/file/chainlesschain.chainlesschain-ide-0.37.165.vsix), artifact `chainlesschain-ide-0.37.165.vsix`. Install its recommended CLI with `npm i -g chainlesschain@0.166.127 --registry https://registry.npmjs.org`. Using `@0.166.127` selects that public release. JetBrains **0.4.182** is public; its exact-source release gates and public ZIP payload comparison passed. Microsoft Marketplace remains unpublished.
+
+| Component                 | Current status                                                        |
+| ------------------------- | --------------------------------------------------------------------- |
+| VS Code extension         | **0.37.165**; public and listed, with a verified immutable VSIX       |
+| Recommended CLI           | **`chainlesschain@0.166.127`**; public recommendation of this release |
+| Base bridge compatibility | `cc >= 0.162.190`; newer features can require a newer CLI             |
+| Editor compatibility      | VS Code `>= 1.85.0` and compatible Open VSX editors                   |
+| Distribution              | Open VSX; versioned VSIX for stock Microsoft VS Code                  |
+
+No new live model-task acceptance is claimed: cumulative acceptance is **32/45**, with **13** unfinished; **NOT_PAID_READY / NOT_ADMITTED / HOLD** remain. The self-evolution controls above are available in this public release.
+
+### Previous verified release (.163 / .179 / .125)
+
+<!-- release163-status -->
+
+Open VSX version **0.37.163** pairs with public CLI `0.166.125`. It is public and listed, preserves saved input attachments while an Agent may still read them, and rejects discard operations queued by an obsolete page or conversation. Exact source `ed07dc8673769f6caab78bca55737f30137f1c6a` passed the Linux, Windows and macOS browser and host gates plus genuine Remote SSH verification in the [release workflow](https://github.com/chainlesschain/chainlesschain/actions/runs/40351653016). The public VSIX matches the immutable candidate by raw archive and canonical ZIP content hashes. [Publication evidence](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release126-public/open-vsx.json).
+
+Release identity: `ide-vscode-v0.37.163`. Download the [versioned VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.163/file/chainlesschain.chainlesschain-ide-0.37.163.vsix), artifact `chainlesschain-ide-0.37.163.vsix`. Install its recommended CLI with `npm i -g chainlesschain@0.166.125 --registry https://registry.npmjs.org`. Using `@0.166.125` selects that public release. JetBrains **0.4.179** remains the existing public version. Microsoft Marketplace remains unpublished.
+
+| Component                 | Current status                                                        |
+| ------------------------- | --------------------------------------------------------------------- |
+| VS Code extension         | **0.37.163**; public and listed, with a verified immutable VSIX       |
+| Recommended CLI           | **`chainlesschain@0.166.125`**; public recommendation of this release |
+| Base bridge compatibility | `cc >= 0.162.190`; newer features can require a newer CLI             |
+| Editor compatibility      | VS Code `>= 1.85.0` and compatible Open VSX editors                   |
+| Distribution              | Open VSX; versioned VSIX for stock Microsoft VS Code                  |
+
+No new live model-task acceptance is claimed: cumulative acceptance is **32/45**, with **13** unfinished; **NOT_PAID_READY / NOT_ADMITTED / HOLD** remain. The self-evolution controls above belong to the .165 source pairing with CLI .127.
+
+### Previous verified release (.162 / .179 / .123)
+
+<!-- release162-status -->
+
+Open VSX version **0.37.162** pairs with public CLI `0.166.123`.
+
+Release identity: `ide-vscode-v0.37.162`. The saved [publication receipt](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release125-public/publication.json) records the public version and its CLI recommendation; it does not claim a new IDE archive comparison by this recovery change. Download the [versioned VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.162/file/chainlesschain.chainlesschain-ide-0.37.162.vsix), artifact `chainlesschain-ide-0.37.162.vsix`. Install its recommended CLI with `npm i -g chainlesschain@0.166.123 --registry https://registry.npmjs.org`. Using `@0.166.123` selects that public CLI release. JetBrains **0.4.179** remains the existing public pairing.
+
+No new live model-task acceptance was run. Cumulative acceptance remains **32/45**, with **13** unfinished; **NOT_PAID_READY**, **NOT_ADMITTED** and automatic promotion **HOLD** remain. Microsoft Marketplace remains unpublished.
+
+### Previous verified release (.161 / .178 / .121)
+
+<!-- release161-status -->
+
+Open VSX version **0.37.161** pairs with public CLI `0.166.121`.
+
+The immutable `ide-vscode-v0.37.161` tag selects source `4a7e5adc5e6a241434ecfa906a272e34b5ea6d2a`. Its [release workflow](https://github.com/chainlesschain/chainlesschain/actions/runs/40227329131) passed the Linux, Windows and macOS host gates. The public [versioned VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.161/file/chainlesschain.chainlesschain-ide-0.37.161.vsix) matches the immutable CI candidate by raw archive SHA-256 and canonical ZIP content digest, and recommends CLI `0.166.121`. Install with `npm i -g chainlesschain@0.166.121 --registry https://registry.npmjs.org`. Using `@0.166.121` selects this verified CLI release.
+
+JetBrains **0.4.178** is approved, publicly listed and its downloaded ZIP identity and CLI recommendation are verified. All candidate inner JAR entries match, with no added entries; raw ZIP bytes differ. [Publication evidence](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release121-public/publication.json). Microsoft Marketplace remains unpublished; stock VS Code can install the versioned VSIX.
+
+No new live model-task acceptance was run. Cumulative acceptance remains **32/45**, with **13** unfinished; **NOT_PAID_READY**, **NOT_ADMITTED** and automatic promotion **HOLD** remain.
+
+### Previous verified release (.159 / .176 / .117)
+
+<!-- release159-status -->
+
+Open VSX version **0.37.159** pairs with public CLI `0.166.117`.
+
+The immutable `ide-vscode-v0.37.159` tag selects source `ab31677d6691b4fdd5390e16fae60de5a5895cf1`. Its [release workflow](https://github.com/chainlesschain/chainlesschain/actions/runs/39852148558) passed the Linux, Windows and macOS host gates, three-system browser evidence and Remote SSH checks. The public [versioned VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.159/file/chainlesschain.chainlesschain-ide-0.37.159.vsix) has the same contents as the immutable CI candidate and recommends CLI `0.166.117`. Install the CLI with `npm i -g chainlesschain@0.166.117 --registry https://registry.npmjs.org`.
+
+JetBrains **0.4.176** is approved, publicly listed and its public ZIP version and compiled CLI recommendation have been verified. [Publication evidence](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release117-public/publication.json).
+
+No new live model-task acceptance was run. Historical acceptance remains **31/45** across versions, with **14** unaccepted; **NOT_PAID_READY**, **NOT_ADMITTED** and automatic promotion **HOLD** remain. Microsoft Marketplace remains unpublished. Native product **v5.0.3.140** is a separate release.
+
+### Previous verified release (.155 / .172 / .112)
+
+<!-- release155-status -->
+
+Open VSX version **0.37.155** pairs with public CLI `0.166.112`.
+
+Checked on **2026-10-22**: npm CLI **0.166.112**, Open VSX **0.37.155** and JetBrains Marketplace **0.4.172** are public and downloadable. Both IDE artifacts recommend CLI **0.166.112**.
+
+npm publication used GitHub Actions OIDC from source `35a2508d156152a61d74fbf8135fcfa1225fe235` ([publish run](https://github.com/chainlesschain/chainlesschain/actions/runs/39661868416)); all 71 CLI CI jobs and all 5 Strict Sandbox jobs passed on that exact source. The public tarball integrity and npm provenance source/run binding were read back. Session Core **0.3.21** was available before CLI publication.
+
+The IDE tags `ide-vscode-v0.37.155` and `ide-jetbrains-v0.4.172` point to `ae27ef6dfc8cf1e45bf084030816b02c77dc2a34`. [Open VSX publication](https://github.com/chainlesschain/chainlesschain/actions/runs/39673804362) passed. [JetBrains publication, attempt 2](https://github.com/chainlesschain/chainlesschain/actions/runs/39676899944/attempts/2) passed after one bounded macOS 2024.2 rerun; the original performance failure is retained. JetBrains now reports `approve=true`, `listed=true`, `hidden=false`. Both public IDE archives were downloaded and their embedded version and CLI pairing checked. [Public readback evidence](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release112-public/publication.json).
+
+No new model-task retest was run for this release; local Ollama model validation is left to the user after upgrading. Historical cross-version accepted deliveries remain **31/45** (**26/36** ordinary, **5/9** first-run), with **14** unaccepted. This is not a .112 single-round success rate. **NOT_PAID_READY**, **NOT_ADMITTED** and automatic promotion **HOLD** remain. Microsoft VS Code Marketplace remains unpublished; stock VS Code users can install the public Open VSX VSIX. Native product **v5.0.3.140** is a separate release; desktop integration requires matching builds, authorization and native confirmation.
+
+### Previous verified release (.153 / .170 / .108)
+
+<!-- release108-status -->
+
+Open VSX extension **0.37.153** recommends public CLI `0.166.108`.
+
+Checked on 2026-10-21:
+
+npm CLI **0.166.108**: public; exact-source gates and public artifact readback verified; source `e77c7ba85783576ac523dd73bc760bda63d91f3b`; [Actions 1](https://github.com/chainlesschain/chainlesschain/actions/runs/39484583983); [receipt](https://github.com/chainlesschain/chainlesschain/blob/08ffc589ec0f0c7ad5af87eb54c5efcce739a2f9/docs/research/cli/evidence/release108-public/publication.json).
+
+Open VSX **0.37.153**: public; exact-source gates and public artifact readback verified; source `e77c7ba85783576ac523dd73bc760bda63d91f3b`; [Actions 1](https://github.com/chainlesschain/chainlesschain/actions/runs/39486919504); [receipt](https://github.com/chainlesschain/chainlesschain/blob/08ffc589ec0f0c7ad5af87eb54c5efcce739a2f9/docs/research/cli/evidence/release108-public/publication.json).
+
+JetBrains Marketplace **0.4.170**: public; exact-source gates and public artifact readback verified; source `e77c7ba85783576ac523dd73bc760bda63d91f3b`; [Actions 1](https://github.com/chainlesschain/chainlesschain/actions/runs/39486921296/attempts/2); [receipt](https://github.com/chainlesschain/chainlesschain/blob/08ffc589ec0f0c7ad5af87eb54c5efcce739a2f9/docs/research/cli/evidence/release108-public/publication.json).
+
+No new model-task retest was run for this release. Historical `.105/.150/.167` generation and independent acceptance each collected **20/20** records and added **6** passes. Cumulative cross-version accepted deliveries remain **31/45** (**26/36** ordinary, **5/9** first-run), with **14** unaccepted; this is not a .108 single-round success rate. **NOT_PAID_READY**, **NOT_ADMITTED** and automatic promotion **HOLD** remain. Microsoft Marketplace remains unpublished. Native product **v5.0.3.140** is a separate release; desktop integration still requires matching builds, desktop authorization and native confirmation.
+
+Public Open VSX 0.37.153 and JetBrains Marketplace 0.4.170 recommend public CLI 0.166.108. All three channels have passed exact-source release gates and public artifact verification.
+
+<details>
+<summary>Public snapshot before .108 (historical)</summary>
+
+Checked on 2026-10-20: npm CLI **0.166.107**, Session Core **0.3.20**, Open VSX **0.37.152** and JetBrains **0.4.169** are public. Both IDEs recommend CLI `.107`. CLI release source is `6775d7a2de`; IDE source is `94429fada4`. Complete release gates and public artifact readback passed. The historical `.105/.150/.167` retest collected **20/20** generation and independent acceptance records and added **6** passes. Cumulative cross-version accepted deliveries are **31/45** (**26/36** ordinary, **5/9** first-run), with **14** unaccepted. This release has no new model task retest; cumulative coverage is not a .107 single-round success rate. Microsoft Marketplace remains unpublished.
+
+</details>
+
+## Release compatibility
+
+Candidate Open VSX **0.37.177** recommends CLI **`0.166.141`** and pairs with JetBrains **0.4.194** after verified CLI publication; Kernel remains **0.1.11**. The CLI preserves legitimate complete-source read previews and aligns launcher-owned evaluation entry boundaries. Microsoft Marketplace remains deferred.
+
+### What's new in 0.37.159
+
+- Pair with CLI 0.166.117 for strict source and command evidence projection, complete JSON output previews, cumulative evidence budgets, and separate image and provider token accounting.
+- Update the package version and recommended CLI pairing. The release workflow verifies the exact source and artifact after the paired CLI becomes publicly available.
+
+### Changes carried from 0.37.155
+
+- Pair with CLI 0.166.112 for saved provider settings, native Gemini/Anthropic routing, Ollama URL normalization, and first-use local Quick Ask signing setup.
+- This extension release updates its recommended CLI floor and package version; it does not change extension runtime behavior. The tagged IDE workflow verifies the exact source and public VSIX artifact.
+
+### Changes carried from 0.37.150
+
+- Recommend CLI 0.166.105 for coding guidance, static import feedback, deferred-work completion protection and safe transport diagnostics.
+- Retain shared SDK recovery; no task-specific answers or extra model retries are introduced.
+- Published-package task retesting follows full release gates and public readback.
+
+### Changes carried from 0.37.148
+
+- Automatically recover draft capacity by reclaiming empty records and copies
+  of accepted inputs. Preserve unsent drafts, attachments, saved question answers
+  and submissions whose acceptance is unconfirmed.
+- Clear empty composers and manage existing drafts even when storage is full.
+- Recommend CLI 0.166.103 with repaired session pricing validation, reviewed
+  model tiers, runtime reliability improvements and PDH 0.4.65 citation snapshots.
+- Show aggregate usage when detailed input/output token counts are absent.
+- Publish only after the paired CLI and the final source commit's release gates.
+
+### Changes carried from 0.37.143
+
+- Defer periodic Workbench projection reads while a user action is in progress.
+  Preserve fresh authority/revision checks and the final canonical read.
+- Discard obsolete reads and isolate action/refresh state for each panel,
+  including when closing and reopening while a command is pending.
+- Pair with CLI 0.166.99 for byte-preserving text edit refusal, precise Haiku
+  5.5 and cache pricing, search validation and terminal provider retry handling.
+- Retain Agent SDK 0.2.14 and the existing bridge compatibility floor.
+  Exact-commit host performance, native review and formal evaluation remain
+  separate acceptance conditions.
+
+### Changes carried from 0.37.139
+
+- Extension `0.37.139` paired with public CLI `0.166.94`.
+- Reduce contention between concurrent permission-rule writes while retaining
+  the two-second acquisition deadline, synchronous revocation and unknown
+  commit handling.
+- Retain the base compatibility floor and live receipt/mode diagnostics.
+
+### Changes carried from 0.37.136
+
+- Retain persistent Personal Data Hub projection recovery,
+  consumer retirement, and bounded cleanup of historical receipts.
+- Run `cc project risk-evaluate --snapshot <file>` and
+  `cc project task-description-preview --snapshot <file>` in the CLI with
+  explicit offline source data. Incomplete risk data remains distinct from zero
+  matching signals; a task-description preview performs no write.
+
+### Changes carried from 0.37.134
+
+- Add an optional raw session observer for evaluation drivers. Input attempts,
+  output and drained exits retain ordered generation records; capture is disabled
+  by default. CLI host import validates evidence without claiming GUI/provider acceptance.
+
+- **See actual readiness.** Doctor reports input receipt support and the
+  confirmed approval mode from the running session, preserving unknown states.
+- **Keep version guidance separate.** Show both the base compatibility floor
+  and the recommended CLI without blocking basic older-runtime functionality.
+
+### Changes carried from 0.37.131
+
+- **Bound image previews.** Validate image structures and cumulative frame work,
+  decode in a terminable Worker, and render only validated 40px frame bitmaps.
+- **Read one bounded snapshot.** File metadata and attachment bytes come from the
+  same open handle; original attachment bytes are retained for sending.
+
+### Changes carried from 0.37.130
+
+- **Restore image drafts.** Validated PNG/GIF attachments retain their identity
+  across session switches and full editor restarts, without automatic sending.
+- **Keep validation errors visible.** Text-only saves cannot approve changed
+  images or clear their errors; removing rejected images restores draft saving.
+
+### Changes carried from 0.37.128
+
+- **Keep long replies responsive.** Streaming appends to bounded 4K text nodes
+  while preserving the selected prefix and exact Unicode text. Selection changes
+  update cached follow state, avoiding a selection query after every append.
+- **Retain readable completed replies.** Markdown renders once when the response
+  ends, with formatting deferred while text is selected.
+
+### Changes carried from 0.37.126
+
+- **Revoke scoped permits before writing.** Official workspace-scoped permission
+  additions and revocations in the same CLI runtime immediately latch shell
+  revocation and start proxy/container cleanup. Restored rules cannot revive
+  the old permit; uncertain persistence remains unavailable. Cross-process
+  notifications and external edits remain under development.
+
+### Changes carried from 0.37.125
+
+- **Keep execution authority current.** The paired CLI freezes unattended
+  policy and tool limits, checks WebSocket host revisions, and revokes active
+  shell authority when an official settings rule write starts in the same
+  runtime. Cross-process settings generations remain under development.
+- **Keep launcher storage stable.** Settings environments retain the CLI's
+  storage roots; malformed and reserved plugin defaults are rejected while
+  ordinary tool environment values remain available.
+
+### Changes carried from 0.37.124
+
+- **Recover repeated investigations.** Issue queries, artifact downloads, and
+  saved-log inspection count toward the CLI's investigation budget. Equivalent
+  Issue reads across GitHub web, CLI, and API routes share the same loop target.
+- **Keep the actual test failure.** Failed assertions, source locations, and
+  suite verdicts survive colored CI-log extraction, including a successful
+  download of a log that contains a failed test.
+- **Continue with the same evidence.** Context compaction, process restart, and
+  task-note handoff retain the original failure evidence for the next repair.
+- **Recover tool routing errors.** The CLI corrects GitHub commands sent to the
+  Git tool and preserves useful evidence after unrelated command failures.
+
+### Changes carried from 0.37.123
+
+- **Keep policy revision handling.** CLI `0.166.81` introduced Plan and
+  approval revision handling during active Docker egress commands. The paired
+  CLI carries that behavior forward.
+- **Keep Docker revocation.** The CLI revalidates live shell authority, revokes
+  the broker and container on denial, and refuses to report a revoked command
+  as successful.
+- **Keep saved input recovery.** The cold-start fix from `0.37.121` waits up
+  to two minutes for initialization. A timeout preserves the saved draft, and
+  a deliberate resend starts a fresh child.
+
+### Changes carried from 0.37.121
+
+- **Allow cold CLI startup.** The chat panel waits up to two minutes for the
+  CLI initialization handshake while the first persisted session starts or
+  startup hooks run. It sends saved input once the handshake arrives.
+- **Preserve failed input.** A startup error fails promptly; a timeout leaves
+  input available in saved drafts and never resends it on a late handshake.
+- **Keep the earlier CLI pairing.** Model requests still start only after the
+  input is dispatched.
+
+### Changes carried from 0.37.120
+
+- **Prepare the prior CLI pairing.** Runtime upgrade guidance and marketplace
+  metadata reflected that release after exact-commit checks and public readback.
+- **Recover session history and drafts.** The paired CLI provides paged history,
+  recovery across CLI and IDE clients, and bounded draft handling.
+- **Keep background processes and hosts recoverable.** The paired CLI improves
+  process cleanup and host recovery while keeping execution authority in the CLI.
+- **Carry the CLI PM evidence workflow.** The CLI can verify signed per-item
+  Eval reports, frozen cohort slots, unresolved denominators, and signed usage
+  totals offline. This does not certify a target-environment PM/Pilot result.
+- **Keep local decision providers in the CLI.** Loopback Laya and compatible
+  services remain opt-in for durable, single-prompt headless CLI sessions; the
+  default stays `off`.
+- **Do not widen the IDE surface.** Interactive IDE sessions do not expose
+  `shadow` or `suggest`, and the extension stores no decision-model credential.
+- **Keep the IDE bridge a bounded CLI client.** This pairing changes neither
+  execution authority nor the extension's compatibility floor.
+
+### Retained capabilities from earlier releases
+
+- **Pair with the verified CLI 0.166.62 release.** Consume governed
+  Evolution/wiki revalidation, native Responses transport, plugin evaluation
+  and deferred-question projections, plus paginated background-session access;
+  all authority remains in the CLI host.
+- **Correct the immutable CLI pairing.** Recommend the publicly verified
+  release rather than stale metadata.
+- **Pair with governed PM exploration recovery.** The CLI owns bounded
+  Broad/Deep plans, independent result grading, authenticated recovery
+  snapshots, and fail-closed durable authority; the extension receives only
+  the normal bounded Agent projection.
+- **Continue with durable task notes.** The `↗` action saves a bounded,
+  workspace-local worklog and opens an independent chat that loads it as
+  untrusted history without copying the full old transcript or permissions.
+  See [Task notes and fresh-conversation handoff](../../docs/features/ide-task-worklog-user-guide.md).
+- **Recover the projection safely.** Missing or altered Markdown is rebuilt
+  from the Context/Memory Kernel checkpoint; save/load failures remain visible.
+- **Recover repair tasks after stale edits.** The paired CLI re-reads a bounded
+  hash-edit target and continues after a completed tool batch without losing the
+  active diagnostic context.
+- **Keep the real failure available.** Foreground, background, and remote CI
+  evidence remains bounded and pageable across compaction for follow-up repair.
+- **Pair with safer evaluation and sessions.** CLI `0.166.62` includes normalized
+  outcome metrics and retries transient Windows state-file sharing conflicts
+  without replaying the underlying message mutation.
+- **Keep background work reliable.** The paired CLI prevents routine
+  keeper/worker heartbeat writes from contending with foreground ownership and
+  executes agent commands with `shell: false`.
+
+- **Make chat composition easier to use.** The message field now uses a full
+  row, with Send, Plan, Stop, and New controls grouped on a separate responsive
+  row below it with an 8px visual gap.
+- **Keep Windows bridge publication reliable and fail closed.** The owner-only
+  lockfile publisher is given sufficient cold-start time while retaining its
+  independent ACL verification before a bridge token is exposed.
+
+- **Use the current DeepSeek V4 Flash GA model by default.** New Volcengine
+  connections start with `deepseek-v4-flash-ga-260731`; existing saved model
+  choices remain unchanged.
+
+- **Configure governed Skill evolution visually.** Run **ChainlessChain:
+  Configure Skill Evolution** from the Command Palette. Before production,
+  choose the single-file development host and use **One-click generate/refresh
+  TEST environment**; once the administrator-supplied descriptor and trust root
+  arrive, select them and use **Replace TEST certificate with managed
+  certificate**. The same page can verify, save, enable, disable, or inspect the
+  effective status without maintaining environment variables.
+- **Keep governance boundaries visible.** The extension delegates signature and
+  digest verification and generated TEST-key custody to CLI `0.166.62`; the
+  extension stores no key itself and prominently marks TEST mode. Automatic
+  active promotion remains `HOLD` pending review and release authority.
+- **Confirm that model settings were saved.** A fresh redacted readback must
+  match the submitted connection before the form reports success. A failed
+  connection test remains separate from a failed or unconfirmed write.
+- CLI `0.166.62` preserves protected context while compacting an oversized turn
+  to produce an answer. This plugin is published only after the CLI passes its
+  exact-commit release matrix and a fresh npm installation is verified.
+
+- **Recover and inspect the complete Workbench.** Timed-out reads restore refresh
+  controls, stale responses are ignored, and up to 10,000 verified versions remain
+  available for search, review and rollback across pages.
+
+- **Search, download and read locally.** Discover sources with keyword web search;
+  download large pages once, then search or page their saved text without another
+  request. Search long local files for matching line/column positions and context.
+- **See why a tool failed.** Chat shows bounded error details and recovery hints;
+  blocked searches are not reported as empty results.
+
+- **Restore hostname-based web fetches.** The paired CLI fixes Node 22 DNS
+  lookup handling and reports HTTP, timeout and size failures with retry guidance.
+- **Recover repeated GitHub Actions log requests.** The Agent keeps useful log
+  evidence across compaction, offers a focused recovery turn, and stops persistent
+  retries as an incomplete task. Status queries and fresh log evidence remain available.
+- Older CLI installations receive the normal upgrade prompt for `0.166.103`.
+
+### Retained workspace and connection features
+
+- **Open the workspace before searching.** Evolution Workbench starts on a
+  status overview and version list; Skills starts on a paginated library with
+  categories, sources and details. Task retrieval is an optional in-page action.
+- **Configure custom LLM relays in one form.** Choose a compatible protocol,
+  base URL, arbitrary model alias, optional vision model and scoped API key.
+  CLI `0.166.34` saves the connection atomically through stdin using
+  `llm configure` and tests the saved endpoint with its native protocol.
+- Saved keys never return to the page; changing destinations requires the new
+  service's key. Review and rollback still require fresh state, confirmation
+  and real host authority. Local-test profiles remain visibly isolated.
+- See the [workspace panel guide](../../docs/ide/IDE_WORKSPACE_PANELS.md) for setup
+  and the distinction between local test profiles and real governed deployment.
+
+### Retained task-recovery and governance safeguards
+
+- **Recover work that keeps investigating without delivering.** CLI `0.166.34`
+  distinguishes source exploration from implementation progress, preserves the
+  bounded task context, and offers a focused recovery turn with edits and
+  validation still available.
+- **Stop terminates stale Agent runs.** The first click requests interruption,
+  a five-second fallback terminates an unresponsive process, and a second click
+  terminates immediately. Output arriving from the old process is ignored.
+
+- Task-count questions focus on the latest status section. Large script output
+  reports truncation explicitly, and identical output is reused from context.
+  Repeated code/shell file dumps trigger recovery even after compaction.
+
+- File-read traces include requested line ranges and long-line columns. CLI
+  `0.166.34` keeps forward read progress through compaction and stops a run
+  that continues requesting only unchanged pages after a recovery warning.
+
+- **Interactive Agent turns now run to completion without a hidden 50-call
+  stop.** CLI `0.166.34` keeps explicit turn, cost, environment, and session
+  budgets authoritative, while `chainlesschain.chat.maxTurns` lets users opt
+  into a positive per-message cap.
+- **Large files advance without rereading earlier pages.** Exact line/column
+  cursors survive context compression, unchanged pages are referenced instead
+  of reinjected, and edits invalidate the bounded read cache.
+- On startup, an installed CLI older than `0.166.103` receives an explicit
+  **Upgrade cc** prompt that opens `npm i -g chainlesschain@latest`; this check
+  works even when the best-effort npm registry lookup is unavailable.
+
+- **Evolution Workbench now preflights App Server capabilities.** If the
+  installed CLI deployment has no governed Workbench host, the command explains
+  that the feature is unavailable and does not issue the failing RPC.
+- A list-only deployment can expose evidence without showing compare, approve,
+  reject, or rollback actions it did not authorize; any additional action is
+  shown only when the CLI advertises its method. The extension still cannot
+  mint approvals or publish data.
+- This patch does not provision a Workbench host, identity, PKI, promotion
+  writer, or rollback authority. The public CLI's default App Server therefore
+  reports Workbench unavailable until a trusted deployment supplies them.
+- **Skill Retrieval** remains available through the canonical CLI catalog and
+  shows witnessed outcome and vector-routing evidence, including a visible
+  abstain result when evidence cannot select a safe Skill.
+
+> [!IMPORTANT]
+> Stock Microsoft VS Code does not query Open VSX. The Microsoft Marketplace
+> backfill stopped before upload because its publishing credential was not
+> configured, so no Microsoft listing is claimed. Download the publicly verified
+> [Public 0.37.155 VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.155/file/chainlesschain.chainlesschain-ide-0.37.155.vsix)
+> and run **Extensions: Install from VSIX...**. Open VSX editors can install by extension ID.
+
+Historical pairing before .108: public CLI `0.166.107` with extension `0.37.152`.
+CLI `0.166.107` retains its routing of Graph, Team,
+distributed-team, Cowork, Scheduler, Context/Memory, and
+App Server entry points through persisted Graph Kernel cutover authority. It
+fences stale writers and takeover/recovery receipts, preserves explicitly
+read-only legacy history, and fails closed on retired mutation paths. It also
+carries forward the bounded Agent IPC child-process admission, pending
+interactions, outbound requests, JSONL frames, stderr diagnostics, and stdin
+backpressure. Overload now returns a structured retry hint, while initialization,
+heartbeat, disconnect, and late-response paths have finite cleanup fences.
+
+CLI `0.166.34` includes canonical scoped approval decisions, a
+schema-owned Agent stream-event inventory, and durable Team collaboration
+authority. The chat approval card keeps one-shot approval as the fast path and
+opens a native, explicitly reviewed choice for exact turn/session grants,
+denial, or cancellation. Team Monitor consumes the canonical Message/Handoff
+projection as bounded status counters only: message payloads, attempt/agent
+identities, artifacts, and authority digests never enter the Webview.
+
+CLI `0.166.34` includes the governed Automation/Routine commands, the
+Automation Center v3 projection, scoped permission and side-effect authority,
+and shared permission/budget enforcement. Version `0.37.148` accepts only the
+exact v2/schemaVersion 2 or v3/schemaVersion 3 pair; unknown and cross-paired
+versions fail closed. With v3 it shows sanitized run incidents and bounded live
+scheduler occurrences. Incident retry/cancel and cooperative occurrence
+pause/resume appear only when the CLI supplies an exact revision/fence-gated
+action preview. The extension refreshes the projection and rechecks that
+preview before execution; it never derives argv from display data.
+
+Version `0.37.148` also consumes only strict, CLI-issued multi-agent merge-review
+evidence. It displays stable file/hunk choices, persistent conflict explanations,
+and exact apply/rollback previews, then refreshes the evidence before executing
+the exact argv. It never runs or derives `git merge`, `merge-tree`, or
+history-rewriting rollback commands. CLI `0.166.34` supplies the
+corresponding governed `team merge-review` command and exact evidence contract.
+
+CLI `0.166.34` contains the audited Artifact access, managed-copy
+deletion settlement, orphan recovery, and durable workflow authorities used by
+`0.37.148`. The extension continues to fail closed when an older CLI cannot
+provide the exact projection or refreshed action evidence.
+
+CLI `0.166.34` also bounds durable-session event backlogs and sidecars, routes
+project storage through canonical path authority, prevents Windows append-writer
+starvation under concurrent session activity, converges isolated local and
+remote execution state, and stabilizes cross-platform browser evidence. Its
+release-gate fix keeps the simulated operating-system home,
+`CHAINLESSCHAIN_HOME`, workspace, and rollback-resistant security anchor
+separate so the production fail-closed layout is exercised safely. It also
+publishes `@chainlesschain/session-core@0.3.7` with the required
+`./runtime-claims` entry point.
+
+CLI `0.166.13` is superseded because normal Windows startup could incorrectly
+require an available Docker sandbox and could select Docker Desktop's
+extensionless POSIX shim before `docker.exe`. Public CLI `0.166.34` restores
+Docker-optional normal startup while keeping explicit sandbox and managed-policy
+requests fail closed, and resolves native `PATHEXT` executables first. Its exact
+release commit must pass the complete Linux,
+Windows, and macOS CLI CI and Strict Sandbox matrices before npm publication
+and public-registry readback. It also adds lease-bound real-time teammate
+send/receive/ack/follow-up tools
+with durable, retry-safe TeamMailbox v3 receipts. Team Monitor shows only
+bounded delivery health (retained/pending/processed/dead-letter counts,
+follow-ups, recipients, bytes, and pressure); message content and attempt
+credentials never enter the Webview. For those reasons, `0.166.34` is the
+retained compatibility floor. This source package recommends CLI
+`0.166.112`; its observed status is public; exact-source gates and public artifact readback verified. The dated previous snapshot for CLI
+`0.166.107` and extension `0.37.152` passed its exact-commit gates and public
+artifact readback; CLI .112 and the .155 tagged workflow evidence are linked above; earlier .108/.153 receipts remain historical.
+
+The release package excludes local Extension Host evidence and diagnostics
+under `build/`; those files remain CI artifacts and are not installed on user
+machines.
+
+A historical immutable publication tag is `ide-vscode-v0.37.153`, source `e77c7ba85783576ac523dd73bc760bda63d91f3b`; its public artifact verification is recorded above.
+The previous public extension 0.37.152 used source `94429fada4`.
+The tag workflow validates the exact packaged VSIX in stable and minimum VS Code
+hosts on Windows, Linux, and macOS before publishing it to Open VSX and reading
+the public registry artifact back. A tag-bound manual backfill can publish the
+same verified VSIX to the Microsoft Marketplace only when its repository
+credential is configured; the `0.37.109` backfill stopped before upload, so the
+Open VSX listing remains the public registry source.
+
+## Highlights
+
+- Local compute configuration with optional platform keys and explicit HTTP consent.
+- Controlled pending task-creation requests and separate native confirmation.
+
 ## 工作树新增：本地算力平台（待发布）
 
 在“配置大模型 / Configure LLM”选择 **Local compute / OpenAI compatible (LEXDATA / vLLM / SGLang)**，填写平台 Base URL 与 API 模型 ID。力数截图给出的示例为 `http://192.168.31.79:8889/v1`、`glm5.3-flash-tensorfold`；模型 ID 仍以平台 `/v1/models` 为准。API Key 按平台要求填写，可留空；HTTP 局域网地址须显式勾选允许。不要填写具体 `/chat/completions` 路径或复用云端密钥。
 
 该选项使用 CLI 的 `custom` OpenAI Chat Completions 路径，原子保存并回读，已有中转站协议选项保留。保存后可显式测试连接，聊天下一条消息使用新配置；现有 CLI 签名部署等前置条件继续生效。无密钥本机接口已通过真实 CLI 子进程回归，力数实机 `/models` 检查当前为 `ECONNRESET`，尚未验证其实际权重推理。真实 IDE GUI 尚未运行，本节描述未发布工作树能力。
-
-ChainlessChain agent workspace for VS Code-compatible editors with streaming
-chat, inline assistance, governed review, sessions, automation, and a localhost
-MCP bridge.
-
-## Current release
-
-Candidate Open VSX **0.37.179** recommends CLI **`0.166.143`** and pairs with JetBrains **0.4.196** after verified CLI publication. Session Core **0.3.26** must be published and verified first. Once verified, install `npm i -g chainlesschain@0.166.143 --registry https://registry.npmjs.org`, restart hosts and run `cc --version` and `cc doctor`.
-
-This candidate adds local OpenAI-compatible platform configuration and explicit task-creation request controls. Native creation requires matching desktop source support and separate consent/confirmation; existing published clients have not been updated. LEXDATA discovery currently returns a connection reset, so its real inference and real IDE GUI remain unverified. Microsoft Marketplace remains deferred until its configured credentials are available. [Release stages](../../docs/research/cli/evidence/release143-public/README.md).
 
 ## Task-creation request files (source-only)
 
@@ -845,7 +1661,7 @@ same verified VSIX to the Microsoft Marketplace only when its repository
 credential is configured; the `0.37.109` backfill stopped before upload, so the
 Open VSX listing remains the public registry source.
 
-## Highlights
+## Core workspace features
 
 - **Interactive Context Center** - inspect deterministic, versioned context
   chips with source, scope, freshness, token allocation, and inclusion reason;
