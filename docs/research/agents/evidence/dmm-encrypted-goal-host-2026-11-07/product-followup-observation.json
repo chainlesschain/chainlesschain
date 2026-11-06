@@ -1,0 +1,28 @@
+{
+  "schema": "chainlesschain.local-product-goal-followup/v1",
+  "kind": "diagnostic observation; complete native confirmation journey did not pass",
+  "sourceState": "working tree based on de18c560104fb2968eb505aa708cc56efbfe1ac8; exact changed source hashes below",
+  "basicGoalGui": true,
+  "realDidAndPasswordLogin": true,
+  "canonicalGoalV2": true,
+  "paused": true,
+  "projectId": "9260f4fb-6bdd-4de4-a928-eaa5c0f8f423",
+  "goalId": "goal-2691dc1b-cabb-42a7-8d3c-4696a5afaeb0",
+  "modelDraftDeniedListErrors": 2,
+  "nativeTaskDatabaseErrors": 0,
+  "nativeConfirmationAutomation": {
+    "passed": false,
+    "reason": "Windows UI Automation did not find the test process dialog and exposed no test-owned element names; no dialog or approval substitute was installed"
+  },
+  "fullRunnerExitCode": 1,
+  "rawLog": {
+    "sha256": "79d8c3b150c6ff6b8c769480cd813684a033d0a56a16400bf16d81745edd80d3",
+    "bytes": 474671,
+    "archived": false,
+    "location": "isolated local temporary profile"
+  },
+  "sources": {
+    "desktop-app-vue/src/main/task/task-description-ipc.js": "e0c070f074fe8d6de06f0dc84046edd425fd45aa103834e9064884e9e13c8372",
+    "desktop-app-vue/src/renderer/components/projects/ProjectGoalModelDraftsPanel.vue": "bf72bb6198de89ffa93892125ea2d08e70326e726e80d3ad5be221c580d1c350"
+  }
+}

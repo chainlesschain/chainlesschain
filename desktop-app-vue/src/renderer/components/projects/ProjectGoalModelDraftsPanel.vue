@@ -548,13 +548,13 @@ watch(
   { immediate: true },
 );
 watch(
-  () => [
-    props.goal.revision,
-    props.goal.controlGeneration,
-    props.goal.status,
-    JSON.stringify(props.sources),
-    type.value,
-    taskType.value,
+  [
+    () => props.goal.revision,
+    () => props.goal.controlGeneration,
+    () => props.goal.status,
+    () => JSON.stringify(props.sources),
+    () => type.value,
+    () => taskType.value,
   ],
   () => {
     invalidate();

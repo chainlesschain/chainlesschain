@@ -3,6 +3,9 @@
 const {
   PersonalProjectGoalService,
 } = require("@chainlesschain/session-core/project-goal-service");
+const {
+  currentProjectGoalDatabase,
+} = require("./project-goal-native-database");
 const CHANNELS = Object.freeze({
   create: "project:goal-create",
   exportTransferTarget: "project:goal-transfer-target-export",
@@ -90,8 +93,7 @@ function createProjectGoalHost({
     require("./project-goal-auth-session").getProjectGoalAuthGeneration(),
 } = {}) {
   const getElectron = () => electron || require("electron");
-  const currentDatabase = () =>
-    database?.getDatabase ? database.getDatabase() : database;
+  const currentDatabase = () => currentProjectGoalDatabase(database);
   function currentWindow(event) {
     if (validateSender(event)?.trusted !== true)
       throw error("GOAL_UNTRUSTED_SENDER");
@@ -110,7 +112,7 @@ function createProjectGoalHost({
     };
     getActor();
     return new PersonalProjectGoalService({
-      db: database?.getDatabase ? database.getDatabase() : database,
+      db: currentDatabase(),
       getActor,
       now: () => new Date(clock()).toISOString(),
     });
