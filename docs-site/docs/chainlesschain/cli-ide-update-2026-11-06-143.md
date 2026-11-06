@@ -2,8 +2,8 @@
 
 ## 概述
 
-发布候选：Session Core **0.3.26**、CLI **0.166.143**、Open VSX **0.37.179**、JetBrains **0.4.196**。
-当前仍在准备准确提交的跨平台门禁；公开状态以[发布记录](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release143-public/README.md)为准。
+Session Core **0.3.26** 和 CLI **0.166.143** 已公开，准确提交的 CLI CI **76/76**、Strict Sandbox **6/6** 三平台门禁及 Actions OIDC 发布、独立字节/签名来源回读均通过。
+配套 Open VSX **0.37.179**、JetBrains **0.4.196** 正在发布，两端均推荐 CLI **0.166.143**；公开状态以[发布记录](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release143-public/README.md)为准。
 本次不发布桌面、Android 或 iOS 客户端。
 
 ## 核心特性
@@ -15,7 +15,7 @@
 
 ## 使用指南
 
-候选公开核验后安装：
+安装已核验的公开 CLI：
 
 ```bash
 npm i -g chainlesschain@0.166.143 --registry https://registry.npmjs.org
@@ -61,7 +61,7 @@ IDE 连接配置与模型能力、模型质量及平台可用性分别验证；�
 
 此前工程批次 25 文件/类、374 项回归及 22 项检查通过，JetBrains 本地构建成功。
 两个合成真实火山场景通过，共 1,176 tokens，费用未知；这是桌面源码链路验证，不是 IDE GUI 或独立业务验收。
-本次发布还必须通过准确候选提交的完整 CLI CI 和 Strict Sandbox 三平台结果，以及公开制品回读。
+准确发行提交 `3fa3a4b258bbcb60b23b4298cec375661ad6f410` 的完整 CLI CI 和 Strict Sandbox 三平台结果，以及独立 npm 公开制品字节与签名来源回读均已通过。IDE 宿主发布门禁和渠道公开状态单独记录。
 
 ## 安全考虑
 

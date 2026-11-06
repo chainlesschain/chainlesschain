@@ -1,0 +1,514 @@
+﻿{
+  "checkedAt": "2026-11-06T13:56:47.3307360Z",
+  "sha": "3fa3a4b258bbcb60b23b4298cec375661ad6f410",
+  "gates": [
+    {
+      "runId": "42165323545",
+      "sha": "3fa3a4b258bbcb60b23b4298cec375661ad6f410",
+      "conclusion": "success",
+      "jobCount": 76,
+      "jobs": [
+        {
+          "name": "Scoped documentation check / Detect and validate scoped documentation",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127720580467"
+        },
+        {
+          "name": "PDH native release tests (windows-latest)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127722997427"
+        },
+        {
+          "name": "Build and audit reviewed runtime sources before test fan-out",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127722997479"
+        },
+        {
+          "name": "Native campaign preflight (windows-latest)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127722997480"
+        },
+        {
+          "name": "PDH native release tests (ubuntu-latest)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127722997504"
+        },
+        {
+          "name": "Native campaign preflight (ubuntu-latest)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127722997523"
+        },
+        {
+          "name": "Native campaign preflight (macos-latest)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127722997540"
+        },
+        {
+          "name": "PDH native release tests (macos-latest)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127722997632"
+        },
+        {
+          "name": "linux-subreaper / Linux packaged subreaper (arm64)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127722997657"
+        },
+        {
+          "name": "linux-subreaper / Linux packaged subreaper (x64)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127722997667"
+        },
+        {
+          "name": "test-windows / e2e (windows-latest, shard 4/4)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256130"
+        },
+        {
+          "name": "test-macos / e2e (macos-latest, shard 2/4)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256137"
+        },
+        {
+          "name": "test-macos / unit (macos-latest, shard 3/4)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256141"
+        },
+        {
+          "name": "test-macos / unit (macos-latest, shard 1/4)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256146"
+        },
+        {
+          "name": "test-macos / unit (macos-latest, shard 2/4)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256164"
+        },
+        {
+          "name": "test-macos / e2e (macos-latest, shard 4/4)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256172"
+        },
+        {
+          "name": "test-windows / e2e (windows-latest, shard 2/4)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256179"
+        },
+        {
+          "name": "test-macos / e2e (macos-latest, shard 1/4)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256194"
+        },
+        {
+          "name": "test-macos / e2e (macos-latest, shard 3/4)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256209"
+        },
+        {
+          "name": "test-windows / e2e (windows-latest, shard 1/4)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256211"
+        },
+        {
+          "name": "test-windows / e2e (windows-latest, shard 3/4)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256234"
+        },
+        {
+          "name": "test-ubuntu / e2e (ubuntu-latest, shard 3/4)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256235"
+        },
+        {
+          "name": "test-macos / unit (macos-latest, shard 4/4)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256259"
+        },
+        {
+          "name": "test-ubuntu / e2e (ubuntu-latest, shard 1/4)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256286"
+        },
+        {
+          "name": "test-ubuntu / e2e (ubuntu-latest, shard 4/4)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256310"
+        },
+        {
+          "name": "test-windows / integration (windows-latest, shard 7/8)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256326"
+        },
+        {
+          "name": "test-ubuntu / unit (ubuntu-latest, shard 4/4)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256359"
+        },
+        {
+          "name": "test-macos / integration (macos-latest, shard 8/8)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256410"
+        },
+        {
+          "name": "test-windows / integration (windows-latest, shard 6/8)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256414"
+        },
+        {
+          "name": "test-ubuntu / e2e (ubuntu-latest, shard 2/4)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256416"
+        },
+        {
+          "name": "test-macos / integration (macos-latest, shard 4/8)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256423"
+        },
+        {
+          "name": "test-macos / integration (macos-latest, shard 3/8)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256434"
+        },
+        {
+          "name": "test-macos / integration (macos-latest, shard 1/8)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256455"
+        },
+        {
+          "name": "test-macos / integration (macos-latest, shard 5/8)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256456"
+        },
+        {
+          "name": "test-windows / integration (windows-latest, shard 3/8)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256478"
+        },
+        {
+          "name": "test-windows / integration (windows-latest, shard 4/8)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256483"
+        },
+        {
+          "name": "test-windows / integration (windows-latest, shard 8/8)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256507"
+        },
+        {
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 6/8)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256508"
+        },
+        {
+          "name": "test-macos / integration (macos-latest, shard 6/8)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256517"
+        },
+        {
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 4/8)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256518"
+        },
+        {
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 8/8)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256525"
+        },
+        {
+          "name": "test-ubuntu / unit (ubuntu-latest, shard 2/4)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256529"
+        },
+        {
+          "name": "test-windows / integration (windows-latest, shard 2/8)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256551"
+        },
+        {
+          "name": "test-ubuntu / unit (ubuntu-latest, shard 1/4)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256552"
+        },
+        {
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 5/8)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256559"
+        },
+        {
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 7/8)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256564"
+        },
+        {
+          "name": "test-ubuntu / unit (ubuntu-latest, shard 3/4)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256576"
+        },
+        {
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 1/8)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256597"
+        },
+        {
+          "name": "test-macos / integration (macos-latest, shard 2/8)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256607"
+        },
+        {
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 2/8)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256657"
+        },
+        {
+          "name": "test-macos / integration (macos-latest, shard 7/8)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256666"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 2/16)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256682"
+        },
+        {
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 3/8)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256692"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 3/16)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256709"
+        },
+        {
+          "name": "test-windows / integration (windows-latest, shard 5/8)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256727"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 5/16)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256728"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 7/16)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256729"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 4/16)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256775"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 8/16)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256780"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 9/16)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256784"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 11/16)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256796"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 12/16)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256800"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 1/16)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256803"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 6/16)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256807"
+        },
+        {
+          "name": "test-windows / integration (windows-latest, shard 1/8)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256854"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 10/16)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256861"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 14/16)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256915"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 13/16)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731257196"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 16/16)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731258264"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 15/16)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731258277"
+        },
+        {
+          "name": "dry-run-publish",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127741148689"
+        },
+        {
+          "name": "pack-linux-dryrun",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127741148744"
+        },
+        {
+          "name": "verify-cli (ubuntu-latest)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127755840400"
+        },
+        {
+          "name": "verify-cli (windows-latest)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127755840432"
+        },
+        {
+          "name": "verify-cli (macos-latest)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127755840547"
+        },
+        {
+          "name": "Test-only PM exploration recovery three-OS aggregate",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127761075896"
+        }
+      ]
+    },
+    {
+      "runId": "42165323541",
+      "sha": "3fa3a4b258bbcb60b23b4298cec375661ad6f410",
+      "conclusion": "success",
+      "jobCount": 6,
+      "jobs": [
+        {
+          "name": "Scoped documentation check / Detect and validate scoped documentation",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323541/job/127720327521"
+        },
+        {
+          "name": "strict native boundary (windows-latest)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323541/job/127721775145"
+        },
+        {
+          "name": "strict native boundary (ubuntu-24.04-arm)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323541/job/127721775157"
+        },
+        {
+          "name": "macOS latest native capability",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323541/job/127721775203"
+        },
+        {
+          "name": "strict native boundary (ubuntu-24.04)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323541/job/127721775248"
+        },
+        {
+          "name": "strict native boundary (macos-15)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323541/job/127721775312"
+        }
+      ]
+    }
+  ]
+}

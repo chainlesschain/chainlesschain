@@ -1,8 +1,10 @@
 # IDE 桥接（IDE Bridge）
 
+> 当前核对（2026-11-06）：公开 CLI **0.166.143** 已完成准确提交三平台门禁、OIDC 发布及独立公开回读。配套 Open VSX **0.37.179**、JetBrains **0.4.196** 均推荐 CLI `.143`，正在发布；公开状态见[升级指南](./cli-ide-update-2026-11-06-143)。新增本地算力配置和待审创建请求；原生创建仍需匹配桌面实现与独立确认，本次不发布 PC/移动端。
+
 > 2026-10-18 实时核对：npm CLI **0.166.106**、Open VSX **0.37.151** 已公开，Open VSX 推荐 CLI `.106`，发行提交 `dca47fd91a`。JetBrains 当前已核验公开 **0.4.167**，仍推荐 CLI `.105`；`.168` 的公开上架与下载待核验。公开 `.105/.150/.167` 任务补测已收齐生成与独立验收各 **20/20**，新增 **6** 项候选及全流程通过；跨版本累计候选合格交付 **31/45**（普通 **26/36**、首次 **5/9**），剩余 **14** 项。`.106/.151/.168` 新轮模型补测尚未运行，累计覆盖不等于新版单轮成功率。Microsoft Marketplace 未发布。
 
-当前安装：`npm i -g chainlesschain@0.166.105 --registry https://registry.npmjs.org`。新版 IDE 公开核验后升级并重启宿主，运行 Doctor 核对实际 CLI。详见[本轮升级指南](./cli-ide-update-2026-10-18)。
+当前安装：`npm i -g chainlesschain@0.166.143 --registry https://registry.npmjs.org`。新版 IDE 公开核验后升级并重启宿主，运行 Doctor 核对实际 CLI。详见[本轮升级指南](./cli-ide-update-2026-11-06-143)。
 
 以下带日期的发布和验收记录为历史快照。
 
@@ -291,17 +293,17 @@ VS Code 扩展同理：`mcp-http-server.js` / `lockfile.js` / `ide-tools.js` 纯
 
 IDE 桥接共 **58+ 专项测试**，全部可在**无编辑器宿主**下运行：
 
-| 测试文件                          | 数量 | 覆盖                                                                                                                                             |
-| --------------------------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `ide-bridge.test.js`              | 26   | env/扫描发现、localhost·transport·stale 过滤、多根最长前缀匹配、config 生成、`diagnoseIde`                                                       |
-| `mcp-config-ide.test.js`          | 8    | `resolveAgentMcp` IDE 门控、`loadIdeMcp` 连接 + 保留名让位                                                                                       |
-| `ide-command.test.js`             | 6    | `cc ide list/status/doctor`（含 token 脱敏不泄）                                                                                                 |
+| 测试文件                          | 数量 | 覆盖                                                                                                                                            |
+| --------------------------------- | ---- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ide-bridge.test.js`              | 26   | env/扫描发现、localhost·transport·stale 过滤、多根最长前缀匹配、config 生成、`diagnoseIde`                                                      |
+| `mcp-config-ide.test.js`          | 8    | `resolveAgentMcp` IDE 门控、`loadIdeMcp` 连接 + 保留名让位                                                                                      |
+| `ide-command.test.js`             | 6    | `cc ide list/status/doctor`（含 token 脱敏不泄）                                                                                                |
 | `vscode-ext-ide-bridge.test.js`   | 13   | **真 CLI MCPClient 驱动扩展 server**（initialize→tools/list→tools/call 全 4 工具 + 鉴权拒绝 + openDiff 阻塞回传）+ lockfile↔Phase-0 reader 往返 |
-| `ide-bridge-jetbrains.test.js`    | 4    | `ide:"jetbrains"` lock 与 vscode 发现/映射一致（CLI 零改动证明）                                                                                 |
-| `agent-policy-mcp-config.test.js` | +1   | `--ide`/`--no-ide` 三态经 policy 白名单到达 REPL                                                                                                 |
-| `ide-context.test.js`             | 31   | 实时上下文模块（收集/格式化/截断/超时/kill-switch）+ headless/stream 接线 + `executeTool` 诊断回喂接线                                           |
-| `ide-context-interop.test.js`     | 4    | **真扩展 MCP server ⇆ 真 MCPClient** 全链路：`<ide-context>` 渲染、write_file→诊断回传、kill-switch、死 server 降级                              |
-| `ide-context-e2e.test.js`         | 2    | **真 spawn 的 `cc agent -p`**：lockfile/env 发现→Bearer 连接→捕获式假 LLM 证明选区进了模型请求                                                   |
+| `ide-bridge-jetbrains.test.js`    | 4    | `ide:"jetbrains"` lock 与 vscode 发现/映射一致（CLI 零改动证明）                                                                                |
+| `agent-policy-mcp-config.test.js` | +1   | `--ide`/`--no-ide` 三态经 policy 白名单到达 REPL                                                                                                |
+| `ide-context.test.js`             | 31   | 实时上下文模块（收集/格式化/截断/超时/kill-switch）+ headless/stream 接线 + `executeTool` 诊断回喂接线                                          |
+| `ide-context-interop.test.js`     | 4    | **真扩展 MCP server ⇆ 真 MCPClient** 全链路：`<ide-context>` 渲染、write_file→诊断回传、kill-switch、死 server 降级                             |
+| `ide-context-e2e.test.js`         | 2    | **真 spawn 的 `cc agent -p`**：lockfile/env 发现→Bearer 连接→捕获式假 LLM 证明选区进了模型请求                                                  |
 
 ### 跨语言 interop 实证（JetBrains）
 
