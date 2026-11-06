@@ -40,9 +40,16 @@ function createProjectGoalMonitoringController({
   engineFactory = (options) => new ProjectGoalMonitoringEngine(options),
   storageDirectory = "goal-monitoring",
   autoStart = true,
+  graphMode = () =>
+    String(process.env.CHAINLESSCHAIN_GRAPH_PROJECT_GOALS ?? "legacy")
+      .trim()
+      .toLowerCase(),
+  graphHostLoader = undefined,
 } = {}) {
   if (
     typeof engineFactory !== "function" ||
+    typeof graphMode !== "function" ||
+    (graphHostLoader !== undefined && typeof graphHostLoader !== "function") ||
     typeof autoStart !== "boolean" ||
     !["goal-monitoring", "organization-goal-monitoring"].includes(
       storageDirectory,
@@ -108,10 +115,31 @@ function createProjectGoalMonitoringController({
       });
       try {
         const captured = native;
+        const graphAuthorityFactory =
+          storageDirectory === "goal-monitoring"
+            ? await require("./project-goal-graph-host.js").prepareProjectGoalGraphFactory(
+                {
+                  db: native,
+                  file: join(dirname(file), "graph.sqlite"),
+                  mode: graphMode(),
+                  clock,
+                  protectFile,
+                  ...(graphHostLoader ? { loadHost: graphHostLoader } : {}),
+                  assertCurrent: () => {
+                    if (closed) fail("GOAL_MONITOR_HOST_CLOSED");
+                    if (currentDb() !== native)
+                      fail("GOAL_MONITOR_DATABASE_CHANGED");
+                  },
+                },
+              )
+            : null;
+        if (closed) fail("GOAL_MONITOR_HOST_CLOSED");
+        if (currentDb() !== native) fail("GOAL_MONITOR_DATABASE_CHANGED");
         engine = engineFactory({
           db: native,
           store,
           clock,
+          graphAuthorityFactory,
           getActor: () => {
             // Connection replacement locks the old engine until the next command
             // rotates it, after draining the previous host.

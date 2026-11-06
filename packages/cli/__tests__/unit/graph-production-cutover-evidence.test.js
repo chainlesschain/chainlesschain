@@ -474,12 +474,12 @@ function rebindFixtureRegistry(fixture, { updateKeyIds = false } = {}) {
 }
 
 describe("Graph production cutover signed source contract", () => {
-  it("derives the frozen 5/23/20/7/13/3 aggregate from 69 current-run receipts", () => {
+  it("derives the frozen 5/24/21/8/13/3 aggregate from 72 current-run receipts", () => {
     const fixture = productionFixture();
     const evidence = assembleFixture(fixture);
-    expect(evidence.entries).toHaveLength(20);
+    expect(evidence.entries).toHaveLength(21);
     expect(evidence.disabledEntries).toHaveLength(3);
-    expect(evidence.sourceFragments).toHaveLength(23);
+    expect(evidence.sourceFragments).toHaveLength(24);
     expect(evidence.provenance.sourceRegistryDigest).toBe(
       fixture.sourceRegistry.registryDigest,
     );
@@ -492,11 +492,11 @@ describe("Graph production cutover signed source contract", () => {
       expect.objectContaining({
         status: "passed",
         surfaceCount: 5,
-        durableEntryCount: 20,
-        migratedEntryCount: 7,
+        durableEntryCount: 21,
+        migratedEntryCount: 8,
         retiredEntryCount: 13,
         disabledEntryCount: 3,
-        observationSourceCount: 69,
+        observationSourceCount: 72,
         distinctObservationSourceCount: 3,
       }),
     );
@@ -766,7 +766,7 @@ function makeReceiptDirectory(
 ) {
   const source = path.join(base, "source");
   fs.mkdirSync(source, { mode: 0o700 });
-  const count = hardlinked ? 68 : 69;
+  const count = hardlinked ? 71 : 72;
   for (let index = 0; index < count; index += 1) {
     fs.writeFileSync(
       path.join(source, `receipt-${String(index).padStart(2, "0")}.json`),
@@ -777,7 +777,7 @@ function makeReceiptDirectory(
   if (hardlinked) {
     fs.linkSync(
       path.join(source, "receipt-00.json"),
-      path.join(source, "receipt-68.json"),
+      path.join(source, "receipt-71.json"),
     );
   }
   if (process.platform !== "win32") fs.chmodSync(source, 0o500);

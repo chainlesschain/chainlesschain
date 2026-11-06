@@ -1524,7 +1524,7 @@ export function normalizeGraphProductionSourceBundle(
       ) {
         throw sourceError(
           "CC_GRAPH_PRODUCTION_JOB_BINDING_MISMATCH",
-          `${source.sourceId} changed Actions job identity across the 23 entries`,
+          `${source.sourceId} changed Actions job identity across the declared entries`,
         );
       }
       sourceJobIds.set(source.sourceId, receipt.payload.workflowJobDatabaseId);
@@ -1535,7 +1535,7 @@ export function normalizeGraphProductionSourceBundle(
       ) {
         throw sourceError(
           "CC_GRAPH_PRODUCTION_SOURCE_CROSS_CHECK_FAILED",
-          `${source.sourceId} changed physical boot identity across the 23 entries`,
+          `${source.sourceId} changed physical boot identity across the declared entries`,
         );
       }
       sourceBootIds.set(source.sourceId, receipt.payload.rawLog.bootIdDigest);
@@ -1586,7 +1586,7 @@ export function normalizeGraphProductionSourceBundle(
   ) {
     throw sourceError(
       "CC_GRAPH_PRODUCTION_JOB_BINDING_MISMATCH",
-      "all 23 entries must use the same three independent fixed source jobs",
+      "all declared entries must use the same three independent fixed source jobs",
     );
   }
   return Object.freeze({

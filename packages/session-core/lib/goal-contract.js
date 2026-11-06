@@ -12,6 +12,8 @@ const {
 
 const GOAL_SCHEMA = "chainlesschain.goal/v1";
 const GOAL_SCHEMA_VERSION = 1;
+const GOAL_GRAPH_AWARE_SCHEMA = "chainlesschain.goal/v2";
+const GOAL_GRAPH_AWARE_SCHEMA_VERSION = 2;
 const MAX_GOAL_RECORD_BYTES = 65536;
 const GOAL_STATUSES = Object.freeze(["active", "paused", "done", "abandoned"]);
 const ID = /^[A-Za-z0-9][A-Za-z0-9._:@-]{0,255}$/u;
@@ -174,11 +176,21 @@ function goalDefinitionDigest(goal) {
 }
 function validateGoalRecord(input) {
   const value = copy(input);
-  fields(value, FIELDS);
+  const graphAware =
+    value.schema === GOAL_GRAPH_AWARE_SCHEMA &&
+    value.schemaVersion === GOAL_GRAPH_AWARE_SCHEMA_VERSION;
+  const names = graphAware ? [...FIELDS, "requiresGraphAwareHost"] : FIELDS;
+  fields(value, names);
   if (
-    FIELDS.some((key) => !Object.hasOwn(value, key)) ||
-    value.schema !== GOAL_SCHEMA ||
-    value.schemaVersion !== GOAL_SCHEMA_VERSION
+    names.some((key) => !Object.hasOwn(value, key)) ||
+    (!graphAware &&
+      (value.schema !== GOAL_SCHEMA ||
+        value.schemaVersion !== GOAL_SCHEMA_VERSION)) ||
+    (graphAware &&
+      (value.requiresGraphAwareHost !== true ||
+        value.ownerRef === null ||
+        value.projectRef?.scope?.kind !== "personal" ||
+        value.projectRef?.sourceKind !== "desktop.project-goals"))
   )
     fail("GOAL_UNSUPPORTED_SCHEMA");
   identifier(value.id);
@@ -451,6 +463,8 @@ function completeGoalRecord(
 module.exports = {
   GOAL_SCHEMA,
   GOAL_SCHEMA_VERSION,
+  GOAL_GRAPH_AWARE_SCHEMA,
+  GOAL_GRAPH_AWARE_SCHEMA_VERSION,
   MAX_GOAL_RECORD_BYTES,
   GOAL_STATUSES,
   MUTABLE_FIELDS,

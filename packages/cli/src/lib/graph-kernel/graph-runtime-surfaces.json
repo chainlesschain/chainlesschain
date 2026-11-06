@@ -267,6 +267,36 @@
             "disabled": []
           },
           "recoveryEntrypoints": ["SchedulerKernelRuntime.recover"]
+        },
+        {
+          "id": "desktop-project-goals",
+          "runtimeDurability": "durable",
+          "cutoverStrategy": "migrate",
+          "rolloutKey": "scheduler/desktop-project-goals",
+          "entrypoints": [
+            "desktop-app-vue/src/main/task/project-goal-monitoring-host.js",
+            "packages/cli/src/host/project-goal-graph.js"
+          ],
+          "writerFiles": [
+            "packages/session-core/lib/project-goal-monitoring.js",
+            "packages/cli/src/host/project-goal-graph.js",
+            "packages/cli/src/lib/scheduler-kernel/graph-authority-adapter.js"
+          ],
+          "mutationFunctions": [
+            "ProjectGoalMonitoringEngine.checkNow",
+            "ProjectGoalMonitoringEngine.tick"
+          ],
+          "stores": ["SchedulerKernelStore", "ProjectGoalGraphJournal"],
+          "storeDispositions": {
+            "migrate": ["SchedulerKernelStore", "ProjectGoalGraphJournal"],
+            "retire": [],
+            "rebuild": [],
+            "disabled": []
+          },
+          "recoveryEntrypoints": [
+            "ProjectGoalMonitoringEngine.checkNow",
+            "ProjectGoalMonitoringEngine.tick"
+          ]
         }
       ]
     },

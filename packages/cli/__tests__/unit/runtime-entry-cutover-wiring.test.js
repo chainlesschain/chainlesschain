@@ -77,10 +77,10 @@ describe("runtime entry cutover wiring", () => {
         })),
       );
 
-    expect(entries).toHaveLength(20);
+    expect(entries).toHaveLength(21);
     expect(
       entries.filter((entry) => entry.cutoverStrategy === "migrate"),
-    ).toHaveLength(7);
+    ).toHaveLength(8);
     expect(
       entries.filter((entry) => entry.cutoverStrategy === "retire"),
     ).toHaveLength(13);

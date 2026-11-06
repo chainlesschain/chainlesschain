@@ -83,7 +83,16 @@ export class SchedulerOccurrenceGraphAuthority {
     now = Date.now,
     createId = randomUUID,
     writerLeaseTtlMs = 24 * 60 * 60 * 1000,
+    readCommittedResult = null,
   } = {}) {
+    if (
+      readCommittedResult !== null &&
+      typeof readCommittedResult !== "function"
+    )
+      throw graphError(
+        "CC_SCHEDULER_GRAPH_RECOVERY_INVALID",
+        "readCommittedResult must be a synchronous trusted host reader",
+      );
     mode = mode === undefined ? schedulerGraphAuthorityMode() : mode;
     if (!["legacy", "shadow", "canonical"].includes(mode)) {
       throw graphError(
@@ -105,6 +114,7 @@ export class SchedulerOccurrenceGraphAuthority {
     this.now = now;
     this.createId = createId;
     this.writerLeaseTtlMs = writerLeaseTtlMs;
+    this.readCommittedResult = readCommittedResult;
     this.active = new Map();
     this.comparisons = new Map();
   }
@@ -141,6 +151,75 @@ export class SchedulerOccurrenceGraphAuthority {
     return `scheduler-result:${createHash("sha256")
       .update(runId, "utf8")
       .digest("hex")}`;
+  }
+
+  inspectOccurrence(context, expectedHead = null) {
+    const runId = id(`scheduler:${context.occurrence.id}`, "scheduler-run");
+    let events;
+    try {
+      events = this.eventStore.read(runId);
+    } catch (error) {
+      if (error?.code !== "CC_ROLLOUT_THREAD_NOT_FOUND") throw error;
+      events = [];
+    }
+    const state = [...events].reverse().find((event) => event.payload?.state)
+      ?.payload.state;
+    if (
+      events.length &&
+      (!state?.authority ||
+        state.revisionDigest !== definitionFor(context).revisionDigest)
+    )
+      throw graphError(
+        "CC_GRAPH_OCCURRENCE_CONFLICT",
+        "scheduler occurrence Graph history does not match its current definition",
+      );
+    return {
+      present: events.length > 0,
+      runId,
+      authorityMode: state?.authority.authorityMode ?? this._modeFor(runId),
+      head: events.at(-1)?.hash ?? null,
+      containsHead:
+        expectedHead === null ||
+        events.some((event) => event.hash === expectedHead),
+      status: state?.status ?? null,
+    };
+  }
+
+  validateCommittedResult(context, result, expectedHead = null) {
+    const inspection = this.inspectOccurrence(context, expectedHead);
+    if (
+      !inspection.present ||
+      !inspection.containsHead ||
+      inspection.status !== "succeeded"
+    )
+      throw graphError(
+        "CC_SCHEDULER_GRAPH_RECEIPT_MISSING",
+        "Canonical terminal history is unavailable",
+      );
+    const receipt = this._resultReceipt(inspection.runId);
+    const projection = new GraphKernel({
+      eventStore: this.eventStore,
+      now: this.now,
+    }).readRun(inspection.runId);
+    const accepted = projection.attempts.find(
+      (attempt) => attempt.status === "accepted",
+    );
+    if (
+      receipt.outputDigest !==
+        graphDigest(result ?? null, "cc.scheduler.adapter-result/v1") ||
+      accepted?.terminalEvidence?.outputDigest !== receipt.outputDigest
+    )
+      throw graphError(
+        "CC_SCHEDULER_GRAPH_RECEIPT_FORGED",
+        "Native result and Graph terminal evidence differ",
+      );
+    const after = this.inspectOccurrence(context, expectedHead);
+    if (after.head !== inspection.head || !after.containsHead)
+      throw graphError(
+        "CC_GRAPH_OCCURRENCE_CONFLICT",
+        "Graph history changed during terminal verification",
+      );
+    return inspection;
   }
 
   _resultReceipt(runId, { allowMissing = false } = {}) {
@@ -201,6 +280,29 @@ export class SchedulerOccurrenceGraphAuthority {
     };
   }
 
+  _commitResult(runId, result) {
+    const outputDigest = graphDigest(
+      result ?? null,
+      "cc.scheduler.adapter-result/v1",
+    );
+    const threadId = this._resultThread(runId);
+    this.resultStore.start({
+      threadId,
+      title: `Scheduler Graph result ${runId}`,
+      metadata: { kind: "scheduler_graph_result", graphRunId: runId },
+    });
+    const resultEvents = this.resultStore.read(threadId);
+    const receipt = this.resultStore.append({
+      threadId,
+      eventType: "scheduler.result.committed",
+      idempotencyKey: `scheduler-result:${runId}`,
+      payload: { outputDigest, record: result ?? null },
+      expectedRevision: resultEvents.at(-1)?.event_seq,
+      expectedHeadHash: resultEvents.at(-1)?.hash,
+    });
+    return { receipt, outputDigest };
+  }
+
   begin(context) {
     const runId = id(`scheduler:${context.occurrence.id}`, "scheduler-run");
     const compiled = definitionFor(context);
@@ -216,6 +318,43 @@ export class SchedulerOccurrenceGraphAuthority {
       .state.authority;
     const mode = previous?.authorityMode || this._modeFor(runId);
     if (mode === "legacy") return null;
+    // A native domain may have atomically committed its exact occurrence result
+    // before the process died at the Graph receipt boundary. Recover only via
+    // its trusted, currently authorized reader; an absent result is not proof
+    // that the effect did not happen and never authorizes replay.
+    if (
+      events.length &&
+      this.readCommittedResult &&
+      !this._resultReceipt(runId, { allowMissing: true })
+    ) {
+      const lastState = [...events]
+        .reverse()
+        .find((event) => event.payload?.state)?.payload.state;
+      if (lastState?.revisionDigest !== compiled.revisionDigest)
+        throw graphError(
+          "CC_GRAPH_OCCURRENCE_CONFLICT",
+          "scheduler occurrence Graph revision changed during recovery",
+        );
+      const recovered = this.readCommittedResult(context);
+      if (
+        !recovered ||
+        typeof recovered !== "object" ||
+        recovered.then ||
+        typeof recovered.found !== "boolean"
+      )
+        throw graphError(
+          "CC_SCHEDULER_GRAPH_RECOVERY_INVALID",
+          "Native recovery must synchronously report found and an exact result",
+        );
+      if (recovered.found) {
+        if (!Object.hasOwn(recovered, "result"))
+          throw graphError(
+            "CC_SCHEDULER_GRAPH_RECOVERY_INVALID",
+            "Native recovery omitted its committed result",
+          );
+        this._commitResult(runId, recovered.result);
+      }
+    }
     const generation = previous ? Number(previous.authorityGeneration) + 1 : 1;
     const source = mode === "shadow" ? "graph_kernel_shadow" : "graph_kernel";
     const holder = this._kernel(runId, generation, source);
@@ -450,21 +589,7 @@ export class SchedulerOccurrenceGraphAuthority {
         "scheduler Graph attempt is not active",
       );
     }
-    const threadId = this._resultThread(active.runId);
-    this.resultStore.start({
-      threadId,
-      title: `Scheduler Graph result ${active.runId}`,
-      metadata: { kind: "scheduler_graph_result", graphRunId: active.runId },
-    });
-    const resultEvents = this.resultStore.read(threadId);
-    const receipt = this.resultStore.append({
-      threadId,
-      eventType: "scheduler.result.committed",
-      idempotencyKey: `scheduler-result:${active.runId}`,
-      payload: { outputDigest, record: result ?? null },
-      expectedRevision: resultEvents.at(-1)?.event_seq,
-      expectedHeadHash: resultEvents.at(-1)?.hash,
-    });
+    const { receipt } = this._commitResult(active.runId, result);
     active.kernel.settleEffect(active.runId, {
       effectId: active.effect.id,
       attemptId: active.attempt.id,
