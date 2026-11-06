@@ -4,6 +4,8 @@ CLI **0.166.143** and Session Core **0.3.26** are verified public after exact-so
 
 Install `npm i -g chainlesschain@0.166.143 --registry https://registry.npmjs.org`, restart hosts, then run `cc --version` and `cc doctor`. This release adds local compute configuration for LEXDATA/vLLM/SGLang, endpoint credential isolation and controlled pending goal-creation requests. Native creation requires matching desktop support and separate confirmation. Public clients are **v5.0.3.145** from earlier independent sources; new native creation/model drafts need matching newer desktop builds. This release does not republish PC/mobile clients; real IDE/Electron GUI, LEXDATA inference and business-effect acceptance remain separate. [Upgrade guide](docs-site/docs/chainlesschain/cli-ide-update-2026-11-06-143.md) · [Design](docs/design/release-runtime-update-2026-11-06-143.md) · [Previous release record](docs/research/cli/evidence/release142-public/README.md)
 
+> Unreleased source progress: PR #539 adds explicit CLI-goal handoff to a native personal project, exact-byte backup/freeze and signed cancellation recovery. Imported goals start paused without inherited authority; matching branch builds are required and public .143/.145 do not include it. [Design and validation scope](docs/design/cli-goal-transfer-source-2026-11-07.md).
+
 <!-- release141-current:start -->
 
 ## Previous release: CLI 0.166.141 / verified public pairing

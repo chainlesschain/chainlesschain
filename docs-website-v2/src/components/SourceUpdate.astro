@@ -40,6 +40,12 @@ const items = english
           : `JetBrains ${releaseStatus.jetBrainsCandidateVersion} 已通过正式发布工作流并上传，公开上架与下载仍待核验。该构建推荐 CLI ${releaseStatus.jetBrainsCandidateRecommendedCliVersion}，可从正式 Actions 制品手动侧载。`}
       </p>
     )}
+    <p class="mt-3 text-sm text-muted">
+      {english
+        ? "Unreleased source / PR #539: goal transfer-to-project freezes and backs up a CLI goal, then imports it into a selected native personal project in a paused state. Signed native cancellation enables exact-byte recovery. Matching branch builds are required; public CLI .143 and client .145 do not include it. Windows local reports record 49 files/790 passes; real GUI, Linux/macOS and release CI remain pending."
+        : "未发行源码 / PR #539：goal transfer-to-project 冻结并备份 CLI 目标，经原生确认移交至个人项目，新目标保持暂停；原生签名作废回执用于原字节恢复。需匹配分支构建，公开 CLI .143 与客户端 .145 尚不包含。Windows 本地报告为 49 文件/790 项通过，真实 GUI、Linux/macOS 与发行 CI 待验证。"}
+      <a class="text-ember hover:underline" href={releaseStatus.unreleasedGoalTransfer.designUrl}>{english ? " Handoff design ↗" : " 移交设计 ↗"}</a>
+    </p>
     <div class="mt-8 grid gap-6 md:grid-cols-3">
       {items.map(([title, description]) => (
         <article class="rounded-xl border border-line bg-paper p-6">
