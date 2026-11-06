@@ -35,7 +35,10 @@ import {
   stageGraphProductionSourceReceipts,
   writeNewAggregateFile,
 } from "../../scripts/assemble-graph-production-cutover-evidence.mjs";
-import { validateCurrentGraphProductionSourceJob } from "../../scripts/collect-graph-production-source-receipts.mjs";
+import {
+  validateCurrentGraphProductionSourceJob,
+  validateGraphProductionCollectionResponse,
+} from "../../scripts/collect-graph-production-source-receipts.mjs";
 import { freezeGraphProductionInput } from "../../scripts/freeze-graph-production-inputs.mjs";
 import { queryGraphProductionJobs } from "../../scripts/query-graph-production-jobs.mjs";
 import { selectGraphProductionArtifact } from "../../scripts/select-graph-production-artifact.mjs";
@@ -474,12 +477,12 @@ function rebindFixtureRegistry(fixture, { updateKeyIds = false } = {}) {
 }
 
 describe("Graph production cutover signed source contract", () => {
-  it("derives the frozen 5/23/20/7/13/3 aggregate from 69 current-run receipts", () => {
+  it("derives the frozen 5/24/21/8/13/3 aggregate from 72 current-run receipts", () => {
     const fixture = productionFixture();
     const evidence = assembleFixture(fixture);
-    expect(evidence.entries).toHaveLength(20);
+    expect(evidence.entries).toHaveLength(21);
     expect(evidence.disabledEntries).toHaveLength(3);
-    expect(evidence.sourceFragments).toHaveLength(23);
+    expect(evidence.sourceFragments).toHaveLength(24);
     expect(evidence.provenance.sourceRegistryDigest).toBe(
       fixture.sourceRegistry.registryDigest,
     );
@@ -492,11 +495,11 @@ describe("Graph production cutover signed source contract", () => {
       expect.objectContaining({
         status: "passed",
         surfaceCount: 5,
-        durableEntryCount: 20,
-        migratedEntryCount: 7,
+        durableEntryCount: 21,
+        migratedEntryCount: 8,
         retiredEntryCount: 13,
         disabledEntryCount: 3,
-        observationSourceCount: 69,
+        observationSourceCount: 72,
         distinctObservationSourceCount: 3,
       }),
     );
@@ -724,6 +727,10 @@ describe("Graph production cutover signed source contract", () => {
       ),
     );
     expect(registry.sources).toHaveLength(0);
+    expect(registry.manifestDigest).toBe(manifestDigest);
+    expect(registry.registryDigest).toBe(
+      graphProductionSourceRegistryDigest(registry),
+    );
     expect(() =>
       normalizeGraphProductionSourceRegistry(registry, {
         expectedRepository: REPOSITORY,
@@ -735,6 +742,78 @@ describe("Graph production cutover signed source contract", () => {
         code: "CC_GRAPH_PRODUCTION_SOURCE_COVERAGE_INCOMPLETE",
       }),
     );
+  });
+});
+
+describe("production collector entry coverage", () => {
+  function collection() {
+    const fixture = productionFixture();
+    const source = fixture.sourceRegistry.sources[0];
+    const receipts = fixture.receipts.filter(
+      (receipt) => receipt.payload.sourceId === source.sourceId,
+    );
+    return {
+      body: {
+        schema: "chainlesschain.graph-production-collection-response/v1",
+        receipts,
+      },
+      options: { manifest, source, request: clone(receipts[0].payload) },
+    };
+  }
+
+  it("accepts all 24 declared entries including native project goals", () => {
+    const { body, options } = collection();
+    expect(body.receipts).toHaveLength(24);
+    expect(
+      body.receipts.some(
+        (r) =>
+          r.payload.surface === "scheduler" &&
+          r.payload.entryId === "desktop-project-goals",
+      ),
+    ).toBe(true);
+    expect(validateGraphProductionCollectionResponse(body, options)).toBe(body);
+  });
+
+  it("rejects an old 23-entry response missing native project goals", () => {
+    const { body, options } = collection();
+    body.receipts = body.receipts.filter(
+      (r) => r.payload.entryId !== "desktop-project-goals",
+    );
+    expect(() =>
+      validateGraphProductionCollectionResponse(body, options),
+    ).toThrow("exactly 24");
+  });
+
+  it("rejects an undeclared entry substituted at the correct count", () => {
+    const { body, options } = collection();
+    body.receipts.at(-1).payload.entryId = "unregistered-observer";
+    expect(() =>
+      validateGraphProductionCollectionResponse(body, options),
+    ).toThrow("undeclared");
+  });
+
+  it("rejects duplicate entries and incorrectly bound current source receipts", () => {
+    for (const mutate of [
+      (body) => {
+        body.receipts[1] = clone(body.receipts[0]);
+      },
+      (body) => {
+        body.receipts[0].payload.workflowRunAttempt += 1;
+      },
+      (body) => {
+        body.receipts[0].payload.platform = "other-platform";
+      },
+    ]) {
+      const { body, options } = collection();
+      mutate(body);
+      expect(() =>
+        validateGraphProductionCollectionResponse(body, options),
+      ).toThrowError(
+        expect.objectContaining({
+          code: "CC_GRAPH_PRODUCTION_COLLECTOR_INVALID",
+        }),
+      );
+    }
   });
 });
 
@@ -766,7 +845,7 @@ function makeReceiptDirectory(
 ) {
   const source = path.join(base, "source");
   fs.mkdirSync(source, { mode: 0o700 });
-  const count = hardlinked ? 68 : 69;
+  const count = hardlinked ? 71 : 72;
   for (let index = 0; index < count; index += 1) {
     fs.writeFileSync(
       path.join(source, `receipt-${String(index).padStart(2, "0")}.json`),
@@ -777,7 +856,7 @@ function makeReceiptDirectory(
   if (hardlinked) {
     fs.linkSync(
       path.join(source, "receipt-00.json"),
-      path.join(source, "receipt-68.json"),
+      path.join(source, "receipt-71.json"),
     );
   }
   if (process.platform !== "win32") fs.chmodSync(source, 0o500);

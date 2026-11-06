@@ -15,7 +15,10 @@ import {
   graphProductionSourceRegistryDigest,
   normalizeGraphProductionSourceRegistry,
 } from "../src/lib/graph-kernel/production-source-evidence.js";
-import { graphRuntimeSurfaceManifestDigest } from "../src/lib/graph-kernel/runtime-surface-manifest.js";
+import {
+  assertGraphProductionRuntimeSurfaceManifest,
+  graphRuntimeSurfaceManifestDigest,
+} from "../src/lib/graph-kernel/runtime-surface-manifest.js";
 const MAX_RESPONSE_BYTES = 16 * 1024 * 1024;
 const COMMIT = /^[a-f0-9]{40}$/u;
 const CHALLENGE = /^[A-Za-z0-9_-]{32,128}$/u;
@@ -124,6 +127,56 @@ export function validateCurrentGraphProductionSourceJob(
     );
   }
   return { id: positive(job.id, "currentJob.job.id"), labels };
+}
+
+export function validateGraphProductionCollectionResponse(
+  body,
+  { manifest, source, request },
+) {
+  assertGraphProductionRuntimeSurfaceManifest(manifest);
+  const expectedKeys = new Set(
+    manifest.surfaces.flatMap((surface) =>
+      surface.entries.map((entry) => `${surface.originSurface}/${entry.id}`),
+    ),
+  );
+  if (
+    body?.schema !== "chainlesschain.graph-production-collection-response/v1" ||
+    !Array.isArray(body.receipts) ||
+    body.receipts.length !== expectedKeys.size
+  ) {
+    fail(
+      `collector must return exactly ${expectedKeys.size} signed entry receipts`,
+    );
+  }
+  const keys = new Set();
+  for (const receipt of body.receipts) {
+    const payload = receipt?.payload;
+    const key = `${payload?.surface}/${payload?.entryId}`;
+    if (
+      receipt?.schema !== undefined ||
+      payload?.schema !== GRAPH_PRODUCTION_SOURCE_RECEIPT_SCHEMA ||
+      payload?.sourceId !== source.sourceId ||
+      payload?.platform !== source.platform ||
+      payload?.commitSha !== request.commitSha ||
+      payload?.workflowRunId !== request.workflowRunId ||
+      payload?.workflowRunAttempt !== request.workflowRunAttempt ||
+      payload?.workflowJobDatabaseId !== request.workflowJobDatabaseId ||
+      payload?.hardwareIdentityDigest !== request.hardwareIdentityDigest ||
+      payload?.operatorIdentityDigest !== request.operatorIdentityDigest ||
+      JSON.stringify(payload?.attester) !== JSON.stringify(request.attester) ||
+      payload?.challenge !== request.challenge ||
+      !expectedKeys.has(key) ||
+      keys.has(key)
+    ) {
+      fail(
+        "collector returned a duplicate, undeclared or incorrectly bound receipt",
+      );
+    }
+    keys.add(key);
+  }
+  if (keys.size !== expectedKeys.size)
+    fail("collector receipt coverage is incomplete");
+  return body;
 }
 
 async function collect(options) {
@@ -260,37 +313,11 @@ async function collect(options) {
     clearTimeout(timeout);
   }
   const body = JSON.parse(bytes.toString("utf8"));
-  if (
-    body?.schema !== "chainlesschain.graph-production-collection-response/v1" ||
-    !Array.isArray(body.receipts) ||
-    body.receipts.length !== 23
-  ) {
-    fail("collector must return exactly 23 signed entry receipts");
-  }
-  const keys = new Set();
-  for (const receipt of body.receipts) {
-    const payload = receipt?.payload;
-    const key = `${payload?.surface}/${payload?.entryId}`;
-    if (
-      receipt?.schema !== undefined ||
-      payload?.schema !== GRAPH_PRODUCTION_SOURCE_RECEIPT_SCHEMA ||
-      payload?.sourceId !== source.sourceId ||
-      payload?.platform !== source.platform ||
-      payload?.commitSha !== request.commitSha ||
-      payload?.workflowRunId !== request.workflowRunId ||
-      payload?.workflowRunAttempt !== request.workflowRunAttempt ||
-      payload?.workflowJobDatabaseId !== request.workflowJobDatabaseId ||
-      payload?.hardwareIdentityDigest !== request.hardwareIdentityDigest ||
-      payload?.operatorIdentityDigest !== request.operatorIdentityDigest ||
-      JSON.stringify(payload?.attester) !== JSON.stringify(request.attester) ||
-      payload?.challenge !== request.challenge ||
-      keys.has(key)
-    ) {
-      fail("collector returned a duplicate or incorrectly bound receipt");
-    }
-    keys.add(key);
-  }
-  if (keys.size !== 23) fail("collector receipt coverage is incomplete");
+  validateGraphProductionCollectionResponse(body, {
+    manifest,
+    source,
+    request,
+  });
   const runnerTemp = fs.realpathSync(
     path.resolve(process.env.RUNNER_TEMP || ""),
   );

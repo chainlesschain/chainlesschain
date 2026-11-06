@@ -69,8 +69,8 @@ describe("GraphRun authority and writer inventory", () => {
     expect(validateGraphRuntimeSurfaceManifest(manifest)).toMatchObject({
       valid: true,
       surfaceCount: 5,
-      entryCount: 23,
-      migratableEntryCount: 7,
+      entryCount: 24,
+      migratableEntryCount: 8,
       retirementEntryCount: 13,
       disabledEntryCount: 3,
       replacementEdgeCount: 15,
@@ -94,7 +94,7 @@ describe("GraphRun authority and writer inventory", () => {
       },
     });
     const entries = manifest.surfaces.flatMap((surface) => surface.entries);
-    expect(new Set(entries.map((entry) => entry.rolloutKey)).size).toBe(23);
+    expect(new Set(entries.map((entry) => entry.rolloutKey)).size).toBe(24);
     expect(
       entries.find((entry) => entry.id === "desktop-specialized-agents"),
     ).toMatchObject({

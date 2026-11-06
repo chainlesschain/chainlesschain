@@ -273,6 +273,8 @@ class SqliteProjectGoalAdapter {
       if (current.revision !== expectedRevision)
         throw goalError("GOAL_REVISION_CONFLICT");
       const next = this._validate(transform(current));
+      if (current.requiresGraphAwareHost && !next.requiresGraphAwareHost)
+        throw goalError("GOAL_SCHEMA_DOWNGRADE_DENIED");
       if (this._actor() !== actor) throw goalError("GOAL_IDENTITY_CHANGED");
       this._project(current.projectRef.id, actor);
       if (

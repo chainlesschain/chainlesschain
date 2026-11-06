@@ -30,7 +30,7 @@ export const GRAPH_PRODUCTION_SOURCE_REGISTRY_PATH = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "../../../.github/graph-kernel-production-source-registry.json",
 );
-const EXPECTED_RECEIPT_COUNT = 69;
+const EXPECTED_RECEIPT_COUNT = 72;
 const MAX_RECEIPT_BYTES = 512 * 1024;
 const MAX_TOTAL_RECEIPT_BYTES = 36 * 1024 * 1024;
 const MAX_AGGREGATE_BYTES = 64 * 1024 * 1024;

@@ -1447,7 +1447,7 @@ export class GraphKernel {
     return runProjection(run);
   }
 
-  recoverRun(runId, { authority = null } = {}) {
+  _readPersistedRun(runId) {
     const id = safeIdentifier(runId, "runId");
     const events = this.eventStore.read(id);
     const latest = [...events]
@@ -1467,6 +1467,17 @@ export class GraphKernel {
       ...run.authority,
       eventHead: latest.hash,
     });
+    return { id, latest, run };
+  }
+
+  /** Authorized callers can inspect durable evidence without acquiring a
+   * writer, advancing authority generation or reconciling an active effect. */
+  readRun(runId) {
+    return runProjection(this._readPersistedRun(runId).run);
+  }
+
+  recoverRun(runId, { authority = null } = {}) {
+    const { id, latest, run } = this._readPersistedRun(runId);
     this.runs.set(id, run);
     if (authority) {
       const nextAuthority = createGraphAuthorityBinding({

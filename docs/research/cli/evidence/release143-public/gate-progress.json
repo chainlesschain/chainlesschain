@@ -1,0 +1,2733 @@
+{
+  "checkedAt": "2026-11-06T06:07:22.478Z",
+  "sha": "3fa3a4b258bbcb60b23b4298cec375661ad6f410",
+  "runs": [
+    {
+      "id": 42165324990,
+      "name": "CLI Agent Team Soak",
+      "path": ".github/workflows/cli-team-soak.yml",
+      "headSha": "3fa3a4b258bbcb60b23b4298cec375661ad6f410",
+      "status": "completed",
+      "conclusion": "success",
+      "event": "pull_request",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165324990",
+      "attempt": 1
+    },
+    {
+      "id": 42165323510,
+      "name": "Secret Scan Audit (PR advisory)",
+      "path": ".github/workflows/secret-scan-audit.yml",
+      "headSha": "3fa3a4b258bbcb60b23b4298cec375661ad6f410",
+      "status": "completed",
+      "conclusion": "success",
+      "event": "pull_request",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323510",
+      "attempt": 1
+    },
+    {
+      "id": 42165323488,
+      "name": "ESM require() Audit (hard gate, trap",
+      "path": ".github/workflows/esm-require-audit.yml",
+      "headSha": "3fa3a4b258bbcb60b23b4298cec375661ad6f410",
+      "status": "completed",
+      "conclusion": "success",
+      "event": "pull_request",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323488",
+      "attempt": 1
+    },
+    {
+      "id": 42165323365,
+      "name": "Cosmetic-Green Audit (PR advisory)",
+      "path": ".github/workflows/cosmetic-green-audit.yml",
+      "headSha": "3fa3a4b258bbcb60b23b4298cec375661ad6f410",
+      "status": "completed",
+      "conclusion": "success",
+      "event": "pull_request",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323365",
+      "attempt": 1
+    },
+    {
+      "id": 42165323353,
+      "name": "Version Sync Gate (PR mandatory)",
+      "path": ".github/workflows/version-sync-gate.yml",
+      "headSha": "3fa3a4b258bbcb60b23b4298cec375661ad6f410",
+      "status": "completed",
+      "conclusion": "success",
+      "event": "pull_request",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323353",
+      "attempt": 1
+    },
+    {
+      "id": 42165323319,
+      "name": "SQLite Number→TEXT Bind Audit (PR advisory)",
+      "path": ".github/workflows/sqlite-number-text-bind-audit.yml",
+      "headSha": "3fa3a4b258bbcb60b23b4298cec375661ad6f410",
+      "status": "completed",
+      "conclusion": "success",
+      "event": "pull_request",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323319",
+      "attempt": 1
+    },
+    {
+      "id": 42165323523,
+      "name": "Undeclared Dependency Audit (PR mandatory)",
+      "path": ".github/workflows/undeclared-deps-audit.yml",
+      "headSha": "3fa3a4b258bbcb60b23b4298cec375661ad6f410",
+      "status": "completed",
+      "conclusion": "success",
+      "event": "pull_request",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323523",
+      "attempt": 1
+    },
+    {
+      "id": 42165323521,
+      "name": "CI Mask Audit (PR advisory)",
+      "path": ".github/workflows/ci-mask-audit.yml",
+      "headSha": "3fa3a4b258bbcb60b23b4298cec375661ad6f410",
+      "status": "completed",
+      "conclusion": "success",
+      "event": "pull_request",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323521",
+      "attempt": 1
+    },
+    {
+      "id": 42165323412,
+      "name": "Workspace Publish Staleness Check (PR mandatory)",
+      "path": ".github/workflows/publish-staleness-check.yml",
+      "headSha": "3fa3a4b258bbcb60b23b4298cec375661ad6f410",
+      "status": "completed",
+      "conclusion": "success",
+      "event": "pull_request",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323412",
+      "attempt": 1
+    },
+    {
+      "id": 42165323330,
+      "name": "App Server Overload Soak",
+      "path": ".github/workflows/app-server-overload-soak.yml",
+      "headSha": "3fa3a4b258bbcb60b23b4298cec375661ad6f410",
+      "status": "completed",
+      "conclusion": "success",
+      "event": "pull_request",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323330",
+      "attempt": 1
+    },
+    {
+      "id": 42165323454,
+      "name": "PDH Bundle Staleness Check (hard gate, traps",
+      "path": ".github/workflows/pdh-bundle-staleness-check.yml",
+      "headSha": "3fa3a4b258bbcb60b23b4298cec375661ad6f410",
+      "status": "completed",
+      "conclusion": "success",
+      "event": "pull_request",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323454",
+      "attempt": 1
+    },
+    {
+      "id": 42165323396,
+      "name": "CLI Session Host Consistency",
+      "path": ".github/workflows/cli-session-host-consistency.yml",
+      "headSha": "3fa3a4b258bbcb60b23b4298cec375661ad6f410",
+      "status": "completed",
+      "conclusion": "success",
+      "event": "pull_request",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323396",
+      "attempt": 1
+    },
+    {
+      "id": 42165323554,
+      "name": "Docs-Site Build Gate (truncated-render guard)",
+      "path": ".github/workflows/docs-site-build-gate.yml",
+      "headSha": "3fa3a4b258bbcb60b23b4298cec375661ad6f410",
+      "status": "completed",
+      "conclusion": "success",
+      "event": "pull_request",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323554",
+      "attempt": 1
+    },
+    {
+      "id": 42165323421,
+      "name": "CLI Clipboard Image Host Matrix",
+      "path": ".github/workflows/cli-clipboard-image.yml",
+      "headSha": "3fa3a4b258bbcb60b23b4298cec375661ad6f410",
+      "status": "completed",
+      "conclusion": "success",
+      "event": "pull_request",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323421",
+      "attempt": 1
+    },
+    {
+      "id": 42165323514,
+      "name": "Context Memory Kernel CI",
+      "path": ".github/workflows/context-memory-kernel.yml",
+      "headSha": "3fa3a4b258bbcb60b23b4298cec375661ad6f410",
+      "status": "completed",
+      "conclusion": "success",
+      "event": "pull_request",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323514",
+      "attempt": 1
+    },
+    {
+      "id": 42165323362,
+      "name": "CLI Session Scale",
+      "path": ".github/workflows/cli-session-scale.yml",
+      "headSha": "3fa3a4b258bbcb60b23b4298cec375661ad6f410",
+      "status": "completed",
+      "conclusion": "success",
+      "event": "pull_request",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323362",
+      "attempt": 1
+    },
+    {
+      "id": 42165323381,
+      "name": "E2E Tests",
+      "path": ".github/workflows/e2e-tests.yml",
+      "headSha": "3fa3a4b258bbcb60b23b4298cec375661ad6f410",
+      "status": "completed",
+      "conclusion": "success",
+      "event": "pull_request",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323381",
+      "attempt": 1
+    },
+    {
+      "id": 42165323371,
+      "name": "CLI Scheduler Kernel Soak",
+      "path": ".github/workflows/cli-scheduler-soak.yml",
+      "headSha": "3fa3a4b258bbcb60b23b4298cec375661ad6f410",
+      "status": "completed",
+      "conclusion": "success",
+      "event": "pull_request",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323371",
+      "attempt": 1
+    },
+    {
+      "id": 42165323527,
+      "name": "CLI Team Fairness Soak",
+      "path": ".github/workflows/cli-team-fairness-soak.yml",
+      "headSha": "3fa3a4b258bbcb60b23b4298cec375661ad6f410",
+      "status": "completed",
+      "conclusion": "success",
+      "event": "pull_request",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323527",
+      "attempt": 1
+    },
+    {
+      "id": 42165323489,
+      "name": "IDE Roadmap Safety Matrix",
+      "path": ".github/workflows/ide-roadmap-safety.yml",
+      "headSha": "3fa3a4b258bbcb60b23b4298cec375661ad6f410",
+      "status": "completed",
+      "conclusion": "success",
+      "event": "pull_request",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323489",
+      "attempt": 1
+    },
+    {
+      "id": 42165323567,
+      "name": "CLI Background Agent Keeper Soak",
+      "path": ".github/workflows/cli-background-agent-keeper-soak.yml",
+      "headSha": "3fa3a4b258bbcb60b23b4298cec375661ad6f410",
+      "status": "completed",
+      "conclusion": "success",
+      "event": "pull_request",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323567",
+      "attempt": 1
+    },
+    {
+      "id": 42165323484,
+      "name": "Evolution Ledger Reliability",
+      "path": ".github/workflows/evolution-ledger-reliability.yml",
+      "headSha": "3fa3a4b258bbcb60b23b4298cec375661ad6f410",
+      "status": "completed",
+      "conclusion": "success",
+      "event": "pull_request",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323484",
+      "attempt": 1
+    },
+    {
+      "id": 42165323354,
+      "name": "IDE Roadmap Live Provider Trajectory",
+      "path": ".github/workflows/ide-roadmap-live-provider.yml",
+      "headSha": "3fa3a4b258bbcb60b23b4298cec375661ad6f410",
+      "status": "completed",
+      "conclusion": "success",
+      "event": "pull_request",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323354",
+      "attempt": 1
+    },
+    {
+      "id": 42165323541,
+      "name": "CLI Strict Sandbox",
+      "path": ".github/workflows/cli-strict-sandbox.yml",
+      "headSha": "3fa3a4b258bbcb60b23b4298cec375661ad6f410",
+      "status": "completed",
+      "conclusion": "success",
+      "event": "pull_request",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323541",
+      "attempt": 1
+    },
+    {
+      "id": 42165323520,
+      "name": "CI Tests",
+      "path": ".github/workflows/test.yml",
+      "headSha": "3fa3a4b258bbcb60b23b4298cec375661ad6f410",
+      "status": "in_progress",
+      "conclusion": null,
+      "event": "pull_request",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323520",
+      "attempt": 1
+    },
+    {
+      "id": 42165323493,
+      "name": "Full Test Automation with Diagnostics",
+      "path": ".github/workflows/test-automation-full.yml",
+      "headSha": "3fa3a4b258bbcb60b23b4298cec375661ad6f410",
+      "status": "completed",
+      "conclusion": "success",
+      "event": "pull_request",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323493",
+      "attempt": 1
+    },
+    {
+      "id": 42165323342,
+      "name": "E2E Project Detail Tests (Frontend-Only)",
+      "path": ".github/workflows/e2e-project-detail-tests.yml",
+      "headSha": "3fa3a4b258bbcb60b23b4298cec375661ad6f410",
+      "status": "completed",
+      "conclusion": "success",
+      "event": "pull_request",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323342",
+      "attempt": 1
+    },
+    {
+      "id": 42165323451,
+      "name": "VERIFY01 Host Diagnostics",
+      "path": ".github/workflows/verify01-host-diagnostics.yml",
+      "headSha": "3fa3a4b258bbcb60b23b4298cec375661ad6f410",
+      "status": "completed",
+      "conclusion": "success",
+      "event": "pull_request",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323451",
+      "attempt": 2
+    },
+    {
+      "id": 42165323477,
+      "name": "IDE ARM64 Host Validation",
+      "path": ".github/workflows/ide-arm64-validation.yml",
+      "headSha": "3fa3a4b258bbcb60b23b4298cec375661ad6f410",
+      "status": "completed",
+      "conclusion": "success",
+      "event": "pull_request",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323477",
+      "attempt": 1
+    },
+    {
+      "id": 42165323528,
+      "name": "CLI Reliability Soak",
+      "path": ".github/workflows/cli-reliability-soak.yml",
+      "headSha": "3fa3a4b258bbcb60b23b4298cec375661ad6f410",
+      "status": "completed",
+      "conclusion": "success",
+      "event": "pull_request",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323528",
+      "attempt": 1
+    },
+    {
+      "id": 42165323326,
+      "name": "Project Management E2E Tests",
+      "path": ".github/workflows/pm-e2e-tests.yml",
+      "headSha": "3fa3a4b258bbcb60b23b4298cec375661ad6f410",
+      "status": "completed",
+      "conclusion": "success",
+      "event": "pull_request",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323326",
+      "attempt": 1
+    },
+    {
+      "id": 42165323393,
+      "name": "Code Quality & Security",
+      "path": ".github/workflows/code-quality.yml",
+      "headSha": "3fa3a4b258bbcb60b23b4298cec375661ad6f410",
+      "status": "completed",
+      "conclusion": "success",
+      "event": "pull_request",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323393",
+      "attempt": 1
+    },
+    {
+      "id": 42165323545,
+      "name": "CLI CI",
+      "path": ".github/workflows/cli-ci.yml",
+      "headSha": "3fa3a4b258bbcb60b23b4298cec375661ad6f410",
+      "status": "queued",
+      "conclusion": null,
+      "event": "pull_request",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545",
+      "attempt": 1
+    },
+    {
+      "id": 42165323456,
+      "name": "PR Tests",
+      "path": ".github/workflows/pr-tests.yml",
+      "headSha": "3fa3a4b258bbcb60b23b4298cec375661ad6f410",
+      "status": "completed",
+      "conclusion": "success",
+      "event": "pull_request",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323456",
+      "attempt": 1
+    },
+    {
+      "id": 42165323386,
+      "name": "IDE Extensions",
+      "path": ".github/workflows/ide-extensions.yml",
+      "headSha": "3fa3a4b258bbcb60b23b4298cec375661ad6f410",
+      "status": "completed",
+      "conclusion": "success",
+      "event": "pull_request",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323386",
+      "attempt": 1
+    }
+  ],
+  "checks": [
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T04:58:13Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323330/job/127720326891",
+      "name": "Bounded WebSocket overload and RSS",
+      "startedAt": "2026-11-06T04:56:16Z",
+      "status": "COMPLETED",
+      "workflowName": "App Server Overload Soak"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T04:57:51Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323521/job/127720327605",
+      "name": "audit",
+      "startedAt": "2026-11-06T04:57:13Z",
+      "status": "COMPLETED",
+      "workflowName": "CI Mask Audit (PR advisory)"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:12:28Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323520/job/127720693666",
+      "name": "Scoped documentation check / Detect and validate scoped documentation",
+      "startedAt": "2026-11-06T05:11:54Z",
+      "status": "COMPLETED",
+      "workflowName": "CI Tests"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T04:58:31Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165324990/job/127720342274",
+      "name": "distributed DAG/fault soak (ubuntu-latest)",
+      "startedAt": "2026-11-06T04:56:45Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI Agent Team Soak"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:07:30Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323567/job/127720673336",
+      "name": "spawn/PID/keeper/restart soak (ubuntu-latest)",
+      "startedAt": "2026-11-06T05:05:35Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI Background Agent Keeper Soak"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:03:56Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127720580467",
+      "name": "Scoped documentation check / Detect and validate scoped documentation",
+      "startedAt": "2026-11-06T05:03:14Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:03:27Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323421/job/127720327485",
+      "name": "clipboard image host (ubuntu-latest)",
+      "startedAt": "2026-11-06T05:01:33Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI Clipboard Image Host Matrix"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T04:59:23Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323528/job/127720331372",
+      "name": "disk/pipe/TTY/SSH/MCP/resource soak (ubuntu-latest)",
+      "startedAt": "2026-11-06T04:56:32Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI Reliability Soak"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:01:47Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323371/job/127720327142",
+      "name": "scheduler kill/restart/contention soak (ubuntu-latest)",
+      "startedAt": "2026-11-06T04:59:03Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI Scheduler Kernel Soak"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T04:57:49Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323396/job/127720327084",
+      "name": "session host consistency (ubuntu-latest)",
+      "startedAt": "2026-11-06T04:56:22Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI Session Host Consistency"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T04:58:23Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323362/job/127720328077",
+      "name": "session scale (ubuntu-latest, smoke)",
+      "startedAt": "2026-11-06T04:56:15Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI Session Scale"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:00:11Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323541/job/127720327521",
+      "name": "Scoped documentation check / Detect and validate scoped documentation",
+      "startedAt": "2026-11-06T04:59:36Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI Strict Sandbox"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T04:59:35Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323527/job/127720327667",
+      "name": "dependency/scope/aging fairness (ubuntu-latest)",
+      "startedAt": "2026-11-06T04:57:53Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI Team Fairness Soak"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:03:20Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323393/job/127720498862",
+      "name": "Scoped documentation check / Detect and validate scoped documentation",
+      "startedAt": "2026-11-06T05:02:48Z",
+      "status": "COMPLETED",
+      "workflowName": "Code Quality & Security"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:06:18Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323514/job/127720327540",
+      "name": "Context/Memory (linux)",
+      "startedAt": "2026-11-06T05:01:04Z",
+      "status": "COMPLETED",
+      "workflowName": "Context Memory Kernel CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T04:56:36Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323365/job/127720326677",
+      "name": "audit",
+      "startedAt": "2026-11-06T04:56:11Z",
+      "status": "COMPLETED",
+      "workflowName": "Cosmetic-Green Audit (PR advisory)"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:04:36Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323554/job/127720327791",
+      "name": "Build docs-site & assert render",
+      "startedAt": "2026-11-06T04:56:49Z",
+      "status": "COMPLETED",
+      "workflowName": "Docs-Site Build Gate (truncated-render guard)"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:22:17Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323342/job/127720597275",
+      "name": "Project Detail E2E Tests (ubuntu-latest, 22.x)",
+      "startedAt": "2026-11-06T05:03:07Z",
+      "status": "COMPLETED",
+      "workflowName": "E2E Project Detail Tests (Frontend-Only)"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:05:16Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323381/job/127720327251",
+      "name": "E2E Tests (Electron + Playwright) (ubuntu-latest, 22.x)",
+      "startedAt": "2026-11-06T04:59:26Z",
+      "status": "COMPLETED",
+      "workflowName": "E2E Tests"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T04:56:12Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323488/job/127720327094",
+      "name": "Bare CJS globals in ESM (mandatory)",
+      "startedAt": "2026-11-06T04:55:36Z",
+      "status": "COMPLETED",
+      "workflowName": "ESM require() Audit (hard gate, trap"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T04:59:34Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323484/job/127720328119",
+      "name": "test-only ledger evidence (ubuntu-latest)",
+      "startedAt": "2026-11-06T04:58:06Z",
+      "status": "COMPLETED",
+      "workflowName": "Evolution Ledger Reliability"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:14:18Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323493/job/127720706215",
+      "name": "Scoped documentation check / Detect and validate scoped documentation",
+      "startedAt": "2026-11-06T05:13:43Z",
+      "status": "COMPLETED",
+      "workflowName": "Full Test Automation with Diagnostics"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:04:39Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323477/job/127720678083",
+      "name": "Scoped documentation check / Detect and validate scoped documentation",
+      "startedAt": "2026-11-06T05:03:58Z",
+      "status": "COMPLETED",
+      "workflowName": "IDE ARM64 Host Validation"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:09:17Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323386/job/127720794426",
+      "name": "Public IDE capability manifest (drift gate)",
+      "startedAt": "2026-11-06T05:08:44Z",
+      "status": "COMPLETED",
+      "workflowName": "IDE Extensions"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:00:21Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323354/job/127720326797",
+      "name": "Production trajectory over loopback (linux)",
+      "startedAt": "2026-11-06T04:56:39Z",
+      "status": "COMPLETED",
+      "workflowName": "IDE Roadmap Live Provider Trajectory"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:06:16Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323489/job/127720327417",
+      "name": "P0-S formal recovery and handoff (ubuntu-latest)",
+      "startedAt": "2026-11-06T05:00:13Z",
+      "status": "COMPLETED",
+      "workflowName": "IDE Roadmap Safety Matrix"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:00:43Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323454/job/127720327248",
+      "name": "Detect PDH/CLI lib changes",
+      "startedAt": "2026-11-06T05:00:02Z",
+      "status": "COMPLETED",
+      "workflowName": "PDH Bundle Staleness Check (hard gate, traps"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:47:57Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323456/job/127720628733",
+      "name": "Quick Tests",
+      "startedAt": "2026-11-06T04:59:06Z",
+      "status": "COMPLETED",
+      "workflowName": "PR Tests"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:00:27Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323326/job/127720326897",
+      "name": "Build Electron App",
+      "startedAt": "2026-11-06T04:55:32Z",
+      "status": "COMPLETED",
+      "workflowName": "Project Management E2E Tests"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T04:56:42Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323319/job/127720326604",
+      "name": "audit",
+      "startedAt": "2026-11-06T04:56:12Z",
+      "status": "COMPLETED",
+      "workflowName": "SQLite Number→TEXT Bind Audit (PR advisory)"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T04:56:28Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323510/job/127720327337",
+      "name": "audit",
+      "startedAt": "2026-11-06T04:55:52Z",
+      "status": "COMPLETED",
+      "workflowName": "Secret Scan Audit (PR advisory)"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T04:57:11Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323523/job/127720328517",
+      "name": "check",
+      "startedAt": "2026-11-06T04:56:55Z",
+      "status": "COMPLETED",
+      "workflowName": "Undeclared Dependency Audit (PR mandatory)"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T04:59:07Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323451/job/127732692933",
+      "name": "vscode-package",
+      "startedAt": "2026-11-06T04:58:26Z",
+      "status": "COMPLETED",
+      "workflowName": "VERIFY01 Host Diagnostics"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T04:56:08Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323353/job/127720326682",
+      "name": "check",
+      "startedAt": "2026-11-06T04:55:42Z",
+      "status": "COMPLETED",
+      "workflowName": "Version Sync Gate (PR mandatory)"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T04:58:03Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323412/job/127720326912",
+      "name": "check",
+      "startedAt": "2026-11-06T04:57:51Z",
+      "status": "COMPLETED",
+      "workflowName": "Workspace Publish Staleness Check (PR mandatory)"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:06:31Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165324990/job/127720342504",
+      "name": "distributed DAG/fault soak (windows-latest)",
+      "startedAt": "2026-11-06T05:00:25Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI Agent Team Soak"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:07:52Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323567/job/127720673180",
+      "name": "spawn/PID/keeper/restart soak (windows-latest)",
+      "startedAt": "2026-11-06T05:03:29Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI Background Agent Keeper Soak"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:05:56Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323421/job/127720327239",
+      "name": "clipboard image host (windows-latest)",
+      "startedAt": "2026-11-06T05:00:46Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI Clipboard Image Host Matrix"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:26:05Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323528/job/127720331425",
+      "name": "disk/pipe/TTY/SSH/MCP/resource soak (windows-latest)",
+      "startedAt": "2026-11-06T05:19:53Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI Reliability Soak"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:07:40Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323371/job/127720327179",
+      "name": "scheduler kill/restart/contention soak (windows-latest)",
+      "startedAt": "2026-11-06T05:01:50Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI Scheduler Kernel Soak"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:00:59Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323396/job/127720326969",
+      "name": "session host consistency (windows-latest)",
+      "startedAt": "2026-11-06T04:56:38Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI Session Host Consistency"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:00:12Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323362/job/127720328052",
+      "name": "session scale (windows-latest, smoke)",
+      "startedAt": "2026-11-06T04:55:56Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI Session Scale"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:01:01Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323527/job/127720327759",
+      "name": "dependency/scope/aging fairness (windows-latest)",
+      "startedAt": "2026-11-06T04:56:23Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI Team Fairness Soak"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:08:26Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323514/job/127720327776",
+      "name": "Context/Memory (windows)",
+      "startedAt": "2026-11-06T04:59:10Z",
+      "status": "COMPLETED",
+      "workflowName": "Context Memory Kernel CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:33:05Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323342/job/127720597509",
+      "name": "Project Detail E2E Tests (windows-latest, 22.x)",
+      "startedAt": "2026-11-06T05:08:54Z",
+      "status": "COMPLETED",
+      "workflowName": "E2E Project Detail Tests (Frontend-Only)"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:08:18Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323381/job/127720327250",
+      "name": "E2E Tests (Electron + Playwright) (macos-latest, 22.x)",
+      "startedAt": "2026-11-06T04:56:20Z",
+      "status": "COMPLETED",
+      "workflowName": "E2E Tests"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T04:59:59Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323484/job/127720327986",
+      "name": "test-only ledger evidence (windows-latest)",
+      "startedAt": "2026-11-06T04:56:29Z",
+      "status": "COMPLETED",
+      "workflowName": "Evolution Ledger Reliability"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:10:50Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323354/job/127720326987",
+      "name": "Production trajectory over loopback (windows)",
+      "startedAt": "2026-11-06T04:56:33Z",
+      "status": "COMPLETED",
+      "workflowName": "IDE Roadmap Live Provider Trajectory"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:05:20Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323489/job/127720327512",
+      "name": "P0-S formal recovery and handoff (windows-latest)",
+      "startedAt": "2026-11-06T04:58:16Z",
+      "status": "COMPLETED",
+      "workflowName": "IDE Roadmap Safety Matrix"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:05:11Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165324990/job/127720342561",
+      "name": "distributed DAG/fault soak (macos-latest)",
+      "startedAt": "2026-11-06T05:01:02Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI Agent Team Soak"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:08:00Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323567/job/127720673038",
+      "name": "spawn/PID/keeper/restart soak (macos-latest)",
+      "startedAt": "2026-11-06T05:05:13Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI Background Agent Keeper Soak"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:02:58Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323421/job/127720327455",
+      "name": "clipboard image host (macos-latest)",
+      "startedAt": "2026-11-06T04:59:37Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI Clipboard Image Host Matrix"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:26:15Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323528/job/127720331382",
+      "name": "disk/pipe/TTY/SSH/MCP/resource soak (macos-latest)",
+      "startedAt": "2026-11-06T05:23:47Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI Reliability Soak"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:06:56Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323371/job/127720326850",
+      "name": "scheduler kill/restart/contention soak (macos-latest)",
+      "startedAt": "2026-11-06T05:03:23Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI Scheduler Kernel Soak"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:00:24Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323396/job/127720326814",
+      "name": "session host consistency (macos-latest)",
+      "startedAt": "2026-11-06T04:56:39Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI Session Host Consistency"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T04:59:04Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323362/job/127720327891",
+      "name": "session scale (macos-latest, smoke)",
+      "startedAt": "2026-11-06T04:56:15Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI Session Scale"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:03:13Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323527/job/127720327460",
+      "name": "dependency/scope/aging fairness (macos-latest)",
+      "startedAt": "2026-11-06T05:00:31Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI Team Fairness Soak"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:02:46Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323514/job/127720327735",
+      "name": "Context/Memory (macos)",
+      "startedAt": "2026-11-06T04:56:31Z",
+      "status": "COMPLETED",
+      "workflowName": "Context Memory Kernel CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:01:30Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323381/job/127720327065",
+      "name": "E2E Tests (Electron + Playwright) (windows-latest, 22.x)",
+      "startedAt": "2026-11-06T04:56:15Z",
+      "status": "COMPLETED",
+      "workflowName": "E2E Tests"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:20:11Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323484/job/127720328228",
+      "name": "test-only ledger evidence (macos-latest)",
+      "startedAt": "2026-11-06T05:16:18Z",
+      "status": "COMPLETED",
+      "workflowName": "Evolution Ledger Reliability"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:00:51Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323354/job/127720327012",
+      "name": "Production trajectory over loopback (macos)",
+      "startedAt": "2026-11-06T04:56:36Z",
+      "status": "COMPLETED",
+      "workflowName": "IDE Roadmap Live Provider Trajectory"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:09:11Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323489/job/127720327297",
+      "name": "P0-S formal recovery and handoff (macos-latest)",
+      "startedAt": "2026-11-06T05:03:01Z",
+      "status": "COMPLETED",
+      "workflowName": "IDE Roadmap Safety Matrix"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T04:55:20Z",
+      "conclusion": "SKIPPED",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323354/job/127720328078",
+      "name": "Real-provider trajectory (shard ${{ matrix.shard }})",
+      "startedAt": "2026-11-06T04:55:21Z",
+      "status": "COMPLETED",
+      "workflowName": "IDE Roadmap Live Provider Trajectory"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:26:35Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323520/job/127725768985",
+      "name": "Backend model-egress and real startup regressions",
+      "startedAt": "2026-11-06T05:25:48Z",
+      "status": "COMPLETED",
+      "workflowName": "CI Tests"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:22:39Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323567/job/127724312721",
+      "name": "Background Agent keeper soak aggregate",
+      "startedAt": "2026-11-06T05:20:13Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI Background Agent Keeper Soak"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:17:48Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127722997479",
+      "name": "Build and audit reviewed runtime sources before test fan-out",
+      "startedAt": "2026-11-06T05:15:29Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:06:26Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323421/job/127723645534",
+      "name": "Clipboard image host aggregate",
+      "startedAt": "2026-11-06T05:06:18Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI Clipboard Image Host Matrix"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:13:41Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323528/job/127720331367",
+      "name": "cross-session durability and temporal recovery (ubuntu-latest)",
+      "startedAt": "2026-11-06T05:11:45Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI Reliability Soak"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:12:45Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323371/job/127724208076",
+      "name": "Scheduler kernel soak aggregate",
+      "startedAt": "2026-11-06T05:11:00Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI Scheduler Kernel Soak"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:09:00Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323362/job/127721780581",
+      "name": "SESSION-RUNTIME three-OS aggregate",
+      "startedAt": "2026-11-06T05:08:28Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI Session Scale"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:15:42Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323541/job/127721775203",
+      "name": "macOS latest native capability",
+      "startedAt": "2026-11-06T05:13:22Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI Strict Sandbox"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:14:32Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323527/job/127722771660",
+      "name": "Team fairness soak aggregate",
+      "startedAt": "2026-11-06T05:12:48Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI Team Fairness Soak"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:15:26Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323393/job/127722807599",
+      "name": "Detect Changed Files",
+      "startedAt": "2026-11-06T05:14:56Z",
+      "status": "COMPLETED",
+      "workflowName": "Code Quality & Security"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:37:44Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323342/job/127732389670",
+      "name": "Test Summary Report",
+      "startedAt": "2026-11-06T05:37:37Z",
+      "status": "COMPLETED",
+      "workflowName": "E2E Project Detail Tests (Frontend-Only)"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:11:52Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323381/job/127724408700",
+      "name": "Test Summary",
+      "startedAt": "2026-11-06T05:11:48Z",
+      "status": "COMPLETED",
+      "workflowName": "E2E Tests"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:22:54Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323484/job/127728271195",
+      "name": "Test-only Evolution Ledger three-OS aggregate",
+      "startedAt": "2026-11-06T05:22:20Z",
+      "status": "COMPLETED",
+      "workflowName": "Evolution Ledger Reliability"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:19:51Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323493/job/127726366486",
+      "name": "System Health Check",
+      "startedAt": "2026-11-06T05:17:55Z",
+      "status": "COMPLETED",
+      "workflowName": "Full Test Automation with Diagnostics"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:07:00Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323477/job/127723225733",
+      "name": "VS Code architecture-neutral candidate",
+      "startedAt": "2026-11-06T05:05:58Z",
+      "status": "COMPLETED",
+      "workflowName": "IDE ARM64 Host Validation"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:16:15Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323386/job/127724715415",
+      "name": "Browser evidence (linux)",
+      "startedAt": "2026-11-06T05:14:21Z",
+      "status": "COMPLETED",
+      "workflowName": "IDE Extensions"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:21:53Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323489/job/127724679338",
+      "name": "P0-S formal safety gate",
+      "startedAt": "2026-11-06T05:19:36Z",
+      "status": "COMPLETED",
+      "workflowName": "IDE Roadmap Safety Matrix"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T04:59:01Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323454/job/127720326974",
+      "name": "Lint script unit tests",
+      "startedAt": "2026-11-06T04:58:34Z",
+      "status": "COMPLETED",
+      "workflowName": "PDH Bundle Staleness Check (hard gate, traps"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:03:11Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323456/job/127720629002",
+      "name": "Code Quality",
+      "startedAt": "2026-11-06T05:00:53Z",
+      "status": "COMPLETED",
+      "workflowName": "PR Tests"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:17:59Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323326/job/127721867425",
+      "name": "Project Management Journey Tests",
+      "startedAt": "2026-11-06T05:14:34Z",
+      "status": "COMPLETED",
+      "workflowName": "Project Management E2E Tests"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:14:09Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323451/job/127732693556",
+      "name": "vscode (ubuntu-latest)",
+      "startedAt": "2026-11-06T05:12:31Z",
+      "status": "COMPLETED",
+      "workflowName": "VERIFY01 Host Diagnostics"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:18:31Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323528/job/127720331574",
+      "name": "cross-session durability and temporal recovery (windows-latest)",
+      "startedAt": "2026-11-06T05:14:12Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI Reliability Soak"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:25:46Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323386/job/127724715342",
+      "name": "Browser evidence (windows)",
+      "startedAt": "2026-11-06T05:23:12Z",
+      "status": "COMPLETED",
+      "workflowName": "IDE Extensions"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:24:26Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323451/job/127732732563",
+      "name": "jetbrains (ubuntu-latest)",
+      "startedAt": "2026-11-06T05:10:02Z",
+      "status": "COMPLETED",
+      "workflowName": "VERIFY01 Host Diagnostics"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:23:25Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323528/job/127720331503",
+      "name": "cross-session durability and temporal recovery (macos-latest)",
+      "startedAt": "2026-11-06T05:21:05Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI Reliability Soak"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:30:13Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323386/job/127724715338",
+      "name": "Browser evidence (macos)",
+      "startedAt": "2026-11-06T05:27:39Z",
+      "status": "COMPLETED",
+      "workflowName": "IDE Extensions"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:38:35Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323451/job/127732692685",
+      "name": "vscode (windows-latest)",
+      "startedAt": "2026-11-06T05:34:55Z",
+      "status": "COMPLETED",
+      "workflowName": "VERIFY01 Host Diagnostics"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:27:47Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323451/job/127732693695",
+      "name": "jetbrains (windows-latest)",
+      "startedAt": "2026-11-06T05:06:34Z",
+      "status": "COMPLETED",
+      "workflowName": "VERIFY01 Host Diagnostics"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:08:07Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323451/job/127732694028",
+      "name": "vscode (macos-15-intel)",
+      "startedAt": "2026-11-06T05:03:18Z",
+      "status": "COMPLETED",
+      "workflowName": "VERIFY01 Host Diagnostics"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:33:12Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323451/job/127732738764",
+      "name": "jetbrains (macos-15-intel)",
+      "startedAt": "2026-11-06T05:09:03Z",
+      "status": "COMPLETED",
+      "workflowName": "VERIFY01 Host Diagnostics"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:00:43Z",
+      "conclusion": "SKIPPED",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323454/job/127721964152",
+      "name": "USR_VERSION bump check (trap",
+      "startedAt": "2026-11-06T05:00:44Z",
+      "status": "COMPLETED",
+      "workflowName": "PDH Bundle Staleness Check (hard gate, traps"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:48:52Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323520/job/127725768889",
+      "name": "Unit Tests (ubuntu-latest, 22.x)",
+      "startedAt": "2026-11-06T05:25:49Z",
+      "status": "COMPLETED",
+      "workflowName": "CI Tests"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:18:26Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127722997523",
+      "name": "Native campaign preflight (ubuntu-latest)",
+      "startedAt": "2026-11-06T05:16:51Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:16:49Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323528/job/127720331642",
+      "name": "scheduler persistence/restart/lease/retry/dedup soak (ubuntu-latest)",
+      "startedAt": "2026-11-06T05:14:46Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI Reliability Soak"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:05:09Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323541/job/127721775248",
+      "name": "strict native boundary (ubuntu-24.04)",
+      "startedAt": "2026-11-06T05:00:26Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI Strict Sandbox"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:24:17Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323393/job/127722807604",
+      "name": "Validate Coding Rules",
+      "startedAt": "2026-11-06T05:22:57Z",
+      "status": "COMPLETED",
+      "workflowName": "Code Quality & Security"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:37:23Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323493/job/127726366599",
+      "name": "Run All Tests (ubuntu-latest)",
+      "startedAt": "2026-11-06T05:22:02Z",
+      "status": "COMPLETED",
+      "workflowName": "Full Test Automation with Diagnostics"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:14:57Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323477/job/127723225925",
+      "name": "JetBrains ARM64 (linux, 2024.2)",
+      "startedAt": "2026-11-06T05:06:30Z",
+      "status": "COMPLETED",
+      "workflowName": "IDE ARM64 Host Validation"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:12:33Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323386/job/127724715292",
+      "name": "VS Code extension (immutable candidate)",
+      "startedAt": "2026-11-06T05:11:49Z",
+      "status": "COMPLETED",
+      "workflowName": "IDE Extensions"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:24:08Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323354/job/127725221522",
+      "name": "Production trajectory loopback matrix",
+      "startedAt": "2026-11-06T05:21:56Z",
+      "status": "COMPLETED",
+      "workflowName": "IDE Roadmap Live Provider Trajectory"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:14:44Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323326/job/127721867430",
+      "name": "Approval Workflow Tests",
+      "startedAt": "2026-11-06T05:12:35Z",
+      "status": "COMPLETED",
+      "workflowName": "Project Management E2E Tests"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323520/job/127725768890",
+      "name": "Unit Tests (windows-latest, 22.x)",
+      "startedAt": "2026-11-06T05:27:16Z",
+      "status": "IN_PROGRESS",
+      "workflowName": "CI Tests"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:09:59Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127722997480",
+      "name": "Native campaign preflight (windows-latest)",
+      "startedAt": "2026-11-06T05:06:21Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:11:46Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323528/job/127720331325",
+      "name": "scheduler persistence/restart/lease/retry/dedup soak (windows-latest)",
+      "startedAt": "2026-11-06T05:07:43Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI Reliability Soak"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:13:19Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323541/job/127721775312",
+      "name": "strict native boundary (macos-15)",
+      "startedAt": "2026-11-06T05:08:03Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI Strict Sandbox"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:37:50Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323493/job/127726366492",
+      "name": "Run All Tests (windows-latest)",
+      "startedAt": "2026-11-06T05:16:11Z",
+      "status": "COMPLETED",
+      "workflowName": "Full Test Automation with Diagnostics"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:14:54Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323477/job/127723225833",
+      "name": "JetBrains ARM64 (linux, 2025.2)",
+      "startedAt": "2026-11-06T05:05:14Z",
+      "status": "COMPLETED",
+      "workflowName": "IDE ARM64 Host Validation"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323520/job/127725769079",
+      "name": "Unit Tests (macos-latest, 22.x)",
+      "startedAt": "2026-11-06T05:30:00Z",
+      "status": "IN_PROGRESS",
+      "workflowName": "CI Tests"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:29:31Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127722997540",
+      "name": "Native campaign preflight (macos-latest)",
+      "startedAt": "2026-11-06T05:25:27Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:29:03Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323528/job/127720331550",
+      "name": "scheduler persistence/restart/lease/retry/dedup soak (macos-latest)",
+      "startedAt": "2026-11-06T05:26:13Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI Reliability Soak"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:19:50Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323541/job/127721775145",
+      "name": "strict native boundary (windows-latest)",
+      "startedAt": "2026-11-06T05:09:31Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI Strict Sandbox"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:27:36Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323477/job/127723225790",
+      "name": "JetBrains ARM64 (windows, 2026.2.0.1)",
+      "startedAt": "2026-11-06T05:05:19Z",
+      "status": "COMPLETED",
+      "workflowName": "IDE ARM64 Host Validation"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:24:44Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323477/job/127723225805",
+      "name": "JetBrains ARM64 (macos, 2024.2)",
+      "startedAt": "2026-11-06T05:09:14Z",
+      "status": "COMPLETED",
+      "workflowName": "IDE ARM64 Host Validation"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:25:43Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323477/job/127723225876",
+      "name": "JetBrains ARM64 (macos, 2025.2)",
+      "startedAt": "2026-11-06T05:08:22Z",
+      "status": "COMPLETED",
+      "workflowName": "IDE ARM64 Host Validation"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:37:50Z",
+      "conclusion": "SKIPPED",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323493/job/127733901774",
+      "name": "Create Issue on Failure",
+      "startedAt": "2026-11-06T05:37:51Z",
+      "status": "COMPLETED",
+      "workflowName": "Full Test Automation with Diagnostics"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T04:55:20Z",
+      "conclusion": "SKIPPED",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323354/job/127720328093",
+      "name": "Verify 100-run real-provider trajectory",
+      "startedAt": "2026-11-06T04:55:21Z",
+      "status": "COMPLETED",
+      "workflowName": "IDE Roadmap Live Provider Trajectory"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:00:43Z",
+      "conclusion": "SKIPPED",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323454/job/127721963352",
+      "name": "Workspace dep version bump (trap",
+      "startedAt": "2026-11-06T05:00:44Z",
+      "status": "COMPLETED",
+      "workflowName": "PDH Bundle Staleness Check (hard gate, traps"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:21:02Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323520/job/127725768803",
+      "name": "Code Quality",
+      "startedAt": "2026-11-06T05:18:01Z",
+      "status": "COMPLETED",
+      "workflowName": "CI Tests"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:09:28Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127722997504",
+      "name": "PDH native release tests (ubuntu-latest)",
+      "startedAt": "2026-11-06T05:07:03Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:08:41Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323528/job/127720331334",
+      "name": "malicious MCP host/race soak (ubuntu-latest)",
+      "startedAt": "2026-11-06T05:05:26Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI Reliability Soak"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:03:05Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323541/job/127721775157",
+      "name": "strict native boundary (ubuntu-24.04-arm)",
+      "startedAt": "2026-11-06T05:00:16Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI Strict Sandbox"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:17:53Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323393/job/127722807654",
+      "name": "Security Audit",
+      "startedAt": "2026-11-06T05:15:44Z",
+      "status": "COMPLETED",
+      "workflowName": "Code Quality & Security"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:11:42Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323477/job/127723992326",
+      "name": "VS Code ARM64 (linux)",
+      "startedAt": "2026-11-06T05:07:57Z",
+      "status": "COMPLETED",
+      "workflowName": "IDE ARM64 Host Validation"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:30:27Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323386/job/127724715381",
+      "name": "JetBrains real host (windows-latest, 2024.2)",
+      "startedAt": "2026-11-06T05:13:59Z",
+      "status": "COMPLETED",
+      "workflowName": "IDE Extensions"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:19:33Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323326/job/127721867464",
+      "name": "Error Scenario Tests",
+      "startedAt": "2026-11-06T05:17:50Z",
+      "status": "COMPLETED",
+      "workflowName": "Project Management E2E Tests"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:11:46Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127722997427",
+      "name": "PDH native release tests (windows-latest)",
+      "startedAt": "2026-11-06T05:05:23Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:24:34Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323528/job/127720331377",
+      "name": "malicious MCP host/race soak (windows-latest)",
+      "startedAt": "2026-11-06T05:19:53Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI Reliability Soak"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:16:08Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323477/job/127723992432",
+      "name": "VS Code ARM64 (windows)",
+      "startedAt": "2026-11-06T05:08:10Z",
+      "status": "COMPLETED",
+      "workflowName": "IDE ARM64 Host Validation"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:42:38Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323386/job/127724715446",
+      "name": "JetBrains real host (windows-latest, 2025.2)",
+      "startedAt": "2026-11-06T05:23:28Z",
+      "status": "COMPLETED",
+      "workflowName": "IDE Extensions"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:29:58Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127722997632",
+      "name": "PDH native release tests (macos-latest)",
+      "startedAt": "2026-11-06T05:26:16Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:08:51Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323528/job/127720331177",
+      "name": "malicious MCP host/race soak (macos-latest)",
+      "startedAt": "2026-11-06T05:06:58Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI Reliability Soak"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:14:53Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323477/job/127723992415",
+      "name": "VS Code ARM64 (macos)",
+      "startedAt": "2026-11-06T05:09:20Z",
+      "status": "COMPLETED",
+      "workflowName": "IDE ARM64 Host Validation"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:23:50Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323386/job/127724715508",
+      "name": "JetBrains real host (ubuntu-latest, 2024.2)",
+      "startedAt": "2026-11-06T05:15:00Z",
+      "status": "COMPLETED",
+      "workflowName": "IDE Extensions"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:36:27Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323386/job/127724715472",
+      "name": "JetBrains real host (ubuntu-latest, 2025.2)",
+      "startedAt": "2026-11-06T05:24:11Z",
+      "status": "COMPLETED",
+      "workflowName": "IDE Extensions"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:49:44Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323386/job/127724715376",
+      "name": "JetBrains real host (macos-latest, 2024.2)",
+      "startedAt": "2026-11-06T05:29:07Z",
+      "status": "COMPLETED",
+      "workflowName": "IDE Extensions"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:42:03Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323386/job/127724715425",
+      "name": "JetBrains real host (macos-latest, 2025.2)",
+      "startedAt": "2026-11-06T05:29:34Z",
+      "status": "COMPLETED",
+      "workflowName": "IDE Extensions"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:00:43Z",
+      "conclusion": "SKIPPED",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323454/job/127721964261",
+      "name": "npm registry availability (trap",
+      "startedAt": "2026-11-06T05:00:44Z",
+      "status": "COMPLETED",
+      "workflowName": "PDH Bundle Staleness Check (hard gate, traps"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:29:59Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323520/job/127725768874",
+      "name": "Build Check (ubuntu-latest)",
+      "startedAt": "2026-11-06T05:25:45Z",
+      "status": "COMPLETED",
+      "workflowName": "CI Tests"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:05:23Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127722997667",
+      "name": "linux-subreaper / Linux packaged subreaper (x64)",
+      "startedAt": "2026-11-06T05:04:38Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:25:25Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323528/job/127729341743",
+      "name": "Cross-session message fabric aggregate",
+      "startedAt": "2026-11-06T05:24:37Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI Reliability Soak"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:13:57Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323393/job/127722807547",
+      "name": "Lint & Format Check",
+      "startedAt": "2026-11-06T05:10:53Z",
+      "status": "COMPLETED",
+      "workflowName": "Code Quality & Security"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:31:05Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323477/job/127730663274",
+      "name": "Aggregate 11-cell IDE ARM64 evidence",
+      "startedAt": "2026-11-06T05:30:03Z",
+      "status": "COMPLETED",
+      "workflowName": "IDE ARM64 Host Validation"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:34:52Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323386/job/127731474486",
+      "name": "Browser evidence (three-OS required aggregate)",
+      "startedAt": "2026-11-06T05:33:46Z",
+      "status": "COMPLETED",
+      "workflowName": "IDE Extensions"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:22:00Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323326/job/127721867518",
+      "name": "Performance & Stress Tests",
+      "startedAt": "2026-11-06T05:18:33Z",
+      "status": "COMPLETED",
+      "workflowName": "Project Management E2E Tests"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:33:56Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323520/job/127725768900",
+      "name": "Build Check (windows-latest)",
+      "startedAt": "2026-11-06T05:26:18Z",
+      "status": "COMPLETED",
+      "workflowName": "CI Tests"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:05:32Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127722997657",
+      "name": "linux-subreaper / Linux packaged subreaper (arm64)",
+      "startedAt": "2026-11-06T05:04:43Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:23:45Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323520/job/127725768907",
+      "name": "CLI Global Install Smoke (ubuntu-latest)",
+      "startedAt": "2026-11-06T05:22:41Z",
+      "status": "COMPLETED",
+      "workflowName": "CI Tests"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:52:43Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256552",
+      "name": "test-ubuntu / unit (ubuntu-latest, shard 1/4)",
+      "startedAt": "2026-11-06T05:37:47Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:33:01Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323528/job/127731113517",
+      "name": "Scheduler reliability soak aggregate",
+      "startedAt": "2026-11-06T05:30:29Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI Reliability Soak"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:26:13Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323393/job/127722807897",
+      "name": "Database Tests",
+      "startedAt": "2026-11-06T05:24:28Z",
+      "status": "COMPLETED",
+      "workflowName": "Code Quality & Security"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:31:33Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323386/job/127725794177",
+      "name": "VS Code extension (Windows host gate)",
+      "startedAt": "2026-11-06T05:26:16Z",
+      "status": "COMPLETED",
+      "workflowName": "IDE Extensions"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:27:14Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323326/job/127728882223",
+      "name": "Generate Test Report",
+      "startedAt": "2026-11-06T05:26:38Z",
+      "status": "COMPLETED",
+      "workflowName": "Project Management E2E Tests"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:32:00Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323520/job/127725768963",
+      "name": "CLI Global Install Smoke (windows-latest)",
+      "startedAt": "2026-11-06T05:24:20Z",
+      "status": "COMPLETED",
+      "workflowName": "CI Tests"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:43:49Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256529",
+      "name": "test-ubuntu / unit (ubuntu-latest, shard 2/4)",
+      "startedAt": "2026-11-06T05:37:26Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:38:50Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323520/job/127725769045",
+      "name": "CLI Global Install Smoke (macos-latest)",
+      "startedAt": "2026-11-06T05:37:20Z",
+      "status": "COMPLETED",
+      "workflowName": "CI Tests"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:54:02Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256576",
+      "name": "test-ubuntu / unit (ubuntu-latest, shard 3/4)",
+      "startedAt": "2026-11-06T05:44:31Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T06:01:10Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256359",
+      "name": "test-ubuntu / unit (ubuntu-latest, shard 4/4)",
+      "startedAt": "2026-11-06T05:52:46Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:22:00Z",
+      "conclusion": "SKIPPED",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323326/job/127728883509",
+      "name": "Notify Results",
+      "startedAt": "2026-11-06T05:22:01Z",
+      "status": "COMPLETED",
+      "workflowName": "Project Management E2E Tests"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:27:57Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323520/job/127725768935",
+      "name": "Database Tests",
+      "startedAt": "2026-11-06T05:26:07Z",
+      "status": "COMPLETED",
+      "workflowName": "CI Tests"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:35:00Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256597",
+      "name": "test-ubuntu / integration (ubuntu-latest, shard 1/8)",
+      "startedAt": "2026-11-06T05:31:35Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:30:00Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323528/job/127729710097",
+      "name": "Malicious MCP security soak aggregate",
+      "startedAt": "2026-11-06T05:28:05Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI Reliability Soak"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:23:09Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323393/job/127722807612",
+      "name": "Build Check",
+      "startedAt": "2026-11-06T05:18:29Z",
+      "status": "COMPLETED",
+      "workflowName": "Code Quality & Security"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:26:13Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323386/job/127725794080",
+      "name": "VS Code extension (macOS host gate)",
+      "startedAt": "2026-11-06T05:14:56Z",
+      "status": "COMPLETED",
+      "workflowName": "IDE Extensions"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:39:50Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256657",
+      "name": "test-ubuntu / integration (ubuntu-latest, shard 2/8)",
+      "startedAt": "2026-11-06T05:36:30Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:44:28Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256692",
+      "name": "test-ubuntu / integration (ubuntu-latest, shard 3/8)",
+      "startedAt": "2026-11-06T05:40:44Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:45:35Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256518",
+      "name": "test-ubuntu / integration (ubuntu-latest, shard 4/8)",
+      "startedAt": "2026-11-06T05:42:28Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:49:56Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256559",
+      "name": "test-ubuntu / integration (ubuntu-latest, shard 5/8)",
+      "startedAt": "2026-11-06T05:44:58Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:47:42Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256508",
+      "name": "test-ubuntu / integration (ubuntu-latest, shard 6/8)",
+      "startedAt": "2026-11-06T05:45:38Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:51:21Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256564",
+      "name": "test-ubuntu / integration (ubuntu-latest, shard 7/8)",
+      "startedAt": "2026-11-06T05:47:45Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:53:50Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256525",
+      "name": "test-ubuntu / integration (ubuntu-latest, shard 8/8)",
+      "startedAt": "2026-11-06T05:49:59Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:15:26Z",
+      "conclusion": "SKIPPED",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323393/job/127726740427",
+      "name": "Java Backend Check",
+      "startedAt": "2026-11-06T05:15:27Z",
+      "status": "COMPLETED",
+      "workflowName": "Code Quality & Security"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:25:46Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323520/job/127725768950",
+      "name": "PDH Data Hub Tests (ubuntu-latest)",
+      "startedAt": "2026-11-06T05:23:53Z",
+      "status": "COMPLETED",
+      "workflowName": "CI Tests"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:33:43Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256286",
+      "name": "test-ubuntu / e2e (ubuntu-latest, shard 1/4)",
+      "startedAt": "2026-11-06T05:32:02Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:26:10Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323386/job/127725794065",
+      "name": "VS Code Remote-SSH container (scoped trusted cell)",
+      "startedAt": "2026-11-06T05:24:47Z",
+      "status": "COMPLETED",
+      "workflowName": "IDE Extensions"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:33:24Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323520/job/127725769119",
+      "name": "PDH Data Hub Tests (windows-latest)",
+      "startedAt": "2026-11-06T05:27:50Z",
+      "status": "COMPLETED",
+      "workflowName": "CI Tests"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:40:41Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256416",
+      "name": "test-ubuntu / e2e (ubuntu-latest, shard 2/4)",
+      "startedAt": "2026-11-06T05:38:38Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:41:27Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256235",
+      "name": "test-ubuntu / e2e (ubuntu-latest, shard 3/4)",
+      "startedAt": "2026-11-06T05:39:52Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:44:56Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256310",
+      "name": "test-ubuntu / e2e (ubuntu-latest, shard 4/4)",
+      "startedAt": "2026-11-06T05:42:40Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:12:29Z",
+      "conclusion": "SKIPPED",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323520/job/127725770856",
+      "name": "Full Test Suite",
+      "startedAt": "2026-11-06T05:12:29Z",
+      "status": "COMPLETED",
+      "workflowName": "CI Tests"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:15:26Z",
+      "conclusion": "SKIPPED",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323393/job/127726739787",
+      "name": "Python Backend Check",
+      "startedAt": "2026-11-06T05:15:27Z",
+      "status": "COMPLETED",
+      "workflowName": "Code Quality & Security"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:54:36Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256803",
+      "name": "test-windows / unit (windows-latest, shard 1/16)",
+      "startedAt": "2026-11-06T05:33:08Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:55:36Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323386/job/127737595366",
+      "name": "JetBrains plugin (build + publish)",
+      "startedAt": "2026-11-06T05:49:46Z",
+      "status": "COMPLETED",
+      "workflowName": "IDE Extensions"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:42:25Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256682",
+      "name": "test-windows / unit (windows-latest, shard 2/16)",
+      "startedAt": "2026-11-06T05:31:47Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:57:58Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256709",
+      "name": "test-windows / unit (windows-latest, shard 3/16)",
+      "startedAt": "2026-11-06T05:33:04Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:43:19Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256775",
+      "name": "test-windows / unit (windows-latest, shard 4/16)",
+      "startedAt": "2026-11-06T05:33:15Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:56:47Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256728",
+      "name": "test-windows / unit (windows-latest, shard 5/16)",
+      "startedAt": "2026-11-06T05:43:22Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:55:16Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256807",
+      "name": "test-windows / unit (windows-latest, shard 6/16)",
+      "startedAt": "2026-11-06T05:43:42Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T06:06:14Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256729",
+      "name": "test-windows / unit (windows-latest, shard 7/16)",
+      "startedAt": "2026-11-06T05:54:39Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T06:05:49Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256780",
+      "name": "test-windows / unit (windows-latest, shard 8/16)",
+      "startedAt": "2026-11-06T05:55:18Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256784",
+      "name": "test-windows / unit (windows-latest, shard 9/16)",
+      "startedAt": "2026-11-06T05:56:51Z",
+      "status": "IN_PROGRESS",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256861",
+      "name": "test-windows / unit (windows-latest, shard 10/16)",
+      "startedAt": "2026-11-06T05:58:00Z",
+      "status": "IN_PROGRESS",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256796",
+      "name": "test-windows / unit (windows-latest, shard 11/16)",
+      "startedAt": "2026-11-06T06:05:52Z",
+      "status": "IN_PROGRESS",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256800",
+      "name": "test-windows / unit (windows-latest, shard 12/16)",
+      "startedAt": "2026-11-06T06:06:16Z",
+      "status": "IN_PROGRESS",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731257196",
+      "name": "test-windows / unit (windows-latest, shard 13/16)",
+      "startedAt": "2026-11-06T05:29:31Z",
+      "status": "QUEUED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256915",
+      "name": "test-windows / unit (windows-latest, shard 14/16)",
+      "startedAt": "2026-11-06T05:29:31Z",
+      "status": "QUEUED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731258277",
+      "name": "test-windows / unit (windows-latest, shard 15/16)",
+      "startedAt": "2026-11-06T05:29:32Z",
+      "status": "QUEUED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731258264",
+      "name": "test-windows / unit (windows-latest, shard 16/16)",
+      "startedAt": "2026-11-06T05:29:32Z",
+      "status": "QUEUED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:51:49Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256854",
+      "name": "test-windows / integration (windows-latest, shard 1/8)",
+      "startedAt": "2026-11-06T05:35:03Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:28:03Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323393/job/127729615280",
+      "name": "Quality Gate",
+      "startedAt": "2026-11-06T05:27:59Z",
+      "status": "COMPLETED",
+      "workflowName": "Code Quality & Security"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:31:44Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323386/job/127730213736",
+      "name": "IDE roadmap evidence (trusted scoped aggregate)",
+      "startedAt": "2026-11-06T05:31:08Z",
+      "status": "COMPLETED",
+      "workflowName": "IDE Extensions"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:45:41Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256551",
+      "name": "test-windows / integration (windows-latest, shard 2/8)",
+      "startedAt": "2026-11-06T05:33:58Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T06:03:35Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256478",
+      "name": "test-windows / integration (windows-latest, shard 3/8)",
+      "startedAt": "2026-11-06T05:45:44Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T06:01:42Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256483",
+      "name": "test-windows / integration (windows-latest, shard 4/8)",
+      "startedAt": "2026-11-06T05:51:52Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256727",
+      "name": "test-windows / integration (windows-latest, shard 5/8)",
+      "startedAt": "2026-11-06T06:01:45Z",
+      "status": "IN_PROGRESS",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256414",
+      "name": "test-windows / integration (windows-latest, shard 6/8)",
+      "startedAt": "2026-11-06T06:03:37Z",
+      "status": "IN_PROGRESS",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256326",
+      "name": "test-windows / integration (windows-latest, shard 7/8)",
+      "startedAt": "2026-11-06T05:29:31Z",
+      "status": "QUEUED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256507",
+      "name": "test-windows / integration (windows-latest, shard 8/8)",
+      "startedAt": "2026-11-06T05:29:31Z",
+      "status": "QUEUED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:55:36Z",
+      "conclusion": "SKIPPED",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323386/job/127739429075",
+      "name": "JetBrains Marketplace (post-publish verification)",
+      "startedAt": "2026-11-06T05:55:37Z",
+      "status": "COMPLETED",
+      "workflowName": "IDE Extensions"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:43:39Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256211",
+      "name": "test-windows / e2e (windows-latest, shard 1/4)",
+      "startedAt": "2026-11-06T05:37:53Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:35:09Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256179",
+      "name": "test-windows / e2e (windows-latest, shard 2/4)",
+      "startedAt": "2026-11-06T05:30:02Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:47:07Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256234",
+      "name": "test-windows / e2e (windows-latest, shard 3/4)",
+      "startedAt": "2026-11-06T05:41:30Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:49:36Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256130",
+      "name": "test-windows / e2e (windows-latest, shard 4/4)",
+      "startedAt": "2026-11-06T05:43:51Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:45:04Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256146",
+      "name": "test-macos / unit (macos-latest, shard 1/4)",
+      "startedAt": "2026-11-06T05:33:26Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:37:35Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323386/job/127732964488",
+      "name": "VS Code extension (Linux host gate + publish)",
+      "startedAt": "2026-11-06T05:35:11Z",
+      "status": "COMPLETED",
+      "workflowName": "IDE Extensions"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:47:13Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256164",
+      "name": "test-macos / unit (macos-latest, shard 2/4)",
+      "startedAt": "2026-11-06T05:38:53Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T06:02:38Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256141",
+      "name": "test-macos / unit (macos-latest, shard 3/4)",
+      "startedAt": "2026-11-06T05:49:47Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T06:06:57Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256259",
+      "name": "test-macos / unit (macos-latest, shard 4/4)",
+      "startedAt": "2026-11-06T05:51:11Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:47:02Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256455",
+      "name": "test-macos / integration (macos-latest, shard 1/8)",
+      "startedAt": "2026-11-06T05:42:06Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:52:17Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256607",
+      "name": "test-macos / integration (macos-latest, shard 2/8)",
+      "startedAt": "2026-11-06T05:45:07Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:55:15Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256434",
+      "name": "test-macos / integration (macos-latest, shard 3/8)",
+      "startedAt": "2026-11-06T05:50:55Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:57:30Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256423",
+      "name": "test-macos / integration (macos-latest, shard 4/8)",
+      "startedAt": "2026-11-06T05:52:21Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T06:03:41Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256456",
+      "name": "test-macos / integration (macos-latest, shard 5/8)",
+      "startedAt": "2026-11-06T05:55:18Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T06:01:46Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256517",
+      "name": "test-macos / integration (macos-latest, shard 6/8)",
+      "startedAt": "2026-11-06T05:57:33Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256666",
+      "name": "test-macos / integration (macos-latest, shard 7/8)",
+      "startedAt": "2026-11-06T06:01:49Z",
+      "status": "IN_PROGRESS",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256410",
+      "name": "test-macos / integration (macos-latest, shard 8/8)",
+      "startedAt": "2026-11-06T06:03:43Z",
+      "status": "IN_PROGRESS",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:37:17Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256194",
+      "name": "test-macos / e2e (macos-latest, shard 1/4)",
+      "startedAt": "2026-11-06T05:33:52Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:33:49Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256137",
+      "name": "test-macos / e2e (macos-latest, shard 2/4)",
+      "startedAt": "2026-11-06T05:30:16Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:50:52Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256209",
+      "name": "test-macos / e2e (macos-latest, shard 3/4)",
+      "startedAt": "2026-11-06T05:47:05Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T05:51:09Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127731256172",
+      "name": "test-macos / e2e (macos-latest, shard 4/4)",
+      "startedAt": "2026-11-06T05:47:16Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T06:02:56Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127741148744",
+      "name": "pack-linux-dryrun",
+      "startedAt": "2026-11-06T06:01:13Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI CI"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-06T06:03:41Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545/job/127741148689",
+      "name": "dry-run-publish",
+      "startedAt": "2026-11-06T06:01:13Z",
+      "status": "COMPLETED",
+      "workflowName": "CLI CI"
+    }
+  ]
+}
