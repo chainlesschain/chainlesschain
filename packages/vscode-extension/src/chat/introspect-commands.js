@@ -96,6 +96,7 @@ function runCliResult({
   env,
   timeoutMs = 30000,
   maxBufferBytes = 1024 * 1024,
+  strictUtf8 = false,
   deps,
 } = {}) {
   if (
@@ -121,11 +122,31 @@ function runCliResult({
         timeout: timeoutMs,
         windowsHide: true,
         maxBuffer: maxBufferBytes,
+        ...(strictUtf8 ? { encoding: "buffer" } : {}),
         // npm global shims on Windows are .cmd files — they need a shell.
         shell: useShell,
       },
       (err, stdout, stderr) => {
-        const out = String(stdout || "").trim();
+        let decoded;
+        try {
+          decoded =
+            strictUtf8 && Buffer.isBuffer(stdout)
+              ? new TextDecoder("utf-8", { fatal: true }).decode(stdout)
+              : String(stdout || "");
+        } catch {
+          resolve({
+            ok: false,
+            code: null,
+            stdout: "",
+            stderr: "",
+            text: "CLI output unavailable",
+            error: "CLI_OUTPUT_INVALID_UTF8",
+            timedOut: false,
+            signal: null,
+          });
+          return;
+        }
+        const out = decoded.trim();
         const errOut = String(stderr || "").trim();
         const combined = [out, errOut].filter(Boolean).join("\n");
         const timedOut =

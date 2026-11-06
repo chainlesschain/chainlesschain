@@ -12,6 +12,110 @@ const bin = fileURLToPath(
 const { testLlm } = createRequire(import.meta.url)(
   "../../../vscode-extension/src/llm-config.js",
 );
+it("CLI and VS Code connect to keyless local OpenAI compute without carrying a cloud credential", async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-local-compute-")),
+    requests = [];
+  const server = http.createServer(async (req, res) => {
+    const chunks = [];
+    for await (const chunk of req) chunks.push(chunk);
+    requests.push({
+      path: req.url,
+      auth: req.headers.authorization,
+      body: JSON.parse(Buffer.concat(chunks)),
+    });
+    res.setHeader("Content-Type", "application/json");
+    res.end(
+      JSON.stringify({
+        choices: [{ finish_reason: "stop", message: { content: "Hi" } }],
+        usage: { prompt_tokens: 9, completion_tokens: 1 },
+      }),
+    );
+  });
+  try {
+    await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+    const env = {
+      ...process.env,
+      CC_API_KEY: "",
+      CHAINLESSCHAIN_HOME: path.join(root, "state"),
+      CHAINLESSCHAIN_SECURITY_ANCHOR_HOME: path.join(root, "anchor"),
+      CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_DESCRIPTOR: "",
+      CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_TRUST_ROOT: "",
+      NO_COLOR: "1",
+    };
+    const workspace = path.join(root, "workspace");
+    fs.mkdirSync(workspace);
+    const previous = {
+      provider: "openai",
+      model: "old-cloud-model",
+      baseUrl: "https://unrelated.example/v1",
+      apiKey: "test-only-old-cloud-key",
+    };
+    const savedCloud = await run(
+      ["llm", "configure", "--storage", "file"],
+      env,
+      workspace,
+      JSON.stringify(previous),
+    );
+    expect(savedCloud.code, savedCloud.stderr).toBe(0);
+    const local = {
+      provider: "custom",
+      model: "glm5.3-flash-tensorfold",
+      baseUrl: `http://127.0.0.1:${server.address().port}/v1`,
+      apiKey: "",
+      visionModel: "",
+    };
+    const configured = await run(
+      ["llm", "configure", "--storage", "file"],
+      env,
+      workspace,
+      JSON.stringify(local),
+    );
+    expect(configured.code, configured.stderr).toBe(0);
+    const tested = await run(["llm", "test", "--json"], env, workspace);
+    expect(tested.code, tested.stderr).toBe(0);
+    expect(JSON.parse(tested.stdout)).toMatchObject({
+      provider: "custom",
+      model: local.model,
+      ok: true,
+      totalCostUsd: null,
+    });
+    const ide = await testLlm({
+      command: bin,
+      deps: {
+        execFile: (command, args, options, callback) =>
+          execFile(
+            command,
+            args,
+            { ...options, env: { ...options.env, ...env }, cwd: workspace },
+            callback,
+          ),
+      },
+    });
+    expect(ide.ok, ide.detail).toBe(true);
+    expect(requests).toHaveLength(2);
+    for (const request of requests) {
+      expect(request.path).toBe("/v1/chat/completions");
+      expect(request.auth).toBeUndefined();
+      expect(request.body.model).toBe(local.model);
+    }
+    const persisted = JSON.parse(
+      fs.readFileSync(path.join(root, "state/config.json"), "utf8"),
+    );
+    expect(persisted.llm).not.toHaveProperty("apiKey");
+    expect(persisted.llm).not.toHaveProperty("apiKeyHelper");
+  } finally {
+    server.closeAllConnections();
+    await new Promise((resolve) => server.close(resolve));
+    const absolute = fs.realpathSync.native(root),
+      base = fs.realpathSync.native(os.tmpdir());
+    if (
+      path.dirname(absolute) !== base ||
+      !path.basename(absolute).startsWith("cc-local-compute-")
+    )
+      throw new Error("Unexpected cleanup path");
+    fs.rmSync(absolute, { recursive: true, force: true });
+  }
+}, 90000);
 function run(args, env, cwd, input = "") {
   return new Promise((resolve, reject) => {
     const child = spawn(process.execPath, [bin, ...args], {

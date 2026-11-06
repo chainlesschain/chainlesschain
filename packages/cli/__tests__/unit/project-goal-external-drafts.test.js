@@ -138,6 +138,140 @@ afterEach(() => {
   fs.rmSync(directory, { recursive: true, force: true });
 });
 
+describe("separate native creation grants", () => {
+  const creationAccess = {
+    ...access,
+    schema: "chainlesschain.goal-create-draft-access/v1",
+  };
+  function createProposal(patch = {}) {
+    const native = workflow
+      .list({ goalId: goal.id })
+      .proposals.find(
+        (item) => item.current && item.proposal.actionType === "task.create",
+      ).proposal;
+    return proposal({
+      type: "task.create",
+      taskType: "analyze_data",
+      sourceRef: native.id,
+      requestId: "creation-1",
+      ...patch,
+    });
+  }
+  it("preserves description grant identity and uses separate creation authority and counts", () => {
+    const description = authorize(),
+      creation = authorize(creationAccess);
+    expect(creation.id).not.toBe(description.id);
+    expect(creation.type).toBe("task.create");
+    const saved = external.enqueue({
+      ...lease(creation),
+      proposal: createProposal(),
+    });
+    expect(external.assertGrant(lease(creation)).savedCount).toBe(1);
+    expect(external.assertGrant(lease(description)).savedCount).toBe(0);
+    expect(
+      external.listDrafts({ goalRef: ref(), id: creation.id }).entries[0].id,
+    ).toBe(saved.proposalId);
+    expect(
+      external.listDrafts({ goalRef: ref(), id: description.id }).entries,
+    ).toEqual([]);
+    expect(() =>
+      external.enqueue({ ...lease(description), proposal: createProposal() }),
+    ).toThrow("INVALID_REQUEST");
+    expect(() =>
+      external.enqueue({ ...lease(creation), proposal: proposal() }),
+    ).toThrow("INVALID_REQUEST");
+    external.revoke({ goalRef: ref(), id: creation.id, expectedEpoch: 1 });
+    expect(external.assertGrant(lease(description)).enabled).toBe(true);
+    expect(() => external.readDraft(native(creation, saved))).toThrow();
+  });
+  it("creates a task only after native preview/confirmation and replays its terminal receipt after restart and revoke", async () => {
+    const grant = authorize(creationAccess),
+      raw = createProposal(),
+      saved = external.enqueue({ ...lease(grant), proposal: raw });
+    expect(receipt(grant, raw).state).toBe("saved");
+    expect(count("project_tasks")).toBe(1);
+    expect(confirm).not.toHaveBeenCalled();
+    const prepared = external.prepareDraft(native(grant, saved));
+    expect(prepared.intent.taskType).toBe("analyze_data");
+    db.close();
+    open();
+    expect(external.prepareDraft(native(grant, saved)).intent.id).toBe(
+      prepared.intent.id,
+    );
+    const result = await workflow.execute({ intentId: prepared.intent.id });
+    expect(result.run.status).toBe("succeeded");
+    expect(count("project_tasks")).toBe(2);
+    external.revoke({ goalRef: ref(), id: grant.id, expectedEpoch: 1 });
+    db.close();
+    open();
+    expect(
+      (await workflow.execute({ intentId: prepared.intent.id })).replayed,
+    ).toBe(true);
+    expect(count("project_tasks")).toBe(2);
+    expect(confirm).toHaveBeenCalledOnce();
+  });
+  it("pins task type to stable request identity and refuses cross-action receipt lookup", () => {
+    const description = authorize(),
+      creation = authorize(creationAccess);
+    enqueue(description);
+    expect(() =>
+      external.enqueue({
+        ...lease(creation),
+        proposal: createProposal({ requestId: "request-1" }),
+      }),
+    ).toThrow("REQUEST_CONFLICT");
+    expect(() => receipt(creation)).toThrow("GRANT_CHANGED");
+    external.enqueue({ ...lease(creation), proposal: createProposal() });
+    expect(() =>
+      external.enqueue({
+        ...lease(creation),
+        proposal: createProposal({ taskType: "query_info" }),
+      }),
+    ).toThrow("REQUEST_CONFLICT");
+    expect(count("cc_project_goal_extension_drafts")).toBe(2);
+  });
+  it("requires goal creation scope and cannot revive a revoked creation epoch with late consent", () => {
+    const creation = authorize(creationAccess);
+    external.revoke({ goalRef: ref(), id: creation.id, expectedEpoch: 1 });
+    expect(() => authorize(creationAccess, 1)).toThrow("CONFLICT");
+    goal = workflow.goals.revise({
+      id: goal.id,
+      expectedRevision: goal.revision,
+      patch: { allowedActionTypes: ["task.update-description"] },
+    });
+    expect(() => authorize(creationAccess)).toThrow("ACTION_OUT_OF_SCOPE");
+    expect(authorize().enabled).toBe(true);
+  });
+  it("denies creation when its native confirmation is invalidated by revocation", async () => {
+    const grant = authorize(creationAccess),
+      saved = external.enqueue({ ...lease(grant), proposal: createProposal() });
+    const prepared = external.prepareDraft(native(grant, saved));
+    confirm.mockImplementation(async () => {
+      external.revoke({ goalRef: ref(), id: grant.id, expectedEpoch: 1 });
+      return true;
+    });
+    await expect(
+      workflow.execute({ intentId: prepared.intent.id }),
+    ).rejects.toThrow("EXTENSION_REJECTED");
+    expect(count("project_tasks")).toBe(1);
+    expect(
+      workflow.getIntent({ intentId: prepared.intent.id }).receipt.run.status,
+    ).toBe("denied");
+  });
+  it("rejects digest-valid creation grant schema/type substitutions", () => {
+    const grant = authorize(creationAccess);
+    alterGrant(grant, (record) => {
+      record.type = "task.description.update";
+    });
+    expect(() => external.assertGrant(lease(grant))).toThrow("CORRUPT");
+    alterGrant(grant, (record) => {
+      record.schema = "chainlesschain.goal-external-grant/v1";
+      delete record.type;
+    });
+    expect(() => external.assertGrant(lease(grant))).toThrow("CORRUPT");
+  });
+});
+
 describe("native external pending grants", () => {
   it("reads an absent authorization without writing, then grants and reopens the exact authority idempotently", () => {
     const changes = db.prepare("SELECT total_changes() AS n").get().n;
@@ -222,9 +356,9 @@ describe("native external pending grants", () => {
         proposal: proposal(),
       }),
     ).toThrow("INVALID_REQUEST");
-    expect(() => enqueue(grant, { type: "task.create" })).toThrow(
-      "INVALID_REQUEST",
-    );
+    expect(() =>
+      enqueue(grant, { type: "task.create", taskType: "query_info" }),
+    ).toThrow("INVALID_REQUEST");
   });
   it("recovers a lost submission response after source freshness changes without resubmission", () => {
     const grant = authorize(),

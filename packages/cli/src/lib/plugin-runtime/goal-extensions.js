@@ -259,6 +259,7 @@ export async function proposeGoalExtensionAction(ref, raw, options = {}) {
     type: raw.type,
     sourceRef: raw.sourceRef,
     requestId: raw.requestId,
+    ...(raw.type === "task.create" ? { taskType: raw.taskType } : {}),
   });
   await authorize(options.authorize, context);
   if (typeof options.enqueueProposal !== "function")

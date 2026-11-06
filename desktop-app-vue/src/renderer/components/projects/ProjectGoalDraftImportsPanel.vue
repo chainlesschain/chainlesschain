@@ -1,6 +1,6 @@
 <template>
   <section v-if="available" data-testid="goal-draft-imports">
-    <h5>采纳外部任务说明请求</h5>
+    <h5>采纳外部任务说明或创建任务请求</h5>
     <p>
       选择 CLI / IDE
       导出的请求文件，逐份核对完整正文后采纳。文件声明的插件来源未经代码鉴定；修改任务还需当前预览和原生确认。
@@ -41,6 +41,9 @@
         }}
       </p>
       <p>请求：{{ entry.requestId }}；采纳记录：{{ entry.id }}</p>
+      <p v-if="entry.type === 'task.create'">
+        创建任务 · 任务类型：{{ entry.taskType }}
+      </p>
       <button
         :disabled="busy || !entry.available"
         data-testid="read-imported-draft"
@@ -57,6 +60,9 @@
       </button>
     </article>
     <div v-if="selected" data-testid="imported-draft-body">
+      <p v-if="selected.draft.proposal.type === 'task.create'">
+        待创建的任务类型：{{ selected.draft.proposal.taskType }}
+      </p>
       <pre>{{ selected.draft.proposal.description }}</pre>
       <button
         :disabled="busy || !selected.available"
@@ -95,6 +101,8 @@ type Entry = {
   available: boolean;
   state: string;
   declaredPlugin: { name: string; scope: string; version: string };
+  type?: string;
+  taskType?: string;
 };
 const props = defineProps<{
   goal: Goal;

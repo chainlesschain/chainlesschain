@@ -198,9 +198,8 @@ export function registerGoalCommand(program) {
     .option("--json", "Output the metadata page as JSON")
     .action(async (options) => {
       try {
-        const { readCliGoalCatalog } = await import(
-          "../lib/cli-goal-catalog.js"
-        );
+        const { readCliGoalCatalog } =
+          await import("../lib/cli-goal-catalog.js");
         const readCatalog =
           options.connection !== undefined
             ? (await import("../lib/project-goal-connection.js"))
@@ -250,9 +249,8 @@ export function registerGoalCommand(program) {
     .option("--json", "Output the read-only panel snapshot as JSON")
     .action(async (id, options) => {
       try {
-        const { readCliGoalExtensionPanels } = await import(
-          "../lib/plugin-runtime/cli-goal-extension-host.js"
-        );
+        const { readCliGoalExtensionPanels } =
+          await import("../lib/plugin-runtime/cli-goal-extension-host.js");
         const result = await readCliGoalExtensionPanels(id, {
           plugin: options.plugin,
           scope: options.scope,
@@ -333,9 +331,8 @@ export function registerGoalCommand(program) {
       };
       const json = options.json;
       try {
-        const { replayCliGoalEvents } = await import(
-          "../lib/plugin-runtime/cli-goal-event-history.js"
-        );
+        const { replayCliGoalEvents } =
+          await import("../lib/plugin-runtime/cli-goal-event-history.js");
         await replayCliGoalEvents(id, selection, async (page) => {
           const output = json
             ? JSON.stringify(page) + "\n"
@@ -447,197 +444,234 @@ export function registerGoalCommand(program) {
       }
     });
 
-  goal
-    .command("draft-request <id>")
-    .description(
-      "Export an untrusted description request for explicit desktop adoption",
-    )
-    .requiredOption(
-      "--connection <file>",
-      "Read one explicitly connected desktop goal",
-    )
-    .requiredOption("--plugin <name>", "Select the installed proposal plugin")
-    .requiredOption(
-      "--scope <scope>",
-      "Select its user, project or local scope",
-    )
-    .requiredOption(
-      "--source <proposalId>",
-      "Exact native risk proposal ID copied from the desktop",
-    )
-    .requiredOption(
-      "--request-id <id>",
-      "Stable request identity; reuse the same file for retry",
-    )
-    .requiredOption("--title <text>", "Request title")
-    .requiredOption(
-      "--description-file <file>",
-      "UTF-8 proposed description, at most 8192 bytes",
-    )
-    .requiredOption(
-      "--out <file>",
-      "New request file; never overwrites an existing file",
-    )
-    .option(
-      "--expected-store <storeId>",
-      "Require the selected project goal store",
-    )
-    .option("--json", "Output the export result; no native draft is created")
-    .action(async (id, options) => {
-      try {
-        const { exportCliGoalDraftRequest } = await import(
-          "../lib/plugin-runtime/cli-goal-draft-request.js"
-        );
-        const result = await exportCliGoalDraftRequest(id, options);
-        if (options.json) console.log(JSON.stringify(result, null, 2));
-        else
-          logger.log(
-            stripVTControlCharacters(
-              `Request exported: ${result.file}\nNo native draft has been saved. Import this file in the desktop and review the full text. Request: ${result.requestId}`,
-            ),
-          );
-      } catch (error) {
-        fail("draft-request", error);
-      }
-    });
-
-  goal
-    .command("draft-access")
-    .description(
-      "Export a plugin label for separate native pending-draft authorization",
-    )
-    .requiredOption(
-      "--plugin <name>",
-      "Select an installed, trusted proposal plugin",
-    )
-    .requiredOption(
-      "--scope <scope>",
-      "Its user, project or local installation scope",
-    )
-    .requiredOption(
-      "--out <file>",
-      "New access request file; contains no native authority",
-    )
-    .option("--json", "Output the access export result as JSON")
-    .action(async (options) => {
-      const captured = {
-        ...options,
-        cwd: process.cwd(),
-        env: { ...process.env },
-      };
-      try {
-        const { exportCliGoalDraftAccess } = await import(
-          "../lib/plugin-runtime/cli-goal-drafts.js"
-        );
-        const result = await exportCliGoalDraftAccess(captured);
-        if (captured.json) console.log(JSON.stringify(result, null, 2));
-        else
-          logger.log(
-            stripVTControlCharacters(
-              `Access request exported: ${result.file}\nOpen it in the desktop for separate native authorization; this file grants no permission.`,
-            ),
-          );
-      } catch (error) {
-        fail("draft-access", error);
-      }
-    });
-
-  for (const [name, description] of [
-    [
-      "draft-sources",
-      "Read current source IDs under a v3 pending-draft connection",
-    ],
-    [
-      "draft-send",
-      "Save one pending suggestion with a durable submission reference",
-    ],
-    ["draft-receipt", "Reconcile a recorded submission without resending it"],
-  ]) {
-    const command = goal
-      .command(`${name} <id>`)
-      .description(description)
+  for (const creation of [false, true]) {
+    const exportCommand = goal
+      .command(creation ? "draft-create-request <id>" : "draft-request <id>")
+      .description(
+        creation
+          ? "Export an untrusted task-creation request for explicit desktop adoption"
+          : "Export an untrusted description request for explicit desktop adoption",
+      )
       .requiredOption(
         "--connection <file>",
-        "Separately authorized v3 desktop pending-draft connection",
+        "Read one explicitly connected desktop goal",
       )
-      .requiredOption(
-        "--plugin <name>",
-        "Select the exact installed proposal plugin",
-      )
+      .requiredOption("--plugin <name>", "Select the installed proposal plugin")
       .requiredOption(
         "--scope <scope>",
-        "Its user, project or local installation scope",
+        "Select its user, project or local scope",
+      )
+      .requiredOption(
+        "--source <proposalId>",
+        "Exact native risk proposal ID copied from the desktop",
+      )
+      .requiredOption(
+        "--request-id <id>",
+        "Stable request identity; reuse the same file for retry",
+      )
+      .requiredOption("--title <text>", "Request title")
+      .requiredOption(
+        "--description-file <file>",
+        "UTF-8 proposed description, at most 8192 bytes",
+      )
+      .requiredOption(
+        "--out <file>",
+        "New request file; never overwrites an existing file",
       )
       .option(
         "--expected-store <storeId>",
         "Require the selected project goal store",
       )
-      .option("--json", "Output the bounded result as JSON");
-    if (name === "draft-sources")
-      command.option(
-        "--after <cursor>",
-        "Continue after a returned source cursor",
-      );
-    else
-      command.requiredOption(
-        "--record <file>",
-        "Durable no-credential submission reference; an existing reference is only queried",
-      );
-    if (name === "draft-send")
-      command
-        .requiredOption(
-          "--source <proposalId>",
-          "Exact source ID returned by draft-sources",
-        )
-        .requiredOption(
-          "--request-id <id>",
-          "Stable request identity; preserve it when querying an unknown result",
-        )
-        .requiredOption("--title <text>", "Pending suggestion title")
-        .requiredOption(
-          "--description-file <file>",
-          "UTF-8 proposed description, at most 8192 bytes",
-        );
-    command.action(async (id, options) => {
-      const captured = {
-        ...options,
-        cwd: process.cwd(),
-        env: { ...process.env },
-      };
-      try {
-        const host = await import("../lib/plugin-runtime/cli-goal-drafts.js");
-        const run =
-          name === "draft-sources"
-            ? host.readCliGoalDraftSources
-            : name === "draft-send"
-              ? host.sendCliGoalDraft
-              : host.readCliGoalDraftReceipt;
-        const result = await run(id, captured);
-        if (captured.json) console.log(JSON.stringify(result, null, 2));
-        else if (name === "draft-sources") {
-          for (const source of result.sources.entries)
+      .option("--json", "Output the export result; no native draft is created")
+      .action(async (id, options) => {
+        try {
+          const { exportCliGoalDraftRequest, exportCliGoalTaskCreateRequest } =
+            await import("../lib/plugin-runtime/cli-goal-draft-request.js");
+          const result = await (
+            creation
+              ? exportCliGoalTaskCreateRequest
+              : exportCliGoalDraftRequest
+          )(id, options);
+          if (options.json) console.log(JSON.stringify(result, null, 2));
+          else
             logger.log(
               stripVTControlCharacters(
-                `${source.id}  task ${source.sourceTaskId}  review ${source.reviewId}`,
+                `Request exported: ${result.file}\nNo native draft has been saved. Import this file in the desktop and review the full text. Request: ${result.requestId}`,
               ),
             );
-          logger.log(
-            `Scanned ${result.sources.scannedCount}; unavailable ${result.sources.unavailableCount}.`,
+        } catch (error) {
+          fail(creation ? "draft-create-request" : "draft-request", error);
+        }
+      });
+    if (creation)
+      exportCommand.requiredOption(
+        "--task-type <type>",
+        "Explicit native task type for this pending creation request",
+      );
+  }
+
+  for (const creation of [false, true]) {
+    goal
+      .command(creation ? "draft-create-access" : "draft-access")
+      .description(
+        "Export a plugin label for separate native pending-draft authorization",
+      )
+      .requiredOption(
+        "--plugin <name>",
+        "Select an installed, trusted proposal plugin",
+      )
+      .requiredOption(
+        "--scope <scope>",
+        "Its user, project or local installation scope",
+      )
+      .requiredOption(
+        "--out <file>",
+        "New access request file; contains no native authority",
+      )
+      .option("--json", "Output the access export result as JSON")
+      .action(async (options) => {
+        const captured = {
+          ...options,
+          cwd: process.cwd(),
+          env: { ...process.env },
+        };
+        try {
+          const { exportCliGoalDraftAccess, exportCliGoalCreateDraftAccess } =
+            await import("../lib/plugin-runtime/cli-goal-drafts.js");
+          const result = await (
+            creation ? exportCliGoalCreateDraftAccess : exportCliGoalDraftAccess
+          )(captured);
+          if (captured.json) console.log(JSON.stringify(result, null, 2));
+          else
+            logger.log(
+              stripVTControlCharacters(
+                `Access request exported: ${result.file}\nOpen it in the desktop for separate native authorization; this file grants no permission.`,
+              ),
+            );
+        } catch (error) {
+          fail(creation ? "draft-create-access" : "draft-access", error);
+        }
+      });
+  }
+
+  for (const creation of [false, true]) {
+    for (const [name, description] of [
+      [
+        "draft-sources",
+        "Read current source IDs under a v3 pending-draft connection",
+      ],
+      [
+        "draft-send",
+        "Save one pending suggestion with a durable submission reference",
+      ],
+      ["draft-receipt", "Reconcile a recorded submission without resending it"],
+    ]) {
+      const command = goal
+        .command(
+          `${creation ? name.replace("draft-", "draft-create-") : name} <id>`,
+        )
+        .description(
+          creation ? description.replace("v3", "v6 creation") : description,
+        )
+        .requiredOption(
+          "--connection <file>",
+          creation
+            ? "Separately authorized v6 creation pending-draft connection"
+            : "Separately authorized v3 desktop pending-draft connection",
+        )
+        .requiredOption(
+          "--plugin <name>",
+          "Select the exact installed proposal plugin",
+        )
+        .requiredOption(
+          "--scope <scope>",
+          "Its user, project or local installation scope",
+        )
+        .option(
+          "--expected-store <storeId>",
+          "Require the selected project goal store",
+        )
+        .option("--json", "Output the bounded result as JSON");
+      if (name === "draft-sources")
+        command.option(
+          "--after <cursor>",
+          "Continue after a returned source cursor",
+        );
+      else
+        command.requiredOption(
+          "--record <file>",
+          "Durable no-credential submission reference; an existing reference is only queried",
+        );
+      if (name === "draft-send")
+        command
+          .requiredOption(
+            "--source <proposalId>",
+            "Exact source ID returned by draft-sources",
+          )
+          .requiredOption(
+            "--request-id <id>",
+            "Stable request identity; preserve it when querying an unknown result",
+          )
+          .requiredOption("--title <text>", "Pending suggestion title")
+          .requiredOption(
+            "--description-file <file>",
+            "UTF-8 proposed description, at most 8192 bytes",
           );
-          if (result.sources.nextCursor)
-            logger.log(`Next cursor: ${result.sources.nextCursor}`);
-        } else
-          logger.log(
-            stripVTControlCharacters(
-              result.state === "saved"
-                ? `Pending suggestion saved: ${result.proposalId}\nTask modification still requires native preview and confirmation. Reference: ${result.record}`
-                : `${result.state === "unknown" ? "Submission result unknown" : "No matching submission existed at query time"}. No automatic resend was performed.\nQuery the same reference with draft-receipt: ${result.record}`,
-            ),
+      if (creation && name === "draft-send")
+        command.requiredOption(
+          "--task-type <type>",
+          "Explicit native task type; saved pending only",
+        );
+      command.action(async (id, options) => {
+        const captured = {
+          ...options,
+          cwd: process.cwd(),
+          env: { ...process.env },
+        };
+        try {
+          const host = await import("../lib/plugin-runtime/cli-goal-drafts.js");
+          const run =
+            name === "draft-sources"
+              ? creation
+                ? host.readCliGoalCreateDraftSources
+                : host.readCliGoalDraftSources
+              : name === "draft-send"
+                ? creation
+                  ? host.sendCliGoalCreateDraft
+                  : host.sendCliGoalDraft
+                : creation
+                  ? host.readCliGoalCreateDraftReceipt
+                  : host.readCliGoalDraftReceipt;
+          const result = await run(id, captured);
+          if (captured.json) console.log(JSON.stringify(result, null, 2));
+          else if (name === "draft-sources") {
+            for (const source of result.sources.entries)
+              logger.log(
+                stripVTControlCharacters(
+                  `${source.id}  task ${source.sourceTaskId}  review ${source.reviewId}`,
+                ),
+              );
+            logger.log(
+              `Scanned ${result.sources.scannedCount}; unavailable ${result.sources.unavailableCount}.`,
+            );
+            if (result.sources.nextCursor)
+              logger.log(`Next cursor: ${result.sources.nextCursor}`);
+          } else
+            logger.log(
+              stripVTControlCharacters(
+                result.state === "saved"
+                  ? `Pending suggestion saved: ${result.proposalId}\nTask ${creation ? "creation" : "modification"} still requires native preview and confirmation. Reference: ${result.record}`
+                  : `${result.state === "unknown" ? "Submission result unknown" : "No matching submission existed at query time"}. No automatic resend was performed.\nQuery the same reference with ${creation ? "draft-create-receipt" : "draft-receipt"}: ${result.record}`,
+              ),
+            );
+        } catch (error) {
+          fail(
+            creation ? name.replace("draft-", "draft-create-") : name,
+            error,
           );
-      } catch (error) {
-        fail(name, error);
-      }
-    });
+        }
+      });
+    }
   }
 
   const kr = goal.command("kr").description("Manage key results");

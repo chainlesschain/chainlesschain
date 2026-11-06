@@ -188,6 +188,26 @@ public final class PluginManager {
         if(expectedStore!=null)args.add("--expected-store="+expectedStore);
         return args;
     }
+    public static final List<String> GOAL_TASK_TYPES = List.of("create_file", "edit_file", "query_info", "analyze_data", "export_file", "deploy_project");
+    public static List<String> buildCliGoalTaskCreateRequestArgs(String id,String name,String scope,String expectedStore,String connection,String source,String requestId,String title,String descriptionFile,String out,String taskType) {
+        if (taskType == null || !GOAL_TASK_TYPES.contains(taskType)) throw new IllegalArgumentException("Invalid task type selection");
+        List<String> args = buildCliGoalDraftRequestArgs(id,name,scope,expectedStore,connection,source,requestId,title,descriptionFile,out);
+        args.set(1,"draft-create-request"); args.add("--task-type="+taskType); return List.copyOf(args);
+    }
+    public static Map<String,Object> parseCliGoalTaskCreateExport(String text,String goalId,String name,String scope,String store,String out,String requestId,String taskType) {
+        if (text == null || text.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 16384) return null;
+        try {
+            Map<?,?> raw = map(MiniJson.parse(text));
+            if (!exactDraftKeys(raw,"schema","state","goalRef","declaredPlugin","requestId","contentDigest","file","type","taskType") ||
+                !"chainlesschain.goal-task-create-export/v1".equals(raw.get("schema")) || !"task.create".equals(raw.get("type")) || !GOAL_TASK_TYPES.contains(taskType) || !taskType.equals(raw.get("taskType"))) return null;
+            Map<?,?> goal = map(raw.get("goalRef")), plugin = map(raw.get("declaredPlugin"));
+            if (!exactDraftKeys(goal,"id","storeId","revision","controlGeneration") || !validCounter(goal.get("revision"),1) || !validCounter(goal.get("controlGeneration"),0) || !exactDraftKeys(plugin,"name","scope","version") || !draftText(plugin.get("version"),128)) return null;
+            Map<String,Object> compat = new LinkedHashMap<>(); for (Map.Entry<?,?> entry:raw.entrySet()) compat.put((String)entry.getKey(),entry.getValue());
+            compat.put("schema","chainlesschain.goal-draft-export/v1");
+            Map<String,Object> result = parseCliGoalDraftExport(MiniJson.stringify(compat),goalId,name,scope,store,out,requestId);
+            if(result!=null){result.put("type","task.create");result.put("taskType",taskType);} return result;
+        } catch(RuntimeException error){ return null; }
+    }
     public static Map<String,Object> parseCliGoalDraftExport(String text,String goalId,String name,String scope,String store,String out,String requestId) {
         if(text==null||text.getBytes(java.nio.charset.StandardCharsets.UTF_8).length>16384)return null;
         try {
@@ -337,9 +357,59 @@ public final class PluginManager {
         } catch (RuntimeException error) { return null; }
     }
 
+    public static List<String> buildCliGoalCreateDraftAccessArgs(String name, String scope, String out) {
+        List<String> args = buildCliGoalDraftAccessArgs(name, scope, out); args.set(1, "draft-create-access"); return args;
+    }
+    public static List<String> buildCliGoalCreateDraftSourcesArgs(String id, String name, String scope, String store, String connection, String after) {
+        List<String> args = buildCliGoalDraftSourcesArgs(id, name, scope, store, connection, after); args.set(1, "draft-create-sources"); return args;
+    }
+    public static List<String> buildCliGoalCreateDraftSendArgs(String id, String name, String scope, String store, String connection,
+            String source, String requestId, String title, String descriptionFile, String record, String taskType) {
+        if (taskType == null || !GOAL_TASK_TYPES.contains(taskType)) throw new IllegalArgumentException("Select an explicit pending task type");
+        List<String> args = buildCliGoalDraftSendArgs(id, name, scope, store, connection, source, requestId, title, descriptionFile, record);
+        args.set(1, "draft-create-send"); args.add("--task-type=" + taskType); return args;
+    }
+    public static List<String> buildCliGoalCreateDraftReceiptArgs(String id, String name, String scope, String store, String connection, String record) {
+        List<String> args = buildCliGoalDraftReceiptArgs(id, name, scope, store, connection, record); args.set(1, "draft-create-receipt"); return args;
+    }
+    // Only these explicit creation entry points may adapt a v6 response for the shared validators.
+    private static Map<String,Object> creationDraftCompatibility(String text, String kind) {
+        try {
+            if (text == null || text.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 16384) return null;
+            Map<String,Object> raw = draftJson(text);
+            if (!("chainlesschain.goal-create-draft-" + kind + "/v1").equals(raw.get("schema"))) return null;
+            if ("submission".equals(kind)) {
+                if (!"task.create".equals(raw.get("type"))) return null;
+                raw.remove("type");
+            }
+            raw.put("schema", "chainlesschain.goal-draft-" + kind + "/v1");
+            return raw;
+        } catch (RuntimeException error) { return null; }
+    }
+    private static Map<String,Object> creationDraftResult(Map<String,Object> result, String kind) {
+        if (result != null) {
+            result.put("schema", "chainlesschain.goal-create-draft-" + kind + "/v1");
+            if ("submission".equals(kind)) result.put("type", "task.create");
+        }
+        return result;
+    }
+    public static Map<String,Object> parseCliGoalCreateDraftAccess(String text, String name, String scope, String out) {
+        Map<String,Object> raw = creationDraftCompatibility(text,"access-export");
+        return raw == null ? null : creationDraftResult(parseCliGoalDraftAccess(MiniJson.stringify(raw),name,scope,out),"access-export");
+    }
+    public static Map<String,Object> parseCliGoalCreateDraftSources(String text, String id, String name, String scope, String store, Map<String,Object> expected) {
+        Map<String,Object> raw = creationDraftCompatibility(text,"source-page");
+        return raw == null ? null : creationDraftResult(parseCliGoalDraftSources(MiniJson.stringify(raw),id,name,scope,store,expected),"source-page");
+    }
+    public static Map<String,Object> parseCliGoalCreateDraftSubmission(String text, String id, String name, String scope, String store,
+            String record, String requestId, Map<String,Object> expected) {
+        Map<String,Object> raw = creationDraftCompatibility(text,"submission");
+        return raw == null ? null : creationDraftResult(parseCliGoalDraftSubmission(MiniJson.stringify(raw),id,name,scope,store,record,requestId,expected),"submission");
+    }
+
     public static String formatCliGoalDraftSubmission(Map<String, Object> result) {
         String lead = "saved".equals(result.get("state"))
-                ? "Pending suggestion saved: " + result.get("proposalId") + ". Task modification still requires native preview and confirmation."
+                ? "Pending suggestion saved: " + result.get("proposalId") + ". Task " + ("task.create".equals(result.get("type")) ? "creation" : "modification") + " still requires native preview and confirmation."
                 : "not-found".equals(result.get("state")) ? "No matching submission existed at query time. No automatic resend was performed."
                 : "Submission result unknown. No automatic resend was performed.";
         return lead + "\nReference: " + result.get("record") + "\nRequest ID: " + result.get("requestId")

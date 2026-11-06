@@ -1,0 +1,148 @@
+{
+  "generatedAt": "2026-11-06T02:15:38.327Z",
+  "baseline": "09843429a48e2146a3c1803c324e6bf8143e5699",
+  "branch": "feature/dmm-native-task-create-20261106",
+  "tests": [
+    {
+      "file": "cli-ide-tests.json",
+      "files": 9,
+      "tests": 101,
+      "passed": 101,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "file": "desktop-tests.json",
+      "files": 7,
+      "tests": 151,
+      "passed": 151,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "file": "renderer-tests.json",
+      "files": 3,
+      "tests": 52,
+      "passed": 52,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "file": "protocol-tests.tap",
+      "files": 4,
+      "tests": 35,
+      "passed": 35,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.LlmConfigTest.xml",
+      "files": 1,
+      "tests": 29,
+      "passed": 29,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.LlmConnectionPanelTest.xml",
+      "files": 1,
+      "tests": 6,
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0
+    }
+  ],
+  "totals": {
+    "files": 25,
+    "tests": 374,
+    "passed": 374,
+    "failed": 0,
+    "skipped": 0
+  },
+  "live": {
+    "file": "live-results.json",
+    "status": "passed",
+    "calls": 2,
+    "promptTokens": 1015,
+    "completionTokens": 161,
+    "costUsd": null,
+    "billingVerified": false,
+    "independentBusinessEvaluation": false
+  },
+  "checks": {
+    "file": "checks.json",
+    "passed": 22,
+    "failed": 0
+  },
+  "jetbrainsBuild": {
+    "result": "passed",
+    "artifact": "packages/jetbrains-plugin/build/distributions/chainlesschain-ide-bridge-0.4.195.zip",
+    "bytes": 1590125,
+    "sha256": "34388470486f9fe245ba844b82e619865fce45f195946b4e727e7d9c951c839c",
+    "published": false
+  },
+  "verifierSha256": "1c8f8ba3347ec6eec652a40f27fd7e61eabb08b720ce784539d8f62d9080eafc",
+  "sources": {
+    "desktop-app-vue/scripts/project-goal-volcengine-live.cjs": "494cb745197d8313ca74c0b1d783de68676566665af238585c745a8f2be2ebda",
+    "desktop-app-vue/scripts/project-goal-private-openai-discover.cjs": "62230ef98e56828da5a03c0f26dad5458739f5989e077a2332618ce84cb3b4b9",
+    "desktop-app-vue/src/main/task/project-goal-volcengine-model.js": "9c294d11e84c6791038cfd4ff875a02e49bf0209d669ce57652d418c48adec88",
+    "desktop-app-vue/src/main/task/project-goal-model-drafts.js": "f3fef5d31c6a1df6c3b446f2b26aee792811419d87e2dca42f81b4f502360a35",
+    "desktop-app-vue/src/main/task/project-goal-ipc.js": "544adf6e071d94a16143218ecd0d71080ad28e074fe54ed8c4dcb5c0aa1d34e5",
+    "desktop-app-vue/src/main/task/__tests__/project-goal-volcengine-fixture.cjs": "a2d26497c7cc64c3936d0fcee5a4d911d3d8a67263830ea5b355103638d7a426",
+    "desktop-app-vue/src/main/task/__tests__/project-goal-openai-protocol.test.cjs": "9d14856e1d8d51dbcd4f252db02c51cb10dec4494bf595e949b01fbb8c122ff0",
+    "desktop-app-vue/src/main/task/__tests__/project-goal-model-drafts-ipc.test.js": "92fbe898a635765fec863f388e434a774710adf1b09f8d29607a57ae7f1cef40",
+    "desktop-app-vue/src/renderer/components/projects/ProjectGoalModelDraftsPanel.vue": "7373dae95b9a0619c60c540d581961fd3de7ba5ac85e305a3f10ab033315edb0",
+    "desktop-app-vue/src/renderer/components/LLMSettings.vue": "1039b0f31d0145eb8a319e28f724013edf652d431daaef5a6841107b39904725",
+    "packages/cli/src/commands/setup.js": "01410d34ff0ab5e6288d56c5572c0741f6a7bfe21168052a1e6e25ecf67073b4",
+    "packages/cli/src/lib/llm-onboarding-catalog.json": "7b78e99c75e10fd86e963203b3c8ca14f166733b55582567663c43b1bd750896",
+    "packages/cli/scripts/sync-llm-onboarding.mjs": "e41e6ede3c1f54789945cf38b04e61645fefb502b2336783c40dba3b3101cffa",
+    "packages/cli/__tests__/unit/llm-onboarding-catalog.test.js": "05fe03a5645a30f7bd935c331d7658866578e3af03034eab4f681525fe58a5de",
+    "packages/cli/__tests__/unit/setup-deployment-readiness.test.js": "913f9ddaea7d5b5ad8d81026a1c040f59f1c01a20e5947b6f2938d05772944e3",
+    "packages/cli/__tests__/unit/vscode-ext-llm-connection-test.test.js": "fdf20bc1ea5d8126501413484b07eb43d0bfa19c2d2a6e666d6f02bcbbe44bd1",
+    "packages/cli/__tests__/unit/vscode-ext-local-compute-form.test.js": "11a952238a796b7280ab23381127d8472fae9747f49e89f809250ea5243ed382",
+    "packages/cli/__tests__/integration/llm-connection-config.test.js": "4cff171a83c8656f1a5ff2fb6eece34ea0e80d5e7d44dc59ccfe477d2a88779f",
+    "packages/vscode-extension/src/ui/llm-config-panel.js": "40c461a6529462b319b6a7fc6c13e1683c618bf23a9aa26c09e7efc649c7a430",
+    "packages/vscode-extension/src/vendor/llm-onboarding-presets.json": "9be57153d2062cb9edc7cbf646a0cbddfd6f74e85bb51e8c5c906abb98b8b102",
+    "packages/vscode-extension/media/llm-config.js": "72f7ae42c210535874f7c4831ba1b0965c65b497d23a02331eec11c68ade5754",
+    "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/LlmConfig.java": "24b4502928113b3dc534956e425d2cec56160fc46a7ed62c185fa826cc3673f5",
+    "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/LlmConnectionPanel.java": "e9654e1e8adbf5892f8203c5f66153b520bd47baaf1ae2582b5c3b5e10dd2838",
+    "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ConfigureLlmAction.java": "96d23b7e27d2971bee6c96d6eb8caa81c9b763009fb8b0024d90c12ae9e88963",
+    "packages/jetbrains-plugin/src/main/resources/messages/CcBundle.properties": "9a4edffd3226d1a75b10b5d4b1ae03b09702cff655d9c06419e4da37aa987cfe",
+    "packages/jetbrains-plugin/src/main/resources/messages/CcBundle_zh.properties": "418793890e22788bbee1a2c00ab834bb4d81185558fa59db22305de0e18d07da",
+    "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/LlmConfigTest.java": "6cac6c623fa2dbbceaf5b169f56d9c623249c89e819b2efd90dfb7e104b90b22",
+    "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/LlmConnectionPanelTest.java": "ebd7e77648a50a8a10806ac05eae9fc9aa607f9848552874462cbf2fd69f7883",
+    "packages/vscode-extension/README.md": "0e49865124d62d36abc04aa9e145759abed3f391e20a863104bd7ef49628fd07",
+    "packages/jetbrains-plugin/README.md": "37df67dc53a8ea1bf1d038a177640ecbf76d8f6e80c7c325cc86db51e07bc999",
+    "packages/cli/README.md": "8de2a09bd7696ba608a220057796822e57074292f75eef88a3adb48d9ed19d3e",
+    "docs/research/agents/README.md": "ae7528b556ee3b76796c147c1a84dc7f1543ca1a782b4f92358622f961f9b2de",
+    "docs/research/agents/chainlesschain-dots-muse-mods-analysis-2026-10-06.md": "a6b78dd3ce40730843ed73f90960d9dd6016716d6a7d45e20ed6662538c079d9",
+    "docs/research/agents/dots-muse-mods-implementation-progress-2026-10-07.md": "aa469b4ac62c53c2425ba40378d198bad54d0d0f0d9a4a7508fb72fea2c31894"
+  },
+  "liveSourceBoundary": "Paid calls ran before private URL error normalization was hardened. The original adapter is archived if its recorded hash matches; the Volcengine wire payload/transport did not change. No paid rerun.",
+  "commands": [
+    "node desktop-app-vue/scripts/project-goal-volcengine-live.cjs --confirm-live (explicit paid opt-in, exactly two synthetic cases)",
+    "node --test desktop-app-vue/src/main/task/__tests__/project-goal-model-protocol.test.cjs desktop-app-vue/src/main/task/__tests__/project-goal-openai-protocol.test.cjs desktop-app-vue/src/main/task/__tests__/project-goal-model-crash.test.cjs desktop-app-vue/src/main/task/__tests__/board-report-summary-model.test.cjs",
+    "cwd packages/cli: node ../../node_modules/vitest/vitest.mjs run --config vitest.config.js __tests__/integration/llm-connection-config.test.js __tests__/unit/llm-config-defaults.test.js __tests__/unit/llm-connection-config.test.js __tests__/unit/llm-connection-probe.test.js __tests__/unit/llm-onboarding-catalog.test.js __tests__/unit/setup-deployment-readiness.test.js __tests__/unit/vscode-ext-llm-config-detect.test.js __tests__/unit/vscode-ext-llm-connection-test.test.js __tests__/unit/vscode-ext-local-compute-form.test.js --reporter=json --outputFile=../../docs/research/agents/evidence/dmm-volcengine-live-2026-11-06/cli-ide-tests.json",
+    "cwd desktop-app-vue: node ../node_modules/vitest/vitest.mjs run --config vitest.business-actions.config.mjs src/preload/__tests__/legacy-ipc-policy.test.js src/main/task/__tests__/project-goal-cli-bridge.test.js src/main/task/__tests__/project-goal-delivery-drafts-ipc.test.js src/main/task/__tests__/project-goal-draft-imports-ipc.test.js src/main/task/__tests__/project-goal-external-drafts-ipc.test.js src/main/task/__tests__/project-goal-memory-ipc.test.js src/main/task/__tests__/project-goal-model-drafts-ipc.test.js --reporter=json --outputFile=../docs/research/agents/evidence/dmm-volcengine-live-2026-11-06/desktop-tests.json (real Windows ACL/loopback environment)",
+    "cwd desktop-app-vue: node ../node_modules/vitest/vitest.mjs run --config vitest.business-actions-renderer.config.mjs src/renderer/components/projects/__tests__/project-goal-actions-panel.test.ts src/renderer/components/projects/__tests__/project-goal-memory-panel.test.ts src/renderer/components/projects/__tests__/project-goal-model-drafts-panel.test.ts --reporter=json --outputFile=../docs/research/agents/evidence/dmm-volcengine-live-2026-11-06/renderer-tests.json",
+    "cwd packages/jetbrains-plugin: JAVA_HOME=<local JBR 21>; gradlew.bat -Porg.gradle.java.installations.paths=<local JBR 21> --offline --no-daemon test --tests com.chainlesschain.ide.LlmConfigTest --tests com.chainlesschain.ide.LlmConnectionPanelTest buildPlugin --console=plain",
+    "node docs/research/agents/evidence/dmm-volcengine-live-2026-11-06/verify.cjs (no inference)"
+  ],
+  "boundaries": {
+    "syntheticProjectAndMemory": true,
+    "signedTestDeployment": true,
+    "actualVolcengineInference": true,
+    "lexdataInference": false,
+    "lexdataDiscovery": "Two failed discovery attempts; the second reported ECONNRESET. No HTTP status and zero inference.",
+    "actualElectronOrIdeGui": false,
+    "published": false,
+    "versionsChanged": false,
+    "pending": [
+      "LEXDATA network/model integration",
+      "Independent business samples and effect assessment",
+      "Other/background execution domains",
+      "Actual GUI journey",
+      "Exact commit multi-platform release gates and rollout/rollback"
+    ]
+  }
+}

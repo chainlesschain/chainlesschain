@@ -1210,6 +1210,11 @@ class ProjectGoalMemoryService {
     });
   }
   revalidateOutput(token) {
+    return this._tx(() => this.revalidateOutputInTransaction(token));
+  }
+  /** Trusted native consumers may bind output checks to their draft/action transaction. */
+  revalidateOutputInTransaction(token) {
+    if (!this.db.inTransaction) fail("GOAL_MEMORY_TRANSACTION_REQUIRED");
     options(token, [
       "schema",
       "goalId",
@@ -1236,10 +1241,10 @@ class ProjectGoalMemoryService {
     }
     if (new Set(token.refs.map((ref) => ref.id)).size !== token.refs.length)
       fail("GOAL_MEMORY_INVALID_REQUEST");
-    const initial = this._tx(() => this._goal(token.goalId));
+    const initial = this._goal(token.goalId);
     const context = this._context(initial),
       host = this._host(context);
-    return this._tx(() => {
+    {
       const goal = this._authority(context);
       if (
         digest(this._binding(context)) !==
@@ -1266,7 +1271,7 @@ class ProjectGoalMemoryService {
         memoryEpoch: token.memoryEpoch,
         records,
       };
-    });
+    }
   }
   operations(input) {
     options(input, ["goalId"], ["afterId", "limit"]);

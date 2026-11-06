@@ -11,20 +11,26 @@ import { readGoalDraftDescription } from "./cli-goal-draft-request.js";
 import { digestBusinessObjectContent as digest } from "@chainlesschain/session-core/business-object-contract";
 import {
   ACCESS_SCHEMA,
+  CREATE_ACCESS_SCHEMA,
   MAX_SUBMISSION_REFERENCE_BYTES,
   validateGoalDraftAccess,
+  validateGoalCreateDraftAccess,
   validateGoalDraftProposal,
+  validateGoalCreateDraftProposal,
   validateGoalDraftReceipt,
   validateGoalDraftSources,
   createGoalDraftSubmissionReference,
   validateGoalDraftSubmissionReference,
 } from "@chainlesschain/session-core/goal-draft-connection-contract";
 
-const HOST = cliGoalExtensionHost(["proposal:task.description.update"]);
 export const CLI_GOAL_DRAFT_SUBMISSION_SCHEMA =
   "chainlesschain.goal-draft-submission/v1";
 export const CLI_GOAL_DRAFT_SOURCES_SCHEMA =
   "chainlesschain.goal-draft-source-page/v1";
+export const CLI_GOAL_CREATE_DRAFT_SUBMISSION_SCHEMA =
+  "chainlesschain.goal-create-draft-submission/v1";
+export const CLI_GOAL_CREATE_DRAFT_SOURCES_SCHEMA =
+  "chainlesschain.goal-create-draft-source-page/v1";
 export const _deps = {
   createProjectGoalConnection,
   collectGoalExtensions,
@@ -44,7 +50,7 @@ function required(value) {
     fail("CLI_GOAL_DRAFT_ARGUMENTS_REQUIRED");
   return value;
 }
-function fixedOptions(raw) {
+function fixedOptions(raw, creation = false) {
   const options = { ...raw },
     env = Object.freeze({ ...(options.env || process.env) });
   const cwd = path.resolve(options.cwd || process.cwd());
@@ -68,6 +74,8 @@ function fixedOptions(raw) {
     );
   return Object.freeze({
     ...options,
+    creation,
+    draftType: creation ? "task.create" : "task.description.update",
     cwd,
     env,
     managedSettingsFile: managedSettingsPath({
@@ -81,7 +89,7 @@ function hostOptions(options) {
     cwd: options.cwd,
     env: options.env,
     managedSettingsFile: options.managedSettingsFile,
-    host: HOST,
+    host: cliGoalExtensionHost([`proposal:${options.draftType}`]),
   });
 }
 function admitted(options, expected) {
@@ -90,13 +98,12 @@ function admitted(options, expected) {
     .extensions.find(
       (item) => item.name === options.plugin && item.scope === options.scope,
     );
-  if (
-    !entry ||
-    !entry.declaration.proposals.includes("task.description.update")
-  )
+  if (!entry || !entry.declaration.proposals.includes(options.draftType))
     fail("CLI_GOAL_DRAFT_NOT_ADMITTED");
-  const access = validateGoalDraftAccess({
-    schema: ACCESS_SCHEMA,
+  const access = (
+    options.creation ? validateGoalCreateDraftAccess : validateGoalDraftAccess
+  )({
+    schema: options.creation ? CREATE_ACCESS_SCHEMA : ACCESS_SCHEMA,
     plugin: { name: entry.name, scope: entry.scope, version: entry.version },
     declarationDigest: digest(entry.declaration),
   });
@@ -109,7 +116,9 @@ function connected(id, options) {
   required(options.connection);
   const connection = _deps.createProjectGoalConnection(options.connection);
   if (
-    connection.drafts !== true ||
+    (options.creation
+      ? connection.createDrafts !== true || connection.drafts === true
+      : connection.drafts !== true || connection.createDrafts === true) ||
     !["read", "sources", "receipt", "enqueue"].every(
       (key) => typeof connection[key] === "function",
     )
@@ -225,9 +234,12 @@ function referenceFor(connection, access, requestId, inputDigest) {
     inputDigest,
   });
 }
-function outcome(reference, file, receipt) {
+function outcome(reference, file, receipt, creation = false) {
   return {
-    schema: CLI_GOAL_DRAFT_SUBMISSION_SCHEMA,
+    schema: creation
+      ? CLI_GOAL_CREATE_DRAFT_SUBMISSION_SCHEMA
+      : CLI_GOAL_DRAFT_SUBMISSION_SCHEMA,
+    ...(creation ? { type: "task.create" } : {}),
     state: receipt?.state ?? "unknown",
     goalRef: reference.goalRef,
     plugin: reference.plugin,
@@ -253,28 +265,40 @@ async function queryReceipt(connection, saved, file) {
       receipt.inputDigest !== saved.reference.inputDigest
     )
       fail("CLI_GOAL_DRAFT_RECEIPT_MISMATCH");
-    return outcome(saved.reference, file, receipt);
+    return outcome(
+      saved.reference,
+      file,
+      receipt,
+      connection.createDrafts === true,
+    );
   } catch {
-    return outcome(saved.reference, file);
+    return outcome(
+      saved.reference,
+      file,
+      undefined,
+      connection.createDrafts === true,
+    );
   }
 }
 
 /** Exports an identity label and declaration digest, never native authority. */
-export async function exportCliGoalDraftAccess(raw = {}) {
-  const options = fixedOptions(raw);
+async function exportAccess(raw = {}, creation = false) {
+  const options = fixedOptions(raw, creation);
   required(options.out);
   const access = admitted(options);
   writeNew(options.out, access);
   return {
-    schema: "chainlesschain.goal-draft-access-export/v1",
+    schema: options.creation
+      ? "chainlesschain.goal-create-draft-access-export/v1"
+      : "chainlesschain.goal-draft-access-export/v1",
     state: "access-exported",
     plugin: access.plugin,
     declarationDigest: access.declarationDigest,
     file: options.out,
   };
 }
-export async function readCliGoalDraftSources(id, raw = {}) {
-  const options = fixedOptions(raw),
+async function readSources(id, raw = {}, creation = false) {
+  const options = fixedOptions(raw, creation),
     { connection, access } = connected(id, options);
   if (
     options.after !== undefined &&
@@ -287,7 +311,9 @@ export async function readCliGoalDraftSources(id, raw = {}) {
   );
   admitted(options, access);
   return {
-    schema: CLI_GOAL_DRAFT_SOURCES_SCHEMA,
+    schema: options.creation
+      ? CLI_GOAL_CREATE_DRAFT_SOURCES_SCHEMA
+      : CLI_GOAL_DRAFT_SOURCES_SCHEMA,
     goalRef: connection.goalRef,
     plugin: access.plugin,
     declarationDigest: access.declarationDigest,
@@ -295,13 +321,17 @@ export async function readCliGoalDraftSources(id, raw = {}) {
     sources,
   };
 }
-export async function sendCliGoalDraft(id, raw = {}) {
-  const options = fixedOptions(raw);
+async function sendDraft(id, raw = {}, creation = false) {
+  const options = fixedOptions(raw, creation);
   required(options.record);
   required(options.descriptionFile);
   const { connection, access } = connected(id, options);
-  const proposal = validateGoalDraftProposal({
-    type: "task.description.update",
+  const validateProposal = options.creation
+    ? validateGoalCreateDraftProposal
+    : validateGoalDraftProposal;
+  const proposal = validateProposal({
+    type: options.draftType,
+    ...(options.creation ? { taskType: options.taskType } : {}),
     goalRef: connection.goalRef,
     sourceRef: options.source,
     requestId: options.requestId,
@@ -345,7 +375,7 @@ export async function sendCliGoalDraft(id, raw = {}) {
         return true;
       },
       async enqueueProposal(context) {
-        const projected = validateGoalDraftProposal(
+        const projected = validateProposal(
           Object.fromEntries(
             [
               "type",
@@ -354,6 +384,7 @@ export async function sendCliGoalDraft(id, raw = {}) {
               "requestId",
               "title",
               "description",
+              ...(options.creation ? ["taskType"] : []),
             ].map((key) => [key, context[key]]),
           ),
         );
@@ -385,16 +416,22 @@ export async function sendCliGoalDraft(id, raw = {}) {
     });
     if (!nativeReceipt) fail("CLI_GOAL_DRAFT_RECEIPT_MISMATCH");
     // A verified saved receipt is not undone by a later local admission change.
-    return outcome(reference, options.record, nativeReceipt);
+    return outcome(reference, options.record, nativeReceipt, options.creation);
   } catch (error) {
-    if (nativeReceipt) return outcome(reference, options.record, nativeReceipt);
+    if (nativeReceipt)
+      return outcome(
+        reference,
+        options.record,
+        nativeReceipt,
+        options.creation,
+      );
     if (dispatched || error.outcomeUnknown)
-      return outcome(reference, options.record);
+      return outcome(reference, options.record, undefined, options.creation);
     throw error;
   }
 }
-export async function readCliGoalDraftReceipt(id, raw = {}) {
-  const options = fixedOptions(raw);
+async function readReceipt(id, raw = {}, creation = false) {
+  const options = fixedOptions(raw, creation);
   required(options.record);
   const { connection, access } = connected(id, options),
     saved = readReference(options.record);
@@ -407,3 +444,13 @@ export async function readCliGoalDraftReceipt(id, raw = {}) {
   if (!same(expected, saved.reference)) fail("CLI_GOAL_DRAFT_RECORD_CONFLICT");
   return queryReceipt(connection, saved, options.record);
 }
+export const exportCliGoalDraftAccess = (raw) => exportAccess(raw, false);
+export const exportCliGoalCreateDraftAccess = (raw) => exportAccess(raw, true);
+export const readCliGoalDraftSources = (id, raw) => readSources(id, raw, false);
+export const readCliGoalCreateDraftSources = (id, raw) =>
+  readSources(id, raw, true);
+export const sendCliGoalDraft = (id, raw) => sendDraft(id, raw, false);
+export const sendCliGoalCreateDraft = (id, raw) => sendDraft(id, raw, true);
+export const readCliGoalDraftReceipt = (id, raw) => readReceipt(id, raw, false);
+export const readCliGoalCreateDraftReceipt = (id, raw) =>
+  readReceipt(id, raw, true);

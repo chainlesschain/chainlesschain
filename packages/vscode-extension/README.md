@@ -1,34 +1,62 @@
 # ChainlessChain IDE Bridge for VS Code
 
+## 工作树新增：本地算力平台（待发布）
+
+在“配置大模型 / Configure LLM”选择 **Local compute / OpenAI compatible (LEXDATA / vLLM / SGLang)**，填写平台 Base URL 与 API 模型 ID。力数截图给出的示例为 `http://192.168.31.79:8889/v1`、`glm5.3-flash-tensorfold`；模型 ID 仍以平台 `/v1/models` 为准。API Key 按平台要求填写，可留空；HTTP 局域网地址须显式勾选允许。不要填写具体 `/chat/completions` 路径或复用云端密钥。
+
+该选项使用 CLI 的 `custom` OpenAI Chat Completions 路径，原子保存并回读，已有中转站协议选项保留。保存后可显式测试连接，聊天下一条消息使用新配置；现有 CLI 签名部署等前置条件继续生效。无密钥本机接口已通过真实 CLI 子进程回归，力数实机 `/models` 检查当前为 `ECONNRESET`，尚未验证其实际权重推理。真实 IDE GUI 尚未运行，本节描述未发布工作树能力。
+
 ChainlessChain agent workspace for VS Code-compatible editors with streaming
 chat, inline assistance, governed review, sessions, automation, and a localhost
 MCP bridge.
 
 ## Current release
 
-<!-- release178-status -->
+Candidate Open VSX **0.37.179** recommends CLI **`0.166.143`** and pairs with JetBrains **0.4.196** after verified CLI publication. Session Core **0.3.26** must be published and verified first. Once verified, install `npm i -g chainlesschain@0.166.143 --registry https://registry.npmjs.org`, restart hosts and run `cc --version` and `cc doctor`.
 
-Open VSX version **0.37.178** pairs with public CLI `0.166.142`.
+This candidate adds local OpenAI-compatible platform configuration and explicit task-creation request controls. Native creation requires matching desktop source support and separate consent/confirmation; existing published clients have not been updated. LEXDATA discovery currently returns a connection reset, so its real inference and real IDE GUI remain unverified. Microsoft Marketplace remains deferred until its configured credentials are available. [Release stages](../../docs/research/cli/evidence/release143-public/README.md).
 
-| Component                 | Current public status                                          |
-| ------------------------- | -------------------------------------------------------------- |
-| VS Code extension         | **0.37.178**; verified public Open VSX release                 |
-| Recommended CLI           | **`chainlesschain@0.166.142`**; verified public npm package    |
-| Base bridge compatibility | `cc >= 0.162.190`; individual features can require a newer CLI |
+## Task-creation request files (source-only)
 
-CLI `0.166.142` is the recommended public CLI. Using `@0.166.142` selects this verified pairing.
-Install `npm i -g chainlesschain@0.166.142 --registry https://registry.npmjs.org`, restart the host, then run `cc --version` and `cc doctor`.
-Immutable tag `ide-vscode-v0.37.178` identifies source `b78cf0af8c8b0491189465773b148ac77c332222`.
-Download [chainlesschain-ide-0.37.178.vsix](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.178/file/chainlesschain.chainlesschain-ide-0.37.178.vsix).
+Matching local CLI, Session Core and IDE builds add **Export task creation
+request…** to the plugin manager. Select an admitted `goal-task-creator` or
+`project-delivery-assistant` 0.3.0, then choose the connection, native creation
+source ID, task type, UTF-8 description and new output file through native
+dialogs. Webview-supplied paths and task types are not used. The result must use
+the separate creation export schema and match the selected type and destination;
+CLI exit zero is required before success is shown. Cancelled or failed operations
+may have written a request file; inspect it before explicitly trying again.
 
-Public Open VSX **0.37.178** recommends CLI **`0.166.142`** and pairs with
-public JetBrains **0.4.195**. Exact source is `b78cf0af8c8b0491189465773b148ac77c332222`. It adds explicit
-authorized desktop goal observation and retained-history recovery through native
-connection/checkpoint pickers, with bounded plain-text results, cancellation and
-explicit next-page controls. It supports the admitted combined delivery scenario;
-native source consent and task confirmation remain separate. Session Core 0.3.25, CLI 0.166.142, complete host gates and public payload
-verification passed. Native history still requires the matching newer desktop
-client; product145 is not yet public. See [release evidence](../../docs/research/cli/evidence/release142-public/README.md).
+Export saves no native draft or task. Import the same file in the desktop,
+review the full body and type, adopt that file, then build and separately confirm
+the native preview. Upgrading the combined package from 0.2.0 to 0.3.0 requires
+new version trust and additional `proposal:task.create` consent. Online v3 grants
+remain description-only. No public extension version has been changed; real GUI
+and model drafting remain pending.
+
+## Online pending task creation (source-only)
+
+Matching source builds provide **Export online creation access…**, **Submit
+pending creation…** and **Look up creation receipt…** for admitted creation
+plugins. Export a new access file, then select it in the desktop's separate
+**另行授权在线创建任务待审连接** action and inspect native v6 consent. Select that
+private connection in the IDE. Native controls select the current creation
+source, explicit task type, UTF-8 body and new submission reference; webview
+paths and task types do not enter the CLI arguments.
+
+Creation responses use separate schemas and `type: task.create`; v3 description
+responses cannot substitute. Only bounded, valid UTF-8 stdout after zero exit
+is displayed as a verified result. `saved` means a pending suggestion was saved,
+requiring desktop preview and individual native confirmation to create a task.
+No task executes automatically.
+
+Keep the original submission reference after interruption or `unknown`. Use
+**Look up creation receipt…** with that file and a currently authorized v6
+connection for the same grant. `not-found` is a lookup result; it never triggers
+an automatic resend. Closing, refreshing or changing the plugin/workspace
+discards late UI results; an already dispatched CLI may still save its draft.
+The reference remains on disk. This source flow is unpublished and has not
+undergone actual IDE/Electron GUI or independent business-effect acceptance.
 
 ## Retained goal history (.178)
 
@@ -431,7 +459,7 @@ Checked on 2026-10-20: npm CLI **0.166.107**, Session Core **0.3.20**, Open VSX 
 
 ## Release compatibility
 
-Candidate Open VSX **0.37.177** recommends CLI **`0.166.141`** and pairs with JetBrains **0.4.194** after verified CLI publication; Kernel remains **0.1.11**. The CLI preserves legitimate complete-source read previews and aligns launcher-owned evaluation entry boundaries. Microsoft Marketplace remains deferred.
+Candidate Open VSX **0.37.179** recommends CLI **`0.166.143`** and pairs with JetBrains **0.4.196** after verified upstream publication. The CLI and IDE use explicit local-platform provider/endpoint/model identity; API keys are optional for platforms that permit keyless access. Exact-source release matrices and public payload checks remain required.
 
 ### What's new in 0.37.159
 

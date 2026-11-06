@@ -1,0 +1,14 @@
+{
+  "state": "verified-local-package",
+  "tarballSha256": "9af028e3fad539929a750281140f1b8f08fc64e43fb7b37e089b46625c55dc25",
+  "matchedFiles": [
+    "lib/goal-extension-proposal-contract.js",
+    "lib/project-goal-extension-queue.js",
+    "lib/project-goal-extension-conversion.js",
+    "README.md"
+  ],
+  "cjsAndEsmContractLoaded": true,
+  "queueAndConversionLoaded": true,
+  "extractedPackageHasNodeModules": false,
+  "published": false
+}

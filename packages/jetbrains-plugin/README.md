@@ -1,5 +1,11 @@
 # ChainlessChain IDE Bridge (JetBrains)
 
+## 工作树新增：本地算力平台（待发布）
+
+在“配置大模型 / Configure LLM”选择 **Local compute / OpenAI compatible (LEXDATA / vLLM / SGLang)**，填写平台 Base URL 与 API 模型 ID。力数截图给出的示例为 `http://192.168.31.79:8889/v1`、`glm5.3-flash-tensorfold`；模型 ID 仍以平台 `/v1/models` 为准。API Key 按平台要求填写，可留空；HTTP 局域网地址须显式勾选允许。不要填写具体 `/chat/completions` 路径或复用云端密钥。
+
+该选项使用 CLI 的 `custom` OpenAI Chat Completions 路径，原子保存并回读，已有中转站协议选项保留。保存后可显式测试连接，聊天下一条消息使用新配置；现有 CLI 签名部署等前置条件继续生效。无密钥本机接口已通过真实 CLI 子进程回归，力数实机 `/models` 检查当前为 `ECONNRESET`，尚未验证其实际权重推理。真实 IDE GUI 尚未运行，本节描述未发布工作树能力。
+
 ## Current public release (.195 / CLI .142)
 
 JetBrains **0.4.195** is approved, listed and publicly downloadable. It recommends
@@ -7,6 +13,47 @@ CLI **0.166.142** and pairs with Open VSX **0.37.178**. All 626 original payload
 files match the official build from `b78cf0af8c8b0491189465773b148ac77c332222`.
 Native history needs the matching newer desktop client; product145 is not yet
 public. [Publication evidence](../../docs/research/cli/evidence/release142-public/README.md).
+
+## Task-creation request files (source-only)
+
+Matching local CLI, Session Core and IDE builds add **Export task creation
+request…**. Select `goal-task-creator` or the admitted combined
+`project-delivery-assistant` 0.3.0. Native dialogs choose a goal connection,
+current creation source ID, task type, description and new output file. The
+bounded child runner accepts only zero exit, valid UTF-8 and a matching creation
+export result; timeouts, invalid or oversized output do not confirm success.
+An interrupted export may have written its output file; inspect that file before
+trying again, keeping its identity for adoption recovery.
+
+Desktop per-file adoption reviews the full description and task type. A second
+native confirmation after the current preview is still required to create the
+pending task. Upgrading from combined package 0.2.0 needs trust for 0.3.0 and new
+creation capability consent. Online v3 grants remain description-only. The public
+IDE version is unchanged; real GUI and model drafting remain
+pending.
+
+## Online pending task creation (source-only)
+
+Matching source builds add **Export online creation access…**, **Submit pending
+creation…** and **Look up creation receipt…**. Select an admitted
+`goal-task-creator` or combined assistant 0.3.0. Export access, then obtain a
+separate native v6 creation connection in the desktop. v3 description grants
+cannot authorize creation. Native file/source/type controls fix the selected
+connection, current source, task type, UTF-8 body and new submission reference.
+
+Creation RPC capture is limited to 16 KiB stdout / 64 KiB stderr and 30 seconds,
+requires valid UTF-8 stdout and zero exit, and validates separate creation
+schemas, action, goal/plugin/grant identity, paths and request identity. A saved
+pending draft still requires a current desktop preview and individual native
+confirmation before task creation. It does not execute the created task.
+
+After interruption or `unknown`, preserve the selected reference and use
+**Look up creation receipt…** with the same grant's current v6 connection.
+`not-found` never automatically resubmits. Closing, refreshing or selecting a
+different plugin discards late UI results; a dispatched operation may still
+save its draft. No reference is deleted or replaced to recover an outcome.
+This remains unpublished source functionality; real GUI and independent
+business-effect acceptance have not run.
 
 ## Retained goal history (.195)
 
@@ -254,7 +301,7 @@ See the [verified publication evidence](https://github.com/chainlesschain/chainl
 
 ## Release compatibility
 
-Plugin **0.4.195** is the current public release and recommends `chainlesschain@0.166.142`. The paired CLI publication and public package verification passed before this plugin was uploaded. Install `npm i -g chainlesschain@0.166.142 --registry https://registry.npmjs.org`, restart the chat host, then run `cc --version` and `cc doctor`.
+Plugin **0.4.196** recommends `chainlesschain@0.166.143`. Publish only after the required exact-source matrices, Session Core and CLI public readback. Once verified, install `npm i -g chainlesschain@0.166.143 --registry https://registry.npmjs.org`, restart the chat host, and run `cc --version` and `cc doctor`. The candidate adds local OpenAI-compatible compute configuration and pending task-creation controls; matching desktop support and native consent remain required. LEXDATA real inference and real IDE GUI acceptance are not established by package publication.
 
 ## Previous candidates and development notes
 

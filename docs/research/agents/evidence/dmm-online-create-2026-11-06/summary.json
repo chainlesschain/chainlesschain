@@ -1,0 +1,172 @@
+{
+  "taskIds": [
+    "DMM-07",
+    "DMM-08"
+  ],
+  "localDate": "2026-11-06",
+  "recordedAt": "2026-11-05T23:24:23.502Z",
+  "result": "Separate native v6 pending-creation grant/HTTP/CLI/desktop controls. Task creation still requires current desktop preview and individual native confirmation. Completion status tables updated.",
+  "source": {
+    "baseCommit": "09843429a48e2146a3c1803c324e6bf8143e5699",
+    "branch": "feature/dmm-native-task-create-20261106",
+    "state": "Uncommitted combined worktree; earlier batch evidence unchanged; totals not accumulated",
+    "sha256": {
+      "desktop-app-vue/src/main/task/__tests__/project-goal-delivery-drafts-ipc.test.js": "73f5f1e163ac756b6e611e153305ced2699ae6a9842df3f0000f5d5853dde8ed",
+      "desktop-app-vue/src/main/task/__tests__/project-goal-draft-imports-ipc.test.js": "16fec55b7884bc491700566b957cae222ac04eb33909495fbfbfebb01bd52974",
+      "desktop-app-vue/src/main/task/__tests__/project-goal-external-drafts-ipc.test.js": "954c7189306adb71404e4e681ea00639a7ae8bd114b5ca739b3948d051546a74",
+      "desktop-app-vue/src/main/task/project-goal-cli-bridge.js": "cf61487be852e3628533a274e10ebcdeea53092e3e3da4b8e1ba30a46c58e178",
+      "desktop-app-vue/src/main/task/project-goal-delivery-drafts.js": "599953812b787d19bc3cc0ac016f10ddf4955836f5a7fa002d2ebf8e7087933c",
+      "desktop-app-vue/src/main/task/project-goal-draft-request-file.js": "65c791fe24c94c133a9625759ec521d52a992b18d395d9d9d199aa7ee76655b1",
+      "desktop-app-vue/src/main/task/project-goal-drafts-transport.js": "fd09ea8d3241a96f4d9ceb51876e7a7cbc6c5aa578dec34fe41efa178d597168",
+      "desktop-app-vue/src/main/task/project-goal-ipc.js": "5dd176ca526c9fb66755948b98b3b5766314bf867a50ba0f5930d6cce258f75d",
+      "desktop-app-vue/src/renderer/components/projects/ProjectGoalActionsPanel.vue": "562f791812b494243fccaf1b8bec25d61bbebce3d1cc8d2d357347ce014930cd",
+      "desktop-app-vue/src/renderer/components/projects/ProjectGoalCliConnectionPanel.vue": "a67dd4b4b66a9f764b5aafb5e3d6cbb0cba76ccf5df5fb53ea62156fd4115646",
+      "desktop-app-vue/src/renderer/components/projects/ProjectGoalDraftImportsPanel.vue": "272d25e1bc42f303556c0e9045352208d194669741375d9b14fe2c10169cd780",
+      "desktop-app-vue/src/renderer/components/projects/ProjectGoalExtensionDraftsPanel.vue": "ee06c7e6d318fcb1c919709ebe09278ec71b4fbfe8588385059d4d5c8fd501b6",
+      "desktop-app-vue/src/renderer/components/projects/ProjectGoalExternalDraftsPanel.vue": "f2273886005675607dcb915ed972b6e427404568b1eaed6e91abe963eebcb20e",
+      "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-actions-panel.test.ts": "1dd1d5ceff7dfba6a416ce40c0ae5997acc9480e4258b6330b1093d74f9c9eec",
+      "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-cli-connection-panel.test.ts": "d3c667a17050d2af00bf10ae02e48a7cfe90d2997db28c5120167f0b96a57d86",
+      "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-draft-imports-panel.test.ts": "8a0cca7f3f90d2f7a8aec5cafdb84c60a863f3da71164404396aab6e2025923d",
+      "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-extension-drafts-panel.test.ts": "cc7e97eaf796f1ec7c9d3c24527cf6ac5720138b53142bf61bff15b985473d0d",
+      "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-external-drafts-panel.test.ts": "e15fcc2acab1202bf2e567b86f2dead585a59b5ed7c6d533a7d53f1c1d36ee51",
+      "docs/research/agents/README.md": "decc2ac126cd4d4b8932ceb31ad287a0fdb1a57206785c0fea5ff3ae3b9ff754",
+      "docs/research/agents/chainlesschain-dots-muse-mods-analysis-2026-10-06.md": "2b28d456b542399442ff3fc7b645ebf079fa65c1cb48df612592c30292694900",
+      "docs/research/agents/dots-muse-mods-implementation-progress-2026-10-07.md": "9ec2d9c6747cc720910e8f9609e90135a42beebd717e99ed2737e32c14fb9db2",
+      "docs/research/agents/evidence/dmm-online-create-2026-11-06/README.md": "330be882cdd6eb0653c9c269afbcef00b62ade7ab59c298d57bac298bef7c981",
+      "docs/research/agents/evidence/dmm-online-create-2026-11-06/verify-artifacts.py": "5668957a7a3bde2cb13fe86b8f7892513439506b780d5720e741019610e8bcb3",
+      "docs/research/agents/evidence/dmm-online-create-2026-11-06/verify.cjs": "8c8a294e04f69f7023416c4ba3e327a667b8a13a2ff85702c4a2d0f179660fbc",
+      "packages/cli/README.md": "7b2adb213b42bcc2cb4dbf75e1f09333da52a995f9c1d061898fbbc5a2f3ab8d",
+      "packages/cli/__tests__/fixtures/goal-extension-conversion-process.mjs": "9e4ae4c99b0588b5dfe60126a7ef3acd3f16bcc3470e98ee9a3880caa106bf5d",
+      "packages/cli/__tests__/integration/goal-extension-conversion-process.test.js": "4685cf4c28b3aabcf87423e9ade83f44ecf0985e1e52e334f3129edcd2d4de62",
+      "packages/cli/__tests__/unit/cli-goal-capabilities.test.js": "7e9ac3803b1a33282c2ca67a1beb40252f3330f6dbb4e395aa23d18662eeded1",
+      "packages/cli/__tests__/unit/cli-goal-draft-request.test.js": "bce68959cea4770111f495ad01a4802a1a7ce0a51352db52ce1ce640ba09c377",
+      "packages/cli/__tests__/unit/cli-goal-drafts-command.test.js": "3d98db6b5da989648b65d67ab2cb139ef34dcfce50b1088a6ffe57f61056b73b",
+      "packages/cli/__tests__/unit/cli-goal-drafts.test.js": "611003fccc02a396becc004373b6c7390e4ae71370a9b19e34a0e63ba2919d50",
+      "packages/cli/__tests__/unit/project-delivery-assistant-lifecycle.test.js": "d4a3a2a3f0bfce7bc3210c9023804c7fe8f4f4943e4e1cc7a0c5d5f7b79df135",
+      "packages/cli/__tests__/unit/project-goal-drafts-transport.test.js": "a7eebc04b4d6941a5ce395e473431d42c0a2031a95907a17f6fcc0f8a15bf2a6",
+      "packages/cli/__tests__/unit/project-goal-extension-queue.test.js": "053f27982b2313ff1800a0dddc16fedf9e06011e3391d7ffd6352739c7a05812",
+      "packages/cli/__tests__/unit/project-goal-external-drafts.test.js": "ec40a19481b890e5702c8b580d4ef31ee942a17fc9fc6b4a3f73a0f187ac256b",
+      "packages/cli/__tests__/unit/vscode-ext-goal-draft-request-view.test.js": "35437fc6f7c0e75c3c8a3750de89c3b84efbaebefe0719d7a1a327af8e96424a",
+      "packages/cli/src/command-help-index.json": "d24a2d4b1ed9079d3842491a178cb71341d78cd59f56280879e4fe57fb366d6b",
+      "packages/cli/src/commands/goal.js": "adc0e640ab64a902f609bc3b634c8b3ae36a3b96cf46efa1dfc5085aa6d06e53",
+      "packages/cli/src/lib/plugin-runtime/cli-goal-capabilities.js": "e29c9bb6d434917eec8ff7ac514491f449b1e3dd74c9133c771e4d31ac4f2e5b",
+      "packages/cli/src/lib/plugin-runtime/cli-goal-draft-request.js": "9a58fed636b8a76aea6bd76209ec1cc154a5d8296263579c7cebad758ea13829",
+      "packages/cli/src/lib/plugin-runtime/cli-goal-drafts.js": "21e04eac4c6413c534260be43c7694d6699e1f5cd11774a664afe9a2825a2d8d",
+      "packages/cli/src/lib/plugin-runtime/examples/goal-task-creator/README.md": "5095169d8d540a2ce3e3eb7b7ffba02ef4d4e47f8f3105ad828ba7b5bb91c57f",
+      "packages/cli/src/lib/plugin-runtime/examples/goal-task-creator/plugin.json": "9a17b50dc18521b226c08d53bff29deb305813d6c2cdfde5ed39f7a974597736",
+      "packages/cli/src/lib/plugin-runtime/examples/project-delivery-assistant/README.md": "593a79d37834e48bac48949642bf79cd356d1618390b0e01bae59fcc740697da",
+      "packages/cli/src/lib/plugin-runtime/examples/project-delivery-assistant/plugin.json": "ce75660e10415f5432d7863cfcb7de39a1585fe756f54b74e189403352723ff8",
+      "packages/cli/src/lib/plugin-runtime/goal-extensions.js": "24df25568256b2f85a96893cbd028cf04ad6c0864c805bf31027e0254cb5c08f",
+      "packages/cli/src/lib/project-goal-connection.js": "72be1f4d2e8bcfdca755ef4db3b593fbcef748aa9544d24bed4752861161ae58",
+      "packages/cli/src/lib/project-goal-draft-connection.js": "438e9965357c0b2e69ec294adc89430a95f0dd85eed9a7d957c369e7ee62d111",
+      "packages/jetbrains-plugin/README.md": "dba84b7a8741f8d6baeb4744b38ce506bb44d219b177275721651697e41729e1",
+      "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/GoalTaskCreateExport.java": "5f499a6c3f8d4a4f7e9002f9fa70e01c75d84d46820f545a6883291e8730d5d1",
+      "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/PluginManager.java": "13f59c2249b4096ecd0d9d64caa65d8456c144fc49d6a06e9ac7af75b302bcb4",
+      "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/PluginManagerAction.java": "a4a75898369d1e06a587784b62bbf77cd008ef5bb3e0fd1b1e57dcd3706fa204",
+      "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/GoalTaskCreateExportTest.java": "7addc444b475f2a9f0dccabd55df700132ef281e172f548546be6353e440e400",
+      "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/PluginManagerTest.java": "a37642dcf846f16cef1018f9fcc935b2b896aca919d23edd2dd2ffb94ec5fb4e",
+      "packages/session-core/README.md": "4f6380be8f1cbd608aa7ea348b037db1db3c8445c1f9e7b93f887fb024e6d9f4",
+      "packages/session-core/lib/goal-draft-connection-contract.js": "45f8d490b9a660831e2b781d588f78df02830886dd4bfde006a02e0711ea4a9c",
+      "packages/session-core/lib/goal-draft-request-contract.js": "4c110ebfda3ff4bbc95624dba04c37f1722b5e99922dd8f887bb85676f2f67bb",
+      "packages/session-core/lib/goal-extension-proposal-contract.js": "1f2b2d3ddb5d9c3544ce3c2c6af961bf8d9083e56ee1b0872c47867592553e39",
+      "packages/session-core/lib/project-goal-draft-imports.js": "97bb85e85634bae82354307fb53923489c25864eeea6c1684647b9a9da72cb86",
+      "packages/session-core/lib/project-goal-extension-conversion.js": "da8f04d5cda1ceb7ae3f0753c2e1e52fbffe76a759d4c744acca116da734f4aa",
+      "packages/session-core/lib/project-goal-extension-queue.js": "26b610def2b93ddaf19b51725cfedca55aac58884e5c730e3e697efdbdbf151f",
+      "packages/session-core/lib/project-goal-external-drafts.js": "ea010c3a6db6c72e56f38655eae74734e55ec20835f5934204321222befb5094",
+      "packages/vscode-extension/README.md": "3d0e114de647e17717ce9eef2fc8b7292e441aa3e7d6a04d4bd9130ad06f433b",
+      "packages/vscode-extension/src/plugin-manager.js": "34e7488435800f9a96df1b51542d78b466456f04d1e3061b6bb0d63a4e63668e",
+      "packages/vscode-extension/src/ui/plugin-manager-view.js": "0613dd150f8a26fcc5ca16fc7f663a51f3328766566026251df080d889bf2fc6"
+    }
+  },
+  "environment": {
+    "node": "v22.22.2",
+    "platform": "win32",
+    "arch": "x64",
+    "vitest": "4.1.10",
+    "betterSqlite3": "12.11.1",
+    "koffi": "2.16.3"
+  },
+  "totals": {
+    "testFiles": 21,
+    "passed": 365,
+    "failed": 0,
+    "skipped": 0
+  },
+  "reports": [
+    {
+      "file": "cli-tests.json",
+      "cwd": ".",
+      "environment": "workspace sandbox",
+      "command": "npm.cmd --prefix packages/cli test -- __tests__/unit/cli-goal-draft-request.test.js __tests__/unit/cli-goal-drafts-command.test.js __tests__/unit/cli-goal-capabilities.test.js __tests__/unit/cli-goal-drafts.test.js __tests__/unit/project-goal-external-drafts.test.js __tests__/unit/project-goal-extension-queue.test.js __tests__/unit/plugin-goal-extension.test.js __tests__/unit/project-goal-drafts-transport.test.js __tests__/unit/project-goal-workflow.test.js __tests__/unit/task-create-action-service.test.js __tests__/unit/project-delivery-assistant-lifecycle.test.js __tests__/unit/goal-draft-submission-reference.test.js __tests__/unit/vscode-ext-goal-drafts.test.js __tests__/integration/goal-extension-conversion-process.test.js --reporter=json --outputFile=../../docs/research/agents/evidence/dmm-online-create-2026-11-06/cli-tests.json",
+      "sha256": "1da850344f8ca60e2b326ac56a66c0f2542aaa54562ae2e53f449b08a7c7315e",
+      "testFiles": 14,
+      "passed": 265,
+      "failed": 0,
+      "skipped": 0,
+      "success": true
+    },
+    {
+      "file": "desktop-tests.json",
+      "cwd": "desktop-app-vue",
+      "environment": "approved outside sandbox; synthetic isolated data, real Windows ACL",
+      "command": "node ../node_modules/vitest/vitest.mjs run --config vitest.business-actions.config.mjs src/main/task/__tests__/project-goal-draft-imports-ipc.test.js src/main/task/__tests__/project-goal-delivery-drafts-ipc.test.js src/main/task/__tests__/project-goal-workflow-ipc.test.js src/main/task/__tests__/project-goal-external-drafts-ipc.test.js src/main/task/__tests__/project-goal-event-history-ipc.test.js --reporter=json --outputFile=../docs/research/agents/evidence/dmm-online-create-2026-11-06/desktop-tests.json",
+      "sha256": "a7d05f70dade972a53c6fa23099edd3b5afba526e4708f5e13221ab59a658253",
+      "testFiles": 5,
+      "passed": 85,
+      "failed": 0,
+      "skipped": 0,
+      "success": true
+    },
+    {
+      "file": "renderer-tests.json",
+      "cwd": "desktop-app-vue",
+      "environment": "workspace sandbox; Vue IPC substitute",
+      "command": "node ../node_modules/vitest/vitest.mjs run --config vitest.business-actions-renderer.config.mjs src/renderer/components/projects/__tests__/project-goal-cli-connection-panel.test.ts src/renderer/components/projects/__tests__/project-goal-external-drafts-panel.test.ts --reporter=json --outputFile=../docs/research/agents/evidence/dmm-online-create-2026-11-06/renderer-tests.json",
+      "sha256": "2f3d8b71778831f53d1ba749605c80514f19165b851aef740c2527cafcdb8f23",
+      "testFiles": 2,
+      "passed": 15,
+      "failed": 0,
+      "skipped": 0,
+      "success": true
+    }
+  ],
+  "checks": {
+    "file": "checks.json",
+    "sha256": "92be759ecf315361cb2ff00c290e093b0bcb46a30be8e75078e87769c14553ca",
+    "passed": 41,
+    "failed": 0
+  },
+  "artifacts": {
+    "file": "artifacts.json",
+    "sha256": "ec78739288dab7a86dba9fa24bb4cae88f8fe3db8885d6657dca29763a6cf818",
+    "countedAsTests": false,
+    "commands": [
+      "npm.cmd pack --ignore-scripts --json --pack-destination <Temp>/dmm-online-create-20261106 --cache <Temp>/dmm-native-create-npm-cache (cwd packages/cli and packages/session-core)",
+      "python docs/research/agents/evidence/dmm-online-create-2026-11-06/verify-artifacts.py <local-cli-tarball> <local-core-tarball>"
+    ]
+  },
+  "boundaries": {
+    "real": [
+      "plugin discovery/trust/capability consent",
+      "Windows ACL, loopback HTTP HMAC, SQLite pending/native action storage",
+      "grant disconnect/reopen/revoke and terminal replay",
+      "existing shared creation conversion child-process recovery"
+    ],
+    "substitutes": [
+      "Electron window/actor/dialog results",
+      "Vue IPC",
+      "synthetic personal-project data",
+      "CLI fault-retry connection fixture; transport faults separately use actual HTTP"
+    ],
+    "pending": [
+      "IDE online creation controls",
+      "model drafting and Memory output authorization adapter",
+      "actual Electron/IDE GUI",
+      "independent business-effect samples",
+      "exact-commit full-platform release gates, rollout and migration rollback"
+    ],
+    "published": false,
+    "versionsChanged": false,
+    "fullIsolatedCliInstall": false
+  }
+}

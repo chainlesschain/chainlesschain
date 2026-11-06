@@ -1,0 +1,662 @@
+TAP version 13
+# (node:26564) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# [2026-11-06T01:50:40.808Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "initialization-started"
+# }
+# [2026-11-06T01:50:40.816Z] [WARN] [main] [LLMProvider] provider unavailable {
+#   "provider": "ollama",
+#   "operation": "status"
+# }
+# [2026-11-06T01:50:40.820Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "service-unavailable"
+# }
+# [2026-11-06T01:50:54.963Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "initialization-started"
+# }
+# [2026-11-06T01:50:54.968Z] [WARN] [main] [LLMProvider] provider unavailable {
+#   "provider": "ollama",
+#   "operation": "status"
+# }
+# [2026-11-06T01:50:54.973Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "service-unavailable"
+# }
+# Subtest: actual IPC uses governed projection, one literal loopback socket, response evidence and real token counts
+ok 1 - actual IPC uses governed projection, one literal loopback socket, response evidence and real token counts
+  ---
+  duration_ms: 16146.2205
+  type: 'test'
+  ...
+# [2026-11-06T01:50:55.525Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "initialization-started"
+# }
+# [2026-11-06T01:50:55.528Z] [WARN] [main] [LLMProvider] provider unavailable {
+#   "provider": "ollama",
+#   "operation": "status"
+# }
+# [2026-11-06T01:50:55.531Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "service-unavailable"
+# }
+# [2026-11-06T01:51:02.574Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "initialization-started"
+# }
+# [2026-11-06T01:51:02.578Z] [WARN] [main] [LLMProvider] provider unavailable {
+#   "provider": "ollama",
+#   "operation": "status"
+# }
+# [2026-11-06T01:51:02.581Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "service-unavailable"
+# }
+# Subtest: native decline precedes opening governed evidence
+ok 2 - native decline precedes opening governed evidence
+  ---
+  duration_ms: 615.121
+  type: 'test'
+  ...
+# Subtest: source changes during actual asynchronous evidence preparation prevent socket send
+ok 3 - source changes during actual asynchronous evidence preparation prevent socket send
+  ---
+  duration_ms: 7071.5784
+  type: 'test'
+  ...
+# [2026-11-06T01:51:10.234Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "initialization-started"
+# }
+# [2026-11-06T01:51:10.237Z] [WARN] [main] [LLMProvider] provider unavailable {
+#   "provider": "ollama",
+#   "operation": "status"
+# }
+# [2026-11-06T01:51:10.240Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "service-unavailable"
+# }
+# Subtest: actual response unfinished is discarded and replay cannot resend
+ok 4 - actual response unfinished is discarded and replay cannot resend
+  ---
+  duration_ms: 7649.4458
+  type: 'test'
+  ...
+# [2026-11-06T01:51:16.312Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "initialization-started"
+# }
+# [2026-11-06T01:51:16.315Z] [WARN] [main] [LLMProvider] provider unavailable {
+#   "provider": "ollama",
+#   "operation": "status"
+# }
+# [2026-11-06T01:51:16.318Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "service-unavailable"
+# }
+# Subtest: actual response tools is discarded and replay cannot resend
+ok 5 - actual response tools is discarded and replay cannot resend
+  ---
+  duration_ms: 6168.5467
+  type: 'test'
+  ...
+# [2026-11-06T01:51:21.878Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "initialization-started"
+# }
+# [2026-11-06T01:51:21.880Z] [WARN] [main] [LLMProvider] provider unavailable {
+#   "provider": "ollama",
+#   "operation": "status"
+# }
+# [2026-11-06T01:51:21.884Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "service-unavailable"
+# }
+# Subtest: actual response mismatch is discarded and replay cannot resend
+ok 6 - actual response mismatch is discarded and replay cannot resend
+  ---
+  duration_ms: 5537.2589
+  type: 'test'
+  ...
+# [2026-11-06T01:51:26.912Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "initialization-started"
+# }
+# [2026-11-06T01:51:26.916Z] [WARN] [main] [LLMProvider] provider unavailable {
+#   "provider": "ollama",
+#   "operation": "status"
+# }
+# [2026-11-06T01:51:26.918Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "service-unavailable"
+# }
+# Subtest: actual response truncated is discarded and replay cannot resend
+ok 7 - actual response truncated is discarded and replay cannot resend
+  ---
+  duration_ms: 4991.9961
+  type: 'test'
+  ...
+# [2026-11-06T01:51:34.205Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "initialization-started"
+# }
+# [2026-11-06T01:51:34.210Z] [WARN] [main] [LLMProvider] provider unavailable {
+#   "provider": "ollama",
+#   "operation": "status"
+# }
+# [2026-11-06T01:51:34.219Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "service-unavailable"
+# }
+# Subtest: actual response oversized is discarded and replay cannot resend
+ok 8 - actual response oversized is discarded and replay cannot resend
+  ---
+  duration_ms: 7316.3433
+  type: 'test'
+  ...
+# [2026-11-06T01:51:39.834Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "initialization-started"
+# }
+# [2026-11-06T01:51:39.837Z] [WARN] [main] [LLMProvider] provider unavailable {
+#   "provider": "ollama",
+#   "operation": "status"
+# }
+# [2026-11-06T01:51:39.842Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "service-unavailable"
+# }
+# Subtest: redirect target is never followed and private server bodies never cross IPC
+ok 9 - redirect target is never followed and private server bodies never cross IPC
+  ---
+  duration_ms: 5698.401
+  type: 'test'
+  ...
+# [2026-11-06T01:51:45.237Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "initialization-started"
+# }
+# [2026-11-06T01:51:45.240Z] [WARN] [main] [LLMProvider] provider unavailable {
+#   "provider": "ollama",
+#   "operation": "status"
+# }
+# [2026-11-06T01:51:45.242Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "service-unavailable"
+# }
+# Subtest: cancel interrupts an actual pending socket, persists unknown and prevents late summary commit
+ok 10 - cancel interrupts an actual pending socket, persists unknown and prevents late summary commit
+  ---
+  duration_ms: 5374.2377
+  type: 'test'
+  ...
+# Subtest: actual socket total timeout remains unknown and never auto-retries
+ok 11 - actual socket total timeout remains unknown and never auto-retries
+  ---
+  duration_ms: 35392.4467
+  type: 'test'
+  ...
+# Subtest: remote/DNS/encoded/credentialed endpoints and ungoverned manager never admit report sources
+ok 12 - remote/DNS/encoded/credentialed endpoints and ungoverned manager never admit report sources
+  ---
+  duration_ms: 1.9681
+  type: 'test'
+  ...
+# Subtest: forced worker exit after dispatched preserves the model identity without redispatch
+ok 13 - forced worker exit after dispatched preserves the model identity without redispatch
+  ---
+  duration_ms: 1368.1855
+  type: 'test'
+  ...
+# Subtest: forced worker exit after saved preserves the model identity without redispatch
+ok 14 - forced worker exit after saved preserves the model identity without redispatch
+  ---
+  duration_ms: 1669.6898
+  type: 'test'
+  ...
+# [2026-11-06T01:50:40.989Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "initialization-started"
+# }
+# [2026-11-06T01:50:40.996Z] [WARN] [main] [LLMProvider] provider unavailable {
+#   "provider": "ollama",
+#   "operation": "status"
+# }
+# [2026-11-06T01:50:41.011Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "service-unavailable"
+# }
+# [2026-11-06T01:50:54.883Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "initialization-started"
+# }
+# [2026-11-06T01:50:54.887Z] [WARN] [main] [LLMProvider] provider unavailable {
+#   "provider": "ollama",
+#   "operation": "status"
+# }
+# [2026-11-06T01:50:54.890Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "service-unavailable"
+# }
+# Subtest: governed local goal draft crosses actual signed ingress/projector and one socket with real token counts
+ok 15 - governed local goal draft crosses actual signed ingress/projector and one socket with real token counts
+  ---
+  duration_ms: 15737.7987
+  type: 'test'
+  ...
+# [2026-11-06T01:51:02.087Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "initialization-started"
+# }
+# [2026-11-06T01:51:02.090Z] [WARN] [main] [LLMProvider] provider unavailable {
+#   "provider": "ollama",
+#   "operation": "status"
+# }
+# [2026-11-06T01:51:02.093Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "service-unavailable"
+# }
+# Subtest: actual governed protocol refuses revoke-preparation without publishing a pending draft
+ok 16 - actual governed protocol refuses revoke-preparation without publishing a pending draft
+  ---
+  duration_ms: 7243.7441
+  type: 'test'
+  ...
+# [2026-11-06T01:51:10.058Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "initialization-started"
+# }
+# [2026-11-06T01:51:10.061Z] [WARN] [main] [LLMProvider] provider unavailable {
+#   "provider": "ollama",
+#   "operation": "status"
+# }
+# [2026-11-06T01:51:10.064Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "service-unavailable"
+# }
+# Subtest: actual governed protocol refuses revoke-response without publishing a pending draft
+ok 17 - actual governed protocol refuses revoke-response without publishing a pending draft
+  ---
+  duration_ms: 7994.3442
+  type: 'test'
+  ...
+# [2026-11-06T01:51:16.209Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "initialization-started"
+# }
+# [2026-11-06T01:51:16.212Z] [WARN] [main] [LLMProvider] provider unavailable {
+#   "provider": "ollama",
+#   "operation": "status"
+# }
+# [2026-11-06T01:51:16.215Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "service-unavailable"
+# }
+# Subtest: actual governed protocol refuses incomplete without publishing a pending draft
+ok 18 - actual governed protocol refuses incomplete without publishing a pending draft
+  ---
+  duration_ms: 6179.612
+  type: 'test'
+  ...
+# Subtest: actual governed protocol refuses tool-output without publishing a pending draft
+ok 19 - actual governed protocol refuses tool-output without publishing a pending draft
+  ---
+  duration_ms: 5646.1006
+  type: 'test'
+  ...
+# [2026-11-06T01:50:41.217Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "initialization-started"
+# }
+# [2026-11-06T01:50:41.224Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "tools-client-initialization-failed"
+# }
+# [2026-11-06T01:50:41.229Z] [WARN] [main] [LLMProvider] provider unavailable {
+#   "provider": "openai",
+#   "operation": "status"
+# }
+# [2026-11-06T01:50:41.234Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "service-unavailable"
+# }
+# [2026-11-06T01:50:55.454Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "initialization-started"
+# }
+# [2026-11-06T01:50:55.458Z] [WARN] [main] [LLMProvider] provider unavailable {
+#   "provider": "openai",
+#   "operation": "status"
+# }
+# [2026-11-06T01:50:55.465Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "service-unavailable"
+# }
+# [2026-11-06T01:51:07.107Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "initialization-started"
+# }
+# [2026-11-06T01:51:07.110Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "tools-client-initialization-failed"
+# }
+# [2026-11-06T01:51:07.113Z] [WARN] [main] [LLMProvider] provider unavailable {
+#   "provider": "openai",
+#   "operation": "status"
+# }
+# [2026-11-06T01:51:07.115Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "service-unavailable"
+# }
+# [2026-11-06T01:51:14.039Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "initialization-started"
+# }
+# [2026-11-06T01:51:14.043Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "tools-client-initialization-failed"
+# }
+# [2026-11-06T01:51:14.046Z] [WARN] [main] [LLMProvider] provider unavailable {
+#   "provider": "openai",
+#   "operation": "status"
+# }
+# [2026-11-06T01:51:14.049Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "service-unavailable"
+# }
+# [2026-11-06T01:51:19.714Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "initialization-started"
+# }
+# [2026-11-06T01:51:19.716Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "tools-client-initialization-failed"
+# }
+# [2026-11-06T01:51:19.718Z] [WARN] [main] [LLMProvider] provider unavailable {
+#   "provider": "openai",
+#   "operation": "status"
+# }
+# [2026-11-06T01:51:19.720Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "service-unavailable"
+# }
+# [2026-11-06T01:51:24.476Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "initialization-started"
+# }
+# [2026-11-06T01:51:24.479Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "tools-client-initialization-failed"
+# }
+# [2026-11-06T01:51:24.481Z] [WARN] [main] [LLMProvider] provider unavailable {
+#   "provider": "openai",
+#   "operation": "status"
+# }
+# [2026-11-06T01:51:24.483Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "service-unavailable"
+# }
+# [2026-11-06T01:51:31.252Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "initialization-started"
+# }
+# [2026-11-06T01:51:31.255Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "tools-client-initialization-failed"
+# }
+# [2026-11-06T01:51:31.258Z] [WARN] [main] [LLMProvider] provider unavailable {
+#   "provider": "openai",
+#   "operation": "status"
+# }
+# [2026-11-06T01:51:31.291Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "service-unavailable"
+# }
+# [2026-11-06T01:51:37.904Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "initialization-started"
+# }
+# [2026-11-06T01:51:37.909Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "tools-client-initialization-failed"
+# }
+# [2026-11-06T01:51:37.912Z] [WARN] [main] [LLMProvider] provider unavailable {
+#   "provider": "openai",
+#   "operation": "status"
+# }
+# [2026-11-06T01:51:37.915Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "service-unavailable"
+# }
+# [2026-11-06T01:51:46.304Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "initialization-started"
+# }
+# [2026-11-06T01:51:46.307Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "tools-client-initialization-failed"
+# }
+# [2026-11-06T01:51:46.309Z] [WARN] [main] [LLMProvider] provider unavailable {
+#   "provider": "openai",
+#   "operation": "status"
+# }
+# [2026-11-06T01:51:46.311Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "service-unavailable"
+# }
+# [2026-11-06T01:51:51.581Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "initialization-started"
+# }
+# [2026-11-06T01:51:51.584Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "tools-client-initialization-failed"
+# }
+# [2026-11-06T01:51:51.586Z] [WARN] [main] [LLMProvider] provider unavailable {
+#   "provider": "openai",
+#   "operation": "status"
+# }
+# [2026-11-06T01:51:51.589Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "service-unavailable"
+# }
+# [2026-11-06T01:51:57.225Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "initialization-started"
+# }
+# [2026-11-06T01:51:57.228Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "tools-client-initialization-failed"
+# }
+# [2026-11-06T01:51:57.231Z] [WARN] [main] [LLMProvider] provider unavailable {
+#   "provider": "openai",
+#   "operation": "status"
+# }
+# [2026-11-06T01:51:57.233Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "service-unavailable"
+# }
+# [2026-11-06T01:52:02.278Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "initialization-started"
+# }
+# [2026-11-06T01:52:02.281Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "tools-client-initialization-failed"
+# }
+# [2026-11-06T01:52:02.282Z] [WARN] [main] [LLMProvider] provider unavailable {
+#   "provider": "openai",
+#   "operation": "status"
+# }
+# [2026-11-06T01:52:02.285Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "service-unavailable"
+# }
+# [2026-11-06T01:52:06.060Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "initialization-started"
+# }
+# [2026-11-06T01:52:06.064Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "tools-client-initialization-failed"
+# }
+# [2026-11-06T01:52:06.067Z] [WARN] [main] [LLMProvider] provider unavailable {
+#   "provider": "openai",
+#   "operation": "status"
+# }
+# [2026-11-06T01:52:06.070Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "service-unavailable"
+# }
+# [2026-11-06T01:52:12.273Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "initialization-started"
+# }
+# [2026-11-06T01:52:12.274Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "tools-client-initialization-failed"
+# }
+# [2026-11-06T01:52:12.275Z] [WARN] [main] [LLMProvider] provider unavailable {
+#   "provider": "openai",
+#   "operation": "status"
+# }
+# [2026-11-06T01:52:12.277Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "service-unavailable"
+# }
+# [2026-11-06T01:52:12.453Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "initialization-started"
+# }
+# [2026-11-06T01:52:12.455Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "tools-client-initialization-failed"
+# }
+# [2026-11-06T01:52:12.457Z] [WARN] [main] [LLMProvider] provider unavailable {
+#   "provider": "openai",
+#   "operation": "status"
+# }
+# [2026-11-06T01:52:12.458Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "service-unavailable"
+# }
+# [2026-11-06T01:52:12.745Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "initialization-started"
+# }
+# [2026-11-06T01:52:12.748Z] [WARN] [main] [LLMProvider] provider unavailable {
+#   "provider": "openai",
+#   "operation": "status"
+# }
+# [2026-11-06T01:52:12.751Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "service-unavailable"
+# }
+# Subtest: private OpenAI endpoints accept only literal loopback/RFC1918 /v1 with explicit ports
+ok 20 - private OpenAI endpoints accept only literal loopback/RFC1918 /v1 with explicit ports
+  ---
+  duration_ms: 96.2089
+  type: 'test'
+  ...
+# Subtest: volcengine: signed ingress, exact bounded wire request, Memory consent, usage, replay and restart
+ok 21 - volcengine: signed ingress, exact bounded wire request, Memory consent, usage, replay and restart
+  ---
+  duration_ms: 16204.877
+  type: 'test'
+  ...
+# Subtest: custom: signed ingress, exact bounded wire request, Memory consent, usage, replay and restart
+ok 22 - custom: signed ingress, exact bounded wire request, Memory consent, usage, replay and restart
+  ---
+  duration_ms: 11686.1445
+  type: 'test'
+  ...
+# Subtest: OpenAI protocol rejects revoke-preparation, persists uncertainty and never re-dispatches
+ok 23 - OpenAI protocol rejects revoke-preparation, persists uncertainty and never re-dispatches
+  ---
+  duration_ms: 6940.7805
+  type: 'test'
+  ...
+# Subtest: OpenAI protocol rejects revoke-response, persists uncertainty and never re-dispatches
+ok 24 - OpenAI protocol rejects revoke-response, persists uncertainty and never re-dispatches
+  ---
+  duration_ms: 5729.8578
+  type: 'test'
+  ...
+# Subtest: OpenAI protocol rejects incomplete, persists uncertainty and never re-dispatches
+ok 25 - OpenAI protocol rejects incomplete, persists uncertainty and never re-dispatches
+  ---
+  duration_ms: 4771.5573
+  type: 'test'
+  ...
+# Subtest: OpenAI protocol rejects tool-output, persists uncertainty and never re-dispatches
+ok 26 - OpenAI protocol rejects tool-output, persists uncertainty and never re-dispatches
+  ---
+  duration_ms: 6718.2186
+  type: 'test'
+  ...
+# Subtest: OpenAI protocol rejects reasoning, persists uncertainty and never re-dispatches
+ok 27 - OpenAI protocol rejects reasoning, persists uncertainty and never re-dispatches
+  ---
+  duration_ms: 6695.7964
+  type: 'test'
+  ...
+# Subtest: OpenAI protocol rejects invalid-json, persists uncertainty and never re-dispatches
+ok 28 - OpenAI protocol rejects invalid-json, persists uncertainty and never re-dispatches
+  ---
+  duration_ms: 8380.3169
+  type: 'test'
+  ...
+# Subtest: OpenAI protocol rejects invalid-utf8, persists uncertainty and never re-dispatches
+ok 29 - OpenAI protocol rejects invalid-utf8, persists uncertainty and never re-dispatches
+  ---
+  duration_ms: 5283.314
+  type: 'test'
+  ...
+# Subtest: OpenAI protocol rejects oversize, persists uncertainty and never re-dispatches
+ok 30 - OpenAI protocol rejects oversize, persists uncertainty and never re-dispatches
+  ---
+  duration_ms: 5643.8473
+  type: 'test'
+  ...
+# Subtest: OpenAI protocol rejects redirect, persists uncertainty and never re-dispatches
+ok 31 - OpenAI protocol rejects redirect, persists uncertainty and never re-dispatches
+  ---
+  duration_ms: 5093.1825
+  type: 'test'
+  ...
+# Subtest: OpenAI protocol rejects compressed, persists uncertainty and never re-dispatches
+ok 32 - OpenAI protocol rejects compressed, persists uncertainty and never re-dispatches
+  ---
+  duration_ms: 3787.4133
+  type: 'test'
+  ...
+# Subtest: missing token usage remains unknown and consent denial opens no socket
+ok 33 - missing token usage remains unknown and consent denial opens no socket
+  ---
+  duration_ms: 6376.4028
+  type: 'test'
+  ...
+# Subtest: provider/key/client change after native consent refuses before a socket
+ok 34 - provider/key/client change after native consent refuses before a socket
+  ---
+  duration_ms: 210.8216
+  type: 'test'
+  ...
+# Subtest: private OpenAI adapter crosses an actual loopback HTTP socket
+ok 35 - private OpenAI adapter crosses an actual loopback HTTP socket
+  ---
+  duration_ms: 6119.5599
+  type: 'test'
+  ...
+1..35
+# tests 35
+# suites 0
+# pass 35
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 102714.7411

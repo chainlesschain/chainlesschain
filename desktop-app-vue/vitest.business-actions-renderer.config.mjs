@@ -28,6 +28,7 @@ export default defineConfig({
       "src/renderer/components/projects/__tests__/project-goal-cli-connection-panel.test.ts",
       "src/renderer/components/projects/__tests__/project-goal-acceptance-panel.test.ts",
       "src/renderer/components/projects/__tests__/project-goal-memory-panel.test.ts",
+      "src/renderer/components/projects/__tests__/project-goal-model-drafts-panel.test.ts",
       "src/renderer/stores/__tests__/auth.test.ts",
     ],
   },

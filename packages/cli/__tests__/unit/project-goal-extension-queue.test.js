@@ -255,9 +255,9 @@ describe("native pending-only extension queue", () => {
         }),
       ),
     ).toThrow();
-    expect(() => queue.enqueue(request({ type: "task.create" }))).toThrow(
-      "UNSUPPORTED_ACTION",
-    );
+    expect(() =>
+      queue.enqueue(request({ type: "task.create", taskType: "query_info" })),
+    ).toThrow("SOURCE_CONFLICT");
     workflow.prepare({
       goalId: goal.id,
       proposalId: source.id,
@@ -560,105 +560,284 @@ describe("durable trusted draft conversion and native confirmation", () => {
   });
 });
 
+describe("task creation draft conversion", () => {
+  function creation(patch = {}) {
+    const native = workflow
+      .list({ goalId: goal.id })
+      .proposals.find(
+        (item) => item.proposal.actionType === "task.create",
+      ).proposal;
+    return request({
+      type: "task.create",
+      taskType: "query_info",
+      sourceRef: native.id,
+      ...patch,
+    });
+  }
+  const taskCount = () =>
+    db.prepare("SELECT COUNT(*) AS n FROM project_tasks").get().n;
+  it("keeps task type immutable across queue, conversion, reopen, native confirmation and terminal replay", async () => {
+    const proposal = creation(),
+      saved = queue.enqueue(proposal);
+    expect(taskCount()).toBe(1);
+    expect(confirm).not.toHaveBeenCalled();
+    expect(queue.get({ id: saved.proposalId }).proposal).toEqual(proposal);
+    const prepared = queue.prepareDraft({ id: saved.proposalId });
+    expect(prepared.intent.taskType).toBe("query_info");
+    expect(prepared.intent.preview.request.actionType).toBe("task.create");
+    expect(prepared.intent.preview.after.taskType).toBe("query_info");
+    expect(taskCount()).toBe(1);
+    db.close();
+    open();
+    expect(queue.prepareDraft({ id: saved.proposalId }).intent.id).toBe(
+      prepared.intent.id,
+    );
+    const result = await workflow.execute({ intentId: prepared.intent.id });
+    expect(result.run.status).toBe("succeeded");
+    expect(taskCount()).toBe(2);
+    expect(confirm).toHaveBeenCalledOnce();
+    admission = () => null;
+    db.close();
+    open();
+    expect(
+      workflow.getIntent({ intentId: prepared.intent.id }).receipt.run.id,
+    ).toBe(result.run.id);
+    expect(
+      (await workflow.execute({ intentId: prepared.intent.id })).replayed,
+    ).toBe(true);
+    expect(taskCount()).toBe(2);
+    expect(confirm).toHaveBeenCalledOnce();
+  });
+  it("requires explicit supported task types and rejects type smuggling into description drafts", () => {
+    for (const taskType of [
+      undefined,
+      null,
+      "",
+      "custom",
+      "QUERY_INFO",
+      {},
+      ["query_info"],
+    ])
+      expect(() => queue.enqueue(creation({ taskType }))).toThrow("taskType");
+    expect(() => queue.enqueue(request({ taskType: "query_info" }))).toThrow(
+      "taskType",
+    );
+    expect(count()).toBe(0);
+  });
+  it("binds taskType to request identity and separates list admission by action", () => {
+    const saved = queue.enqueue(creation());
+    expect(() => queue.enqueue(creation({ taskType: "analyze_data" }))).toThrow(
+      "REQUEST_CONFLICT",
+    );
+    const description = queue.enqueue(request({ requestId: "description" }));
+    admission = ({ type }) => (type === "task.create" ? "host-grant:1" : null);
+    expect(
+      queue
+        .list({ goalRef: goalRef(), type: "task.create" })
+        .entries.map((e) => e.id),
+    ).toEqual([saved.proposalId]);
+    expect(() => queue.list({ goalRef: goalRef() })).toThrow("NOT_ADMITTED");
+    expect(() => queue.get({ id: description.proposalId })).toThrow(
+      "NOT_ADMITTED",
+    );
+    expect(queue.get({ id: saved.proposalId }).proposal.taskType).toBe(
+      "query_info",
+    );
+  });
+  it("recovers interrupted creation previews with the same native intent", () => {
+    const saved = queue.enqueue(creation());
+    vi.spyOn(workflow.createActions, "preview").mockImplementationOnce(() => {
+      throw new Error("interrupted");
+    });
+    expect(() => queue.prepareDraft({ id: saved.proposalId })).toThrow(
+      "interrupted",
+    );
+    const before = queue.get({ id: saved.proposalId }).conversion;
+    db.close();
+    open();
+    const recovered = queue.prepareDraft({ id: saved.proposalId });
+    expect(recovered.intent.id).toBe(before.intentId);
+    expect(recovered.intent.extensionRef).toEqual(before.extensionRef);
+    expect(taskCount()).toBe(1);
+  });
+  it.each(["grant", "source", "pause"])(
+    "denies stale creation confirmation after %s changes",
+    async (change) => {
+      const saved = queue.enqueue(creation()),
+        prepared = queue.prepareDraft({ id: saved.proposalId });
+      confirm.mockImplementation(async () => {
+        if (change === "grant") admission = () => null;
+        if (change === "source")
+          db.prepare("UPDATE project_tasks SET updated_at=11").run();
+        if (change === "pause")
+          workflow.goals.revise({
+            id: goal.id,
+            expectedRevision: goal.revision,
+            patch: { status: "paused" },
+          });
+        return true;
+      });
+      await expect(
+        workflow.execute({ intentId: prepared.intent.id }),
+      ).rejects.toThrow();
+      expect(taskCount()).toBe(1);
+      expect(
+        workflow.getIntent({ intentId: prepared.intent.id }).receipt.run.status,
+      ).toBe("denied");
+      await workflow.execute({ intentId: prepared.intent.id });
+      expect(confirm).toHaveBeenCalledOnce();
+      expect(taskCount()).toBe(1);
+    },
+  );
+  it("preserves unresolved creation on restart without redispatch", async () => {
+    const saved = queue.enqueue(creation()),
+      prepared = queue.prepareDraft({ id: saved.proposalId });
+    confirm.mockImplementation(() => new Promise(() => {}));
+    void workflow.createActions.execute(prepared.intent.preview.request);
+    await new Promise((resolve) => setImmediate(resolve));
+    admission = () => null;
+    db.close();
+    open();
+    expect(
+      workflow.getIntent({ intentId: prepared.intent.id }).executionState,
+    ).toBe("unresolved");
+    expect(
+      (await workflow.execute({ intentId: prepared.intent.id })).executionState,
+    ).toBe("unresolved");
+    expect(confirm).toHaveBeenCalledOnce();
+    expect(taskCount()).toBe(1);
+  });
+});
+
 describe("CLI SDK to actual native queue adapter", () => {
-  it("requires real declared plugin trust/consent and independent host project authority", async () => {
-    const cwd = path.join(directory, "workspace"),
-      nameDir = path.join(
-        cwd,
-        ".chainlesschain/plugins",
-        plugin.name,
+  it.each(["task.description.update", "task.create"])(
+    "requires real declared plugin trust/consent and independent host project authority for %s",
+    async (type) => {
+      if (type === "task.create") {
+        source = workflow
+          .list({ goalId: goal.id })
+          .proposals.find(
+            (item) => item.proposal.actionType === "task.create",
+          ).proposal;
+      }
+      const sdkRequest = (patch = {}) =>
+        request({
+          type,
+          ...(type === "task.create" ? { taskType: "query_info" } : {}),
+          ...patch,
+        });
+      const cwd = path.join(directory, "workspace"),
+        nameDir = path.join(
+          cwd,
+          ".chainlesschain/plugins",
+          plugin.name,
+          plugin.version,
+        );
+      fs.mkdirSync(nameDir, { recursive: true });
+      const permissions = { goalExtension: [`proposal:${type}`] };
+      fs.writeFileSync(
+        path.join(nameDir, "plugin.json"),
+        JSON.stringify({
+          name: plugin.name,
+          version: plugin.version,
+          permissions,
+          goalExtension: {
+            apiVersion: "1.0.0",
+            hosts: { cli: "*" },
+            events: [],
+            panels: [],
+            proposals: [type],
+          },
+        }),
+      );
+      fs.writeFileSync(
+        path.join(path.dirname(nameDir), ".active"),
         plugin.version,
       );
-    fs.mkdirSync(nameDir, { recursive: true });
-    const permissions = { goalExtension: ["proposal:task.description.update"] };
-    fs.writeFileSync(
-      path.join(nameDir, "plugin.json"),
-      JSON.stringify({
-        name: plugin.name,
-        version: plugin.version,
-        permissions,
-        goalExtension: {
-          apiVersion: "1.0.0",
-          hosts: { cli: "*" },
-          events: [],
-          panels: [],
-          proposals: ["task.description.update"],
+      vi.spyOn(trustDeps, "storePath").mockReturnValue(
+        path.join(directory, "trust.json"),
+      );
+      vi.spyOn(trustDeps, "workspaceTrustStorePath").mockReturnValue(
+        path.join(directory, "workspace-trust.json"),
+      );
+      vi.spyOn(consentDeps, "storePath").mockReturnValue(
+        path.join(directory, "consent.json"),
+      );
+      vi.stubEnv(
+        "CC_PLUGIN_TRANSACTION_HOME",
+        path.join(directory, "transactions"),
+      );
+      const options = {
+        cwd,
+        managedSettingsFile: path.join(directory, "no-managed.json"),
+        env: {
+          ...process.env,
+          CC_PLUGINS: "1",
+          CC_PLUGIN_SCOPES: "project",
+          CHAINLESSCHAIN_HOME: path.join(directory, "home"),
         },
-      }),
-    );
-    fs.writeFileSync(
-      path.join(path.dirname(nameDir), ".active"),
-      plugin.version,
-    );
-    vi.spyOn(trustDeps, "storePath").mockReturnValue(
-      path.join(directory, "trust.json"),
-    );
-    vi.spyOn(trustDeps, "workspaceTrustStorePath").mockReturnValue(
-      path.join(directory, "workspace-trust.json"),
-    );
-    vi.spyOn(consentDeps, "storePath").mockReturnValue(
-      path.join(directory, "consent.json"),
-    );
-    vi.stubEnv(
-      "CC_PLUGIN_TRANSACTION_HOME",
-      path.join(directory, "transactions"),
-    );
-    const options = {
-      cwd,
-      managedSettingsFile: path.join(directory, "no-managed.json"),
-      env: {
-        ...process.env,
-        CC_PLUGINS: "1",
-        CC_PLUGIN_SCOPES: "project",
-        CHAINLESSCHAIN_HOME: path.join(directory, "home"),
-      },
-      host: {
-        id: "cli",
-        version: "0.166.104",
-        capabilities: ["proposal:task.description.update"],
-      },
-      authorize: () => true,
-      enqueueProposal: (context) => queue.enqueueFromGoalExtension(context),
-    };
-    admission = () =>
-      collectGoalExtensions(options).extensions.some(
-        (entry) =>
-          entry.name === plugin.name &&
-          entry.version === plugin.version &&
-          entry.scope === plugin.scope,
-      )
-        ? "cli-grant:1"
-        : null;
-    await expect(
-      proposeGoalExtensionAction(plugin, request(), options),
-    ).rejects.toThrow("not currently admitted");
-    trustPlugin(plugin.name, {
-      scope: plugin.scope,
-      version: plugin.version,
-      workspaceRoot: cwd,
-    });
-    consentPluginCapabilities(plugin.name, {
-      scope: plugin.scope,
-      version: plugin.version,
-      capabilities: normalizeCapabilities(permissions),
-    });
-    const result = await proposeGoalExtensionAction(plugin, request(), options);
-    expect(queue.get({ id: result.proposalId }).source.reviewId).toBe(
-      source.reviewId,
-    );
-    revokeCapabilityConsent(plugin.name, { scope: plugin.scope });
-    expect(() => queue.get({ id: result.proposalId })).toThrow("NOT_ADMITTED");
-    await expect(
-      proposeGoalExtensionAction(
+        host: {
+          id: "cli",
+          version: "0.166.104",
+          capabilities: [`proposal:${type}`],
+        },
+        authorize: () => true,
+        enqueueProposal: (context) => queue.enqueueFromGoalExtension(context),
+      };
+      admission = () =>
+        collectGoalExtensions(options).extensions.some(
+          (entry) =>
+            entry.name === plugin.name &&
+            entry.version === plugin.version &&
+            entry.scope === plugin.scope,
+        )
+          ? "cli-grant:1"
+          : null;
+      await expect(
+        proposeGoalExtensionAction(plugin, sdkRequest(), options),
+      ).rejects.toThrow("not currently admitted");
+      trustPlugin(plugin.name, {
+        scope: plugin.scope,
+        version: plugin.version,
+        workspaceRoot: cwd,
+      });
+      consentPluginCapabilities(plugin.name, {
+        scope: plugin.scope,
+        version: plugin.version,
+        capabilities: normalizeCapabilities(permissions),
+      });
+      const result = await proposeGoalExtensionAction(
         plugin,
-        request({ requestId: "second" }),
+        sdkRequest(),
         options,
-      ),
-    ).rejects.toThrow();
-    expect(count()).toBe(1);
-    actor = "did:other";
-    expect(() =>
-      queue.enqueue(request({ requestId: "forged-actor" })),
-    ).toThrow();
-  });
+      );
+      expect(queue.get({ id: result.proposalId }).source.reviewId).toBe(
+        source.reviewId,
+      );
+      if (type === "task.create") {
+        expect(queue.get({ id: result.proposalId }).proposal.taskType).toBe(
+          "query_info",
+        );
+        expect(
+          queue.prepareDraft({ id: result.proposalId }).intent.taskType,
+        ).toBe("query_info");
+      }
+      revokeCapabilityConsent(plugin.name, { scope: plugin.scope });
+      expect(() => queue.get({ id: result.proposalId })).toThrow(
+        "NOT_ADMITTED",
+      );
+      await expect(
+        proposeGoalExtensionAction(
+          plugin,
+          sdkRequest({ requestId: "second" }),
+          options,
+        ),
+      ).rejects.toThrow();
+      expect(count()).toBe(1);
+      actor = "did:other";
+      expect(() =>
+        queue.enqueue(sdkRequest({ requestId: "forged-actor" })),
+      ).toThrow();
+    },
+  );
 });

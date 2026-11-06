@@ -49,6 +49,42 @@ const create = () =>
     },
   });
 describe("native adoption panel", () => {
+  it("shows the adopted creation task type while preparing only the saved adoption identity", async () => {
+    api.listGoalDraftImports.mockResolvedValue({
+      entries: [{ ...entry, type: "task.create", taskType: "analyze_data" }],
+      nextCursor: null,
+    });
+    api.readGoalDraftImport.mockResolvedValue({
+      ...entry,
+      draft: {
+        proposal: {
+          type: "task.create",
+          taskType: "analyze_data",
+          description: "Create follow-up",
+        },
+      },
+    });
+    const wrapper = create();
+    await flushPromises();
+    expect(wrapper.text()).toContain("创建任务 · 任务类型：analyze_data");
+    await wrapper.get('[data-testid="read-imported-draft"]').trigger("click");
+    await flushPromises();
+    expect(wrapper.text()).toContain("待创建的任务类型：analyze_data");
+    await wrapper
+      .get('[data-testid="prepare-imported-draft"]')
+      .trigger("click");
+    await flushPromises();
+    expect(api.prepareGoalDraftImport).toHaveBeenCalledWith({
+      goalRef: {
+        id: goal.id,
+        storeId: goal.storeId,
+        revision: goal.revision,
+        controlGeneration: goal.controlGeneration,
+      },
+      id: entry.id,
+    });
+    wrapper.unmount();
+  });
   it("uses the native picker endpoint without renderer paths or plugin authority", async () => {
     const wrapper = create();
     await flushPromises();

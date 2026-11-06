@@ -1,0 +1,59 @@
+# CLI .143 与 IDE：本地算力平台和待审创建请求
+
+## 概述
+
+发布候选：Session Core **0.3.26**、CLI **0.166.143**、Open VSX **0.37.179**、JetBrains **0.4.196**。
+当前仍在准备准确提交的跨平台门禁；公开状态以[发布记录](../../../docs/research/cli/evidence/release143-public/README.md)为准。
+本次不发布桌面、Android 或 iOS 客户端。
+
+## 核心特性
+
+- 两端 IDE 增加独立的 **Local compute / OpenAI compatible** 选项，支持力数、vLLM、SGLang 等平台的 OpenAI Chat Completions 接口。
+- Base URL、模型 ID 和平台密钥显式绑定；密钥可按平台要求留空，切换地址不会复用旧端点的配置密钥。
+- 原子保存和回读确认配置；HTTP 局域网连接需要显式勾选允许，中转站协议选项继续保留。
+- 目标工具可显式导出创建请求文件或使用独立 v6 待审授权。需要匹配桌面实现及原生预览/确认，不会自动创建或执行任务。
+
+## 使用指南
+
+候选公开核验后安装：
+
+```bash
+npm i -g chainlesschain@0.166.143 --registry https://registry.npmjs.org
+cc --version
+cc doctor
+```
+
+重启 IDE 聊天宿主，打开“配置大模型 / Configure LLM”，选择本地算力平台，填写平台公布的 API Base URL 和模型 ID。
+力数截图示例为 `http://192.168.31.79:8889/v1`；管理页显示 `glm5.3-flash-tensorfold`，实际模型 ID 仍以 `/v1/models` 返回为准。
+API Key 按平台要求填写，不使用火山引擎密钥。保存后可显式测试，测试会发送一次简短模型请求，可能产生费用。
+CLI 既有签名部署等聊天运行前置要求继续生效。
+
+## 性能指标
+
+本轮没有新的吞吐或业务效果基准。桌面模型草稿源码每次最多 512 输出 tokens、30 秒总期限，无自动重试。
+IDE 连接配置与模型能力、模型质量及平台可用性分别验证；不能从平台名称推断工具或视觉能力。
+
+## 测试覆盖
+
+此前工程批次 25 文件/类、374 项回归及 22 项检查通过，JetBrains 本地构建成功。
+两个合成真实火山场景通过，共 1,176 tokens，费用未知；这是桌面源码链路验证，不是 IDE GUI 或独立业务验收。
+本次发布还必须通过准确候选提交的完整 CLI CI 和 Strict Sandbox 三平台结果，以及公开制品回读。
+
+## 安全考虑
+
+密钥通过 CLI 安全输入/存储，不写入 IDE 设置或子进程 argv。已有端点留空可保留该端点的密钥；切换新端点不得借用旧密钥。
+HTTP 确认不表示访问已加密。目标创建与模型草稿仍需独立授权；Memory 撤权阻止未确认输出继续使用，不撤回已发往模型的资料。
+
+## 故障排查
+
+- 力数示例端点当前检查返回 `ECONNRESET`，尚未收到 HTTP 状态，不能据此判断密钥或模型不存在。先确认本机到该 API 的网络和服务状态。
+- 模型 ID 不能使用未经 `/v1/models` 核对的管理页名称。
+- 连接测试与聊天运行使用实际配置的 CLI；遇到 CLI 启动或签名部署错误，按提示修复对应前置条件。
+- 新创建能力需要匹配桌面实现；本次 CLI/IDE 发布不等于现有公开桌面端已升级。
+
+## 关键文件
+
+- `packages/vscode-extension/src/ui/llm-config-panel.js`：VS Code 配置。
+- `packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/LlmConnectionPanel.java`：JetBrains 原生表单。
+- `packages/cli/src/lib/llm-connection-config.js`：原子保存与凭据隔离。
+- [工程完成表](../../../docs/research/agents/chainlesschain-dots-muse-mods-analysis-2026-10-06.md)。

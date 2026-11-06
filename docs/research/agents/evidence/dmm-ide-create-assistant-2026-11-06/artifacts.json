@@ -1,0 +1,25 @@
+{
+  "state": "verified-local-artifacts",
+  "sha256": {
+    "vsix": "4a397650e32387affd42fbe0c2978b2cb9d5ae6b8501950a0b62050cf0de8bbd",
+    "jetbrainsZip": "0bb52eb732e79a0fcc5ab1154d12bbaf9e1b1511722c6e60296fd743cef79adf",
+    "cliTarball": "055879c893e9b830e3f01569ce593400cd5e7907fb1220cbc5054c37c53e66a6"
+  },
+  "matchedFiles": [
+    "vsix:src/plugin-manager.js",
+    "vsix:src/ui/plugin-manager-view.js",
+    "jetbrains:com/chainlesschain/ide/PluginManager.class",
+    "jetbrains:com/chainlesschain/ide/GoalTaskCreateExport.class",
+    "jetbrains:com/chainlesschain/ide/intellij/PluginManagerAction.class",
+    "jetbrains:com/chainlesschain/ide/intellij/PluginManagerAction$1.class",
+    "jetbrains:com/chainlesschain/ide/intellij/PluginManagerAction$1Continuation.class",
+    "cli:src/lib/plugin-runtime/cli-goal-draft-request.js",
+    "cli:src/lib/plugin-runtime/examples/project-delivery-assistant/plugin.json",
+    "cli:src/lib/plugin-runtime/examples/project-delivery-assistant/README.md",
+    "cli:README.md"
+  ],
+  "vsixMetadataChecks": 18,
+  "vsixReadmeCreationSectionPresent": true,
+  "published": false,
+  "fullIsolatedCliInstall": false
+}

@@ -1,0 +1,148 @@
+{
+  "taskIds": ["DMM-08", "DMM-09"],
+  "localDate": "2026-11-06",
+  "recordedAt": "2026-11-05T21:09:22.598Z",
+  "result": "Native built-in task-creation pending drafts with independent consent, immutable task type, native preview/confirmation and original-identity recovery; existing CLI connection scopes stay description-only.",
+  "source": {
+    "baseCommit": "09843429a48e2146a3c1803c324e6bf8143e5699",
+    "branch": "feature/dmm-native-task-create-20261106",
+    "state": "Uncommitted working tree; not exact-release-commit CI",
+    "sha256": {
+      "desktop-app-vue/src/main/task/__tests__/project-goal-delivery-drafts-ipc.test.js": "73f5f1e163ac756b6e611e153305ced2699ae6a9842df3f0000f5d5853dde8ed",
+      "desktop-app-vue/src/main/task/project-goal-delivery-drafts.js": "599953812b787d19bc3cc0ac016f10ddf4955836f5a7fa002d2ebf8e7087933c",
+      "desktop-app-vue/src/main/task/project-goal-ipc.js": "a26406180e0eeca76afca7acd1d8bb383d57ca27472de85b7b4627034dd1f293",
+      "desktop-app-vue/src/renderer/components/projects/ProjectGoalActionsPanel.vue": "92a9f619de2da17a48262673ddf1f7aa96a1f909509b4dc4437f2539e83f2600",
+      "desktop-app-vue/src/renderer/components/projects/ProjectGoalExtensionDraftsPanel.vue": "ee06c7e6d318fcb1c919709ebe09278ec71b4fbfe8588385059d4d5c8fd501b6",
+      "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-actions-panel.test.ts": "1dd1d5ceff7dfba6a416ce40c0ae5997acc9480e4258b6330b1093d74f9c9eec",
+      "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-extension-drafts-panel.test.ts": "cc7e97eaf796f1ec7c9d3c24527cf6ac5720138b53142bf61bff15b985473d0d",
+      "docs/research/agents/README.md": "8ad887e149f3ffac61dac4c6b985a67432b7a91eff2e65dba5150e4173bb44aa",
+      "docs/research/agents/chainlesschain-dots-muse-mods-analysis-2026-10-06.md": "f9496d5b2fda55ef758da55df0e375df8bdf94eabe5778d85deed72c83b218f7",
+      "docs/research/agents/dots-muse-mods-implementation-progress-2026-10-07.md": "7fa079d54331daccd44b761edcc4a8906b2eda24ff126377090449f8ccf51c94",
+      "packages/cli/__tests__/fixtures/goal-extension-conversion-process.mjs": "9e4ae4c99b0588b5dfe60126a7ef3acd3f16bcc3470e98ee9a3880caa106bf5d",
+      "packages/cli/__tests__/integration/goal-extension-conversion-process.test.js": "4685cf4c28b3aabcf87423e9ade83f44ecf0985e1e52e334f3129edcd2d4de62",
+      "packages/cli/__tests__/unit/cli-goal-capabilities.test.js": "2b7f2b1aa2ab904bf1bc159d221006014c08321dcb4057ca3feb0369e6fa1bcc",
+      "packages/cli/__tests__/unit/cli-goal-draft-request.test.js": "0e2e8500b7fbcfff16c0265847ff31c330fee5870354dc4639524a44518e3479",
+      "packages/cli/__tests__/unit/project-goal-extension-queue.test.js": "053f27982b2313ff1800a0dddc16fedf9e06011e3391d7ffd6352739c7a05812",
+      "packages/cli/__tests__/unit/project-goal-external-drafts.test.js": "1c045c50ffe27d6fe12ccff7dae070c9ef4acaaaf7e0599ffc2f775c0ea3456a",
+      "packages/cli/src/lib/plugin-runtime/goal-extensions.js": "24df25568256b2f85a96893cbd028cf04ad6c0864c805bf31027e0254cb5c08f",
+      "packages/session-core/README.md": "fa397fcc49ea9caac4818587e956988343e19a8c6c9dc3817bcf2b04fe75d0b3",
+      "packages/session-core/lib/goal-extension-proposal-contract.js": "1f2b2d3ddb5d9c3544ce3c2c6af961bf8d9083e56ee1b0872c47867592553e39",
+      "packages/session-core/lib/project-goal-extension-conversion.js": "da8f04d5cda1ceb7ae3f0753c2e1e52fbffe76a759d4c744acca116da734f4aa",
+      "packages/session-core/lib/project-goal-extension-queue.js": "26b610def2b93ddaf19b51725cfedca55aac58884e5c730e3e697efdbdbf151f",
+      "docs/research/agents/evidence/dmm-native-task-create-2026-11-06/verify-package.mjs": "4750564a37ad7f1f610636ac605ada9aa0a860de163a1a5a5e662848ee024b6c",
+      "docs/research/agents/evidence/dmm-native-task-create-2026-11-06/README.md": "0dcc679a270add86c65cd9d0763799723a1439388d49c167ec118cecb2caf559"
+    }
+  },
+  "environment": {
+    "platform": "win32",
+    "arch": "x64",
+    "node": "v22.22.2",
+    "dependencies": {
+      "vitest": "4.1.10",
+      "vite": "7.3.6",
+      "vue": "3.5.40",
+      "@vue/test-utils": "2.4.11",
+      "happy-dom": "20.11.1",
+      "better-sqlite3": "12.11.1",
+      "koffi": "2.16.3",
+      "prettier": "3.9.6"
+    }
+  },
+  "totals": {
+    "testFiles": 14,
+    "passed": 298,
+    "failed": 0,
+    "skipped": 0
+  },
+  "reports": [
+    {
+      "file": "cli-tests.json",
+      "cwd": ".",
+      "command": "npm.cmd --prefix packages/cli test -- __tests__/unit/project-goal-extension-queue.test.js __tests__/unit/plugin-goal-extension.test.js __tests__/unit/cli-goal-capabilities.test.js __tests__/unit/project-goal-workflow.test.js __tests__/unit/task-create-action-service.test.js __tests__/unit/project-goal-external-drafts.test.js __tests__/unit/project-goal-drafts-transport.test.js __tests__/unit/cli-goal-draft-request.test.js __tests__/integration/goal-extension-conversion-process.test.js --reporter=json --outputFile=../../docs/research/agents/evidence/dmm-native-task-create-2026-11-06/cli-tests.json",
+      "environment": "workspace sandbox",
+      "exitCode": 0,
+      "testFiles": 9,
+      "passed": 191,
+      "failed": 0,
+      "skipped": 0,
+      "sha256": "46a4724357fc18f0c7d58215334a2117ea513bda420a647546590df210181c39"
+    },
+    {
+      "file": "desktop-tests.json",
+      "cwd": "desktop-app-vue",
+      "command": "node ../node_modules/vitest/vitest.mjs run --config vitest.business-actions.config.mjs src/main/task/__tests__/project-goal-delivery-drafts-ipc.test.js src/main/task/__tests__/project-goal-workflow-ipc.test.js src/main/task/__tests__/project-goal-draft-imports-ipc.test.js --reporter=json --outputFile=../docs/research/agents/evidence/dmm-native-task-create-2026-11-06/desktop-tests.json",
+      "environment": "approved outside sandbox; native Windows ACLs; temporary synthetic databases",
+      "exitCode": 0,
+      "testFiles": 3,
+      "passed": 63,
+      "failed": 0,
+      "skipped": 0,
+      "sha256": "5117ca12d3f46a93b22c683ca8fff730e3ed38e996596aa775ac3c9268de323a"
+    },
+    {
+      "file": "renderer-tests.json",
+      "cwd": "desktop-app-vue",
+      "command": "node ../node_modules/vitest/vitest.mjs run --config vitest.business-actions-renderer.config.mjs src/renderer/components/projects/__tests__/project-goal-extension-drafts-panel.test.ts src/renderer/components/projects/__tests__/project-goal-actions-panel.test.ts --reporter=json --outputFile=../docs/research/agents/evidence/dmm-native-task-create-2026-11-06/renderer-tests.json",
+      "environment": "workspace sandbox",
+      "exitCode": 0,
+      "testFiles": 2,
+      "passed": 44,
+      "failed": 0,
+      "skipped": 0,
+      "sha256": "b255ee33b912a84010a24f40217a52c00df884f85d2ca4972537e602a2740721"
+    }
+  ],
+  "package": {
+    "report": "artifacts.json",
+    "sha256": "f88ff1ff38908aa56e9b95da3095ce2beecd9a3c373467b42af09507dbc75893",
+    "countedAsTests": false,
+    "commands": [
+      {
+        "cwd": "packages/session-core",
+        "command": "npm.cmd pack --ignore-scripts --json --pack-destination <Windows-Temp>/dmm-native-create-pack-20261106 --cache <Windows-Temp>/dmm-native-create-npm-cache",
+        "exitCode": 0
+      },
+      {
+        "cwd": ".",
+        "command": "<SystemRoot>/System32/tar.exe -xzf <local-tarball> -C <Windows-Temp>/dmm-native-create-pack-20261106/extracted",
+        "exitCode": 0
+      },
+      {
+        "cwd": ".",
+        "command": "node docs/research/agents/evidence/dmm-native-task-create-2026-11-06/verify-package.mjs <local-tarball> <extracted-package>",
+        "exitCode": 0
+      }
+    ]
+  },
+  "boundaries": {
+    "real": [
+      "SQLite and native workflows/actions/receipts",
+      "SDK plugin discovery/trust/consent on isolated temporary storage",
+      "Node process exits at conversion, intent, preview, action commit and confirmation boundaries",
+      "Windows native ACL checks in existing file-adoption compatibility test",
+      "Local npm pack file hashes and CJS/ESM module loading"
+    ],
+    "substitutes": [
+      "Electron windows, identity/session objects and native dialog results",
+      "Vue IPC API fixtures",
+      "Synthetic personal-project data"
+    ],
+    "notRun": [
+      "Real Electron/IDE GUI",
+      "CLI/IDE task-creation transport or installed-assistant surface",
+      "Model drafting",
+      "Independent business-effect evaluation",
+      "Linux/macOS",
+      "Power-loss recovery",
+      "Exact candidate commit release workflows, OIDC publication, staged rollout or migration rollback"
+    ]
+  },
+  "notes": [
+    "CLI and desktop reports were rerun after correcting test fixtures. Only final non-overlapping file results are counted.",
+    "A legacy task.create rejection fixture now supplies valid taskType to prove online grants and file handoff still deny creation.",
+    "Missing development dependencies were restored at locked top-level versions without manifest/lock changes. Native ACL traversal is denied in the managed sandbox; the final desktop run was approved outside it, without ACL mocks.",
+    "Local tarball version 0.3.25 reuses the unchanged package version; the public package of that name does not gain working-tree code.",
+    "No release or version update was performed."
+  ],
+  "checksReport": "checks.json"
+}

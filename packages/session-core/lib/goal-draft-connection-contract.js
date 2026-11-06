@@ -8,6 +8,8 @@ const {
 } = require("./business-object-contract.js");
 const ACCESS_SCHEMA = "chainlesschain.goal-draft-access/v1";
 const CONNECTION_SCHEMA = "chainlesschain.project-goal-connection/v3";
+const CREATE_ACCESS_SCHEMA = "chainlesschain.goal-create-draft-access/v1";
+const CREATE_CONNECTION_SCHEMA = "chainlesschain.project-goal-connection/v6";
 function fail() {
   throw Object.assign(new Error("GOAL_DRAFT_CONNECTION_INVALID"), {
     code: "GOAL_DRAFT_CONNECTION_INVALID",
@@ -55,17 +57,29 @@ function grantRef(raw) {
   return { ...raw };
 }
 function validateGoalDraftAccess(raw) {
+  return validateAccess(raw, false);
+}
+function validateGoalCreateDraftAccess(raw) {
+  return validateAccess(raw, true);
+}
+function validateAccess(raw, creation) {
   exact(raw, ["schema", "plugin", "declarationDigest"]);
-  if (raw.schema !== ACCESS_SCHEMA) fail();
+  if (raw.schema !== (creation ? CREATE_ACCESS_SCHEMA : ACCESS_SCHEMA)) fail();
   const ref = plugin(raw.plugin);
   hash(raw.declarationDigest);
   return {
-    schema: ACCESS_SCHEMA,
+    schema: raw.schema,
     plugin: ref,
     declarationDigest: raw.declarationDigest,
   };
 }
 function validateGoalDraftDescriptor(raw, now = Date.now()) {
+  return validateDescriptor(raw, now, false);
+}
+function validateGoalCreateDraftDescriptor(raw, now = Date.now()) {
+  return validateDescriptor(raw, now, true);
+}
+function validateDescriptor(raw, now, creation) {
   exact(raw, [
     "schema",
     "capability",
@@ -78,12 +92,16 @@ function validateGoalDraftDescriptor(raw, now = Date.now()) {
     "grantRef",
   ]);
   if (
-    raw.schema !== CONNECTION_SCHEMA ||
-    raw.capability !== "goal.drafts" ||
+    raw.schema !== (creation ? CREATE_CONNECTION_SCHEMA : CONNECTION_SCHEMA) ||
+    raw.capability !== (creation ? "goal.create-drafts" : "goal.drafts") ||
     typeof raw.endpoint !== "string" ||
-    !/^http:\/\/127\.0\.0\.1:[1-9][0-9]{0,4}\/goal-drafts$/u.test(
-      raw.endpoint,
-    ) ||
+    !(
+      creation
+        ? /^http:\/\/127\.0\.0\.1:[1-9][0-9]{0,4}\/goal-create-drafts$/u
+        : /^http:\/\/127\.0\.0\.1:[1-9][0-9]{0,4}\/goal-drafts$/u
+    ).test(raw.endpoint) ||
+    new URL(raw.endpoint).pathname !==
+      (creation ? "/goal-create-drafts" : "/goal-drafts") ||
     Number(new URL(raw.endpoint).port) > 65535 ||
     typeof raw.key !== "string" ||
     !/^([a-f0-9]{64})$/u.test(raw.key) ||
@@ -138,9 +156,15 @@ function validateGoalDraftSources(raw) {
   return JSON.parse(JSON.stringify(raw));
 }
 function validateGoalDraftProposal(raw) {
+  return validateProposal(raw, false);
+}
+function validateGoalCreateDraftProposal(raw) {
+  return validateProposal(raw, true);
+}
+function validateProposal(raw, creation) {
   const proposal = normalizeGoalExtensionProposal(raw);
   if (
-    proposal.type !== "task.description.update" ||
+    proposal.type !== (creation ? "task.create" : "task.description.update") ||
     Buffer.byteLength(proposal.description, "utf8") > 8192 ||
     !/^goal-proposal-[a-f0-9]{64}$/u.test(proposal.sourceRef) ||
     /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f]/u.test(
@@ -234,6 +258,11 @@ function validateGoalDraftSubmissionReference(raw) {
 module.exports = {
   ACCESS_SCHEMA,
   CONNECTION_SCHEMA,
+  CREATE_ACCESS_SCHEMA,
+  CREATE_CONNECTION_SCHEMA,
+  validateGoalCreateDraftAccess,
+  validateGoalCreateDraftDescriptor,
+  validateGoalCreateDraftProposal,
   validateGoalDraftAccess,
   validateGoalDraftDescriptor,
   validateGoalDraftSources,

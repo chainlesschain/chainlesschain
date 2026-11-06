@@ -5,6 +5,7 @@ const {
 } = require("@chainlesschain/session-core/business-object-contract");
 const {
   goalExtensionRef,
+  GOAL_EXTENSION_TASK_TYPES,
 } = require("@chainlesschain/session-core/goal-extension-proposal-contract");
 const {
   ProjectGoalExtensionQueue,
@@ -20,6 +21,17 @@ const CAPABILITY_DIGEST = digest({
   capabilities: [CAPABILITY],
   rule: "delivery-description-draft/v1",
 });
+function actionType(value = "task.description.update") {
+  if (!["task.description.update", "task.create"].includes(value))
+    fail("GOAL_EXTENSION_INVALID_REQUEST");
+  return value;
+}
+function capability(type) {
+  return `proposal:${type}`;
+}
+function nativeAction(type) {
+  return type === "task.create" ? type : "task.update-description";
+}
 function fail(code) {
   throw Object.assign(new Error(code), { code });
 }
@@ -54,11 +66,11 @@ class ProjectGoalDeliveryDrafts {
         if (
           scope.actorDid !== context.actorDid ||
           scope.projectId !== context.projectId ||
-          context.type !== "task.description.update" ||
+          !["task.description.update", "task.create"].includes(context.type) ||
           digest(context.plugin) !== digest(PLUGIN)
         )
           return null;
-        const grant = this._grant(scope);
+        const grant = this._grant(scope, context.type);
         return grant.enabled ? `${grant.id}:${grant.epoch}` : null;
       },
     });
@@ -86,14 +98,23 @@ class ProjectGoalDeliveryDrafts {
       goalId: goal.id,
     };
   }
-  _grant(scope) {
+  _grant(scope, type = "task.description.update") {
     const binding = {
       actorDid: scope.actorDid,
       storeId: scope.storeId,
       projectId: scope.projectId,
       goalId: scope.goalId,
       plugin: PLUGIN,
-      capabilityDigest: CAPABILITY_DIGEST,
+      // Preserve the exact description-only grant identity. Creation consent
+      // uses an independent binding and cannot inherit an existing grant.
+      capabilityDigest:
+        type === "task.description.update"
+          ? CAPABILITY_DIGEST
+          : digest({
+              plugin: PLUGIN,
+              capabilities: [capability(type)],
+              rule: "delivery-task-create-draft/v1",
+            }),
     };
     const id = digest(binding),
       row = this.db
@@ -127,19 +148,23 @@ class ProjectGoalDeliveryDrafts {
     }
   }
   status(input) {
-    fields(input, ["goalRef"]);
+    fields(input, ["goalRef"], ["type"]);
+    const type = actionType(input.type);
     return this._tx(() => {
       const scope = this._context(input.goalRef),
-        grant = this._grant(scope);
+        grant = this._grant(scope, type);
       const savedCount = this.db
         .prepare(
-          "SELECT COUNT(*) AS n FROM cc_project_goal_extension_drafts WHERE actor_did=? AND goal_id=? AND plugin_key=?",
+          `SELECT COUNT(*) AS n FROM cc_project_goal_extension_drafts WHERE actor_did=? AND goal_id=? AND plugin_key=?
+            AND CASE WHEN length(CAST(record_json AS BLOB))>49152 THEN 1
+              WHEN json_valid(record_json) THEN COALESCE(json_extract(record_json,'$.proposal.type')=?,1)
+              ELSE 1 END`,
         )
-        .get(scope.actorDid, scope.goalId, digest(PLUGIN)).n;
+        .get(scope.actorDid, scope.goalId, digest(PLUGIN), type).n;
       this._context(input.goalRef);
       return {
         plugin: PLUGIN,
-        capability: CAPABILITY,
+        capability: capability(type),
         enabled: grant.enabled,
         epoch: grant.epoch,
         savedCount,
@@ -147,7 +172,7 @@ class ProjectGoalDeliveryDrafts {
     });
   }
   async configure(input) {
-    fields(input, ["goalRef", "expectedEpoch", "enabled"]);
+    fields(input, ["goalRef", "expectedEpoch", "enabled"], ["type"]);
     if (
       !Number.isSafeInteger(input.expectedEpoch) ||
       input.expectedEpoch < 0 ||
@@ -157,21 +182,22 @@ class ProjectGoalDeliveryDrafts {
     // Copy before a native dialog; callers cannot change the pending request.
     const goalRef = goalExtensionRef(input.goalRef),
       expectedEpoch = input.expectedEpoch,
-      enabled = input.enabled;
+      enabled = input.enabled,
+      type = actionType(input.type);
     const before = this._tx(() => {
       const scope = this._context(goalRef),
-        grant = this._grant(scope);
+        grant = this._grant(scope, type);
       if (grant.epoch !== expectedEpoch) fail("GOAL_EXTENSION_GRANT_CONFLICT");
       if (
         enabled &&
         (scope.goal.status !== "active" ||
-          !scope.goal.allowedActionTypes.includes("task.update-description"))
+          !scope.goal.allowedActionTypes.includes(nativeAction(type)))
       )
         fail("GOAL_EXTENSION_ACTION_OUT_OF_SCOPE");
       if (enabled) this.workflow.assertExtensionGoalInTransaction(goalRef);
       return { scope, grant };
     });
-    if (before.grant.enabled === enabled) return this.status({ goalRef });
+    if (before.grant.enabled === enabled) return this.status({ goalRef, type });
     if (enabled) {
       if (typeof this.confirm !== "function")
         fail("GOAL_EXTENSION_CONFIRMATION_REQUIRED");
@@ -179,14 +205,14 @@ class ProjectGoalDeliveryDrafts {
         goal: before.scope.goal,
         actorDid: before.scope.actorDid,
         plugin: PLUGIN,
-        capability: CAPABILITY,
+        capability: capability(type),
       });
       this._tx(() => this._context(goalRef));
-      if (allowed !== true) return this.status({ goalRef });
+      if (allowed !== true) return this.status({ goalRef, type });
     }
     this._tx(() => {
       const scope = this._context(goalRef),
-        grant = this._grant(scope);
+        grant = this._grant(scope, type);
       if (enabled) this.workflow.assertExtensionGoalInTransaction(goalRef);
       if (
         scope.actorDid !== before.scope.actorDid ||
@@ -203,18 +229,28 @@ class ProjectGoalDeliveryDrafts {
         .run(next.id, JSON.stringify(next), digest(next));
       this._context(goalRef);
     });
-    return this.status({ goalRef });
+    return this.status({ goalRef, type });
   }
   propose(input) {
-    fields(input, ["goalRef", "sourceRef", "requestId"]);
+    fields(input, ["goalRef", "sourceRef", "requestId"], ["type", "taskType"]);
+    const type = actionType(input.type);
+    if (
+      type === "task.create"
+        ? !GOAL_EXTENSION_TASK_TYPES.includes(input.taskType)
+        : Object.hasOwn(input, "taskType")
+    )
+      fail("GOAL_EXTENSION_INVALID_REQUEST");
     return this.queue.enqueue({
-      type: "task.description.update",
+      type,
       goalRef: input.goalRef,
       sourceRef: input.sourceRef,
       requestId: input.requestId,
-      title: "跟进交付风险",
+      ...(type === "task.create" ? { taskType: input.taskType } : {}),
+      title: type === "task.create" ? "创建交付风险跟进任务" : "跟进交付风险",
       description:
-        "请核对当前风险证据、截止时间与直接依赖，记录后续处理安排。保存任务说明不会自动修正截止时间、解除阻塞或证明目标已完成。",
+        type === "task.create"
+          ? "请跟进当前风险来源，核对截止时间与直接依赖，记录负责人和后续处理安排。创建此任务不会自动修正原任务截止时间、解除阻塞、执行新任务或证明目标已完成。"
+          : "请核对当前风险证据、截止时间与直接依赖，记录后续处理安排。保存任务说明不会自动修正截止时间、解除阻塞或证明目标已完成。",
     });
   }
   list(input) {

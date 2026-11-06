@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.GoalTaskCreateExportTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-11-05T23:38:23" hostname="DESKTOP-MTMV2RE" time="2.547">
+  <properties/>
+  <testcase name="acceptsOutputOnlyAfterZeroExit()" classname="com.chainlesschain.ide.GoalTaskCreateExportTest" time="0.408"/>
+  <testcase name="reapsTimedOutChild()" classname="com.chainlesschain.ide.GoalTaskCreateExportTest" time="1.082"/>
+  <testcase name="boundsStdoutBeforeParsing()" classname="com.chainlesschain.ide.GoalTaskCreateExportTest" time="0.327"/>
+  <testcase name="rejectsValidOutputWithNonzeroExit()" classname="com.chainlesschain.ide.GoalTaskCreateExportTest" time="0.407"/>
+  <testcase name="rejectsInvalidUtf8()" classname="com.chainlesschain.ide.GoalTaskCreateExportTest" time="0.317"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

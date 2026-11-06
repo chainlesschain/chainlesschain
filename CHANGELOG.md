@@ -18,6 +18,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Honor the user's authorization to release these clients before JetBrains review completes. Pin the exception to plugin `0.4.195`, CLI `.142`, its exact source/tag and successful official upload run `41950791667`; preserve all other package, build, signing and artifact checks.
 - Refresh Android's embedded public CLI while retaining the audited native runtime/binding policy, and require verified immutable rollover assets before the client tag.
 
+### Added - cc CLI 0.166.143: local compute and pending task creation (candidate, 2026-11-06)
+
+- Pair Session Core 0.3.26, Open VSX 0.37.179 and JetBrains 0.4.196 after exact-source three-OS gates and OIDC upstream publication/readback.
+- Add local OpenAI-compatible platform choices (LEXDATA / vLLM / SGLang) in both IDEs, optional platform credentials, explicit HTTP consent and atomic configuration/readback; do not reuse old target credentials when switching keyless endpoints.
+- Add controlled goal task-creation request files, v6 pending-draft connections and the admitted project-delivery-assistant 0.3.0 declaration; native preview/confirmation and matching desktop support remain required.
+- Desktop source also includes per-call governed Ollama, Volcengine and private OpenAI drafting, Memory output authorization and durable no-retry recovery. This release does not publish desktop/mobile clients.
+- Preserve the two synthetic real Volcengine cases (1,176 tokens, unknown cost) separately from the 374 focused regressions/22 checks. LEXDATA actual inference, real GUI and independent business-effect acceptance remain unverified.
+
 ### Added - cc CLI 0.166.142: authorized goal events and retained recovery (released, 2026-11-05)
 
 - Add standalone status and separately authorized native risk/action observation, plus a transactional retained event journal in Session Core 0.3.25.

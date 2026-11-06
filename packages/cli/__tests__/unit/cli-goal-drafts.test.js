@@ -7,11 +7,16 @@ import {
   readCliGoalDraftSources,
   sendCliGoalDraft,
   readCliGoalDraftReceipt,
+  exportCliGoalCreateDraftAccess,
+  readCliGoalCreateDraftSources,
+  sendCliGoalCreateDraft,
+  readCliGoalCreateDraftReceipt,
   _deps,
 } from "../../src/lib/plugin-runtime/cli-goal-drafts.js";
 import {
   validateGoalDraftSubmissionReference,
   validateGoalDraftAccess,
+  validateGoalCreateDraftAccess,
 } from "@chainlesschain/session-core/goal-draft-connection-contract";
 import { digestBusinessObjectContent as digest } from "@chainlesschain/session-core/business-object-contract";
 import {
@@ -147,6 +152,152 @@ beforeEach(() => {
 afterEach(() => {
   vi.restoreAllMocks();
   fs.rmSync(temp, { recursive: true, force: true });
+});
+
+describe("CLI separately activated creation drafts", () => {
+  beforeEach(() => {
+    sample = JSON.parse(
+      fs.readFileSync(
+        new URL(
+          "../../src/lib/plugin-runtime/examples/goal-task-creator/plugin.json",
+          import.meta.url,
+        ),
+        "utf8",
+      ),
+    );
+    pluginDirectory = path.join(
+      options.cwd,
+      ".chainlesschain/plugins",
+      sample.name,
+    );
+    fs.mkdirSync(path.join(pluginDirectory, sample.version), {
+      recursive: true,
+    });
+    fs.writeFileSync(
+      path.join(pluginDirectory, sample.version, "plugin.json"),
+      JSON.stringify(sample),
+    );
+    fs.writeFileSync(path.join(pluginDirectory, ".active"), sample.version);
+    options.plugin = sample.name;
+    options.taskType = "analyze_data";
+    connection.drafts = false;
+    connection.createDrafts = true;
+    connection.plugin = {
+      name: sample.name,
+      scope: "project",
+      version: sample.version,
+    };
+    connection.declarationDigest = digest(sample.goalExtension);
+  });
+  it("exports a separate access schema and requires creation plugin admission", async () => {
+    await expect(exportCliGoalCreateDraftAccess(options)).rejects.toThrow(
+      "NOT_ADMITTED",
+    );
+    allow();
+    await exportCliGoalCreateDraftAccess(options);
+    const access = JSON.parse(fs.readFileSync(options.out, "utf8"));
+    expect(validateGoalCreateDraftAccess(access).schema).toBe(
+      "chainlesschain.goal-create-draft-access/v1",
+    );
+    expect(() => validateGoalDraftAccess(access)).toThrow();
+    expect(connection.enqueue).not.toHaveBeenCalled();
+  });
+  it("saves pending creation only, retains a no-body record, and queries rather than resends an existing identity", async () => {
+    allow();
+    const sources = await readCliGoalCreateDraftSources("goal-1", options);
+    expect(sources.schema).toBe(
+      "chainlesschain.goal-create-draft-source-page/v1",
+    );
+    const saved = await sendCliGoalCreateDraft("goal-1", options);
+    expect(saved).toMatchObject({
+      schema: "chainlesschain.goal-create-draft-submission/v1",
+      type: "task.create",
+      state: "saved",
+    });
+    expect(connection.enqueue.mock.calls[0][0]).toMatchObject({
+      type: "task.create",
+      taskType: "analyze_data",
+    });
+    expect(fs.readFileSync(options.record, "utf8")).not.toMatch(
+      /description|taskType|endpoint|"key"/,
+    );
+    expect((await sendCliGoalCreateDraft("goal-1", options)).state).toBe(
+      "saved",
+    );
+    expect(connection.enqueue).toHaveBeenCalledOnce();
+    expect((await readCliGoalCreateDraftReceipt("goal-1", options)).state).toBe(
+      "saved",
+    );
+    await expect(
+      sendCliGoalCreateDraft("goal-1", { ...options, taskType: "query_info" }),
+    ).rejects.toThrow("RECORD_CONFLICT");
+  });
+  it("refuses both cross-profile directions before dispatch", async () => {
+    allow();
+    await expect(sendCliGoalDraft("goal-1", options)).rejects.toThrow(
+      "CONNECTION_REQUIRED",
+    );
+    connection.createDrafts = false;
+    connection.drafts = true;
+    await expect(sendCliGoalCreateDraft("goal-1", options)).rejects.toThrow(
+      "CONNECTION_REQUIRED",
+    );
+    expect(connection.enqueue).not.toHaveBeenCalled();
+    expect(fs.existsSync(options.record)).toBe(false);
+  });
+  it("preserves unknown creation submission identity after a lost response", async () => {
+    allow();
+    const enqueue = connection.enqueue.getMockImplementation();
+    connection.enqueue.mockImplementationOnce(async (proposal) => {
+      await enqueue(proposal);
+      throw Object.assign(new Error("lost"), { outcomeUnknown: true });
+    });
+    expect((await sendCliGoalCreateDraft("goal-1", options)).state).toBe(
+      "unknown",
+    );
+    expect((await sendCliGoalCreateDraft("goal-1", options)).state).toBe(
+      "saved",
+    );
+    expect(connection.enqueue).toHaveBeenCalledOnce();
+  });
+  it("rechecks creation admission during the native read and never dispatches after disable", async () => {
+    allow();
+    const read = connection.read.getMockImplementation();
+    connection.read.mockImplementation(async () => {
+      disable();
+      return read();
+    });
+    await expect(sendCliGoalCreateDraft("goal-1", options)).rejects.toThrow(
+      "NOT_ADMITTED",
+    );
+    expect(connection.enqueue).not.toHaveBeenCalled();
+  });
+  it("queries a not-found creation reference without resubmitting", async () => {
+    allow();
+    connection.enqueue.mockRejectedValueOnce(new Error("lost"));
+    const first = await sendCliGoalCreateDraft("goal-1", options);
+    expect(first.state).toBe("unknown");
+    expect(await sendCliGoalCreateDraft("goal-1", options)).toMatchObject({
+      state: "not-found",
+      requestId: first.requestId,
+      inputDigest: first.inputDigest,
+    });
+    expect(connection.enqueue).toHaveBeenCalledOnce();
+  });
+  it("pins creation profile and task type before asynchronous authorization", async () => {
+    allow();
+    connection.read.mockImplementationOnce(async () => {
+      options.taskType = "query_info";
+      options.creation = false;
+      options.draftType = "task.description.update";
+      return { goalRef: ref, status: "active" };
+    });
+    await sendCliGoalCreateDraft("goal-1", options);
+    expect(connection.enqueue.mock.calls[0][0]).toMatchObject({
+      type: "task.create",
+      taskType: "analyze_data",
+    });
+  });
 });
 
 describe("CLI online native pending drafts", () => {

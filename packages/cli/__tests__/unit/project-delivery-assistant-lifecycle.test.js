@@ -95,7 +95,7 @@ describe("installable project delivery assistant", () => {
     const installed = installFromDirectory(source, installOptions);
     expect(installed).toMatchObject({
       name: sample.name,
-      version: "0.2.0",
+      version: "0.3.0",
       scope: "project",
     });
     expect(admission().dropped[0].reason).toBe("untrusted");
@@ -139,17 +139,15 @@ describe("installable project delivery assistant", () => {
     revokeCapabilityConsent(sample.name, { scope: "project" });
     expect(admission().dropped[0].reason).toBe("consent_required");
   });
-  it("requires version trust and new capability consent when upgrading an observation-only version to the combined assistant", () => {
+  it("requires version trust and new creation consent when upgrading the previous combined assistant", () => {
     const candidate = path.join(directory, "source");
     fs.mkdirSync(candidate);
     const old = structuredClone(sample);
-    old.version = "0.1.99";
-    old.permissions.goalExtension = ["event:risk.review.completed"];
-    Object.assign(old.goalExtension, {
-      events: ["risk.review.completed"],
-      panels: [],
-      proposals: [],
-    });
+    old.version = "0.2.0";
+    old.permissions.goalExtension = old.permissions.goalExtension.filter(
+      (value) => value !== "proposal:task.create",
+    );
+    old.goalExtension.proposals = ["task.description.update"];
     fs.writeFileSync(path.join(candidate, "plugin.json"), JSON.stringify(old));
     installFromDirectory(candidate, installOptions);
     trust(old);

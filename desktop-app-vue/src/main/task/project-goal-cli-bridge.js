@@ -16,7 +16,7 @@ function fail() {
   throw new Error("GOAL_BRIDGE_UNAVAILABLE");
 }
 
-/** A user-exported bearer authorizes one bounded read, never plugin admission. */
+/** Native-scoped leases authorize bounded reads or pending drafts. */
 function createProjectGoalCliBridge({
   capture,
   dialog,
@@ -56,7 +56,9 @@ function createProjectGoalCliBridge({
       if (stamp !== operation) fail();
       const goal = context.read();
       const endpointPath = context.drafts
-        ? "/goal-drafts"
+        ? context.createDrafts
+          ? "/goal-create-drafts"
+          : "/goal-drafts"
         : context.eventHistory
           ? "/goal-event-history"
           : context.events
@@ -67,7 +69,9 @@ function createProjectGoalCliBridge({
       const choice = await dialog().showMessageBox(context.parent, {
         type: "question",
         title: context.drafts
-          ? "授权 CLI / IDE 提交待审草稿"
+          ? context.createDrafts
+            ? "另行授权 CLI 提交待审创建任务草稿"
+            : "授权 CLI / IDE 提交待审草稿"
           : context.eventHistory
             ? "授权 CLI 读取保留的事件历史"
             : context.events
@@ -76,7 +80,9 @@ function createProjectGoalCliBridge({
                 ? "连接 CLI / IDE 风险与回执证据"
                 : "连接 CLI / IDE 目标摘要",
         message: context.drafts
-          ? "允许持有此连接凭据的本机程序，按此来源标签为目标保存待审说明草稿？"
+          ? context.createDrafts
+            ? "允许持有此连接凭据的本机程序，按此来源标签为目标保存待审创建任务草稿？"
+            : "允许持有此连接凭据的本机程序，按此来源标签为目标保存待审说明草稿？"
           : context.eventHistory
             ? "允许持有连接文件的本机程序分页读取此目标保留的风险与动作事件历史 15 分钟？"
             : context.events
@@ -90,7 +96,9 @@ function createProjectGoalCliBridge({
               `版本：${goal.goalRef.revision}`,
               `来源标签（未经代码鉴定）：${JSON.stringify(context.access.plugin)}`,
               `声明摘要：${context.access.declarationDigest}`,
-              "授权持有者读取当前任务说明建议的来源标识，并仅提交待审草稿。此凭据不能鉴定实际运行的插件代码，也不授予任务写入或审批权限。",
+              context.createDrafts
+                ? "仅授权当前创建建议的来源标识和待审创建草稿保存，任务类型随提议固定。说明草稿的旧授权不能替代本次授权；此凭据不授予实际创建任务、执行任务或审批权限，也不鉴定插件代码。"
+                : "授权持有者读取当前任务说明建议的来源标识，并仅提交待审草稿。此凭据不能鉴定实际运行的插件代码，也不授予任务写入或审批权限。",
               "连接最长15分钟；断开、到期或退出应用后，已保存草稿及此项原生授权仍保留。请在桌面逐项撤销来源授权，使旧草稿及未确认预览失效。CLI 插件信任与此原生授权相互独立。",
               "实际修改任务仍须当前预览与逐次原生确认。连接文件含临时凭据，请保存到私有目录。",
             ].join("\n\n")
@@ -302,7 +310,9 @@ function createProjectGoalCliBridge({
       if (stamp !== operation) fail();
       const descriptor = {
         schema: context.drafts
-          ? "chainlesschain.project-goal-connection/v3"
+          ? context.createDrafts
+            ? "chainlesschain.project-goal-connection/v6"
+            : "chainlesschain.project-goal-connection/v3"
           : context.eventHistory
             ? "chainlesschain.project-goal-connection/v5"
             : context.events
@@ -312,7 +322,9 @@ function createProjectGoalCliBridge({
                 : SCHEMA,
         ...(context.drafts
           ? {
-              capability: "goal.drafts",
+              capability: context.createDrafts
+                ? "goal.create-drafts"
+                : "goal.drafts",
               plugin: context.access.plugin,
               declarationDigest: context.access.declarationDigest,
               grantRef: context.grantRef,

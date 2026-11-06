@@ -168,6 +168,10 @@ jobs:
         working-directory: ./desktop-app-vue
         run: npm exec --offline -- vitest run --config vitest.business-actions-renderer.config.mjs
 
+      - name: Verify governed goal model protocol and recovery
+        working-directory: ./desktop-app-vue
+        run: npm run test:goal-model-drafts
+
       - name: Run intelligent test selection
         id: test-selector
         working-directory: ./desktop-app-vue

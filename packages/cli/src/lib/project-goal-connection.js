@@ -10,7 +10,10 @@ import {
   validateGoalEventHistoryPage,
   parseGoalEventCursor,
 } from "@chainlesschain/session-core/goal-evidence-contract";
-import { validateGoalDraftDescriptor } from "@chainlesschain/session-core/goal-draft-connection-contract";
+import {
+  validateGoalDraftDescriptor,
+  validateGoalCreateDraftDescriptor,
+} from "@chainlesschain/session-core/goal-draft-connection-contract";
 import { createProjectGoalDraftClient } from "./project-goal-draft-connection.js";
 function fail() {
   throw new Error("CLI_GOAL_CONNECTION_UNAVAILABLE");
@@ -51,8 +54,17 @@ export function createProjectGoalConnection(file) {
     const count = fs.readSync(fd, raw, 0, raw.length, 0);
     if (count > 4096 || !sameFile(opened, fs.fstatSync(fd))) fail();
     const descriptor = JSON.parse(raw.subarray(0, count).toString("utf8"));
-    if (descriptor.schema === "chainlesschain.project-goal-connection/v3") {
-      const verified = validateGoalDraftDescriptor(descriptor);
+    if (
+      [
+        "chainlesschain.project-goal-connection/v3",
+        "chainlesschain.project-goal-connection/v6",
+      ].includes(descriptor.schema)
+    ) {
+      const verified = (
+        descriptor.schema.endsWith("/v6")
+          ? validateGoalCreateDraftDescriptor
+          : validateGoalDraftDescriptor
+      )(descriptor);
       return createProjectGoalDraftClient(verified, () => {
         if (
           Date.now() >= verified.expiresAt ||

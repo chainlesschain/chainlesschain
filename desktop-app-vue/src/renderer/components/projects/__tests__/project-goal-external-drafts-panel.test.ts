@@ -51,6 +51,32 @@ async function open(wrapper: any) {
   await flushPromises();
 }
 describe("native online grant and draft management", () => {
+  it("shows creation authority and task type while preparing only saved native identifiers", async () => {
+    api.listGoalExternalDraftGrants.mockResolvedValue({
+      entries: [{ ...grant, type: "task.create" }],
+      nextCursor: null,
+    });
+    api.readGoalExternalDraft.mockResolvedValue({
+      ...draft,
+      proposal: {
+        ...draft.proposal,
+        type: "task.create",
+        taskType: "analyze_data",
+      },
+    });
+    const w = create();
+    await open(w);
+    expect(w.text()).toContain("创建任务提议专用授权");
+    expect(w.text()).toContain("待创建的任务类型：analyze_data");
+    await w.get('[data-testid="prepare-external-draft"]').trigger("click");
+    await flushPromises();
+    expect(api.prepareGoalExternalDraft).toHaveBeenCalledExactlyOnceWith({
+      goalRef: { id: "g1", storeId: "s1", revision: 1, controlGeneration: 0 },
+      id: "grant-1",
+      draftId: "draft-1",
+    });
+    w.unmount();
+  });
   it("reads saved text inertly and prepares only native saved identifiers", async () => {
     const w = create();
     await open(w);

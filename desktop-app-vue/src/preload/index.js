@@ -1004,6 +1004,13 @@ const FIXED_RENDERER_IPC_CHANNELS = new Set([
   "project:goal-memory-operations",
   "project:goal-memory-recover",
   "project:goal-memory-revoke",
+  "project:goal-model-draft-generate",
+  "project:goal-model-draft-prepare",
+  "project:goal-model-draft-read",
+  "project:goal-model-draft-requests",
+  "project:goal-model-draft-revoke",
+  "project:goal-model-draft-status",
+  "project:goal-model-drafts-list",
   "project:goal-monitor-check",
   "project:goal-monitor-start",
   "project:goal-monitor-status",
@@ -3006,6 +3013,20 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.invoke("project:goal-delivery-drafts-read", params),
     prepareGoalDeliveryDraft: (params) =>
       ipcRenderer.invoke("project:goal-delivery-drafts-prepare", params),
+    generateGoalModelDraft: (params) =>
+      ipcRenderer.invoke("project:goal-model-draft-generate", params),
+    getGoalModelDraftStatus: (params) =>
+      ipcRenderer.invoke("project:goal-model-draft-status", params),
+    listGoalModelDraftRequests: (params) =>
+      ipcRenderer.invoke("project:goal-model-draft-requests", params),
+    listGoalModelDrafts: (params) =>
+      ipcRenderer.invoke("project:goal-model-drafts-list", params),
+    readGoalModelDraft: (params) =>
+      ipcRenderer.invoke("project:goal-model-draft-read", params),
+    prepareGoalModelDraft: (params) =>
+      ipcRenderer.invoke("project:goal-model-draft-prepare", params),
+    revokeGoalModelDraft: (params) =>
+      ipcRenderer.invoke("project:goal-model-draft-revoke", params),
     importGoalDraftRequest: (params) =>
       ipcRenderer.invoke("project:goal-draft-import", params),
     listGoalDraftImports: (params) =>

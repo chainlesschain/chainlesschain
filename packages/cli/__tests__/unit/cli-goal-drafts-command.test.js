@@ -1,14 +1,27 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Command } from "commander";
 import { registerGoalCommand } from "../../src/commands/goal.js";
+import { exportCliGoalTaskCreateRequest } from "../../src/lib/plugin-runtime/cli-goal-draft-request.js";
+vi.mock("../../src/lib/plugin-runtime/cli-goal-draft-request.js", () => ({
+  exportCliGoalTaskCreateRequest: vi.fn(),
+  exportCliGoalDraftRequest: vi.fn(),
+}));
 import {
   exportCliGoalDraftAccess,
+  exportCliGoalCreateDraftAccess,
+  readCliGoalCreateDraftSources,
+  sendCliGoalCreateDraft,
+  readCliGoalCreateDraftReceipt,
   readCliGoalDraftSources,
   sendCliGoalDraft,
   readCliGoalDraftReceipt,
 } from "../../src/lib/plugin-runtime/cli-goal-drafts.js";
 vi.mock("../../src/lib/plugin-runtime/cli-goal-drafts.js", () => ({
   exportCliGoalDraftAccess: vi.fn(),
+  exportCliGoalCreateDraftAccess: vi.fn(),
+  readCliGoalCreateDraftSources: vi.fn(),
+  sendCliGoalCreateDraft: vi.fn(),
+  readCliGoalCreateDraftReceipt: vi.fn(),
   readCliGoalDraftSources: vi.fn(),
   sendCliGoalDraft: vi.fn(),
   readCliGoalDraftReceipt: vi.fn(),
@@ -36,6 +49,99 @@ afterEach(() => {
 });
 const run = (args) => program.parseAsync(["node", "cc", "goal", ...args]);
 describe("online draft command registration", () => {
+  it("routes separate creation access, source, send and receipt commands without using description exporters", async () => {
+    exportCliGoalCreateDraftAccess.mockResolvedValue({
+      state: "access-exported",
+    });
+    await run([
+      "draft-create-access",
+      "--plugin",
+      "drafter",
+      "--scope",
+      "project",
+      "--out",
+      "create-access.json",
+      "--json",
+    ]);
+    expect(exportCliGoalCreateDraftAccess).toHaveBeenCalledOnce();
+    expect(exportCliGoalDraftAccess).not.toHaveBeenCalled();
+    readCliGoalCreateDraftSources.mockResolvedValue({
+      sources: { entries: [] },
+    });
+    await run(["draft-create-sources", "g1", ...common, "--json"]);
+    expect(readCliGoalCreateDraftSources).toHaveBeenCalledOnce();
+    const args = [
+      "draft-create-send",
+      "g1",
+      ...common,
+      "--source",
+      "native-create",
+      "--request-id",
+      "stable",
+      "--title",
+      "Create follow-up",
+      "--description-file",
+      "body.txt",
+      "--record",
+      "create-record.json",
+      "--json",
+    ];
+    await expect(run(args)).rejects.toThrow("--task-type");
+    sendCliGoalCreateDraft.mockResolvedValue({ state: "saved" });
+    await run([...args, "--task-type", "query_info"]);
+    expect(sendCliGoalCreateDraft).toHaveBeenCalledWith(
+      "g1",
+      expect.objectContaining({
+        taskType: "query_info",
+        record: "create-record.json",
+      }),
+    );
+    expect(sendCliGoalDraft).not.toHaveBeenCalled();
+    readCliGoalCreateDraftReceipt.mockResolvedValue({ state: "unknown" });
+    await run([
+      "draft-create-receipt",
+      "g1",
+      ...common,
+      "--record",
+      "create-record.json",
+      "--json",
+    ]);
+    expect(readCliGoalCreateDraftReceipt).toHaveBeenCalledOnce();
+  });
+  it("requires an explicit task type for the separate creation export command", async () => {
+    const args = [
+      "draft-create-request",
+      "g1",
+      ...common,
+      "--source",
+      "native-source",
+      "--request-id",
+      "stable-create",
+      "--title",
+      "Create follow-up",
+      "--description-file",
+      "body.txt",
+      "--out",
+      "create-request.json",
+      "--json",
+    ];
+    await expect(run(args)).rejects.toThrow("--task-type");
+    expect(exportCliGoalTaskCreateRequest).not.toHaveBeenCalled();
+    exportCliGoalTaskCreateRequest.mockResolvedValue({
+      state: "request-exported",
+      file: "create-request.json",
+    });
+    await run([...args, "--task-type", "analyze_data"]);
+    expect(exportCliGoalTaskCreateRequest).toHaveBeenCalledWith(
+      "g1",
+      expect.objectContaining({
+        taskType: "analyze_data",
+        source: "native-source",
+        out: "create-request.json",
+      }),
+    );
+    expect(JSON.parse(logs.mock.calls[0][0]).state).toBe("request-exported");
+  });
   it("exports a selected plugin access file without a connection argument", async () => {
     exportCliGoalDraftAccess.mockResolvedValue({
       schema: "chainlesschain.goal-draft-access-export/v1",

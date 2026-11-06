@@ -45,7 +45,7 @@ import {
   registerSetupCommand,
   resolveSetupLlmDefaults,
 } from "../../src/commands/setup.js";
-import { askSelect } from "../../src/lib/prompts.js";
+import { askSelect, askInput, askPassword } from "../../src/lib/prompts.js";
 import { updateConfigAtomically } from "../../src/lib/config-manager.js";
 import { getEvolutionDeploymentStatus } from "../../src/lib/evolution/evolution-deployment-config.js";
 import logger from "../../src/lib/logger.js";
@@ -86,6 +86,51 @@ beforeEach(() => {
 });
 
 describe("setup deployment preflight", () => {
+  it("switches to keyless local compute without keeping a previous endpoint credential", async () => {
+    askSelect
+      .mockReset()
+      .mockResolvedValueOnce("personal")
+      .mockResolvedValueOnce("custom");
+    askPassword.mockResolvedValueOnce("");
+    askInput
+      .mockResolvedValueOnce("http://192.168.31.79:8889/v1")
+      .mockResolvedValueOnce("glm5.3-flash-tensorfold");
+    getEvolutionDeploymentStatus.mockResolvedValue({
+      effectiveEnabled: false,
+      verified: false,
+    });
+    const program = new Command().exitOverride();
+    registerSetupCommand(program);
+    await program.parseAsync(["setup", "--skip-download", "--skip-services"], {
+      from: "user",
+    });
+    const mutate = updateConfigAtomically.mock.calls[0][0];
+    const state = {
+      llm: {
+        provider: "openai",
+        baseUrl: "https://api.openai.com/v1",
+        apiKey: "old-cloud-key",
+        apiKeyHelper: "old-helper",
+      },
+    };
+    mutate(state);
+    expect(state.llm).toMatchObject({
+      provider: "custom",
+      model: "glm5.3-flash-tensorfold",
+      baseUrl: "http://192.168.31.79:8889/v1",
+    });
+    expect(state.llm).not.toHaveProperty("apiKey");
+    expect(state.llm).not.toHaveProperty("apiKeyHelper");
+    const same = {
+      llm: {
+        provider: "custom",
+        baseUrl: "http://192.168.31.79:8889/v1",
+        apiKey: "same-endpoint-key",
+      },
+    };
+    mutate(same);
+    expect(same.llm.apiKey).toBe("same-endpoint-key");
+  });
   it.each([
     { status: { effectiveEnabled: false, verified: false }, admitted: false },
     {

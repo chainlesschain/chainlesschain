@@ -1,0 +1,318 @@
+TAP version 13
+# (node:28232) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# [2026-11-06T01:12:14.362Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "initialization-started"
+# }
+# [2026-11-06T01:12:14.367Z] [WARN] [main] [LLMProvider] provider unavailable {
+#   "provider": "ollama",
+#   "operation": "status"
+# }
+# [2026-11-06T01:12:14.369Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "service-unavailable"
+# }
+# [2026-11-06T01:12:20.605Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "initialization-started"
+# }
+# [2026-11-06T01:12:20.607Z] [WARN] [main] [LLMProvider] provider unavailable {
+#   "provider": "ollama",
+#   "operation": "status"
+# }
+# [2026-11-06T01:12:20.609Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "service-unavailable"
+# }
+# Subtest: actual IPC uses governed projection, one literal loopback socket, response evidence and real token counts
+ok 1 - actual IPC uses governed projection, one literal loopback socket, response evidence and real token counts
+  ---
+  duration_ms: 7247.9917
+  type: 'test'
+  ...
+# [2026-11-06T01:12:20.860Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "initialization-started"
+# }
+# [2026-11-06T01:12:20.864Z] [WARN] [main] [LLMProvider] provider unavailable {
+#   "provider": "ollama",
+#   "operation": "status"
+# }
+# [2026-11-06T01:12:20.866Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "service-unavailable"
+# }
+# [2026-11-06T01:12:23.927Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "initialization-started"
+# }
+# [2026-11-06T01:12:23.929Z] [WARN] [main] [LLMProvider] provider unavailable {
+#   "provider": "ollama",
+#   "operation": "status"
+# }
+# [2026-11-06T01:12:23.930Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "service-unavailable"
+# }
+# Subtest: native decline precedes opening governed evidence
+ok 2 - native decline precedes opening governed evidence
+  ---
+  duration_ms: 237.9605
+  type: 'test'
+  ...
+# Subtest: source changes during actual asynchronous evidence preparation prevent socket send
+ok 3 - source changes during actual asynchronous evidence preparation prevent socket send
+  ---
+  duration_ms: 3067.6722
+  type: 'test'
+  ...
+# [2026-11-06T01:12:28.103Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "initialization-started"
+# }
+# [2026-11-06T01:12:28.105Z] [WARN] [main] [LLMProvider] provider unavailable {
+#   "provider": "ollama",
+#   "operation": "status"
+# }
+# [2026-11-06T01:12:28.107Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "service-unavailable"
+# }
+# Subtest: actual response unfinished is discarded and replay cannot resend
+ok 4 - actual response unfinished is discarded and replay cannot resend
+  ---
+  duration_ms: 4150.6128
+  type: 'test'
+  ...
+# [2026-11-06T01:12:32.538Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "initialization-started"
+# }
+# [2026-11-06T01:12:32.540Z] [WARN] [main] [LLMProvider] provider unavailable {
+#   "provider": "ollama",
+#   "operation": "status"
+# }
+# [2026-11-06T01:12:32.542Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "service-unavailable"
+# }
+# Subtest: actual response tools is discarded and replay cannot resend
+ok 5 - actual response tools is discarded and replay cannot resend
+  ---
+  duration_ms: 4460.1357
+  type: 'test'
+  ...
+# [2026-11-06T01:12:35.251Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "initialization-started"
+# }
+# [2026-11-06T01:12:35.252Z] [WARN] [main] [LLMProvider] provider unavailable {
+#   "provider": "ollama",
+#   "operation": "status"
+# }
+# [2026-11-06T01:12:35.254Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "service-unavailable"
+# }
+# Subtest: actual response mismatch is discarded and replay cannot resend
+ok 6 - actual response mismatch is discarded and replay cannot resend
+  ---
+  duration_ms: 2746.3186
+  type: 'test'
+  ...
+# [2026-11-06T01:12:37.735Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "initialization-started"
+# }
+# [2026-11-06T01:12:37.736Z] [WARN] [main] [LLMProvider] provider unavailable {
+#   "provider": "ollama",
+#   "operation": "status"
+# }
+# [2026-11-06T01:12:37.738Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "service-unavailable"
+# }
+# Subtest: actual response truncated is discarded and replay cannot resend
+ok 7 - actual response truncated is discarded and replay cannot resend
+  ---
+  duration_ms: 2485.0718
+  type: 'test'
+  ...
+# [2026-11-06T01:12:40.236Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "initialization-started"
+# }
+# [2026-11-06T01:12:40.238Z] [WARN] [main] [LLMProvider] provider unavailable {
+#   "provider": "ollama",
+#   "operation": "status"
+# }
+# [2026-11-06T01:12:40.239Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "service-unavailable"
+# }
+# Subtest: actual response oversized is discarded and replay cannot resend
+ok 8 - actual response oversized is discarded and replay cannot resend
+  ---
+  duration_ms: 2488.7879
+  type: 'test'
+  ...
+# [2026-11-06T01:12:42.668Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "initialization-started"
+# }
+# [2026-11-06T01:12:42.670Z] [WARN] [main] [LLMProvider] provider unavailable {
+#   "provider": "ollama",
+#   "operation": "status"
+# }
+# [2026-11-06T01:12:42.671Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "service-unavailable"
+# }
+# Subtest: redirect target is never followed and private server bodies never cross IPC
+ok 9 - redirect target is never followed and private server bodies never cross IPC
+  ---
+  duration_ms: 2437.6802
+  type: 'test'
+  ...
+# [2026-11-06T01:12:45.296Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "initialization-started"
+# }
+# [2026-11-06T01:12:45.297Z] [WARN] [main] [LLMProvider] provider unavailable {
+#   "provider": "ollama",
+#   "operation": "status"
+# }
+# [2026-11-06T01:12:45.298Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "service-unavailable"
+# }
+# Subtest: cancel interrupts an actual pending socket, persists unknown and prevents late summary commit
+ok 10 - cancel interrupts an actual pending socket, persists unknown and prevents late summary commit
+  ---
+  duration_ms: 2624.5286
+  type: 'test'
+  ...
+# Subtest: actual socket total timeout remains unknown and never auto-retries
+ok 11 - actual socket total timeout remains unknown and never auto-retries
+  ---
+  duration_ms: 32775.9918
+  type: 'test'
+  ...
+# Subtest: remote/DNS/encoded/credentialed endpoints and ungoverned manager never admit report sources
+ok 12 - remote/DNS/encoded/credentialed endpoints and ungoverned manager never admit report sources
+  ---
+  duration_ms: 1.5659
+  type: 'test'
+  ...
+# Subtest: forced worker exit after dispatched preserves the model identity without redispatch
+ok 13 - forced worker exit after dispatched preserves the model identity without redispatch
+  ---
+  duration_ms: 462.1409
+  type: 'test'
+  ...
+# Subtest: forced worker exit after saved preserves the model identity without redispatch
+ok 14 - forced worker exit after saved preserves the model identity without redispatch
+  ---
+  duration_ms: 651.2219
+  type: 'test'
+  ...
+# [2026-11-06T01:12:14.387Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "initialization-started"
+# }
+# [2026-11-06T01:12:14.390Z] [WARN] [main] [LLMProvider] provider unavailable {
+#   "provider": "ollama",
+#   "operation": "status"
+# }
+# [2026-11-06T01:12:14.393Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "service-unavailable"
+# }
+# [2026-11-06T01:12:20.667Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "initialization-started"
+# }
+# [2026-11-06T01:12:20.669Z] [WARN] [main] [LLMProvider] provider unavailable {
+#   "provider": "ollama",
+#   "operation": "status"
+# }
+# [2026-11-06T01:12:20.671Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "service-unavailable"
+# }
+# Subtest: governed local goal draft crosses actual signed ingress/projector and one socket with real token counts
+ok 15 - governed local goal draft crosses actual signed ingress/projector and one socket with real token counts
+  ---
+  duration_ms: 7249.2264
+  type: 'test'
+  ...
+# [2026-11-06T01:12:23.787Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "initialization-started"
+# }
+# [2026-11-06T01:12:23.789Z] [WARN] [main] [LLMProvider] provider unavailable {
+#   "provider": "ollama",
+#   "operation": "status"
+# }
+# [2026-11-06T01:12:23.791Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "service-unavailable"
+# }
+# Subtest: actual governed protocol refuses revoke-preparation without publishing a pending draft
+ok 16 - actual governed protocol refuses revoke-preparation without publishing a pending draft
+  ---
+  duration_ms: 3090.5233
+  type: 'test'
+  ...
+# [2026-11-06T01:12:28.066Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "initialization-started"
+# }
+# [2026-11-06T01:12:28.069Z] [WARN] [main] [LLMProvider] provider unavailable {
+#   "provider": "ollama",
+#   "operation": "status"
+# }
+# [2026-11-06T01:12:28.070Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "service-unavailable"
+# }
+# Subtest: actual governed protocol refuses revoke-response without publishing a pending draft
+ok 17 - actual governed protocol refuses revoke-response without publishing a pending draft
+  ---
+  duration_ms: 4290.2771
+  type: 'test'
+  ...
+# [2026-11-06T01:12:32.521Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "initialization-started"
+# }
+# [2026-11-06T01:12:32.523Z] [WARN] [main] [LLMProvider] provider unavailable {
+#   "provider": "ollama",
+#   "operation": "status"
+# }
+# [2026-11-06T01:12:32.525Z] [INFO] [main] [LLMManager] internal event {
+#   "component": "manager",
+#   "event": "service-unavailable"
+# }
+# Subtest: actual governed protocol refuses incomplete without publishing a pending draft
+ok 18 - actual governed protocol refuses incomplete without publishing a pending draft
+  ---
+  duration_ms: 4468.1098
+  type: 'test'
+  ...
+# Subtest: actual governed protocol refuses tool-output without publishing a pending draft
+ok 19 - actual governed protocol refuses tool-output without publishing a pending draft
+  ---
+  duration_ms: 2713.6437
+  type: 'test'
+  ...
+1..19
+# tests 19
+# suites 0
+# pass 19
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 64971.7452

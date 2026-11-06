@@ -187,6 +187,9 @@ function readExtensionIntentBinding({ db, intent, actor }) {
     expectedRevision: conversion.goalRef.revision,
     requestId: conversion.requestId,
     description: draft.proposal.description,
+    ...(draft.proposal.type === "task.create"
+      ? { taskType: draft.proposal.taskType }
+      : {}),
     extensionRef: ref,
   };
   if (
@@ -202,7 +205,11 @@ function readExtensionIntentBinding({ db, intent, actor }) {
     intent.proposalId !== conversion.source.proposalId ||
     intent.reviewId !== conversion.source.reviewId ||
     intent.reviewDigest !== conversion.source.reviewDigest ||
-    intent.taskType !== null ||
+    intent.taskType !== (draft.proposal.taskType ?? null) ||
+    conversion.source.actionType !==
+      (draft.proposal.type === "task.create"
+        ? "task.create"
+        : "task.update-description") ||
     intent.description !== draft.proposal.description ||
     intent.inputDigest !== digest(input)
   )

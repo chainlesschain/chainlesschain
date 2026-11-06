@@ -10,6 +10,21 @@ const {
 } = require("../legacy-ipc-policy.js");
 
 describe("legacy generic IPC policy", () => {
+  it("retains exactly the seven native model-draft capabilities without a raw model dispatch channel", () => {
+    for (const channel of [
+      "project:goal-model-draft-generate",
+      "project:goal-model-draft-status",
+      "project:goal-model-draft-requests",
+      "project:goal-model-drafts-list",
+      "project:goal-model-draft-read",
+      "project:goal-model-draft-prepare",
+      "project:goal-model-draft-revoke",
+    ])
+      expect(isFixedRendererIpcChannel(channel)).toBe(true);
+    expect(isFixedRendererIpcChannel("project:goal-model-dispatch")).toBe(
+      false,
+    );
+  });
   it("keeps the sandboxed preload free of relative module imports", () => {
     const source = readFileSync(
       resolve(process.cwd(), "src/preload/index.js"),

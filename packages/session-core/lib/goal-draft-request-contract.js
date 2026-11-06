@@ -6,6 +6,7 @@ const {
   normalizeGoalExtensionProposal,
 } = require("./goal-extension-proposal-contract.js");
 const SCHEMA = "chainlesschain.goal-draft-request/v1";
+const CREATE_SCHEMA = "chainlesschain.goal-task-create-request/v1";
 const MAX_REQUEST_BYTES = 16 * 1024;
 function fail() {
   throw Object.assign(new Error("GOAL_DRAFT_REQUEST_INVALID"), {
@@ -22,11 +23,10 @@ function exact(value, keys) {
   )
     fail();
 }
-function createGoalDraftRequest({
-  declaredPlugin,
-  declarationDigest,
-  proposal,
-}) {
+function buildRequest(
+  { declaredPlugin, declarationDigest, proposal },
+  creation,
+) {
   exact(declaredPlugin, ["name", "scope", "version"]);
   if (
     ![declaredPlugin.name, declaredPlugin.version].every(
@@ -41,7 +41,7 @@ function createGoalDraftRequest({
     fail();
   proposal = normalizeGoalExtensionProposal(proposal);
   if (
-    proposal.type !== "task.description.update" ||
+    proposal.type !== (creation ? "task.create" : "task.description.update") ||
     Buffer.byteLength(proposal.description, "utf8") > 8192 ||
     !/^goal-proposal-[a-f0-9]{64}$/u.test(proposal.sourceRef) ||
     /[\u0000-\u001f\u007f-\u009f]/u.test(proposal.title) ||
@@ -51,7 +51,7 @@ function createGoalDraftRequest({
   )
     fail();
   const body = {
-    schema: SCHEMA,
+    schema: creation ? CREATE_SCHEMA : SCHEMA,
     declaredPlugin: { ...declaredPlugin },
     declarationDigest,
     proposal,
@@ -61,7 +61,13 @@ function createGoalDraftRequest({
     fail();
   return JSON.parse(JSON.stringify(request));
 }
-function validateGoalDraftRequest(raw) {
+function createGoalDraftRequest(raw) {
+  return buildRequest(raw, false);
+}
+function createGoalTaskCreateRequest(raw) {
+  return buildRequest(raw, true);
+}
+function validateRequest(raw, creation) {
   exact(raw, [
     "schema",
     "declaredPlugin",
@@ -69,14 +75,32 @@ function validateGoalDraftRequest(raw) {
     "proposal",
     "contentDigest",
   ]);
-  const result = createGoalDraftRequest(raw);
-  if (raw.schema !== SCHEMA || raw.contentDigest !== result.contentDigest)
+  const result = buildRequest(raw, creation);
+  if (
+    raw.schema !== result.schema ||
+    raw.contentDigest !== result.contentDigest
+  )
     fail();
   return result;
 }
+function validateGoalDraftRequest(raw) {
+  return validateRequest(raw, false);
+}
+function validateGoalTaskCreateRequest(raw) {
+  return validateRequest(raw, true);
+}
+function validateGoalDraftImportRequest(raw) {
+  return raw?.schema === CREATE_SCHEMA
+    ? validateGoalTaskCreateRequest(raw)
+    : validateGoalDraftRequest(raw);
+}
 module.exports = {
   SCHEMA,
+  CREATE_SCHEMA,
   MAX_REQUEST_BYTES,
   createGoalDraftRequest,
   validateGoalDraftRequest,
+  createGoalTaskCreateRequest,
+  validateGoalTaskCreateRequest,
+  validateGoalDraftImportRequest,
 };

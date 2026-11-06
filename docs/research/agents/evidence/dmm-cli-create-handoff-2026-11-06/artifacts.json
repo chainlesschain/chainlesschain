@@ -1,0 +1,27 @@
+{
+  "state": "verified-local-packages",
+  "matchedFiles": [
+    "packages/session-core/lib/goal-draft-request-contract.js",
+    "packages/session-core/lib/project-goal-draft-imports.js",
+    "packages/session-core/lib/goal-extension-proposal-contract.js",
+    "packages/session-core/lib/project-goal-extension-conversion.js",
+    "packages/session-core/lib/project-goal-extension-queue.js",
+    "packages/session-core/README.md",
+    "packages/cli/src/commands/goal.js",
+    "packages/cli/src/command-help-index.json",
+    "packages/cli/src/lib/plugin-runtime/cli-goal-capabilities.js",
+    "packages/cli/src/lib/plugin-runtime/cli-goal-draft-request.js",
+    "packages/cli/src/lib/plugin-runtime/examples/goal-task-creator/plugin.json",
+    "packages/cli/src/lib/plugin-runtime/examples/goal-task-creator/README.md",
+    "packages/cli/README.md"
+  ],
+  "tarballs": {
+    "sessionCoreSha256": "6a4841ea18c3f0b17c5a28395de4508b26bbda424fd5e54bd0642fb88ab52069",
+    "cliSha256": "56a8aea8be06fc23a950f6004d9e2e0f5a3ea0b31d13974dd9a5dd007e7cb34e"
+  },
+  "cjsAndEsmCreationContractLoaded": true,
+  "nativeImporterLoaded": true,
+  "extractedCoreHasNodeModules": false,
+  "fullIsolatedCliInstall": false,
+  "published": false
+}

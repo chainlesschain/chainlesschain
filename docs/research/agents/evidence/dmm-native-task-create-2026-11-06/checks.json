@@ -1,0 +1,95 @@
+{
+  "recordedAt": "2026-11-05T21:11:11.961Z",
+  "checks": [
+    {
+      "command": "git diff --check",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe node_modules/prettier/bin/prettier.cjs --check desktop-app-vue/src/main/task/__tests__/project-goal-delivery-drafts-ipc.test.js desktop-app-vue/src/main/task/project-goal-delivery-drafts.js desktop-app-vue/src/main/task/project-goal-ipc.js desktop-app-vue/src/renderer/components/projects/ProjectGoalActionsPanel.vue desktop-app-vue/src/renderer/components/projects/ProjectGoalExtensionDraftsPanel.vue desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-actions-panel.test.ts desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-extension-drafts-panel.test.ts docs/research/agents/README.md docs/research/agents/chainlesschain-dots-muse-mods-analysis-2026-10-06.md docs/research/agents/dots-muse-mods-implementation-progress-2026-10-07.md packages/cli/__tests__/fixtures/goal-extension-conversion-process.mjs packages/cli/__tests__/integration/goal-extension-conversion-process.test.js packages/cli/__tests__/unit/cli-goal-capabilities.test.js packages/cli/__tests__/unit/cli-goal-draft-request.test.js packages/cli/__tests__/unit/project-goal-extension-queue.test.js packages/cli/__tests__/unit/project-goal-external-drafts.test.js packages/cli/src/lib/plugin-runtime/goal-extensions.js packages/session-core/README.md packages/session-core/lib/goal-extension-proposal-contract.js packages/session-core/lib/project-goal-extension-conversion.js packages/session-core/lib/project-goal-extension-queue.js docs/research/agents/evidence/dmm-native-task-create-2026-11-06/README.md docs/research/agents/evidence/dmm-native-task-create-2026-11-06/verify-package.mjs docs/research/agents/evidence/dmm-native-task-create-2026-11-06/summary.json docs/research/agents/evidence/dmm-native-task-create-2026-11-06/artifacts.json",
+      "exitCode": 0,
+      "output": "Checking formatting...\nAll matched files use Prettier code style!"
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check desktop-app-vue/src/main/task/__tests__/project-goal-delivery-drafts-ipc.test.js",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check desktop-app-vue/src/main/task/project-goal-delivery-drafts.js",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check desktop-app-vue/src/main/task/project-goal-ipc.js",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check packages/cli/__tests__/fixtures/goal-extension-conversion-process.mjs",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check packages/cli/__tests__/integration/goal-extension-conversion-process.test.js",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check packages/cli/__tests__/unit/cli-goal-capabilities.test.js",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check packages/cli/__tests__/unit/cli-goal-draft-request.test.js",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check packages/cli/__tests__/unit/project-goal-extension-queue.test.js",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check packages/cli/__tests__/unit/project-goal-external-drafts.test.js",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check packages/cli/src/lib/plugin-runtime/goal-extensions.js",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check packages/session-core/lib/goal-extension-proposal-contract.js",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check packages/session-core/lib/project-goal-extension-conversion.js",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check packages/session-core/lib/project-goal-extension-queue.js",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check docs/research/agents/evidence/dmm-native-task-create-2026-11-06/verify-package.mjs",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "relative Markdown file links in changed documents",
+      "exitCode": 0,
+      "broken": []
+    },
+    {
+      "command": "summary source SHA-256 matches final working tree",
+      "exitCode": 0,
+      "mismatches": []
+    }
+  ]
+}

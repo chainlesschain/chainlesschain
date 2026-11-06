@@ -3,9 +3,11 @@ import path from "node:path";
 import { cliGoalExtensionHost } from "./cli-goal-capabilities.js";
 import { createProjectGoalConnection } from "../project-goal-connection.js";
 import { collectGoalExtensions } from "./goal-extensions.js";
-import { createGoalDraftRequest } from "@chainlesschain/session-core/goal-draft-request-contract";
+import {
+  createGoalDraftRequest,
+  createGoalTaskCreateRequest,
+} from "@chainlesschain/session-core/goal-draft-request-contract";
 import { digestBusinessObjectContent as digest } from "@chainlesschain/session-core/business-object-contract";
-const HOST = cliGoalExtensionHost(["proposal:task.description.update"]);
 function fail(code) {
   throw new Error(code);
 }
@@ -49,12 +51,19 @@ export function readGoalDraftDescription(file) {
   }
 }
 export async function exportCliGoalDraftRequest(id, options = {}) {
+  return exportRequest(id, options, false);
+}
+export async function exportCliGoalTaskCreateRequest(id, options = {}) {
+  return exportRequest(id, options, true);
+}
+async function exportRequest(id, options, creation) {
   options = Object.freeze({
     ...options,
     env: Object.freeze({ ...(options.env || process.env) }),
   });
   const cwd = path.resolve(options.cwd || process.cwd()),
     env = Object.freeze({ ...(options.env || process.env) });
+  const type = creation ? "task.create" : "task.description.update";
   if (
     !options.connection ||
     !options.plugin ||
@@ -73,7 +82,7 @@ export async function exportCliGoalDraftRequest(id, options = {}) {
   const hostOptions = {
     cwd,
     env,
-    host: HOST,
+    host: cliGoalExtensionHost([`proposal:${type}`]),
     managedSettingsFile: options.managedSettingsFile,
   };
   const admitted = () =>
@@ -81,12 +90,11 @@ export async function exportCliGoalDraftRequest(id, options = {}) {
       (entry) => entry.name === options.plugin && entry.scope === options.scope,
     );
   const plugin = admitted();
-  if (
-    !plugin ||
-    !plugin.declaration.proposals.includes("task.description.update")
-  )
+  if (!plugin || !plugin.declaration.proposals.includes(type))
     fail("GOAL_DRAFT_PLUGIN_NOT_ADMITTED");
-  const request = createGoalDraftRequest({
+  const request = (
+    creation ? createGoalTaskCreateRequest : createGoalDraftRequest
+  )({
     declaredPlugin: {
       name: plugin.name,
       scope: plugin.scope,
@@ -94,7 +102,8 @@ export async function exportCliGoalDraftRequest(id, options = {}) {
     },
     declarationDigest: digest(plugin.declaration),
     proposal: {
-      type: "task.description.update",
+      type,
+      ...(creation ? { taskType: options.taskType } : {}),
       goalRef: snapshot.goalRef,
       sourceRef: options.source,
       requestId: options.requestId,
@@ -123,12 +132,17 @@ export async function exportCliGoalDraftRequest(id, options = {}) {
     fs.closeSync(fd);
   }
   return {
-    schema: "chainlesschain.goal-draft-export/v1",
+    schema: creation
+      ? "chainlesschain.goal-task-create-export/v1"
+      : "chainlesschain.goal-draft-export/v1",
     state: "request-exported",
     goalRef: request.proposal.goalRef,
     declaredPlugin: request.declaredPlugin,
     requestId: request.proposal.requestId,
     contentDigest: request.contentDigest,
     file,
+    ...(creation
+      ? { type: "task.create", taskType: request.proposal.taskType }
+      : {}),
   };
 }

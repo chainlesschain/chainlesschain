@@ -22,6 +22,13 @@ const CHANNELS = Object.freeze({
   listDeliveryDrafts: "project:goal-delivery-drafts-list",
   readDeliveryDraft: "project:goal-delivery-drafts-read",
   prepareDeliveryDraft: "project:goal-delivery-drafts-prepare",
+  generateModelDraft: "project:goal-model-draft-generate",
+  modelDraftStatus: "project:goal-model-draft-status",
+  modelDraftRequests: "project:goal-model-draft-requests",
+  listModelDrafts: "project:goal-model-drafts-list",
+  readModelDraft: "project:goal-model-draft-read",
+  prepareModelDraft: "project:goal-model-draft-prepare",
+  revokeModelDraft: "project:goal-model-draft-revoke",
   importDraftRequest: "project:goal-draft-import",
   listDraftImports: "project:goal-draft-imports-list",
   readDraftImport: "project:goal-draft-import-read",
@@ -73,6 +80,7 @@ function createProjectGoalHost({
   validateSender = (event) =>
     require("../ipc/ipc-sender-guard").validateSender(event),
   monitoringController = null,
+  modelDraftDependencies = {},
   clock = Date.now,
   getAuthenticationGeneration = () =>
     require("./project-goal-auth-session").getProjectGoalAuthGeneration(),
@@ -173,6 +181,7 @@ function createProjectGoalHost({
                 "goalRef",
                 "evidence",
                 "drafts",
+                "createDrafts",
                 "events",
                 "eventHistory",
               ].includes(key),
@@ -180,11 +189,14 @@ function createProjectGoalHost({
           (input.evidence !== undefined &&
             typeof input.evidence !== "boolean") ||
           (input.drafts !== undefined && typeof input.drafts !== "boolean") ||
+          (input.createDrafts !== undefined &&
+            typeof input.createDrafts !== "boolean") ||
           (input.events !== undefined && typeof input.events !== "boolean") ||
           (input.eventHistory !== undefined &&
             typeof input.eventHistory !== "boolean") ||
           [
             input.drafts,
+            input.createDrafts,
             input.evidence,
             input.events,
             input.eventHistory,
@@ -203,7 +215,9 @@ function createProjectGoalHost({
         const evidence = input.evidence === true;
         const eventsConnection = input.events === true;
         const historyConnection = input.eventHistory === true;
-        const draftsConnection = input.drafts === true;
+        const createDraftsConnection = input.createDrafts === true;
+        const draftsConnection =
+          input.drafts === true || createDraftsConnection;
         let native = null,
           access = null,
           beforeGrant = null,
@@ -228,6 +242,7 @@ function createProjectGoalHost({
           events: eventsConnection,
           eventHistory: historyConnection,
           drafts: draftsConnection,
+          createDrafts: createDraftsConnection,
           get access() {
             return access;
           },
@@ -341,6 +356,7 @@ function createProjectGoalHost({
             access =
               require("./project-goal-draft-request-file").readGoalDraftAccessFile(
                 picked.filePaths[0],
+                createDraftsConnection,
               );
             Object.freeze(access.plugin);
             Object.freeze(access);
@@ -370,6 +386,7 @@ function createProjectGoalHost({
     const {
       ProjectGoalDraftImports,
       IMPORT_PLUGIN,
+      CREATE_IMPORT_PLUGIN,
     } = require("@chainlesschain/session-core/project-goal-draft-imports");
     const {
       ProjectGoalExternalDrafts,
@@ -377,7 +394,7 @@ function createProjectGoalHost({
     const {
       digestBusinessObjectContent: digest,
     } = require("@chainlesschain/session-core/business-object-contract");
-    let drafts, imports, external;
+    let drafts, imports, external, modelDrafts;
     const gate = new ApprovalGate({
       confirm: async ({ request, before, after, actorDid }) => {
         const parent = currentWindow(event);
@@ -453,7 +470,11 @@ function createProjectGoalHost({
           intent: context.intent,
           actor: context.actor,
         });
-        if (digest(draft.plugin) === digest(IMPORT_PLUGIN))
+        if (
+          [IMPORT_PLUGIN, CREATE_IMPORT_PLUGIN].some(
+            (plugin) => digest(draft.plugin) === digest(plugin),
+          )
+        )
           return imports ? imports.verifyIntentInTransaction(context) : false;
         if (
           draft.origin === "extension-suggestion" &&
@@ -461,6 +482,11 @@ function createProjectGoalHost({
         )
           return external ? external.verifyIntentInTransaction(context) : false;
         const { PLUGIN } = require("./project-goal-delivery-drafts");
+        const { MODEL_PLUGIN } = require("./project-goal-model-drafts");
+        if (digest(draft.plugin) === digest(MODEL_PLUGIN))
+          return modelDrafts
+            ? modelDrafts.queue.verifyIntentInTransaction(context)
+            : false;
         return digest(draft.plugin) === digest(PLUGIN) && drafts
           ? drafts.queue.verifyIntentInTransaction(context)
           : false;
@@ -474,17 +500,25 @@ function createProjectGoalHost({
       workflow: hostWorkflow,
       clock,
       confirm: async ({ goal, plugin, capability }) => {
+        const creation = capability === "proposal:task.create";
         getActor();
         const choice = await getElectron().dialog.showMessageBox(parent, {
           type: "question",
           title: "启用交付助手草稿",
-          message: "允许内置交付助手为此目标保存待确认的任务说明草稿？",
+          message: creation
+            ? "允许内置交付助手为此目标保存待确认的创建任务草稿？"
+            : "允许内置交付助手为此目标保存待确认的任务说明草稿？",
           detail: [
             `目标：${display(goal.objective)}`,
             `目标版本：${goal.revision}`,
             `当前身份：${display(actorDid)}`,
             `内置包：${plugin.scope}:${plugin.name}@${plugin.version}`,
             `能力：${capability}`,
+            ...(creation
+              ? [
+                  "此授权仅允许保存创建任务提议，不继承或授予任务说明草稿权限。创建任务仍须当前版本原生预览和逐次确认，不会自动执行新任务。",
+                ]
+              : []),
             "保存规则生成的建议；用户显式请求后可建立原生预览，修改任务仍须逐次原生确认。禁用后历史保留，旧草稿及未确认预览不能继续使用。",
           ].join("\n\n"),
           buttons: ["取消", "启用草稿"],
@@ -500,10 +534,13 @@ function createProjectGoalHost({
       workflow: hostWorkflow,
       clock,
       confirm: async ({ goal, envelope }) => {
+        const creation = envelope.proposal.type === "task.create";
         getActor();
         const choice = await getElectron().dialog.showMessageBox(parent, {
           type: "question",
-          title: "逐份采纳外部任务说明请求",
+          title: creation
+            ? "逐份采纳外部创建任务请求"
+            : "逐份采纳外部任务说明请求",
           message: "将下列完整正文采纳为待审草稿？",
           detail: [
             `目标：${display(goal.objective)}`,
@@ -513,9 +550,17 @@ function createProjectGoalHost({
             `原生风险来源：${display(envelope.proposal.sourceRef)}`,
             `请求：${display(envelope.proposal.requestId)}`,
             `标题：${display(envelope.proposal.title)}`,
+            ...(creation
+              ? [`拟创建的任务类型：${display(envelope.proposal.taskType)}`]
+              : []),
             `拟保存的完整说明：${display(envelope.proposal.description)}`,
             `请求内容摘要：${envelope.contentDigest}`,
             "内容摘要不证明插件身份。采纳只保存此份待审草稿；后续需建立当前预览并逐次原生确认，才会修改任务。可逐份撤销采纳；撤销不会回滚已完成修改。",
+            ...(creation
+              ? [
+                  "此份采纳只允许保存该创建任务请求；不授予旧说明连接创建权限，不会自动执行新任务或证明原风险已解除。",
+                ]
+              : []),
           ].join("\n\n"),
           buttons: ["取消", "采纳此份草稿"],
           defaultId: 0,
@@ -527,7 +572,50 @@ function createProjectGoalHost({
       },
     });
     external = new ProjectGoalExternalDrafts({ workflow: hostWorkflow, clock });
-    return { workflow: hostWorkflow, drafts, imports, external, getActor };
+    const { ProjectGoalModelDrafts } = require("./project-goal-model-drafts");
+    modelDrafts = new ProjectGoalModelDrafts({
+      ...modelDraftDependencies,
+      workflow: hostWorkflow,
+      memory: createMemoryService({ db, getActor, parent }),
+      clock,
+      confirm: async ({ goal, request, model, messages, memoryCount }) => {
+        getActor();
+        const choice = await getElectron().dialog.showMessageBox(parent, {
+          type: "question",
+          title: "逐次授权模型起草",
+          message:
+            model.provider === "volcengine"
+              ? "将下列目标、风险来源及明确选择的记忆发送到火山引擎云端模型，仅生成待审草稿？本次可能产生费用。"
+              : model.provider === "custom"
+                ? "将下列目标、风险来源及明确选择的记忆发送到下列本机或局域网 OpenAI 兼容推理平台，仅生成待审草稿？请核对目标地址及传输方式。"
+                : "将下列目标、风险来源及明确选择的记忆发送到本机 Ollama，仅生成待审草稿？",
+          detail: [
+            `目标：${display(goal.objective)}`,
+            `版本：${goal.revision}`,
+            `提供方：${display(model.provider)}`,
+            `模型：${display(model.model)}；地址：${display(model.endpoint)}`,
+            `建议：${request.type === "task.create" ? "创建任务" : "修改任务说明"}${request.taskType ? `；类型：${request.taskType}` : ""}`,
+            `本次选择的目标记忆：${memoryCount} 条；本次同意不扩大记忆的持久范围。`,
+            `拟发送的完整资料：\n${messages[1].content}`,
+            "治理证据会保存模型输入与响应。费用未知会如实保留；失败或中断不自动重发。保存后仍须核对正文、原生预览及逐次确认，不会自动创建或执行任务。",
+          ].join("\n\n"),
+          buttons: ["取消", "同意本次发送并起草"],
+          defaultId: 0,
+          cancelId: 0,
+          noLink: true,
+        });
+        getActor();
+        return choice?.response === 1;
+      },
+    });
+    return {
+      workflow: hostWorkflow,
+      drafts,
+      imports,
+      external,
+      modelDrafts,
+      getActor,
+    };
   }
   function workflow(event) {
     return workflowContext(event).workflow;
@@ -631,6 +719,17 @@ function createProjectGoalHost({
       return current;
     };
     getActor();
+    const service = createMemoryService({ db, getActor, parent });
+    const result = service[method](params);
+    if (result?.then)
+      return result.then((value) => {
+        getActor();
+        return value;
+      });
+    getActor();
+    return result;
+  }
+  function createMemoryService({ db, getActor, parent }) {
     const {
       ProjectGoalMemoryService,
     } = require("@chainlesschain/session-core/project-goal-memory");
@@ -668,14 +767,7 @@ function createProjectGoalHost({
         };
       },
     });
-    const result = service[method](params);
-    if (result?.then)
-      return result.then((value) => {
-        getActor();
-        return value;
-      });
-    getActor();
-    return result;
+    return service;
   }
   async function monitor(event) {
     currentWindow(event);
@@ -713,6 +805,17 @@ function createProjectGoalHost({
     context.getActor();
     return result;
   }
+  function modelCall(event, method, params) {
+    const context = workflowContext(event);
+    const result = context.modelDrafts[method](params);
+    if (result?.then)
+      return result.then((value) => {
+        context.getActor();
+        return value;
+      });
+    context.getActor();
+    return result;
+  }
   return Object.freeze({
     create: (event, params) => service(event).create(params),
     read: (event, params) => service(event).get(params),
@@ -743,6 +846,13 @@ function createProjectGoalHost({
     readDeliveryDraft: (event, params) => deliveryCall(event, "read", params),
     prepareDeliveryDraft: (event, params) =>
       deliveryCall(event, "prepare", params),
+    generateModelDraft: (event, params) => modelCall(event, "generate", params),
+    modelDraftStatus: (event, params) => modelCall(event, "status", params),
+    modelDraftRequests: (event, params) => modelCall(event, "requests", params),
+    listModelDrafts: (event, params) => modelCall(event, "list", params),
+    readModelDraft: (event, params) => modelCall(event, "read", params),
+    prepareModelDraft: (event, params) => modelCall(event, "prepare", params),
+    revokeModelDraft: (event, params) => modelCall(event, "revoke", params),
     importDraftRequest: async (event, params) => {
       if (
         !params ||
@@ -758,7 +868,7 @@ function createProjectGoalHost({
       const chosen = await getElectron().dialog.showOpenDialog(
         currentWindow(event),
         {
-          title: "选择外部任务说明请求",
+          title: "选择外部任务说明或创建任务请求",
           properties: ["openFile"],
           filters: [{ name: "Goal draft request", extensions: ["json"] }],
         },

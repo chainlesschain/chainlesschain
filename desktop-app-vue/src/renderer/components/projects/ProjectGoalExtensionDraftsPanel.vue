@@ -1,8 +1,10 @@
 <template>
   <section v-if="available" data-testid="goal-extension-drafts">
-    <h5>内置交付助手草稿</h5>
+    <h5>{{ creation ? "内置交付助手：创建任务草稿" : "内置交付助手草稿" }}</h5>
     <p>
-      按当前风险来源生成待确认的任务说明草稿。草稿不会自动创建执行意图或修改任务。
+      按当前风险来源生成待确认的{{
+        creation ? "创建任务" : "任务说明"
+      }}草稿。保存草稿后，仍需建立原生预览并逐次确认。
     </p>
     <p v-if="error" role="alert">{{ error }}</p>
     <p v-if="preparedHint" data-testid="delivery-native-preview-hint">
@@ -19,13 +21,31 @@
         {{ status.enabled ? "禁用草稿助手" : "启用草稿助手（原生确认）" }}
       </button>
       <p v-if="!status.enabled && !canSuggest">
-        先允许目标的任务说明建议，再运行一次风险检查以生成当前来源。
+        先允许目标的{{
+          creation ? "创建任务" : "任务说明"
+        }}建议，再运行一次风险检查以生成当前来源。
       </p>
       <p v-if="!status.enabled">
         助手已禁用；保留
         {{ status.savedCount }} 份历史草稿，重新启用不会自动恢复旧授权。
       </p>
       <template v-if="status.enabled && goal.status === 'active'">
+        <label v-if="creation">
+          新任务类型
+          <select
+            v-model="taskType"
+            :disabled="busy"
+            data-testid="delivery-draft-task-type"
+          >
+            <option
+              v-for="[value, label] in taskTypes"
+              :key="value"
+              :value="value"
+            >
+              {{ label }}
+            </option>
+          </select>
+        </label>
         <label
           >风险来源
           <select
@@ -57,6 +77,7 @@
         <article v-for="draft in drafts" :key="draft.id">
           <strong>{{ draft.proposal.title }}</strong>
           <p>内置规则生成 · 待确认 · 来源：{{ draft.proposal.sourceRef }}</p>
+          <p v-if="creation">新任务类型：{{ draft.proposal.taskType }}</p>
           <button
             :disabled="busy"
             data-testid="read-delivery-draft"
@@ -130,25 +151,33 @@ type Draft = {
     sourceRef: string;
     title: string;
     description: string;
+    taskType?: string;
   };
 };
 type Status = { enabled: boolean; epoch: number; savedCount: number };
 type Api = {
-  getGoalDeliveryDraftStatus(input: { goalRef: GoalRef }): Promise<Status>;
+  getGoalDeliveryDraftStatus(input: {
+    goalRef: GoalRef;
+    type?: string;
+  }): Promise<Status>;
   configureGoalDeliveryDrafts(input: {
     goalRef: GoalRef;
     expectedEpoch: number;
     enabled: boolean;
+    type?: string;
   }): Promise<Status>;
   proposeGoalDeliveryDraft(input: {
     goalRef: GoalRef;
     sourceRef: string;
     requestId: string;
+    type?: string;
+    taskType?: string;
   }): Promise<{ proposalId: string; state: string }>;
   listGoalDeliveryDrafts(input: {
     goalRef: GoalRef;
     limit: number;
     afterId?: string;
+    type?: string;
   }): Promise<{
     entries: Draft[];
     unavailableCount: number;
@@ -164,6 +193,7 @@ type Api = {
       controlGeneration: number;
       proposalId: string;
       description: string;
+      taskType?: string | null;
       status: string;
       extensionRef: { draftId: string };
     };
@@ -178,6 +208,7 @@ const props = defineProps<{
     reviewDigest?: string;
   }[];
   identityKey?: string;
+  proposalType?: "task.description.update" | "task.create";
 }>();
 const emit = defineEmits<{
   (event: "authority-error"): void;
@@ -200,9 +231,22 @@ const available = computed(
       "prepareGoalDeliveryDraft",
     ].every((key) => typeof api()?.[key as keyof Api] === "function"),
 );
+const creation = computed(() => props.proposalType === "task.create");
+const typeOptions = () => (creation.value ? { type: "task.create" } : {});
+const taskTypes = [
+  ["create_file", "创建文件"],
+  ["edit_file", "编辑文件"],
+  ["query_info", "查询信息"],
+  ["analyze_data", "分析数据"],
+  ["export_file", "导出文件"],
+  ["deploy_project", "部署项目"],
+];
+const taskType = ref("query_info");
 const canSuggest = computed(
   () =>
-    props.goal.allowedActionTypes?.includes("task.update-description") === true,
+    props.goal.allowedActionTypes?.includes(
+      creation.value ? "task.create" : "task.update-description",
+    ) === true,
 );
 const goalRef = (): GoalRef => ({
   id: props.goal.id,
@@ -235,6 +279,7 @@ function reset() {
   unavailableCount.value = 0;
   requests.clear();
   preparedHint.value = "";
+  taskType.value = "query_info";
 }
 function acceptStatus(value: Status) {
   if (
@@ -272,7 +317,11 @@ function validate(draft: Draft) {
     draft.plugin?.scope !== "desktop-builtin" ||
     draft.plugin?.name !== "project-delivery-drafts" ||
     draft.plugin?.version !== "0.1.0" ||
-    draft.proposal.type !== "task.description.update" ||
+    draft.proposal.type !==
+      (creation.value ? "task.create" : "task.description.update") ||
+    (creation.value
+      ? !taskTypes.some(([value]) => value === draft.proposal.taskType)
+      : draft.proposal.taskType !== undefined) ||
     typeof draft.id !== "string" ||
     !/^goal-extension-[a-f0-9]{64}$/.test(draft.id) ||
     typeof draft.proposal.title !== "string" ||
@@ -305,6 +354,7 @@ function failure(value: unknown) {
 async function page(stamp: number, more = false) {
   const result = await api()!.listGoalDeliveryDrafts({
     goalRef: goalRef(),
+    ...typeOptions(),
     limit: 20,
     ...(more && afterId.value ? { afterId: afterId.value } : {}),
   });
@@ -326,6 +376,7 @@ async function load(more = false) {
   try {
     const value = await api()!.getGoalDeliveryDraftStatus({
       goalRef: goalRef(),
+      ...typeOptions(),
     });
     if (!current(stamp)) return;
     const changed = acceptStatus(value);
@@ -351,6 +402,7 @@ async function configure() {
   try {
     const result = await api()!.configureGoalDeliveryDrafts({
       goalRef: goalRef(),
+      ...typeOptions(),
       expectedEpoch: status.value.epoch,
       enabled: !status.value.enabled,
     });
@@ -372,8 +424,12 @@ async function propose() {
     return;
   const stamp = generation,
     source = sourceRef.value,
-    requestId = requests.get(source) ?? crypto.randomUUID();
-  requests.set(source, requestId);
+    requestKey = JSON.stringify([
+      source,
+      creation.value ? taskType.value : null,
+    ]),
+    requestId = requests.get(requestKey) ?? crypto.randomUUID();
+  requests.set(requestKey, requestId);
   busy.value = true;
   selected.value = null;
   error.value = "";
@@ -382,12 +438,14 @@ async function propose() {
       goalRef: goalRef(),
       sourceRef: source,
       requestId,
+      ...typeOptions(),
+      ...(creation.value ? { taskType: taskType.value } : {}),
     });
     if (!current(stamp)) return;
     if (result.state !== "pending-confirmation")
       throw new Error("GOAL_EXTENSION_INVALID_RECEIPT");
     await page(stamp);
-    if (current(stamp)) requests.delete(source);
+    if (current(stamp)) requests.delete(requestKey);
   } catch (value) {
     if (current(stamp)) failure(value);
   } finally {
@@ -433,6 +491,7 @@ async function prepare(draft: Draft) {
       intent.controlGeneration !== props.goal.controlGeneration ||
       intent.proposalId !== draft.proposal.sourceRef ||
       intent.description !== draft.proposal.description ||
+      (creation.value && intent.taskType !== draft.proposal.taskType) ||
       ![
         "draft",
         "prepared",
@@ -460,6 +519,7 @@ watch(
     () => props.goal.controlGeneration,
     () => props.goal.status,
     () => props.identityKey,
+    () => props.proposalType,
     () =>
       JSON.stringify(
         props.sources

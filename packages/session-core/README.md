@@ -4,6 +4,15 @@ Shared session lifecycle, trace, agent definition, memory, approval, sandbox,
 evolution receipt, and recovery primitives used by ChainlessChain Desktop and
 the CLI.
 
+## Release candidate 0.3.26
+
+Adds controlled `task.create` proposal/request/v6 connection contracts,
+transactional draft conversion and recovery, and Memory output-token
+revalidation within an existing native transaction. Existing description-only
+grants do not acquire task-creation authority; model-derived drafts still require
+current Memory authorization and separate native preview/confirmation. Publish
+and read back this package before CLI 0.166.143 and its paired IDE extensions.
+
 ## Release 0.3.25
 
 Adds a bounded transactional goal-event journal, signed persistent cursors and
@@ -175,9 +184,28 @@ or asynchronous verifiers cannot admit converted work. Ordinary intent APIs also
 recheck current grants and source for pending work. Existing running/terminal
 receipts remain readable after revocation without executing again.
 
-The adapter currently accepts description suggestions only: `task.create` still
-needs a task-type contract. Plugins receive only the pending enqueue port; the
-queue has no execution port. Native descriptions are limited to 8192 UTF-8 bytes
+The source adapter accepts description suggestions and `task.create` drafts.
+Creation requires an explicit `taskType` from `GOAL_EXTENSION_TASK_TYPES`;
+description proposals reject that field. The type is pinned through SDK
+authorization, pending storage, conversion and native intent integrity checks.
+`list({ goalRef, type: "task.create" })` requires creation admission and returns
+only creation drafts; omitting `type` preserves description-only list behavior.
+Hosts must authorize each actual proposal type independently. The desktop
+built-in rule uses separate creation consent and retains the existing description
+grant identity. These are working-tree additions; the CLI v3 online bridge and
+v1 description-file adoption contract remain description-only. Source assistant
+0.3.0 declares creation capability; it still requires separate native authority.
+The separate `chainlesschain.goal-task-create-request/v1` file contract uses
+`createGoalTaskCreateRequest` / `validateGoalTaskCreateRequest` from
+`./goal-draft-request-contract`. Trusted native importers dispatch through
+`validateGoalDraftImportRequest`; the original `validateGoalDraftRequest` still
+accepts description files only. `ProjectGoalDraftImports` separately confirms
+each creation file and binds it to `native-imported-task-create`, preserving
+the original description identity and preventing an old adoption from granting
+creation. Request identity, full task type/body, original risk source, revocation
+epoch, native preview and ActionRun remain bound through restart and retry.
+Plugins receive only the pending enqueue port; the queue has no execution port.
+Native descriptions are limited to 8192 UTF-8 bytes
 before conversion; conversion records are limited to 8 KiB.
 Storage is bounded to 100 drafts per actor/goal/plugin, 48 KiB per record and 20
 candidates per page. The desktop's fixed built-in rule uses a separate native
@@ -260,8 +288,50 @@ fresh. These read operations use deferred transactions and support SQLite
 Native list/read/prepare methods continue the existing conversion and action
 workflow; no HTTP caller receives prepare, approval or execute authority.
 
+The same modules expose a separate creation profile:
+`validateGoalCreateDraftAccess`, `validateGoalCreateDraftDescriptor` and
+`validateGoalCreateDraftProposal`. Access schema is
+`chainlesschain.goal-create-draft-access/v1`; the descriptor is
+`chainlesschain.project-goal-connection/v6`, capability `goal.create-drafts`,
+endpoint `/goal-create-drafts`. Request/response MACs use independent v6 domains.
+Existing v3 validators, endpoint and grants remain description-only.
+
+Creation grants use `chainlesschain.goal-external-create-grant/v1` with
+`type: "task.create"`. Their identity hash additionally includes the action,
+preserving legacy grant IDs and record shapes. Current goal creation scope,
+grant epoch and source are checked before pending writes and confirmation.
+Task type is immutable through draft, conversion and intent. Revocation/counts
+are separate by action; reuse of the same plugin/goal/request identity across
+actions conflicts. Submission references retain the existing body-free schema,
+with distinct grant identity and proposal digest binding the creation action.
+Unknown outcomes require lookup of that identity, without automatic resend.
+
 The contract also validates body-free, credential-free submission references.
 Clients must persist the exact request identity before dispatch and reconcile
 unknown outcomes without automatic resend. Metadata hashes ensure consistency,
 not plugin code authentication. These exports remain unpublished; downstream
 distribution requires a corresponding child-package release first.
+
+### Native goal model-output authorization (source-only)
+
+`ProjectGoalMemoryService.revalidateOutputInTransaction(token)` repeats the
+existing exact goal/scope/sink/version/digest/grant/epoch/expiry checks inside a
+trusted caller's synchronous native transaction. Calling it without a transaction
+fails. `revalidateOutput(token)` remains the standalone wrapper; neither accepts
+cached memory bodies or adds a model sink to persistent memory permissions.
+
+The source desktop uses this guard for an on-demand local Ollama draft pipeline.
+Each model call requires its own native consent, with the full selected input.
+Memory is off by default; consent permits only that invocation's local processing.
+Pending model output is checked again on save, list/read, preview and individual
+task confirmation. Expired/revoked memory invalidates unconfirmed output; completed
+business receipts remain historical. Governance input/response evidence is retained
+under its own lifecycle, so this does not promise physical deletion of prior copies.
+
+The shared `GoalUsageLedger` reserves before socket dispatch and records unknown
+usage before the call can leave. Available prompt/completion counts are recorded
+without inventing cost. The current local adapter cannot reliably reserve a token
+or monetary upper bound, so finite token/cost budgets refuse dispatch. Existing
+model identities only query; restart or `unknown` never automatically calls again.
+These are unpublished source additions; real model-quality, GUI and business-effect
+acceptance are separate from synthetic protocol and SQLite tests.

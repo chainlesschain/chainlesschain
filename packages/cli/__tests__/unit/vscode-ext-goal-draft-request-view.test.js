@@ -12,7 +12,14 @@ const store = "project-goals-12345678-1234-1234-1234-123456789abc",
   connection = "C:/private/connection.json",
   body = "C:/input/body.txt",
   out = "C:/export/request.json";
-function harness({ cancel = false, defer = false } = {}) {
+function harness({
+  cancel = false,
+  defer = false,
+  creation = false,
+  cancelType = false,
+  wrongType = false,
+  nonzero = false,
+} = {}) {
   let receive, finish;
   const posts = [];
   const runCliText = vi.fn(({ args }) => {
@@ -41,18 +48,34 @@ function harness({ cancel = false, defer = false } = {}) {
             })
           : "[]",
       );
-    if (args[1] === "draft-request") {
+    if (["draft-request", "draft-create-request"].includes(args[1])) {
       const requestId = args
         .find((x) => x.startsWith("--request-id="))
         .slice(13);
       const result = JSON.stringify({
-        schema: "chainlesschain.goal-draft-export/v1",
+        schema: creation
+          ? "chainlesschain.goal-task-create-export/v1"
+          : "chainlesschain.goal-draft-export/v1",
         state: "request-exported",
-        goalRef: { id: "goal-1", storeId: store },
-        declaredPlugin: { name: "drafter", scope: "project" },
+        goalRef: {
+          id: "goal-1",
+          storeId: store,
+          ...(creation ? { revision: 1, controlGeneration: 0 } : {}),
+        },
+        declaredPlugin: {
+          name: "drafter",
+          scope: "project",
+          ...(creation ? { version: "0.3.0" } : {}),
+        },
         requestId,
         file: out,
         contentDigest: `sha256:${"a".repeat(64)}`,
+        ...(creation
+          ? {
+              type: "task.create",
+              taskType: wrongType ? "deploy_project" : "analyze_data",
+            }
+          : {}),
       });
       return defer
         ? new Promise((resolve) => {
@@ -78,7 +101,13 @@ function harness({ cancel = false, defer = false } = {}) {
     ViewColumn: { Active: 1 },
     window: {
       createWebviewPanel: () => panel,
-      showQuickPick: vi.fn(async (items) => items.find((x) => x.connection)),
+      showQuickPick: vi.fn(async (items) =>
+        items.some((x) => x.taskType)
+          ? cancelType
+            ? undefined
+            : items.find((x) => x.taskType === "analyze_data")
+          : items.find((x) => x.connection),
+      ),
       showOpenDialog: vi
         .fn()
         .mockResolvedValueOnce([{ fsPath: connection }])
@@ -96,7 +125,14 @@ function harness({ cancel = false, defer = false } = {}) {
     exports: module.exports,
     require: (name) =>
       name === "../chat/introspect-commands.js"
-        ? { runCliText }
+        ? {
+            runCliText,
+            runCliResult: async (options) => ({
+              ok: !nonzero,
+              code: nonzero ? 1 : 0,
+              stdout: await runCliText(options),
+            }),
+          }
         : name === "../cli-binary"
           ? { getResolvedCli: () => "cc" }
           : realRequire(name),
@@ -115,6 +151,77 @@ function harness({ cancel = false, defer = false } = {}) {
   };
 }
 describe("VS Code native request-file export", () => {
+  it("uses only native task type and paths for creation and does not submit a native draft", async () => {
+    const h = harness({ creation: true });
+    h.send({
+      command: "pluginGoalTaskCreateRequest",
+      name: "drafter",
+      scope: "project",
+      taskType: "deploy_project",
+      out: "C:/evil.json",
+    });
+    await vi.waitFor(() =>
+      expect(h.posts.some((m) => m.text?.includes("Request exported:"))).toBe(
+        true,
+      ),
+    );
+    const call = h.runCliText.mock.calls.find(
+      ([c]) => c.args[1] === "draft-create-request",
+    )[0];
+    expect(call.args).toContain("--task-type=analyze_data");
+    expect(call.args).toContain(`--out=${out}`);
+    expect(call.args.join(" ")).not.toContain("evil");
+    expect(call.maxBufferBytes).toBe(16384);
+    expect(
+      h.posts.find((m) => m.text?.includes("Request exported:")).text,
+    ).toContain("No native draft has been saved");
+  });
+  it.each([{ cancelType: true }, { wrongType: true }, { nonzero: true }])(
+    "does not report creation success after %j",
+    async (scenario) => {
+      const h = harness({ creation: true, ...scenario });
+      h.send({
+        command: "pluginGoalTaskCreateRequest",
+        name: "drafter",
+        scope: "project",
+      });
+      if (scenario.cancelType)
+        await vi.waitFor(() =>
+          expect(
+            h.runCliText.mock.calls.filter(([c]) => c.args[1] === "catalog"),
+          ).toHaveLength(2),
+        );
+      else
+        await vi.waitFor(() =>
+          expect(h.posts.some((m) => m.type === "note")).toBe(true),
+        );
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      expect(h.posts.some((m) => m.text?.includes("Request exported:"))).toBe(
+        false,
+      );
+    },
+  );
+  it("discards creation success after refresh while keeping any exported file for explicit inspection", async () => {
+    const h = harness({ creation: true, defer: true });
+    h.send({
+      command: "pluginGoalTaskCreateRequest",
+      name: "drafter",
+      scope: "project",
+    });
+    await vi.waitFor(() =>
+      expect(
+        h.runCliText.mock.calls.some(
+          ([c]) => c.args[1] === "draft-create-request",
+        ),
+      ).toBe(true),
+    );
+    h.send({ command: "refresh" });
+    h.finish();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(h.posts.some((m) => m.text?.includes("Request exported:"))).toBe(
+      false,
+    );
+  });
   it("uses paths from native pickers and ignores webview-supplied paths", async () => {
     const h = harness();
     h.send({

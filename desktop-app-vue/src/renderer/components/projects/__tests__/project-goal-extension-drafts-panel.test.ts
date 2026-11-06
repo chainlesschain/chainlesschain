@@ -119,6 +119,149 @@ describe("native delivery draft UI", () => {
     await wrapper.get('[data-testid="read-delivery-draft"]').trigger("click");
     await flushPromises();
   }
+  async function creationMode() {
+    await flushPromises();
+    await wrapper.setProps({
+      proposalType: "task.create",
+      goal: {
+        ...goal,
+        allowedActionTypes: ["task.create", "task.update-description"],
+      },
+    });
+    await flushPromises();
+  }
+  function creationDraft() {
+    const value = draft();
+    return {
+      ...value,
+      proposal: {
+        ...value.proposal,
+        type: "task.create",
+        taskType: "analyze_data",
+      },
+    };
+  }
+  it("loads and configures creation consent separately and pins the selected task type in its proposal", async () => {
+    await creationMode();
+    expect(api.getGoalDeliveryDraftStatus).toHaveBeenLastCalledWith({
+      goalRef: ref,
+      type: "task.create",
+    });
+    await enable();
+    expect(api.configureGoalDeliveryDrafts).toHaveBeenLastCalledWith({
+      goalRef: ref,
+      type: "task.create",
+      expectedEpoch: 0,
+      enabled: true,
+    });
+    await wrapper
+      .get('[data-testid="delivery-draft-task-type"]')
+      .setValue("analyze_data");
+    await wrapper
+      .get('[data-testid="delivery-draft-source"]')
+      .setValue("native-proposal");
+    await wrapper.get('[data-testid="save-delivery-draft"]').trigger("click");
+    await flushPromises();
+    expect(api.proposeGoalDeliveryDraft).toHaveBeenCalledWith({
+      goalRef: ref,
+      type: "task.create",
+      taskType: "analyze_data",
+      sourceRef: "native-proposal",
+      requestId: expect.any(String),
+    });
+    expect(api.listGoalDeliveryDrafts).toHaveBeenLastCalledWith({
+      goalRef: ref,
+      type: "task.create",
+      limit: 20,
+    });
+    expect(api.executeGoalIntent).not.toHaveBeenCalled();
+  });
+  it("retains uncertain creation request identity per source and task type", async () => {
+    await creationMode();
+    await enable();
+    api.proposeGoalDeliveryDraft.mockRejectedValue(new Error("response lost"));
+    await wrapper
+      .get('[data-testid="delivery-draft-source"]')
+      .setValue("native-proposal");
+    const send = async () => {
+      await wrapper.get('[data-testid="save-delivery-draft"]').trigger("click");
+      await flushPromises();
+    };
+    await send();
+    await send();
+    const first = api.proposeGoalDeliveryDraft.mock.calls[0][0];
+    expect(api.proposeGoalDeliveryDraft.mock.calls[1][0]).toEqual(first);
+    await wrapper
+      .get('[data-testid="delivery-draft-task-type"]')
+      .setValue("analyze_data");
+    await send();
+    expect(api.proposeGoalDeliveryDraft.mock.calls[2][0].requestId).not.toBe(
+      first.requestId,
+    );
+    await wrapper
+      .get('[data-testid="delivery-draft-task-type"]')
+      .setValue("query_info");
+    await send();
+    expect(api.proposeGoalDeliveryDraft.mock.calls[3][0]).toEqual(first);
+  });
+  it.each(["missing", "different"])(
+    "rejects a creation preview with %s task type",
+    async (change) => {
+      await creationMode();
+      await enable();
+      const value = creationDraft();
+      api.listGoalDeliveryDrafts.mockResolvedValue({
+        entries: [value],
+        unavailableCount: 0,
+        nextCursor: null,
+      });
+      api.readGoalDeliveryDraft.mockResolvedValue(value);
+      await wrapper
+        .get('[data-testid="refresh-delivery-drafts"]')
+        .trigger("click");
+      // Mirror the durable enabled status for this refresh.
+      await flushPromises();
+      api.getGoalDeliveryDraftStatus.mockResolvedValue({
+        enabled: true,
+        epoch: 1,
+        savedCount: 1,
+      });
+      await wrapper
+        .get('[data-testid="refresh-delivery-drafts"]')
+        .trigger("click");
+      await flushPromises();
+      await wrapper.get('[data-testid="read-delivery-draft"]').trigger("click");
+      await flushPromises();
+      const original = await api.prepareGoalDeliveryDraft();
+      api.prepareGoalDeliveryDraft.mockClear();
+      api.prepareGoalDeliveryDraft.mockResolvedValue({
+        intent: {
+          ...original.intent,
+          ...(change === "different" ? { taskType: "query_info" } : {}),
+        },
+      });
+      await wrapper
+        .get('[data-testid="prepare-delivery-draft"]')
+        .trigger("click");
+      await flushPromises();
+      expect(wrapper.emitted("intent-prepared")).toBeUndefined();
+      expect(wrapper.emitted("extension-invalidated")).toBeTruthy();
+      expect(api.executeGoalIntent).not.toHaveBeenCalled();
+    },
+  );
+  it("does not show a description draft returned to the creation panel", async () => {
+    await creationMode();
+    api.listGoalDeliveryDrafts.mockResolvedValue({
+      entries: [draft()],
+      unavailableCount: 0,
+      nextCursor: null,
+    });
+    await enable();
+    expect(wrapper.find('[data-testid="read-delivery-draft"]').exists()).toBe(
+      false,
+    );
+    expect(wrapper.find('[role="alert"]').exists()).toBe(true);
+  });
   it("creates a native preview only after an explicit request and sends just the persisted draft ID", async () => {
     await selectDraft();
     expect(api.prepareGoalDeliveryDraft).not.toHaveBeenCalled();

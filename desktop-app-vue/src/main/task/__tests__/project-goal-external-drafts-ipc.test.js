@@ -64,6 +64,30 @@ function save() {
     }),
   );
 }
+function enableCreation() {
+  goal = host.revise(event, {
+    id: goal.id,
+    expectedRevision: goal.revision,
+    patch: { allowedActionTypes: ["task.update-description", "task.create"] },
+  });
+  const workflow = new ProjectGoalWorkflow({
+    db,
+    getActor: () => actor,
+    clock: () => now,
+  });
+  const review = workflow.risk.evaluate({ projectId: "p1" });
+  db.transaction(() =>
+    workflow.observeInTransaction({
+      goalId: goal.id,
+      reviewId: review.review.id,
+    }),
+  ).immediate();
+  source = workflow
+    .list({ goalId: goal.id })
+    .proposals.find(
+      (item) => item.current && item.proposal.actionType === "task.create",
+    ).proposal;
+}
 beforeEach(() => {
   directory = fs.mkdtempSync(path.join(os.tmpdir(), "cc-online-draft-"));
   now = Date.now();
@@ -130,30 +154,39 @@ afterEach(() => {
 });
 
 describe("native online pending draft connection", () => {
-  it.each(["goal-description-drafter", "project-delivery-assistant"])(
-    "connects %s admission to HTTP, SQLite, native preview and confirmation",
-    async (pluginName) => {
+  it.each([
+    ["goal-description-drafter", false],
+    ["project-delivery-assistant", false],
+    ["goal-task-creator", true],
+    ["project-delivery-assistant", true],
+  ])(
+    "connects %s admission to HTTP, SQLite, native preview and confirmation (creation=%s)",
+    async (pluginName, creation) => {
+      if (creation) enableCreation();
       // Build a filesystem URL: Vite rewrites static import.meta URL assets in jsdom.
       const cliRoot = pathToFileURL(
         path.resolve(__dirname, "../../../../../packages/cli") + path.sep,
       );
-      const {
-        exportCliGoalDraftAccess,
-        sendCliGoalDraft,
-        readCliGoalDraftReceipt,
-        readCliGoalDraftSources,
-      } = await import(
-        "../../../../../packages/cli/src/lib/plugin-runtime/cli-goal-drafts.js"
-      );
-      const { trustPlugin, _deps: trustDeps } = await import(
-        "../../../../../packages/cli/src/lib/plugin-runtime/trust.js"
-      );
-      const { consentPluginCapabilities, _deps: consentDeps } = await import(
-        "../../../../../packages/cli/src/lib/plugin-runtime/capability-consent.js"
-      );
-      const { normalizeCapabilities } = await import(
-        "../../../../../packages/cli/src/lib/plugin-runtime/capabilities.js"
-      );
+      const cli =
+        await import("../../../../../packages/cli/src/lib/plugin-runtime/cli-goal-drafts.js");
+      const exportCliGoalDraftAccess = creation
+          ? cli.exportCliGoalCreateDraftAccess
+          : cli.exportCliGoalDraftAccess,
+        sendCliGoalDraft = creation
+          ? cli.sendCliGoalCreateDraft
+          : cli.sendCliGoalDraft,
+        readCliGoalDraftReceipt = creation
+          ? cli.readCliGoalCreateDraftReceipt
+          : cli.readCliGoalDraftReceipt,
+        readCliGoalDraftSources = creation
+          ? cli.readCliGoalCreateDraftSources
+          : cli.readCliGoalDraftSources;
+      const { trustPlugin, _deps: trustDeps } =
+        await import("../../../../../packages/cli/src/lib/plugin-runtime/trust.js");
+      const { consentPluginCapabilities, _deps: consentDeps } =
+        await import("../../../../../packages/cli/src/lib/plugin-runtime/capability-consent.js");
+      const { normalizeCapabilities } =
+        await import("../../../../../packages/cli/src/lib/plugin-runtime/capabilities.js");
       const sample = JSON.parse(
         fs.readFileSync(
           new URL(
@@ -209,11 +242,25 @@ describe("native online pending draft connection", () => {
         version: sample.version,
         capabilities: normalizeCapabilities(sample.permissions),
       });
-      await exportCliGoalDraftAccess(options);
+      const exportedAccess = await exportCliGoalDraftAccess(options);
+      const ideDrafts = require("../../../../../packages/vscode-extension/src/goal-drafts.js");
+      const ide = creation ? ideDrafts.creation : ideDrafts;
+      const ideInput = {
+        id: goal.id,
+        name: sample.name,
+        scope: "project",
+        expectedStore: goal.storeId,
+        connection: options.connection,
+      };
+      expect(
+        ide.parseGoalDraftAccess(JSON.stringify(exportedAccess), {
+          ...ideInput,
+          out: file,
+        }),
+      ).toMatchObject({ file });
       if (pluginName === "project-delivery-assistant") {
-        const { readCliGoalExtensionPanels } = await import(
-          "../../../../../packages/cli/src/lib/plugin-runtime/cli-goal-extension-host.js"
-        );
+        const { readCliGoalExtensionPanels } =
+          await import("../../../../../packages/cli/src/lib/plugin-runtime/cli-goal-extension-host.js");
         const evidenceFile = path.join(
           directory,
           "goal-connections",
@@ -236,9 +283,20 @@ describe("native online pending draft connection", () => {
         expect(panels.panels[0].text).toContain("riskSummary:");
         host.closeCliConnection(event);
       }
-      await host.openCliConnection(event, { goalRef: ref(), drafts: true });
+      await host.openCliConnection(event, {
+        goalRef: ref(),
+        ...(creation ? { createDrafts: true } : { drafts: true }),
+      });
       const page = await readCliGoalDraftSources(goal.id, options);
       expect(page.sources.entries[0].id).toBe(source.id);
+      const idePage = ide.parseGoalDraftSources(JSON.stringify(page), ideInput);
+      expect(idePage.entries[0].id).toBe(source.id);
+      const { readProjectGoalCatalog } =
+        await import("../../../../../packages/cli/src/lib/project-goal-connection.js");
+      expect(
+        (await readProjectGoalCatalog({ connection: options.connection }))
+          .entries[0].id,
+      ).toBe(goal.id);
       const descriptionFile = path.join(directory, "body.txt"),
         record = path.join(directory, "submission.json");
       fs.writeFileSync(descriptionFile, "Real CLI pending description");
@@ -249,9 +307,18 @@ describe("native online pending draft connection", () => {
         requestId: "real-online-1",
         descriptionFile,
         record,
+        ...(creation ? { taskType: "analyze_data" } : {}),
       };
       const result = await sendCliGoalDraft(goal.id, sendOptions);
       expect(result.state).toBe("saved");
+      expect(
+        ide.parseGoalDraftSubmission(JSON.stringify(result), {
+          ...ideInput,
+          binding: idePage.binding,
+          record,
+          requestId: sendOptions.requestId,
+        }),
+      ).toMatchObject({ state: "saved", requestId: sendOptions.requestId });
       expect(
         JSON.stringify(JSON.parse(fs.readFileSync(record, "utf8"))),
       ).not.toMatch(/Real CLI pending description|endpoint|key|connection/);
@@ -261,6 +328,7 @@ describe("native online pending draft connection", () => {
       ).toBe("saved");
       expect(rows("cc_project_goal_extension_drafts")).toBe(1);
       expect(rows("cc_business_action_runs")).toBe(0);
+      expect(rows("project_tasks")).toBe(1);
       const grant = host.listExternalDraftGrants(event, { goalRef: ref() })
         .entries[0];
       const prepared = host.prepareExternalDraft(event, {
@@ -268,13 +336,21 @@ describe("native online pending draft connection", () => {
         id: grant.id,
         draftId: result.proposalId,
       });
+      if (creation) expect(prepared.intent.taskType).toBe("analyze_data");
       expect(
         (await host.executeIntent(event, { intentId: prepared.intent.id })).run
           .status,
       ).toBe("succeeded");
       expect(
-        db.prepare("SELECT description FROM project_tasks").get().description,
+        db
+          .prepare(
+            creation
+              ? "SELECT description FROM project_tasks WHERE task_type='analyze_data'"
+              : "SELECT description FROM project_tasks",
+          )
+          .get().description,
       ).toBe("Real CLI pending description");
+      expect(rows("project_tasks")).toBe(creation ? 2 : 1);
       // The task changed, making the source stale. Receipt lookup remains valid.
       expect(
         (await readCliGoalDraftReceipt(goal.id, { ...options, record })).state,
@@ -282,102 +358,186 @@ describe("native online pending draft connection", () => {
     },
     180000,
   );
-  it("uses authenticated v3 pending-only submission, survives disconnect/restart, and requires separate native task confirmation", async () => {
-    const { createProjectGoalConnection } = await import(
-      "../../../../../packages/cli/src/lib/project-goal-connection.js"
-    );
-    const {
-      digestBusinessObjectContent: digest,
-    } = require("@chainlesschain/session-core/business-object-contract");
+  it.each([false, true])(
+    "uses authenticated pending-only submission, survives restart and requires native confirmation (creation=%s)",
+    async (creation) => {
+      if (creation) {
+        enableCreation();
+        const access = JSON.parse(fs.readFileSync(file, "utf8"));
+        access.schema = "chainlesschain.goal-create-draft-access/v1";
+        fs.writeFileSync(file, JSON.stringify(access));
+      }
+      const { createProjectGoalConnection } =
+        await import("../../../../../packages/cli/src/lib/project-goal-connection.js");
+      const {
+        digestBusinessObjectContent: digest,
+      } = require("@chainlesschain/session-core/business-object-contract");
+      await host.openCliConnection(event, {
+        goalRef: ref(),
+        ...(creation ? { createDrafts: true } : { drafts: true }),
+      });
+      const connectionFile = path.join(
+        directory,
+        "goal-connections",
+        "connection.json",
+      );
+      const descriptor = JSON.parse(fs.readFileSync(connectionFile, "utf8"));
+      expect(descriptor).toMatchObject({
+        schema: `chainlesschain.project-goal-connection/${creation ? "v6" : "v3"}`,
+        capability: creation ? "goal.create-drafts" : "goal.drafts",
+      });
+      const client = createProjectGoalConnection(connectionFile);
+      const context = await client.read(goal.id);
+      expect(context.sources.entries[0].id).toBe(source.id);
+      expect(JSON.stringify(context)).not.toMatch(
+        /Original|approvalRef|preview/,
+      );
+      const proposal = {
+        type: creation ? "task.create" : "task.description.update",
+        ...(creation ? { taskType: "analyze_data" } : {}),
+        goalRef: ref(),
+        sourceRef: source.id,
+        requestId: "online-1",
+        title: "Online suggestion",
+        description: "Online reviewed description",
+      };
+      const receipt = await client.enqueue(proposal);
+      expect(
+        await client.receipt({
+          requestId: proposal.requestId,
+          inputDigest: digest(proposal),
+        }),
+      ).toEqual(receipt);
+      expect((await client.enqueue(proposal)).proposalId).toBe(
+        receipt.proposalId,
+      );
+      expect(rows("cc_project_goal_extension_drafts")).toBe(1);
+      expect(rows("cc_business_action_runs")).toBe(0);
+      expect(rows("project_tasks")).toBe(1);
+      expect(
+        db
+          .prepare(
+            "SELECT COUNT(*) AS n FROM cc_project_goal_workflow WHERE kind='intent'",
+          )
+          .get().n,
+      ).toBe(0);
+      expect(
+        db.prepare("SELECT description FROM project_tasks").get().description,
+      ).toBe("Original");
+      host.closeCliConnection(event);
+      expect(
+        host.listExternalDraftGrants(event, { goalRef: ref() }).entries[0],
+      ).toMatchObject({ enabled: true, savedCount: 1 });
+      db.close();
+      open();
+      const grant = host.listExternalDraftGrants(event, { goalRef: ref() })
+        .entries[0];
+      const pending = host.listExternalDrafts(event, {
+        goalRef: ref(),
+        id: grant.id,
+      });
+      expect(pending.entries[0].id).toBe(receipt.proposalId);
+      const prepared = host.prepareExternalDraft(event, {
+        goalRef: ref(),
+        id: grant.id,
+        draftId: receipt.proposalId,
+      });
+      expect(
+        db.prepare("SELECT description FROM project_tasks").get().description,
+      ).toBe("Original");
+      expect(
+        (await host.executeIntent(event, { intentId: prepared.intent.id })).run
+          .status,
+      ).toBe("succeeded");
+      expect(
+        db
+          .prepare(
+            creation
+              ? "SELECT description FROM project_tasks WHERE task_type='analyze_data'"
+              : "SELECT description FROM project_tasks",
+          )
+          .get().description,
+      ).toBe(proposal.description);
+      expect(rows("project_tasks")).toBe(creation ? 2 : 1);
+      const detail = electron.dialog.showMessageBox.mock.calls.at(-1)[1].detail;
+      expect(detail).toContain("在线来源待审草稿");
+      expect(detail).toContain(grant.id);
+      host.revokeExternalDraftGrant(event, {
+        goalRef: ref(),
+        id: grant.id,
+        expectedEpoch: grant.epoch,
+      });
+      expect(
+        host.listExternalDraftGrants(event, { goalRef: ref() }).entries[0]
+          .enabled,
+      ).toBe(false);
+      expect(
+        host.readIntent(event, { intentId: prepared.intent.id }).executionState,
+      ).toBe("succeeded");
+      expect(
+        (await host.executeIntent(event, { intentId: prepared.intent.id }))
+          .replayed,
+      ).toBe(true);
+      expect(rows("project_tasks")).toBe(creation ? 2 : 1);
+    },
+    180000,
+  );
+  it("revokes description and creation grants independently and closes only the matching connection", async () => {
+    enableCreation();
     await host.openCliConnection(event, { goalRef: ref(), drafts: true });
-    const connectionFile = path.join(
-      directory,
-      "goal-connections",
-      "connection.json",
-    );
-    const descriptor = JSON.parse(fs.readFileSync(connectionFile, "utf8"));
-    expect(descriptor).toMatchObject({
-      schema: "chainlesschain.project-goal-connection/v3",
-      capability: "goal.drafts",
-    });
-    const client = createProjectGoalConnection(connectionFile);
-    const context = await client.read(goal.id);
-    expect(context.sources.entries[0].id).toBe(source.id);
-    expect(JSON.stringify(context)).not.toMatch(/Original|approvalRef|preview/);
-    const proposal = {
-      type: "task.description.update",
-      goalRef: ref(),
-      sourceRef: source.id,
-      requestId: "online-1",
-      title: "Online suggestion",
-      description: "Online reviewed description",
-    };
-    const receipt = await client.enqueue(proposal);
-    expect(
-      await client.receipt({
-        requestId: proposal.requestId,
-        inputDigest: digest(proposal),
-      }),
-    ).toEqual(receipt);
-    expect((await client.enqueue(proposal)).proposalId).toBe(
-      receipt.proposalId,
-    );
-    expect(rows("cc_project_goal_extension_drafts")).toBe(1);
-    expect(rows("cc_business_action_runs")).toBe(0);
-    expect(
-      db
-        .prepare(
-          "SELECT COUNT(*) AS n FROM cc_project_goal_workflow WHERE kind='intent'",
-        )
-        .get().n,
-    ).toBe(0);
-    expect(
-      db.prepare("SELECT description FROM project_tasks").get().description,
-    ).toBe("Original");
-    host.closeCliConnection(event);
-    expect(
-      host.listExternalDraftGrants(event, { goalRef: ref() }).entries[0],
-    ).toMatchObject({ enabled: true, savedCount: 1 });
-    db.close();
-    open();
-    const grant = host.listExternalDraftGrants(event, { goalRef: ref() })
+    const description = host.listExternalDraftGrants(event, { goalRef: ref() })
       .entries[0];
-    const pending = host.listExternalDrafts(event, {
-      goalRef: ref(),
-      id: grant.id,
+    host.closeCliConnection(event);
+    const access = JSON.parse(fs.readFileSync(file, "utf8"));
+    access.schema = "chainlesschain.goal-create-draft-access/v1";
+    fs.writeFileSync(file, JSON.stringify(access));
+    electron.dialog.showSaveDialog.mockResolvedValueOnce({
+      canceled: false,
+      filePath: path.join(directory, "goal-connections", "creation.json"),
     });
-    expect(pending.entries[0].id).toBe(receipt.proposalId);
-    const prepared = host.prepareExternalDraft(event, {
-      goalRef: ref(),
-      id: grant.id,
-      draftId: receipt.proposalId,
-    });
-    expect(
-      db.prepare("SELECT description FROM project_tasks").get().description,
-    ).toBe("Original");
-    expect(
-      (await host.executeIntent(event, { intentId: prepared.intent.id })).run
-        .status,
-    ).toBe("succeeded");
-    expect(
-      db.prepare("SELECT description FROM project_tasks").get().description,
-    ).toBe(proposal.description);
-    const detail = electron.dialog.showMessageBox.mock.calls.at(-1)[1].detail;
-    expect(detail).toContain("在线来源待审草稿");
-    expect(detail).toContain(grant.id);
+    await host.openCliConnection(event, { goalRef: ref(), createDrafts: true });
+    const prompt = electron.dialog.showMessageBox.mock.calls.at(-1)[1];
+    expect(prompt.title).toContain("创建任务");
+    expect(prompt.detail).toContain("说明草稿的旧授权不能替代");
+    const creation = host
+      .listExternalDraftGrants(event, { goalRef: ref() })
+      .entries.find((item) => item.type === "task.create");
+    expect(creation.id).not.toBe(description.id);
     host.revokeExternalDraftGrant(event, {
       goalRef: ref(),
-      id: grant.id,
-      expectedEpoch: grant.epoch,
+      id: description.id,
+      expectedEpoch: description.epoch,
     });
+    expect(host.cliConnectionStatus(event).enabled).toBe(true);
+    host.revokeExternalDraftGrant(event, {
+      goalRef: ref(),
+      id: creation.id,
+      expectedEpoch: creation.epoch,
+    });
+    expect(host.cliConnectionStatus(event).enabled).toBe(false);
+  });
+  it("rejects creation/description access-file substitution and mixed connection profiles", async () => {
+    enableCreation();
+    await expect(
+      host.openCliConnection(event, {
+        goalRef: ref(),
+        createDrafts: true,
+        drafts: true,
+      }),
+    ).rejects.toThrow();
+    await expect(
+      host.openCliConnection(event, { goalRef: ref(), createDrafts: true }),
+    ).rejects.toThrow();
+    const access = JSON.parse(fs.readFileSync(file, "utf8"));
+    access.schema = "chainlesschain.goal-create-draft-access/v1";
+    fs.writeFileSync(file, JSON.stringify(access));
+    await expect(
+      host.openCliConnection(event, { goalRef: ref(), drafts: true }),
+    ).rejects.toThrow();
     expect(
-      host.listExternalDraftGrants(event, { goalRef: ref() }).entries[0]
-        .enabled,
-    ).toBe(false);
-    expect(
-      host.readIntent(event, { intentId: prepared.intent.id }).executionState,
-    ).toBe("succeeded");
-  }, 180000);
+      host.listExternalDraftGrants(event, { goalRef: ref() }).entries,
+    ).toEqual([]);
+  });
   it("stopping a delayed native access picker cannot persist a grant", async () => {
     let finish;
     electron.dialog.showOpenDialog.mockImplementation(

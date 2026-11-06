@@ -3,6 +3,7 @@ const { createHash, timingSafeEqual } = require("node:crypto");
 const {
   validateGoalDraftSources,
   validateGoalDraftProposal,
+  validateGoalCreateDraftProposal,
   validateGoalDraftReceipt,
 } = require("@chainlesschain/session-core/goal-draft-connection-contract");
 const {
@@ -19,7 +20,7 @@ function exact(raw, keys) {
   )
     throw new Error("invalid operation");
 }
-/** V3 only: fixed endpoint, exact-byte authenticated bounded RPC. No execution. */
+/** Independent v3/v6 profiles: exact-byte authenticated bounded pending RPC. */
 function handleGoalDraftRequest({
   request,
   response,
@@ -30,19 +31,24 @@ function handleGoalDraftRequest({
   port,
   close,
 }) {
+  const creation = context.createDrafts === true;
+  const domain = creation ? "v6" : "v3",
+    endpointPath = creation ? "/goal-create-drafts" : "/goal-drafts";
+  const schema = (name) =>
+    `chainlesschain.${creation ? name.replace("goal-draft", "goal-create-draft") : name}/v1`;
   const nonce = request.headers["x-cc-nonce"],
     signature = request.headers["x-cc-signature"];
   function send(status, payload) {
     const body = JSON.stringify(payload);
     if (Buffer.byteLength(body) > MAX) throw new Error("response limit");
     response.writeHead(status, {
-      "X-CC-Signature": mac(`response-v3\n${nonce}\n${status}\n${body}`),
+      "X-CC-Signature": mac(`response-${domain}\n${nonce}\n${status}\n${body}`),
     });
     response.end(body);
   }
   if (
     !["GET", "POST"].includes(request.method) ||
-    request.url !== "/goal-drafts" ||
+    request.url !== endpointPath ||
     request.headers.host !== `127.0.0.1:${port}` ||
     request.headers.origin !== undefined ||
     request.headers["sec-fetch-site"] !== undefined ||
@@ -104,7 +110,7 @@ function handleGoalDraftRequest({
         Buffer.from(signature),
         Buffer.from(
           mac(
-            `request-v3\n${request.method}\n/goal-drafts\n${nonce}\n${bodyHash}`,
+            `request-${domain}\n${request.method}\n${endpointPath}\n${nonce}\n${bodyHash}`,
           ),
         ),
       )
@@ -130,7 +136,7 @@ function handleGoalDraftRequest({
         const result = context.readDraftContext();
         read();
         send(200, {
-          schema: "chainlesschain.project-goal-drafts/v1",
+          schema: schema("project-goal-drafts"),
           ...result,
         });
         return;
@@ -147,7 +153,7 @@ function handleGoalDraftRequest({
             : ["operation", "afterId"],
         );
         result = {
-          schema: "chainlesschain.goal-draft-sources/v1",
+          schema: schema("goal-draft-sources"),
           goalRef: context.read().goalRef,
           sources: validateGoalDraftSources(
             context.draftSources(operation.afterId),
@@ -155,10 +161,12 @@ function handleGoalDraftRequest({
         };
       } else if (operation.operation === "enqueue") {
         exact(operation, ["operation", "proposal"]);
-        const proposal = validateGoalDraftProposal(operation.proposal);
+        const proposal = (
+          creation ? validateGoalCreateDraftProposal : validateGoalDraftProposal
+        )(operation.proposal);
         const saved = context.enqueueDraft(proposal);
         result = {
-          schema: "chainlesschain.goal-draft-submit/v1",
+          schema: schema("goal-draft-submit"),
           goalRef: proposal.goalRef,
           receipt: validateGoalDraftReceipt({
             state: "saved",
@@ -170,7 +178,7 @@ function handleGoalDraftRequest({
       } else if (operation.operation === "receipt") {
         exact(operation, ["operation", "requestId", "inputDigest"]);
         result = {
-          schema: "chainlesschain.goal-draft-receipt/v1",
+          schema: schema("goal-draft-receipt"),
           goalRef: context.read().goalRef,
           receipt: validateGoalDraftReceipt(context.draftReceipt(operation)),
         };

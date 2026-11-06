@@ -1,0 +1,660 @@
+{
+  "checks": [
+    {
+      "command": [
+        "node",
+        "--check",
+        "desktop-app-vue/scripts/verify-fixed-renderer-ipc.mjs"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-delivery-drafts-ipc.test.js"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-draft-imports-ipc.test.js"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-external-drafts-ipc.test.js"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "desktop-app-vue/src/main/task/project-goal-cli-bridge.js"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "desktop-app-vue/src/main/task/project-goal-delivery-drafts.js"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "desktop-app-vue/src/main/task/project-goal-draft-request-file.js"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "desktop-app-vue/src/main/task/project-goal-drafts-transport.js"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "desktop-app-vue/src/main/task/project-goal-ipc.js"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "desktop-app-vue/src/preload/__tests__/legacy-ipc-policy.test.js"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "desktop-app-vue/src/preload/index.js"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "desktop-app-vue/vitest.business-actions-renderer.config.mjs"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "desktop-app-vue/vitest.business-actions.config.mjs"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "packages/cli/__tests__/fixtures/goal-extension-conversion-process.mjs"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "packages/cli/__tests__/integration/goal-extension-conversion-process.test.js"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "packages/cli/__tests__/unit/cli-goal-capabilities.test.js"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "packages/cli/__tests__/unit/cli-goal-draft-request.test.js"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "packages/cli/__tests__/unit/cli-goal-drafts-command.test.js"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "packages/cli/__tests__/unit/cli-goal-drafts.test.js"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "packages/cli/__tests__/unit/project-delivery-assistant-lifecycle.test.js"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "packages/cli/__tests__/unit/project-goal-drafts-transport.test.js"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "packages/cli/__tests__/unit/project-goal-extension-queue.test.js"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "packages/cli/__tests__/unit/project-goal-external-drafts.test.js"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "packages/cli/__tests__/unit/vscode-ext-goal-draft-request-view.test.js"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "packages/cli/__tests__/unit/vscode-ext-goal-drafts.test.js"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "packages/cli/src/commands/goal.js"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "packages/cli/src/lib/plugin-runtime/cli-goal-capabilities.js"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "packages/cli/src/lib/plugin-runtime/cli-goal-draft-request.js"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "packages/cli/src/lib/plugin-runtime/cli-goal-drafts.js"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "packages/cli/src/lib/plugin-runtime/goal-extensions.js"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "packages/cli/src/lib/project-goal-connection.js"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "packages/cli/src/lib/project-goal-draft-connection.js"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "packages/session-core/lib/goal-draft-connection-contract.js"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "packages/session-core/lib/goal-draft-request-contract.js"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "packages/session-core/lib/goal-extension-proposal-contract.js"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "packages/session-core/lib/project-goal-draft-imports.js"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "packages/session-core/lib/project-goal-extension-conversion.js"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "packages/session-core/lib/project-goal-extension-queue.js"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "packages/session-core/lib/project-goal-external-drafts.js"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "packages/session-core/lib/project-goal-memory.js"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "packages/vscode-extension/src/chat/introspect-commands.js"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "packages/vscode-extension/src/goal-drafts.js"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "packages/vscode-extension/src/plugin-manager.js"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "packages/vscode-extension/src/ui/plugin-manager-view.js"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-model-crash.test.cjs"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-model-drafts-ipc.test.js"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-model-protocol.test.cjs"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "desktop-app-vue/src/main/task/project-goal-model-drafts.js"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "packages/cli/__tests__/integration/vscode-goal-create-drafts-process.test.js"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "docs/research/agents/evidence/dmm-local-model-drafts-2026-11-06/verify.cjs"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "node_modules/prettier/bin/prettier.cjs",
+        "--check",
+        "desktop-app-vue/scripts/verify-fixed-renderer-ipc.mjs",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-delivery-drafts-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-draft-imports-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-external-drafts-ipc.test.js",
+        "desktop-app-vue/src/main/task/project-goal-cli-bridge.js",
+        "desktop-app-vue/src/main/task/project-goal-delivery-drafts.js",
+        "desktop-app-vue/src/main/task/project-goal-draft-request-file.js",
+        "desktop-app-vue/src/main/task/project-goal-drafts-transport.js",
+        "desktop-app-vue/src/main/task/project-goal-ipc.js",
+        "desktop-app-vue/src/preload/__tests__/legacy-ipc-policy.test.js",
+        "desktop-app-vue/src/preload/index.js",
+        "desktop-app-vue/src/renderer/components/projects/ProjectGoalActionsPanel.vue",
+        "desktop-app-vue/src/renderer/components/projects/ProjectGoalCliConnectionPanel.vue",
+        "desktop-app-vue/src/renderer/components/projects/ProjectGoalDraftImportsPanel.vue",
+        "desktop-app-vue/src/renderer/components/projects/ProjectGoalExtensionDraftsPanel.vue",
+        "desktop-app-vue/src/renderer/components/projects/ProjectGoalExternalDraftsPanel.vue",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-actions-panel.test.ts",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-cli-connection-panel.test.ts",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-draft-imports-panel.test.ts",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-extension-drafts-panel.test.ts",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-external-drafts-panel.test.ts",
+        "desktop-app-vue/vitest.business-actions-renderer.config.mjs",
+        "desktop-app-vue/vitest.business-actions.config.mjs",
+        "docs/research/agents/README.md",
+        "docs/research/agents/chainlesschain-dots-muse-mods-analysis-2026-10-06.md",
+        "docs/research/agents/dots-muse-mods-implementation-progress-2026-10-07.md",
+        "packages/cli/README.md",
+        "packages/cli/__tests__/fixtures/goal-extension-conversion-process.mjs",
+        "packages/cli/__tests__/integration/goal-extension-conversion-process.test.js",
+        "packages/cli/__tests__/unit/cli-goal-capabilities.test.js",
+        "packages/cli/__tests__/unit/cli-goal-draft-request.test.js",
+        "packages/cli/__tests__/unit/cli-goal-drafts-command.test.js",
+        "packages/cli/__tests__/unit/cli-goal-drafts.test.js",
+        "packages/cli/__tests__/unit/project-delivery-assistant-lifecycle.test.js",
+        "packages/cli/__tests__/unit/project-goal-drafts-transport.test.js",
+        "packages/cli/__tests__/unit/project-goal-extension-queue.test.js",
+        "packages/cli/__tests__/unit/project-goal-external-drafts.test.js",
+        "packages/cli/__tests__/unit/vscode-ext-goal-draft-request-view.test.js",
+        "packages/cli/__tests__/unit/vscode-ext-goal-drafts.test.js",
+        "packages/cli/src/commands/goal.js",
+        "packages/cli/src/lib/plugin-runtime/cli-goal-capabilities.js",
+        "packages/cli/src/lib/plugin-runtime/cli-goal-draft-request.js",
+        "packages/cli/src/lib/plugin-runtime/cli-goal-drafts.js",
+        "packages/cli/src/lib/plugin-runtime/examples/project-delivery-assistant/README.md",
+        "packages/cli/src/lib/plugin-runtime/goal-extensions.js",
+        "packages/cli/src/lib/project-goal-connection.js",
+        "packages/cli/src/lib/project-goal-draft-connection.js",
+        "packages/jetbrains-plugin/README.md",
+        "packages/session-core/README.md",
+        "packages/session-core/lib/goal-draft-connection-contract.js",
+        "packages/session-core/lib/goal-draft-request-contract.js",
+        "packages/session-core/lib/goal-extension-proposal-contract.js",
+        "packages/session-core/lib/project-goal-draft-imports.js",
+        "packages/session-core/lib/project-goal-extension-conversion.js",
+        "packages/session-core/lib/project-goal-extension-queue.js",
+        "packages/session-core/lib/project-goal-external-drafts.js",
+        "packages/session-core/lib/project-goal-memory.js",
+        "packages/vscode-extension/README.md",
+        "packages/vscode-extension/src/chat/introspect-commands.js",
+        "packages/vscode-extension/src/goal-drafts.js",
+        "packages/vscode-extension/src/plugin-manager.js",
+        "packages/vscode-extension/src/ui/plugin-manager-view.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-model-crash.test.cjs",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-model-drafts-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-model-protocol.test.cjs",
+        "desktop-app-vue/src/main/task/project-goal-model-drafts.js",
+        "desktop-app-vue/src/renderer/components/projects/ProjectGoalModelDraftsPanel.vue",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-model-drafts-panel.test.ts",
+        "packages/cli/__tests__/integration/vscode-goal-create-drafts-process.test.js",
+        "packages/cli/src/lib/plugin-runtime/examples/goal-task-creator/README.md",
+        "docs/research/agents/evidence/dmm-local-model-drafts-2026-11-06/README.md",
+        "docs/research/agents/evidence/dmm-local-model-drafts-2026-11-06/verify.cjs"
+      ],
+      "exitCode": 0,
+      "stdout": "Checking formatting...\nAll matched files use Prettier code style!\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "desktop-app-vue/scripts/verify-fixed-renderer-ipc.mjs"
+      ],
+      "exitCode": 0,
+      "stdout": "Fixed renderer IPC manifest is current (1376 exact channels; 156 unregistered renderer channels denied).\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "node_modules/prettier/bin/prettier.cjs",
+        "--check",
+        ".github/workflows/test.yml",
+        "desktop-app-vue/package.json"
+      ],
+      "exitCode": 0,
+      "stdout": "Checking formatting...\nAll matched files use Prettier code style!\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "packages/cli/scripts/gen-command-manifest.mjs",
+        "--check"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "packages/cli/scripts/gen-command-help-index.mjs",
+        "--check"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "packages/cli/scripts/gen-shell-completions.mjs",
+        "--check"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "Shell completions are current (196 command tokens).\n"
+    },
+    {
+      "command": [
+        "node",
+        "packages/cli/scripts/gen-cli-reference.mjs",
+        "--check",
+        "docs/cli/CLI_REFERENCE.generated.md"
+      ],
+      "exitCode": 0,
+      "stdout": "No drift: docs/cli/CLI_REFERENCE.generated.md matches the manifest.\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  ],
+  "passed": 58,
+  "failed": 0
+}

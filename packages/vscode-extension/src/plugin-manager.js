@@ -298,6 +298,73 @@ function buildCliGoalDraftRequestArgs(input) {
     ...(expectedStore ? [`--expected-store=${expectedStore}`] : []),
   ];
 }
+const GOAL_TASK_TYPES = Object.freeze([
+  "create_file",
+  "edit_file",
+  "query_info",
+  "analyze_data",
+  "export_file",
+  "deploy_project",
+]);
+function buildCliGoalTaskCreateRequestArgs(input) {
+  if (!GOAL_TASK_TYPES.includes(input.taskType))
+    throw new Error("Invalid task type selection");
+  const args = buildCliGoalDraftRequestArgs(input);
+  args[1] = "draft-create-request";
+  return [...args, `--task-type=${input.taskType}`];
+}
+function parseCliGoalTaskCreateExport(text, expected) {
+  if (typeof text !== "string" || Buffer.byteLength(text, "utf8") > 16384)
+    return null;
+  try {
+    const value = JSON.parse(text);
+    const keys = [
+      "schema",
+      "state",
+      "goalRef",
+      "declaredPlugin",
+      "requestId",
+      "contentDigest",
+      "file",
+      "type",
+      "taskType",
+    ];
+    if (
+      !value ||
+      Object.keys(value).length !== keys.length ||
+      keys.some((key) => !Object.hasOwn(value, key)) ||
+      value.schema !== "chainlesschain.goal-task-create-export/v1" ||
+      value.type !== "task.create" ||
+      !GOAL_TASK_TYPES.includes(value.taskType) ||
+      value.taskType !== expected.taskType ||
+      !value.goalRef ||
+      Object.keys(value.goalRef).length !== 4 ||
+      !Number.isSafeInteger(value.goalRef.revision) ||
+      value.goalRef.revision < 1 ||
+      !Number.isSafeInteger(value.goalRef.controlGeneration) ||
+      value.goalRef.controlGeneration < 0 ||
+      !value.declaredPlugin ||
+      Object.keys(value.declaredPlugin).length !== 3 ||
+      typeof value.declaredPlugin.version !== "string" ||
+      !/^[0-9]+\.[0-9]+\.[0-9]+(?:[-+][A-Za-z0-9.-]+)?$/.test(
+        value.declaredPlugin.version,
+      )
+    )
+      return null;
+    const result = parseCliGoalDraftExport(
+      JSON.stringify({
+        ...value,
+        schema: "chainlesschain.goal-draft-export/v1",
+      }),
+      expected,
+    );
+    return result
+      ? { ...result, type: "task.create", taskType: value.taskType }
+      : null;
+  } catch {
+    return null;
+  }
+}
 function parseCliGoalDraftExport(text, expected) {
   if (typeof text !== "string" || Buffer.byteLength(text, "utf8") > 16384)
     return null;
@@ -655,6 +722,8 @@ module.exports = {
   parseCliGoalCatalog,
   buildCliGoalPanelsArgs,
   buildCliGoalDraftRequestArgs,
+  buildCliGoalTaskCreateRequestArgs,
+  parseCliGoalTaskCreateExport,
   parseCliGoalDraftExport,
   parseCliGoalPanels,
   formatCliGoalPanels,

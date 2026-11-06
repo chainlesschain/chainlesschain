@@ -2,6 +2,14 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.179] - local compute and pending task creation (2026-11-06)
+
+- Recommend CLI 0.166.143; publish after verified Session Core 0.3.26 and CLI, pairing with the other IDE 0.4.196.
+- Add a distinct Local compute / OpenAI compatible option for LEXDATA, vLLM and SGLang, custom platform model IDs, optional platform keys, explicit HTTP consent and atomic CLI readback.
+- Keep relay protocol selection separate, never reuse an old endpoint key for a new keyless platform, and verify saved credentials only when required or explicitly supplied.
+- Add explicit task-creation request-file and v6 pending-draft controls for admitted scenario packages; matching desktop native consent and confirmation remain required.
+- Actual LEXDATA inference, real IDE GUI and business-effect assessment remain unverified; the supplied LEXDATA discovery connection was reset.
+
 ## [0.37.178] - authorized goal events and retained history (2026-11-05)
 
 - Recommend CLI 0.166.142 and pair with JetBrains 0.4.195 after verified upstream publication.

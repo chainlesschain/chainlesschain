@@ -3,13 +3,26 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.143",
+      "cliVersions": ["0.166.143"],
+      "date": "2026-11-06",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Added - cc CLI 0.166.143: local compute and pending task creation (candidate, 2026-11-06)",
+          "body": "- Pair Session Core 0.3.26, Open VSX 0.37.179 and JetBrains 0.4.196 after exact-source three-OS gates and OIDC upstream publication/readback.\n- Add local OpenAI-compatible platform choices (LEXDATA / vLLM / SGLang) in both IDEs, optional platform credentials, explicit HTTP consent and atomic configuration/readback; do not reuse old target credentials when switching keyless endpoints.\n- Add controlled goal task-creation request files, v6 pending-draft connections and the admitted project-delivery-assistant 0.3.0 declaration; native preview/confirmation and matching desktop support remain required.\n- Desktop source also includes per-call governed Ollama, Volcengine and private OpenAI drafting, Memory output authorization and durable no-retry recovery. This release does not publish desktop/mobile clients.\n- Preserve the two synthetic real Volcengine cases (1,176 tokens, unknown cost) separately from the 374 focused regressions/22 checks. LEXDATA actual inference, real GUI and independent business-effect acceptance remain unverified."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.142",
       "cliVersions": ["0.166.142"],
       "date": "2026-11-05",
       "title": "",
       "sections": [
         {
-          "heading": "Added - cc CLI 0.166.142: authorized goal events and retained recovery (candidate, 2026-11-05)",
+          "heading": "Added - cc CLI 0.166.142: authorized goal events and retained recovery (released, 2026-11-05)",
           "body": "- Add standalone status and separately authorized native risk/action observation, plus a transactional retained event journal in Session Core 0.3.25.\n- Add one-page CLI replay with durable new/resume checkpoints, at-least-once delivery, and explicit VS Code / JetBrains recovery controls.\n- Compose the data-only project-delivery-assistant 0.2.0 scenario with full declaration consent and per-operation capability limits; native confirmation remains separate from pending drafts.\n- Pair Open VSX 0.37.178 and JetBrains 0.4.195 only after the exact-source CLI matrices, OIDC publication and public package verification. Real GUI and business-effect acceptance remain separate."
         }
       ]

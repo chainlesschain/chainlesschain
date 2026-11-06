@@ -54,6 +54,16 @@
       在线提议仅保存待审草稿。停止连接后可继续在桌面处理；在来源授权区撤权会使旧草稿及未确认预览失效。
     </p>
     <button
+      :disabled="busy || goal.status !== 'active'"
+      data-testid="open-goal-cli-create-drafts"
+      @click="act('createDrafts')"
+    >
+      另行授权在线创建任务待审连接
+    </button>
+    <p>
+      创建提议使用独立授权，不沿用说明草稿连接；保存后仍须当前预览与逐次原生确认。
+    </p>
+    <button
       v-if="status?.enabled"
       :disabled="busy"
       data-testid="close-goal-cli-connection"
@@ -105,6 +115,7 @@ async function act(
     | "open"
     | "evidence"
     | "drafts"
+    | "createDrafts"
     | "events"
     | "eventHistory"
     | "close"
@@ -120,6 +131,7 @@ async function act(
       method === "open" ||
       method === "evidence" ||
       method === "drafts" ||
+      method === "createDrafts" ||
       method === "events" ||
       method === "eventHistory"
         ? await api().openGoalCliConnection({
@@ -131,6 +143,7 @@ async function act(
             },
             ...(method === "evidence" ? { evidence: true } : {}),
             ...(method === "drafts" ? { drafts: true } : {}),
+            ...(method === "createDrafts" ? { createDrafts: true } : {}),
             ...(method === "events" ? { events: true } : {}),
             ...(method === "eventHistory" ? { eventHistory: true } : {}),
           })

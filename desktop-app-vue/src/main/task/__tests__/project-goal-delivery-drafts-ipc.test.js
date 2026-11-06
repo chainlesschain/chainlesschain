@@ -113,6 +113,183 @@ afterEach(() => {
   fs.rmSync(directory, { recursive: true, force: true });
 });
 
+describe("separately authorized creation drafts", () => {
+  const createStatus = () =>
+    host.deliveryDraftStatus(event, {
+      goalRef: goalRef(),
+      type: "task.create",
+    });
+  const configureCreate = (enabled) =>
+    host.configureDeliveryDrafts(event, {
+      goalRef: goalRef(),
+      type: "task.create",
+      expectedEpoch: createStatus().epoch,
+      enabled,
+    });
+  let createSource;
+  beforeEach(() => {
+    goal = host.revise(event, {
+      id: goal.id,
+      expectedRevision: goal.revision,
+      patch: {
+        allowedActionTypes: ["task.update-description", "task.create"],
+      },
+    });
+    const review = workflow.risk.evaluate({ projectId: "p1" });
+    db.transaction(() =>
+      workflow.observeInTransaction({
+        goalId: goal.id,
+        reviewId: review.review.id,
+      }),
+    ).immediate();
+    const proposals = workflow.list({ goalId: goal.id }).proposals;
+    createSource = proposals.find(
+      (item) => item.current && item.proposal.actionType === "task.create",
+    ).proposal;
+    source = proposals.find(
+      (item) =>
+        item.current && item.proposal.actionType === "task.update-description",
+    ).proposal;
+  });
+  const createDraft = (patch = {}) =>
+    host.proposeDeliveryDraft(event, {
+      goalRef: goalRef(),
+      sourceRef: createSource.id,
+      requestId: "create-request",
+      type: "task.create",
+      taskType: "query_info",
+      ...patch,
+    });
+  const taskCount = () =>
+    db.prepare("SELECT COUNT(*) AS n FROM project_tasks").get().n;
+  it("requires independent consent in both directions and retains the legacy description grant identity", async () => {
+    await configure(true);
+    const description = propose();
+    expect(createStatus()).toMatchObject({
+      enabled: false,
+      epoch: 0,
+      capability: "proposal:task.create",
+    });
+    expect(() => createDraft()).toThrow("NOT_ADMITTED");
+    await configureCreate(true);
+    expect(electron.dialog.showMessageBox.mock.calls[1][1].message).toContain(
+      "创建任务",
+    );
+    expect(electron.dialog.showMessageBox.mock.calls[1][1].detail).toContain(
+      "proposal:task.create",
+    );
+    expect(status()).toMatchObject({ enabled: true, epoch: 1, savedCount: 1 });
+    const saved = createDraft();
+    expect(createStatus().savedCount).toBe(1);
+    expect(
+      host
+        .listDeliveryDrafts(event, { goalRef: goalRef(), type: "task.create" })
+        .entries.map((e) => e.id),
+    ).toEqual([saved.proposalId]);
+    expect(
+      host
+        .listDeliveryDrafts(event, { goalRef: goalRef() })
+        .entries.map((e) => e.id),
+    ).toEqual([description.proposalId]);
+    await configure(false);
+    expect(createStatus().enabled).toBe(true);
+    expect(
+      host.readDeliveryDraft(event, { id: saved.proposalId }).proposal.taskType,
+    ).toBe("query_info");
+    expect(() => propose("description-with-only-create-grant")).toThrow(
+      "NOT_ADMITTED",
+    );
+    await configureCreate(false);
+    await configure(true);
+    expect(() =>
+      createDraft({ requestId: "create-with-only-description-grant" }),
+    ).toThrow("NOT_ADMITTED");
+  });
+  it("creates exactly one task after native preview and confirmation and replays its receipt after reopen and revoke", async () => {
+    await configureCreate(true);
+    const saved = createDraft();
+    expect(createDraft()).toEqual(saved);
+    const prepared = host.prepareDeliveryDraft(event, { id: saved.proposalId });
+    expect(prepared.intent.taskType).toBe("query_info");
+    expect(taskCount()).toBe(1);
+    expect(electron.dialog.showMessageBox).toHaveBeenCalledTimes(1);
+    db.close();
+    open();
+    expect(
+      host.prepareDeliveryDraft(event, { id: saved.proposalId }).intent.id,
+    ).toBe(prepared.intent.id);
+    const receipt = await host.executeIntent(event, {
+      intentId: prepared.intent.id,
+    });
+    expect(receipt.run.status).toBe("succeeded");
+    expect(taskCount()).toBe(2);
+    const dialog = electron.dialog.showMessageBox.mock.calls[1][1];
+    expect(dialog.buttons).toContain("确认创建");
+    expect(dialog.detail).toContain('任务类型："query_info"');
+    expect(dialog.detail).toContain(saved.proposalId);
+    await configureCreate(false);
+    db.close();
+    open();
+    expect(
+      (await host.executeIntent(event, { intentId: prepared.intent.id }))
+        .replayed,
+    ).toBe(true);
+    expect(taskCount()).toBe(2);
+    expect(electron.dialog.showMessageBox).toHaveBeenCalledTimes(2);
+  });
+  it("does not revive an older creation grant through a late native consent dialog", async () => {
+    await configureCreate(true);
+    await configureCreate(false);
+    let finish;
+    electron.dialog.showMessageBox.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    const pending = configureCreate(true);
+    // Change the grant twice while the original confirmation is pending.
+    await configureCreate(true);
+    await configureCreate(false);
+    finish({ response: 1 });
+    await expect(pending).rejects.toThrow("GRANT_CONFLICT");
+    expect(createStatus()).toMatchObject({ enabled: false, epoch: 4 });
+    expect(count()).toBe(0);
+  });
+  it("rejects creation consent without goal scope and rejects invalid or cross-action proposals", async () => {
+    goal = host.revise(event, {
+      id: goal.id,
+      expectedRevision: goal.revision,
+      patch: { allowedActionTypes: ["task.update-description"] },
+    });
+    await expect(configureCreate(true)).rejects.toThrow("ACTION_OUT_OF_SCOPE");
+    expect(electron.dialog.showMessageBox).not.toHaveBeenCalled();
+    expect(() => createDraft({ taskType: "custom" })).toThrow(
+      "INVALID_REQUEST",
+    );
+    expect(() => propose()).toThrow("NOT_ADMITTED");
+  });
+  it("invalidates a pending creation confirmation on revocation without invalidating description consent", async () => {
+    await configure(true);
+    await configureCreate(true);
+    const saved = createDraft(),
+      prepared = host.prepareDeliveryDraft(event, { id: saved.proposalId });
+    electron.dialog.showMessageBox.mockImplementation(async () => {
+      await configureCreate(false);
+      return { response: 1 };
+    });
+    await expect(
+      host.executeIntent(event, { intentId: prepared.intent.id }),
+    ).rejects.toThrow("EXTENSION_REJECTED");
+    expect(taskCount()).toBe(1);
+    expect(status().enabled).toBe(true);
+    expect(
+      host.readIntent(event, { intentId: prepared.intent.id }).receipt.run
+        .status,
+    ).toBe("denied");
+  });
+});
+
 describe("trusted built-in delivery draft host", () => {
   it("starts disabled and only enables after a native scoped confirmation", async () => {
     expect(status()).toMatchObject({

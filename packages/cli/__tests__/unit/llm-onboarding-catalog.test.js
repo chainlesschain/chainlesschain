@@ -48,14 +48,21 @@ describe("shared new-connection model recommendations", () => {
   });
 
   it("uses the same model, endpoint and key requirements for every official preset", () => {
-    expect(PROVIDER_PRESETS).toHaveLength(10);
+    expect(PROVIDER_PRESETS).toHaveLength(11);
     for (const preset of PROVIDER_PRESETS) {
       expect(LLM_PROVIDERS[preset.id]).toMatchObject({
         defaultModel: preset.defaultModel,
         defaultBaseUrl: preset.baseUrl,
         requiresApiKey: preset.needsKey,
       });
-      expect(preset.baseUrl).toBe(BUILT_IN_PROVIDERS[preset.id].baseUrl);
+      if (preset.id !== "custom")
+        expect(preset.baseUrl).toBe(BUILT_IN_PROVIDERS[preset.id].baseUrl);
+      else
+        expect(preset).toMatchObject({
+          baseUrl: "",
+          defaultModel: "",
+          needsKey: false,
+        });
       expect(suggestVisionModel(preset.id)).toBe(preset.visionModel);
     }
   });
@@ -84,9 +91,7 @@ describe("shared new-connection model recommendations", () => {
     expect(BUILT_IN_PROVIDERS.openai.models[0]).toBe("gpt-4o");
     expect(LLM_PROVIDERS["openai-proxy"].defaultModel).toBe("gpt-4o");
     expect(LLM_PROVIDERS.custom.defaultModel).toBe("");
-    expect(
-      PROVIDER_PRESETS.some((entry) => entry.isProxy || entry.id === "custom"),
-    ).toBe(false);
+    expect(PROVIDER_PRESETS.some((entry) => entry.isProxy)).toBe(false);
     expect(
       resolveModelCapabilityProfile({
         provider: "openai",

@@ -36,6 +36,20 @@ function setup() {
   return api;
 }
 describe("explicit desktop connection controls", () => {
+  it("opens creation drafts only through the dedicated native consent action", async () => {
+    const api = setup();
+    await flushPromises();
+    expect(api.openGoalCliConnection).not.toHaveBeenCalled();
+    await wrapper
+      .get('[data-testid="open-goal-cli-create-drafts"]')
+      .trigger("click");
+    await flushPromises();
+    const { status, ...goalRef } = goal;
+    expect(api.openGoalCliConnection).toHaveBeenCalledExactlyOnceWith({
+      goalRef,
+      createDrafts: true,
+    });
+  });
   it("requests retained event history through a separate explicit native confirmation", async () => {
     const api = setup();
     await flushPromises();

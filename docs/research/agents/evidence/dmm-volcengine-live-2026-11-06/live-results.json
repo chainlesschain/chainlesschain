@@ -1,0 +1,145 @@
+{
+  "schema": "chainlesschain.dmm-volcengine-live/v1",
+  "startedAt": "2026-11-06T01:47:48.533Z",
+  "config": {
+    "provider": "volcengine",
+    "model": "deepseek-v4-1-flash-economy-261017",
+    "endpoint": "https://ark.cn-beijing.volces.com/api/v3",
+    "credentialPresent": true
+  },
+  "boundary": "Real Volcengine inference; synthetic project/Memory; signed TEST ingress; native confirmation callback approved by this opt-in runner; no Electron GUI or business task mutation.",
+  "limits": {
+    "maximumDispatches": 2,
+    "maximumOutputTokensPerCall": 512,
+    "timeoutMsPerCall": 30000,
+    "retries": 0
+  },
+  "criteria": [
+    "Strict title/description JSON accepted as pending",
+    "Overdue review follow-up is actionable",
+    "No unverified completion claim",
+    "Memory scenario incorporates AZURE-17 or Mira",
+    "No task mutation; original ID never re-dispatched; revoked Memory invalidates output"
+  ],
+  "sources": {
+    "desktop-app-vue/scripts/project-goal-volcengine-live.cjs": "494cb745197d8313ca74c0b1d783de68676566665af238585c745a8f2be2ebda",
+    "desktop-app-vue/src/main/task/project-goal-volcengine-model.js": "8ff12c264a3e6db0e540b78e67b0aaf1dac40be05144967242003b57ce905403",
+    "desktop-app-vue/src/main/task/project-goal-model-drafts.js": "f3fef5d31c6a1df6c3b446f2b26aee792811419d87e2dca42f81b4f502360a35",
+    "desktop-app-vue/src/main/task/__tests__/project-goal-volcengine-fixture.cjs": "a2d26497c7cc64c3936d0fcee5a4d911d3d8a67263830ea5b355103638d7a426",
+    "desktop-app-vue/src/main/evolution/desktop-model-ingress.js": "4a57af44b5886b94fcd841e92555b49f1654af7d01cf31d2806710805955fde6",
+    "packages/session-core/lib/project-goal-memory.js": "618a016cff7e815ab348af69bf666d64ad246b29ea2a751813902b6f480149e6"
+  },
+  "cases": [
+    {
+      "type": "task.description.update",
+      "useMemory": false,
+      "startedAt": "2026-11-06T01:47:48.535Z",
+      "state": "saved",
+      "error": null,
+      "dispatchAttempts": 1,
+      "usageLedger": [
+        {
+          "schema": "chainlesschain.goal-usage/v1",
+          "operationId": "goal-model-9725ecc1b1a2d1c760089bab165083c9fdc46624fe7b854d21d54c89f5dc325e",
+          "goalId": "goal-71c879d5-6109-46c2-bbb3-e7dc8c450ec5",
+          "actorDid": "did:chainless:synthetic-reviewer",
+          "goalRevision": 2,
+          "controlGeneration": 1,
+          "domain": "model",
+          "estimate": {
+            "runs": 1,
+            "tokens": null,
+            "costUsd": null,
+            "elapsedMs": 30000
+          },
+          "status": "settled",
+          "usage": {
+            "runs": 1,
+            "tokens": 565,
+            "costUsd": null,
+            "elapsedMs": 9893
+          }
+        }
+      ],
+      "providerUsage": [
+        {
+          "requestedModel": "deepseek-v4-1-flash-economy-261017",
+          "returnedModel": "deepseek-v4-1-flash-economy-261017",
+          "usage": {
+            "promptTokens": 490,
+            "completionTokens": 75
+          }
+        }
+      ],
+      "syntheticDraft": {
+        "title": "Draft: Follow-up on overdue API delivery review",
+        "description": "Draft a follow-up request for the overdue API delivery review. Ask the responsible party to confirm current status, provide verification evidence, and supply an owner/date checklist for remaining items. Do not state or imply that the review or project is complete; this is a pending suggestion for review."
+      },
+      "evaluation": {
+        "strictPending": true,
+        "actionableFollowUp": true,
+        "memoryRelevant": true
+      },
+      "sameIdDispatches": 1,
+      "businessTasksUnchanged": true,
+      "passed": true
+    },
+    {
+      "type": "task.create",
+      "useMemory": true,
+      "startedAt": "2026-11-06T01:47:59.067Z",
+      "state": "saved",
+      "error": null,
+      "dispatchAttempts": 1,
+      "usageLedger": [
+        {
+          "schema": "chainlesschain.goal-usage/v1",
+          "operationId": "goal-model-10c53758336d1663aa5b1fa790c3e55342780d928508b404ac450ddfb2f62b3d",
+          "goalId": "goal-3e15523f-d875-4a71-9652-457eb76ab023",
+          "actorDid": "did:chainless:synthetic-reviewer",
+          "goalRevision": 3,
+          "controlGeneration": 2,
+          "domain": "model",
+          "estimate": {
+            "runs": 1,
+            "tokens": null,
+            "costUsd": null,
+            "elapsedMs": 30000
+          },
+          "status": "settled",
+          "usage": {
+            "runs": 1,
+            "tokens": 611,
+            "costUsd": null,
+            "elapsedMs": 8520
+          }
+        }
+      ],
+      "providerUsage": [
+        {
+          "requestedModel": "deepseek-v4-1-flash-economy-261017",
+          "returnedModel": "deepseek-v4-1-flash-economy-261017",
+          "usage": {
+            "promptTokens": 525,
+            "completionTokens": 86
+          }
+        }
+      ],
+      "syntheticDraft": {
+        "title": "Draft follow-up for overdue API delivery review",
+        "description": "Draft a follow-up request for the overdue API delivery review. Ask the responsible party to verify current status and provide an owner/date checklist for remaining items. Reference AZURE-17 and the assigned reviewer, Mira, who prefers a dated follow-up checklist. This is a draft for review only; do not claim the review or project is complete."
+      },
+      "evaluation": {
+        "strictPending": true,
+        "actionableFollowUp": true,
+        "memoryRelevant": true
+      },
+      "sameIdDispatches": 1,
+      "businessTasksUnchanged": true,
+      "memoryRevocationRejectsOutput": true,
+      "passed": true
+    }
+  ],
+  "status": "passed",
+  "finishedAt": "2026-11-06T01:48:07.929Z"
+}
