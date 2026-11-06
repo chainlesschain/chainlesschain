@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人 AI 管理平台
-  tagline: "CLI 0.166.142 / Open VSX 0.37.178 / JetBrains 0.4.195 已公开；客户端 v5.0.3.144，候选 .145 尚未完整发行"
+  tagline: "CLI 0.166.143 / Open VSX 0.37.179 / JetBrains 0.4.196 已公开；本地算力与受控创建请求；客户端 v5.0.3.145 独立发行"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -21,9 +21,9 @@ hero:
 
 features:
   - icon: ⚠️
-    title: CLI .142 目标事件与历史恢复
-    details: "另行授权观察事件，显式读取一页并提交检查点；两款 IDE 推荐 CLI .142。原生历史需新版桌面端，候选 .145 尚未公开；当前下载为 v5.0.3.144。"
-    link: /chainlesschain/cli-ide-update-2026-11-05-142
+    title: CLI .143 本地算力与待审创建
+    details: "两款 IDE 推荐 CLI .143；本地算力平台配置与待审创建请求已公开。客户端 .145 已独立发行，新增原生 v6 创建/模型草稿仍需匹配的新构建。"
+    link: /chainlesschain/cli-ide-update-2026-11-06-143
   - icon: 🔗
     title: CLI / IDE 与桌面目标草稿
     details: "CLI .140 修复损坏工具参数恢复与可信摘要；桌面目标草稿互通仍需匹配客户端构建、显式授权及原生确认，CLI 或插件发布不能替代产品验收。"
@@ -34,11 +34,11 @@ features:
     link: /chainlesschain/agent-input-and-recovery
   - icon: 🏢
     title: 组织目标、授权记忆与站内通知（主线）
-    details: 历史产品 .140 已包含显式巡检、多级审批、独立验收、共享记忆与授权通知；当前 .144 独立发行，记忆不自动注入模型。
+    details: 历史产品 .140 已包含显式巡检、多级审批、独立验收、共享记忆与授权通知；当前 .145 独立发行，记忆不自动注入模型。
     link: /chainlesschain/organization-project-current
   - icon: 🎯
     title: 持久项目目标与独立验收（主线）
-    details: 历史产品 .140 包含个人目标、巡检、动作、独立验收、记忆面板和站内通知；当前 .144 按独立发行证据核验。
+    details: 历史产品 .140 包含个人目标、巡检、动作、独立验收、记忆面板和站内通知；当前 .145 按独立发行证据核验。
     link: /chainlesschain/project-goals-current
   - icon: 🧪
     title: RRSI 五池与质量回执（主线）
@@ -86,6 +86,10 @@ features:
     title: 发布证据分层
     details: "CLI 与 IDE 的精确提交门禁、公共制品回读、模型任务验收具有不同证据范围。原生产品 .143 已独立公开，五平台构建及 22 个资产通过核验；完整 native review 仍保持 NOT_ADMITTED。"
 ---
+
+## 2026-11-06 当前公开发行
+
+CLI **0.166.143**、Session Core **0.3.26**、Open VSX **0.37.179**、JetBrains **0.4.196** 已公开核验，两个 IDE 均推荐 CLI .143。新增本地算力配置、端点凭据隔离和受控创建请求；客户端 **v5.0.3.145** 独立公开，新增原生 v6 创建与模型草稿仍需匹配的新桌面构建。后文带日期记录保留历史范围。
 
 ## 当前公开版本（2026-11-03）
 

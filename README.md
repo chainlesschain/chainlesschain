@@ -2,7 +2,7 @@
 
 当前公开 CLI **0.166.143**、Session Core **0.3.26** 已通过准确提交三平台门禁、Actions OIDC 发布及独立公开字节/签名来源核验。Open VSX **0.37.179** 已公开，公开 VSIX 与官方制品一致；JetBrains **0.4.196** 已获批且可下载，627 个原始 payload 文件与官方构建一致。两端均推荐 CLI **0.166.143**，详见[本次发布记录](docs/research/cli/evidence/release143-public/README.md)。准确发行源码为 `3fa3a4b258bbcb60b23b4298cec375661ad6f410`。
 
-安装 `npm i -g chainlesschain@0.166.143 --registry https://registry.npmjs.org`，重启宿主后运行 `cc --version`、`cc doctor`。本批增加力数/vLLM/SGLang 等本地算力配置、端点凭据隔离和待审目标创建请求；原生创建仍需匹配桌面实现与另行确认。本次不发布 PC/移动端，真实 IDE/Electron GUI、力数推理及业务效果验收仍独立进行。[升级说明](docs-site/docs/chainlesschain/cli-ide-update-2026-11-06-143.md) · [上一版发行记录](docs/research/cli/evidence/release142-public/README.md)
+安装 `npm i -g chainlesschain@0.166.143 --registry https://registry.npmjs.org`，重启宿主后运行 `cc --version`、`cc doctor`。本批增加力数/vLLM/SGLang 等本地算力配置、端点凭据隔离和待审目标创建请求；原生创建仍需匹配桌面实现与另行确认。当前公开客户端为 **v5.0.3.145**，来自较早独立源码；本批新增原生创建/模型草稿需要匹配的新桌面构建。本次不重发 PC/移动端，真实 IDE/Electron GUI、力数推理及业务效果验收仍独立进行。[升级说明](docs-site/docs/chainlesschain/cli-ide-update-2026-11-06-143.md) · [设计说明](docs/design/release-runtime-update-2026-11-06-143.md) · [上一版发行记录](docs/research/cli/evidence/release142-public/README.md)
 
 <!-- release141-current:start -->
 
