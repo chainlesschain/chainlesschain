@@ -137,6 +137,10 @@ export default defineConfig({
             link: "/modules/110-agent-platform-release-boundaries",
           },
           {
+            text: "CLI .143：本地算力与待审创建",
+            link: "/release-runtime-update-2026-11-06-143",
+          },
+          {
             text: "CLI .142: goal events and retained history",
             link: "/release-runtime-update-2026-11-05-142",
           },
@@ -1138,6 +1142,10 @@ export default defineConfig({
               text: "运行时设计记录",
               collapsed: true,
               items: [
+                {
+                  text: "CLI .143：本地算力与待审创建",
+                  link: "/release-runtime-update-2026-11-06-143",
+                },
                 {
                   text: "CLI .142: goal events and retained history",
                   link: "/release-runtime-update-2026-11-05-142",

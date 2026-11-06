@@ -1,0 +1,35 @@
+{
+  "checkedAt": "2026-11-06",
+  "reviewedSourceCommit": "d2070ce914af8d675191e3492e0ce7db650c79c3",
+  "releaseSourceCommit": "3fa3a4b258bbcb60b23b4298cec375661ad6f410",
+  "productSourceCommit": "93917e15d6fd65a4a0147f2e5b5aace1bc87294a",
+  "gitChangesReviewed": [
+    "a527352f32",
+    "6175da0ffe",
+    "dc5475d38c",
+    "27667d660e",
+    "3fa3a4b258"
+  ],
+  "authoritativeDesign": "docs/design/release-runtime-update-2026-11-06-143.md",
+  "upgradeGuide": "docs-site/docs/chainlesschain/cli-ide-update-2026-11-06-143.md",
+  "changedSurfaces": [
+    "root READMEs",
+    "user docs",
+    "design docs",
+    "Chinese/English Astro site",
+    "release metadata",
+    "snapshot/deployment version checks"
+  ],
+  "additionalModelRequests": 0,
+  "historicalModelAcceptanceChanged": false,
+  "publishedProduct145IncludesNewNativeV6Features": false,
+  "deploymentSource": "Recorded after deployment by each public deployment-source.json",
+  "localChecks": {
+    "userDocs": "335 files passed 11 required sections",
+    "designSync": "295 source files synchronized to both sites",
+    "configsAndDeployShell": "parse passed",
+    "metadata": "version/source pins and 12 download sizes match 22 public asset metadata entries",
+    "historicalModelAcceptance": "unchanged",
+    "formatAndWhitespace": "Prettier and git diff --check passed"
+  }
+}

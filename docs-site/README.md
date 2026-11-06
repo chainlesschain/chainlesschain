@@ -1,12 +1,12 @@
 # ChainlessChain 文档网站
 
-## 当前文档（2026-11-05，CLI .142）
+## 当前文档（2026-11-06，CLI .143）
 
-CLI **0.166.142**、Session Core **0.3.25**、Open VSX **0.37.178** 和 JetBrains **0.4.195** 已公开核验，两款 IDE 推荐 CLI .142；不可变发行源码为 `b78cf0af8c8b0491189465773b148ac77c332222`。新文档说明授权事件、保留历史、检查点与组合交付场景；原生历史需要匹配的新版桌面端。公开客户端仍为 **v5.0.3.144**，**v5.0.3.145** 正在发行构建中。本轮没有新增模型任务验收，历史 **2/4**、**41/45** 和跨版本 **45/45** 分别保留。Microsoft Marketplace 暂缓。
+CLI **0.166.143**、Session Core **0.3.26**、Open VSX **0.37.179** 和 JetBrains **0.4.196** 已公开核验，两个 IDE 推荐 CLI .143；不可变发行源码为 `3fa3a4b258bbcb60b23b4298cec375661ad6f410`。本轮说明本地算力配置、端点凭据隔离、待审创建请求和逐次授权模型草稿的边界。客户端 **v5.0.3.145** 已独立公开，但较早产品源码不包含本批新增原生 v6 创建/模型起草。真实特性 GUI、力数推理、业务效果与灰度迁移回退仍待独立验收；本次文档部署不发起模型请求。
 
-- [本版升级步骤](docs/chainlesschain/cli-ide-update-2026-11-05-142.md)
-- [发行回执](../docs/research/cli/evidence/release142-public/README.md)
-- [设计权威源](../docs/design/release-runtime-update-2026-11-05-142.md)
+- [本版升级步骤](docs/chainlesschain/cli-ide-update-2026-11-06-143.md)
+- [发行回执](../docs/research/cli/evidence/release143-public/README.md)
+- [设计权威源](../docs/design/release-runtime-update-2026-11-06-143.md)
 
 下方带日期的内容保留历史范围。
 

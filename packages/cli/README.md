@@ -9,6 +9,11 @@ Session Core **0.3.26**, CLI **0.166.143**, Open VSX **0.37.179** and JetBrains
 VSIX matches the official artifact. JetBrains is approved, listed and downloadable;
 all 627 original payload files, including nested JAR entries, match the official
 build. Channel evidence is tracked in the release record below.
+
+Current native clients are **v5.0.3.145** from earlier independent sources. New
+native v6 creation and model drafts require matching newer desktop builds;
+this CLI/IDE release does not upgrade those client binaries. See the
+[current design](../../docs/design/release-runtime-update-2026-11-06-143.md).
 Both IDEs add a Local compute / OpenAI
 compatible option for LEXDATA, vLLM and SGLang, with explicit endpoint/model,
 optional platform key and HTTP consent. Atomic configuration and first-run setup

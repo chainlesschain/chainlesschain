@@ -2,14 +2,13 @@
 
 `design.chainlesschain.com` 的 VitePress 项目。设计权威源位于仓库根 `docs/design/`；本项目 `docs/` 下的对应页面由同步脚本生成，不单独手改副本。
 
-## 当前设计核对（2026-11-05）
+## 当前设计核对（2026-11-06）
 
-按 `main@4ddbde1227` 和 Git 记录说明 CLI **0.166.142**、Session Core **0.3.25**、Open VSX **0.37.178**、JetBrains **0.4.195** 的目标事件、独立 v5 历史授权、事务账本、至少一次交付、两端逐页恢复和最小组合场景。
-不可变 npm/IDE 源码为 `b78cf0af8c8b0491189465773b148ac77c332222`。客户端 **v5.0.3.145** 尚在发行构建中，公开版本仍为 **v5.0.3.144**；真实 DMM GUI、自动任务创建、业务效果与灰度回退尚未验收。
+CLI **0.166.143**、Session Core **0.3.26**、Open VSX **0.37.179** 和 JetBrains **0.4.196** 已公开核验，两个 IDE 推荐 CLI .143；不可变发行源码为 `3fa3a4b258bbcb60b23b4298cec375661ad6f410`。本轮说明本地算力配置、端点凭据隔离、待审创建请求和逐次授权模型草稿的边界。客户端 **v5.0.3.145** 已独立公开，但较早产品源码不包含本批新增原生 v6 创建/模型起草。真实特性 GUI、力数推理、业务效果与灰度迁移回退仍待独立验收；本次文档部署不发起模型请求。
 
-- [本轮设计源](../docs/design/release-runtime-update-2026-11-05-142.md)
-- [发行证据](../docs/research/cli/evidence/release142-public/README.md)
-- [用户升级指南](../docs-site/docs/chainlesschain/cli-ide-update-2026-11-05-142.md)
+- [本轮设计源](../docs/design/release-runtime-update-2026-11-06-143.md)
+- [发行证据](../docs/research/cli/evidence/release143-public/README.md)
+- [用户升级指南](../docs-site/docs/chainlesschain/cli-ide-update-2026-11-06-143.md)
 
 ## 构建与部署
 
