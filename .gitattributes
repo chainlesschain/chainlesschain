@@ -238,3 +238,8 @@ docs/research/agents/evidence/dmm-native-risk-create-2026-11-07/verify-evidence.
 docs/research/agents/evidence/dmm-goal-trial-switch-2026-11-07/** -text !eol -whitespace
 docs/research/agents/evidence/dmm-goal-trial-switch-2026-11-07/README.md text eol=lf
 docs/research/agents/evidence/dmm-goal-trial-switch-2026-11-07/verify-evidence.mjs text eol=lf
+
+# Preserve original live-native-modal reports, screenshots and source captures.
+docs/research/agents/evidence/dmm-native-modal-revocation-2026-11-07/** -text !eol -whitespace
+docs/research/agents/evidence/dmm-native-modal-revocation-2026-11-07/README.md text eol=lf
+docs/research/agents/evidence/dmm-native-modal-revocation-2026-11-07/verify-evidence.mjs text eol=lf

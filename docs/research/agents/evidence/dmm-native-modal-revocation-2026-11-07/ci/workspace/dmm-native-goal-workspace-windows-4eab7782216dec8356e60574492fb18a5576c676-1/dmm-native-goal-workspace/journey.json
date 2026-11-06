@@ -1,0 +1,2600 @@
+{
+  "schema": "chainlesschain.dmm-native-goal-journey/v1",
+  "startedAt": "2026-11-06T23:41:28.522Z",
+  "sourceSha": "4eab7782216dec8356e60574492fb18a5576c676",
+  "sourceStatus": "",
+  "platform": "win32",
+  "release": "10.0.26100",
+  "synthetic": true,
+  "scenario": "explicit-opt-in",
+  "setupSeeded": true,
+  "realBusinessAcceptance": false,
+  "installedProductAcceptance": false,
+  "profileRetainedLocally": true,
+  "dialogs": [
+    {
+      "pid": 7284,
+      "title": "确认创建项目任务",
+      "button": "取消",
+      "windowClass": "#32770",
+      "method": "Win32 BM_CLICK",
+      "at": "2026-11-06T23:41:51.235Z",
+      "expectedTextVerified": true
+    },
+    {
+      "pid": 7284,
+      "title": "确认创建项目任务",
+      "button": "确认创建",
+      "windowClass": "#32770",
+      "method": "Win32 BM_CLICK",
+      "at": "2026-11-06T23:41:51.869Z",
+      "expectedTextVerified": true
+    },
+    {
+      "pid": 7284,
+      "title": "确认目标建议：修改描述",
+      "button": "确认修改",
+      "windowClass": "#32770",
+      "method": "Win32 BM_CLICK",
+      "at": "2026-11-06T23:41:53.559Z",
+      "expectedTextVerified": true
+    }
+  ],
+  "stages": [
+    {
+      "name": "real-password-login-and-did",
+      "at": "2026-11-06T23:41:47.534Z"
+    },
+    {
+      "name": "native-cancel-no-write-and-single-create",
+      "at": "2026-11-06T23:41:51.885Z"
+    },
+    {
+      "name": "canonical-goal-detects-overdue-risk",
+      "at": "2026-11-06T23:41:52.577Z"
+    },
+    {
+      "name": "goal-native-confirmation-and-persisted-action-lineage",
+      "at": "2026-11-06T23:41:53.602Z"
+    },
+    {
+      "name": "workspace-memory-create-and-correct-through-vue",
+      "at": "2026-11-06T23:41:54.170Z"
+    },
+    {
+      "name": "workspace-memory-revoke-cancel-delete-and-persisted-body-free-history",
+      "at": "2026-11-06T23:41:54.691Z"
+    },
+    {
+      "name": "workspace-notice-real-center-mark-read-and-authorized-deep-link",
+      "at": "2026-11-06T23:41:58.201Z"
+    },
+    {
+      "name": "workspace-notice-dedup-silent-checks-and-quiet-policy-persistence",
+      "at": "2026-11-06T23:42:00.164Z"
+    },
+    {
+      "name": "description-success-does-not-clear-risk-or-complete-goal",
+      "at": "2026-11-06T23:42:00.513Z"
+    },
+    {
+      "name": "follow-up-ended-observing-real-70-seconds",
+      "at": "2026-11-06T23:42:00.786Z"
+    },
+    {
+      "name": "stop-observation-40-seconds",
+      "at": "2026-11-06T23:42:40.814Z"
+    },
+    {
+      "name": "no-new-checks-after-real-scheduled-interval",
+      "at": "2026-11-06T23:43:10.833Z"
+    }
+  ],
+  "artifacts": {
+    "dist/main/index.js": "dcb2219ebf51489196b4bf87d2551854ba4f29f11d66b436ca477306b14dc4b7",
+    "dist/main/task/project-goal-auth-session.js": "c3ff33a0a9b43dceda49ad721a1348506e2c8202e21300c34f726a8c43ac6550",
+    "dist/main/task/project-goal-feature-policy.js": "5608e1c91904a8b18373fd3bcf864adb54a3a6d9fd4420d0d1a35e03eb2aec64",
+    "dist/preload/index.js": "9b42f990b0710e95f7bd164e2981c183bd601bca8fc76b2a73548ae09a54ec15",
+    "dist/renderer/index.html": "b527ed2dbdca4e0dc662980f62adf7f1bfe41e47a2e84f7aa2cc927bacd25c84"
+  },
+  "runnerSha256": "38f4eef74344326c2947f83d10598211b70dba97a9d682990e2e97d0ab1a44d9",
+  "nativeDialogHelperSha256": "618d498d3d09d863b4f4d4964e987a280effc20c49e87129e7df95d5635d9c94",
+  "ipcErrors": [
+    {
+      "channel": "project:goal-model-drafts-list",
+      "message": "Error: GOAL_EXTENSION_NOT_ADMITTED",
+      "at": "2026-11-06T23:41:51.978Z"
+    },
+    {
+      "channel": "project:goal-model-drafts-list",
+      "message": "Error: ACTION_GOAL_NOT_ACTIVE",
+      "at": "2026-11-06T23:42:00.586Z"
+    },
+    {
+      "channel": "project:goal-monitor-check",
+      "message": "Error: GOAL_MONITOR_NOT_ACTIVE",
+      "at": "2026-11-06T23:43:10.833Z"
+    }
+  ],
+  "nativePid": 7284,
+  "versions": {
+    "node": "22.22.1",
+    "acorn": "8.15.0",
+    "ada": "2.9.2",
+    "amaro": "1.1.5",
+    "ares": "1.34.6",
+    "brotli": "1.0.9",
+    "cjs_module_lexer": "2.2.0",
+    "cldr": "44.1",
+    "icu": "74.2",
+    "llhttp": "9.3.0",
+    "modules": "140",
+    "napi": "10",
+    "nbytes": "0.1.1",
+    "ncrypto": "0.0.1",
+    "nghttp2": "1.64.0",
+    "openssl": "0.0.0",
+    "simdjson": "4.2.4",
+    "simdutf": "7.3.3",
+    "sqlite": "3.51.2",
+    "tz": "2025b",
+    "undici": "6.23.0",
+    "unicode": "15.1",
+    "uv": "1.51.0",
+    "uvwasi": "0.0.23",
+    "v8": "14.2.231.22-electron.0",
+    "zlib": "1.3.1",
+    "zstd": "1.5.8",
+    "electron": "39.8.10",
+    "chrome": "142.0.7444.265"
+  },
+  "projectId": "13d54323-1341-4f68-b70e-4f2a76623ff7",
+  "taskId": "64394930-a5cd-4c42-befe-9491ced83e77",
+  "createRuns": {
+    "runs": [
+      {
+        "run": {
+          "schema": "chainlesschain.business-action-run/v1",
+          "schemaVersion": 1,
+          "actionType": "task.create",
+          "actionVersion": 1,
+          "target": {
+            "schema": "chainlesschain.business-object-ref/v1",
+            "schemaVersion": 1,
+            "type": "Project",
+            "id": "13d54323-1341-4f68-b70e-4f2a76623ff7",
+            "sourceKind": "desktop.project-task-owner",
+            "scope": {
+              "kind": "personal",
+              "id": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc"
+            },
+            "version": "sha256:8392a41a67929a03e2f73e7c366d248480af6a10224235e7f304b5bc7aabc8b5"
+          },
+          "expectedVersion": "sha256:8392a41a67929a03e2f73e7c366d248480af6a10224235e7f304b5bc7aabc8b5",
+          "inputDigest": "sha256:c7387820f09b6e19eafde506025c9309bb86306bb7473513ac3964e3998c4f38",
+          "id": "b73a739c-a60b-43ab-a219-2139c011728b",
+          "idempotencyDigest": "sha256:d1ab1ceb0f2b820e33b7dae473c8b871dabd8d0c80c4a7841503d7c00aecf5fa",
+          "actionDigest": "sha256:b32672da02ea4599ec06854019f6ba5f76a86e8bd7d86b84f73850f2b571e51d",
+          "invocationDigest": "sha256:43f809fcb66e8f588e9844294f2bc71388f9d1f9bbaa31a25bb63639572ede41",
+          "status": "succeeded",
+          "startedAt": "2026-11-06T23:41:51.368Z",
+          "afterVersion": "sha256:88669ded69a37776c1deba178eaaf544d86b663dec5c6fe1c79dcc9582fd4234",
+          "completedAt": "2026-11-06T23:41:51.785Z",
+          "approvalRef": {
+            "id": "d5f9ace7-0f30-4c0f-ac8e-84b0a366faf5",
+            "digest": "sha256:e22a2753d72e914f9d115929ca4ac7f5e57986af2a306984b92ff6cf11c087b4"
+          },
+          "executionRef": {
+            "id": "e7a620fa-6938-4964-8a41-e43e29ec324f",
+            "digest": "sha256:1a6ae1ac0c290aace9c3274d77dabaafc601eded13b03d34f5b415d6610eaf98"
+          },
+          "traceId": null,
+          "evidenceRefs": [
+            {
+              "id": "d5f9ace7-0f30-4c0f-ac8e-84b0a366faf5",
+              "digest": "sha256:e22a2753d72e914f9d115929ca4ac7f5e57986af2a306984b92ff6cf11c087b4"
+            },
+            {
+              "id": "e7a620fa-6938-4964-8a41-e43e29ec324f",
+              "digest": "sha256:1a6ae1ac0c290aace9c3274d77dabaafc601eded13b03d34f5b415d6610eaf98"
+            }
+          ]
+        },
+        "evidence": [
+          {
+            "id": "d5f9ace7-0f30-4c0f-ac8e-84b0a366faf5",
+            "kind": "local-user-confirmation",
+            "actorDid": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc",
+            "invocationDigest": "sha256:43f809fcb66e8f588e9844294f2bc71388f9d1f9bbaa31a25bb63639572ede41",
+            "actionDigest": "sha256:b32672da02ea4599ec06854019f6ba5f76a86e8bd7d86b84f73850f2b571e51d",
+            "expectedVersion": "sha256:8392a41a67929a03e2f73e7c366d248480af6a10224235e7f304b5bc7aabc8b5",
+            "decision": "allow",
+            "via": "user-confirm",
+            "policy": "strict",
+            "riskLevel": "high",
+            "at": "2026-11-06T23:41:51.782Z"
+          },
+          {
+            "id": "e7a620fa-6938-4964-8a41-e43e29ec324f",
+            "kind": "sqlite-task-create",
+            "createdTaskRef": {
+              "schema": "chainlesschain.business-object-ref/v1",
+              "schemaVersion": 1,
+              "type": "Task",
+              "id": "64394930-a5cd-4c42-befe-9491ced83e77",
+              "sourceKind": "desktop.project-task",
+              "scope": {
+                "kind": "personal",
+                "id": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc"
+              },
+              "version": "sha256:d0517513fbe412cfed99ed4d757b10d713450dbf0233a45ec798c9e5d08d8ad6"
+            },
+            "actorDid": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc",
+            "invocationDigest": "sha256:43f809fcb66e8f588e9844294f2bc71388f9d1f9bbaa31a25bb63639572ede41",
+            "beforeVersion": "sha256:8392a41a67929a03e2f73e7c366d248480af6a10224235e7f304b5bc7aabc8b5",
+            "afterVersion": "sha256:88669ded69a37776c1deba178eaaf544d86b663dec5c6fe1c79dcc9582fd4234",
+            "affectedRows": 1,
+            "at": "2026-11-06T23:41:51.785Z"
+          }
+        ]
+      },
+      {
+        "run": {
+          "schema": "chainlesschain.business-action-run/v1",
+          "schemaVersion": 1,
+          "actionType": "task.create",
+          "actionVersion": 1,
+          "target": {
+            "schema": "chainlesschain.business-object-ref/v1",
+            "schemaVersion": 1,
+            "type": "Project",
+            "id": "13d54323-1341-4f68-b70e-4f2a76623ff7",
+            "sourceKind": "desktop.project-task-owner",
+            "scope": {
+              "kind": "personal",
+              "id": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc"
+            },
+            "version": "sha256:8392a41a67929a03e2f73e7c366d248480af6a10224235e7f304b5bc7aabc8b5"
+          },
+          "expectedVersion": "sha256:8392a41a67929a03e2f73e7c366d248480af6a10224235e7f304b5bc7aabc8b5",
+          "inputDigest": "sha256:c7387820f09b6e19eafde506025c9309bb86306bb7473513ac3964e3998c4f38",
+          "id": "76371034-cc8b-4f20-a095-6ca685d70729",
+          "idempotencyDigest": "sha256:1e20b6888ac237a83b2b30bf2233a3c2d182bc35b1dade98387cf18712b0c05b",
+          "actionDigest": "sha256:b32672da02ea4599ec06854019f6ba5f76a86e8bd7d86b84f73850f2b571e51d",
+          "invocationDigest": "sha256:a6d90d6ca8fe88713ed697aa65502da68bde11a77083999d2c44f48fbeea10e8",
+          "status": "cancelled",
+          "startedAt": "2026-11-06T23:41:48.494Z",
+          "afterVersion": null,
+          "completedAt": "2026-11-06T23:41:51.164Z",
+          "approvalRef": {
+            "id": "b5004493-a57e-4307-949f-5538aa10f3e9",
+            "digest": "sha256:c114f0885c2aa801801f4410e282f5dd604e8d32c2ac8e477a4ce870e329058f"
+          },
+          "executionRef": null,
+          "traceId": null,
+          "evidenceRefs": [
+            {
+              "id": "b5004493-a57e-4307-949f-5538aa10f3e9",
+              "digest": "sha256:c114f0885c2aa801801f4410e282f5dd604e8d32c2ac8e477a4ce870e329058f"
+            }
+          ]
+        },
+        "evidence": [
+          {
+            "id": "b5004493-a57e-4307-949f-5538aa10f3e9",
+            "kind": "local-user-confirmation",
+            "actorDid": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc",
+            "invocationDigest": "sha256:a6d90d6ca8fe88713ed697aa65502da68bde11a77083999d2c44f48fbeea10e8",
+            "actionDigest": "sha256:b32672da02ea4599ec06854019f6ba5f76a86e8bd7d86b84f73850f2b571e51d",
+            "expectedVersion": "sha256:8392a41a67929a03e2f73e7c366d248480af6a10224235e7f304b5bc7aabc8b5",
+            "decision": "deny",
+            "via": "user-deny",
+            "policy": "strict",
+            "riskLevel": "high",
+            "at": "2026-11-06T23:41:51.163Z"
+          }
+        ]
+      }
+    ],
+    "nextCursor": null
+  },
+  "fixture": {
+    "kind": "synthetic-overdue-date",
+    "dueDate": 1793922111891,
+    "rows": 1,
+    "nativeDbOwnedByTemporaryProfile": true,
+    "encryption": {
+      "plaintextHeader": false,
+      "noKeyReadRejected": true,
+      "driverVersion": "12.11.1"
+    }
+  },
+  "goalId": "goal-3c919d84-8f56-4246-bd36-3b0f8ffee837",
+  "initialStatus": {
+    "goal": {
+      "schema": "chainlesschain.goal/v2",
+      "schemaVersion": 2,
+      "id": "goal-3c919d84-8f56-4246-bd36-3b0f8ffee837",
+      "storeId": "project-goals-81eb4925-0b9c-46a1-8318-686982830ce5",
+      "revision": 2,
+      "controlGeneration": 1,
+      "ownerRef": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc",
+      "projectRef": {
+        "schema": "chainlesschain.business-object-ref/v1",
+        "schemaVersion": 1,
+        "type": "Project",
+        "id": "13d54323-1341-4f68-b70e-4f2a76623ff7",
+        "sourceKind": "desktop.project-goals",
+        "scope": {
+          "kind": "personal",
+          "id": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc"
+        },
+        "version": "sha256:88669ded69a37776c1deba178eaaf544d86b663dec5c6fe1c79dcc9582fd4234"
+      },
+      "title": "DMM native risk follow-up",
+      "objective": "DMM native risk follow-up",
+      "status": "active",
+      "progress": 0,
+      "keyResults": [],
+      "linkedSessions": [],
+      "notes": [],
+      "drift": {
+        "lastProgressAt": null,
+        "flags": []
+      },
+      "createdAt": "2026-11-06T23:41:51.945Z",
+      "updatedAt": "2026-11-06T23:41:52.055Z",
+      "acceptanceCriteria": [],
+      "budgetPolicy": {
+        "maxRuns": 20,
+        "maxTokens": null,
+        "maxTimeMs": null,
+        "maxCostUsd": null
+      },
+      "expiresAt": null,
+      "nextCheckAt": null,
+      "triggerRefs": [],
+      "allowedActionTypes": [
+        "task.create",
+        "task.update-description"
+      ],
+      "authorizationRefs": [],
+      "notificationPolicy": {
+        "channel": "in-app",
+        "mode": "changes-only"
+      },
+      "memoryRefs": [],
+      "waitingReason": null,
+      "executionState": "idle",
+      "completion": null,
+      "requiresGraphAwareHost": true
+    },
+    "monitor": {
+      "goal_id": "goal-3c919d84-8f56-4246-bd36-3b0f8ffee837",
+      "actor_did": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc",
+      "revision": 1,
+      "interval_ms": 60000,
+      "enabled": 1,
+      "next_check_at": 1794008512149,
+      "scheduler_policy_revision": 1
+    },
+    "history": [
+      {
+        "occurrenceId": "occ_8cacd57f5671fba93e7f09a5b75b221153e9d89d8cf6290657ee71f6d81b898f",
+        "goalRevision": 2,
+        "controlGeneration": 1,
+        "reviewId": "cc798189-e8ea-4563-bc76-037f5f444e7f",
+        "result": {
+          "goalId": "goal-3c919d84-8f56-4246-bd36-3b0f8ffee837",
+          "reviewId": "cc798189-e8ea-4563-bc76-037f5f444e7f",
+          "checkedAt": "2026-11-06T23:41:52.382Z",
+          "status": "evaluated",
+          "riskTaskCount": 1
+        },
+        "elapsedMs": 7
+      }
+    ],
+    "usage": {
+      "checks": 1,
+      "totalRuns": 1,
+      "reservedRuns": 0,
+      "knownElapsedMs": 7,
+      "elapsedMs": 7,
+      "modelTokens": 0,
+      "modelCostUsd": 0,
+      "knownModelTokens": 0,
+      "knownModelCostUsd": 0,
+      "reservedTokens": 0,
+      "reservedCostUsd": 0,
+      "reservedElapsedMs": 0,
+      "unknownTime": 0,
+      "unknownTokens": 0,
+      "unknownCost": 0
+    },
+    "stops": [],
+    "blockedReason": null,
+    "executionState": "waiting",
+    "active": []
+  },
+  "initialReview": {
+    "review": {
+      "id": "cc798189-e8ea-4563-bc76-037f5f444e7f",
+      "projectId": "13d54323-1341-4f68-b70e-4f2a76623ff7",
+      "actorDid": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc",
+      "createdAt": "2026-11-06T23:41:52.382Z"
+    },
+    "sourceSnapshot": {
+      "sourceSchema": "desktop.project-tasks/v1",
+      "readStatus": "complete",
+      "asOf": "2026-11-06T23:41:52.382Z",
+      "scope": {
+        "kind": "personal",
+        "id": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc"
+      },
+      "project": {
+        "id": "13d54323-1341-4f68-b70e-4f2a76623ff7",
+        "status": "active",
+        "updated_at": 1794008511783
+      },
+      "tasks": [
+        {
+          "id": "64394930-a5cd-4c42-befe-9491ced83e77",
+          "project_id": "13d54323-1341-4f68-b70e-4f2a76623ff7",
+          "status": "pending",
+          "due_date": 1793922111891,
+          "blocked_by": [],
+          "updated_at": 1794008511891
+        }
+      ]
+    },
+    "evaluation": {
+      "schema": "chainlesschain.project-risk-evaluation/v1",
+      "ruleVersion": "project-risk/v1",
+      "status": "evaluated",
+      "sourceSchema": "desktop.project-tasks/v1",
+      "asOf": "2026-11-06T23:41:52.382Z",
+      "inputDigest": "sha256:3f354fcec0b33da543d0816819fa9ff17095f40304a04e0b674498be28b2f5c2",
+      "projectRef": {
+        "schema": "chainlesschain.business-object-ref/v1",
+        "schemaVersion": 1,
+        "type": "Project",
+        "id": "13d54323-1341-4f68-b70e-4f2a76623ff7",
+        "sourceKind": "desktop.project-risk-project",
+        "scope": {
+          "kind": "personal",
+          "id": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc"
+        },
+        "version": "sha256:2b82101f462317d5393986c43da159d00bad37d6522cb3aac830360daf050651"
+      },
+      "taskRefs": [
+        {
+          "schema": "chainlesschain.business-object-ref/v1",
+          "schemaVersion": 1,
+          "type": "Task",
+          "id": "64394930-a5cd-4c42-befe-9491ced83e77",
+          "sourceKind": "desktop.project-risk-task",
+          "scope": {
+            "kind": "personal",
+            "id": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc"
+          },
+          "version": "sha256:dd802992a0f27d41c86f5d271daa5fb1a7a12741fe9e9384e7ed8f6c808e0c62"
+        }
+      ],
+      "reasonCodes": [
+        "OVERDUE_INCOMPLETE_TASK"
+      ],
+      "tasks": [
+        {
+          "taskRef": {
+            "schema": "chainlesschain.business-object-ref/v1",
+            "schemaVersion": 1,
+            "type": "Task",
+            "id": "64394930-a5cd-4c42-befe-9491ced83e77",
+            "sourceKind": "desktop.project-risk-task",
+            "scope": {
+              "kind": "personal",
+              "id": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc"
+            },
+            "version": "sha256:dd802992a0f27d41c86f5d271daa5fb1a7a12741fe9e9384e7ed8f6c808e0c62"
+          },
+          "dueDate": 1793922111891,
+          "reasonCodes": [
+            "OVERDUE_INCOMPLETE_TASK"
+          ],
+          "blockingTaskRefs": []
+        }
+      ],
+      "summary": {
+        "taskCount": 1,
+        "unresolvedTaskCount": 1,
+        "riskTaskCount": 1,
+        "overdueTaskCount": 1,
+        "blockedTaskCount": 0
+      }
+    }
+  },
+  "intent": {
+    "intent": {
+      "schema": "chainlesschain.goal-intent/v1",
+      "id": "goal-intent-418c3f02-c6a0-4e65-9b9a-49c41a2d0b00",
+      "goalId": "goal-3c919d84-8f56-4246-bd36-3b0f8ffee837",
+      "storeId": "project-goals-81eb4925-0b9c-46a1-8318-686982830ce5",
+      "goalRevision": 2,
+      "controlGeneration": 1,
+      "proposalId": "goal-proposal-313e8943dbb3efece1e232588a55f33b231691a6f64eda3733a9eafabb1a09c9",
+      "actorDid": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc",
+      "requestId": "cf27cc8f-1a9a-4a6e-a981-bcd10dde5ca7",
+      "inputDigest": "sha256:0cdb455b77745cf84764a55ea7b1652ef2a50723c9a98f6e54ec0c91c686070d",
+      "description": "DMM reviewed the overdue risk; deadline remains unresolved",
+      "taskType": null,
+      "reviewId": "cc798189-e8ea-4563-bc76-037f5f444e7f",
+      "reviewDigest": "sha256:ea0464e32a12fc9ea8031b40ddeabab5ec3925df06e0dc79a1b9610d8a3cb6ba",
+      "createdAt": 1794008512636,
+      "preview": {
+        "request": {
+          "schema": "chainlesschain.business-action-request/v1",
+          "schemaVersion": 1,
+          "actionType": "task.update-description",
+          "actionVersion": 1,
+          "target": {
+            "schema": "chainlesschain.business-object-ref/v1",
+            "schemaVersion": 1,
+            "type": "Task",
+            "id": "64394930-a5cd-4c42-befe-9491ced83e77",
+            "sourceKind": "desktop.project-task",
+            "scope": {
+              "kind": "personal",
+              "id": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc"
+            },
+            "version": "sha256:274658c7836ab84005314931e31318151b845b11104cc6a82c30c8447ab45d62"
+          },
+          "expectedVersion": "sha256:274658c7836ab84005314931e31318151b845b11104cc6a82c30c8447ab45d62",
+          "input": {
+            "description": "DMM reviewed the overdue risk; deadline remains unresolved",
+            "goalIntent": {
+              "id": "goal-intent-418c3f02-c6a0-4e65-9b9a-49c41a2d0b00",
+              "goalId": "goal-3c919d84-8f56-4246-bd36-3b0f8ffee837",
+              "storeId": "project-goals-81eb4925-0b9c-46a1-8318-686982830ce5",
+              "goalRevision": 2,
+              "controlGeneration": 1,
+              "proposalId": "goal-proposal-313e8943dbb3efece1e232588a55f33b231691a6f64eda3733a9eafabb1a09c9"
+            },
+            "riskReview": {
+              "id": "cc798189-e8ea-4563-bc76-037f5f444e7f",
+              "contentDigest": "sha256:ea0464e32a12fc9ea8031b40ddeabab5ec3925df06e0dc79a1b9610d8a3cb6ba"
+            }
+          },
+          "idempotencyKey": "goal-intent-418c3f02-c6a0-4e65-9b9a-49c41a2d0b00",
+          "inputDigest": "sha256:fe53450b6ce123d35b0ac4ba6fa6edbe2d4e3919a23c57944ed88c5e69bb6b2f",
+          "idempotencyDigest": "sha256:d2dd3d19debc8c39dddf61a6e69cb77efe0b87bcaeac7c20cb5750350d13d02f",
+          "actionDigest": "sha256:4fdeb3a41cdede751aeade60a374431ecd9e66238f1a3339bee294207978ae9a",
+          "invocationDigest": "sha256:933975daf5a7eab393840654b8e8c68c3ce3548c8fb2222ac3abb42060fe3fca"
+        },
+        "before": {
+          "description": "DMM synthetic overdue task"
+        },
+        "after": {
+          "description": "DMM reviewed the overdue risk; deadline remains unresolved",
+          "goalIntent": {
+            "id": "goal-intent-418c3f02-c6a0-4e65-9b9a-49c41a2d0b00",
+            "goalId": "goal-3c919d84-8f56-4246-bd36-3b0f8ffee837",
+            "storeId": "project-goals-81eb4925-0b9c-46a1-8318-686982830ce5",
+            "goalRevision": 2,
+            "controlGeneration": 1,
+            "proposalId": "goal-proposal-313e8943dbb3efece1e232588a55f33b231691a6f64eda3733a9eafabb1a09c9"
+          },
+          "riskReview": {
+            "id": "cc798189-e8ea-4563-bc76-037f5f444e7f",
+            "contentDigest": "sha256:ea0464e32a12fc9ea8031b40ddeabab5ec3925df06e0dc79a1b9610d8a3cb6ba"
+          }
+        }
+      },
+      "runId": "f6d0cad2-ef1a-4fae-bbee-bb036f9d7838",
+      "status": "succeeded",
+      "executionStartedAt": 1794008513480
+    },
+    "receipt": {
+      "run": {
+        "schema": "chainlesschain.business-action-run/v1",
+        "schemaVersion": 1,
+        "actionType": "task.update-description",
+        "actionVersion": 1,
+        "target": {
+          "schema": "chainlesschain.business-object-ref/v1",
+          "schemaVersion": 1,
+          "type": "Task",
+          "id": "64394930-a5cd-4c42-befe-9491ced83e77",
+          "sourceKind": "desktop.project-task",
+          "scope": {
+            "kind": "personal",
+            "id": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc"
+          },
+          "version": "sha256:274658c7836ab84005314931e31318151b845b11104cc6a82c30c8447ab45d62"
+        },
+        "expectedVersion": "sha256:274658c7836ab84005314931e31318151b845b11104cc6a82c30c8447ab45d62",
+        "inputDigest": "sha256:fe53450b6ce123d35b0ac4ba6fa6edbe2d4e3919a23c57944ed88c5e69bb6b2f",
+        "id": "f6d0cad2-ef1a-4fae-bbee-bb036f9d7838",
+        "idempotencyDigest": "sha256:d2dd3d19debc8c39dddf61a6e69cb77efe0b87bcaeac7c20cb5750350d13d02f",
+        "actionDigest": "sha256:4fdeb3a41cdede751aeade60a374431ecd9e66238f1a3339bee294207978ae9a",
+        "invocationDigest": "sha256:933975daf5a7eab393840654b8e8c68c3ce3548c8fb2222ac3abb42060fe3fca",
+        "status": "succeeded",
+        "startedAt": "2026-11-06T23:41:52.705Z",
+        "afterVersion": "sha256:8b15bc36600fa29bdb563f08c46ed2dad8b8baeacadc7921788f8f09a030fe4d",
+        "completedAt": "2026-11-06T23:41:53.481Z",
+        "approvalRef": {
+          "id": "e927f559-5f5b-414a-88c5-339ef085a65e",
+          "digest": "sha256:4b998adfbe8997bf9706fa3b0b481be83e89144993efb210215c58adc40f5710"
+        },
+        "executionRef": {
+          "id": "f900b414-7e8e-402a-8d16-87c12375bd9a",
+          "digest": "sha256:87383c16eb6519848c32d63698de5ff1847b007d2fc86356a7123b276382611b"
+        },
+        "traceId": null,
+        "evidenceRefs": [
+          {
+            "id": "246eef44-1fdc-47b1-a9fb-d72be959ad27",
+            "digest": "sha256:3dc48ac7eaca912510382abb67463086597c497822af3de301c7cb5c541ec8ef"
+          },
+          {
+            "id": "ddb255ea-8478-40d0-8f5e-797c76d92b00",
+            "digest": "sha256:2659bff91005349b4b3d24ea4a6e87567467cd10894eddc4281beb67dd6d3f15"
+          },
+          {
+            "id": "e927f559-5f5b-414a-88c5-339ef085a65e",
+            "digest": "sha256:4b998adfbe8997bf9706fa3b0b481be83e89144993efb210215c58adc40f5710"
+          },
+          {
+            "id": "f900b414-7e8e-402a-8d16-87c12375bd9a",
+            "digest": "sha256:87383c16eb6519848c32d63698de5ff1847b007d2fc86356a7123b276382611b"
+          }
+        ]
+      },
+      "evidence": [
+        {
+          "id": "246eef44-1fdc-47b1-a9fb-d72be959ad27",
+          "kind": "project-risk-review",
+          "reviewId": "cc798189-e8ea-4563-bc76-037f5f444e7f",
+          "contentDigest": "sha256:ea0464e32a12fc9ea8031b40ddeabab5ec3925df06e0dc79a1b9610d8a3cb6ba",
+          "actionDigest": "sha256:4fdeb3a41cdede751aeade60a374431ecd9e66238f1a3339bee294207978ae9a",
+          "expectedVersion": "sha256:274658c7836ab84005314931e31318151b845b11104cc6a82c30c8447ab45d62",
+          "actorDid": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc",
+          "invocationDigest": "sha256:933975daf5a7eab393840654b8e8c68c3ce3548c8fb2222ac3abb42060fe3fca"
+        },
+        {
+          "id": "ddb255ea-8478-40d0-8f5e-797c76d92b00",
+          "kind": "project-goal-intent",
+          "reference": {
+            "id": "goal-intent-418c3f02-c6a0-4e65-9b9a-49c41a2d0b00",
+            "goalId": "goal-3c919d84-8f56-4246-bd36-3b0f8ffee837",
+            "storeId": "project-goals-81eb4925-0b9c-46a1-8318-686982830ce5",
+            "goalRevision": 2,
+            "controlGeneration": 1,
+            "proposalId": "goal-proposal-313e8943dbb3efece1e232588a55f33b231691a6f64eda3733a9eafabb1a09c9"
+          },
+          "actorDid": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc",
+          "invocationDigest": "sha256:933975daf5a7eab393840654b8e8c68c3ce3548c8fb2222ac3abb42060fe3fca",
+          "actionDigest": "sha256:4fdeb3a41cdede751aeade60a374431ecd9e66238f1a3339bee294207978ae9a",
+          "expectedVersion": "sha256:274658c7836ab84005314931e31318151b845b11104cc6a82c30c8447ab45d62"
+        },
+        {
+          "id": "e927f559-5f5b-414a-88c5-339ef085a65e",
+          "kind": "local-user-confirmation",
+          "actorDid": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc",
+          "invocationDigest": "sha256:933975daf5a7eab393840654b8e8c68c3ce3548c8fb2222ac3abb42060fe3fca",
+          "actionDigest": "sha256:4fdeb3a41cdede751aeade60a374431ecd9e66238f1a3339bee294207978ae9a",
+          "expectedVersion": "sha256:274658c7836ab84005314931e31318151b845b11104cc6a82c30c8447ab45d62",
+          "decision": "allow",
+          "via": "user-confirm",
+          "policy": "strict",
+          "riskLevel": "high",
+          "at": "2026-11-06T23:41:53.473Z"
+        },
+        {
+          "id": "f900b414-7e8e-402a-8d16-87c12375bd9a",
+          "kind": "sqlite-task-description-update",
+          "actorDid": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc",
+          "invocationDigest": "sha256:933975daf5a7eab393840654b8e8c68c3ce3548c8fb2222ac3abb42060fe3fca",
+          "beforeVersion": "sha256:274658c7836ab84005314931e31318151b845b11104cc6a82c30c8447ab45d62",
+          "afterVersion": "sha256:8b15bc36600fa29bdb563f08c46ed2dad8b8baeacadc7921788f8f09a030fe4d",
+          "affectedRows": 1,
+          "at": "2026-11-06T23:41:53.481Z"
+        }
+      ]
+    },
+    "executionState": "succeeded"
+  },
+  "intentSourceReview": {
+    "review": {
+      "id": "cc798189-e8ea-4563-bc76-037f5f444e7f",
+      "projectId": "13d54323-1341-4f68-b70e-4f2a76623ff7",
+      "actorDid": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc",
+      "createdAt": "2026-11-06T23:41:52.382Z"
+    },
+    "sourceSnapshot": {
+      "sourceSchema": "desktop.project-tasks/v1",
+      "readStatus": "complete",
+      "asOf": "2026-11-06T23:41:52.382Z",
+      "scope": {
+        "kind": "personal",
+        "id": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc"
+      },
+      "project": {
+        "id": "13d54323-1341-4f68-b70e-4f2a76623ff7",
+        "status": "active",
+        "updated_at": 1794008511783
+      },
+      "tasks": [
+        {
+          "id": "64394930-a5cd-4c42-befe-9491ced83e77",
+          "project_id": "13d54323-1341-4f68-b70e-4f2a76623ff7",
+          "status": "pending",
+          "due_date": 1793922111891,
+          "blocked_by": [],
+          "updated_at": 1794008511891
+        }
+      ]
+    },
+    "evaluation": {
+      "schema": "chainlesschain.project-risk-evaluation/v1",
+      "ruleVersion": "project-risk/v1",
+      "status": "evaluated",
+      "sourceSchema": "desktop.project-tasks/v1",
+      "asOf": "2026-11-06T23:41:52.382Z",
+      "inputDigest": "sha256:3f354fcec0b33da543d0816819fa9ff17095f40304a04e0b674498be28b2f5c2",
+      "projectRef": {
+        "schema": "chainlesschain.business-object-ref/v1",
+        "schemaVersion": 1,
+        "type": "Project",
+        "id": "13d54323-1341-4f68-b70e-4f2a76623ff7",
+        "sourceKind": "desktop.project-risk-project",
+        "scope": {
+          "kind": "personal",
+          "id": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc"
+        },
+        "version": "sha256:2b82101f462317d5393986c43da159d00bad37d6522cb3aac830360daf050651"
+      },
+      "taskRefs": [
+        {
+          "schema": "chainlesschain.business-object-ref/v1",
+          "schemaVersion": 1,
+          "type": "Task",
+          "id": "64394930-a5cd-4c42-befe-9491ced83e77",
+          "sourceKind": "desktop.project-risk-task",
+          "scope": {
+            "kind": "personal",
+            "id": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc"
+          },
+          "version": "sha256:dd802992a0f27d41c86f5d271daa5fb1a7a12741fe9e9384e7ed8f6c808e0c62"
+        }
+      ],
+      "reasonCodes": [
+        "OVERDUE_INCOMPLETE_TASK"
+      ],
+      "tasks": [
+        {
+          "taskRef": {
+            "schema": "chainlesschain.business-object-ref/v1",
+            "schemaVersion": 1,
+            "type": "Task",
+            "id": "64394930-a5cd-4c42-befe-9491ced83e77",
+            "sourceKind": "desktop.project-risk-task",
+            "scope": {
+              "kind": "personal",
+              "id": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc"
+            },
+            "version": "sha256:dd802992a0f27d41c86f5d271daa5fb1a7a12741fe9e9384e7ed8f6c808e0c62"
+          },
+          "dueDate": 1793922111891,
+          "reasonCodes": [
+            "OVERDUE_INCOMPLETE_TASK"
+          ],
+          "blockingTaskRefs": []
+        }
+      ],
+      "summary": {
+        "taskCount": 1,
+        "unresolvedTaskCount": 1,
+        "riskTaskCount": 1,
+        "overdueTaskCount": 1,
+        "blockedTaskCount": 0
+      }
+    }
+  },
+  "lineage": {
+    "review": {
+      "id": "cc798189-e8ea-4563-bc76-037f5f444e7f",
+      "projectId": "13d54323-1341-4f68-b70e-4f2a76623ff7",
+      "actorDid": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc",
+      "createdAt": "2026-11-06T23:41:52.382Z"
+    },
+    "contentDigest": "sha256:ea0464e32a12fc9ea8031b40ddeabab5ec3925df06e0dc79a1b9610d8a3cb6ba",
+    "evaluation": {
+      "schema": "chainlesschain.project-risk-evaluation/v1",
+      "ruleVersion": "project-risk/v1",
+      "status": "evaluated",
+      "sourceSchema": "desktop.project-tasks/v1",
+      "asOf": "2026-11-06T23:41:52.382Z",
+      "inputDigest": "sha256:3f354fcec0b33da543d0816819fa9ff17095f40304a04e0b674498be28b2f5c2",
+      "projectRef": {
+        "schema": "chainlesschain.business-object-ref/v1",
+        "schemaVersion": 1,
+        "type": "Project",
+        "id": "13d54323-1341-4f68-b70e-4f2a76623ff7",
+        "sourceKind": "desktop.project-risk-project",
+        "scope": {
+          "kind": "personal",
+          "id": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc"
+        },
+        "version": "sha256:2b82101f462317d5393986c43da159d00bad37d6522cb3aac830360daf050651"
+      },
+      "taskRefs": [
+        {
+          "schema": "chainlesschain.business-object-ref/v1",
+          "schemaVersion": 1,
+          "type": "Task",
+          "id": "64394930-a5cd-4c42-befe-9491ced83e77",
+          "sourceKind": "desktop.project-risk-task",
+          "scope": {
+            "kind": "personal",
+            "id": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc"
+          },
+          "version": "sha256:dd802992a0f27d41c86f5d271daa5fb1a7a12741fe9e9384e7ed8f6c808e0c62"
+        }
+      ],
+      "reasonCodes": [
+        "OVERDUE_INCOMPLETE_TASK"
+      ],
+      "tasks": [
+        {
+          "taskRef": {
+            "schema": "chainlesschain.business-object-ref/v1",
+            "schemaVersion": 1,
+            "type": "Task",
+            "id": "64394930-a5cd-4c42-befe-9491ced83e77",
+            "sourceKind": "desktop.project-risk-task",
+            "scope": {
+              "kind": "personal",
+              "id": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc"
+            },
+            "version": "sha256:dd802992a0f27d41c86f5d271daa5fb1a7a12741fe9e9384e7ed8f6c808e0c62"
+          },
+          "dueDate": 1793922111891,
+          "reasonCodes": [
+            "OVERDUE_INCOMPLETE_TASK"
+          ],
+          "blockingTaskRefs": []
+        }
+      ],
+      "summary": {
+        "taskCount": 1,
+        "unresolvedTaskCount": 1,
+        "riskTaskCount": 1,
+        "overdueTaskCount": 1,
+        "blockedTaskCount": 0
+      }
+    },
+    "actionRuns": [
+      {
+        "run": {
+          "schema": "chainlesschain.business-action-run/v1",
+          "schemaVersion": 1,
+          "actionType": "task.update-description",
+          "actionVersion": 1,
+          "target": {
+            "schema": "chainlesschain.business-object-ref/v1",
+            "schemaVersion": 1,
+            "type": "Task",
+            "id": "64394930-a5cd-4c42-befe-9491ced83e77",
+            "sourceKind": "desktop.project-task",
+            "scope": {
+              "kind": "personal",
+              "id": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc"
+            },
+            "version": "sha256:274658c7836ab84005314931e31318151b845b11104cc6a82c30c8447ab45d62"
+          },
+          "expectedVersion": "sha256:274658c7836ab84005314931e31318151b845b11104cc6a82c30c8447ab45d62",
+          "inputDigest": "sha256:fe53450b6ce123d35b0ac4ba6fa6edbe2d4e3919a23c57944ed88c5e69bb6b2f",
+          "id": "f6d0cad2-ef1a-4fae-bbee-bb036f9d7838",
+          "idempotencyDigest": "sha256:d2dd3d19debc8c39dddf61a6e69cb77efe0b87bcaeac7c20cb5750350d13d02f",
+          "actionDigest": "sha256:4fdeb3a41cdede751aeade60a374431ecd9e66238f1a3339bee294207978ae9a",
+          "invocationDigest": "sha256:933975daf5a7eab393840654b8e8c68c3ce3548c8fb2222ac3abb42060fe3fca",
+          "status": "succeeded",
+          "startedAt": "2026-11-06T23:41:52.705Z",
+          "afterVersion": "sha256:8b15bc36600fa29bdb563f08c46ed2dad8b8baeacadc7921788f8f09a030fe4d",
+          "completedAt": "2026-11-06T23:41:53.481Z",
+          "approvalRef": {
+            "id": "e927f559-5f5b-414a-88c5-339ef085a65e",
+            "digest": "sha256:4b998adfbe8997bf9706fa3b0b481be83e89144993efb210215c58adc40f5710"
+          },
+          "executionRef": {
+            "id": "f900b414-7e8e-402a-8d16-87c12375bd9a",
+            "digest": "sha256:87383c16eb6519848c32d63698de5ff1847b007d2fc86356a7123b276382611b"
+          },
+          "traceId": null,
+          "evidenceRefs": [
+            {
+              "id": "246eef44-1fdc-47b1-a9fb-d72be959ad27",
+              "digest": "sha256:3dc48ac7eaca912510382abb67463086597c497822af3de301c7cb5c541ec8ef"
+            },
+            {
+              "id": "ddb255ea-8478-40d0-8f5e-797c76d92b00",
+              "digest": "sha256:2659bff91005349b4b3d24ea4a6e87567467cd10894eddc4281beb67dd6d3f15"
+            },
+            {
+              "id": "e927f559-5f5b-414a-88c5-339ef085a65e",
+              "digest": "sha256:4b998adfbe8997bf9706fa3b0b481be83e89144993efb210215c58adc40f5710"
+            },
+            {
+              "id": "f900b414-7e8e-402a-8d16-87c12375bd9a",
+              "digest": "sha256:87383c16eb6519848c32d63698de5ff1847b007d2fc86356a7123b276382611b"
+            }
+          ]
+        },
+        "evidence": [
+          {
+            "id": "246eef44-1fdc-47b1-a9fb-d72be959ad27",
+            "kind": "project-risk-review",
+            "reviewId": "cc798189-e8ea-4563-bc76-037f5f444e7f",
+            "contentDigest": "sha256:ea0464e32a12fc9ea8031b40ddeabab5ec3925df06e0dc79a1b9610d8a3cb6ba",
+            "actionDigest": "sha256:4fdeb3a41cdede751aeade60a374431ecd9e66238f1a3339bee294207978ae9a",
+            "expectedVersion": "sha256:274658c7836ab84005314931e31318151b845b11104cc6a82c30c8447ab45d62",
+            "actorDid": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc",
+            "invocationDigest": "sha256:933975daf5a7eab393840654b8e8c68c3ce3548c8fb2222ac3abb42060fe3fca"
+          },
+          {
+            "id": "ddb255ea-8478-40d0-8f5e-797c76d92b00",
+            "kind": "project-goal-intent",
+            "reference": {
+              "id": "goal-intent-418c3f02-c6a0-4e65-9b9a-49c41a2d0b00",
+              "goalId": "goal-3c919d84-8f56-4246-bd36-3b0f8ffee837",
+              "storeId": "project-goals-81eb4925-0b9c-46a1-8318-686982830ce5",
+              "goalRevision": 2,
+              "controlGeneration": 1,
+              "proposalId": "goal-proposal-313e8943dbb3efece1e232588a55f33b231691a6f64eda3733a9eafabb1a09c9"
+            },
+            "actorDid": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc",
+            "invocationDigest": "sha256:933975daf5a7eab393840654b8e8c68c3ce3548c8fb2222ac3abb42060fe3fca",
+            "actionDigest": "sha256:4fdeb3a41cdede751aeade60a374431ecd9e66238f1a3339bee294207978ae9a",
+            "expectedVersion": "sha256:274658c7836ab84005314931e31318151b845b11104cc6a82c30c8447ab45d62"
+          },
+          {
+            "id": "e927f559-5f5b-414a-88c5-339ef085a65e",
+            "kind": "local-user-confirmation",
+            "actorDid": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc",
+            "invocationDigest": "sha256:933975daf5a7eab393840654b8e8c68c3ce3548c8fb2222ac3abb42060fe3fca",
+            "actionDigest": "sha256:4fdeb3a41cdede751aeade60a374431ecd9e66238f1a3339bee294207978ae9a",
+            "expectedVersion": "sha256:274658c7836ab84005314931e31318151b845b11104cc6a82c30c8447ab45d62",
+            "decision": "allow",
+            "via": "user-confirm",
+            "policy": "strict",
+            "riskLevel": "high",
+            "at": "2026-11-06T23:41:53.473Z"
+          },
+          {
+            "id": "f900b414-7e8e-402a-8d16-87c12375bd9a",
+            "kind": "sqlite-task-description-update",
+            "actorDid": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc",
+            "invocationDigest": "sha256:933975daf5a7eab393840654b8e8c68c3ce3548c8fb2222ac3abb42060fe3fca",
+            "beforeVersion": "sha256:274658c7836ab84005314931e31318151b845b11104cc6a82c30c8447ab45d62",
+            "afterVersion": "sha256:8b15bc36600fa29bdb563f08c46ed2dad8b8baeacadc7921788f8f09a030fe4d",
+            "affectedRows": 1,
+            "at": "2026-11-06T23:41:53.481Z"
+          }
+        ]
+      }
+    ],
+    "feedback": [],
+    "nextCursor": null,
+    "nextFeedbackCursor": null,
+    "proof": "local-content-binding",
+    "modelUsage": null,
+    "cost": {
+      "status": "unknown"
+    }
+  },
+  "afterActionStatus": {
+    "goal": {
+      "schema": "chainlesschain.goal/v2",
+      "schemaVersion": 2,
+      "id": "goal-3c919d84-8f56-4246-bd36-3b0f8ffee837",
+      "storeId": "project-goals-81eb4925-0b9c-46a1-8318-686982830ce5",
+      "revision": 2,
+      "controlGeneration": 1,
+      "ownerRef": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc",
+      "projectRef": {
+        "schema": "chainlesschain.business-object-ref/v1",
+        "schemaVersion": 1,
+        "type": "Project",
+        "id": "13d54323-1341-4f68-b70e-4f2a76623ff7",
+        "sourceKind": "desktop.project-goals",
+        "scope": {
+          "kind": "personal",
+          "id": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc"
+        },
+        "version": "sha256:88669ded69a37776c1deba178eaaf544d86b663dec5c6fe1c79dcc9582fd4234"
+      },
+      "title": "DMM native risk follow-up",
+      "objective": "DMM native risk follow-up",
+      "status": "active",
+      "progress": 0,
+      "keyResults": [],
+      "linkedSessions": [],
+      "notes": [],
+      "drift": {
+        "lastProgressAt": null,
+        "flags": []
+      },
+      "createdAt": "2026-11-06T23:41:51.945Z",
+      "updatedAt": "2026-11-06T23:41:52.055Z",
+      "acceptanceCriteria": [],
+      "budgetPolicy": {
+        "maxRuns": 20,
+        "maxTokens": null,
+        "maxTimeMs": null,
+        "maxCostUsd": null
+      },
+      "expiresAt": null,
+      "nextCheckAt": null,
+      "triggerRefs": [],
+      "allowedActionTypes": [
+        "task.create",
+        "task.update-description"
+      ],
+      "authorizationRefs": [],
+      "notificationPolicy": {
+        "channel": "in-app",
+        "mode": "changes-only"
+      },
+      "memoryRefs": [],
+      "waitingReason": null,
+      "executionState": "idle",
+      "completion": null,
+      "requiresGraphAwareHost": true
+    },
+    "monitor": {
+      "goal_id": "goal-3c919d84-8f56-4246-bd36-3b0f8ffee837",
+      "actor_did": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc",
+      "revision": 1,
+      "interval_ms": 60000,
+      "enabled": 1,
+      "next_check_at": 1794008512149,
+      "scheduler_policy_revision": 1
+    },
+    "history": [
+      {
+        "occurrenceId": "occ_2be581c26d4f8d4849c51919aa093a81b467dfbc34b95769967bdfecd49e0481",
+        "goalRevision": 2,
+        "controlGeneration": 1,
+        "reviewId": "1afa2ddd-0d25-4ce4-afd1-f6d9f77a50e9",
+        "result": {
+          "goalId": "goal-3c919d84-8f56-4246-bd36-3b0f8ffee837",
+          "reviewId": "1afa2ddd-0d25-4ce4-afd1-f6d9f77a50e9",
+          "checkedAt": "2026-11-06T23:41:53.718Z",
+          "status": "evaluated",
+          "riskTaskCount": 1
+        },
+        "elapsedMs": 6
+      },
+      {
+        "occurrenceId": "occ_8cacd57f5671fba93e7f09a5b75b221153e9d89d8cf6290657ee71f6d81b898f",
+        "goalRevision": 2,
+        "controlGeneration": 1,
+        "reviewId": "cc798189-e8ea-4563-bc76-037f5f444e7f",
+        "result": {
+          "goalId": "goal-3c919d84-8f56-4246-bd36-3b0f8ffee837",
+          "reviewId": "cc798189-e8ea-4563-bc76-037f5f444e7f",
+          "checkedAt": "2026-11-06T23:41:52.382Z",
+          "status": "evaluated",
+          "riskTaskCount": 1
+        },
+        "elapsedMs": 7
+      }
+    ],
+    "usage": {
+      "checks": 2,
+      "totalRuns": 3,
+      "reservedRuns": 0,
+      "knownElapsedMs": 15,
+      "elapsedMs": 15,
+      "modelTokens": 0,
+      "modelCostUsd": 0,
+      "knownModelTokens": 0,
+      "knownModelCostUsd": 0,
+      "reservedTokens": 0,
+      "reservedCostUsd": 0,
+      "reservedElapsedMs": 0,
+      "unknownTime": 0,
+      "unknownTokens": 0,
+      "unknownCost": 0
+    },
+    "stops": [],
+    "blockedReason": null,
+    "executionState": "waiting",
+    "active": []
+  },
+  "workspaceHelperSha256": "4a0c7923d6d808dc9bbdaa8c35054531a5ac2bb203aaf3e455305bbfbc4b6fe7",
+  "workspace": {
+    "synthetic": true,
+    "realBusinessAcceptance": false,
+    "status": "passed",
+    "created": {
+      "goalId": "goal-3c919d84-8f56-4246-bd36-3b0f8ffee837",
+      "goalRevision": 3,
+      "memoryEpoch": 1,
+      "items": [
+        {
+          "memoryId": "goal-mem-6fd30fd173ea6f03336cb5cd72cedda50708a6268cfc49d216ab694827a14d1c",
+          "reference": {
+            "kind": "context-memory-kernel",
+            "id": "goal-mem-6fd30fd173ea6f03336cb5cd72cedda50708a6268cfc49d216ab694827a14d1c",
+            "version": "v1:r1:sha256:5285ac181a4c0bf1087a9f2369efdedf8a8a8f4ffb90e11c291e9672902cd7bb"
+          },
+          "grantState": "active",
+          "state": "active",
+          "currentVersion": "v1:r1:sha256:5285ac181a4c0bf1087a9f2369efdedf8a8a8f4ffb90e11c291e9672902cd7bb",
+          "record": {
+            "schemaVersion": 1,
+            "memoryId": "goal-mem-6fd30fd173ea6f03336cb5cd72cedda50708a6268cfc49d216ab694827a14d1c",
+            "scope": "project",
+            "scopeId": "goal-memory:4d04c264738656073d1f854c50dd470899c7beda9ca471c9514258cf206661a8",
+            "category": "user-fact",
+            "content": "DMM synthetic memory: an overdue deadline is not approval",
+            "provenance": {
+              "source": "goal-memory.user-fact",
+              "actor": "goal-actor-0a6811c9f42c4b5dfcac74ffaf57cc31d5ca791c681c27f9f17da4823412b6ce",
+              "observedAt": "2026-11-06T23:41:53.901Z"
+            },
+            "evidenceRefs": [
+              {
+                "store": "goal-memory:4d04c264738656073d1f854c50dd470899c7beda9ca471c9514258cf206661a8",
+                "id": "goal-source-97a8fbb6e920154a4c53188426f08af8e9839104dc0d587bf3bf64d30e5f0a00",
+                "revision": 2,
+                "digest": "sha256:34b246e98ea53377e2cdf60afdfe8d63cae32b16925c214f3c9998b44657b5ee"
+              }
+            ],
+            "confidence": 1,
+            "importance": 0.5,
+            "tags": [],
+            "sensitivity": "personal",
+            "allowedSinks": [
+              "goal-output:4d04c264738656073d1f854c50dd470899c7beda9ca471c9514258cf206661a8"
+            ],
+            "state": "active",
+            "retentionPolicy": {
+              "mode": "durable"
+            },
+            "createdAt": "2026-11-06T23:41:53.901Z",
+            "updatedAt": "2026-11-06T23:41:53.901Z",
+            "accessCount": 0,
+            "revision": 1,
+            "digest": "sha256:5285ac181a4c0bf1087a9f2369efdedf8a8a8f4ffb90e11c291e9672902cd7bb"
+          },
+          "unavailable": false
+        }
+      ],
+      "outputToken": {
+        "schema": "chainlesschain.goal-memory-output/v1",
+        "goalId": "goal-3c919d84-8f56-4246-bd36-3b0f8ffee837",
+        "actorDid": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc",
+        "storeId": "project-goals-81eb4925-0b9c-46a1-8318-686982830ce5",
+        "projectId": "13d54323-1341-4f68-b70e-4f2a76623ff7",
+        "scopeId": "goal-memory:4d04c264738656073d1f854c50dd470899c7beda9ca471c9514258cf206661a8",
+        "sink": "goal-output:4d04c264738656073d1f854c50dd470899c7beda9ca471c9514258cf206661a8",
+        "goalRevision": 3,
+        "controlGeneration": 2,
+        "memoryEpoch": 1,
+        "refs": [
+          {
+            "kind": "context-memory-kernel",
+            "id": "goal-mem-6fd30fd173ea6f03336cb5cd72cedda50708a6268cfc49d216ab694827a14d1c",
+            "version": "v1:r1:sha256:5285ac181a4c0bf1087a9f2369efdedf8a8a8f4ffb90e11c291e9672902cd7bb"
+          }
+        ]
+      },
+      "nextCursor": null
+    },
+    "corrected": {
+      "goalId": "goal-3c919d84-8f56-4246-bd36-3b0f8ffee837",
+      "goalRevision": 4,
+      "memoryEpoch": 2,
+      "items": [
+        {
+          "memoryId": "goal-mem-6fd30fd173ea6f03336cb5cd72cedda50708a6268cfc49d216ab694827a14d1c",
+          "reference": {
+            "kind": "context-memory-kernel",
+            "id": "goal-mem-6fd30fd173ea6f03336cb5cd72cedda50708a6268cfc49d216ab694827a14d1c",
+            "version": "v1:r1:sha256:5285ac181a4c0bf1087a9f2369efdedf8a8a8f4ffb90e11c291e9672902cd7bb"
+          },
+          "grantState": "corrected",
+          "state": "superseded",
+          "currentVersion": "v1:r2:sha256:2e68fa522eefb763a52618bba99f724fc8507c8d0ac9e0913ca8276930f314e6",
+          "record": null,
+          "unavailable": true
+        },
+        {
+          "memoryId": "goal-mem-f8ab4a8267731fce4337cedc7ae7dc57827457ad3e9d80b7ad4acde5c4dbe8f4",
+          "reference": {
+            "kind": "context-memory-kernel",
+            "id": "goal-mem-f8ab4a8267731fce4337cedc7ae7dc57827457ad3e9d80b7ad4acde5c4dbe8f4",
+            "version": "v1:r1:sha256:febe9e649b30685a8a6acf876e0ae540e8cbc298e9e236b9b931b46618d69e78"
+          },
+          "grantState": "active",
+          "state": "active",
+          "currentVersion": "v1:r1:sha256:febe9e649b30685a8a6acf876e0ae540e8cbc298e9e236b9b931b46618d69e78",
+          "record": {
+            "schemaVersion": 1,
+            "memoryId": "goal-mem-f8ab4a8267731fce4337cedc7ae7dc57827457ad3e9d80b7ad4acde5c4dbe8f4",
+            "scope": "project",
+            "scopeId": "goal-memory:4d04c264738656073d1f854c50dd470899c7beda9ca471c9514258cf206661a8",
+            "category": "execution-note",
+            "content": "DMM corrected execution note: independent acceptance is required",
+            "provenance": {
+              "source": "goal-memory.execution-note",
+              "actor": "goal-actor-0a6811c9f42c4b5dfcac74ffaf57cc31d5ca791c681c27f9f17da4823412b6ce",
+              "observedAt": "2026-11-06T23:41:54.073Z"
+            },
+            "evidenceRefs": [
+              {
+                "store": "goal-memory:4d04c264738656073d1f854c50dd470899c7beda9ca471c9514258cf206661a8",
+                "id": "goal-source-97a8fbb6e920154a4c53188426f08af8e9839104dc0d587bf3bf64d30e5f0a00",
+                "revision": 3,
+                "digest": "sha256:bc83df6b4160547dcf814e38a748782964203a847dcdc00bc00e64d9cc590a08"
+              }
+            ],
+            "confidence": 1,
+            "importance": 0.5,
+            "tags": [],
+            "sensitivity": "personal",
+            "allowedSinks": [
+              "goal-output:4d04c264738656073d1f854c50dd470899c7beda9ca471c9514258cf206661a8"
+            ],
+            "state": "active",
+            "retentionPolicy": {
+              "mode": "durable"
+            },
+            "createdAt": "2026-11-06T23:41:54.073Z",
+            "updatedAt": "2026-11-06T23:41:54.073Z",
+            "accessCount": 0,
+            "supersedes": [
+              "goal-mem-6fd30fd173ea6f03336cb5cd72cedda50708a6268cfc49d216ab694827a14d1c"
+            ],
+            "revision": 1,
+            "digest": "sha256:febe9e649b30685a8a6acf876e0ae540e8cbc298e9e236b9b931b46618d69e78"
+          },
+          "unavailable": false
+        }
+      ],
+      "outputToken": {
+        "schema": "chainlesschain.goal-memory-output/v1",
+        "goalId": "goal-3c919d84-8f56-4246-bd36-3b0f8ffee837",
+        "actorDid": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc",
+        "storeId": "project-goals-81eb4925-0b9c-46a1-8318-686982830ce5",
+        "projectId": "13d54323-1341-4f68-b70e-4f2a76623ff7",
+        "scopeId": "goal-memory:4d04c264738656073d1f854c50dd470899c7beda9ca471c9514258cf206661a8",
+        "sink": "goal-output:4d04c264738656073d1f854c50dd470899c7beda9ca471c9514258cf206661a8",
+        "goalRevision": 4,
+        "controlGeneration": 3,
+        "memoryEpoch": 2,
+        "refs": [
+          {
+            "kind": "context-memory-kernel",
+            "id": "goal-mem-f8ab4a8267731fce4337cedc7ae7dc57827457ad3e9d80b7ad4acde5c4dbe8f4",
+            "version": "v1:r1:sha256:febe9e649b30685a8a6acf876e0ae540e8cbc298e9e236b9b931b46618d69e78"
+          }
+        ]
+      },
+      "nextCursor": null
+    },
+    "revoked": {
+      "goalId": "goal-3c919d84-8f56-4246-bd36-3b0f8ffee837",
+      "goalRevision": 5,
+      "memoryEpoch": 3,
+      "items": [
+        {
+          "memoryId": "goal-mem-6fd30fd173ea6f03336cb5cd72cedda50708a6268cfc49d216ab694827a14d1c",
+          "reference": {
+            "kind": "context-memory-kernel",
+            "id": "goal-mem-6fd30fd173ea6f03336cb5cd72cedda50708a6268cfc49d216ab694827a14d1c",
+            "version": "v1:r1:sha256:5285ac181a4c0bf1087a9f2369efdedf8a8a8f4ffb90e11c291e9672902cd7bb"
+          },
+          "grantState": "corrected",
+          "state": "superseded",
+          "currentVersion": "v1:r2:sha256:2e68fa522eefb763a52618bba99f724fc8507c8d0ac9e0913ca8276930f314e6",
+          "record": null,
+          "unavailable": true
+        },
+        {
+          "memoryId": "goal-mem-f8ab4a8267731fce4337cedc7ae7dc57827457ad3e9d80b7ad4acde5c4dbe8f4",
+          "reference": {
+            "kind": "context-memory-kernel",
+            "id": "goal-mem-f8ab4a8267731fce4337cedc7ae7dc57827457ad3e9d80b7ad4acde5c4dbe8f4",
+            "version": "v1:r1:sha256:febe9e649b30685a8a6acf876e0ae540e8cbc298e9e236b9b931b46618d69e78"
+          },
+          "grantState": "revoked",
+          "state": "active",
+          "currentVersion": "v1:r1:sha256:febe9e649b30685a8a6acf876e0ae540e8cbc298e9e236b9b931b46618d69e78",
+          "record": null,
+          "unavailable": true
+        }
+      ],
+      "outputToken": {
+        "schema": "chainlesschain.goal-memory-output/v1",
+        "goalId": "goal-3c919d84-8f56-4246-bd36-3b0f8ffee837",
+        "actorDid": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc",
+        "storeId": "project-goals-81eb4925-0b9c-46a1-8318-686982830ce5",
+        "projectId": "13d54323-1341-4f68-b70e-4f2a76623ff7",
+        "scopeId": "goal-memory:4d04c264738656073d1f854c50dd470899c7beda9ca471c9514258cf206661a8",
+        "sink": "goal-output:4d04c264738656073d1f854c50dd470899c7beda9ca471c9514258cf206661a8",
+        "goalRevision": 5,
+        "controlGeneration": 4,
+        "memoryEpoch": 3,
+        "refs": []
+      },
+      "nextCursor": null
+    },
+    "deleted": {
+      "goalId": "goal-3c919d84-8f56-4246-bd36-3b0f8ffee837",
+      "goalRevision": 6,
+      "memoryEpoch": 4,
+      "items": [
+        {
+          "memoryId": "goal-mem-6fd30fd173ea6f03336cb5cd72cedda50708a6268cfc49d216ab694827a14d1c",
+          "reference": {
+            "kind": "context-memory-kernel",
+            "id": "goal-mem-6fd30fd173ea6f03336cb5cd72cedda50708a6268cfc49d216ab694827a14d1c",
+            "version": "v1:r1:sha256:5285ac181a4c0bf1087a9f2369efdedf8a8a8f4ffb90e11c291e9672902cd7bb"
+          },
+          "grantState": "corrected",
+          "state": "superseded",
+          "currentVersion": "v1:r2:sha256:2e68fa522eefb763a52618bba99f724fc8507c8d0ac9e0913ca8276930f314e6",
+          "record": null,
+          "unavailable": true
+        },
+        {
+          "memoryId": "goal-mem-f8ab4a8267731fce4337cedc7ae7dc57827457ad3e9d80b7ad4acde5c4dbe8f4",
+          "reference": {
+            "kind": "context-memory-kernel",
+            "id": "goal-mem-f8ab4a8267731fce4337cedc7ae7dc57827457ad3e9d80b7ad4acde5c4dbe8f4",
+            "version": "v1:r1:sha256:febe9e649b30685a8a6acf876e0ae540e8cbc298e9e236b9b931b46618d69e78"
+          },
+          "grantState": "deleted",
+          "state": "purged",
+          "currentVersion": "v1:r3:sha256:70139ee0d5be87d65d406a738796fb13c5509a68270725b677b94cdee1dc4007",
+          "record": null,
+          "unavailable": true
+        }
+      ],
+      "outputToken": {
+        "schema": "chainlesschain.goal-memory-output/v1",
+        "goalId": "goal-3c919d84-8f56-4246-bd36-3b0f8ffee837",
+        "actorDid": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc",
+        "storeId": "project-goals-81eb4925-0b9c-46a1-8318-686982830ce5",
+        "projectId": "13d54323-1341-4f68-b70e-4f2a76623ff7",
+        "scopeId": "goal-memory:4d04c264738656073d1f854c50dd470899c7beda9ca471c9514258cf206661a8",
+        "sink": "goal-output:4d04c264738656073d1f854c50dd470899c7beda9ca471c9514258cf206661a8",
+        "goalRevision": 6,
+        "controlGeneration": 5,
+        "memoryEpoch": 4,
+        "refs": []
+      },
+      "nextCursor": null
+    },
+    "operations": {
+      "goalId": "goal-3c919d84-8f56-4246-bd36-3b0f8ffee837",
+      "items": [
+        {
+          "schema": "chainlesschain.goal-memory-operation/v1",
+          "goalId": "goal-3c919d84-8f56-4246-bd36-3b0f8ffee837",
+          "actorDid": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc",
+          "storeId": "project-goals-81eb4925-0b9c-46a1-8318-686982830ce5",
+          "projectId": "13d54323-1341-4f68-b70e-4f2a76623ff7",
+          "scopeId": "goal-memory:4d04c264738656073d1f854c50dd470899c7beda9ca471c9514258cf206661a8",
+          "sink": "goal-output:4d04c264738656073d1f854c50dd470899c7beda9ca471c9514258cf206661a8",
+          "requestId": "goal-memory-2b3e6f2d-71d6-4db3-9332-e2455272340c",
+          "inputDigest": "sha256:34b246e98ea53377e2cdf60afdfe8d63cae32b16925c214f3c9998b44657b5ee",
+          "type": "create",
+          "status": "complete",
+          "goalRevision": 2,
+          "controlGeneration": 1,
+          "memoryId": "goal-mem-6fd30fd173ea6f03336cb5cd72cedda50708a6268cfc49d216ab694827a14d1c",
+          "sourceRef": null,
+          "payloadDigest": "sha256:d1113c731f80e95ac06f2fd2d0a17bb4d55c1e885d7c11a660a40d9aaf937fe2",
+          "startedAt": "2026-11-06T23:41:53.901Z",
+          "discard": null,
+          "result": {
+            "operation": "create",
+            "memoryId": "goal-mem-6fd30fd173ea6f03336cb5cd72cedda50708a6268cfc49d216ab694827a14d1c",
+            "reference": {
+              "kind": "context-memory-kernel",
+              "id": "goal-mem-6fd30fd173ea6f03336cb5cd72cedda50708a6268cfc49d216ab694827a14d1c",
+              "version": "v1:r1:sha256:5285ac181a4c0bf1087a9f2369efdedf8a8a8f4ffb90e11c291e9672902cd7bb"
+            },
+            "receipt": null,
+            "goalRevision": 3,
+            "memoryEpoch": 1,
+            "goalReferenceRetained": true
+          }
+        },
+        {
+          "schema": "chainlesschain.goal-memory-operation/v1",
+          "goalId": "goal-3c919d84-8f56-4246-bd36-3b0f8ffee837",
+          "actorDid": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc",
+          "storeId": "project-goals-81eb4925-0b9c-46a1-8318-686982830ce5",
+          "projectId": "13d54323-1341-4f68-b70e-4f2a76623ff7",
+          "scopeId": "goal-memory:4d04c264738656073d1f854c50dd470899c7beda9ca471c9514258cf206661a8",
+          "sink": "goal-output:4d04c264738656073d1f854c50dd470899c7beda9ca471c9514258cf206661a8",
+          "requestId": "goal-memory-3ee1c863-de1a-46e8-93e4-39025f7f8365",
+          "inputDigest": "sha256:bc83df6b4160547dcf814e38a748782964203a847dcdc00bc00e64d9cc590a08",
+          "type": "correct",
+          "status": "complete",
+          "goalRevision": 3,
+          "controlGeneration": 2,
+          "memoryId": "goal-mem-f8ab4a8267731fce4337cedc7ae7dc57827457ad3e9d80b7ad4acde5c4dbe8f4",
+          "sourceRef": {
+            "kind": "context-memory-kernel",
+            "id": "goal-mem-6fd30fd173ea6f03336cb5cd72cedda50708a6268cfc49d216ab694827a14d1c",
+            "version": "v1:r1:sha256:5285ac181a4c0bf1087a9f2369efdedf8a8a8f4ffb90e11c291e9672902cd7bb"
+          },
+          "payloadDigest": "sha256:143ccb4da1d617b635acf80374729269f0d7cf02714ce85761eb4b94329fbd71",
+          "startedAt": "2026-11-06T23:41:54.073Z",
+          "discard": null,
+          "result": {
+            "operation": "correct",
+            "memoryId": "goal-mem-f8ab4a8267731fce4337cedc7ae7dc57827457ad3e9d80b7ad4acde5c4dbe8f4",
+            "reference": {
+              "kind": "context-memory-kernel",
+              "id": "goal-mem-f8ab4a8267731fce4337cedc7ae7dc57827457ad3e9d80b7ad4acde5c4dbe8f4",
+              "version": "v1:r1:sha256:febe9e649b30685a8a6acf876e0ae540e8cbc298e9e236b9b931b46618d69e78"
+            },
+            "receipt": null,
+            "goalRevision": 4,
+            "memoryEpoch": 2,
+            "goalReferenceRetained": true
+          }
+        },
+        {
+          "schema": "chainlesschain.goal-memory-operation/v1",
+          "goalId": "goal-3c919d84-8f56-4246-bd36-3b0f8ffee837",
+          "actorDid": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc",
+          "storeId": "project-goals-81eb4925-0b9c-46a1-8318-686982830ce5",
+          "projectId": "13d54323-1341-4f68-b70e-4f2a76623ff7",
+          "scopeId": "goal-memory:4d04c264738656073d1f854c50dd470899c7beda9ca471c9514258cf206661a8",
+          "sink": "goal-output:4d04c264738656073d1f854c50dd470899c7beda9ca471c9514258cf206661a8",
+          "requestId": "goal-memory-bc7d41b0-4e87-40de-975c-7df91124c8de",
+          "inputDigest": "sha256:6157798779d462cfa3c5d9328778f7666f2eb19f9f69033c6d3183f6dc39694c",
+          "type": "revoke",
+          "status": "complete",
+          "goalRevision": 4,
+          "controlGeneration": 3,
+          "memoryId": "goal-mem-f8ab4a8267731fce4337cedc7ae7dc57827457ad3e9d80b7ad4acde5c4dbe8f4",
+          "sourceRef": {
+            "kind": "context-memory-kernel",
+            "id": "goal-mem-f8ab4a8267731fce4337cedc7ae7dc57827457ad3e9d80b7ad4acde5c4dbe8f4",
+            "version": "v1:r1:sha256:febe9e649b30685a8a6acf876e0ae540e8cbc298e9e236b9b931b46618d69e78"
+          },
+          "payloadDigest": null,
+          "startedAt": "2026-11-06T23:41:54.211Z",
+          "discard": null,
+          "result": {
+            "operation": "revoke",
+            "memoryId": "goal-mem-f8ab4a8267731fce4337cedc7ae7dc57827457ad3e9d80b7ad4acde5c4dbe8f4",
+            "reference": null,
+            "receipt": null,
+            "goalRevision": 5,
+            "memoryEpoch": 3,
+            "goalReferenceRetained": false
+          }
+        },
+        {
+          "schema": "chainlesschain.goal-memory-operation/v1",
+          "goalId": "goal-3c919d84-8f56-4246-bd36-3b0f8ffee837",
+          "actorDid": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc",
+          "storeId": "project-goals-81eb4925-0b9c-46a1-8318-686982830ce5",
+          "projectId": "13d54323-1341-4f68-b70e-4f2a76623ff7",
+          "scopeId": "goal-memory:4d04c264738656073d1f854c50dd470899c7beda9ca471c9514258cf206661a8",
+          "sink": "goal-output:4d04c264738656073d1f854c50dd470899c7beda9ca471c9514258cf206661a8",
+          "requestId": "goal-memory-faa7c345-fa2e-4059-bcc5-b58253864cd2",
+          "inputDigest": "sha256:f142e94b80a3897fd4942eabe9130ead22719625a8811f422ed56776437ae573",
+          "type": "delete",
+          "status": "complete",
+          "goalRevision": 5,
+          "controlGeneration": 4,
+          "memoryId": "goal-mem-f8ab4a8267731fce4337cedc7ae7dc57827457ad3e9d80b7ad4acde5c4dbe8f4",
+          "sourceRef": {
+            "kind": "context-memory-kernel",
+            "id": "goal-mem-f8ab4a8267731fce4337cedc7ae7dc57827457ad3e9d80b7ad4acde5c4dbe8f4",
+            "version": "v1:r1:sha256:febe9e649b30685a8a6acf876e0ae540e8cbc298e9e236b9b931b46618d69e78"
+          },
+          "payloadDigest": null,
+          "startedAt": "2026-11-06T23:41:54.587Z",
+          "discard": null,
+          "result": {
+            "operation": "delete",
+            "memoryId": "goal-mem-f8ab4a8267731fce4337cedc7ae7dc57827457ad3e9d80b7ad4acde5c4dbe8f4",
+            "reference": null,
+            "receipt": {
+              "schema": "chainlesschain.memory-deletion-receipt/v1",
+              "schemaVersion": 1,
+              "requestId": "goal-delete-3aa56c7af77870e86eeb60a116714029ceb3b4d66ce3efd2ab37b9c68d7409ce",
+              "subject": "goal-actor-0a6811c9f42c4b5dfcac74ffaf57cc31d5ca791c681c27f9f17da4823412b6ce",
+              "selector": "memory:goal-mem-f8ab4a8267731fce4337cedc7ae7dc57827457ad3e9d80b7ad4acde5c4dbe8f4",
+              "scope": "project",
+              "scopeId": "goal-memory:4d04c264738656073d1f854c50dd470899c7beda9ca471c9514258cf206661a8",
+              "memoryId": "goal-mem-f8ab4a8267731fce4337cedc7ae7dc57827457ad3e9d80b7ad4acde5c4dbe8f4",
+              "fence": "goal-delete-fence-3aa56c7af77870e86eeb60a116714029ceb3b4d66ce3efd2ab37b9c68d7409ce",
+              "authority": "goal-memory:4d04c264738656073d1f854c50dd470899c7beda9ca471c9514258cf206661a8",
+              "status": "purged",
+              "revision": 3,
+              "recordState": "purged",
+              "recordDigest": "sha256:70139ee0d5be87d65d406a738796fb13c5509a68270725b677b94cdee1dc4007",
+              "stores": [
+                {
+                  "store": "native-sqlite-memory-authority",
+                  "status": "purged",
+                  "revision": 3
+                }
+              ],
+              "startedAt": "2026-11-06T23:41:54.592Z",
+              "completedAt": "2026-11-06T23:41:54.597Z",
+              "digest": "sha256:5d8b6883f694cffc5ee0af0d6aad463d87b4dc40ccb858c018ad7a6c005f7fa2"
+            },
+            "goalRevision": 6,
+            "memoryEpoch": 4,
+            "goalReferenceRetained": false
+          }
+        }
+      ],
+      "nextCursor": null
+    },
+    "noticeBeforeRead": [
+      {
+        "id": "goal-notice-da59c57b-6aee-4f44-a6b5-b97064116375",
+        "user_did": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc",
+        "type": "system",
+        "title": "Project goal update",
+        "content": "A project goal update is available. Open the goal to review its current source.",
+        "data": "{\"schema\":\"chainlesschain.goal-notice-ref/v1\",\"eventId\":\"goal-notice-da59c57b-6aee-4f44-a6b5-b97064116375\",\"goalId\":\"goal-3c919d84-8f56-4246-bd36-3b0f8ffee837\",\"projectId\":\"13d54323-1341-4f68-b70e-4f2a76623ff7\",\"storeId\":\"project-goals-81eb4925-0b9c-46a1-8318-686982830ce5\",\"sourceVersion\":\"sha256:70f0b28d84afae4d9b12c993ed6a96aa80dfda2e2e4e10cb8aa3d50795a66e20\"}",
+        "is_read": 0,
+        "created_at": 1794008514799
+      },
+      {
+        "id": "goal-notice-624ab7b5-f795-4333-9c06-ac6d67cfaef4",
+        "user_did": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc",
+        "type": "system",
+        "title": "Project goal update",
+        "content": "A project goal update is available. Open the goal to review its current source.",
+        "data": "{\"schema\":\"chainlesschain.goal-notice-ref/v1\",\"eventId\":\"goal-notice-624ab7b5-f795-4333-9c06-ac6d67cfaef4\",\"goalId\":\"goal-3c919d84-8f56-4246-bd36-3b0f8ffee837\",\"projectId\":\"13d54323-1341-4f68-b70e-4f2a76623ff7\",\"storeId\":\"project-goals-81eb4925-0b9c-46a1-8318-686982830ce5\",\"sourceVersion\":\"sha256:eebba02b20efba01f52286e2e63750736a986966e2358f9c2a6718c249d0e814\"}",
+        "is_read": 0,
+        "created_at": 1794008514509
+      },
+      {
+        "id": "goal-notice-57dd366e-c1c8-4b22-87e5-7996dec253c8",
+        "user_did": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc",
+        "type": "system",
+        "title": "Project goal update",
+        "content": "A project goal update is available. Open the goal to review its current source.",
+        "data": "{\"schema\":\"chainlesschain.goal-notice-ref/v1\",\"eventId\":\"goal-notice-57dd366e-c1c8-4b22-87e5-7996dec253c8\",\"goalId\":\"goal-3c919d84-8f56-4246-bd36-3b0f8ffee837\",\"projectId\":\"13d54323-1341-4f68-b70e-4f2a76623ff7\",\"storeId\":\"project-goals-81eb4925-0b9c-46a1-8318-686982830ce5\",\"sourceVersion\":\"sha256:b4ac78f167765037f4004c8a0981e91daeb235e79657765dc6d84671f5adb8cd\"}",
+        "is_read": 0,
+        "created_at": 1794008512392
+      },
+      {
+        "id": "goal-notice-03d77230-65b5-44e4-924c-0ab626342264",
+        "user_did": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc",
+        "type": "system",
+        "title": "Project goal update",
+        "content": "A project goal update is available. Open the goal to review its current source.",
+        "data": "{\"schema\":\"chainlesschain.goal-notice-ref/v1\",\"eventId\":\"goal-notice-03d77230-65b5-44e4-924c-0ab626342264\",\"goalId\":\"goal-3c919d84-8f56-4246-bd36-3b0f8ffee837\",\"projectId\":\"13d54323-1341-4f68-b70e-4f2a76623ff7\",\"storeId\":\"project-goals-81eb4925-0b9c-46a1-8318-686982830ce5\",\"sourceVersion\":\"sha256:70f0b28d84afae4d9b12c993ed6a96aa80dfda2e2e4e10cb8aa3d50795a66e20\"}",
+        "is_read": 0,
+        "created_at": 1794008512392
+      }
+    ],
+    "noticeAfterRead": [
+      {
+        "id": "goal-notice-da59c57b-6aee-4f44-a6b5-b97064116375",
+        "user_did": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc",
+        "type": "system",
+        "title": "Project goal update",
+        "content": "A project goal update is available. Open the goal to review its current source.",
+        "data": "{\"schema\":\"chainlesschain.goal-notice-ref/v1\",\"eventId\":\"goal-notice-da59c57b-6aee-4f44-a6b5-b97064116375\",\"goalId\":\"goal-3c919d84-8f56-4246-bd36-3b0f8ffee837\",\"projectId\":\"13d54323-1341-4f68-b70e-4f2a76623ff7\",\"storeId\":\"project-goals-81eb4925-0b9c-46a1-8318-686982830ce5\",\"sourceVersion\":\"sha256:70f0b28d84afae4d9b12c993ed6a96aa80dfda2e2e4e10cb8aa3d50795a66e20\"}",
+        "is_read": 1,
+        "created_at": 1794008514799
+      },
+      {
+        "id": "goal-notice-624ab7b5-f795-4333-9c06-ac6d67cfaef4",
+        "user_did": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc",
+        "type": "system",
+        "title": "Project goal update",
+        "content": "A project goal update is available. Open the goal to review its current source.",
+        "data": "{\"schema\":\"chainlesschain.goal-notice-ref/v1\",\"eventId\":\"goal-notice-624ab7b5-f795-4333-9c06-ac6d67cfaef4\",\"goalId\":\"goal-3c919d84-8f56-4246-bd36-3b0f8ffee837\",\"projectId\":\"13d54323-1341-4f68-b70e-4f2a76623ff7\",\"storeId\":\"project-goals-81eb4925-0b9c-46a1-8318-686982830ce5\",\"sourceVersion\":\"sha256:eebba02b20efba01f52286e2e63750736a986966e2358f9c2a6718c249d0e814\"}",
+        "is_read": 0,
+        "created_at": 1794008514509
+      },
+      {
+        "id": "goal-notice-57dd366e-c1c8-4b22-87e5-7996dec253c8",
+        "user_did": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc",
+        "type": "system",
+        "title": "Project goal update",
+        "content": "A project goal update is available. Open the goal to review its current source.",
+        "data": "{\"schema\":\"chainlesschain.goal-notice-ref/v1\",\"eventId\":\"goal-notice-57dd366e-c1c8-4b22-87e5-7996dec253c8\",\"goalId\":\"goal-3c919d84-8f56-4246-bd36-3b0f8ffee837\",\"projectId\":\"13d54323-1341-4f68-b70e-4f2a76623ff7\",\"storeId\":\"project-goals-81eb4925-0b9c-46a1-8318-686982830ce5\",\"sourceVersion\":\"sha256:b4ac78f167765037f4004c8a0981e91daeb235e79657765dc6d84671f5adb8cd\"}",
+        "is_read": 0,
+        "created_at": 1794008512392
+      },
+      {
+        "id": "goal-notice-03d77230-65b5-44e4-924c-0ab626342264",
+        "user_did": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc",
+        "type": "system",
+        "title": "Project goal update",
+        "content": "A project goal update is available. Open the goal to review its current source.",
+        "data": "{\"schema\":\"chainlesschain.goal-notice-ref/v1\",\"eventId\":\"goal-notice-03d77230-65b5-44e4-924c-0ab626342264\",\"goalId\":\"goal-3c919d84-8f56-4246-bd36-3b0f8ffee837\",\"projectId\":\"13d54323-1341-4f68-b70e-4f2a76623ff7\",\"storeId\":\"project-goals-81eb4925-0b9c-46a1-8318-686982830ce5\",\"sourceVersion\":\"sha256:70f0b28d84afae4d9b12c993ed6a96aa80dfda2e2e4e10cb8aa3d50795a66e20\"}",
+        "is_read": 0,
+        "created_at": 1794008512392
+      }
+    ],
+    "opened": {
+      "success": true,
+      "target": {
+        "goalId": "goal-3c919d84-8f56-4246-bd36-3b0f8ffee837",
+        "projectId": "13d54323-1341-4f68-b70e-4f2a76623ff7",
+        "storeId": "project-goals-81eb4925-0b9c-46a1-8318-686982830ce5",
+        "sourceVersion": "sha256:70f0b28d84afae4d9b12c993ed6a96aa80dfda2e2e4e10cb8aa3d50795a66e20"
+      }
+    },
+    "noticeAfterRepeat": [
+      {
+        "id": "goal-notice-da59c57b-6aee-4f44-a6b5-b97064116375",
+        "user_did": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc",
+        "type": "system",
+        "title": "Project goal update",
+        "content": "A project goal update is available. Open the goal to review its current source.",
+        "data": "{\"schema\":\"chainlesschain.goal-notice-ref/v1\",\"eventId\":\"goal-notice-da59c57b-6aee-4f44-a6b5-b97064116375\",\"goalId\":\"goal-3c919d84-8f56-4246-bd36-3b0f8ffee837\",\"projectId\":\"13d54323-1341-4f68-b70e-4f2a76623ff7\",\"storeId\":\"project-goals-81eb4925-0b9c-46a1-8318-686982830ce5\",\"sourceVersion\":\"sha256:70f0b28d84afae4d9b12c993ed6a96aa80dfda2e2e4e10cb8aa3d50795a66e20\"}",
+        "is_read": 1,
+        "created_at": 1794008514799
+      },
+      {
+        "id": "goal-notice-624ab7b5-f795-4333-9c06-ac6d67cfaef4",
+        "user_did": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc",
+        "type": "system",
+        "title": "Project goal update",
+        "content": "A project goal update is available. Open the goal to review its current source.",
+        "data": "{\"schema\":\"chainlesschain.goal-notice-ref/v1\",\"eventId\":\"goal-notice-624ab7b5-f795-4333-9c06-ac6d67cfaef4\",\"goalId\":\"goal-3c919d84-8f56-4246-bd36-3b0f8ffee837\",\"projectId\":\"13d54323-1341-4f68-b70e-4f2a76623ff7\",\"storeId\":\"project-goals-81eb4925-0b9c-46a1-8318-686982830ce5\",\"sourceVersion\":\"sha256:eebba02b20efba01f52286e2e63750736a986966e2358f9c2a6718c249d0e814\"}",
+        "is_read": 0,
+        "created_at": 1794008514509
+      },
+      {
+        "id": "goal-notice-57dd366e-c1c8-4b22-87e5-7996dec253c8",
+        "user_did": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc",
+        "type": "system",
+        "title": "Project goal update",
+        "content": "A project goal update is available. Open the goal to review its current source.",
+        "data": "{\"schema\":\"chainlesschain.goal-notice-ref/v1\",\"eventId\":\"goal-notice-57dd366e-c1c8-4b22-87e5-7996dec253c8\",\"goalId\":\"goal-3c919d84-8f56-4246-bd36-3b0f8ffee837\",\"projectId\":\"13d54323-1341-4f68-b70e-4f2a76623ff7\",\"storeId\":\"project-goals-81eb4925-0b9c-46a1-8318-686982830ce5\",\"sourceVersion\":\"sha256:b4ac78f167765037f4004c8a0981e91daeb235e79657765dc6d84671f5adb8cd\"}",
+        "is_read": 0,
+        "created_at": 1794008512392
+      },
+      {
+        "id": "goal-notice-03d77230-65b5-44e4-924c-0ab626342264",
+        "user_did": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc",
+        "type": "system",
+        "title": "Project goal update",
+        "content": "A project goal update is available. Open the goal to review its current source.",
+        "data": "{\"schema\":\"chainlesschain.goal-notice-ref/v1\",\"eventId\":\"goal-notice-03d77230-65b5-44e4-924c-0ab626342264\",\"goalId\":\"goal-3c919d84-8f56-4246-bd36-3b0f8ffee837\",\"projectId\":\"13d54323-1341-4f68-b70e-4f2a76623ff7\",\"storeId\":\"project-goals-81eb4925-0b9c-46a1-8318-686982830ce5\",\"sourceVersion\":\"sha256:88243c726ee53b5ee5b6a3b4f4978a163efa066b78b2a30e7c57e19dd431b4c6\"}",
+        "is_read": 0,
+        "created_at": 1794008512392
+      }
+    ],
+    "silentPolicy": {
+      "channel": "in-app",
+      "mode": "silent",
+      "quietHours": null
+    },
+    "silentStatus": {
+      "goal": {
+        "schema": "chainlesschain.goal/v2",
+        "schemaVersion": 2,
+        "id": "goal-3c919d84-8f56-4246-bd36-3b0f8ffee837",
+        "storeId": "project-goals-81eb4925-0b9c-46a1-8318-686982830ce5",
+        "revision": 7,
+        "controlGeneration": 6,
+        "ownerRef": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc",
+        "projectRef": {
+          "schema": "chainlesschain.business-object-ref/v1",
+          "schemaVersion": 1,
+          "type": "Project",
+          "id": "13d54323-1341-4f68-b70e-4f2a76623ff7",
+          "sourceKind": "desktop.project-goals",
+          "scope": {
+            "kind": "personal",
+            "id": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc"
+          },
+          "version": "sha256:88669ded69a37776c1deba178eaaf544d86b663dec5c6fe1c79dcc9582fd4234"
+        },
+        "title": "DMM native risk follow-up",
+        "objective": "DMM native risk follow-up",
+        "status": "active",
+        "progress": 0,
+        "keyResults": [],
+        "linkedSessions": [],
+        "notes": [],
+        "drift": {
+          "lastProgressAt": null,
+          "flags": []
+        },
+        "createdAt": "2026-11-06T23:41:51.945Z",
+        "updatedAt": "2026-11-06T23:41:59.413Z",
+        "acceptanceCriteria": [],
+        "budgetPolicy": {
+          "maxRuns": 20,
+          "maxTokens": null,
+          "maxTimeMs": null,
+          "maxCostUsd": null
+        },
+        "expiresAt": null,
+        "nextCheckAt": null,
+        "triggerRefs": [],
+        "allowedActionTypes": [
+          "task.create",
+          "task.update-description"
+        ],
+        "authorizationRefs": [],
+        "notificationPolicy": {
+          "channel": "in-app",
+          "mode": "silent",
+          "quietHours": null
+        },
+        "memoryRefs": [],
+        "waitingReason": null,
+        "executionState": "idle",
+        "completion": null,
+        "requiresGraphAwareHost": true
+      },
+      "monitor": {
+        "goal_id": "goal-3c919d84-8f56-4246-bd36-3b0f8ffee837",
+        "actor_did": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc",
+        "revision": 1,
+        "interval_ms": 60000,
+        "enabled": 1,
+        "next_check_at": 1794008572149,
+        "scheduler_policy_revision": 1
+      },
+      "history": [
+        {
+          "occurrenceId": "occ_76d44b01cfa87e167dc6c5bb3489d811f0ddd54a528caee477ed1bd6eada8c24",
+          "goalRevision": 7,
+          "controlGeneration": 6,
+          "reviewId": "16563e61-ebd1-470b-9dfd-31d8ec7b97b9",
+          "result": {
+            "goalId": "goal-3c919d84-8f56-4246-bd36-3b0f8ffee837",
+            "reviewId": "16563e61-ebd1-470b-9dfd-31d8ec7b97b9",
+            "checkedAt": "2026-11-06T23:41:59.604Z",
+            "status": "evaluated",
+            "riskTaskCount": 1
+          },
+          "elapsedMs": 7
+        },
+        {
+          "occurrenceId": "occ_aafdd0e329ff3f0093b554cf3a3084ce97bf6fb709f77f7da5c0d00bdb78f394",
+          "goalRevision": 6,
+          "controlGeneration": 5,
+          "reviewId": "f52144ff-be02-4b10-b529-fb2f2953475a",
+          "result": {
+            "goalId": "goal-3c919d84-8f56-4246-bd36-3b0f8ffee837",
+            "reviewId": "f52144ff-be02-4b10-b529-fb2f2953475a",
+            "checkedAt": "2026-11-06T23:41:59.182Z",
+            "status": "evaluated",
+            "riskTaskCount": 1
+          },
+          "elapsedMs": 6
+        },
+        {
+          "occurrenceId": "occ_7ab734b9e6b4c8a28aa2e39f0c14765c875ac0afbe7c7b9708d45eb540f0c0ed",
+          "goalRevision": 6,
+          "controlGeneration": 5,
+          "reviewId": "83ce4115-171c-4376-ae3e-4e4a27eb1635",
+          "result": {
+            "goalId": "goal-3c919d84-8f56-4246-bd36-3b0f8ffee837",
+            "reviewId": "83ce4115-171c-4376-ae3e-4e4a27eb1635",
+            "checkedAt": "2026-11-06T23:41:54.791Z",
+            "status": "evaluated",
+            "riskTaskCount": 1
+          },
+          "elapsedMs": 7
+        },
+        {
+          "occurrenceId": "occ_15b874d579d7279554677ba69d93266901a75ff8c1bab51939f90076778d1854",
+          "goalRevision": 5,
+          "controlGeneration": 4,
+          "reviewId": "282ff801-0cc5-4da2-bffa-fc5527684780",
+          "result": {
+            "goalId": "goal-3c919d84-8f56-4246-bd36-3b0f8ffee837",
+            "reviewId": "282ff801-0cc5-4da2-bffa-fc5527684780",
+            "checkedAt": "2026-11-06T23:41:54.499Z",
+            "status": "evaluated",
+            "riskTaskCount": 1
+          },
+          "elapsedMs": 8
+        },
+        {
+          "occurrenceId": "occ_2be581c26d4f8d4849c51919aa093a81b467dfbc34b95769967bdfecd49e0481",
+          "goalRevision": 2,
+          "controlGeneration": 1,
+          "reviewId": "1afa2ddd-0d25-4ce4-afd1-f6d9f77a50e9",
+          "result": {
+            "goalId": "goal-3c919d84-8f56-4246-bd36-3b0f8ffee837",
+            "reviewId": "1afa2ddd-0d25-4ce4-afd1-f6d9f77a50e9",
+            "checkedAt": "2026-11-06T23:41:53.718Z",
+            "status": "evaluated",
+            "riskTaskCount": 1
+          },
+          "elapsedMs": 6
+        },
+        {
+          "occurrenceId": "occ_8cacd57f5671fba93e7f09a5b75b221153e9d89d8cf6290657ee71f6d81b898f",
+          "goalRevision": 2,
+          "controlGeneration": 1,
+          "reviewId": "cc798189-e8ea-4563-bc76-037f5f444e7f",
+          "result": {
+            "goalId": "goal-3c919d84-8f56-4246-bd36-3b0f8ffee837",
+            "reviewId": "cc798189-e8ea-4563-bc76-037f5f444e7f",
+            "checkedAt": "2026-11-06T23:41:52.382Z",
+            "status": "evaluated",
+            "riskTaskCount": 1
+          },
+          "elapsedMs": 7
+        }
+      ],
+      "usage": {
+        "checks": 6,
+        "totalRuns": 7,
+        "reservedRuns": 0,
+        "knownElapsedMs": 43,
+        "elapsedMs": 43,
+        "modelTokens": 0,
+        "modelCostUsd": 0,
+        "knownModelTokens": 0,
+        "knownModelCostUsd": 0,
+        "reservedTokens": 0,
+        "reservedCostUsd": 0,
+        "reservedElapsedMs": 0,
+        "unknownTime": 0,
+        "unknownTokens": 0,
+        "unknownCost": 0
+      },
+      "stops": [],
+      "blockedReason": null,
+      "executionState": "waiting",
+      "active": []
+    },
+    "silentNotices": [
+      {
+        "id": "goal-notice-da59c57b-6aee-4f44-a6b5-b97064116375",
+        "user_did": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc",
+        "type": "system",
+        "title": "Project goal update",
+        "content": "A project goal update is available. Open the goal to review its current source.",
+        "data": "{\"schema\":\"chainlesschain.goal-notice-ref/v1\",\"eventId\":\"goal-notice-da59c57b-6aee-4f44-a6b5-b97064116375\",\"goalId\":\"goal-3c919d84-8f56-4246-bd36-3b0f8ffee837\",\"projectId\":\"13d54323-1341-4f68-b70e-4f2a76623ff7\",\"storeId\":\"project-goals-81eb4925-0b9c-46a1-8318-686982830ce5\",\"sourceVersion\":\"sha256:70f0b28d84afae4d9b12c993ed6a96aa80dfda2e2e4e10cb8aa3d50795a66e20\"}",
+        "is_read": 1,
+        "created_at": 1794008514799
+      },
+      {
+        "id": "goal-notice-624ab7b5-f795-4333-9c06-ac6d67cfaef4",
+        "user_did": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc",
+        "type": "system",
+        "title": "Project goal update",
+        "content": "A project goal update is available. Open the goal to review its current source.",
+        "data": "{\"schema\":\"chainlesschain.goal-notice-ref/v1\",\"eventId\":\"goal-notice-624ab7b5-f795-4333-9c06-ac6d67cfaef4\",\"goalId\":\"goal-3c919d84-8f56-4246-bd36-3b0f8ffee837\",\"projectId\":\"13d54323-1341-4f68-b70e-4f2a76623ff7\",\"storeId\":\"project-goals-81eb4925-0b9c-46a1-8318-686982830ce5\",\"sourceVersion\":\"sha256:eebba02b20efba01f52286e2e63750736a986966e2358f9c2a6718c249d0e814\"}",
+        "is_read": 0,
+        "created_at": 1794008514509
+      },
+      {
+        "id": "goal-notice-57dd366e-c1c8-4b22-87e5-7996dec253c8",
+        "user_did": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc",
+        "type": "system",
+        "title": "Project goal update",
+        "content": "A project goal update is available. Open the goal to review its current source.",
+        "data": "{\"schema\":\"chainlesschain.goal-notice-ref/v1\",\"eventId\":\"goal-notice-57dd366e-c1c8-4b22-87e5-7996dec253c8\",\"goalId\":\"goal-3c919d84-8f56-4246-bd36-3b0f8ffee837\",\"projectId\":\"13d54323-1341-4f68-b70e-4f2a76623ff7\",\"storeId\":\"project-goals-81eb4925-0b9c-46a1-8318-686982830ce5\",\"sourceVersion\":\"sha256:b4ac78f167765037f4004c8a0981e91daeb235e79657765dc6d84671f5adb8cd\"}",
+        "is_read": 0,
+        "created_at": 1794008512392
+      },
+      {
+        "id": "goal-notice-03d77230-65b5-44e4-924c-0ab626342264",
+        "user_did": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc",
+        "type": "system",
+        "title": "Project goal update",
+        "content": "A project goal update is available. Open the goal to review its current source.",
+        "data": "{\"schema\":\"chainlesschain.goal-notice-ref/v1\",\"eventId\":\"goal-notice-03d77230-65b5-44e4-924c-0ab626342264\",\"goalId\":\"goal-3c919d84-8f56-4246-bd36-3b0f8ffee837\",\"projectId\":\"13d54323-1341-4f68-b70e-4f2a76623ff7\",\"storeId\":\"project-goals-81eb4925-0b9c-46a1-8318-686982830ce5\",\"sourceVersion\":\"sha256:cc1f5d7f8ab9df0466cf5461c9b1ff415600de836523f061aef1befbc30b24a7\"}",
+        "is_read": 0,
+        "created_at": 1794008512392
+      }
+    ],
+    "quietHoursPolicy": {
+      "channel": "in-app",
+      "mode": "changes-only",
+      "quietHours": {
+        "timeZone": "Asia/Shanghai",
+        "startMinute": 1320,
+        "endMinute": 480
+      }
+    },
+    "finalGoal": {
+      "schema": "chainlesschain.goal/v2",
+      "schemaVersion": 2,
+      "id": "goal-3c919d84-8f56-4246-bd36-3b0f8ffee837",
+      "storeId": "project-goals-81eb4925-0b9c-46a1-8318-686982830ce5",
+      "revision": 8,
+      "controlGeneration": 7,
+      "ownerRef": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc",
+      "projectRef": {
+        "schema": "chainlesschain.business-object-ref/v1",
+        "schemaVersion": 1,
+        "type": "Project",
+        "id": "13d54323-1341-4f68-b70e-4f2a76623ff7",
+        "sourceKind": "desktop.project-goals",
+        "scope": {
+          "kind": "personal",
+          "id": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc"
+        },
+        "version": "sha256:88669ded69a37776c1deba178eaaf544d86b663dec5c6fe1c79dcc9582fd4234"
+      },
+      "title": "DMM native risk follow-up",
+      "objective": "DMM native risk follow-up",
+      "status": "active",
+      "progress": 0,
+      "keyResults": [],
+      "linkedSessions": [],
+      "notes": [],
+      "drift": {
+        "lastProgressAt": null,
+        "flags": []
+      },
+      "createdAt": "2026-11-06T23:41:51.945Z",
+      "updatedAt": "2026-11-06T23:41:59.867Z",
+      "acceptanceCriteria": [],
+      "budgetPolicy": {
+        "maxRuns": 20,
+        "maxTokens": null,
+        "maxTimeMs": null,
+        "maxCostUsd": null
+      },
+      "expiresAt": null,
+      "nextCheckAt": null,
+      "triggerRefs": [],
+      "allowedActionTypes": [
+        "task.create",
+        "task.update-description"
+      ],
+      "authorizationRefs": [],
+      "notificationPolicy": {
+        "channel": "in-app",
+        "mode": "changes-only",
+        "quietHours": {
+          "timeZone": "Asia/Shanghai",
+          "startMinute": 1320,
+          "endMinute": 480
+        }
+      },
+      "memoryRefs": [],
+      "waitingReason": null,
+      "executionState": "idle",
+      "completion": null,
+      "requiresGraphAwareHost": true
+    }
+  },
+  "acceptance": {
+    "goal": {
+      "schema": "chainlesschain.goal/v2",
+      "schemaVersion": 2,
+      "id": "goal-3c919d84-8f56-4246-bd36-3b0f8ffee837",
+      "storeId": "project-goals-81eb4925-0b9c-46a1-8318-686982830ce5",
+      "revision": 9,
+      "controlGeneration": 8,
+      "ownerRef": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc",
+      "projectRef": {
+        "schema": "chainlesschain.business-object-ref/v1",
+        "schemaVersion": 1,
+        "type": "Project",
+        "id": "13d54323-1341-4f68-b70e-4f2a76623ff7",
+        "sourceKind": "desktop.project-goals",
+        "scope": {
+          "kind": "personal",
+          "id": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc"
+        },
+        "version": "sha256:88669ded69a37776c1deba178eaaf544d86b663dec5c6fe1c79dcc9582fd4234"
+      },
+      "title": "DMM native risk follow-up",
+      "objective": "DMM native risk follow-up",
+      "status": "active",
+      "progress": 0,
+      "keyResults": [],
+      "linkedSessions": [],
+      "notes": [],
+      "drift": {
+        "lastProgressAt": null,
+        "flags": []
+      },
+      "createdAt": "2026-11-06T23:41:51.945Z",
+      "updatedAt": "2026-11-06T23:42:00.394Z",
+      "acceptanceCriteria": [
+        {
+          "id": "signals-cleared",
+          "kind": "business-assertion",
+          "description": "逾期与直接依赖信号已消除"
+        }
+      ],
+      "budgetPolicy": {
+        "maxRuns": 20,
+        "maxTokens": null,
+        "maxTimeMs": null,
+        "maxCostUsd": null
+      },
+      "expiresAt": null,
+      "nextCheckAt": null,
+      "triggerRefs": [],
+      "allowedActionTypes": [
+        "task.create",
+        "task.update-description"
+      ],
+      "authorizationRefs": [],
+      "notificationPolicy": {
+        "channel": "in-app",
+        "mode": "changes-only",
+        "quietHours": {
+          "timeZone": "Asia/Shanghai",
+          "startMinute": 1320,
+          "endMinute": 480
+        }
+      },
+      "memoryRefs": [],
+      "waitingReason": null,
+      "executionState": "idle",
+      "completion": null,
+      "requiresGraphAwareHost": true
+    },
+    "plan": {
+      "schema": "chainlesschain.goal-acceptance-plan/v1",
+      "id": "acceptance-plan-b06453e3-e727-44ed-b9e3-b54af0349f64",
+      "goalId": "goal-3c919d84-8f56-4246-bd36-3b0f8ffee837",
+      "storeId": "project-goals-81eb4925-0b9c-46a1-8318-686982830ce5",
+      "actorDid": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc",
+      "goalRevision": 9,
+      "controlGeneration": 8,
+      "definitionDigest": "sha256:34c5d57eccaf5341d9a186858171b36b134e2e6f56af9580f72f1a47fa13148a",
+      "requestId": "revision:9",
+      "createdAt": 1794008520395,
+      "criteriaDigest": "sha256:dc68c63a37e459b43df920a6a35834a9b0f4d87c6db98dee5eb6736d185fba47",
+      "assertions": [
+        {
+          "criterionId": "signals-cleared",
+          "type": "selected-risk-signals-cleared",
+          "reasonCodes": [
+            "OVERDUE_INCOMPLETE_TASK",
+            "BLOCKED_BY_INCOMPLETE_DEPENDENCY"
+          ]
+        }
+      ],
+      "manualCriterionIds": []
+    },
+    "acknowledgements": [],
+    "reports": [
+      {
+        "schema": "chainlesschain.goal-acceptance-check/v1",
+        "id": "acceptance-check-c7a2a6eb-d4d5-42f4-8883-cffbd8da73b2",
+        "goalId": "goal-3c919d84-8f56-4246-bd36-3b0f8ffee837",
+        "storeId": "project-goals-81eb4925-0b9c-46a1-8318-686982830ce5",
+        "actorDid": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc",
+        "goalRevision": 9,
+        "controlGeneration": 8,
+        "definitionDigest": "sha256:34c5d57eccaf5341d9a186858171b36b134e2e6f56af9580f72f1a47fa13148a",
+        "requestId": "ff4c0ad3-d217-4c5c-97a9-242bebe0cdf0",
+        "inputDigest": "sha256:e951b083eda47967ba79c42c4986ac955ae28ea5fe1c81580f5fecefd6ba34d9",
+        "mode": "complete",
+        "planId": "acceptance-plan-b06453e3-e727-44ed-b9e3-b54af0349f64",
+        "planDigest": "sha256:48571d8cd65d2349c968c055693c0b4ca6c00b9b3726ad9a51254184b12e10c4",
+        "review": {
+          "id": "27e54897-29a9-45aa-a0a1-3068cc437f22",
+          "contentDigest": "sha256:056b4cf297931fedd66ebd01751f5f83e0c8a9f7843521d103cf8d196c650cf2"
+        },
+        "ackIds": [],
+        "checkedAt": 1794008520495,
+        "decisionAt": 1794008520496,
+        "actionsSource": null,
+        "elapsedMs": 3,
+        "criteria": [
+          {
+            "id": "signals-cleared",
+            "type": "selected-risk-signals-cleared",
+            "met": false,
+            "reason": "selected-risk-signals-present",
+            "observation": {
+              "reasonCodes": [
+                "OVERDUE_INCOMPLETE_TASK",
+                "BLOCKED_BY_INCOMPLETE_DEPENDENCY"
+              ],
+              "riskTaskCount": 1,
+              "ruleVersion": "project-risk/v1"
+            }
+          }
+        ],
+        "met": false,
+        "blockedReason": null,
+        "appliedRevision": null
+      }
+    ],
+    "nextCursor": null
+  },
+  "stopped": {
+    "goal": {
+      "schema": "chainlesschain.goal/v2",
+      "schemaVersion": 2,
+      "id": "goal-3c919d84-8f56-4246-bd36-3b0f8ffee837",
+      "storeId": "project-goals-81eb4925-0b9c-46a1-8318-686982830ce5",
+      "revision": 10,
+      "controlGeneration": 9,
+      "ownerRef": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc",
+      "projectRef": {
+        "schema": "chainlesschain.business-object-ref/v1",
+        "schemaVersion": 1,
+        "type": "Project",
+        "id": "13d54323-1341-4f68-b70e-4f2a76623ff7",
+        "sourceKind": "desktop.project-goals",
+        "scope": {
+          "kind": "personal",
+          "id": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc"
+        },
+        "version": "sha256:88669ded69a37776c1deba178eaaf544d86b663dec5c6fe1c79dcc9582fd4234"
+      },
+      "title": "DMM native risk follow-up",
+      "objective": "DMM native risk follow-up",
+      "status": "abandoned",
+      "progress": 0,
+      "keyResults": [],
+      "linkedSessions": [],
+      "notes": [],
+      "drift": {
+        "lastProgressAt": null,
+        "flags": []
+      },
+      "createdAt": "2026-11-06T23:41:51.945Z",
+      "updatedAt": "2026-11-06T23:42:00.554Z",
+      "acceptanceCriteria": [
+        {
+          "id": "signals-cleared",
+          "kind": "business-assertion",
+          "description": "逾期与直接依赖信号已消除"
+        }
+      ],
+      "budgetPolicy": {
+        "maxRuns": 20,
+        "maxTokens": null,
+        "maxTimeMs": null,
+        "maxCostUsd": null
+      },
+      "expiresAt": null,
+      "nextCheckAt": null,
+      "triggerRefs": [],
+      "allowedActionTypes": [
+        "task.create",
+        "task.update-description"
+      ],
+      "authorizationRefs": [],
+      "notificationPolicy": {
+        "channel": "in-app",
+        "mode": "changes-only",
+        "quietHours": {
+          "timeZone": "Asia/Shanghai",
+          "startMinute": 1320,
+          "endMinute": 480
+        }
+      },
+      "memoryRefs": [],
+      "waitingReason": null,
+      "executionState": "idle",
+      "completion": null,
+      "requiresGraphAwareHost": true
+    },
+    "monitor": {
+      "goal_id": "goal-3c919d84-8f56-4246-bd36-3b0f8ffee837",
+      "actor_did": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc",
+      "revision": 2,
+      "interval_ms": 60000,
+      "enabled": 0,
+      "next_check_at": 1794008572149,
+      "scheduler_policy_revision": 1
+    },
+    "history": [
+      {
+        "occurrenceId": "occ_76d44b01cfa87e167dc6c5bb3489d811f0ddd54a528caee477ed1bd6eada8c24",
+        "goalRevision": 7,
+        "controlGeneration": 6,
+        "reviewId": "16563e61-ebd1-470b-9dfd-31d8ec7b97b9",
+        "result": {
+          "goalId": "goal-3c919d84-8f56-4246-bd36-3b0f8ffee837",
+          "reviewId": "16563e61-ebd1-470b-9dfd-31d8ec7b97b9",
+          "checkedAt": "2026-11-06T23:41:59.604Z",
+          "status": "evaluated",
+          "riskTaskCount": 1
+        },
+        "elapsedMs": 7
+      },
+      {
+        "occurrenceId": "occ_aafdd0e329ff3f0093b554cf3a3084ce97bf6fb709f77f7da5c0d00bdb78f394",
+        "goalRevision": 6,
+        "controlGeneration": 5,
+        "reviewId": "f52144ff-be02-4b10-b529-fb2f2953475a",
+        "result": {
+          "goalId": "goal-3c919d84-8f56-4246-bd36-3b0f8ffee837",
+          "reviewId": "f52144ff-be02-4b10-b529-fb2f2953475a",
+          "checkedAt": "2026-11-06T23:41:59.182Z",
+          "status": "evaluated",
+          "riskTaskCount": 1
+        },
+        "elapsedMs": 6
+      },
+      {
+        "occurrenceId": "occ_7ab734b9e6b4c8a28aa2e39f0c14765c875ac0afbe7c7b9708d45eb540f0c0ed",
+        "goalRevision": 6,
+        "controlGeneration": 5,
+        "reviewId": "83ce4115-171c-4376-ae3e-4e4a27eb1635",
+        "result": {
+          "goalId": "goal-3c919d84-8f56-4246-bd36-3b0f8ffee837",
+          "reviewId": "83ce4115-171c-4376-ae3e-4e4a27eb1635",
+          "checkedAt": "2026-11-06T23:41:54.791Z",
+          "status": "evaluated",
+          "riskTaskCount": 1
+        },
+        "elapsedMs": 7
+      },
+      {
+        "occurrenceId": "occ_15b874d579d7279554677ba69d93266901a75ff8c1bab51939f90076778d1854",
+        "goalRevision": 5,
+        "controlGeneration": 4,
+        "reviewId": "282ff801-0cc5-4da2-bffa-fc5527684780",
+        "result": {
+          "goalId": "goal-3c919d84-8f56-4246-bd36-3b0f8ffee837",
+          "reviewId": "282ff801-0cc5-4da2-bffa-fc5527684780",
+          "checkedAt": "2026-11-06T23:41:54.499Z",
+          "status": "evaluated",
+          "riskTaskCount": 1
+        },
+        "elapsedMs": 8
+      },
+      {
+        "occurrenceId": "occ_2be581c26d4f8d4849c51919aa093a81b467dfbc34b95769967bdfecd49e0481",
+        "goalRevision": 2,
+        "controlGeneration": 1,
+        "reviewId": "1afa2ddd-0d25-4ce4-afd1-f6d9f77a50e9",
+        "result": {
+          "goalId": "goal-3c919d84-8f56-4246-bd36-3b0f8ffee837",
+          "reviewId": "1afa2ddd-0d25-4ce4-afd1-f6d9f77a50e9",
+          "checkedAt": "2026-11-06T23:41:53.718Z",
+          "status": "evaluated",
+          "riskTaskCount": 1
+        },
+        "elapsedMs": 6
+      },
+      {
+        "occurrenceId": "occ_8cacd57f5671fba93e7f09a5b75b221153e9d89d8cf6290657ee71f6d81b898f",
+        "goalRevision": 2,
+        "controlGeneration": 1,
+        "reviewId": "cc798189-e8ea-4563-bc76-037f5f444e7f",
+        "result": {
+          "goalId": "goal-3c919d84-8f56-4246-bd36-3b0f8ffee837",
+          "reviewId": "cc798189-e8ea-4563-bc76-037f5f444e7f",
+          "checkedAt": "2026-11-06T23:41:52.382Z",
+          "status": "evaluated",
+          "riskTaskCount": 1
+        },
+        "elapsedMs": 7
+      }
+    ],
+    "usage": {
+      "checks": 6,
+      "totalRuns": 8,
+      "reservedRuns": 0,
+      "knownElapsedMs": 46,
+      "elapsedMs": 46,
+      "modelTokens": 0,
+      "modelCostUsd": 0,
+      "knownModelTokens": 0,
+      "knownModelCostUsd": 0,
+      "reservedTokens": 0,
+      "reservedCostUsd": 0,
+      "reservedElapsedMs": 0,
+      "unknownTime": 0,
+      "unknownTokens": 0,
+      "unknownCost": 0
+    },
+    "stops": [],
+    "blockedReason": "GOAL_MONITOR_NOT_ACTIVE",
+    "executionState": "ended",
+    "active": []
+  },
+  "afterStopObservation": {
+    "goal": {
+      "schema": "chainlesschain.goal/v2",
+      "schemaVersion": 2,
+      "id": "goal-3c919d84-8f56-4246-bd36-3b0f8ffee837",
+      "storeId": "project-goals-81eb4925-0b9c-46a1-8318-686982830ce5",
+      "revision": 10,
+      "controlGeneration": 9,
+      "ownerRef": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc",
+      "projectRef": {
+        "schema": "chainlesschain.business-object-ref/v1",
+        "schemaVersion": 1,
+        "type": "Project",
+        "id": "13d54323-1341-4f68-b70e-4f2a76623ff7",
+        "sourceKind": "desktop.project-goals",
+        "scope": {
+          "kind": "personal",
+          "id": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc"
+        },
+        "version": "sha256:88669ded69a37776c1deba178eaaf544d86b663dec5c6fe1c79dcc9582fd4234"
+      },
+      "title": "DMM native risk follow-up",
+      "objective": "DMM native risk follow-up",
+      "status": "abandoned",
+      "progress": 0,
+      "keyResults": [],
+      "linkedSessions": [],
+      "notes": [],
+      "drift": {
+        "lastProgressAt": null,
+        "flags": []
+      },
+      "createdAt": "2026-11-06T23:41:51.945Z",
+      "updatedAt": "2026-11-06T23:42:00.554Z",
+      "acceptanceCriteria": [
+        {
+          "id": "signals-cleared",
+          "kind": "business-assertion",
+          "description": "逾期与直接依赖信号已消除"
+        }
+      ],
+      "budgetPolicy": {
+        "maxRuns": 20,
+        "maxTokens": null,
+        "maxTimeMs": null,
+        "maxCostUsd": null
+      },
+      "expiresAt": null,
+      "nextCheckAt": null,
+      "triggerRefs": [],
+      "allowedActionTypes": [
+        "task.create",
+        "task.update-description"
+      ],
+      "authorizationRefs": [],
+      "notificationPolicy": {
+        "channel": "in-app",
+        "mode": "changes-only",
+        "quietHours": {
+          "timeZone": "Asia/Shanghai",
+          "startMinute": 1320,
+          "endMinute": 480
+        }
+      },
+      "memoryRefs": [],
+      "waitingReason": null,
+      "executionState": "idle",
+      "completion": null,
+      "requiresGraphAwareHost": true
+    },
+    "monitor": {
+      "goal_id": "goal-3c919d84-8f56-4246-bd36-3b0f8ffee837",
+      "actor_did": "did:chainlesschain:634e6d61fd5feff05f6fe5d5471995a1e5d613dc",
+      "revision": 2,
+      "interval_ms": 60000,
+      "enabled": 0,
+      "next_check_at": 1794008572149,
+      "scheduler_policy_revision": 1
+    },
+    "history": [
+      {
+        "occurrenceId": "occ_76d44b01cfa87e167dc6c5bb3489d811f0ddd54a528caee477ed1bd6eada8c24",
+        "goalRevision": 7,
+        "controlGeneration": 6,
+        "reviewId": "16563e61-ebd1-470b-9dfd-31d8ec7b97b9",
+        "result": {
+          "goalId": "goal-3c919d84-8f56-4246-bd36-3b0f8ffee837",
+          "reviewId": "16563e61-ebd1-470b-9dfd-31d8ec7b97b9",
+          "checkedAt": "2026-11-06T23:41:59.604Z",
+          "status": "evaluated",
+          "riskTaskCount": 1
+        },
+        "elapsedMs": 7
+      },
+      {
+        "occurrenceId": "occ_aafdd0e329ff3f0093b554cf3a3084ce97bf6fb709f77f7da5c0d00bdb78f394",
+        "goalRevision": 6,
+        "controlGeneration": 5,
+        "reviewId": "f52144ff-be02-4b10-b529-fb2f2953475a",
+        "result": {
+          "goalId": "goal-3c919d84-8f56-4246-bd36-3b0f8ffee837",
+          "reviewId": "f52144ff-be02-4b10-b529-fb2f2953475a",
+          "checkedAt": "2026-11-06T23:41:59.182Z",
+          "status": "evaluated",
+          "riskTaskCount": 1
+        },
+        "elapsedMs": 6
+      },
+      {
+        "occurrenceId": "occ_7ab734b9e6b4c8a28aa2e39f0c14765c875ac0afbe7c7b9708d45eb540f0c0ed",
+        "goalRevision": 6,
+        "controlGeneration": 5,
+        "reviewId": "83ce4115-171c-4376-ae3e-4e4a27eb1635",
+        "result": {
+          "goalId": "goal-3c919d84-8f56-4246-bd36-3b0f8ffee837",
+          "reviewId": "83ce4115-171c-4376-ae3e-4e4a27eb1635",
+          "checkedAt": "2026-11-06T23:41:54.791Z",
+          "status": "evaluated",
+          "riskTaskCount": 1
+        },
+        "elapsedMs": 7
+      },
+      {
+        "occurrenceId": "occ_15b874d579d7279554677ba69d93266901a75ff8c1bab51939f90076778d1854",
+        "goalRevision": 5,
+        "controlGeneration": 4,
+        "reviewId": "282ff801-0cc5-4da2-bffa-fc5527684780",
+        "result": {
+          "goalId": "goal-3c919d84-8f56-4246-bd36-3b0f8ffee837",
+          "reviewId": "282ff801-0cc5-4da2-bffa-fc5527684780",
+          "checkedAt": "2026-11-06T23:41:54.499Z",
+          "status": "evaluated",
+          "riskTaskCount": 1
+        },
+        "elapsedMs": 8
+      },
+      {
+        "occurrenceId": "occ_2be581c26d4f8d4849c51919aa093a81b467dfbc34b95769967bdfecd49e0481",
+        "goalRevision": 2,
+        "controlGeneration": 1,
+        "reviewId": "1afa2ddd-0d25-4ce4-afd1-f6d9f77a50e9",
+        "result": {
+          "goalId": "goal-3c919d84-8f56-4246-bd36-3b0f8ffee837",
+          "reviewId": "1afa2ddd-0d25-4ce4-afd1-f6d9f77a50e9",
+          "checkedAt": "2026-11-06T23:41:53.718Z",
+          "status": "evaluated",
+          "riskTaskCount": 1
+        },
+        "elapsedMs": 6
+      },
+      {
+        "occurrenceId": "occ_8cacd57f5671fba93e7f09a5b75b221153e9d89d8cf6290657ee71f6d81b898f",
+        "goalRevision": 2,
+        "controlGeneration": 1,
+        "reviewId": "cc798189-e8ea-4563-bc76-037f5f444e7f",
+        "result": {
+          "goalId": "goal-3c919d84-8f56-4246-bd36-3b0f8ffee837",
+          "reviewId": "cc798189-e8ea-4563-bc76-037f5f444e7f",
+          "checkedAt": "2026-11-06T23:41:52.382Z",
+          "status": "evaluated",
+          "riskTaskCount": 1
+        },
+        "elapsedMs": 7
+      }
+    ],
+    "usage": {
+      "checks": 6,
+      "totalRuns": 8,
+      "reservedRuns": 0,
+      "knownElapsedMs": 46,
+      "elapsedMs": 46,
+      "modelTokens": 0,
+      "modelCostUsd": 0,
+      "knownModelTokens": 0,
+      "knownModelCostUsd": 0,
+      "reservedTokens": 0,
+      "reservedCostUsd": 0,
+      "reservedElapsedMs": 0,
+      "unknownTime": 0,
+      "unknownTokens": 0,
+      "unknownCost": 0
+    },
+    "stops": [],
+    "blockedReason": "GOAL_MONITOR_NOT_ACTIVE",
+    "executionState": "ended",
+    "active": []
+  },
+  "afterEndCheckRejection": "Error: Error invoking remote method 'project:goal-monitor-check': Error: GOAL_MONITOR_NOT_ACTIVE",
+  "status": "passed",
+  "diagnostics": [
+    {
+      "event": "did-start-navigation",
+      "detail": "file:///D:/a/chainlesschain/chainlesschain/desktop-app-vue/dist/renderer/index.html#/",
+      "at": "2026-11-06T23:41:45.210Z"
+    },
+    {
+      "event": "did-navigate-in-page",
+      "detail": "file:///D:/a/chainlesschain/chainlesschain/desktop-app-vue/dist/renderer/index.html#/",
+      "at": "2026-11-06T23:41:45.210Z"
+    },
+    {
+      "event": "did-start-navigation",
+      "detail": "file:///D:/a/chainlesschain/chainlesschain/desktop-app-vue/dist/renderer/index.html#/login",
+      "at": "2026-11-06T23:41:45.300Z"
+    },
+    {
+      "event": "did-navigate-in-page",
+      "detail": "file:///D:/a/chainlesschain/chainlesschain/desktop-app-vue/dist/renderer/index.html#/login",
+      "at": "2026-11-06T23:41:45.301Z"
+    },
+    {
+      "event": "auth-changed",
+      "at": "2026-11-06T23:41:46.188Z"
+    },
+    {
+      "event": "auth-changed",
+      "at": "2026-11-06T23:41:46.188Z"
+    },
+    {
+      "event": "did-start-navigation",
+      "detail": "file:///D:/a/chainlesschain/chainlesschain/desktop-app-vue/dist/renderer/index.html#/login",
+      "at": "2026-11-06T23:41:46.313Z"
+    },
+    {
+      "event": "did-navigate-in-page",
+      "detail": "file:///D:/a/chainlesschain/chainlesschain/desktop-app-vue/dist/renderer/index.html#/login",
+      "at": "2026-11-06T23:41:46.313Z"
+    },
+    {
+      "event": "did-start-navigation",
+      "detail": "file:///D:/a/chainlesschain/chainlesschain/desktop-app-vue/dist/renderer/index.html#/v6-preview",
+      "at": "2026-11-06T23:41:46.314Z"
+    },
+    {
+      "event": "did-navigate-in-page",
+      "detail": "file:///D:/a/chainlesschain/chainlesschain/desktop-app-vue/dist/renderer/index.html#/v6-preview",
+      "at": "2026-11-06T23:41:46.314Z"
+    },
+    {
+      "event": "did-start-navigation",
+      "detail": "file:///D:/a/chainlesschain/chainlesschain/desktop-app-vue/dist/renderer/index.html#/projects/13d54323-1341-4f68-b70e-4f2a76623ff7",
+      "at": "2026-11-06T23:41:46.667Z"
+    },
+    {
+      "event": "did-navigate-in-page",
+      "detail": "file:///D:/a/chainlesschain/chainlesschain/desktop-app-vue/dist/renderer/index.html#/projects/13d54323-1341-4f68-b70e-4f2a76623ff7",
+      "at": "2026-11-06T23:41:46.668Z"
+    },
+    {
+      "event": "did-start-navigation",
+      "detail": "file:///D:/a/chainlesschain/chainlesschain/desktop-app-vue/dist/renderer/index.html#/projects/13d54323-1341-4f68-b70e-4f2a76623ff7",
+      "at": "2026-11-06T23:41:46.668Z"
+    },
+    {
+      "event": "did-navigate-in-page",
+      "detail": "file:///D:/a/chainlesschain/chainlesschain/desktop-app-vue/dist/renderer/index.html#/projects/13d54323-1341-4f68-b70e-4f2a76623ff7",
+      "at": "2026-11-06T23:41:46.669Z"
+    },
+    {
+      "event": "did-start-navigation",
+      "detail": "file:///D:/a/chainlesschain/chainlesschain/desktop-app-vue/dist/renderer/index.html#/projects/13d54323-1341-4f68-b70e-4f2a76623ff7",
+      "at": "2026-11-06T23:41:56.464Z"
+    },
+    {
+      "event": "did-navigate-in-page",
+      "detail": "file:///D:/a/chainlesschain/chainlesschain/desktop-app-vue/dist/renderer/index.html#/projects/13d54323-1341-4f68-b70e-4f2a76623ff7",
+      "at": "2026-11-06T23:41:56.464Z"
+    },
+    {
+      "event": "did-start-navigation",
+      "detail": "file:///D:/a/chainlesschain/chainlesschain/desktop-app-vue/dist/renderer/index.html#/projects/13d54323-1341-4f68-b70e-4f2a76623ff7?goalId=goal-3c919d84-8f56-4246-bd36-3b0f8ffee837&goalNoticeId=goal-notice-da59c57b-6aee-4f44-a6b5-b97064116375",
+      "at": "2026-11-06T23:41:56.465Z"
+    },
+    {
+      "event": "did-navigate-in-page",
+      "detail": "file:///D:/a/chainlesschain/chainlesschain/desktop-app-vue/dist/renderer/index.html#/projects/13d54323-1341-4f68-b70e-4f2a76623ff7?goalId=goal-3c919d84-8f56-4246-bd36-3b0f8ffee837&goalNoticeId=goal-notice-da59c57b-6aee-4f44-a6b5-b97064116375",
+      "at": "2026-11-06T23:41:56.465Z"
+    },
+    {
+      "event": "did-start-navigation",
+      "detail": "file:///D:/a/chainlesschain/chainlesschain/desktop-app-vue/dist/renderer/index.html#/projects/13d54323-1341-4f68-b70e-4f2a76623ff7",
+      "at": "2026-11-06T23:41:56.903Z"
+    },
+    {
+      "event": "did-navigate-in-page",
+      "detail": "file:///D:/a/chainlesschain/chainlesschain/desktop-app-vue/dist/renderer/index.html#/projects/13d54323-1341-4f68-b70e-4f2a76623ff7",
+      "at": "2026-11-06T23:41:56.903Z"
+    }
+  ],
+  "finishedAt": "2026-11-06T23:43:11.069Z"
+}

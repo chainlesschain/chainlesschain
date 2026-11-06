@@ -1,0 +1,34 @@
+{
+  "schema": "chainlesschain.dmm-native-goal-journey/v1",
+  "startedAt": "2026-11-06T23:32:49.540Z",
+  "sourceSha": "4eab7782216dec8356e60574492fb18a5576c676",
+  "sourceStatus": "",
+  "platform": "win32",
+  "release": "10.0.19045",
+  "synthetic": true,
+  "scenario": "explicit-opt-in",
+  "setupSeeded": true,
+  "realBusinessAcceptance": false,
+  "installedProductAcceptance": false,
+  "profileRetainedLocally": true,
+  "dialogs": [],
+  "stages": [],
+  "artifacts": {
+    "dist/main/index.js": "dcb2219ebf51489196b4bf87d2551854ba4f29f11d66b436ca477306b14dc4b7",
+    "dist/main/task/project-goal-auth-session.js": "c3ff33a0a9b43dceda49ad721a1348506e2c8202e21300c34f726a8c43ac6550",
+    "dist/main/task/project-goal-feature-policy.js": "5608e1c91904a8b18373fd3bcf864adb54a3a6d9fd4420d0d1a35e03eb2aec64",
+    "dist/preload/index.js": "9b42f990b0710e95f7bd164e2981c183bd601bca8fc76b2a73548ae09a54ec15",
+    "dist/renderer/index.html": "a73be76c10f34859d044572c214abea694665b0183cc751063f22b829e807d3f"
+  },
+  "runnerSha256": "38f4eef74344326c2947f83d10598211b70dba97a9d682990e2e97d0ab1a44d9",
+  "nativeDialogHelperSha256": "618d498d3d09d863b4f4d4964e987a280effc20c49e87129e7df95d5635d9c94",
+  "ipcErrors": [],
+  "nativePid": 27464,
+  "status": "failed",
+  "error": {
+    "message": "electronApplication.firstWindow: Target page, context or browser has been closed",
+    "stack": "electronApplication.firstWindow: Target page, context or browser has been closed\n    at C:\\code\\chainlesschain\\desktop-app-vue\\scripts\\project-goal-native-journey.mjs:164:22"
+  },
+  "diagnostics": null,
+  "finishedAt": "2026-11-06T23:33:17.161Z"
+}
