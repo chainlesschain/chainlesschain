@@ -140,3 +140,9 @@ docs/research/agents/evidence/dmm-native-strict-ci-2026-11-07/preflight-module-e
 docs/research/agents/evidence/dmm-native-workspace-2026-11-07/**/*.json
 
 docs/research/agents/evidence/dmm-native-workspace-2026-11-07/**/*.yml
+
+# Preserve native risk creation snapshots and authoritative raw CI reports.
+
+docs/research/agents/evidence/dmm-native-risk-create-2026-11-07/**/*.json
+
+docs/research/agents/evidence/dmm-native-risk-create-2026-11-07/**/*.yml

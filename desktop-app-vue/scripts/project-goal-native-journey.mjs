@@ -16,6 +16,7 @@ const { values } = parseArgs({
     electron: { type: "string" },
     output: { type: "string" },
     workspace: { type: "boolean", default: false },
+    "risk-create": { type: "boolean", default: false },
   },
 });
 if (process.platform !== "win32" || !values.electron || !values.output)
@@ -488,6 +489,30 @@ try {
   const stillActive = await api("readGoal", { id: goalId });
   assert.equal(stillActive.status, "active");
   assert.equal(stillActive.completion, null);
+  if (values["risk-create"]) {
+    const helper = "./lib/project-goal-risk-create-journey.cjs";
+    evidence.riskCreateHelperSha256 = createHash("sha256")
+      .update(fs.readFileSync(new URL(helper, import.meta.url)))
+      .digest("hex");
+    evidence.riskCreate = {
+      synthetic: true,
+      realBusinessAcceptance: false,
+      status: "running",
+    };
+    await require(helper).exerciseRiskTaskCreation({
+      window,
+      article,
+      api,
+      expect,
+      choose,
+      goalId,
+      projectId: project.id,
+      sourceTaskId: task.id,
+      output,
+      stage,
+      result: evidence.riskCreate,
+    });
+  }
   if (values.workspace) {
     const helper = "./lib/project-goal-workspace-journey.cjs";
     evidence.workspaceHelperSha256 = createHash("sha256")
