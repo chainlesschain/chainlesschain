@@ -2,7 +2,7 @@
 
 用户已于 2026-11-06 授权发布 CLI 和 IDE。Session Core **0.3.26** → CLI **0.166.143** → Open VSX **0.37.179** / JetBrains **0.4.196** 已完成发行与公开回读。准确源码 `3fa3a4b258bbcb60b23b4298cec375661ad6f410` 的 CLI CI 76/76、Strict Sandbox 6/6 通过；npm 使用 Actions OIDC，子包和 CLI 公开核验后才启动 IDE。JetBrains 更新 1213983 已批准、列出且可下载，627 个原始 payload 文件与官方制品一致。证据见[本次发布记录](../cli/evidence/release143-public/README.md)。桌面或移动客户端未包含在本次发行中；真实 DMM GUI、独立业务效果、迁移与回退仍未验收。下文各工程批次的“未发布”保留为当时快照，不代表当前 CLI/IDE 发行状态。
 
-2026-11-07 最新续作：DMM-03 接通个人项目 canonical Graph 宿主，DMM-01 增加参与目标的 v2 读取器门槛。默认 legacy；原生参与/Graph head 与独立库身份防止历史丢失或开关回退后绕过 Graph，原生提交的确定结果可恢复到 Graph，未知结果不重放。本批 **55 个不重叠文件、866 项通过，0 失败、0 跳过**，详见[Graph 批次证据](./evidence/dmm-goal-graph-2026-11-07/README.md)和下节。新源码未发行，真实 GUI、独立业务效果及全平台/生产切换仍未验收。
+2026-11-07 最新续作：DMM-03 接通个人项目 canonical Graph 宿主，DMM-01 增加参与目标的 v2 读取器门槛。默认 legacy；原生参与/Graph head 与独立库身份防止历史丢失或开关回退后绕过 Graph，原生提交的确定结果可恢复到 Graph，未知结果不重放。本批 **55 个不重叠文件、870 项通过，0 失败、0 跳过**，详见[Graph 批次证据](./evidence/dmm-goal-graph-2026-11-07/README.md)和下节。新源码未发行，真实 GUI、独立业务效果及全平台/生产切换仍未验收。
 
 2026-11-07 前一批：DMM-02 接通 CLI 目标显式移交、原始备份、项目映射与签名回退；新增原生选择/确认、CLI 命令、项目面板和真实进程恢复演练。新目标保持暂停；导入后出现修订或目标关联数据即拒绝快照回退。详见[移交批次证据](./evidence/dmm-goal-transfer-2026-11-06/README.md)。该批于 11 月 6 日开始，7 日完成本地验证，新增源码未发布，不能复用 .143 的准确提交门禁。
 
@@ -60,7 +60,7 @@
 
 显式 Graph 参与将该目标编码升级为 `chainlesschain.goal/v2`，要求 `requiresGraphAwareHost: true`；objective revision/controlGeneration 不变，未参与目标仍用 v1。这样忽略新表的旧二进制也不能读取该目标；新 CAS 拒绝去掉读取器门槛，缺少 Graph-aware host 的监控引擎拒绝继续。冻结的 Session Core 0.3.26 validator 与已发布准确源码 `3fa3a4b258bbcb60b23b4298cec375661ad6f410` 的 LF 字节一致，验证旧 v1 可读、v2 读取/修订被拒绝；没有将此等同于旧 Electron 安装包启动验证。
 
-本批 **55 个不重叠文件、866 项通过，0 失败、0 跳过**：CLI 30 文件/438，Desktop business-actions 全配置 20/392，目标合同 1/19，组织宿主 2/14，真实 npm pack 隔离宿主 2/3。新增四个真实进程演练覆盖原生提交/Graph receipt 间隙、Graph terminal/调度投影间隙并切回 legacy、无原生证明的 unknown，以及旧进程仍存活时的 lease 接管。真实 SQLite、Windows ACL、进程退出、库身份和打包 host 已验证；Electron 窗口/对话框/登录与业务数据为替身/合成。报告、源码摘要、旧 validator 来源及复核命令见[本批证据](./evidence/dmm-goal-graph-2026-11-07/README.md)，不与之前 49 文件/790 项等历史批次相加。
+本批 **55 个不重叠文件、870 项通过，0 失败、0 跳过**：CLI 30 文件/442，Desktop business-actions 全配置 20/392，目标合同 1/19，组织宿主 2/14，真实 npm pack 隔离宿主 2/3。新增四个真实进程演练覆盖原生提交/Graph receipt 间隙、Graph terminal/调度投影间隙并切回 legacy、无原生证明的 unknown，以及旧进程仍存活时的 lease 接管。真实 SQLite、Windows ACL、进程退出、库身份和打包 host 已验证；Electron 窗口/对话框/登录与业务数据为替身/合成。报告、源码摘要、旧 validator 来源及复核命令见[本批证据](./evidence/dmm-goal-graph-2026-11-07/README.md)，不与之前 49 文件/790 项等历史批次相加。
 
 Graph 冻结清单新增 `scheduler/desktop-project-goals`：5 surfaces、24 entries、21 durable、8 migrate、13 retire、3 disabled，22 store slots / 66 platform-store slots。生产 gate 升为 **72 份独立签名来源回执**，此前 23-entry/69-receipt 证据不能复用；本批仅运行 gate fixture，没有真实生产观察或切换。源码出口审计通过，但 paidReady/runtimeCoverageVerified 均为 false。
 

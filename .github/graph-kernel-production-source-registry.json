@@ -4,7 +4,7 @@
   "ref": "refs/heads/main",
   "workflow": ".github/workflows/graph-kernel-production-evidence.yml",
   "environment": "graph-kernel-production",
-  "manifestDigest": "sha256:4407205fd58db8dfad28a94c365734276b5aeecb246c746e3cde912fdcdd31fc",
+  "manifestDigest": "sha256:73e131c274208609089e026421d54e92045934bc12481efc0349a559b528deea",
   "sources": [],
-  "registryDigest": "sha256:8d627e03285b3bea9bbbfb4dad7132561d0f51a3da7f4dfd65a7c08c6af626be"
+  "registryDigest": "sha256:8d40ea19e2e74fb34451f6b77bd1f555be6f252417a2f7694e57b2c60f89d132"
 }

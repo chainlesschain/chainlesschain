@@ -18,11 +18,11 @@
 
 ## 已运行验证
 
-Windows 10 x64、Node **22.22.2**、Vitest **4.1.10**、better-sqlite3 **12.11.1**。本批共 **55 个不重复文件、866 项通过，0 失败、0 跳过**；不与此前移交批次的 49 文件/790 项相加。
+Windows 10 x64、Node **22.22.2**、Vitest **4.1.10**、better-sqlite3 **12.11.1**。本批共 **55 个不重复文件、870 项通过，0 失败、0 跳过**；不与此前移交批次的 49 文件/790 项相加。
 
 | 范围                                | 文件数 | 通过 | 报告                                                           |
 | ----------------------------------- | -----: | ---: | -------------------------------------------------------------- |
-| CLI Graph、调度、目标及真实进程恢复 |     30 |  438 | [cli-tests.json](./cli-tests.json)                             |
+| CLI Graph、调度、目标及真实进程恢复 |     30 |  442 | [cli-tests.json](./cli-tests.json)                             |
 | 桌面完整 business-actions 配置      |     20 |  392 | [desktop-tests.json](./desktop-tests.json)                     |
 | Session Core 目标合同               |      1 |   19 | [contract-tests.json](./contract-tests.json)                   |
 | 组织宿主兼容                        |      2 |   14 | [organization-host-tests.json](./organization-host-tests.json) |
@@ -37,6 +37,8 @@ Electron 窗口、对话框、登录状态和项目数据为测试替身/合成�
 复核命令：`node docs/research/agents/evidence/dmm-goal-graph-2026-11-07/verify-evidence.mjs`。它核对报告完整性、非重复文件、packed TAP、旧 validator 来源，重新执行 diff/固定 IPC/源码出口检查，并输出带源码摘要的 summary；它不会重新运行上述测试，不能代替测试报告。源码出口审计通过，但 `paidReady` 与 `runtimeCoverageVerified` 仍为 false。
 
 ## 生产清单与未完成项
+
+提交 `2329de2933` 后的复核发现采集器仍硬编码每平台 23 份，现改为从冻结清单派生完整入口集合，拒绝缺失、新入口被未知入口替换、重复或来源绑定不符。空 registry 的 manifest/registry digest 同步更新，sources 仍为空，没有登记生产来源或改动受保护环境 pin。四项新增回归与既有生产 gate 共 [19 项通过](./collector-followup-tests.json)；随后重跑完整 30 文件 CLI 范围得到 442 项，本批总数更新为 870，19 项不另行累加。其他未改动域沿用已记录报告。
 
 清单新增 `scheduler/desktop-project-goals`，冻结数量为 **5 surfaces、24 entries、21 durable、8 migrate、13 retire、3 disabled**，对应 **22 store slots / 66 platform-store slots**。生产 gate 因此要求 **72 份独立签名来源回执**；此前 23-entry/69-receipt 证据不满足新清单。本批仅验证 gate fixture，未运行真实观察或宣称已切换生产权威。
 
