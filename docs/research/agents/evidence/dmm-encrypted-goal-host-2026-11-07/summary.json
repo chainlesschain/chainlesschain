@@ -1,0 +1,217 @@
+{
+  "createdAt": "2026-11-06T17:50:00.669Z",
+  "checkoutHead": "5fee77f2bd67a234f1cf11d1da9bbf16aee30aef",
+  "sourceState": "local source snapshot bound by hashes; not remote CI or installed product acceptance",
+  "total": {
+    "files": 23,
+    "passed": 412,
+    "failed": 0,
+    "skipped": 0
+  },
+  "reports": [
+    {
+      "file": "desktop-tests.json",
+      "sha256": "f6f81e6760b1aba547b156562650caec5fcc9a5d6f8e485f5e2c8831cc6bfbe4",
+      "passed": 398,
+      "files": [
+        "desktop-app-vue/src/preload/__tests__/legacy-ipc-policy.test.js",
+        "desktop-app-vue/tests/unit/ukey/ukey-ipc.test.js",
+        "desktop-app-vue/src/main/ipc/__tests__/ipc-sender-guard.test.js",
+        "desktop-app-vue/src/main/notification/__tests__/notification-authority-ipc.test.js",
+        "desktop-app-vue/src/main/notification/__tests__/project-goal-notification-journey.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-auth-session.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-cli-bridge.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-completion-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-delivery-drafts-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-draft-imports-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-encrypted-host.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-event-history-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-external-drafts-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-graph-host.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-memory-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-model-drafts-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-monitoring-host.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-transfer-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-workflow-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/task-description-ipc.test.js"
+      ]
+    },
+    {
+      "file": "organization-host-tests.json",
+      "sha256": "99b462c3f59c3c96347b862a3a7975c357b72aa5790914c237abc605409f1755",
+      "passed": 14,
+      "files": [
+        "desktop-app-vue/src/main/task/__tests__/organization-project-goal-host.test.js",
+        "desktop-app-vue/src/main/task/__tests__/organization-project-goal-periodic-host.test.js"
+      ]
+    }
+  ],
+  "commands": [
+    {
+      "cwd": "desktop-app-vue",
+      "command": "node ../node_modules/vitest/vitest.mjs run --config vitest.business-actions.config.mjs --reporter=json --outputFile=../docs/research/agents/evidence/dmm-encrypted-goal-host-2026-11-07/desktop-tests.json",
+      "nativeWindowsAcl": true
+    },
+    {
+      "cwd": "desktop-app-vue",
+      "command": "node ../node_modules/vitest/vitest.mjs run --config vitest.organization-authority.config.mjs src/main/task/__tests__/organization-project-goal-host.test.js src/main/task/__tests__/organization-project-goal-periodic-host.test.js --reporter=json --outputFile=../docs/research/agents/evidence/dmm-encrypted-goal-host-2026-11-07/organization-host-tests.json"
+    },
+    {
+      "cwd": ".",
+      "command": "node desktop-app-vue/scripts/project-goal-encrypted-electron-probe.mjs --electron <verified Electron 39.8.10 executable> --output <new result file>"
+    }
+  ],
+  "checks": [
+    {
+      "command": [
+        "git",
+        "diff",
+        "HEAD",
+        "--check",
+        "--",
+        "desktop-app-vue/src/main/task/project-goal-native-database.js",
+        "desktop-app-vue/src/main/task/project-goal-ipc.js",
+        "desktop-app-vue/src/main/task/project-goal-monitoring-host.js",
+        "desktop-app-vue/src/main/database/sqlcipher-wrapper.js",
+        "desktop-app-vue/src/main/task/__tests__/fixtures/project-goal-encrypted-electron.cjs",
+        "desktop-app-vue/scripts/project-goal-encrypted-electron-probe.mjs",
+        "desktop-app-vue/src/preload/__tests__/legacy-ipc-policy.test.js",
+        "desktop-app-vue/tests/unit/ukey/ukey-ipc.test.js",
+        "desktop-app-vue/src/main/ipc/__tests__/ipc-sender-guard.test.js",
+        "desktop-app-vue/src/main/notification/__tests__/notification-authority-ipc.test.js",
+        "desktop-app-vue/src/main/notification/__tests__/project-goal-notification-journey.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-auth-session.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-cli-bridge.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-completion-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-delivery-drafts-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-draft-imports-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-encrypted-host.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-event-history-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-external-drafts-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-graph-host.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-memory-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-model-drafts-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-monitoring-host.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-transfer-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-workflow-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/task-description-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/organization-project-goal-host.test.js",
+        "desktop-app-vue/src/main/task/__tests__/organization-project-goal-periodic-host.test.js",
+        "desktop-app-vue/vitest.business-actions.config.mjs"
+      ],
+      "status": 0,
+      "stdout": ""
+    },
+    {
+      "command": [
+        "C:\\nvm4w\\nodejs\\node.exe",
+        "desktop-app-vue/scripts/verify-fixed-renderer-ipc.mjs"
+      ],
+      "status": 0,
+      "stdout": "Fixed renderer IPC manifest is current (1380 exact channels; 156 unregistered renderer channels denied).\n"
+    },
+    {
+      "command": [
+        "C:\\nvm4w\\nodejs\\node.exe",
+        "packages/cli/scripts/implementation-plan-budget-egress.mjs",
+        "--check",
+        "--include-scripts"
+      ],
+      "status": 0,
+      "stdout": "{\"categories\":8,\"candidateFiles\":89,\"unclassifiedFiles\":0,\"sourceReviewPassed\":true,\"reviewIssues\":[],\"parseErrors\":0,\"paidReady\":false,\"runtimeCoverageVerified\":false}\n"
+    }
+  ],
+  "sources": {
+    "desktop-app-vue/src/main/task/project-goal-native-database.js": "932fc6473e599b7450fcd0cb9aebbb9eb0f13a650a79d88567984d19a3ca9338",
+    "desktop-app-vue/src/main/task/project-goal-ipc.js": "59f10d037d016db145a7f66be1b01ce75b70bed515d7b6c84e1693673ab4628e",
+    "desktop-app-vue/src/main/task/project-goal-monitoring-host.js": "051e075d21bb6e68c75542cb776ed55c8558d7be3a02616874b7e9ac858d6eff",
+    "desktop-app-vue/src/main/database/sqlcipher-wrapper.js": "5f50415f97b7080af43d0c8641fcadc50af2f651d62414ba1974ac3b4ba6fa66",
+    "desktop-app-vue/src/main/task/__tests__/fixtures/project-goal-encrypted-electron.cjs": "9697583674b62e52f24452f4fc01e7ed28e526e53790c342791240b0de352094",
+    "desktop-app-vue/scripts/project-goal-encrypted-electron-probe.mjs": "9e44aaf30c55bd8a2c4d3f7442857dd6ed6acb4a4ba4e8097270247a36c3ce32",
+    "desktop-app-vue/src/preload/__tests__/legacy-ipc-policy.test.js": "8526e502ef709f883460a8eba69f79da05b63be140bf4e7241d273bf36b4d88d",
+    "desktop-app-vue/tests/unit/ukey/ukey-ipc.test.js": "1e1e368aadcb6a99bd03345b83e76a1be9866d5b0e3b41341570007f5df85d40",
+    "desktop-app-vue/src/main/ipc/__tests__/ipc-sender-guard.test.js": "d488ee962ad990bd2a29d3c746539f8d5d3a5900fda14662aab887b0d778358a",
+    "desktop-app-vue/src/main/notification/__tests__/notification-authority-ipc.test.js": "9e829d6886c70ebc936506b20338e3650c7ade472ff5c77cd88042483549cfb1",
+    "desktop-app-vue/src/main/notification/__tests__/project-goal-notification-journey.test.js": "8428e2ae93ed185a3abc9a59ca9bf68218fe4d091d657fc4a8f5cc1ee4c57858",
+    "desktop-app-vue/src/main/task/__tests__/project-goal-auth-session.test.js": "59c7abaa30b7269eef17253c22a67e554d1ab2869a789f6cf631cbf3155264bd",
+    "desktop-app-vue/src/main/task/__tests__/project-goal-cli-bridge.test.js": "00655cef7d759b718d0478b77c1ec35d4104808600da5b26b6ce033a5650b543",
+    "desktop-app-vue/src/main/task/__tests__/project-goal-completion-ipc.test.js": "ab7dff2713e04f218f1bfaacbfc6adc158806e66accf92d7ea2ca48b5234c3eb",
+    "desktop-app-vue/src/main/task/__tests__/project-goal-delivery-drafts-ipc.test.js": "73f5f1e163ac756b6e611e153305ced2699ae6a9842df3f0000f5d5853dde8ed",
+    "desktop-app-vue/src/main/task/__tests__/project-goal-draft-imports-ipc.test.js": "16fec55b7884bc491700566b957cae222ac04eb33909495fbfbfebb01bd52974",
+    "desktop-app-vue/src/main/task/__tests__/project-goal-encrypted-host.test.js": "16fc050b394f82a9d217a01c0cbec76357803f32549dc7f0921b5f27557bf0dc",
+    "desktop-app-vue/src/main/task/__tests__/project-goal-event-history-ipc.test.js": "328930780b2238d436e096f09ea01f031b90576488a863b3f26510b4f8f6c925",
+    "desktop-app-vue/src/main/task/__tests__/project-goal-external-drafts-ipc.test.js": "ad84fbc971239590c4795efefcd86a240b33370d1d2b6cccd2260356862e4fe4",
+    "desktop-app-vue/src/main/task/__tests__/project-goal-graph-host.test.js": "15039964dfd945121d1b36e49b05dfce84faa896a0d297c6709b17efda716474",
+    "desktop-app-vue/src/main/task/__tests__/project-goal-ipc.test.js": "53f157aa4eb4f5d498cb0c938e8e111fb5b4f6660080ca4a8cf048532bf49f3e",
+    "desktop-app-vue/src/main/task/__tests__/project-goal-memory-ipc.test.js": "5995f0c98db907bf82446476fb48e4652fb5795a01530cd3efd5b4ce6d087899",
+    "desktop-app-vue/src/main/task/__tests__/project-goal-model-drafts-ipc.test.js": "92fbe898a635765fec863f388e434a774710adf1b09f8d29607a57ae7f1cef40",
+    "desktop-app-vue/src/main/task/__tests__/project-goal-monitoring-host.test.js": "3d50ef9624a4515bb92178e163125a050cb348913261a96484689fdff3230046",
+    "desktop-app-vue/src/main/task/__tests__/project-goal-transfer-ipc.test.js": "020dfd354f05a21e3e8f80b111d234df1fa922df237073fb931a3882c7158c5e",
+    "desktop-app-vue/src/main/task/__tests__/project-goal-workflow-ipc.test.js": "a47f57851caada31f38b236b1eb2d1d9b7a0c5d43f69af5245a9dc9cf5b0b219",
+    "desktop-app-vue/src/main/task/__tests__/task-description-ipc.test.js": "447a1dd369ed0e8c8532f361ee9fe3f57488b2426886c42ae0f85ce7933f0d1e",
+    "desktop-app-vue/src/main/task/__tests__/organization-project-goal-host.test.js": "c5b3d9bf7ae25656ac6d5ed53612d787558301fb05cae6d8ecac0cf5561a97c3",
+    "desktop-app-vue/src/main/task/__tests__/organization-project-goal-periodic-host.test.js": "0d0865ac545c217bf56aadf6b11da81f97abcafe4e8de9616ff81fe184964563",
+    "desktop-app-vue/vitest.business-actions.config.mjs": "6556e0ca4a6572693ba485fba48f9b300095872bcb2c7716218374b28942ce31"
+  },
+  "realElectron": {
+    "file": "electron-probe.json",
+    "sha256": "19be420719ab770536dd2899b575b5f50a4a09a7b0a4f4bb04863ad57e1057cb",
+    "electron": "39.8.10",
+    "node": "22.22.1",
+    "abi": "140",
+    "databasePackage": "12.11.1",
+    "passed": true,
+    "checks": {
+      "originalWrapperRejectedByNativeContract": true,
+      "actualEncryptedProject": true,
+      "noKeyReadRejected": true,
+      "canonicalGraphResult": true,
+      "repeatedRequestRetainsOccurrence": true,
+      "separateStorageDomains": true,
+      "participatingGoalV2": true,
+      "closedWrapperNotReopenedByResolver": true,
+      "explicitReopenRetainsGoal": true,
+      "nativeWindowsAclGuardsUsed": true
+    }
+  },
+  "productBuild": {
+    "commands": [
+      "node scripts/build-main.js",
+      "node ../node_modules/vite/bin/vite.js build"
+    ],
+    "cwd": "desktop-app-vue",
+    "observedExitCodes": [
+      0,
+      0
+    ],
+    "rendererModules": 8018,
+    "rendererIndexSha256": "02d0ef32020baafa2c5b7b8609e88f3e30f3234e1f528c72d94c7035d4234036",
+    "installer": false,
+    "fullProductGuiJourney": false
+  },
+  "boundaries": {
+    "real": [
+      "actual desktop SQLCipherWrapper",
+      "native SQLite and immediate transactions",
+      "Electron 39.8.10 with actual encrypted database and rejected no-key read",
+      "Windows ACL",
+      "canonical Graph kernel"
+    ],
+    "doubles": [
+      "unit-test Electron windows/dialogs",
+      "synthetic project and trusted probe identity"
+    ],
+    "pending": [
+      "full product login and DMM renderer journey",
+      "real native confirmation interaction",
+      "independent business effect",
+      "Linux/macOS",
+      "installers",
+      "exact-source remote matrices",
+      "new publication",
+      "production Graph enrollment and cutover"
+    ]
+  }
+}

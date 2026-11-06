@@ -1,5 +1,9 @@
 "use strict";
 
+const {
+  currentProjectGoalDatabase,
+} = require("./project-goal-native-database");
+
 const { createHash } = require("node:crypto");
 const { existsSync, realpathSync } = require("node:fs");
 const { isAbsolute, join, dirname } = require("node:path");
@@ -61,8 +65,7 @@ function createProjectGoalMonitoringController({
     opening = null,
     closed = false,
     closing = null;
-  const currentDb = () =>
-    database?.getDatabase ? database.getDatabase() : database;
+  const currentDb = () => currentProjectGoalDatabase(database);
   function getEngine() {
     if (closed) fail("GOAL_MONITOR_HOST_CLOSED");
     if (opening) return opening;

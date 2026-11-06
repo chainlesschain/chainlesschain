@@ -26,7 +26,9 @@
 
 CLI/IDE 本批发行已完成：Session Core **0.3.26**、CLI **0.166.143**、Open VSX **0.37.179**、JetBrains **0.4.196** 已公开核验。准确源码 `3fa3a4b258bbcb60b23b4298cec375661ad6f410` 的 CLI CI 76/76 与 Strict Sandbox 6/6 通过；按 Actions OIDC 子包→CLI→IDE 顺序发行。JetBrains 更新 1213983 已批准、列出、可下载，627 个原始 payload 文件与官方制品一致。逐阶段证据见[发布状态表](../cli/evidence/release143-public/README.md)。客户端不在本次发布范围，真实 GUI、独立业务效果和迁移回退仍未完成；后续新增源码需重新验证准确提交门禁。
 
-最新续作接通 DMM-03 的[个人项目 canonical Graph 宿主](./dots-muse-mods-implementation-progress-2026-10-07.md#个人项目-canonical-graph-宿主与读取器门槛2026-11-07)：默认 legacy，显式 Graph 参与固定原生水位和独立库身份；原生结果已提交而 Graph 回执丢失时只恢复原结果，未知结果不重放。参与目标升级为 v2，旧读取器拒绝读取，开关回退不能绕过既有 Graph 历史。**55 个不重叠文件、870 项通过，0 失败、0 跳过**；真实进程终止、迟到 fence、Windows ACL 与隔离 npm pack 已验证。新清单 24 entries 要求 72 份独立生产回执；真实生产观察、GUI、业务效果及新源码全平台门禁仍待验收，未发布新包。详见[Graph 批次证据](./evidence/dmm-goal-graph-2026-11-07/README.md)。
+最新续作修复[加密桌面目标宿主接线](./evidence/dmm-encrypted-goal-host-2026-11-07/README.md)：仅解析真实 `SQLCipherWrapper` 的已打开原生连接，关闭不复活，同 wrapper 重开后轮换引擎。**23 个不重复文件、412 项通过，0 失败、0 跳过**；另有真实 Electron 39.8.10、加密 SQLite、Windows ACL 与 canonical Graph 探针通过，无密钥读取被拒绝。完整主进程和 renderer 构建通过；产品登录与完整 DMM GUI 旅程、独立业务效果及新源码发行仍未验收，各批不相加。
+
+前一批接通 DMM-03 的[个人项目 canonical Graph 宿主](./dots-muse-mods-implementation-progress-2026-10-07.md#个人项目-canonical-graph-宿主与读取器门槛2026-11-07)：默认 legacy，显式 Graph 参与固定原生水位和独立库身份；原生结果已提交而 Graph 回执丢失时只恢复原结果，未知结果不重放。参与目标升级为 v2，旧读取器拒绝读取，开关回退不能绕过既有 Graph 历史。**55 个不重叠文件、870 项通过，0 失败、0 跳过**；真实进程终止、迟到 fence、Windows ACL 与隔离 npm pack 已验证。新清单 24 entries 要求 72 份独立生产回执；真实生产观察、GUI、业务效果及新源码全平台门禁仍待验收，未发布新包。详见[Graph 批次证据](./evidence/dmm-goal-graph-2026-11-07/README.md)。
 
 此前续作补齐 DMM-02 的[CLI 目标显式移交、备份与签名回退](./dots-muse-mods-implementation-progress-2026-10-07.md#cli-目标显式移交备份与签名回退2026-11-07)：原生选择项目后导出绑定凭据，CLI 严格加锁冻结来源并保留原始字节，项目库原子保存新目标、原 ID/版本映射及备份。新目标保持暂停，不继承监控、动作、记忆或完成证明；只有目标尚无后续数据且原生作废后，签名回执才能恢复原文件。真实进程退出与并发移交已有验证；真实 GUI、跨平台和新增源码发行仍待验收。证据见[移交批次](./evidence/dmm-goal-transfer-2026-11-06/README.md)。
 

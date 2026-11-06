@@ -2,7 +2,9 @@
 
 用户已于 2026-11-06 授权发布 CLI 和 IDE。Session Core **0.3.26** → CLI **0.166.143** → Open VSX **0.37.179** / JetBrains **0.4.196** 已完成发行与公开回读。准确源码 `3fa3a4b258bbcb60b23b4298cec375661ad6f410` 的 CLI CI 76/76、Strict Sandbox 6/6 通过；npm 使用 Actions OIDC，子包和 CLI 公开核验后才启动 IDE。JetBrains 更新 1213983 已批准、列出且可下载，627 个原始 payload 文件与官方制品一致。证据见[本次发布记录](../cli/evidence/release143-public/README.md)。桌面或移动客户端未包含在本次发行中；真实 DMM GUI、独立业务效果、迁移与回退仍未验收。下文各工程批次的“未发布”保留为当时快照，不代表当前 CLI/IDE 发行状态。
 
-2026-11-07 最新续作：DMM-03 接通个人项目 canonical Graph 宿主，DMM-01 增加参与目标的 v2 读取器门槛。默认 legacy；原生参与/Graph head 与独立库身份防止历史丢失或开关回退后绕过 Graph，原生提交的确定结果可恢复到 Graph，未知结果不重放。本批 **55 个不重叠文件、870 项通过，0 失败、0 跳过**，详见[Graph 批次证据](./evidence/dmm-goal-graph-2026-11-07/README.md)和下节。新源码未发行，真实 GUI、独立业务效果及全平台/生产切换仍未验收。
+2026-11-07 最新续作：修复默认加密桌面库返回 SQLCipherWrapper 时的目标 IPC/监控接线，只解析已打开的真实原生连接，关闭不复活，重开后轮换引擎。**23 文件/412 项通过**，另有真实 Electron 39.8.10 + 加密 SQLite + Windows ACL + canonical Graph 探针通过；主进程及完整 renderer 构建通过。详见[加密宿主证据](./evidence/dmm-encrypted-goal-host-2026-11-07/README.md)。真实产品登录/完整 DMM GUI、业务效果与新源码发行仍未验收，不与前批数字累加。
+
+2026-11-07 前一批：DMM-03 接通个人项目 canonical Graph 宿主，DMM-01 增加参与目标的 v2 读取器门槛。默认 legacy；原生参与/Graph head 与独立库身份防止历史丢失或开关回退后绕过 Graph，原生提交的确定结果可恢复到 Graph，未知结果不重放。本批 **55 个不重叠文件、870 项通过，0 失败、0 跳过**，详见[Graph 批次证据](./evidence/dmm-goal-graph-2026-11-07/README.md)和下节。新源码未发行，真实 GUI、独立业务效果及全平台/生产切换仍未验收。
 
 2026-11-07 前一批：DMM-02 接通 CLI 目标显式移交、原始备份、项目映射与签名回退；新增原生选择/确认、CLI 命令、项目面板和真实进程恢复演练。新目标保持暂停；导入后出现修订或目标关联数据即拒绝快照回退。详见[移交批次证据](./evidence/dmm-goal-transfer-2026-11-06/README.md)。该批于 11 月 6 日开始，7 日完成本地验证，新增源码未发布，不能复用 .143 的准确提交门禁。
 
@@ -51,6 +53,14 @@
 | DMM-07 扩展 SDK      | 只读、待审提议、观察与两端 IDE 恢复接通   | CLI/IDE 面板、v3 草稿与回执、v4 观察；原生事务账本、v5 独立历史授权、签名游标、检查点与两端 IDE 显式逐页恢复                                                        | 真实 GUI/跨平台候选验证                                                         |
 | DMM-08 场景包        | 组合包、三类起草与 IDE 配置接通           | 0.3.0 文件/v6 待审；桌面逐次模型草稿；两端 IDE 本地平台配置；Memory/usage                                                                                           | 后台/其他模型入口、力数实机、真实 GUI 与独立业务效果                            |
 | DMM-09/10 效果与发行 | CLI/IDE .143 已发行；真实业务未验收       | 既有进程演练与真实火山初评；.143 全平台准确提交门禁、OIDC 与公开回读；新增移交恢复证据另列                                                                          | 独立业务样本、力数实机、GUI、新增源码全平台 CI、默认关闭/灰度与真实迁移回退验收 |
+
+## 加密桌面目标宿主接线（2026-11-07）
+
+真实产品准备中发现 `DatabaseManager.getDatabase()` 在加密路径返回 `SQLCipherWrapper`，其 sql.js 兼容 API 不满足目标服务所需的原生即时事务接口。新增仅供目标宿主使用的解析器，识别真实 wrapper 后提取已打开原生连接；保留普通 SQLite/只读原对象，不接纳任意 getHandle 或形似 wrapper 的对象。关闭后拒绝访问，绝不调用会自动重开的 getHandle。同一 wrapper 显式重开后，IPC 的连接绑定与监控引擎按真实连接变化失效/轮换；异步 Graph 加载期间重开也拒绝继续。未改动通用 DatabaseManager、SQLCipherWrapper 的 API 或任何权限/确认规则。
+
+完整桌面 business-actions **21 文件/398 项**，组织宿主兼容 **2/14**，合计 **23 个不重复文件、412 项通过，0 失败、0 跳过**。新增六项使用真实 production wrapper 与注入的 Node 原生 SQLite，验证 IPC→监控→Graph 及连接关闭/轮换竞态；不以该层替代加密验证。独立真实 Electron **39.8.10**、Node **22.22.1**、ABI **140**、better-sqlite3-multiple-ciphers **12.11.1** 探针另行验证实际加密文件、无密钥读取拒绝、canonical 巡检、同请求 occurrence 不变、v2、三个独立文件、关闭不复活及显式重开保留数据，使用真实 Windows ACL。探针采用可信合成身份，没有产品登录或 renderer/原生确认交互；不累加为单测数量。
+
+完整主进程与 renderer 构建返回 0，renderer 转换 8018 modules；本地缓存 Electron zip 与包内 SHA256 一致，缺失依赖仅按原 lockfile integrity 补齐。真实完整产品启动在首次 30 秒窗口等待未通过后，按明确 180 秒预算读到真实登录表单并正常退出，留存截图；没有将此算作密码登录或 DMM GUI 旅程完成。证据、命令与源码摘要见[本批记录](./evidence/dmm-encrypted-goal-host-2026-11-07/README.md)。真实 GUI/业务效果、跨平台、安装包、准确源码远端门禁、生产切换与发布仍待继续；各历史批次不相加。
 
 ## 个人项目 canonical Graph 宿主与读取器门槛（2026-11-07）
 
