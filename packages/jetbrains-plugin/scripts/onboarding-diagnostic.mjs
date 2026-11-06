@@ -3,7 +3,6 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import net from "node:net";
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { parseArgs } from "node:util";
@@ -13,6 +12,10 @@ import {
   requireSuccess,
   stopOwned,
 } from "../../../scripts/lib/verify01-diagnostic-process.mjs";
+import {
+  assertPortFree,
+  waitForPortFree,
+} from "../../../scripts/lib/verify01-diagnostic-port.mjs";
 import {
   reserveArtifactDirectory,
   archiveDiagnostic,
@@ -124,6 +127,7 @@ result.source = {
         "packages/jetbrains-plugin",
         "scripts/lib/verify01-onboarding-fixture.mjs",
         "scripts/lib/verify01-diagnostic-process.mjs",
+        "scripts/lib/verify01-diagnostic-port.mjs",
       ],
       { cwd: path.resolve(pkg, "../.."), encoding: "utf8", windowsHide: true },
     ).trim().length > 0,
@@ -153,17 +157,14 @@ result.source.fixtureDigest = `sha256:${createHash("sha256")
     ),
   )
   .digest("hex")}`;
+result.source.portLifecycleDigest = `sha256:${createHash("sha256")
+  .update(
+    fs.readFileSync(
+      path.resolve(pkg, "../../scripts/lib/verify01-diagnostic-port.mjs"),
+    ),
+  )
+  .digest("hex")}`;
 console.log(`Onboarding diagnostic: ${root}`);
-async function portFree() {
-  const server = net.createServer();
-  await new Promise((resolve, reject) => {
-    server.once("error", reject);
-    server.listen(8082, "127.0.0.1", resolve);
-  });
-  await new Promise((resolve, reject) =>
-    server.close((error) => (error ? reject(error) : resolve())),
-  );
-}
 async function exitIde({ signal }) {
   const response = await fetch("http://127.0.0.1:8082/js/execute", {
     method: "POST",
@@ -179,7 +180,7 @@ async function exitIde({ signal }) {
     throw new Error("IDE normal exit request failed");
 }
 try {
-  await portFree();
+  await assertPortFree({ port: 8082 });
   await requireSuccess(
     launch(["buildPlugin", "compileUiTestJava", ...base], "prepare"),
     deadline,
@@ -248,11 +249,15 @@ try {
   process.exitCode = 1;
 } finally {
   try {
+    const shutdownDeadline = Math.min(deadline, Date.now() + 30000);
     await stopOwned(active, {
       requireRunningOwner: true,
       gracefulStop: exitIde,
-      gracefulDeadline: Math.min(deadline, Date.now() + 30000),
+      gracefulDeadline: shutdownDeadline,
     });
+    // A closed Gradle owner does not prove Remote Robot's listener is gone.
+    // Keep the same bounded shutdown deadline before the next IDE journey.
+    await waitForPortFree({ port: 8082, deadline: shutdownDeadline });
   } catch (error) {
     result.passed = false;
     result.cleanupError = error.stack;

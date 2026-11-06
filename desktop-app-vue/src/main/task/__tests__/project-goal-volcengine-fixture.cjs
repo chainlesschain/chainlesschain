@@ -61,7 +61,10 @@ function loadManager() {
     Module._load = original;
   }
 }
-let managers;
+// Load under the transport guard before any brand-rejection test can cache the
+// real manager and its Axios dependency. The protocol mock accepts only the
+// adapter's three-argument request, never a health probe from follow-redirects.
+const managers = loadManager();
 async function createFixture({
   apiKey = "synthetic-test-key",
   model = "synthetic-model",
@@ -184,7 +187,6 @@ async function createFixture({
     state.compositions.push(composition);
     return composition;
   });
-  managers ||= loadManager();
   const manager = new managers.LLMManager(
     {
       provider,

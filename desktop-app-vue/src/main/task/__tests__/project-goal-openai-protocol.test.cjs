@@ -18,10 +18,14 @@ const {
 function wire(t, transport, mode, onResponse = () => {}) {
   const calls = [];
   t.mock.method(transport, "request", (url, options, callback) => {
+    const call = { url, options, body: null };
+    calls.push(call);
+    assert.equal(typeof url, "string");
+    assert.equal(typeof callback, "function");
     const req = new EventEmitter();
     req.destroy = () => req.emit("close");
     req.end = (bytes) => {
-      calls.push({ url, options, body: JSON.parse(bytes) });
+      call.body = JSON.parse(bytes);
       queueMicrotask(() => {
         onResponse();
         const incoming = new EventEmitter();
@@ -100,13 +104,29 @@ test("private OpenAI endpoints accept only literal loopback/RFC1918 /v1 with exp
     assert.throws(() => privateOpenAIEndpoint(value));
   assert.equal(volcengineEndpoint(ENDPOINT), ENDPOINT);
   assert.throws(() => volcengineEndpoint(`${ENDPOINT}/other`));
-  assert.throws(() =>
-    captureProjectGoalModel({
-      provider: "volcengine",
-      client: { baseURL: ENDPOINT, model: "fake", apiKey: "fake" },
-      isInitialized: true,
-    }),
+  assert.throws(
+    () =>
+      captureProjectGoalModel({
+        provider: "volcengine",
+        client: { baseURL: ENDPOINT, model: "fake", apiKey: "fake" },
+        isInitialized: true,
+      }),
+    { code: "GOAL_MODEL_CHANGED_OR_UNAVAILABLE" },
   );
+});
+test("fixture initialization and health checks never enter the model transport", async (t) => {
+  const calls = wire(t, https, "success");
+  const f = await createFixture({ confirm: false });
+  try {
+    assert.equal(calls.length, 0);
+    const status = await f.manager.client.checkStatus();
+    assert.equal(status.available, false);
+    assert.equal(calls.length, 0);
+    assert.equal((await f.service.generate(f.request)).state, "denied");
+    assert.equal(calls.length, 0);
+  } finally {
+    f.close();
+  }
 });
 for (const provider of ["volcengine", "custom"]) {
   test(`${provider}: signed ingress, exact bounded wire request, Memory consent, usage, replay and restart`, async (t) => {

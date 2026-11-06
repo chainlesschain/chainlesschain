@@ -1,0 +1,55 @@
+{
+  "sourceSha": "dc5475d38c3587d6b8e63448b626717537dd623d",
+  "disposition": "superseded-without-publication",
+  "failure": {
+    "workflow": "CI Tests",
+    "runId": 42158100135,
+    "jobId": 127703616809,
+    "jobName": "Unit Tests (ubuntu-latest, 22.x)",
+    "nodeVersion": "22.23.4",
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42158100135/job/127703616809",
+    "step": "Verify governed goal model protocol and recovery",
+    "passed": 20,
+    "failed": 0,
+    "cancelled": 15,
+    "error": "callback is not a function; subsequent tests cancelled with pending Promise",
+    "cause": "The initial unbranded-manager rejection test loaded llm-manager before the fixture installed inactive-provider and Axios guards. A complete CI dependency installation cached the unguarded manager, so its /models health check entered the three-argument model transport mock. Missing local optional dependencies had masked the module-load error behind a broad assert.throws."
+  },
+  "fix": [
+    "Initialize the real fixture manager under its inactive-provider and Axios guards before tests can cache it.",
+    "Require the exact unbranded-manager rejection code, rather than accepting an unrelated module-loading error.",
+    "Count every mock request before argument/body validation, and assert the model adapter callback signature.",
+    "Add a regression proving initialization, health checks and denied consent do not enter model transport."
+  ],
+  "localVerification": {
+    "runtime": "Official npm node-win-x64 22.23.4, tarball integrity verified",
+    "completeProtocolAndRecovery": {
+      "passed": 36,
+      "failed": 0,
+      "cancelled": 0
+    },
+    "strengthenedOpenAIProtocol": { "passed": 17, "failed": 0, "cancelled": 0 },
+    "exactBrandAndHealthRegression": { "passed": 2, "failed": 0 },
+    "restoredLazyInitializationNegativeControl": {
+      "passed": 1,
+      "failed": 1,
+      "expectedFailure": true
+    },
+    "hostCleanupAndOnboarding": { "passed": 28, "failed": 0, "skipped": 3 },
+    "sourceAudit": {
+      "candidates": 89,
+      "issues": 0,
+      "paidReady": false,
+      "runtimeCoverageVerified": false
+    },
+    "scope": "Overlapping supplementary local scopes; not added together and not release gates. No paid model inference."
+  },
+  "additionalHostFix": {
+    "priorRunId": 42153506532,
+    "priorJobId": 127686419653,
+    "error": "macOS next IDE journey could not bind 127.0.0.1:8082 after onboarding reported success",
+    "fix": "Onboarding now uses the shared port lifecycle helper and confirms listener release within its existing shutdown deadline after owned-process cleanup. The helper digest and dirty scope are included in evidence.",
+    "realHostVerification": "New candidate workflow required; local helper tests are supplementary."
+  },
+  "releaseRule": "Do not publish this source or reuse its successful source audit / platform results for the replacement commit. Run complete exact-SHA CLI CI and Strict Sandbox again."
+}
