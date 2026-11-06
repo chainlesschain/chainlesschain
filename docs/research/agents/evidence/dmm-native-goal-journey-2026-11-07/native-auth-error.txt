@@ -1,0 +1,11 @@
+Error occurred in handler for 'project:goal-intent-execute': Error: ACTION_AUTHORITY_UNAVAILABLE
+    at fail (C:\code\chainlesschain\packages\session-core\lib\task-description-action-service.js:77:17)
+    at TaskDescriptionActionService._actor (C:\code\chainlesschain\packages\session-core\lib\task-description-action-service.js:327:7)
+    at sqliteTransaction.<anonymous> (C:\code\chainlesschain\packages\session-core\lib\task-description-action-service.js:1217:35)
+    at sqliteTransaction (C:\code\chainlesschain\node_modules\better-sqlite3-multiple-ciphers\lib\methods\transaction.js:65:24)
+    at TaskDescriptionActionService._transaction (C:\code\chainlesschain\packages\session-core\lib\task-description-action-service.js:319:36)
+    at TaskDescriptionActionService.execute (C:\code\chainlesschain\packages\session-core\lib\task-description-action-service.js:1216:19)
+    at async ProjectGoalWorkflow.execute (C:\code\chainlesschain\packages\session-core\lib\project-goal-workflow.js:1048:14)
+    at async Session.<anonymous> (node:electron/js2c/browser_init:2:112762) {
+  code: 'ACTION_AUTHORITY_UNAVAILABLE'
+}

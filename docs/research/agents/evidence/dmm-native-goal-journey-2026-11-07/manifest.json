@@ -1,0 +1,200 @@
+{
+  "schema": "chainlesschain.dmm-native-goal-evidence/v1",
+  "createdAt": "2026-11-06T19:28:21.082Z",
+  "guiSourceSha": "1f02b9691f98b6bf2259c77c4213b0359eb42c10",
+  "verificationCheckoutSha": "1f02b9691f98b6bf2259c77c4213b0359eb42c10",
+  "sourceState": "Tracked product sources at the GUI commit; evidence/documentation follow-up only. Local tests and Windows synthetic GUI are not release or independent business approval.",
+  "totals": {
+    "files": 52,
+    "passed": 954,
+    "failed": 0,
+    "skipped": 0
+  },
+  "reports": [
+    {
+      "file": "desktop-tests.json",
+      "files": 21,
+      "passed": 402,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "file": "organization-tests.json",
+      "files": 12,
+      "passed": 260,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "file": "renderer-tests.json",
+      "files": 19,
+      "passed": 292,
+      "failed": 0,
+      "skipped": 0
+    }
+  ],
+  "builds": [
+    {
+      "cwd": "desktop-app-vue",
+      "command": "node scripts/build-main.js",
+      "exitCode": 0,
+      "kind": "ordinary main/preload copy build; not installed package"
+    },
+    {
+      "cwd": "desktop-app-vue",
+      "command": "node ../node_modules/vite/bin/vite.js build --logLevel warn",
+      "exitCode": 0,
+      "kind": "full production Vue renderer",
+      "warnings": [
+        "existing splash static resource warning",
+        "existing jspreadsheet eval warning",
+        "existing chunk size warning"
+      ]
+    }
+  ],
+  "commands": [
+    {
+      "cwd": "desktop-app-vue",
+      "argv": [
+        "node",
+        "../node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "vitest.business-actions.config.mjs"
+      ]
+    },
+    {
+      "cwd": "desktop-app-vue",
+      "argv": [
+        "node",
+        "../node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "vitest.organization-authority.config.mjs",
+        "src/main/permission/__tests__/approval-workflow-manager.test.js",
+        "src/main/task/__tests__/organization-project-authority-host.test.js",
+        "src/main/task/__tests__/organization-project-goal-completion-ipc.test.js",
+        "src/main/task/__tests__/organization-project-goal-host.test.js",
+        "src/main/task/__tests__/organization-project-goal-ipc.test.js",
+        "src/main/task/__tests__/organization-project-goal-memory-ipc.test.js",
+        "src/main/task/__tests__/organization-project-goal-periodic-host.test.js",
+        "src/main/task/__tests__/organization-project-goal-periodic-ipc.test.js",
+        "src/main/task/__tests__/organization-project-goal-workflow-ipc.test.js",
+        "src/main/task/__tests__/organization-project-ipc.test.js",
+        "src/main/task/__tests__/organization-project-risk-ipc.test.js",
+        "src/main/task/__tests__/organization-project-transfer-ipc.test.js"
+      ]
+    },
+    {
+      "cwd": "desktop-app-vue",
+      "argv": [
+        "node",
+        "../node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "vitest.business-actions-renderer.config.mjs"
+      ]
+    },
+    {
+      "cwd": ".",
+      "argv": [
+        "node",
+        "desktop-app-vue/scripts/project-goal-native-journey.mjs",
+        "--electron",
+        "<verified Electron 39.8.10 executable>",
+        "--output",
+        "<new output directory>"
+      ]
+    }
+  ],
+  "sources": {
+    "desktop-app-vue/src/preload/__tests__/legacy-ipc-policy.test.js": "8526e502ef709f883460a8eba69f79da05b63be140bf4e7241d273bf36b4d88d",
+    "desktop-app-vue/tests/unit/ukey/ukey-ipc.test.js": "1e1e368aadcb6a99bd03345b83e76a1be9866d5b0e3b41341570007f5df85d40",
+    "desktop-app-vue/src/main/ipc/__tests__/ipc-sender-guard.test.js": "d488ee962ad990bd2a29d3c746539f8d5d3a5900fda14662aab887b0d778358a",
+    "desktop-app-vue/src/main/notification/__tests__/notification-authority-ipc.test.js": "9e829d6886c70ebc936506b20338e3650c7ade472ff5c77cd88042483549cfb1",
+    "desktop-app-vue/src/main/notification/__tests__/project-goal-notification-journey.test.js": "8428e2ae93ed185a3abc9a59ca9bf68218fe4d091d657fc4a8f5cc1ee4c57858",
+    "desktop-app-vue/src/main/task/__tests__/project-goal-auth-session.test.js": "05ad0d82686cfd0875603e41f5105bc60fca665142972d9f1846ed400d0a6788",
+    "desktop-app-vue/src/main/task/__tests__/project-goal-cli-bridge.test.js": "00655cef7d759b718d0478b77c1ec35d4104808600da5b26b6ce033a5650b543",
+    "desktop-app-vue/src/main/task/__tests__/project-goal-completion-ipc.test.js": "ab7dff2713e04f218f1bfaacbfc6adc158806e66accf92d7ea2ca48b5234c3eb",
+    "desktop-app-vue/src/main/task/__tests__/project-goal-delivery-drafts-ipc.test.js": "73f5f1e163ac756b6e611e153305ced2699ae6a9842df3f0000f5d5853dde8ed",
+    "desktop-app-vue/src/main/task/__tests__/project-goal-draft-imports-ipc.test.js": "16fec55b7884bc491700566b957cae222ac04eb33909495fbfbfebb01bd52974",
+    "desktop-app-vue/src/main/task/__tests__/project-goal-encrypted-host.test.js": "78955d5537f90b59ac9d87733538837baccd61153deb6c6e2896f8f853aa4f77",
+    "desktop-app-vue/src/main/task/__tests__/project-goal-event-history-ipc.test.js": "328930780b2238d436e096f09ea01f031b90576488a863b3f26510b4f8f6c925",
+    "desktop-app-vue/src/main/task/__tests__/project-goal-external-drafts-ipc.test.js": "ad84fbc971239590c4795efefcd86a240b33370d1d2b6cccd2260356862e4fe4",
+    "desktop-app-vue/src/main/task/__tests__/project-goal-graph-host.test.js": "15039964dfd945121d1b36e49b05dfce84faa896a0d297c6709b17efda716474",
+    "desktop-app-vue/src/main/task/__tests__/project-goal-ipc.test.js": "53f157aa4eb4f5d498cb0c938e8e111fb5b4f6660080ca4a8cf048532bf49f3e",
+    "desktop-app-vue/src/main/task/__tests__/project-goal-memory-ipc.test.js": "5995f0c98db907bf82446476fb48e4652fb5795a01530cd3efd5b4ce6d087899",
+    "desktop-app-vue/src/main/task/__tests__/project-goal-model-drafts-ipc.test.js": "92fbe898a635765fec863f388e434a774710adf1b09f8d29607a57ae7f1cef40",
+    "desktop-app-vue/src/main/task/__tests__/project-goal-monitoring-host.test.js": "3d50ef9624a4515bb92178e163125a050cb348913261a96484689fdff3230046",
+    "desktop-app-vue/src/main/task/__tests__/project-goal-transfer-ipc.test.js": "020dfd354f05a21e3e8f80b111d234df1fa922df237073fb931a3882c7158c5e",
+    "desktop-app-vue/src/main/task/__tests__/project-goal-workflow-ipc.test.js": "a47f57851caada31f38b236b1eb2d1d9b7a0c5d43f69af5245a9dc9cf5b0b219",
+    "desktop-app-vue/src/main/task/__tests__/task-description-ipc.test.js": "447a1dd369ed0e8c8532f361ee9fe3f57488b2426886c42ae0f85ce7933f0d1e",
+    "desktop-app-vue/src/main/permission/__tests__/approval-workflow-manager.test.js": "863709fa1a4e81702be1b969f9db5e18967cb9c8210b5a5e90f2e0496b7c2f9f",
+    "desktop-app-vue/src/main/task/__tests__/organization-project-authority-host.test.js": "82b5850b68189b462b4b16c2599252bea0ddfb30ed8533c6de184dfb5d1879f9",
+    "desktop-app-vue/src/main/task/__tests__/organization-project-goal-completion-ipc.test.js": "a298d81bea772b5675e21256ab134446b0563750ee9f801420ea78b0bfa53141",
+    "desktop-app-vue/src/main/task/__tests__/organization-project-goal-host.test.js": "c5b3d9bf7ae25656ac6d5ed53612d787558301fb05cae6d8ecac0cf5561a97c3",
+    "desktop-app-vue/src/main/task/__tests__/organization-project-goal-ipc.test.js": "745b301082f5fe33e1699c26a5f04e084ea29d4566043f1d4571f17292d70034",
+    "desktop-app-vue/src/main/task/__tests__/organization-project-goal-memory-ipc.test.js": "dbd65d91eb4946c6c5f6c775c6cf22299b832f9ed31efa483f0b6b4daccdb381",
+    "desktop-app-vue/src/main/task/__tests__/organization-project-goal-periodic-host.test.js": "0d0865ac545c217bf56aadf6b11da81f97abcafe4e8de9616ff81fe184964563",
+    "desktop-app-vue/src/main/task/__tests__/organization-project-goal-periodic-ipc.test.js": "4e680502086deb6a95a5aa5f6f5ddda5a46a1818bdf657d9fa46d0f4d6cd25f1",
+    "desktop-app-vue/src/main/task/__tests__/organization-project-goal-workflow-ipc.test.js": "830789d2eed5a1219eb2b460c142b13e3d046e22f9c7d15a9efcbf9208d23a48",
+    "desktop-app-vue/src/main/task/__tests__/organization-project-ipc.test.js": "668a717da4e695249ee7e1218e74b615aba6babe17eceea0066e8d69f3973345",
+    "desktop-app-vue/src/main/task/__tests__/organization-project-risk-ipc.test.js": "e01b6c7fd97b51ee94418c983d65515a6ea30fe7750fe2e3d283b62ac4ca196e",
+    "desktop-app-vue/src/main/task/__tests__/organization-project-transfer-ipc.test.js": "968f048e0e19aef043f69e96336c236cceb48d048d444c1128eccfb22ef22e57",
+    "desktop-app-vue/src/renderer/stores/__tests__/auth.test.ts": "f57b13ff029ae58683af7bf11970f01d859cf3f9f50258ee656a0eb67ef5cba6",
+    "desktop-app-vue/src/renderer/stores/__tests__/goal-notifications.test.ts": "59359e5a98779eb0d2cdf3fbf7245c4fc95d5620e6abd3788a67f6f72414edff",
+    "desktop-app-vue/src/renderer/stores/__tests__/social.test.ts": "d2ea9acc48a2d98df1eaef424df40792b77f4a5212636dbdebf43d24a64318a8",
+    "desktop-app-vue/src/renderer/components/common/__tests__/goal-notification-list.test.ts": "a4fcaa72fab61fc87cc924586e7d4807619ae44f21d242a51235cf5aac8e1665",
+    "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-acceptance-panel.test.ts": "0d94e8030c8eb3837f54bd626abc4f66dcfbe0453ae480b5e40835dbce2f849a",
+    "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-actions-panel.test.ts": "faaec9e71b4f867662235ce9ce6dcbd327f7d04cbec8bde4cc43531e5b8fa011",
+    "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-cli-connection-panel.test.ts": "d3c667a17050d2af00bf10ae02e48a7cfe90d2997db28c5120167f0b96a57d86",
+    "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-draft-imports-panel.test.ts": "8a0cca7f3f90d2f7a8aec5cafdb84c60a863f3da71164404396aab6e2025923d",
+    "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-extension-drafts-panel.test.ts": "cc7e97eaf796f1ec7c9d3c24527cf6ac5720138b53142bf61bff15b985473d0d",
+    "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-external-drafts-panel.test.ts": "e15fcc2acab1202bf2e567b86f2dead585a59b5ed7c6d533a7d53f1c1d36ee51",
+    "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-memory-panel.test.ts": "edb568042544485f4314169f00d83726f66bc2309afd7e07840ca05190632601",
+    "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-model-drafts-panel.test.ts": "4065fb635f8e8716a6249e69cf5d23ddbc1bf4de57a8278cd82f970b71064ac7",
+    "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-monitoring-panel.test.ts": "1444b4751deeda729b4b6cc35b8a6ac6d866f5a0d5df117204ed324fc9b15b28",
+    "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-notification-drawer.test.ts": "dfb472f701e8865cc9d2c1beb4804378059e5c6b81bb9f23ad803bd74319efe5",
+    "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-notification-policy-panel.test.ts": "b953ce48f1a9fd126498a6fbe980ba26a67a307c4d1501dc86b248548dca7d8f",
+    "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-transfer-panel.test.ts": "86a4b580b4db78cd49495b1fa3d9ca64093164f76865f7ab599125105784bfc8",
+    "desktop-app-vue/src/renderer/components/projects/__tests__/project-risk-review-panel.test.ts": "d5e6d6dd01f2aa1abb0648c0a8a0415423ff6c662fc0ecddab5ca6c69e513ae1",
+    "desktop-app-vue/src/renderer/components/projects/__tests__/project-task-description-drawer.test.ts": "9356de35b4d91a42664ee24d3370d8e77ec89b72730110f3d28ed66e81726a52",
+    "desktop-app-vue/src/renderer/components/projects/__tests__/project-task-description-journey.test.ts": "b7b275725ba7b232ef1d487794173bad1ad93b0a2c3329af7681b7c087d5e251",
+    ".github/workflows/dmm-native-goal-journey.yml": "f2f01411c9c7cfcb298d215c7aee799831e261ec22d7f91636bff85655abf616",
+    ".github/workflows/dmm-project-host.yml": "6a6ff00cd518445da2c807a524f73d26baf8baad09e84237cf7d39da6470de7a",
+    "desktop-app-vue/scripts/project-goal-native-journey.mjs": "8ab2e8bf3b6740866a7157faa63caad0f73523217c0e020b10d5d6b76543c034",
+    "desktop-app-vue/scripts/lib/project-goal-native-dialog.cjs": "a6bef751fc16c664d55fb97431ca0c06f941696c3f474b70d1b5c98d99fbdf19",
+    "desktop-app-vue/scripts/lib/project-goal-native-dialog.ps1": "88039fdb743598342b339e00d7b8d00dc23e2ba16c526e21838820e3712f06d4",
+    "desktop-app-vue/src/main/task/project-goal-auth-session.js": "c3ff33a0a9b43dceda49ad721a1348506e2c8202e21300c34f726a8c43ac6550",
+    "desktop-app-vue/src/main/task/project-goal-ipc.js": "59f10d037d016db145a7f66be1b01ce75b70bed515d7b6c84e1693673ab4628e",
+    "desktop-app-vue/src/main/task/task-description-ipc.js": "e0c070f074fe8d6de06f0dc84046edd425fd45aa103834e9064884e9e13c8372",
+    "desktop-app-vue/src/main/task/project-goal-native-database.js": "932fc6473e599b7450fcd0cb9aebbb9eb0f13a650a79d88567984d19a3ca9338",
+    "desktop-app-vue/src/main/database/sqlcipher-wrapper.js": "5f50415f97b7080af43d0c8641fcadc50af2f651d62414ba1974ac3b4ba6fa66",
+    "desktop-app-vue/src/renderer/components/projects/ProjectGoalAcceptancePanel.vue": "b4e86083629d73524c6f3d23a30562bfb9dcd8b1d1bbfa0d1ff7243cb88ee331",
+    "desktop-app-vue/src/renderer/components/projects/ProjectGoalMonitoringPanel.vue": "847a6e6634beb2d473658c85bfd7f6c390d65093bcd26ad4543aaa950694b99f",
+    "packages/session-core/lib/project-goal-workflow.js": "fbace8bc8c95f0067a65f21a7b783e9b554ca304b5cb1721c350b1229238004a",
+    "packages/session-core/lib/project-goal-completion.js": "fd1de952721dcf6aa10c1b6299220514034b37042b41bf6de06b1bde1093f70a",
+    "desktop-app-vue/vitest.business-actions.config.mjs": "6556e0ca4a6572693ba485fba48f9b300095872bcb2c7716218374b28942ce31",
+    "desktop-app-vue/vitest.business-actions-renderer.config.mjs": "49a2aefb0de81ed347eb202bc4439781b51c98513d8ac77a7dcb17fe8b833225",
+    "desktop-app-vue/vitest.organization-authority.config.mjs": "d5f9f8fb4ca071f355d3986aef0900d4d9147c1fefc7073d463397ff1e33289f"
+  },
+  "files": {
+    "README.md": "1b0a3bed959b49aa3eb63e37dafe46e6da3f70ff33a5314d86aa859e9dfa7449",
+    "desktop-tests.json": "a9b9b504a0c153ba955d09a60713dbdd13fc1eb9da9ded959755474ac21dad25",
+    "failed-acceptance-ipc.json": "34849766d618f50100d7493b9abc35a1f31e28a39a11eab3716266a8825d47ec",
+    "failed-native-auth.json": "c8f02ac4356d5c33b9755240ef731b1a4fc659bd57526e468f8bc99757ac04e7",
+    "journey.json": "11ebc3c8041753cf582ce184705a2d9ad8203eeb9826e1cdc337a6df1d2c49cf",
+    "native-auth-error.txt": "639dbf2e1227cb8a793a70fc4e13f1c65fc29690070b65bcc48f85f8d4b5f79c",
+    "organization-tests.json": "7ac6e7938835f3f5a0611b934e2051e8f91a8ee9e11271df25dd5ff9444b1f8e",
+    "remote-checks.json": "e0ca8304127afdafc60405f9bc3e266cf3ae1fa224e8e528c52dfe02f85fa5d2",
+    "renderer-tests.json": "2d2e502b84ab3e89ef9fdbcf0c22fbdd26dda4a118e89d36180f39fa560b0766",
+    "stopped.png": "28086f33b2f961aa5a0877f6afeec21548e6b43b81e0c7fd4c5d47091ac81aaa",
+    "verify-evidence.mjs": "ccdbbdef932a6cc65e77739b28ccf0722d35ac8899b9153fa3a211167ed51540"
+  },
+  "taskIds": [
+    "DMM-04",
+    "DMM-06",
+    "DMM-09"
+  ],
+  "scenarioId": "windows-personal-project-risk-goal-native"
+}
