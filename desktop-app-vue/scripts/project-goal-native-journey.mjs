@@ -99,10 +99,22 @@ const env = {
   DEFAULT_PASSWORD: randomUUID(),
 };
 delete env.ELECTRON_RUN_AS_NODE;
-let app, window, log;
+let app, window, log, nativePid;
+function terminateOwnedApp() {
+  // On Windows app.process() can be a cmd.exe launcher. Terminate the actual
+  // test-owned browser process too, only while its launcher is still live.
+  if (app?.process().exitCode === null) {
+    if (nativePid) {
+      try {
+        process.kill(nativePid);
+      } catch {}
+    }
+    app.process().kill();
+  }
+}
 const watchdog = setTimeout(() => {
   console.error("Native product journey exceeded 10 minutes");
-  app?.process().kill();
+  terminateOwnedApp();
 }, 600000);
 try {
   app = await _electron.launch({
@@ -117,9 +129,10 @@ try {
   log = fs.createWriteStream(path.join(profile, "application.log"));
   app.process().stdout?.on("data", (bytes) => log.write(bytes));
   app.process().stderr?.on("data", (bytes) => log.write(bytes));
+  const pid = await app.evaluate(() => process.pid); // Windows launcher PID differs.
+  nativePid = pid;
   window = await app.firstWindow({ timeout: 180000 });
   window.setDefaultTimeout(30000);
-  const pid = await app.evaluate(() => process.pid); // Windows launcher PID differs.
   evidence.versions = await app.evaluate(() => process.versions);
   await app.evaluate(({ BrowserWindow }, desktop) => {
     const require = process
@@ -516,16 +529,22 @@ try {
     evidence.diagnostics = await app
       .evaluate(() => globalThis.__dmmJourneyDiagnostics)
       .catch(() => null);
-  if (app)
-    await Promise.race([
-      app.close().catch(() => {}),
-      new Promise((resolve) =>
-        setTimeout(() => {
-          app.process().kill();
-          resolve();
-        }, 15000).unref(),
-      ),
-    ]);
+  if (app) {
+    let cleanupTimer;
+    try {
+      await Promise.race([
+        app.close().catch(() => {}),
+        new Promise((resolve) => {
+          cleanupTimer = setTimeout(() => {
+            terminateOwnedApp();
+            resolve();
+          }, 15000);
+        }),
+      ]);
+    } finally {
+      clearTimeout(cleanupTimer);
+    }
+  }
   log?.end();
   evidence.finishedAt = new Date().toISOString();
   fs.writeFileSync(
