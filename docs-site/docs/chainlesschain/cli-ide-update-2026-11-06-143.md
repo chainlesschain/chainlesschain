@@ -3,7 +3,7 @@
 ## 概述
 
 发布候选：Session Core **0.3.26**、CLI **0.166.143**、Open VSX **0.37.179**、JetBrains **0.4.196**。
-当前仍在准备准确提交的跨平台门禁；公开状态以[发布记录](../../../docs/research/cli/evidence/release143-public/README.md)为准。
+当前仍在准备准确提交的跨平台门禁；公开状态以[发布记录](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release143-public/README.md)为准。
 本次不发布桌面、Android 或 iOS 客户端。
 
 ## 核心特性
@@ -27,6 +27,30 @@ cc doctor
 力数截图示例为 `http://192.168.31.79:8889/v1`；管理页显示 `glm5.3-flash-tensorfold`，实际模型 ID 仍以 `/v1/models` 返回为准。
 API Key 按平台要求填写，不使用火山引擎密钥。保存后可显式测试，测试会发送一次简短模型请求，可能产生费用。
 CLI 既有签名部署等聊天运行前置要求继续生效。
+
+## 系统架构
+
+IDE 原生宿主收集连接配置，经 stdin 交给实际使用的 CLI 原子保存，再读取脱敏配置确认版本与端点。
+聊天启动只传非敏感 provider、模型和 Base URL；CLI 从匹配端点的安全配置读取凭据。
+`custom` 使用 OpenAI Chat Completions 协议，不把本地平台名称映射为云端供应商，也不会自动使用云端模型 ID。
+目标创建提议与桌面业务写入分离，只有匹配桌面实现的当前预览及原生确认才能创建任务。
+
+## 配置参考
+
+| 字段      | 力数示例                          | 含义                                          |
+| --------- | --------------------------------- | --------------------------------------------- |
+| 服务类型  | Local compute / OpenAI compatible | CLI provider 为 `custom`                      |
+| Base URL  | `http://192.168.31.79:8889/v1`    | 使用平台 API 地址，不附加 `/chat/completions` |
+| 模型      | `glm5.3-flash-tensorfold`         | 管理页示例名称，仍需以 `/v1/models` 核验      |
+| API Key   | 按平台要求填写或留空              | 不复用旧端点配置中的密钥                      |
+| HTTP 确认 | 显式勾选允许                      | 适用于未加密局域网接口                        |
+
+## 使用示例
+
+在 VS Code 或 JetBrains 打开“配置大模型 / Configure LLM”，选择本地算力平台，输入上述 API 地址和经平台核对的模型 ID。
+如平台启用鉴权，填写该平台密钥；允许无密钥访问时可留空。显式确认 HTTP 后保存，再点击“测试已保存连接”。
+测试成功后重启旧聊天宿主或发送下一条新消息；运行中的任务继续使用其已经捕获的连接身份。
+如果示例网络仍返回 `ECONNRESET`，先恢复服务连通性，不将该结果当作成功保存后的模型可用证明。
 
 ## 性能指标
 
@@ -56,4 +80,11 @@ HTTP 确认不表示访问已加密。目标创建与模型草稿仍需独立授
 - `packages/vscode-extension/src/ui/llm-config-panel.js`：VS Code 配置。
 - `packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/LlmConnectionPanel.java`：JetBrains 原生表单。
 - `packages/cli/src/lib/llm-connection-config.js`：原子保存与凭据隔离。
-- [工程完成表](../../../docs/research/agents/chainlesschain-dots-muse-mods-analysis-2026-10-06.md)。
+- [工程完成表](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/agents/chainlesschain-dots-muse-mods-analysis-2026-10-06.md)。
+
+## 相关文档
+
+- [CLI 指南](./cli.md)
+- [IDE 桥接指南](./ide-bridge.md)
+- [上一版升级说明](./cli-ide-update-2026-11-05-142.md)
+- [本次发布状态](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release143-public/README.md)
