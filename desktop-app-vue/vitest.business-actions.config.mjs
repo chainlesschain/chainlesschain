@@ -13,6 +13,7 @@ export default defineConfig({
       "src/main/notification/__tests__/*.test.js",
       "src/main/task/__tests__/task-description-ipc.test.js",
       "src/main/task/__tests__/project-goal-ipc.test.js",
+      "src/main/task/__tests__/project-goal-transfer-ipc.test.js",
       "src/main/task/__tests__/project-goal-workflow-ipc.test.js",
       "src/main/task/__tests__/project-goal-delivery-drafts-ipc.test.js",
       "src/main/task/__tests__/project-goal-draft-imports-ipc.test.js",

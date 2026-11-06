@@ -1,6 +1,6 @@
 # Dots / Muse / Mods 借鉴：实施进度
 
-用户已于 2026-11-06 授权发布 CLI 和 IDE。当前准备 Session Core 0.3.26 → CLI 0.166.143 → VS Code 0.37.179 / JetBrains 0.4.196，准确提交的全平台门禁和公开回读尚待完成，不能将版本准备当成已发布。阶段表见[本次发布记录](../cli/evidence/release143-public/README.md)。本次不发布桌面或移动客户端。
+用户已于 2026-11-06 授权发布 CLI 和 IDE。Session Core **0.3.26** → CLI **0.166.143** → Open VSX **0.37.179** / JetBrains **0.4.196** 已完成发行与公开回读。准确源码 `3fa3a4b258bbcb60b23b4298cec375661ad6f410` 的 CLI CI 76/76、Strict Sandbox 6/6 通过；npm 使用 Actions OIDC，子包和 CLI 公开核验后才启动 IDE。JetBrains 更新 1213983 已批准、列出且可下载，627 个原始 payload 文件与官方制品一致。证据见[本次发布记录](../cli/evidence/release143-public/README.md)。桌面或移动客户端未包含在本次发行中；真实 DMM GUI、独立业务效果、迁移与回退仍未验收。下文各工程批次的“未发布”保留为当时快照，不代表当前 CLI/IDE 发行状态。
 
 2026-11-06 最新续作：真实火山引擎两个合成场景通过，共 1,176 tokens；新增本地 OpenAI 算力平台及 VS Code/JetBrains 配置入口，允许平台可选密钥。25 文件/类、374 项回归与 22 项检查通过；力数实机接口当前连接重置，未发送推理。模型仍只保存待审草稿，独立业务效果、真实 GUI 和发行未闭环。详情见下文[本批证据](./evidence/dmm-volcengine-live-2026-11-06/README.md)。
 

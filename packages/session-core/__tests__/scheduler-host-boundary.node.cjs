@@ -157,11 +157,18 @@ const workflow = require("@chainlesschain/session-core/project-goal-workflow");
 const completion = require("@chainlesschain/session-core/project-goal-completion");
 const notificationPolicy = require("@chainlesschain/session-core/goal-notification-policy");
 const notifications = require("@chainlesschain/session-core/project-goal-notifications");
+const transferContract = require("@chainlesschain/session-core/goal-transfer-contract");
+const transferFiles = require("@chainlesschain/session-core/goal-transfer-files");
+const transferHost = require("@chainlesschain/session-core/project-goal-transfer");
 assert.equal(typeof notificationPolicy.nextGoalNotificationDelivery, "function");
 assert.equal(typeof notifications.ProjectGoalNotificationService, "function");
 const privateStorage = require("@chainlesschain/session-core/private-storage");
 (async () => {
   assert.equal((await import("@chainlesschain/session-core/goal-repository")).GoalRepository, GoalRepository);
+  assert.equal((await import("@chainlesschain/session-core/goal-transfer-contract")).validateGoalTransfer, transferContract.validateGoalTransfer);
+  assert.equal((await import("@chainlesschain/session-core/project-goal-transfer")).ProjectGoalTransferService, transferHost.ProjectGoalTransferService);
+  assert.equal((await import("@chainlesschain/session-core/goal-transfer-files")).readTransferJsonFile, transferFiles.readTransferJsonFile);
+  assert.throws(() => new transferHost.ProjectGoalTransferService({db:{},getActor:()=>"did:owner"}), (error)=>error.code==="GOAL_NATIVE_DATABASE_REQUIRED");
   const goal = goalContract.createGoalRecord({ id: "g1", storeId: "store-one", objective: "Review risk", createdAt: "2026-10-07T00:00:00.000Z" });
   assert.equal(goal.controlGeneration, 0);
   assert.equal(goal.completion, null);

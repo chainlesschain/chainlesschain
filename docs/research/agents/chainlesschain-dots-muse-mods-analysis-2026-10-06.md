@@ -24,7 +24,7 @@
 
 ## 当前任务完成情况（2026-11-06）
 
-用户已授权 CLI/IDE 发布，候选版本与逐阶段结果见[发布状态表](../cli/evidence/release143-public/README.md)。必须完成准确提交三平台门禁、OIDC 子包与 CLI 发布/回读后，才启动 IDE 发布；客户端不在本次发布范围。
+CLI/IDE 本批发行已完成：Session Core **0.3.26**、CLI **0.166.143**、Open VSX **0.37.179**、JetBrains **0.4.196** 已公开核验。准确源码 `3fa3a4b258bbcb60b23b4298cec375661ad6f410` 的 CLI CI 76/76 与 Strict Sandbox 6/6 通过；按 Actions OIDC 子包→CLI→IDE 顺序发行。JetBrains 更新 1213983 已批准、列出、可下载，627 个原始 payload 文件与官方制品一致。逐阶段证据见[发布状态表](../cli/evidence/release143-public/README.md)。客户端不在本次发布范围，真实 GUI、独立业务效果和迁移回退仍未完成；后续新增源码需重新验证准确提交门禁。
 
 最新续作见[火山引擎真实推理、本地算力平台与 IDE 配置](./dots-muse-mods-implementation-progress-2026-10-07.md#火山引擎真实推理本地算力平台与-ide-配置2026-11-06)：真实火山两个合成场景通过；力数等本地 OpenAI 平台及两端 IDE 配置已接通，力数实机连接仍待恢复。模型只保存待审草稿，Memory/usage/原请求恢复边界保留。
 

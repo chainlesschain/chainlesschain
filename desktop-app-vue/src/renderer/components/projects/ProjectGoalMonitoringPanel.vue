@@ -10,6 +10,13 @@
       巡检在应用运行且身份解锁时检查逾期和依赖信号；重新打开后补做一次到期检查。
     </p>
     <p v-if="error" role="alert">{{ error }}</p>
+    <ProjectGoalTransferPanel
+      v-if="!focused"
+      :project-id="projectId"
+      :identity-key="identityKey"
+      @changed="loadGoals()"
+      @authority-error="authorityFailure"
+    />
     <form
       v-if="!focused"
       data-testid="create-goal"
@@ -212,6 +219,7 @@ import ProjectGoalCliConnectionPanel from "./ProjectGoalCliConnectionPanel.vue";
 import ProjectGoalAcceptancePanel from "./ProjectGoalAcceptancePanel.vue";
 import ProjectGoalMemoryPanel from "./ProjectGoalMemoryPanel.vue";
 import ProjectGoalNotificationPolicyPanel from "./ProjectGoalNotificationPolicyPanel.vue";
+import ProjectGoalTransferPanel from "./ProjectGoalTransferPanel.vue";
 type Goal = {
   id: string;
   revision: number;
