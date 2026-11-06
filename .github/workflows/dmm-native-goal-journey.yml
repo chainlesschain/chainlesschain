@@ -7,6 +7,7 @@ on:
       - ".github/workflows/dmm-native-goal-journey.yml"
       - "desktop-app-vue/scripts/project-goal-native-journey.mjs"
       - "desktop-app-vue/scripts/lib/project-goal-native-dialog.*"
+      - "desktop-app-vue/scripts/lib/project-goal-journey-observer.cjs"
       - "desktop-app-vue/src/main/task/project-goal*.js"
       - "desktop-app-vue/src/main/task/task-description-ipc.js"
       - "desktop-app-vue/src/renderer/components/projects/ProjectGoal*Panel.vue"
@@ -76,6 +77,13 @@ jobs:
       - name: Build actual main and preload
         working-directory: desktop-app-vue
         run: node scripts/build-main.js
+      - name: Probe the locked encrypted Graph host before renderer execution
+        shell: bash
+        working-directory: desktop-app-vue
+        run: |
+          node scripts/project-goal-encrypted-electron-probe.mjs \
+            --electron "$(node -p 'require("electron")')" \
+            --output "$RUNNER_TEMP/dmm-encrypted-goal-preflight.json"
       - name: Build production Vue renderer
         working-directory: desktop-app-vue
         run: npm exec --offline -- vite build --logLevel warn
@@ -98,6 +106,8 @@ jobs:
         if: always()
         with:
           name: dmm-native-goal-journey-windows-${{ env.DMM_EXPECTED_SHA }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/dmm-native-goal-journey/
+          path: |
+            ${{ runner.temp }}/dmm-native-goal-journey/
+            ${{ runner.temp }}/dmm-encrypted-goal-preflight.json
           if-no-files-found: warn
           retention-days: 14

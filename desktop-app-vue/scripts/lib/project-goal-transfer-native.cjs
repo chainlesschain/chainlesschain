@@ -129,7 +129,9 @@ async function powershell(script, args) {
       (error, stdout, stderr) => {
         if (error)
           return reject(
-            new Error(`Native transfer accessibility failed: ${stderr}`),
+            new Error(
+              `Native transfer accessibility failed: ${JSON.stringify({ code: error.code, killed: error.killed, signal: error.signal })} ${stderr}`,
+            ),
           );
         try {
           resolve(JSON.parse(stdout.trim().replace(/^\uFEFF/, "")));
@@ -252,22 +254,30 @@ async function confirmTransfer({ pid, title, button, expectedText }) {
       "Exact transfer confirmation and synthetic proposal text required",
     );
   const hwnd = await locate(pid, title);
-  const verification = await powershell("project-goal-native-dialog.ps1", [
-    "-WindowHandle",
-    String(koffi.address(hwnd)),
-    "-TargetProcessId",
-    String(pid),
-    "-ExpectedTitle",
-    title,
-    "-ExpectedText",
-    expectedText,
-  ]);
-  if (
-    verification.pid !== pid ||
-    verification.title !== title ||
-    verification.expectedTextVerified !== true
-  )
-    throw new Error("Native transfer proposal verification differs");
+  const content = [];
+  enumerate(children, hwnd, (field) => {
+    if (owner(field) === pid) content.push(text(textOf, field));
+  });
+  let verifiedBy = "Win32 child text";
+  if (!content.join("\n").includes(expectedText)) {
+    const verification = await powershell("project-goal-native-dialog.ps1", [
+      "-WindowHandle",
+      String(koffi.address(hwnd)),
+      "-TargetProcessId",
+      String(pid),
+      "-ExpectedTitle",
+      title,
+      "-ExpectedText",
+      expectedText,
+    ]);
+    if (
+      verification.pid !== pid ||
+      verification.title !== title ||
+      verification.expectedTextVerified !== true
+    )
+      throw new Error("Native transfer proposal verification differs");
+    verifiedBy = "same-HWND UI Automation";
+  }
   click(hwnd, pid, title, [button]);
   return {
     pid,
@@ -275,6 +285,7 @@ async function confirmTransfer({ pid, title, button, expectedText }) {
     button,
     method: "Win32 BM_CLICK",
     expectedTextVerified: true,
+    verifiedBy,
     at: new Date().toISOString(),
   };
 }

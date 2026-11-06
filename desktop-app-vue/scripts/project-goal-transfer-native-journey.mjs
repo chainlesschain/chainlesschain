@@ -12,6 +12,9 @@ import { execFileSync, spawnSync } from "node:child_process";
 const require = createRequire(import.meta.url);
 const { _electron, expect } = require("@playwright/test");
 const {
+  observeGoalJourneyErrors,
+} = require("./lib/project-goal-journey-observer.cjs");
+const {
   chooseTransferFile,
   confirmTransfer,
 } = require("./lib/project-goal-transfer-native.cjs");
@@ -148,6 +151,9 @@ try {
   log = fs.createWriteStream(path.join(profile, "application.log"));
   app.process().stdout?.on("data", (bytes) => log.write(bytes));
   app.process().stderr?.on("data", (bytes) => log.write(bytes));
+  evidence.ipcErrors = observeGoalJourneyErrors(app.process(), {
+    secrets: [env.DEFAULT_PASSWORD],
+  });
   window = await app.firstWindow({ timeout: 180000 });
   window.setDefaultTimeout(30000);
   evidence.versions = await app.evaluate(() => process.versions);
