@@ -5,6 +5,10 @@ const {
 } = require("@chainlesschain/session-core/project-goal-service");
 const CHANNELS = Object.freeze({
   create: "project:goal-create",
+  exportTransferTarget: "project:goal-transfer-target-export",
+  importTransfer: "project:goal-transfer-import",
+  listTransfers: "project:goal-transfers-list",
+  cancelTransfer: "project:goal-transfer-cancel",
   read: "project:goal-read",
   openCliConnection: "project:goal-cli-connection-open",
   closeCliConnection: "project:goal-cli-connection-close",
@@ -160,6 +164,12 @@ function createProjectGoalHost({
     getActor();
     return { parent, db, getActor, actorDid };
   }
+  const transferHost =
+    require("./project-goal-transfer-host").createProjectGoalTransferHost({
+      capture: (event) => pinnedContext(event, true),
+      dialog: () => getElectron().dialog,
+      clock,
+    });
   const cliBridge =
     require("./project-goal-cli-bridge").createProjectGoalCliBridge({
       dialog: () => getElectron().dialog,
@@ -818,6 +828,12 @@ function createProjectGoalHost({
   }
   return Object.freeze({
     create: (event, params) => service(event).create(params),
+    exportTransferTarget: (event, params) =>
+      transferHost.exportTarget(event, params),
+    importTransfer: (event, params) =>
+      transferHost.importTransfer(event, params),
+    listTransfers: (event, params) => transferHost.list(event, params),
+    cancelTransfer: (event, params) => transferHost.cancel(event, params),
     read: (event, params) => service(event).get(params),
     openCliConnection: (event, params) => cliBridge.open(event, params),
     closeCliConnection: (event) => {

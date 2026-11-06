@@ -27,6 +27,18 @@ import {
   upgradeLegacyGoal,
   goalError,
 } from "@chainlesschain/session-core/goal-contract";
+import {
+  createGoalTransfer,
+  validateGoalTransfer,
+  validateGoalImportTarget,
+  verifyGoalTransferCancellation,
+} from "@chainlesschain/session-core/goal-transfer-contract";
+import {
+  readTransferTextFile,
+  readTransferJsonFile,
+  writeTransferJsonFile,
+} from "@chainlesschain/session-core/goal-transfer-files";
+import { digestBusinessObjectContent } from "@chainlesschain/session-core/business-object-contract";
 
 /** Valid goal lifecycle states. `active` goals are the ones injected. */
 export const GOAL_STATUS = Object.freeze({
@@ -122,6 +134,55 @@ function goalFile(root, id) {
   return path.join(root, `${id}.json`);
 }
 
+function transferMarker(root, id) {
+  return `${goalFile(root, id)}.transfer`;
+}
+function readTransferMarker(root, id) {
+  const file = transferMarker(root, id);
+  if (!fs.existsSync(file)) return null;
+  try {
+    const value = JSON.parse(readTransferTextFile(file, 196608));
+    if (
+      value.schema !== "chainlesschain.goal-file-transfer/v1" ||
+      !["frozen", "restoring", "restored"].includes(value.state)
+    )
+      throw new Error();
+    value.transfer = validateGoalTransfer(value.transfer);
+    if (
+      value.transfer.source.id !== id ||
+      value.transfer.source.storeId !== goalFileStoreId(root)
+    )
+      throw new Error();
+    if (value.state !== "frozen")
+      verifyGoalTransferCancellation(value.cancellation, value.transfer.target);
+    return value;
+  } catch {
+    throw goalError("GOAL_TRANSFER_RECORD_CORRUPT");
+  }
+}
+function assertNotTransferred(root, id) {
+  const marker = readTransferMarker(root, id);
+  if (marker && marker.state !== "restored")
+    throw goalError("GOAL_TRANSFER_FROZEN");
+}
+function saveTransferMarker(root, id, marker) {
+  const file = transferMarker(root, id),
+    tmp = `${file}.${process.pid}.${Math.random().toString(36).slice(2)}.tmp`;
+  try {
+    // Unlike the user export, the journal may grow by the cancellation receipt.
+    const fd = fs.openSync(tmp, "wx", 0o600);
+    try {
+      fs.writeFileSync(fd, JSON.stringify(marker), "utf8");
+      fs.fsyncSync(fd);
+    } finally {
+      fs.closeSync(fd);
+    }
+    fs.renameSync(tmp, file);
+  } finally {
+    if (fs.existsSync(tmp)) fs.unlinkSync(tmp);
+  }
+}
+
 /** Clamp a value to a 0–100 integer percentage, or null when not a number. */
 function clampPct(v) {
   if (v == null || v === "") return null;
@@ -177,6 +238,7 @@ export function createGoal(input = {}, opts = {}) {
   return withFileLock(
     file,
     () => {
+      assertNotTransferred(root, id);
       if (fs.existsSync(file)) {
         throw new Error(`goal already exists: ${id}`);
       }
@@ -211,6 +273,8 @@ export function getGoal(id, opts = {}) {
   if (isUnsafeGoalId(id)) return null; // traversal id → treat as not found
   const root = opts.root || defaultRoot();
   const file = goalFile(root, id);
+  const marker = readTransferMarker(root, id);
+  if (marker && marker.state !== "restored") return null;
   if (!fs.existsSync(file)) return null;
   try {
     const value = JSON.parse(fs.readFileSync(file, "utf-8"));
@@ -279,6 +343,7 @@ function mutate(id, fn, opts = {}) {
   return withFileLock(
     goalFile(root, id),
     () => {
+      assertNotTransferred(root, id);
       const goal = getGoal(id, opts);
       if (!goal) throw new Error(`no such goal: ${id}`);
       let before;
@@ -484,10 +549,12 @@ export function deleteGoal(id, opts = {}) {
   if (isUnsafeGoalId(id)) return false; // traversal id → nothing to delete
   const root = opts.root || defaultRoot();
   const file = goalFile(root, id);
+  assertNotTransferred(root, id);
   if (!fs.existsSync(file)) return false;
   return withFileLock(
     file,
     () => {
+      assertNotTransferred(root, id);
       if (!fs.existsSync(file)) return false;
       if (opts.expectedRevision !== undefined) {
         const current = getGoal(id, { root });
@@ -546,6 +613,7 @@ export function createGoalFileAdapter(opts = {}) {
   if (typeof readJson !== "function") throw goalError("GOAL_INVALID_ADAPTER");
   function read(id) {
     if (isUnsafeGoalId(id)) throw goalError("GOAL_INVALID_ID");
+    assertNotTransferred(root, id);
     const file = goalFile(root, id);
     if (!fs.existsSync(file)) return null;
     let value;
@@ -574,6 +642,7 @@ export function createGoalFileAdapter(opts = {}) {
       return withFileLock(
         goalFile(root, record.id),
         () => {
+          assertNotTransferred(root, record.id);
           if (fs.existsSync(goalFile(root, record.id)))
             throw goalError("GOAL_ALREADY_EXISTS");
           atomicWriteFileSync(
@@ -625,6 +694,10 @@ export function createGoalFileAdapter(opts = {}) {
       return fs
         .readdirSync(root)
         .filter((name) => name.endsWith(".json"))
+        .filter((name) => {
+          const marker = readTransferMarker(root, name.slice(0, -5));
+          return !marker || marker.state === "restored";
+        })
         .map((name) => read(name.slice(0, -5)))
         .filter(
           (record) =>
@@ -634,4 +707,150 @@ export function createGoalFileAdapter(opts = {}) {
         .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     },
   });
+}
+
+/** Freeze a standalone source before exporting an offline project handoff.
+ * The journal (including exact original bytes) is durable before source rename.
+ * Retrying resumes the same target; it never restores an uncertain transfer. */
+export function freezeGoalForProject(
+  id,
+  { target, output, expectedRevision },
+  opts = {},
+) {
+  if (isUnsafeGoalId(id)) throw goalError("GOAL_INVALID_ID");
+  const root = opts.root || defaultRoot(),
+    file = goalFile(root, id);
+  target = validateGoalImportTarget(target);
+  if (
+    isUnsafeGoalId(target.id) ||
+    !Number.isSafeInteger(expectedRevision) ||
+    expectedRevision < 1 ||
+    typeof output !== "string" ||
+    !output
+  )
+    throw goalError("GOAL_INVALID_REQUEST");
+  const backupFile = `${file}.${target.id}.transfer-backup`;
+  if (
+    [file, transferMarker(root, id), backupFile].some(
+      (reserved) =>
+        path.resolve(reserved).toLowerCase() ===
+        path.resolve(output).toLowerCase(),
+    )
+  )
+    throw goalError("GOAL_TRANSFER_FILE_INVALID");
+  return withFileLock(
+    file,
+    () => {
+      let marker = readTransferMarker(root, id);
+      if (marker && marker.state !== "restored") {
+        if (
+          marker.state !== "frozen" ||
+          digestBusinessObjectContent(marker.transfer.target) !==
+            digestBusinessObjectContent(target) ||
+          marker.transfer.source.revision !== expectedRevision
+        )
+          throw goalError("GOAL_TRANSFER_CONFLICT");
+      } else {
+        const stamp = nowIso();
+        if (stamp < target.createdAt || stamp >= target.expiresAt)
+          throw goalError("GOAL_TRANSFER_TARGET_EXPIRED");
+        const raw = readTransferTextFile(file, 65536),
+          record = fileRecord(JSON.parse(raw), root);
+        if (record.id !== id || record.revision !== expectedRevision)
+          throw goalError("GOAL_REVISION_CONFLICT");
+        if (fs.existsSync(output))
+          throw goalError("GOAL_TRANSFER_OUTPUT_EXISTS");
+        marker = {
+          schema: "chainlesschain.goal-file-transfer/v1",
+          state: "frozen",
+          transfer: createGoalTransfer({
+            target,
+            backup: raw,
+            storeId: goalFileStoreId(root),
+          }),
+          cancellation: null,
+        };
+        saveTransferMarker(root, id, marker);
+      }
+      if (fs.existsSync(file)) {
+        if (readTransferTextFile(file, 65536) !== marker.transfer.backup)
+          throw goalError("GOAL_TRANSFER_SOURCE_CHANGED");
+        if (fs.existsSync(backupFile)) {
+          if (
+            readTransferTextFile(backupFile, 65536) !== marker.transfer.backup
+          )
+            throw goalError("GOAL_TRANSFER_SOURCE_CHANGED");
+          fs.unlinkSync(file);
+        } else fs.renameSync(file, backupFile);
+      } else if (
+        !fs.existsSync(backupFile) ||
+        readTransferTextFile(backupFile, 65536) !== marker.transfer.backup
+      )
+        throw goalError("GOAL_TRANSFER_BACKUP_MISSING");
+      if (fs.existsSync(output)) {
+        if (
+          readTransferJsonFile(output, validateGoalTransfer).digest !==
+          marker.transfer.digest
+        )
+          throw goalError("GOAL_TRANSFER_OUTPUT_EXISTS");
+      } else writeTransferJsonFile(output, marker.transfer);
+      return {
+        state: "frozen",
+        targetId: target.id,
+        source: marker.transfer.source,
+        backupFile,
+        output: path.resolve(output),
+        digest: marker.transfer.digest,
+      };
+    },
+    { failIfUnavailable: true },
+  );
+}
+
+/** Only a persisted, signed native cancellation can release the source.
+ * Exact backup bytes are restored; the backup and source journal are retained. */
+export function restoreTransferredGoal(id, cancellation, opts = {}) {
+  if (isUnsafeGoalId(id)) throw goalError("GOAL_INVALID_ID");
+  const root = opts.root || defaultRoot(),
+    file = goalFile(root, id);
+  return withFileLock(
+    file,
+    () => {
+      const marker = readTransferMarker(root, id);
+      if (!marker) throw goalError("GOAL_TRANSFER_NOT_FOUND");
+      const receipt = verifyGoalTransferCancellation(
+        cancellation,
+        marker.transfer.target,
+      );
+      if (marker.state === "restored")
+        return { state: "restored", source: marker.transfer.source };
+      if (
+        fs.existsSync(file) &&
+        readTransferTextFile(file, 65536) !== marker.transfer.backup
+      )
+        throw goalError("GOAL_TRANSFER_SOURCE_CHANGED");
+      marker.state = "restoring";
+      marker.cancellation = receipt;
+      saveTransferMarker(root, id, marker);
+      if (!fs.existsSync(file)) {
+        const tmp = `${file}.${process.pid}.restore.tmp`;
+        try {
+          const fd = fs.openSync(tmp, "wx", 0o600);
+          try {
+            fs.writeFileSync(fd, marker.transfer.backup, "utf8");
+            fs.fsyncSync(fd);
+          } finally {
+            fs.closeSync(fd);
+          }
+          fs.renameSync(tmp, file);
+        } finally {
+          if (fs.existsSync(tmp)) fs.unlinkSync(tmp);
+        }
+      }
+      marker.state = "restored";
+      saveTransferMarker(root, id, marker);
+      return { state: "restored", source: marker.transfer.source };
+    },
+    { failIfUnavailable: true },
+  );
 }

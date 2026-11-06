@@ -117,6 +117,85 @@ export function registerGoalCommand(program) {
       }
     });
 
+  goal
+    .command("transfer-to-project <id>")
+    .description(
+      "Freeze a CLI goal and export its exact backup for a selected native project",
+    )
+    .requiredOption(
+      "--target <file>",
+      "Native project import target descriptor",
+    )
+    .requiredOption("--output <file>", "New transfer file (never overwritten)")
+    .requiredOption("--revision <number>", "Expected source revision", Number)
+    .option(
+      "--confirm-transfer",
+      "Explicitly freeze this source until native cancellation",
+    )
+    .option("--json", "Output transfer references as JSON")
+    .action(async (id, options) => {
+      try {
+        if (!options.confirmTransfer)
+          throw new Error(
+            "--confirm-transfer is required; stop existing CLI runs before transfer",
+          );
+        const { readTransferJsonFile } =
+          await import("@chainlesschain/session-core/goal-transfer-files");
+        const { validateGoalImportTarget } =
+          await import("@chainlesschain/session-core/goal-transfer-contract");
+        const { freezeGoalForProject } = await import("../lib/goal-store.js");
+        const target = readTransferJsonFile(
+          options.target,
+          validateGoalImportTarget,
+          4096,
+        );
+        const result = freezeGoalForProject(id, {
+          target,
+          output: options.output,
+          expectedRevision: options.revision,
+        });
+        if (options.json) console.log(JSON.stringify(result, null, 2));
+        else {
+          logger.log(`Source frozen; exact backup: ${result.backupFile}`);
+          logger.log(
+            `Import ${result.output} through the selected desktop project. Retry the same target after an uncertain result.`,
+          );
+          logger.log(
+            "Restore the CLI source only with the native signed cancellation receipt; do not run older CLI versions against this source.",
+          );
+        }
+      } catch (err) {
+        fail("transfer-to-project", err);
+      }
+    });
+  goal
+    .command("restore-transfer <id>")
+    .description(
+      "Restore exact CLI goal bytes using a durable native cancellation receipt",
+    )
+    .requiredOption(
+      "--cancellation <file>",
+      "Native signed cancellation receipt",
+    )
+    .option("--json", "Output restoration reference as JSON")
+    .action(async (id, options) => {
+      try {
+        const { readTransferJsonFile } =
+          await import("@chainlesschain/session-core/goal-transfer-files");
+        const { restoreTransferredGoal } = await import("../lib/goal-store.js");
+        const receipt = readTransferJsonFile(
+          options.cancellation,
+          (v) => v,
+          4096,
+        );
+        const result = restoreTransferredGoal(id, receipt);
+        if (options.json) console.log(JSON.stringify(result, null, 2));
+        else logger.log(`CLI goal ${id} restored from its original backup.`);
+      } catch (err) {
+        fail("restore-transfer", err);
+      }
+    });
+
   // ── list ──────────────────────────────────────────────────────────────
   goal
     .command("list")
