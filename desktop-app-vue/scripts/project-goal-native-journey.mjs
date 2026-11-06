@@ -284,6 +284,27 @@ try {
         .prepare("SELECT user_id FROM projects WHERE id=?")
         .get(projectId);
       if (owner?.user_id !== did) throw new Error("Fixture owner differs");
+      const fs = require("node:fs");
+      const Driver = require("better-sqlite3-multiple-ciphers");
+      let withoutKey,
+        noKeyReadRejected = false;
+      try {
+        withoutKey = new Driver(manager.dbPath, {
+          readonly: true,
+          fileMustExist: true,
+        });
+        withoutKey.prepare("SELECT count(*) FROM sqlite_master").get();
+      } catch {
+        noKeyReadRejected = true;
+      } finally {
+        withoutKey?.close();
+      }
+      const plaintextHeader = fs
+        .readFileSync(manager.dbPath)
+        .subarray(0, 16)
+        .equals(Buffer.from("SQLite format 3\0"));
+      if (plaintextHeader || !noKeyReadRejected)
+        throw new Error("Product fixture database encryption was not verified");
       const dueDate = Date.now() - 86400000;
       const result = db
         .prepare(
@@ -297,6 +318,12 @@ try {
         dueDate,
         rows: result.changes,
         nativeDbOwnedByTemporaryProfile: true,
+        encryption: {
+          plaintextHeader,
+          noKeyReadRejected,
+          driverVersion: require("better-sqlite3-multiple-ciphers/package.json")
+            .version,
+        },
       };
     },
     { desktop, profile, taskId: task.id, projectId: project.id, did },
