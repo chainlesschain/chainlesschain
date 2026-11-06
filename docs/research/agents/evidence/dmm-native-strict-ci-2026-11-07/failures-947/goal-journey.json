@@ -1,0 +1,317 @@
+{
+  "schema": "chainlesschain.dmm-native-goal-journey/v1",
+  "startedAt": "2026-11-06T20:22:34.489Z",
+  "sourceSha": "947f861886a7592753dc4d2de362413c8f0320e6",
+  "sourceStatus": "",
+  "platform": "win32",
+  "release": "10.0.26100",
+  "synthetic": true,
+  "setupSeeded": true,
+  "realBusinessAcceptance": false,
+  "profileRetainedLocally": true,
+  "dialogs": [
+    {
+      "pid": 4880,
+      "title": "确认创建项目任务",
+      "button": "取消",
+      "windowClass": "#32770",
+      "method": "Win32 BM_CLICK",
+      "at": "2026-11-06T20:22:50.990Z",
+      "expectedTextVerified": true
+    },
+    {
+      "pid": 4880,
+      "title": "确认创建项目任务",
+      "button": "确认创建",
+      "windowClass": "#32770",
+      "method": "Win32 BM_CLICK",
+      "at": "2026-11-06T20:22:51.516Z",
+      "expectedTextVerified": true
+    }
+  ],
+  "stages": [
+    {
+      "name": "real-password-login-and-did",
+      "at": "2026-11-06T20:22:48.582Z"
+    },
+    {
+      "name": "native-cancel-no-write-and-single-create",
+      "at": "2026-11-06T20:22:51.639Z"
+    }
+  ],
+  "artifacts": {
+    "dist/main/index.js": "dcb2219ebf51489196b4bf87d2551854ba4f29f11d66b436ca477306b14dc4b7",
+    "dist/main/task/project-goal-auth-session.js": "c3ff33a0a9b43dceda49ad721a1348506e2c8202e21300c34f726a8c43ac6550",
+    "dist/preload/index.js": "43bc2f1149085b5deec7af3cbccac09c413cc2b2eb1af0c698b60e64f37c69b2",
+    "dist/renderer/index.html": "2f0dad8a25ef5ef8a6ccc2e2983bd4a63c36dcb1c9a6cf432a674dff6ba8a190"
+  },
+  "runnerSha256": "8ab2e8bf3b6740866a7157faa63caad0f73523217c0e020b10d5d6b76543c034",
+  "versions": {
+    "node": "22.22.1",
+    "acorn": "8.15.0",
+    "ada": "2.9.2",
+    "amaro": "1.1.5",
+    "ares": "1.34.6",
+    "brotli": "1.0.9",
+    "cjs_module_lexer": "2.2.0",
+    "cldr": "44.1",
+    "icu": "74.2",
+    "llhttp": "9.3.0",
+    "modules": "140",
+    "napi": "10",
+    "nbytes": "0.1.1",
+    "ncrypto": "0.0.1",
+    "nghttp2": "1.64.0",
+    "openssl": "0.0.0",
+    "simdjson": "4.2.4",
+    "simdutf": "7.3.3",
+    "sqlite": "3.51.2",
+    "tz": "2025b",
+    "undici": "6.23.0",
+    "unicode": "15.1",
+    "uv": "1.51.0",
+    "uvwasi": "0.0.23",
+    "v8": "14.2.231.22-electron.0",
+    "zlib": "1.3.1",
+    "zstd": "1.5.8",
+    "electron": "39.8.10",
+    "chrome": "142.0.7444.265"
+  },
+  "projectId": "334eaa7a-b04a-48b9-8962-7160f388a455",
+  "taskId": "4da9b5a3-64af-4079-a0fd-ce7832ea5fe1",
+  "createRuns": {
+    "runs": [
+      {
+        "run": {
+          "schema": "chainlesschain.business-action-run/v1",
+          "schemaVersion": 1,
+          "actionType": "task.create",
+          "actionVersion": 1,
+          "target": {
+            "schema": "chainlesschain.business-object-ref/v1",
+            "schemaVersion": 1,
+            "type": "Project",
+            "id": "334eaa7a-b04a-48b9-8962-7160f388a455",
+            "sourceKind": "desktop.project-task-owner",
+            "scope": {
+              "kind": "personal",
+              "id": "did:chainlesschain:ca11d71bd563d98286015994f13990b819d56c1a"
+            },
+            "version": "sha256:7daab296fc9ae52ed2b8769de918fc8dafc80dead769bd151a606ad17aa519eb"
+          },
+          "expectedVersion": "sha256:7daab296fc9ae52ed2b8769de918fc8dafc80dead769bd151a606ad17aa519eb",
+          "inputDigest": "sha256:c7387820f09b6e19eafde506025c9309bb86306bb7473513ac3964e3998c4f38",
+          "id": "1d65774a-9a63-4ca9-839a-e4824b70f137",
+          "idempotencyDigest": "sha256:f092885451f585949a102cdffe8ba5acc5f33b10b7cc2e9694f19161e578fc36",
+          "actionDigest": "sha256:654b9e8faeb2896c61d0f3c8cd28178e5ceb7087d6e548413832f115cd1dfb1b",
+          "invocationDigest": "sha256:b82421df214913208bad7ab32aa736b05144e3c0a8b4499e53501b7ff0c7dc5c",
+          "status": "succeeded",
+          "startedAt": "2026-11-06T20:22:51.149Z",
+          "afterVersion": "sha256:1dcef3d91ab8e510c0c5c439db34ca7ee4c8e01a24434e8140e68edc2fd08714",
+          "completedAt": "2026-11-06T20:22:51.533Z",
+          "approvalRef": {
+            "id": "4982eb4e-cffd-4ccb-9866-33b7b5a9beb5",
+            "digest": "sha256:2c658d2f1a75d2891705dfd0f5f78a7a63043d1a962e609069bb81363ae122e0"
+          },
+          "executionRef": {
+            "id": "f3b70a09-bb52-4902-b4c5-3d61b0e6f4dd",
+            "digest": "sha256:19e6a02b91f545c44da086b90de0d6e988eeb2a2900ab4b46e681fb7f3dc185d"
+          },
+          "traceId": null,
+          "evidenceRefs": [
+            {
+              "id": "4982eb4e-cffd-4ccb-9866-33b7b5a9beb5",
+              "digest": "sha256:2c658d2f1a75d2891705dfd0f5f78a7a63043d1a962e609069bb81363ae122e0"
+            },
+            {
+              "id": "f3b70a09-bb52-4902-b4c5-3d61b0e6f4dd",
+              "digest": "sha256:19e6a02b91f545c44da086b90de0d6e988eeb2a2900ab4b46e681fb7f3dc185d"
+            }
+          ]
+        },
+        "evidence": [
+          {
+            "id": "4982eb4e-cffd-4ccb-9866-33b7b5a9beb5",
+            "kind": "local-user-confirmation",
+            "actorDid": "did:chainlesschain:ca11d71bd563d98286015994f13990b819d56c1a",
+            "invocationDigest": "sha256:b82421df214913208bad7ab32aa736b05144e3c0a8b4499e53501b7ff0c7dc5c",
+            "actionDigest": "sha256:654b9e8faeb2896c61d0f3c8cd28178e5ceb7087d6e548413832f115cd1dfb1b",
+            "expectedVersion": "sha256:7daab296fc9ae52ed2b8769de918fc8dafc80dead769bd151a606ad17aa519eb",
+            "decision": "allow",
+            "via": "user-confirm",
+            "policy": "strict",
+            "riskLevel": "high",
+            "at": "2026-11-06T20:22:51.530Z"
+          },
+          {
+            "id": "f3b70a09-bb52-4902-b4c5-3d61b0e6f4dd",
+            "kind": "sqlite-task-create",
+            "createdTaskRef": {
+              "schema": "chainlesschain.business-object-ref/v1",
+              "schemaVersion": 1,
+              "type": "Task",
+              "id": "4da9b5a3-64af-4079-a0fd-ce7832ea5fe1",
+              "sourceKind": "desktop.project-task",
+              "scope": {
+                "kind": "personal",
+                "id": "did:chainlesschain:ca11d71bd563d98286015994f13990b819d56c1a"
+              },
+              "version": "sha256:bbe92f3087fe8a8f7433a716e742d78df805e5ce69f3e1ed655f23eb2a46e755"
+            },
+            "actorDid": "did:chainlesschain:ca11d71bd563d98286015994f13990b819d56c1a",
+            "invocationDigest": "sha256:b82421df214913208bad7ab32aa736b05144e3c0a8b4499e53501b7ff0c7dc5c",
+            "beforeVersion": "sha256:7daab296fc9ae52ed2b8769de918fc8dafc80dead769bd151a606ad17aa519eb",
+            "afterVersion": "sha256:1dcef3d91ab8e510c0c5c439db34ca7ee4c8e01a24434e8140e68edc2fd08714",
+            "affectedRows": 1,
+            "at": "2026-11-06T20:22:51.533Z"
+          }
+        ]
+      },
+      {
+        "run": {
+          "schema": "chainlesschain.business-action-run/v1",
+          "schemaVersion": 1,
+          "actionType": "task.create",
+          "actionVersion": 1,
+          "target": {
+            "schema": "chainlesschain.business-object-ref/v1",
+            "schemaVersion": 1,
+            "type": "Project",
+            "id": "334eaa7a-b04a-48b9-8962-7160f388a455",
+            "sourceKind": "desktop.project-task-owner",
+            "scope": {
+              "kind": "personal",
+              "id": "did:chainlesschain:ca11d71bd563d98286015994f13990b819d56c1a"
+            },
+            "version": "sha256:7daab296fc9ae52ed2b8769de918fc8dafc80dead769bd151a606ad17aa519eb"
+          },
+          "expectedVersion": "sha256:7daab296fc9ae52ed2b8769de918fc8dafc80dead769bd151a606ad17aa519eb",
+          "inputDigest": "sha256:c7387820f09b6e19eafde506025c9309bb86306bb7473513ac3964e3998c4f38",
+          "id": "30aabebf-7723-4587-a8f3-dff1f9c4e2d0",
+          "idempotencyDigest": "sha256:950927bcf56e980c6c34c3f1cdb51e033be423f45d99e10a732423d6d9a5b296",
+          "actionDigest": "sha256:654b9e8faeb2896c61d0f3c8cd28178e5ceb7087d6e548413832f115cd1dfb1b",
+          "invocationDigest": "sha256:655869c9870f9d5e78867c8e562dd68ff3a1bd8ef5929f5c59cac65400b3cd4a",
+          "status": "cancelled",
+          "startedAt": "2026-11-06T20:22:49.544Z",
+          "afterVersion": null,
+          "completedAt": "2026-11-06T20:22:51.010Z",
+          "approvalRef": {
+            "id": "ed9526d7-1038-43f2-ab22-6b516367e502",
+            "digest": "sha256:cb9796b56e2aaa05f0a5ecc106692840fffe3ef907a1bbcd6d26876a3371f868"
+          },
+          "executionRef": null,
+          "traceId": null,
+          "evidenceRefs": [
+            {
+              "id": "ed9526d7-1038-43f2-ab22-6b516367e502",
+              "digest": "sha256:cb9796b56e2aaa05f0a5ecc106692840fffe3ef907a1bbcd6d26876a3371f868"
+            }
+          ]
+        },
+        "evidence": [
+          {
+            "id": "ed9526d7-1038-43f2-ab22-6b516367e502",
+            "kind": "local-user-confirmation",
+            "actorDid": "did:chainlesschain:ca11d71bd563d98286015994f13990b819d56c1a",
+            "invocationDigest": "sha256:655869c9870f9d5e78867c8e562dd68ff3a1bd8ef5929f5c59cac65400b3cd4a",
+            "actionDigest": "sha256:654b9e8faeb2896c61d0f3c8cd28178e5ceb7087d6e548413832f115cd1dfb1b",
+            "expectedVersion": "sha256:7daab296fc9ae52ed2b8769de918fc8dafc80dead769bd151a606ad17aa519eb",
+            "decision": "deny",
+            "via": "user-deny",
+            "policy": "strict",
+            "riskLevel": "high",
+            "at": "2026-11-06T20:22:51.007Z"
+          }
+        ]
+      }
+    ],
+    "nextCursor": null
+  },
+  "fixture": {
+    "kind": "synthetic-overdue-date",
+    "dueDate": 1793910171644,
+    "rows": 1,
+    "nativeDbOwnedByTemporaryProfile": true,
+    "encryption": {
+      "plaintextHeader": false,
+      "noKeyReadRejected": true,
+      "driverVersion": "12.11.1"
+    }
+  },
+  "status": "failed",
+  "error": {
+    "message": "locator.waitFor: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-testid=\"project-goal-panel\"]').locator('[data-goal-id]').filter({ hasText: 'DMM native risk follow-up' }) to be visible\u001b[22m\n",
+    "stack": "locator.waitFor: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-testid=\"project-goal-panel\"]').locator('[data-goal-id]').filter({ hasText: 'DMM native risk follow-up' }) to be visible\u001b[22m\n\n    at D:\\a\\chainlesschain\\chainlesschain\\desktop-app-vue\\scripts\\project-goal-native-journey.mjs:360:17"
+  },
+  "diagnostics": [
+    {
+      "event": "did-start-navigation",
+      "detail": "file:///D:/a/chainlesschain/chainlesschain/desktop-app-vue/dist/renderer/index.html#/",
+      "at": "2026-11-06T20:22:46.775Z"
+    },
+    {
+      "event": "did-navigate-in-page",
+      "detail": "file:///D:/a/chainlesschain/chainlesschain/desktop-app-vue/dist/renderer/index.html#/",
+      "at": "2026-11-06T20:22:46.776Z"
+    },
+    {
+      "event": "did-start-navigation",
+      "detail": "file:///D:/a/chainlesschain/chainlesschain/desktop-app-vue/dist/renderer/index.html#/login",
+      "at": "2026-11-06T20:22:46.850Z"
+    },
+    {
+      "event": "did-navigate-in-page",
+      "detail": "file:///D:/a/chainlesschain/chainlesschain/desktop-app-vue/dist/renderer/index.html#/login",
+      "at": "2026-11-06T20:22:46.850Z"
+    },
+    {
+      "event": "auth-changed",
+      "at": "2026-11-06T20:22:47.578Z"
+    },
+    {
+      "event": "auth-changed",
+      "at": "2026-11-06T20:22:47.578Z"
+    },
+    {
+      "event": "did-start-navigation",
+      "detail": "file:///D:/a/chainlesschain/chainlesschain/desktop-app-vue/dist/renderer/index.html#/login",
+      "at": "2026-11-06T20:22:47.654Z"
+    },
+    {
+      "event": "did-navigate-in-page",
+      "detail": "file:///D:/a/chainlesschain/chainlesschain/desktop-app-vue/dist/renderer/index.html#/login",
+      "at": "2026-11-06T20:22:47.654Z"
+    },
+    {
+      "event": "did-start-navigation",
+      "detail": "file:///D:/a/chainlesschain/chainlesschain/desktop-app-vue/dist/renderer/index.html#/v6-preview",
+      "at": "2026-11-06T20:22:47.655Z"
+    },
+    {
+      "event": "did-navigate-in-page",
+      "detail": "file:///D:/a/chainlesschain/chainlesschain/desktop-app-vue/dist/renderer/index.html#/v6-preview",
+      "at": "2026-11-06T20:22:47.655Z"
+    },
+    {
+      "event": "did-start-navigation",
+      "detail": "file:///D:/a/chainlesschain/chainlesschain/desktop-app-vue/dist/renderer/index.html#/projects/334eaa7a-b04a-48b9-8962-7160f388a455",
+      "at": "2026-11-06T20:22:47.845Z"
+    },
+    {
+      "event": "did-navigate-in-page",
+      "detail": "file:///D:/a/chainlesschain/chainlesschain/desktop-app-vue/dist/renderer/index.html#/projects/334eaa7a-b04a-48b9-8962-7160f388a455",
+      "at": "2026-11-06T20:22:47.845Z"
+    },
+    {
+      "event": "did-start-navigation",
+      "detail": "file:///D:/a/chainlesschain/chainlesschain/desktop-app-vue/dist/renderer/index.html#/projects/334eaa7a-b04a-48b9-8962-7160f388a455",
+      "at": "2026-11-06T20:22:47.846Z"
+    },
+    {
+      "event": "did-navigate-in-page",
+      "detail": "file:///D:/a/chainlesschain/chainlesschain/desktop-app-vue/dist/renderer/index.html#/projects/334eaa7a-b04a-48b9-8962-7160f388a455",
+      "at": "2026-11-06T20:22:47.846Z"
+    }
+  ],
+  "finishedAt": "2026-11-06T20:23:22.946Z"
+}

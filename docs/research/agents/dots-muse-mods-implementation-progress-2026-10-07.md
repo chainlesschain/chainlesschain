@@ -1,8 +1,8 @@
 # Dots / Muse / Mods 借鉴：实施进度
 
-用户已于 2026-11-06 授权发布 CLI 和 IDE。Session Core **0.3.26** → CLI **0.166.143** → Open VSX **0.37.179** / JetBrains **0.4.196** 已完成发行与公开回读。准确源码 `3fa3a4b258bbcb60b23b4298cec375661ad6f410` 的 CLI CI 76/76、Strict Sandbox 6/6 通过；npm 使用 Actions OIDC，子包和 CLI 公开核验后才启动 IDE。JetBrains 更新 1213983 已批准、列出且可下载，627 个原始 payload 文件与官方制品一致。证据见[本次发布记录](../cli/evidence/release143-public/README.md)。桌面或移动客户端未包含在本次发行中；真实 DMM GUI、独立业务效果、迁移与回退仍未验收。下文各工程批次的“未发布”保留为当时快照，不代表当前 CLI/IDE 发行状态。
+用户已于 2026-11-06 授权发布 CLI 和 IDE。Session Core **0.3.26** → CLI **0.166.143** → Open VSX **0.37.179** / JetBrains **0.4.196** 已完成发行与公开回读。准确源码 `3fa3a4b258bbcb60b23b4298cec375661ad6f410` 的 CLI CI 76/76、Strict Sandbox 6/6 通过；npm 使用 Actions OIDC，子包和 CLI 公开核验后才启动 IDE。JetBrains 更新 1213983 已批准、列出且可下载，627 个原始 payload 文件与官方制品一致。证据见[本次发布记录](../cli/evidence/release143-public/README.md)。桌面或移动客户端未包含在本次发行中；Windows 合成原生目标/移交 GUI 的后续工程验收见下段，其他 GUI、独立业务效果、安装迁移与回退仍未完成。下文各工程批次的“未发布”保留为当时快照，不代表当前 CLI/IDE 发行状态。
 
-2026-11-07 最新续作：[CLI 与 Windows 原生目标移交旅程](./evidence/dmm-native-goal-transfer-2026-11-07/README.md)通过实际选择器/确认、真实 CLI 冻结/原字节备份、取消与唯一导入、签名作废/篡改拒绝/原字节恢复、持久回执重导，以及实际 UI 修订后拒绝回退并保持源冻结。最终源码 `947f861886` 退出 0，22 份原生业务窗口回执、2 个选择器前置探针和 9 次 CLI 命令单列。草稿 [#543](https://github.com/chainlesschain/chainlesschain/pull/543) 依赖 #542。父批 `1fa51166b6` 的三平台宿主矩阵和 Windows 目标 GUI 远端成功；各平台去重后 52 文件/954 项通过，保留 GUI 报告的 lockfile 漂移并增加新严格安装/源码漂移拒绝检查。当前新 head 仍需重验，不能用父批绿灯批准发行。
+2026-11-07 最新续作：[严格原生 CI](./evidence/dmm-native-strict-ci-2026-11-07/README.md)在准确源码 `cb6d7aa79b282931d9f6fbe998c65f1ef3001437` 全部成功。两个 Windows 原生目标/移交 GUI 报告均为干净源码，含真实 70 秒停止观察、22 份移交业务原生窗口回执、2 个选择器前置探针、9 次 CLI 命令、签名恢复/重导及实际 UI 修订后拒绝回退。Linux/Windows/macOS 宿主各去重到 52 文件/954 项通过，0 失败/跳过。保留前两轮失败和离线依赖裁剪复现，单次根全工作区锁定安装解决 CLI Ajv 8 被删除的问题。此前[947 本地原始字节证据](./evidence/dmm-native-goal-transfer-2026-11-07/README.md)及父批 lockfile 漂移保持原样，各批不相加。草稿 [#543](https://github.com/chainlesschain/chainlesschain/pull/543) 依赖 #542；新增源码 npm 发行门、独立业务与安装迁移回退仍未完成。
 
 2026-11-07 前批：[Windows 合成原生目标完整旅程](./evidence/dmm-native-goal-journey-2026-11-07/README.md)通过真实登录、加密原生库、canonical 风险、原生取消/确认、写入/血缘、独立拒绝完成、结束及真实 70 秒停止观察。修复无关 UKey 轮询误推进密码会话代次和 Vue Proxy 跨 IPC 失败。本地 52 文件/954 项与上述远端是重叠范围，不相加。其他平台/IDE/扩展 GUI、独立业务、安装迁移回退、生产观察和新源码门禁仍待继续。
 
@@ -64,7 +64,7 @@
 
 修正了测试驱动对跨进程 Edit 标题缓存的误用：最终用 WM_CHAR/WM_GETTEXT 和实际选择结果共同核验；保存/打开分别绑定唯一可见文件名控件、实际 PID/标题和本次临时路径。误存的合成公开凭据经项目核对移回临时目录，失败报告保留，没有更换审批或读取器来掩盖失败。见[证据、原始文件与复跑入口](./evidence/dmm-native-goal-transfer-2026-11-07/README.md)。
 
-另归档父批 `1fa51166b6` 远端报告：Linux/Windows/macOS 宿主全 success，每平台排除重复后 52 文件/954 项通过；Windows 原生目标 GUI 亦成功。GUI 报告显示根 package-lock 在旧共享安装动作后变化；两个原生工作流现改为根/桌面分别 npm ci，构建前后拒绝 tracked source/index 漂移。父批工程成功不批准新源码或发行，新严格 gate 仍待运行。草稿 #543 依赖 #542，没有版本提升或发布。完整安装升级/整体数据库回退、其他 GUI、独立业务和生产观察仍未完成。
+另归档父批 `1fa51166b6` 远端报告及其旧安装动作造成的 lockfile 变化。最新[严格门禁证据](./evidence/dmm-native-strict-ci-2026-11-07/README.md)保留两轮失败和离线复现：根/桌面分别 npm ci 删除 CLI 专用 Ajv 8；准确修复提交 `cb6d7aa79b282931d9f6fbe998c65f1ef3001437` 改为一次根安装全部工作区并验证解析结果，继续拒绝构建前后 tracked source/index 漂移。两个 Windows 原生 GUI 工作流现已完整 success，报告均为干净源码；真实 70 秒停止观察、签名恢复/重导与 UI 修订后拒绝回退通过。同一提交 Linux/Windows/macOS 宿主全 success，每平台去重后 52 文件/954 项通过，0 失败/跳过，不与父批或本地批次相加。草稿 #543 依赖 #542，没有版本提升或发布；新增源码 CLI CI/Strict Sandbox 完整发行门、安装升级/整体数据库回退、其他 GUI、独立业务和生产观察仍未完成。
 
 ## Windows 原生目标完整旅程（2026-11-07）
 

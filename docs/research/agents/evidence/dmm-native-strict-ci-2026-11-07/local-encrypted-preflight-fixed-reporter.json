@@ -1,0 +1,69 @@
+{
+  "schema": "chainlesschain.encrypted-goal-electron-probe/v1",
+  "passed": true,
+  "platform": "win32",
+  "versions": {
+    "node": "22.22.1",
+    "acorn": "8.15.0",
+    "ada": "2.9.2",
+    "amaro": "1.1.5",
+    "ares": "1.34.6",
+    "brotli": "1.0.9",
+    "cjs_module_lexer": "2.2.0",
+    "cldr": "44.1",
+    "icu": "74.2",
+    "llhttp": "9.3.0",
+    "modules": "140",
+    "napi": "10",
+    "nbytes": "0.1.1",
+    "ncrypto": "0.0.1",
+    "nghttp2": "1.64.0",
+    "openssl": "0.0.0",
+    "simdjson": "4.2.4",
+    "simdutf": "7.3.3",
+    "sqlite": "3.51.2",
+    "tz": "2025b",
+    "undici": "6.23.0",
+    "unicode": "15.1",
+    "uv": "1.51.0",
+    "uvwasi": "0.0.23",
+    "v8": "14.2.231.22-electron.0",
+    "zlib": "1.3.1",
+    "zstd": "1.5.8",
+    "electron": "39.8.10",
+    "chrome": "142.0.7444.265"
+  },
+  "databasePackage": "12.11.1",
+  "checks": {
+    "originalWrapperRejectedByNativeContract": true,
+    "actualEncryptedProject": true,
+    "noKeyReadRejected": true,
+    "canonicalGraphResult": true,
+    "repeatedRequestRetainsOccurrence": true,
+    "separateStorageDomains": true,
+    "participatingGoalV2": true,
+    "closedWrapperNotReopenedByResolver": true,
+    "explicitReopenRetainsGoal": true,
+    "nativeWindowsAclGuardsUsed": true
+  },
+  "files": {
+    "project": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-encrypted-goal-electron-Q7OJEh\\encrypted-project.sqlite",
+    "scheduler": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-encrypted-goal-electron-Q7OJEh\\goal-monitoring\\d294b617988e50bf9b0df7c9e7af363ecc7142d92a154b725d6906d826816918\\scheduler.sqlite",
+    "graph": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-encrypted-goal-electron-Q7OJEh\\goal-monitoring\\d294b617988e50bf9b0df7c9e7af363ecc7142d92a154b725d6906d826816918\\graph.sqlite"
+  },
+  "boundaries": [
+    "real Electron main process and actual encrypted native SQLite",
+    "trusted synthetic identity and project",
+    "no real product login, renderer journey or native confirmation interaction"
+  ],
+  "sources": {
+    "desktop-app-vue/src/main/task/project-goal-native-database.js": "932fc6473e599b7450fcd0cb9aebbb9eb0f13a650a79d88567984d19a3ca9338",
+    "desktop-app-vue/src/main/task/project-goal-ipc.js": "59f10d037d016db145a7f66be1b01ce75b70bed515d7b6c84e1693673ab4628e",
+    "desktop-app-vue/src/main/task/project-goal-monitoring-host.js": "051e075d21bb6e68c75542cb776ed55c8558d7be3a02616874b7e9ac858d6eff",
+    "desktop-app-vue/src/main/database/sqlcipher-wrapper.js": "5f50415f97b7080af43d0c8641fcadc50af2f651d62414ba1974ac3b4ba6fa66",
+    "desktop-app-vue/src/main/task/__tests__/fixtures/project-goal-encrypted-electron.cjs": "9697583674b62e52f24452f4fc01e7ed28e526e53790c342791240b0de352094",
+    "desktop-app-vue/scripts/project-goal-encrypted-electron-probe.mjs": "890ee4a950d33eb9678287cf8660b8a5a6e26e2e8a478c5f5be57cc5eebceb91"
+  },
+  "executable": "C:\\Users\\longfa\\AppData\\Local\\Temp\\dmm-electron-39.8.10\\electron.exe",
+  "profile": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-encrypted-goal-electron-Q7OJEh"
+}

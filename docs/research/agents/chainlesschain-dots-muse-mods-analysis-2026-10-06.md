@@ -28,7 +28,7 @@ CLI/IDE 本批发行已完成：Session Core **0.3.26**、CLI **0.166.143**、Op
 
 最新续作通过[CLI 与 Windows 原生目标移交旅程](./evidence/dmm-native-goal-transfer-2026-11-07/README.md)：实际文件选择/原生确认、CLI 冻结与原字节备份、取消/唯一导入、签名作废、合法格式的篡改签名拒绝、原字节恢复及同一持久回执重新导出。第二个合成目标经实际 UI 修订后，原生回退拒绝签发回执，来源仍冻结。最终脚本在 `947f861886` 退出 0，22 份原生业务窗口回执、2 个选择器前置探针、9 次真实 CLI 命令单列；草稿 [#543](https://github.com/chainlesschain/chainlesschain/pull/543) 依赖 #542。它只回退未使用的导入目标，不代表安装客户端或整体数据库可降级。
 
-前批 `1fa51166b6` 的三平台宿主矩阵与 Windows 原生目标 GUI 已远端成功；三平台报告去重后各 **52 文件/954 项通过，0 失败/跳过**，原始制品见[本批归档](./evidence/dmm-native-goal-transfer-2026-11-07/README.md#已归档的父批远端证据)。GUI 报告保留安装后的根 lockfile 变化；本批改为分别 npm ci，并在构建前后拒绝源码/锁文件漂移。新严格门禁仍需在新 head 完成，不能借用父批绿灯批准发行。独立业务、其他平台/IDE/扩展 GUI、安装迁移回退、生产观察和新增源码发行仍未完成。
+最新[严格 CI 续作](./evidence/dmm-native-strict-ci-2026-11-07/README.md)在准确提交 `cb6d7aa79b282931d9f6fbe998c65f1ef3001437` 全部成功：两个 Windows 原生目标/移交 GUI 报告均为干净源码，真实 70 秒停止观察和签名回退/拒绝通过；Linux、Windows、macOS 宿主每平台去重后各 **52 文件/954 项通过，0 失败/跳过**。保留两轮失败与离线复现：子工作区第二次 npm ci 删除 CLI 的 Ajv 8，修复为一次根安装全部工作区，并拒绝构建前后源码/锁文件漂移。前批 `1fa51166b6` 的成功及旧 lockfile 变化保留在[历史归档](./evidence/dmm-native-goal-transfer-2026-11-07/README.md#已归档的父批远端证据)，各批不相加。新增源码尚未通过完整 npm 发行门禁或发布；独立业务、其他平台/IDE/扩展 GUI、安装迁移回退与生产观察仍未完成。
 
 前批通过[Windows 原生目标完整旅程](./evidence/dmm-native-goal-journey-2026-11-07/README.md)：真实 DID/密码表单登录、加密原生库、Vue 风险检查、原生取消/确认、说明写入及 intent/ActionRun 血缘、再次识别逾期、独立拒绝完成、结束及真实 70 秒停止观察。首次设置标志及逾期日期由隔离 fixture 准备；修复无关 UKey 轮询失效密码确认和 Vue Proxy 无法跨 IPC 的问题。该批本地 52 文件/954 项不与上述远端或其他批次重复累计。草稿 [#542](https://github.com/chainlesschain/chainlesschain/pull/542) 依赖 #541。
 

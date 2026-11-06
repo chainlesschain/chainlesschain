@@ -1,0 +1,161 @@
+{
+  "schema": "chainlesschain.dmm-native-transfer-journey/v1",
+  "sourceSha": "947f861886a7592753dc4d2de362413c8f0320e6",
+  "sourceStatus": "",
+  "startedAt": "2026-11-06T20:24:32.017Z",
+  "platform": "win32",
+  "release": "10.0.26100",
+  "synthetic": true,
+  "setupSeeded": true,
+  "realBusinessAcceptance": false,
+  "installedProductAcceptance": false,
+  "runnerSha256": "f054f60c73498c530513fa28692ede022e241e11b2c07d1093fd01fd5dc60073",
+  "native": [],
+  "cli": [
+    {
+      "args": [
+        "goal",
+        "set",
+        "DMM CLI source for actual native handoff",
+        "--kr",
+        "Keep the original source bytes",
+        "--kr",
+        "Do not inherit project permissions",
+        "--json"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"schema\": \"chainlesschain.goal/v1\",\n  \"schemaVersion\": 1,\n  \"id\": \"goal-1793996705209-cu7s9w\",\n  \"storeId\": \"cli-goals-caf424d7cf34636b16f6679691004a73169aa09bbf1e69f37f4d6b9d9cd79a0e\",\n  \"revision\": 1,\n  \"controlGeneration\": 0,\n  \"ownerRef\": null,\n  \"projectRef\": null,\n  \"title\": \"DMM CLI source for actual native handoff\",\n  \"objective\": \"DMM CLI source for actual native handoff\",\n  \"status\": \"active\",\n  \"progress\": 0,\n  \"keyResults\": [\n    {\n      \"id\": \"kr-1793996705209-hs6zry\",\n      \"text\": \"Keep the original source bytes\",\n      \"target\": null,\n      \"current\": 0,\n      \"done\": false\n    },\n    {\n      \"id\": \"kr-1793996705209-6qstbe\",\n      \"text\": \"Do not inherit project permissions\",\n      \"target\": null,\n      \"current\": 0,\n      \"done\": false\n    }\n  ],\n  \"linkedSessions\": [],\n  \"notes\": [],\n  \"drift\": {\n    \"lastProgressAt\": null,\n    \"flags\": []\n  },\n  \"createdAt\": \"2026-11-06T20:25:05.209Z\",\n  \"updatedAt\": \"2026-11-06T20:25:05.209Z\",\n  \"acceptanceCriteria\": [],\n  \"budgetPolicy\": {\n    \"maxRuns\": null,\n    \"maxTokens\": null,\n    \"maxTimeMs\": null,\n    \"maxCostUsd\": null\n  },\n  \"expiresAt\": null,\n  \"nextCheckAt\": null,\n  \"triggerRefs\": [],\n  \"allowedActionTypes\": [],\n  \"authorizationRefs\": [],\n  \"notificationPolicy\": {\n    \"channel\": \"in-app\",\n    \"mode\": \"changes-only\"\n  },\n  \"memoryRefs\": [],\n  \"waitingReason\": null,\n  \"executionState\": \"idle\",\n  \"completion\": null\n}\n",
+      "stderr": ""
+    }
+  ],
+  "stages": [
+    {
+      "name": "real-password-login-and-owned-project",
+      "at": "2026-11-06T20:25:04.922Z"
+    }
+  ],
+  "versions": {
+    "node": "22.22.1",
+    "acorn": "8.15.0",
+    "ada": "2.9.2",
+    "amaro": "1.1.5",
+    "ares": "1.34.6",
+    "brotli": "1.0.9",
+    "cjs_module_lexer": "2.2.0",
+    "cldr": "44.1",
+    "icu": "74.2",
+    "llhttp": "9.3.0",
+    "modules": "140",
+    "napi": "10",
+    "nbytes": "0.1.1",
+    "ncrypto": "0.0.1",
+    "nghttp2": "1.64.0",
+    "openssl": "0.0.0",
+    "simdjson": "4.2.4",
+    "simdutf": "7.3.3",
+    "sqlite": "3.51.2",
+    "tz": "2025b",
+    "undici": "6.23.0",
+    "unicode": "15.1",
+    "uv": "1.51.0",
+    "uvwasi": "0.0.23",
+    "v8": "14.2.231.22-electron.0",
+    "zlib": "1.3.1",
+    "zstd": "1.5.8",
+    "electron": "39.8.10",
+    "chrome": "142.0.7444.265"
+  },
+  "projectId": "1b938236-fcb3-40ae-b94a-fc6bfc4e093e",
+  "pickerProbe": {
+    "native": {
+      "pid": 7396,
+      "title": "导出 CLI 目标导入凭据",
+      "button": "Save",
+      "file": "picker-probe-selected.json",
+      "method": "Win32 filename WM_CHAR + WM_GETTEXT + BM_CLICK",
+      "filenameVerified": true,
+      "at": "2026-11-06T20:24:54.096Z"
+    },
+    "actualSelectedExpectedPath": true,
+    "changedDefaultFilename": true,
+    "businessFileWritten": false,
+    "open": {
+      "native": {
+        "pid": 7396,
+        "title": "选择 CLI 目标移交文件",
+        "button": "Open",
+        "file": "picker-probe-existing.json",
+        "method": "Win32 filename WM_CHAR + WM_GETTEXT + BM_CLICK",
+        "filenameVerified": true,
+        "at": "2026-11-06T20:25:01.262Z"
+      },
+      "actualSelectedExpectedPath": true,
+      "syntheticInputFixture": true
+    }
+  },
+  "source": {
+    "schema": "chainlesschain.goal/v1",
+    "schemaVersion": 1,
+    "id": "goal-1793996705209-cu7s9w",
+    "storeId": "cli-goals-caf424d7cf34636b16f6679691004a73169aa09bbf1e69f37f4d6b9d9cd79a0e",
+    "revision": 1,
+    "controlGeneration": 0,
+    "ownerRef": null,
+    "projectRef": null,
+    "title": "DMM CLI source for actual native handoff",
+    "objective": "DMM CLI source for actual native handoff",
+    "status": "active",
+    "progress": 0,
+    "keyResults": [
+      {
+        "id": "kr-1793996705209-hs6zry",
+        "text": "Keep the original source bytes",
+        "target": null,
+        "current": 0,
+        "done": false
+      },
+      {
+        "id": "kr-1793996705209-6qstbe",
+        "text": "Do not inherit project permissions",
+        "target": null,
+        "current": 0,
+        "done": false
+      }
+    ],
+    "linkedSessions": [],
+    "notes": [],
+    "drift": {
+      "lastProgressAt": null,
+      "flags": []
+    },
+    "createdAt": "2026-11-06T20:25:05.209Z",
+    "updatedAt": "2026-11-06T20:25:05.209Z",
+    "acceptanceCriteria": [],
+    "budgetPolicy": {
+      "maxRuns": null,
+      "maxTokens": null,
+      "maxTimeMs": null,
+      "maxCostUsd": null
+    },
+    "expiresAt": null,
+    "nextCheckAt": null,
+    "triggerRefs": [],
+    "allowedActionTypes": [],
+    "authorizationRefs": [],
+    "notificationPolicy": {
+      "channel": "in-app",
+      "mode": "changes-only"
+    },
+    "memoryRefs": [],
+    "waitingReason": null,
+    "executionState": "idle",
+    "completion": null
+  },
+  "originalSha256": "67faea602068f28db342601a7a5a06717f4725fbde54cfd533ce7c29e6eadc7c",
+  "status": "failed",
+  "error": {
+    "message": "Native transfer accessibility failed: ",
+    "stack": "Error: Native transfer accessibility failed: \n    at D:\\a\\chainlesschain\\chainlesschain\\desktop-app-vue\\scripts\\lib\\project-goal-transfer-native.cjs:132:13\n    at ChildProcess.exithandler (node:child_process:424:5)\n    at ChildProcess.emit (node:events:519:28)\n    at maybeClose (node:internal/child_process:1101:16)\n    at ChildProcess._handle.onexit (node:internal/child_process:304:5)\n    at Process.callbackTrampoline (node:internal/async_hooks:130:17)"
+  },
+  "finishedAt": "2026-11-06T20:25:45.940Z"
+}
