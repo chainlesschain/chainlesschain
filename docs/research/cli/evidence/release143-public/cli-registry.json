@@ -1,0 +1,10 @@
+﻿{
+  "checkedAt": "2026-11-06T14:16:45.6003413Z",
+  "name": "chainlesschain",
+  "version": "0.166.143",
+  "sessionCore": "0.3.26",
+  "tarball": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.143.tgz",
+  "integrity": "sha512-4O7Elufex5ta32YjH6PSUxKn3QQucetqHPJTORcY1yLgcN49YfIJOIaqtnmkn3sMPbLzGBucqbMo9THi9wSSWw==",
+  "sha256": "e90a70a3ceedddcdd4033446977b8a4e5b4ebe2258af9b118ac0927fb3a96231",
+  "matchesImmutableArtifact": true
+}

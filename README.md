@@ -1,10 +1,10 @@
 # ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
-发布候选准备中：Session Core **0.3.26**、CLI **0.166.143**、VS Code **0.37.179**、JetBrains **0.4.196**，新增力数等本地算力平台配置与待审创建请求。必须先通过准确提交三平台门禁，再按子包→CLI→IDE 顺序公开核验；当前公开版本仍以下段已核验记录为准。[本次发布状态](docs/research/cli/evidence/release143-public/README.md)。
+当前公开 CLI **0.166.143**、Session Core **0.3.26** 已通过准确提交三平台门禁、Actions OIDC 发布及独立公开字节/签名来源核验。Open VSX **0.37.179** 已公开，公开 VSIX 与官方制品一致；JetBrains **0.4.196** 已获批且可下载，627 个原始 payload 文件与官方构建一致。两端均推荐 CLI **0.166.143**，详见[本次发布记录](docs/research/cli/evidence/release143-public/README.md)。准确发行源码为 `3fa3a4b258bbcb60b23b4298cec375661ad6f410`。
 
-当前公开 CLI **0.166.142**、Session Core **0.3.25**、Open VSX **0.37.178** 和 JetBrains **0.4.195** 已完成正式发行核验，两款 IDE 均推荐 CLI **0.166.142**。JetBrains 已获批、公开可下载，626 个原始 payload 文件与官方构建内容一致。准确发行源码为 `b78cf0af8c8b0491189465773b148ac77c332222`。
+安装 `npm i -g chainlesschain@0.166.143 --registry https://registry.npmjs.org`，重启宿主后运行 `cc --version`、`cc doctor`。本批增加力数/vLLM/SGLang 等本地算力配置、端点凭据隔离和待审目标创建请求；原生创建仍需匹配桌面实现与另行确认。当前公开客户端为 **v5.0.3.145**，来自较早独立源码；本批新增原生创建/模型草稿需要匹配的新桌面构建。本次不重发 PC/移动端，真实 IDE/Electron GUI、力数推理及业务效果验收仍独立进行。[升级说明](docs-site/docs/chainlesschain/cli-ide-update-2026-11-06-143.md) · [设计说明](docs/design/release-runtime-update-2026-11-06-143.md) · [上一版发行记录](docs/research/cli/evidence/release142-public/README.md)
 
-本批增加另行授权的目标事件、保留历史恢复和最小组合交付助手。安装 `npm i -g chainlesschain@0.166.142 --registry https://registry.npmjs.org`，重启宿主后运行 `cc --version`、`cc doctor`。PC/移动端 **v5.0.3.145** 仍在正式构建中，尚未完整公开发行；当前下载安装使用已核验的 **v5.0.3.144**。新的原生目标历史功能需匹配新版桌面客户端，真实 DMM GUI 和业务效果验收仍独立进行。[升级说明](docs-site/docs/chainlesschain/cli-ide-update-2026-11-05-142.md) · [事件与历史设计](docs/design/release-runtime-update-2026-11-05-142.md) · [发行证据](docs/research/cli/evidence/release142-public/README.md)
+> 未发行源码进展：PR #539 新增 CLI 目标显式移交到原生个人项目、原字节备份/冻结及签名作废回执恢复。新目标保持暂停，不继承旧权限；需匹配分支的 CLI、Session Core 和桌面构建，公开 .143/.145 尚不包含。 [设计与验证边界](docs/design/cli-goal-transfer-source-2026-11-07.md)。
 
 <!-- release141-current:start -->
 

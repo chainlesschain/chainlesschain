@@ -1428,6 +1428,10 @@ export default defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: "CLI .143：本地算力与待审创建",
+                  link: "/chainlesschain/cli-ide-update-2026-11-06-143",
+                },
+                {
                   text: "CLI .142 / IDE .178 / .195",
                   link: "/chainlesschain/cli-ide-update-2026-11-05-142",
                 },
@@ -1497,6 +1501,14 @@ export default defineConfig({
               text: "运行时设计记录",
               collapsed: true,
               items: [
+                {
+                  text: "CLI 目标移交与签名回退（未发行）",
+                  link: "/design/cli-goal-transfer-source-2026-11-07",
+                },
+                {
+                  text: "CLI .143：本地算力与待审创建",
+                  link: "/design/release-runtime-update-2026-11-06-143",
+                },
                 {
                   text: "CLI .142: goal events and retained history",
                   link: "/design/release-runtime-update-2026-11-05-142",
@@ -2458,6 +2470,14 @@ export default defineConfig({
               text: "运行时设计记录",
               collapsed: true,
               items: [
+                {
+                  text: "CLI 目标移交与签名回退（未发行）",
+                  link: "/design/cli-goal-transfer-source-2026-11-07",
+                },
+                {
+                  text: "CLI .143：本地算力与待审创建",
+                  link: "/design/release-runtime-update-2026-11-06-143",
+                },
                 {
                   text: "CLI .142: goal events and retained history",
                   link: "/design/release-runtime-update-2026-11-05-142",

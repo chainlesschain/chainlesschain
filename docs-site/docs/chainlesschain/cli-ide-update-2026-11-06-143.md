@@ -2,9 +2,9 @@
 
 ## 概述
 
-发布候选：Session Core **0.3.26**、CLI **0.166.143**、Open VSX **0.37.179**、JetBrains **0.4.196**。
-当前仍在准备准确提交的跨平台门禁；公开状态以[发布记录](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release143-public/README.md)为准。
-本次不发布桌面、Android 或 iOS 客户端。
+Session Core **0.3.26** 和 CLI **0.166.143** 已公开，准确提交的 CLI CI **76/76**、Strict Sandbox **6/6** 三平台门禁及 Actions OIDC 发布、独立字节/签名来源回读均通过。
+Open VSX **0.37.179** 已公开，下载的 VSIX 与官方制品一致；JetBrains **0.4.196** 已获批且可下载，627 个原始 payload 文件与官方构建一致。两端均推荐 CLI **0.166.143**；公开状态以[发布记录](https://github.com/chainlesschain/chainlesschain/blob/d2070ce914af8d675191e3492e0ce7db650c79c3/docs/research/cli/evidence/release143-public/README.md)为准。
+本次不重发桌面、Android 或 iOS 客户端。当前公开产品 **v5.0.3.145** 来自较早独立源码，不能据此覆盖本批新增原生 v6 创建与模型起草；需要匹配的新桌面构建和独立原生确认。
 
 ## 核心特性
 
@@ -13,9 +13,17 @@
 - 原子保存和回读确认配置；HTTP 局域网连接需要显式勾选允许，中转站协议选项继续保留。
 - 目标工具可显式导出创建请求文件或使用独立 v6 待审授权。需要匹配桌面实现及原生预览/确认，不会自动创建或执行任务。
 
+### 待审创建与资料授权
+
+`cc goal draft-create-request --help` 查看文件请求字段，显式选择目标、来源提议、插件、请求 ID、任务类型和描述文件，再由桌面导入并复核。请求文件不授予业务写入权限。
+
+`cc goal draft-create-access --help` 查看在线路径的插件标签导出；必须由匹配桌面实现另行原生授权 v6。摘要、事件、历史或旧草稿连接不自动获得创建权限。保存 pending 后仍需完整预览、当前授权复核与原生创建确认。
+
+结果未知时保留原请求引用并查询回执，不自动重发。模型草稿在桌面入口逐次授权；使用 Memory 需单独选择，撤权会使未确认的派生输出失效。IDE 新平台选项只配置聊天/CLI，不自动启动桌面模型草稿。
+
 ## 使用指南
 
-候选公开核验后安装：
+安装已核验的公开 CLI：
 
 ```bash
 npm i -g chainlesschain@0.166.143 --registry https://registry.npmjs.org
@@ -61,7 +69,9 @@ IDE 连接配置与模型能力、模型质量及平台可用性分别验证；�
 
 此前工程批次 25 文件/类、374 项回归及 22 项检查通过，JetBrains 本地构建成功。
 两个合成真实火山场景通过，共 1,176 tokens，费用未知；这是桌面源码链路验证，不是 IDE GUI 或独立业务验收。
-本次发布还必须通过准确候选提交的完整 CLI CI 和 Strict Sandbox 三平台结果，以及公开制品回读。
+准确发行提交 `3fa3a4b258bbcb60b23b4298cec375661ad6f410` 的完整 CLI CI 和 Strict Sandbox 三平台结果，以及独立 npm 公开制品字节与签名来源回读均已通过。IDE 宿主发布门禁和渠道公开状态单独记录。
+
+历史 Sol 原冻结 **41/45**、含修复项目的跨版本 **45/45**、独立四项 **2/4** 及火山修正轮 **39/45** 生成、**24/45** 严格验收、历史 **36/45** 分别保留。本次文档部署不新增模型验收；NOT_PAID_READY / NOT_ADMITTED / HOLD 不变。
 
 ## 安全考虑
 
@@ -87,4 +97,14 @@ HTTP 确认不表示访问已加密。目标创建与模型草稿仍需独立授
 - [CLI 指南](./cli.md)
 - [IDE 桥接指南](./ide-bridge.md)
 - [上一版升级说明](./cli-ide-update-2026-11-05-142.md)
-- [本次发布状态](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release143-public/README.md)
+- [本次发布状态](https://github.com/chainlesschain/chainlesschain/blob/d2070ce914af8d675191e3492e0ce7db650c79c3/docs/research/cli/evidence/release143-public/README.md)
+
+## 未发行源码进展：CLI 目标移交
+
+PR #539 / `a2e7f17a03` 增加 `goal transfer-to-project` 和 `goal restore-transfer`。它们要求匹配分支的 CLI、Session Core 和桌面构建，公开 CLI .143 与客户端 .145 尚不包含。
+
+在原生个人项目导出绑定项目/所有者/版本的凭据，先停止源目标运行，再以真实 revision 和显式确认冻结、备份并导出；在同一项目原生选择文件并确认导入。新目标保持暂停，监控、动作与 Memory 不继承。旧 CLI 不应继续使用已冻结目录。
+
+不确定结果沿原移交身份重查；已有输出不覆盖，原生导入不重复新建。回退要求原生持久作废和签名回执，CLI 验签后恢复原字节；已有修订或关联数据阻止移除导入目标，不能用整个数据库快照覆盖其他业务写入。
+
+现有报告记录 Windows 本地 49 文件/790 项通过；真实 GUI、Linux/macOS、新源码 CI、业务效果和发行仍待验证。本次文档任务没有执行移交或重跑该完整套件。见[移交设计](https://design.chainlesschain.com/cli-goal-transfer-source-2026-11-07.html)。

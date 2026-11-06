@@ -1,13 +1,25 @@
 # chainlesschain CLI
 
-工作树待发布补充：两端 IDE 新增力数/vLLM/SGLang 等本地算力平台入口，使用 `custom` OpenAI 兼容路径，可选平台密钥并显式确认局域网 HTTP。CLI 原子保存与首次设置在更换无密钥平台地址时不复用旧端点密钥；详见 [DMM 当前证据](../../docs/research/agents/evidence/dmm-volcengine-live-2026-11-06/README.md)。此说明不改变下文公开版本及发行限制。
-
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
 
 ## CLI 0.166.143 / local compute and controlled task-creation drafts
 
-Release candidate pairing: Session Core **0.3.26**, CLI **0.166.143**, Open VSX
-**0.37.179** and JetBrains **0.4.196**. Both IDEs add a Local compute / OpenAI
+Session Core **0.3.26**, CLI **0.166.143**, Open VSX **0.37.179** and JetBrains
+**0.4.196** are verified public. Both IDEs recommend CLI **0.166.143**. The public
+VSIX matches the official artifact. JetBrains is approved, listed and downloadable;
+all 627 original payload files, including nested JAR entries, match the official
+build. Channel evidence is tracked in the release record below.
+
+Current native clients are **v5.0.3.145** from earlier independent sources. New
+native v6 creation and model drafts require matching newer desktop builds;
+this CLI/IDE release does not upgrade those client binaries. See the
+[current design](../../docs/design/release-runtime-update-2026-11-06-143.md).
+
+Unreleased source in PR #539 adds explicit CLI-goal handoff and signed recovery.
+It requires matching branch builds of CLI, Session Core and desktop; public
+0.166.143 does not include these commands. See the
+[source-only handoff design](../../docs/design/cli-goal-transfer-source-2026-11-07.md).
+Both IDEs add a Local compute / OpenAI
 compatible option for LEXDATA, vLLM and SGLang, with explicit endpoint/model,
 optional platform key and HTTP consent. Atomic configuration and first-run setup
 do not carry a previous endpoint credential to a new keyless platform.
@@ -24,9 +36,10 @@ samples, not independent business-effect acceptance. LEXDATA's supplied API
 currently resets discovery connections, so actual LEXDATA inference is unverified.
 Real IDE/Electron GUI acceptance remains separate.
 
-Publication requires the exact source's complete Linux/Windows/macOS CLI CI and
-Strict Sandbox results, then Actions OIDC upstream publication/readback before
-CLI and IDE publication. Once verified, install
+The exact source passed all 76 CLI CI and six Strict Sandbox jobs across
+Linux/Windows/macOS. Actions OIDC published the required child packages before
+CLI; independent public bytes and signed provenance matched the immutable
+workflow artifact at `3fa3a4b258bbcb60b23b4298cec375661ad6f410`. Install
 `npm i -g chainlesschain@0.166.143 --registry https://registry.npmjs.org`.
 Current release-stage results are tracked in
 [release143 evidence](../../docs/research/cli/evidence/release143-public/README.md).

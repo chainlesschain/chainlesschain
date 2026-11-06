@@ -1,0 +1,222 @@
+{
+  "checkedAt": "2026-11-06T15:18:44.0104275Z",
+  "runId": 42232726964,
+  "workflow": "https://github.com/chainlesschain/chainlesschain/actions/runs/42232726964",
+  "source": "3fa3a4b258bbcb60b23b4298cec375661ad6f410",
+  "ref": "ide-jetbrains-v0.4.196",
+  "conclusion": "success",
+  "attempt": 1,
+  "jobs": [
+    {
+      "name": "Public IDE capability manifest (drift gate)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42232726964/job/127942416890"
+    },
+    {
+      "name": "Browser evidence (linux)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42232726964/job/127942728351"
+    },
+    {
+      "name": "JetBrains real host (macos-latest, 2024.2)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42232726964/job/127942728460"
+    },
+    {
+      "name": "JetBrains real host (ubuntu-latest, 2024.2)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42232726964/job/127942728477"
+    },
+    {
+      "name": "JetBrains real host (macos-latest, 2025.2)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42232726964/job/127942728524"
+    },
+    {
+      "name": "JetBrains real host (windows-latest, 2024.2)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42232726964/job/127942728564"
+    },
+    {
+      "name": "JetBrains real host (ubuntu-latest, 2025.2)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42232726964/job/127942728585"
+    },
+    {
+      "name": "Browser evidence (windows)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42232726964/job/127942728612"
+    },
+    {
+      "name": "Browser evidence (macos)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42232726964/job/127942728699"
+    },
+    {
+      "name": "JetBrains real host (windows-latest, 2025.2)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42232726964/job/127942728707"
+    },
+    {
+      "name": "VS Code extension (Windows host gate)",
+      "status": "completed",
+      "conclusion": "skipped",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42232726964/job/127942731873"
+    },
+    {
+      "name": "VS Code extension (macOS host gate)",
+      "status": "completed",
+      "conclusion": "skipped",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42232726964/job/127942732202"
+    },
+    {
+      "name": "VS Code extension (immutable candidate)",
+      "status": "completed",
+      "conclusion": "skipped",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42232726964/job/127942732356"
+    },
+    {
+      "name": "VS Code Remote-SSH container (scoped trusted cell)",
+      "status": "completed",
+      "conclusion": "skipped",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42232726964/job/127942732544"
+    },
+    {
+      "name": "IDE roadmap evidence (trusted scoped aggregate)",
+      "status": "completed",
+      "conclusion": "skipped",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42232726964/job/127942732771"
+    },
+    {
+      "name": "Browser evidence (three-OS required aggregate)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42232726964/job/127950417410"
+    },
+    {
+      "name": "VS Code extension (Linux host gate + publish)",
+      "status": "completed",
+      "conclusion": "skipped",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42232726964/job/127951119910"
+    },
+    {
+      "name": "JetBrains plugin (build + publish)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42232726964/job/127954090594"
+    },
+    {
+      "name": "JetBrains Marketplace (post-publish verification)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42232726964/job/127971021032"
+    }
+  ],
+  "publishSteps": [
+    {
+      "name": "Set up job",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run actions/checkout@v5",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run actions/setup-java@v5",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run actions/setup-node@v5",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Make gradlew executable",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Validate JetBrains version sources and release tag",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Verify JetBrains release metadata coherence",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Pure-logic smoke (smokeTest)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Unit tests (JUnit)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Build plugin",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Verify plugin structure and project configuration",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Verify plugin compatibility",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Upload plugin artifact",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Require published CLI before JetBrains release",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Publish to JetBrains Marketplace",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Post Run actions/setup-node@v5",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Post Run actions/setup-java@v5",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Post Run actions/checkout@v5",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Complete job",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ]
+}

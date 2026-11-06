@@ -11,8 +11,8 @@ const jetBrainsPending = [
   "uploaded-pending-review",
 ].includes(releaseStatus.jetBrainsPublicationStatus);
 const items = english
-  ? [["Authorized goal events", "Observe bounded summaries with separate native authorization; records do not prove goal completion."], ["Explicit history recovery", "Read one page at a time with at-least-once delivery; keep the checkpoint after interruption."], ["Combined delivery scenario", "A data-only package combines admitted capabilities; installation starts no automatic task execution."]]
-  : [["授权目标事件", "另行授权读取有界摘要，观察记录不代表目标完成。"], ["显式历史恢复", "逐页读取、至少一次交付；中断后保留检查点。"], ["组合交付场景", "数据声明组合已准入能力，安装不会自动创建或执行任务。"]];
+  ? [["Local compute configuration", "Configure an OpenAI-compatible endpoint, API model ID, optional platform key and explicit HTTP consent."], ["Controlled creation requests", "Export untrusted files or use separately authorized v6 pending requests; native creation still needs preview and confirmation."], ["Data-only scenario 0.3.0", "Compose admitted events, evidence and proposals; installation starts no automatic task execution."]]
+  : [["本地算力配置", "显式选择兼容端点、API 模型 ID、可选平台密钥与 HTTP 许可，切换无密钥端点不沿用旧凭据。"], ["受控创建请求", "导出不可信文件或另行授权 v6 待审请求；实际创建仍需原生预览与确认。"], ["数据声明场景 0.3.0", "组合已准入事件、证据和提议，安装不会自动创建或执行任务。"]];
 ---
 
 <section class="py-16 border-t border-line bg-cream" aria-labelledby="source-update-title">
@@ -30,8 +30,8 @@ const items = english
     </p>
     <p class="mt-3 text-sm text-muted">
       {english ? releaseStatus.productCandidateStatusEn : releaseStatus.productCandidateStatusZh}
-      {english ? " Native v5 history needs the matching newer desktop client. " : " 原生 v5 历史需要匹配的新版桌面客户端。"}
-      <a class="text-ember hover:underline" href={releaseStatus.productCandidateWorkflow}>{english ? "Client release progress ↗" : "客户端发行进度 ↗"}</a>
+      {english ? " New native v6 creation/model drafts require matching newer desktop builds. " : " 新增原生 v6 创建/模型草稿需要匹配的新桌面构建。"}
+      <a class="text-ember hover:underline" href={releaseStatus.productCandidateWorkflow}>{english ? "Client release evidence ↗" : "客户端发行证据 ↗"}</a>
     </p>
     {jetBrainsPending && (
       <p class="mt-3 text-sm text-muted">
@@ -40,6 +40,12 @@ const items = english
           : `JetBrains ${releaseStatus.jetBrainsCandidateVersion} 已通过正式发布工作流并上传，公开上架与下载仍待核验。该构建推荐 CLI ${releaseStatus.jetBrainsCandidateRecommendedCliVersion}，可从正式 Actions 制品手动侧载。`}
       </p>
     )}
+    <p class="mt-3 text-sm text-muted">
+      {english
+        ? "Unreleased source / PR #539: goal transfer-to-project freezes and backs up a CLI goal, then imports it into a selected native personal project in a paused state. Signed native cancellation enables exact-byte recovery. Matching branch builds are required; public CLI .143 and client .145 do not include it. Windows local reports record 49 files/790 passes; real GUI, Linux/macOS and release CI remain pending."
+        : "未发行源码 / PR #539：goal transfer-to-project 冻结并备份 CLI 目标，经原生确认移交至个人项目，新目标保持暂停；原生签名作废回执用于原字节恢复。需匹配分支构建，公开 CLI .143 与客户端 .145 尚不包含。Windows 本地报告为 49 文件/790 项通过，真实 GUI、Linux/macOS 与发行 CI 待验证。"}
+      <a class="text-ember hover:underline" href={releaseStatus.unreleasedGoalTransfer.designUrl}>{english ? " Handoff design ↗" : " 移交设计 ↗"}</a>
+    </p>
     <div class="mt-8 grid gap-6 md:grid-cols-3">
       {items.map(([title, description]) => (
         <article class="rounded-xl border border-line bg-paper p-6">
@@ -83,8 +89,8 @@ const items = english
     </p>
     <p class="mt-3 text-sm text-muted">
       {english
-        ? `No new .142 model retest. Volcengine corrected .140 round: generation39/45, strict24/45; historical36/45,9 remaining, including verify-06 candidate-only qualification. Sol original frozen41/45, cross-version45/45 and separate repaired four2/4 remain distinct. NOT_PAID_READY / NOT_ADMITTED / HOLD remain. Microsoft Marketplace is deferred.`
-        : `本次 .142 未新增模型复测。火山 .140 修正轮生成39/45、严格24/45；历史累计36/45、剩9，保留 verify-06 仅候选通过的限定。Sol 原冻结41/45、跨版本45/45、独立修正四项2/4分别保留。NOT_PAID_READY / NOT_ADMITTED / HOLD 保留，Microsoft Marketplace 暂缓。`}
+        ? `No new .143 model-task acceptance; two prior synthetic drafts used 1,176 tokens with unknown cost. Volcengine corrected .140 round: generation39/45, strict24/45; historical36/45,9 remaining, including verify-06 candidate-only qualification. Sol original frozen41/45, cross-version45/45 and separate repaired four2/4 remain distinct. NOT_PAID_READY / NOT_ADMITTED / HOLD remain. Microsoft Marketplace is deferred.`
+        : `本次 .143 未新增模型任务验收；此前两项合成草稿共 1176 tokens，费用未知。火山 .140 修正轮生成39/45、严格24/45；历史累计36/45、剩9，保留 verify-06 仅候选通过的限定。Sol 原冻结41/45、跨版本45/45、独立修正四项2/4分别保留。NOT_PAID_READY / NOT_ADMITTED / HOLD 保留，Microsoft Marketplace 暂缓。`}
     </p>
     <div class="mt-6 flex flex-wrap gap-4">
       <a class="btn-ghost" href={`https://open-vsx.org/api/chainlesschain/chainlesschain-ide/${releaseStatus.openVsxVersion}/file/chainlesschain.chainlesschain-ide-${releaseStatus.openVsxVersion}.vsix`}>{english ? "Download VSIX" : "下载 VSIX"} {releaseStatus.openVsxVersion} ↗</a>
