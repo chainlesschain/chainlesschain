@@ -1,5 +1,5 @@
 <template>
-  <section data-testid="organization-goal-panel">
+  <section v-if="featureEnabled" data-testid="organization-goal-panel">
     <h3>组织目标与风险巡检</h3>
     <p>
       目标由授权成员共享；手动检查与周期巡检仅使用逾期和直接依赖规则。检查或任务操作成功不代表目标通过验收。
@@ -398,6 +398,7 @@ const emit = defineEmits<{
   (event: "authority-error", value: unknown): void;
   (event: "proposal-id", id: string): void;
 }>();
+const featureEnabled = ref(false);
 const goals = ref<GoalStatus[]>([]),
   histories = ref<Record<string, any>>({}),
   drafts = ref<Record<string, string>>({});
@@ -494,6 +495,11 @@ function reset() {
   error.value = "";
 }
 function failure(value: unknown) {
+  if (actionCode(value) === "GOAL_FEATURE_DISABLED") {
+    reset();
+    featureEnabled.value = false;
+    return;
+  }
   if (organizationAuthorityError(value)) {
     reset();
     emit("authority-error", value);
@@ -514,6 +520,16 @@ async function work(fn: (token: number) => Promise<void>) {
   }
 }
 async function fetchGoals(token: number, more = false) {
+  const status = await (
+    window as any
+  ).electronAPI?.project?.getGoalFeatureStatus?.();
+  if (!current(token)) return;
+  featureEnabled.value = status === undefined || status.enabled === true;
+  if (!featureEnabled.value) {
+    goals.value = [];
+    histories.value = {};
+    return;
+  }
   const result = await organizationApi().listGoals({
     projectId: props.projectId,
     limit: 20,

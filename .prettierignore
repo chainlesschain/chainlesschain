@@ -146,3 +146,7 @@ docs/research/agents/evidence/dmm-native-workspace-2026-11-07/**/*.yml
 docs/research/agents/evidence/dmm-native-risk-create-2026-11-07/**/*.json
 
 docs/research/agents/evidence/dmm-native-risk-create-2026-11-07/**/*.yml
+
+# Keep raw desktop goal trial evidence byte-identical.
+docs/research/agents/evidence/dmm-goal-trial-switch-2026-11-07/**/*.json
+docs/research/agents/evidence/dmm-goal-trial-switch-2026-11-07/**/*.yml

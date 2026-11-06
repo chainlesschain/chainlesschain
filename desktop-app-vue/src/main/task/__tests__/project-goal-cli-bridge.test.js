@@ -88,6 +88,10 @@ beforeEach(() => {
     },
   };
   host = createProjectGoalHost({
+    featurePolicy:
+      require("../project-goal-feature-policy").createProjectGoalFeaturePolicy({
+        enabled: true,
+      }),
     database: { getDatabase: () => db },
     electron,
     getCurrentUserDid: () => actor,
@@ -112,6 +116,51 @@ afterEach(async () => {
 // Real Windows DACL operations launch PowerShell and exceed the ordinary 30s
 // host-test budget on this machine. This is functional validation, not an SLO.
 describe("explicit desktop goal connection", { timeout: 90_000 }, () => {
+  it("waits for an in-flight connection confirmation and refuses exporting it after disable", async () => {
+    let release, entered;
+    const shown = new Promise((resolve) => {
+      entered = resolve;
+    });
+    electron.dialog.showMessageBox.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          release = resolve;
+          entered();
+        }),
+    );
+    const opening = open();
+    await shown;
+    let drained = false;
+    const disabling = host.disableFeature().then(() => {
+      drained = true;
+    });
+    await Promise.resolve();
+    expect(drained).toBe(false);
+    release({ response: 1 });
+    await expect(opening).rejects.toThrow("GOAL_BRIDGE_UNAVAILABLE");
+    await disabling;
+    expect(drained).toBe(true);
+    expect(fs.existsSync(file)).toBe(false);
+    expect(host.cliConnectionStatus(event).enabled).toBe(false);
+  });
+  it("closes an actual loopback lease and invalidates its retained credential when the trial is disabled", async () => {
+    await open();
+    const source = createProjectGoalConnection(file);
+    expect((await source.read()).goalRef.id).toBe(goal.id);
+    await expect(host.disableFeature()).resolves.toMatchObject({
+      enabled: false,
+      drained: true,
+    });
+    expect(host.cliConnectionStatus(event).enabled).toBe(false);
+    expect(fs.existsSync(file)).toBe(true);
+    await expect(source.read()).rejects.toThrow("CONNECTION_UNAVAILABLE");
+    await expect(Promise.resolve().then(open)).rejects.toThrow(
+      "GOAL_FEATURE_DISABLED",
+    );
+    expect(db.prepare("SELECT id FROM cc_project_goals").get().id).toBe(
+      goal.id,
+    );
+  });
   it("separately authorizes events, restricts its routes, and observes real checks and action receipts without read writes", async () => {
     const {
       ProjectGoalMonitoringState,
@@ -198,18 +247,14 @@ describe("explicit desktop goal connection", { timeout: 90_000 }, () => {
     const cliRoot = pathToFileURL(
       path.resolve(__dirname, "../../../../../packages/cli") + path.sep,
     );
-    const { watchCliProjectGoalEvents } = await import(
-      "../../../../../packages/cli/src/lib/plugin-runtime/cli-project-goal-events.js"
-    );
-    const { trustPlugin, _deps: trustDeps } = await import(
-      "../../../../../packages/cli/src/lib/plugin-runtime/trust.js"
-    );
-    const { consentPluginCapabilities, _deps: consentDeps } = await import(
-      "../../../../../packages/cli/src/lib/plugin-runtime/capability-consent.js"
-    );
-    const { normalizeCapabilities } = await import(
-      "../../../../../packages/cli/src/lib/plugin-runtime/capabilities.js"
-    );
+    const { watchCliProjectGoalEvents } =
+      await import("../../../../../packages/cli/src/lib/plugin-runtime/cli-project-goal-events.js");
+    const { trustPlugin, _deps: trustDeps } =
+      await import("../../../../../packages/cli/src/lib/plugin-runtime/trust.js");
+    const { consentPluginCapabilities, _deps: consentDeps } =
+      await import("../../../../../packages/cli/src/lib/plugin-runtime/capability-consent.js");
+    const { normalizeCapabilities } =
+      await import("../../../../../packages/cli/src/lib/plugin-runtime/capabilities.js");
     const sample = JSON.parse(
       fs.readFileSync(
         new URL(
@@ -654,18 +699,14 @@ consent.storePath=()=>process.env.DMM_TEST_CONSENT_FILE;`,
       const cliRoot = pathToFileURL(
         path.resolve(__dirname, "../../../../../packages/cli") + path.sep,
       );
-      const { readCliGoalExtensionPanels } = await import(
-        "../../../../../packages/cli/src/lib/plugin-runtime/cli-goal-extension-host.js"
-      );
-      const { trustPlugin, _deps: trustDeps } = await import(
-        "../../../../../packages/cli/src/lib/plugin-runtime/trust.js"
-      );
-      const { consentPluginCapabilities, _deps: consentDeps } = await import(
-        "../../../../../packages/cli/src/lib/plugin-runtime/capability-consent.js"
-      );
-      const { normalizeCapabilities } = await import(
-        "../../../../../packages/cli/src/lib/plugin-runtime/capabilities.js"
-      );
+      const { readCliGoalExtensionPanels } =
+        await import("../../../../../packages/cli/src/lib/plugin-runtime/cli-goal-extension-host.js");
+      const { trustPlugin, _deps: trustDeps } =
+        await import("../../../../../packages/cli/src/lib/plugin-runtime/trust.js");
+      const { consentPluginCapabilities, _deps: consentDeps } =
+        await import("../../../../../packages/cli/src/lib/plugin-runtime/capability-consent.js");
+      const { normalizeCapabilities } =
+        await import("../../../../../packages/cli/src/lib/plugin-runtime/capabilities.js");
       const sample = JSON.parse(
         fs.readFileSync(
           new URL(

@@ -63,6 +63,46 @@ describe("personal project goal controls", () => {
     expect(api.startGoalMonitoring).not.toHaveBeenCalled();
     expect(api.checkGoalNow).not.toHaveBeenCalled();
   });
+  it("hides trial controls and does not read goals when the host reports disabled", async () => {
+    wrapper.unmount();
+    await flushPromises();
+    vi.clearAllMocks();
+    api.getGoalFeatureStatus = vi.fn(async () => ({ enabled: false }));
+    wrapper = mount(Panel, {
+      props: { projectId: "p1", identityKey: "owner" },
+    });
+    await flushPromises();
+    expect(wrapper.find('[data-testid="project-goal-panel"]').exists()).toBe(
+      false,
+    );
+    expect(api.listGoals).not.toHaveBeenCalled();
+    expect(api.createGoal).not.toHaveBeenCalled();
+  });
+  it("waits for the host opt-in response before exposing trial controls", async () => {
+    wrapper.unmount();
+    await flushPromises();
+    vi.clearAllMocks();
+    let resolveStatus!: (value: { enabled: boolean }) => void;
+    api.getGoalFeatureStatus = vi.fn(
+      () =>
+        new Promise((resolve) => {
+          resolveStatus = resolve;
+        }),
+    );
+    wrapper = mount(Panel, {
+      props: { projectId: "p1", identityKey: "owner" },
+    });
+    expect(wrapper.find('[data-testid="project-goal-panel"]').exists()).toBe(
+      false,
+    );
+    expect(api.listGoals).not.toHaveBeenCalled();
+    resolveStatus({ enabled: true });
+    await flushPromises();
+    expect(wrapper.find('[data-testid="project-goal-panel"]').exists()).toBe(
+      true,
+    );
+    expect(api.listGoals).toHaveBeenCalledOnce();
+  });
   it("refreshes goal state after explicitly saving its notification policy", async () => {
     await flushPromises();
     api.reviseGoal.mockImplementation(async (input) =>

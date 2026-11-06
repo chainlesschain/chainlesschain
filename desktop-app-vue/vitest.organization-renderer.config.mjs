@@ -7,6 +7,7 @@ export default defineConfig({
     alias: { "@": fileURLToPath(new URL("./src/renderer", import.meta.url)) },
   },
   test: {
+    env: { CHAINLESSCHAIN_PROJECT_GOALS: "1" },
     environment: "happy-dom",
     pool: "forks",
     maxWorkers: 1,
