@@ -2,7 +2,7 @@
 
 ## 当前公开 CLI：0.166.143 / 本地算力配置和待审创建请求
 
-Session Core **0.3.26** 和 CLI **0.166.143** 已通过准确提交三平台门禁、Actions OIDC 发布和独立公开字节/签名来源回读。Open VSX **0.37.179** 已公开，公开 VSIX 与官方制品一致；JetBrains **0.4.196** 已上传，公开上架待核验。两端均推荐 CLI **0.166.143**；渠道状态见[发行证据](../research/cli/evidence/release143-public/README.md)。
+Session Core **0.3.26** 和 CLI **0.166.143** 已通过准确提交三平台门禁、Actions OIDC 发布和独立公开字节/签名来源回读。Open VSX **0.37.179** 已公开，公开 VSIX 与官方制品一致；JetBrains **0.4.196** 已获批且可下载，627 个原始 payload 文件与官方构建一致。两端均推荐 CLI **0.166.143**；渠道状态见[发行证据](../research/cli/evidence/release143-public/README.md)。
 
 安装 `npm i -g chainlesschain@0.166.143 --registry https://registry.npmjs.org`，重启宿主后运行 `cc --version`、`cc doctor`。新增本地算力平台配置及端点凭据隔离；目标创建请求仍需匹配桌面实现和原生确认。本次不发布 PC/移动端，真实 GUI、力数推理和业务效果验收保持独立。[升级说明](../../docs-site/docs/chainlesschain/cli-ide-update-2026-11-06-143.md)。
 

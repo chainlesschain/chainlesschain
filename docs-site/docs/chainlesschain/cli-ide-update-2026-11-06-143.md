@@ -3,7 +3,7 @@
 ## 概述
 
 Session Core **0.3.26** 和 CLI **0.166.143** 已公开，准确提交的 CLI CI **76/76**、Strict Sandbox **6/6** 三平台门禁及 Actions OIDC 发布、独立字节/签名来源回读均通过。
-Open VSX **0.37.179** 已公开，下载的 VSIX 与官方制品一致；JetBrains **0.4.196** 已上传，公开上架待核验。两端均推荐 CLI **0.166.143**；公开状态以[发布记录](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release143-public/README.md)为准。
+Open VSX **0.37.179** 已公开，下载的 VSIX 与官方制品一致；JetBrains **0.4.196** 已获批且可下载，627 个原始 payload 文件与官方构建一致。两端均推荐 CLI **0.166.143**；公开状态以[发布记录](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release143-public/README.md)为准。
 本次不发布桌面、Android 或 iOS 客户端。
 
 ## 核心特性

@@ -3,15 +3,20 @@
 User authorized CLI and IDE publication on 2026-11-06. This is the release-stage
 ledger; engineering tests do not replace the exact-source GitHub Actions gates.
 
-| Stage              | Version                                                                   | Current result                                                                                                                                                                            |
-| ------------------ | ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Exact source       | [PR #537 head](https://github.com/chainlesschain/chainlesschain/pull/537) | `3fa3a4b258bbcb60b23b4298cec375661ad6f410`; immutable tag `v-npm-0-166-143`                                                                                                               |
-| CLI CI             | All configured Linux, Windows, macOS jobs                                 | [76/76 jobs passed](https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545), latest attempt read back in full                                                          |
-| CLI Strict Sandbox | All configured Linux, Windows, macOS jobs                                 | [6/6 jobs passed](https://github.com/chainlesschain/chainlesschain/actions/runs/42165323541), latest attempt read back in full                                                            |
-| Required child     | `@chainlesschain/session-core@0.3.26`                                     | Published; Actions verified registry bytes, signed provenance and downstream registry-only dependency installation                                                                        |
-| CLI                | `chainlesschain@0.166.143`                                                | [Actions OIDC publication successful](https://github.com/chainlesschain/chainlesschain/actions/runs/42229842358); public archive independently downloaded and byte-identical              |
-| Open VSX           | `0.37.179`                                                                | [Publication successful](https://github.com/chainlesschain/chainlesschain/actions/runs/42232718846); listed, latest and downloadable; public VSIX byte-identical to the official artifact |
-| JetBrains          | `0.4.196`                                                                 | [Build and upload successful](https://github.com/chainlesschain/chainlesschain/actions/runs/42232726964); public version listing not yet visible, approval/download verification pending  |
+Checked 2026-11-06: Session Core **0.3.26**, CLI **0.166.143**, Open VSX
+**0.37.179** and JetBrains **0.4.196** are verified public. Both IDEs recommend
+CLI **0.166.143**. JetBrains update **1213983** is approved, listed and
+downloadable; all **627** original payload files match the official build.
+
+| Stage              | Version                                                                   | Current result                                                                                                                                                                                  |
+| ------------------ | ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Exact source       | [PR #537 head](https://github.com/chainlesschain/chainlesschain/pull/537) | `3fa3a4b258bbcb60b23b4298cec375661ad6f410`; immutable tag `v-npm-0-166-143`                                                                                                                     |
+| CLI CI             | All configured Linux, Windows, macOS jobs                                 | [76/76 jobs passed](https://github.com/chainlesschain/chainlesschain/actions/runs/42165323545), latest attempt read back in full                                                                |
+| CLI Strict Sandbox | All configured Linux, Windows, macOS jobs                                 | [6/6 jobs passed](https://github.com/chainlesschain/chainlesschain/actions/runs/42165323541), latest attempt read back in full                                                                  |
+| Required child     | `@chainlesschain/session-core@0.3.26`                                     | Published; Actions verified registry bytes, signed provenance and downstream registry-only dependency installation                                                                              |
+| CLI                | `chainlesschain@0.166.143`                                                | [Actions OIDC publication successful](https://github.com/chainlesschain/chainlesschain/actions/runs/42229842358); public archive independently downloaded and byte-identical                    |
+| Open VSX           | `0.37.179`                                                                | [Publication successful](https://github.com/chainlesschain/chainlesschain/actions/runs/42232718846); listed, latest and downloadable; public VSIX byte-identical to the official artifact       |
+| JetBrains          | `0.4.196`                                                                 | [Publication successful](https://github.com/chainlesschain/chainlesschain/actions/runs/42232726964); approved, listed and downloadable; all 627 original payload files match the official build |
 
 The existing `npm-publish.yml` workflow uses tokenless GitHub Actions OIDC,
 publishes changed child packages, reads them back and verifies dependency
@@ -47,18 +52,20 @@ download have SHA-256
 `ebc575984f75beb1b006b57b9b84dd001fb5c771d20ece1ff0b46313b818f090`.
 JetBrains upload was accepted after all six real-host cells, browser aggregates,
 unit/compatibility checks and paired public CLI installation passed. Its
-[Marketplace readback](jetbrains-marketplace.json) currently reports
-`pending / version-not-visible`; accepted upload does not establish public
-approval or downloadability. The original build ZIP remains available in the
-official workflow artifact `chainlesschain-ide-jetbrains-1`.
+[Marketplace readback](jetbrains-marketplace.json) now confirms approval and
+public listing. The [public archive comparison](jetbrains.json) downloaded update
+1213983 and verified all 627 original payload files, including decompressed
+nested JAR entries, against official workflow artifact
+`chainlesschain-ide-jetbrains-1`. ZIP container metadata is excluded from payload
+comparison; both complete archive hashes remain explicit in the receipt.
 
 Both IDE publishing workflows completed successfully at the immutable source;
 the [Open VSX run](ide-open-vsx-workflow.json),
 [JetBrains run](ide-jetbrains-workflow.json) and
 [paired public CLI install receipts](ide-cli-prerequisites/) preserve that
-result. JetBrains' post-publish check explicitly permits a reachable pending
-review state, so its green Actions result is recorded separately from public
-approval and downloadable payload verification.
+result. JetBrains' post-publish check initially reported the permitted pending
+review state. The later independent Marketplace and archive readbacks above
+establish public approval and payload parity separately from the green upload.
 
 Both IDEs add a separate local OpenAI-compatible platform option, optional
 platform keys, explicit HTTP confirmation and atomic CLI save/readback. CLI
