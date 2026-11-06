@@ -3,15 +3,15 @@
 User authorized CLI and IDE publication on 2026-11-06. This is the release-stage
 ledger; engineering tests do not replace the exact-source GitHub Actions gates.
 
-| Stage              | Version                                                                   | Current result                                                                                       |
-| ------------------ | ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| Exact source       | [PR #537 head](https://github.com/chainlesschain/chainlesschain/pull/537) | Refreshed after rejected dc5475 protocol-fixture initialization; exact new SHA in gate-progress.json |
-| CLI CI             | All configured Linux, Windows, macOS jobs                                 | Fresh exact-source matrix required after fixture and diagnostic cleanup fixes                        |
-| CLI Strict Sandbox | All configured Linux, Windows, macOS jobs                                 | Earlier platform results are not reused for the refreshed commit                                     |
-| Required child     | `@chainlesschain/session-core@0.3.26`                                     | Not published                                                                                        |
-| CLI                | `chainlesschain@0.166.143`                                                | Not published                                                                                        |
-| Open VSX           | `0.37.179`                                                                | Not published                                                                                        |
-| JetBrains          | `0.4.196`                                                                 | Not uploaded or public                                                                               |
+| Stage              | Version                                                                   | Current result                                                                                 |
+| ------------------ | ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Exact source       | [PR #537 head](https://github.com/chainlesschain/chainlesschain/pull/537) | Refreshed after rejected 27667d diagnostic phase deadline; exact new SHA in gate-progress.json |
+| CLI CI             | All configured Linux, Windows, macOS jobs                                 | Fresh exact-source matrix required after fixture and diagnostic cleanup fixes                  |
+| CLI Strict Sandbox | All configured Linux, Windows, macOS jobs                                 | Earlier platform results are not reused for the refreshed commit                               |
+| Required child     | `@chainlesschain/session-core@0.3.26`                                     | Not published                                                                                  |
+| CLI                | `chainlesschain@0.166.143`                                                | Not published                                                                                  |
+| Open VSX           | `0.37.179`                                                                | Not published                                                                                  |
+| JetBrains          | `0.4.196`                                                                 | Not uploaded or public                                                                         |
 
 The existing `npm-publish.yml` workflow uses tokenless GitHub Actions OIDC,
 publishes changed child packages, reads them back and verifies dependency
@@ -42,5 +42,11 @@ exact brand-rejection assertions and request accounting are corrected; see
 strengthened 17-test OpenAI scope and two exact-brand/health regressions. Restoring
 lazy fixture initialization makes the regression fail as expected. Host lifecycle
 and onboarding helpers passed 28 tests with three POSIX-only skips on Windows.
-The earlier macOS onboarding shutdown now verifies port release within the same
-bounded deadline. A new complete remote candidate matrix remains required.
+The 27667d candidate then passed the remote Ubuntu model-protocol check and all
+six Strict Sandbox jobs, but macOS onboarding exposed an expired port-phase
+deadline after its eight UI cases and owned-process cleanup had passed. The
+caller now starts a separate bounded port-release phase after process cleanup,
+as in the existing capture diagnostic, still capped by the overall journey
+deadline. All six port lifecycle tests passed; see
+[rejected-candidate-27667d.json](rejected-candidate-27667d.json). A new complete
+remote candidate matrix remains required.

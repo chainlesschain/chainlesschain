@@ -249,15 +249,18 @@ try {
   process.exitCode = 1;
 } finally {
   try {
-    const shutdownDeadline = Math.min(deadline, Date.now() + 30000);
     await stopOwned(active, {
       requireRunningOwner: true,
       gracefulStop: exitIde,
-      gracefulDeadline: shutdownDeadline,
+      gracefulDeadline: Math.min(deadline, Date.now() + 30000),
     });
     // A closed Gradle owner does not prove Remote Robot's listener is gone.
-    // Keep the same bounded shutdown deadline before the next IDE journey.
-    await waitForPortFree({ port: 8082, deadline: shutdownDeadline });
+    // Port release is a separate bounded phase after process cleanup, as in
+    // verify01-diagnostic.mjs; the overall journey deadline still caps both.
+    await waitForPortFree({
+      port: 8082,
+      deadline: Math.min(deadline, Date.now() + 30000),
+    });
   } catch (error) {
     result.passed = false;
     result.cleanupError = error.stack;

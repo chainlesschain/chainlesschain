@@ -1,0 +1,32 @@
+{
+  "sourceSha": "27667d660e1d3612abd41a1a2dd6276c973f348d",
+  "disposition": "superseded-without-publication",
+  "failure": {
+    "workflow": "VERIFY01 Host Diagnostics",
+    "runId": 42162071097,
+    "jobId": 127710321036,
+    "jobName": "jetbrains (macos-15-intel)",
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42162071097/job/127710321036",
+    "checkout": "PR merge ref a5cb6656e07006b8a6eaf1c476f4ce43fa0ed003; not exact-head release evidence",
+    "error": "Port release shutdown deadline exceeded before the first bind probe",
+    "onboardingCasesPassed": 8,
+    "commandInvocations": 45,
+    "ownedProcessCleanup": {
+      "confirmed": true,
+      "gracefulRequested": true,
+      "gracefulAcknowledged": true,
+      "signals": ["SIGTERM"],
+      "ownerExitCode": 143
+    },
+    "cause": "The newly added caller reused the graceful process-exit deadline for the subsequent port-release phase. The owned-process helper can legitimately consume that deadline before returning, so the port helper refused an already-expired deadline without checking the listener."
+  },
+  "fix": "Match the existing verify01-diagnostic.mjs lifecycle: start a distinct bounded 30-second port-release phase after owned-process cleanup, still capped by the overall journey deadline. Keep actual bind-and-close confirmation and all owned-process checks.",
+  "observationsRetained": {
+    "strictSandboxRun": 42162071138,
+    "strictSandboxSuccessfulJobs": 6,
+    "cliSourceAuditPassed": true,
+    "ubuntuModelProtocolFixPassed": true,
+    "scope": "Historical results for the superseded head only; do not reuse as replacement-commit release gates."
+  },
+  "publications": []
+}
