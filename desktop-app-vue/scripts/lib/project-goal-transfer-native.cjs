@@ -26,28 +26,21 @@ const classOf = user.func(
   "int __stdcall GetClassNameW(void *hwnd, void *text, int count)",
 );
 const enabled = user.func("bool __stdcall IsWindowEnabled(void *hwnd)");
+const visible = user.func("bool __stdcall IsWindowVisible(void *hwnd)");
 const post = user.func(
   "bool __stdcall PostMessageW(void *hwnd, uint32_t message, uintptr_t wParam, intptr_t lParam)",
 );
-const foreground = user.func("void * __stdcall GetForegroundWindow()");
-const activate = user.func("bool __stdcall SetForegroundWindow(void *hwnd)");
-const input = user.func(
-  "uint32_t __stdcall SendInput(uint32_t count, void *inputs, int bytes)",
+const controlId = user.func("int __stdcall GetDlgCtrlID(void *hwnd)");
+const send = user.func(
+  "intptr_t __stdcall SendMessageW(void *hwnd, uint32_t message, uintptr_t wParam, intptr_t lParam)",
 );
-function key(hwnd, vk, scan = 0, flags = 0) {
-  if (koffi.address(foreground()) !== koffi.address(hwnd))
-    throw new Error(
-      "Test-owned picker lost foreground focus before keyboard input",
-    );
-  const bytes = ["x64", "arm64"].includes(process.arch) ? 40 : 28;
-  const offset = bytes === 40 ? 8 : 4;
-  const data = Buffer.alloc(bytes);
-  data.writeUInt32LE(1, 0); // INPUT_KEYBOARD
-  data.writeUInt16LE(vk, offset);
-  data.writeUInt16LE(scan, offset + 2);
-  data.writeUInt32LE(flags, offset + 4);
-  if (input(1, data, bytes) !== 1)
-    throw new Error("Native picker keyboard input failed");
+const sendBuffer = user.func(
+  "intptr_t __stdcall SendMessageW(void *hwnd, uint32_t message, uintptr_t wParam, void *data)",
+);
+function filenameText(hwnd) {
+  const data = Buffer.alloc(65536);
+  const length = Number(sendBuffer(hwnd, 0x000d, data.length / 2, data));
+  return data.subarray(0, length * 2).toString("utf16le");
 }
 function text(fn, hwnd) {
   const data = Buffer.alloc(32768);
@@ -175,40 +168,58 @@ async function chooseTransferFile({ pid, title, file, ownedRoot, mode }) {
   if (mode === "save" && fs.existsSync(absolute))
     throw new Error("Native picker must not overwrite an existing file");
   const hwnd = await locate(pid, title);
-  activate(hwnd);
-  await new Promise((resolve) => setTimeout(resolve, 300));
-  // Alt+N selects the real File name field in Windows' common picker. Direct
-  // writes to its legacy hidden Edit HWND do not update IFileDialog's model.
-  key(hwnd, 0x12);
-  key(hwnd, 0x4e);
-  key(hwnd, 0x4e, 0, 2);
-  key(hwnd, 0x12, 0, 2);
-  await new Promise((resolve) => setTimeout(resolve, 100));
-  key(hwnd, 0x11);
-  key(hwnd, 0x41);
-  key(hwnd, 0x41, 0, 2);
-  key(hwnd, 0x11, 0, 2);
-  for (let index = 0; index < absolute.length; index++) {
-    key(hwnd, 0, absolute.charCodeAt(index), 4);
-    key(hwnd, 0, absolute.charCodeAt(index), 6);
+  let fields = [];
+  const filenameId = mode === "open" ? 1148 : 1001;
+  const readyUntil = Date.now() + 10000;
+  do {
+    fields = [];
+    enumerate(children, hwnd, (field) => {
+      if (
+        owner(field) === pid &&
+        text(classOf, field) === "Edit" &&
+        controlId(field) === filenameId
+      )
+        fields.push(field);
+    });
+    if (fields.length === 1 && enabled(fields[0]) && visible(fields[0])) break;
+    if (fields.length > 1) throw new Error("Ambiguous native filename field");
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  } while (Date.now() < readyUntil);
+  if (fields.length !== 1 || !enabled(fields[0]) || !visible(fields[0])) {
+    const edits = [];
+    enumerate(children, hwnd, (field) => {
+      if (owner(field) === pid && text(classOf, field) === "Edit")
+        edits.push({
+          id: controlId(field),
+          visible: visible(field),
+          enabled: enabled(field),
+        });
+    });
+    throw new Error(
+      "Native filename field unavailable: " + JSON.stringify(edits),
+    );
   }
-  await new Promise((resolve) => setTimeout(resolve, 200));
-  const verified = await powershell("project-goal-transfer-focus.ps1", [
-    "-WindowHandle",
-    String(koffi.address(hwnd)),
-    "-TargetProcessId",
-    String(pid),
-    "-ExpectedTitle",
-    title,
-    "-SelectedPath",
-    absolute,
-  ]);
-  if (
-    verified.pid !== pid ||
-    verified.title !== title ||
-    verified.selectedPath !== absolute
-  )
-    throw new Error("Actual filename focus readback differs");
+  // The shell finishes setting its initial filename after creating the Edit.
+  // Wait for that work before typing, and never click with a partial readback.
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+  let actual;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (owner(fields[0]) !== pid || text(textOf, hwnd) !== title)
+      throw new Error("Native filename owner changed");
+    send(fields[0], 0x00b1, 0, -1);
+    for (let index = 0; index < absolute.length; index++)
+      send(fields[0], 0x0102, absolute.charCodeAt(index), 1);
+    actual = filenameText(fields[0]);
+    if (actual === absolute) break;
+    await new Promise((resolve) => setTimeout(resolve, 200));
+  }
+  // WM_GETTEXT is marshalled across processes; GetWindowText reads only the
+  // cross-process caption cache and cannot establish an Edit's actual value.
+  if (actual !== absolute)
+    throw new Error(
+      "Native filename WM_GETTEXT differs: " +
+        JSON.stringify({ actual, expected: absolute }),
+    );
   const button = click(
     hwnd,
     pid,
@@ -220,8 +231,7 @@ async function chooseTransferFile({ pid, title, file, ownedRoot, mode }) {
     title,
     button,
     file: path.relative(root, absolute),
-    method:
-      "foreground-bound SendInput + focused UIA readback + Win32 BM_CLICK",
+    method: "Win32 filename WM_CHAR + WM_GETTEXT + BM_CLICK",
     filenameVerified: true,
     at: new Date().toISOString(),
   };

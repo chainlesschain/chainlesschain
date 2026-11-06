@@ -199,6 +199,77 @@ try {
   });
   const panel = window.locator('[data-testid="goal-transfer-panel"]');
   await panel.waitFor();
+  // Prove that input updates IFileDialog's actual selection before any business
+  // IPC may save a file. A hidden legacy Edit can echo text yet retain defaults.
+  const probeFile = path.join(profile, "picker-probe-selected.json");
+  const [probeNative, probeResult] = await Promise.all([
+    chooseTransferFile({
+      pid: nativePid,
+      title: "导出 CLI 目标导入凭据",
+      file: probeFile,
+      ownedRoot: profile,
+      mode: "save",
+    }),
+    app.evaluate(
+      async ({ dialog, BrowserWindow }, file) =>
+        dialog.showSaveDialog(
+          BrowserWindow.getAllWindows().find((candidate) =>
+            candidate.webContents
+              .getURL()
+              .includes("/dist/renderer/index.html"),
+          ),
+          {
+            title: "导出 CLI 目标导入凭据",
+            defaultPath: file,
+            filters: [{ name: "JSON", extensions: ["json"] }],
+          },
+        ),
+      path.join(profile, "picker-probe-wrong-default.json"),
+    ),
+  ]);
+  assert.equal(probeResult.canceled, false);
+  assert.equal(probeResult.filePath, probeFile);
+  evidence.pickerProbe = {
+    native: probeNative,
+    actualSelectedExpectedPath: true,
+    changedDefaultFilename: true,
+    businessFileWritten: false,
+  };
+  const openProbeFile = path.join(profile, "picker-probe-existing.json");
+  fs.writeFileSync(openProbeFile, "{}\n");
+  const [openProbeNative, openProbeResult] = await Promise.all([
+    chooseTransferFile({
+      pid: nativePid,
+      title: "选择 CLI 目标移交文件",
+      file: openProbeFile,
+      ownedRoot: profile,
+      mode: "open",
+    }),
+    app.evaluate(
+      async ({ dialog, BrowserWindow }, directory) =>
+        dialog.showOpenDialog(
+          BrowserWindow.getAllWindows().find((candidate) =>
+            candidate.webContents
+              .getURL()
+              .includes("/dist/renderer/index.html"),
+          ),
+          {
+            title: "选择 CLI 目标移交文件",
+            defaultPath: directory,
+            properties: ["openFile"],
+            filters: [{ name: "JSON", extensions: ["json"] }],
+          },
+        ),
+      profile,
+    ),
+  ]);
+  assert.equal(openProbeResult.canceled, false);
+  assert.deepEqual(openProbeResult.filePaths, [openProbeFile]);
+  evidence.pickerProbe.open = {
+    native: openProbeNative,
+    actualSelectedExpectedPath: true,
+    syntheticInputFixture: true,
+  };
   const transfers = () =>
     api("listGoalTransfers", { projectId: project.id, afterId: "" });
   const goals = () => api("listGoals", { projectId: project.id });
@@ -394,7 +465,8 @@ try {
   const forgedFile = path.join(profile, "forged-cancellation.json");
   const forged = {
     ...signed,
-    signature: signed.signature.slice(0, -4) + "AAAA",
+    signature:
+      (signed.signature[0] === "A" ? "B" : "A") + signed.signature.slice(1),
   };
   fs.writeFileSync(forgedFile, JSON.stringify(forged));
   const rejected = cli(
@@ -408,7 +480,7 @@ try {
     ],
     1,
   );
-  assert.match(rejected, /GOAL_TRANSFER_/);
+  assert.match(rejected, /GOAL_TRANSFER_CANCELLATION_INVALID/);
   assert.equal(fs.existsSync(sourceFile), false);
   stage("native-cancellation-persists-before-cli-restore-and-rejects-forgery");
   evidence.restored = cli([

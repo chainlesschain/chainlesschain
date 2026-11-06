@@ -46,9 +46,25 @@ jobs:
           cache-dependency-path: |
             package-lock.json
             desktop-app-vue/package-lock.json
-      - uses: ./.github/actions/setup-node-deps
-        with:
-          install-desktop-app-vue: "true"
+      - name: Canonicalize the owned Windows temporary root
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const root = fs.realpathSync.native(require('node:os').tmpdir());
+          if (/[\r\n]/u.test(root)) throw new Error('Invalid temporary root');
+          fs.appendFileSync(process.env.GITHUB_ENV, `TEMP=${root}\nTMP=${root}\n`);
+          NODE
+      - name: Install locked root dependencies
+        run: npm ci --legacy-peer-deps
+      - name: Install locked desktop dependencies
+        working-directory: desktop-app-vue
+        run: npm ci --legacy-peer-deps
+      - name: Refuse tracked source or lockfile drift
+        shell: bash
+        run: |
+          git diff --exit-code
+          git diff --cached --exit-code
       - name: Install locked Electron runtime and matching encrypted SQLite prebuild
         shell: bash
         working-directory: desktop-app-vue
@@ -67,6 +83,12 @@ jobs:
       - name: Build production Vue renderer
         working-directory: desktop-app-vue
         run: npm exec --offline -- vite build --logLevel warn
+      - name: Recheck source identity after runtime preparation and build
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "$DMM_EXPECTED_SHA"
+          git diff --exit-code
+          git diff --cached --exit-code
       - name: Exercise real file pickers, CLI freeze, native import and signed rollback
         shell: bash
         working-directory: desktop-app-vue
