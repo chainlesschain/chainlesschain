@@ -1,0 +1,32 @@
+{
+  "schema": "chainlesschain.dmm-native-goal-journey/v1",
+  "startedAt": "2026-11-06T23:21:32.300Z",
+  "sourceSha": "c869a279064ead86f3bdace8e07ce39bc9d2be70",
+  "sourceStatus": "M desktop-app-vue/scripts/lib/project-goal-native-dialog.cjs\n M desktop-app-vue/scripts/project-goal-native-journey.mjs\n?? .github/workflows/dmm-native-goal-modal.yml\n?? desktop-app-vue/scripts/lib/project-goal-modal-revocation-journey.cjs",
+  "platform": "win32",
+  "release": "10.0.19045",
+  "synthetic": true,
+  "scenario": "explicit-opt-in",
+  "setupSeeded": true,
+  "realBusinessAcceptance": false,
+  "installedProductAcceptance": false,
+  "profileRetainedLocally": true,
+  "dialogs": [],
+  "stages": [],
+  "artifacts": {
+    "dist/main/index.js": "dcb2219ebf51489196b4bf87d2551854ba4f29f11d66b436ca477306b14dc4b7",
+    "dist/main/task/project-goal-auth-session.js": "c3ff33a0a9b43dceda49ad721a1348506e2c8202e21300c34f726a8c43ac6550",
+    "dist/main/task/project-goal-feature-policy.js": "5608e1c91904a8b18373fd3bcf864adb54a3a6d9fd4420d0d1a35e03eb2aec64",
+    "dist/preload/index.js": "9b42f990b0710e95f7bd164e2981c183bd601bca8fc76b2a73548ae09a54ec15",
+    "dist/renderer/index.html": "a73be76c10f34859d044572c214abea694665b0183cc751063f22b829e807d3f"
+  },
+  "runnerSha256": "9caa49fe1f18bb7637ce88743ef4d975f0b57625901410f4dcf5e7df61be3e58",
+  "ipcErrors": [],
+  "status": "failed",
+  "error": {
+    "message": "electronApplication.firstWindow: Target page, context or browser has been closed",
+    "stack": "electronApplication.firstWindow: Target page, context or browser has been closed\n    at C:\\code\\chainlesschain\\desktop-app-vue\\scripts\\project-goal-native-journey.mjs:156:22"
+  },
+  "diagnostics": null,
+  "finishedAt": "2026-11-06T23:22:17.386Z"
+}
