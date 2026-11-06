@@ -223,3 +223,8 @@ docs/research/agents/evidence/dmm-ide-goal-events-2026-11-04/jetbrains-*-tests.x
 docs/research/agents/evidence/dmm-native-strict-ci-2026-11-07/** -text !eol -whitespace
 docs/research/agents/evidence/dmm-native-strict-ci-2026-11-07/README.md text eol=lf
 docs/research/agents/evidence/dmm-native-strict-ci-2026-11-07/verify-evidence.mjs text eol=lf
+
+# Keep original memory/notification native journey diagnostics and test reports.
+docs/research/agents/evidence/dmm-native-workspace-2026-11-07/** -text !eol -whitespace
+docs/research/agents/evidence/dmm-native-workspace-2026-11-07/README.md text eol=lf
+docs/research/agents/evidence/dmm-native-workspace-2026-11-07/verify-evidence.mjs text eol=lf

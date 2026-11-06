@@ -134,3 +134,9 @@ docs/research/agents/evidence/dmm-native-strict-ci-2026-11-07/**/*.yml
 docs/research/agents/evidence/dmm-native-strict-ci-2026-11-07/workspace-prune-repro.cjs
 
 docs/research/agents/evidence/dmm-native-strict-ci-2026-11-07/preflight-module-error.txt
+
+# Preserve original native workspace journey and regression report bytes.
+
+docs/research/agents/evidence/dmm-native-workspace-2026-11-07/**/*.json
+
+docs/research/agents/evidence/dmm-native-workspace-2026-11-07/**/*.yml
