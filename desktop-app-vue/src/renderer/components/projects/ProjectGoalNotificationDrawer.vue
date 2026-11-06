@@ -37,7 +37,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import {
+  computed,
+  onActivated,
+  onBeforeUnmount,
+  onDeactivated,
+  onMounted,
+  ref,
+  watch,
+} from "vue";
 import ProjectGoalMonitoringPanel from "./ProjectGoalMonitoringPanel.vue";
 import ProjectRiskReviewPanel from "./ProjectRiskReviewPanel.vue";
 import { isAuthorityError, type RiskReview } from "./task-description-ui";
@@ -87,8 +95,13 @@ const dismissed = ref(false),
 const review = ref<RiskReview | null>(null),
   error = ref("");
 const generation = ref(0);
+const pageActive = ref(true);
 const visible = computed(
-  () => props.authenticated && validNavigation.value && !dismissed.value,
+  () =>
+    pageActive.value &&
+    props.authenticated &&
+    validNavigation.value &&
+    !dismissed.value,
 );
 let reviewEpoch = 0,
   mounted = true;
@@ -158,6 +171,17 @@ watch(
   reset,
   { immediate: true, flush: "sync" },
 );
+// Cached route pages still observe the shared query, and Drawer teleports its
+// content outside their DOM. Deactivation must close that old view and fence
+// its pending reads without clearing the active page's navigation query.
+onDeactivated(() => {
+  pageActive.value = false;
+  reset();
+});
+onActivated(() => {
+  reset();
+  pageActive.value = true;
+});
 onMounted(() => {
   const notifications = (
     window as unknown as {

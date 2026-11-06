@@ -106,6 +106,12 @@ async function exerciseGoalWorkspace({
   );
 
   const policy = article.locator('[data-testid="goal-notification-policy"]');
+  const closeDrawer = async (inside) => {
+    const content = inside.locator(
+      "xpath=ancestor::div[contains(concat(' ',normalize-space(@class),' '),' ant-drawer-content ')]",
+    );
+    await content.getByRole("button", { name: "Close", exact: true }).click();
+  };
   const notices = async () => {
     const response = await api("getGoals", { limit: 50 }, "notification");
     assert.equal(response.success, true);
@@ -131,10 +137,20 @@ async function exerciseGoalWorkspace({
   result.noticeBeforeRead = await notices();
   const notice = result.noticeBeforeRead[0];
   assert.equal(notice.is_read, 0);
+  // Use the actual navigation flow: a project-task drawer blocks the header
+  // behind its mask. Close it before opening the global notification center.
+  await closeDrawer(article);
+  await expect(
+    window.locator('[data-testid="controlled-task-drawer"]'),
+  ).toHaveCount(0);
   const center = window.locator(".notification-center");
   await center.locator(".notification-trigger").click();
   const list = window.locator('section[aria-label="目标通知"]');
-  await list.getByRole("button", { name: "刷新", exact: true }).click();
+  await expect(list).toBeVisible();
+  // Ant Design inserts visual/accessibility spacing in two-character Chinese
+  // button labels. Keep the accessible label binding without relying on that
+  // presentation choice.
+  await list.getByRole("button", { name: /^刷\s*新$/u }).click();
   const noticeRow = list.locator(`[data-notice-id="${notice.id}"]`);
   await expect(noticeRow).toBeVisible();
   await noticeRow
@@ -160,16 +176,12 @@ async function exerciseGoalWorkspace({
     path: path.join(output, "workspace-notice-open.png"),
     fullPage: true,
   });
-  await drawer
-    .locator("xpath=ancestor::div[contains(@class,'ant-drawer-content')]")
-    .getByRole("button", { name: "Close", exact: true })
-    .click();
+  await closeDrawer(drawer);
   await expect(drawer).toHaveCount(0);
-  const centerClose = window
-    .locator(".ant-drawer-content")
-    .filter({ has: list })
-    .getByRole("button", { name: "Close", exact: true });
-  if (await centerClose.isVisible()) await centerClose.click();
+  await closeDrawer(list);
+  await expect(list).not.toBeVisible();
+  await window.locator('[data-testid="project-tasks-button"]').click();
+  await expect(article).toBeVisible();
   stage("workspace-notice-real-center-mark-read-and-authorized-deep-link");
 
   const snapshot = await notices();

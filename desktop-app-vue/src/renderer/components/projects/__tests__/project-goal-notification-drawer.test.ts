@@ -1,5 +1,6 @@
 import { mount, flushPromises, type VueWrapper } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { defineComponent, h, KeepAlive, ref } from "vue";
 import Drawer from "../ProjectGoalNotificationDrawer.vue";
 const GoalPanel = {
   name: "ProjectGoalMonitoringPanel",
@@ -91,6 +92,46 @@ describe("notification deep link goal drawer", () => {
     });
     expect(wrapper.text()).toContain("通知记录此前一次检查");
     expect(api.getRiskReview).not.toHaveBeenCalled();
+  });
+  it("keeps only the active cached page's teleported drawer open and discards its predecessor's late review", async () => {
+    wrapper.unmount();
+    const page = ref("first");
+    const Page = defineComponent({ setup: () => () => h(Drawer, props) });
+    const Root = defineComponent({
+      setup: () => () =>
+        h(KeepAlive, null, { default: () => h(Page, { key: page.value }) }),
+    });
+    wrapper = mount(Root, {
+      global: {
+        stubs: {
+          "a-drawer": {
+            props: ["open"],
+            template:
+              '<Teleport to="body"><div v-if="open"><slot /></div></Teleport>',
+          },
+          ProjectGoalMonitoringPanel: GoalPanel,
+          ProjectRiskReviewPanel: RiskPanel,
+        },
+      },
+    });
+    await flushPromises();
+    const pending = deferred();
+    api.getRiskReview.mockReturnValueOnce(pending.promise);
+    wrapper.findComponent(GoalPanel).vm.$emit("review-id", "old-review");
+    page.value = "second";
+    await flushPromises();
+    pending.resolve(review("old-review"));
+    await flushPromises();
+    expect(
+      document.querySelectorAll('[data-testid="goal-notification-drawer"]'),
+    ).toHaveLength(1);
+    expect(document.body.textContent).not.toContain("old-review");
+    page.value = "first";
+    await flushPromises();
+    expect(
+      document.querySelectorAll('[data-testid="goal-notification-drawer"]'),
+    ).toHaveLength(1);
+    expect(document.body.textContent).not.toContain("old-review");
   });
   it.each([
     { goalId: ["g1", "g2"] },

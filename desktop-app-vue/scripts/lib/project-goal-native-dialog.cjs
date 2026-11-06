@@ -25,6 +25,7 @@ const windowClass = user.func(
   "int __stdcall GetClassNameW(void *hwnd, void *text, int count)",
 );
 const enabled = user.func("bool __stdcall IsWindowEnabled(void *hwnd)");
+const visible = user.func("bool __stdcall IsWindowVisible(void *hwnd)");
 const post = user.func(
   "bool __stdcall PostMessageW(void *hwnd, uint32_t message, uintptr_t wParam, intptr_t lParam)",
 );
@@ -72,6 +73,7 @@ async function clickNativeDialog({
     enumerate(enumerateWindows, null, (hwnd) => {
       if (
         ownerOf(hwnd) === pid &&
+        visible(hwnd) &&
         textOf(windowClass, hwnd) === "#32770" &&
         textOf(windowText, hwnd) === title
       )
@@ -91,6 +93,20 @@ async function clickNativeDialog({
           buttons.push({ hwnd, label: label.replaceAll("&", "") });
         return true;
       });
+      const choices = buttons.filter((candidate) => candidate.label === button);
+      if (choices.length > 1)
+        throw new Error("Ambiguous test-owned native dialog button");
+      // The native window can precede its button initialization. A preceding
+      // cancelled dialog may also still be closing. Wait within the same
+      // deadline instead of treating either transient state as a ready dialog.
+      if (
+        choices.length !== 1 ||
+        !enabled(choices[0].hwnd) ||
+        !visible(choices[0].hwnd)
+      ) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        continue;
+      }
       if (expectedText && !content.join("\n").includes(expectedText)) {
         // TaskDialog's DirectUI text need not expose Win32 window text. Query
         // accessibility on this exact native HWND, keeping the content check.
@@ -117,7 +133,7 @@ async function clickNativeDialog({
               if (error)
                 reject(
                   new Error(
-                    `Native dialog accessibility check failed: ${stderr}`,
+                    `Native dialog accessibility check failed: ${JSON.stringify({ code: error.code, killed: error.killed, signal: error.signal })} ${stderr}`,
                   ),
                 );
               else {
@@ -139,19 +155,32 @@ async function clickNativeDialog({
             "Native dialog accessibility receipt does not bind this test dialog",
           );
       }
-      const choices = buttons.filter((candidate) => candidate.label === button);
       if (
         ownerOf(candidates[0]) !== pid ||
         textOf(windowClass, candidates[0]) !== "#32770" ||
         textOf(windowText, candidates[0]) !== title ||
-        choices.length !== 1 ||
-        !enabled(choices[0].hwnd)
-      )
-        throw new Error(
-          "Native dialog button is missing, ambiguous or disabled",
-        );
+        !visible(candidates[0]) ||
+        ownerOf(choices[0].hwnd) !== pid ||
+        textOf(windowText, choices[0].hwnd).replaceAll("&", "") !== button ||
+        !enabled(choices[0].hwnd) ||
+        !visible(choices[0].hwnd)
+      ) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        continue;
+      }
       if (!post(choices[0].hwnd, 0x00f5, 0, 0))
         throw new Error("Native BM_CLICK post failed");
+      // Do not let the next same-title confirmation attach to this closing
+      // HWND. This is an observation of the actual modal, not a fake result.
+      while (
+        ownerOf(candidates[0]) === pid &&
+        visible(candidates[0]) &&
+        textOf(windowText, candidates[0]) === title &&
+        Date.now() < deadline
+      )
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      if (ownerOf(candidates[0]) === pid && visible(candidates[0]))
+        throw new Error("Native dialog did not close after the actual click");
       return {
         pid,
         title,

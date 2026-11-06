@@ -430,13 +430,20 @@ try {
   assert.equal(evidence.intent.executionState, "succeeded");
   assert.equal(evidence.intent.intent.runId, evidence.intent.receipt.run.id);
   // An immediate scheduled occurrence and the explicit check may both have
-  // valid reviews. Follow the exact proposal the UI prepared, not whichever
-  // review happened to be first in the earlier status snapshot.
+  // valid reviews. The proposal's current observation may advance again after
+  // preparation; the prepared intent retains the exact immutable source.
   const intentReviewId = evidence.intent.intent.reviewId;
-  assert.equal(intentReviewId, saved.proposal.reviewId);
+  assert.equal(evidence.intent.intent.proposalId, proposalId);
+  assert.equal(intentReviewId, saved.intent.intent.reviewId);
   evidence.intentSourceReview = await api("getRiskReview", {
     reviewId: intentReviewId,
   });
+  assert.equal(
+    evidence.intent.intent.reviewDigest,
+    require(
+      path.join(root, "packages/session-core/lib/business-object-contract.js"),
+    ).digestBusinessObjectContent(evidence.intentSourceReview),
+  );
   assert.ok(
     JSON.stringify(evidence.intentSourceReview).includes(
       "OVERDUE_INCOMPLETE_TASK",
