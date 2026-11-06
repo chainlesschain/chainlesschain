@@ -1,6 +1,6 @@
 {
   "schema": "chainlesschain.budget-egress-source-review/v1",
-  "reviewedAt": "2026-11-05",
+  "reviewedAt": "2026-11-06",
   "scope": ["packages/cli/src", "packages/cli/scripts"],
   "basis": "Implementation source inspection; byte-bound classifications only. Not an independent financial/OS admission decision.",
   "entries": [
@@ -143,28 +143,28 @@
       "rationale": "Explicit credential preflight performs only authenticated GET /api/v3/models for the fixed Ark endpoint, verifies the required model is listed, and records no credential. Retries up to three catalog network errors only; does not retry rejected authentication or model inference. Fresh/public, legacy budget retry and explicit unpublished runtime-repair selection validate committed package/evidence identity without dispatching generation. This classification is not task success or formal admission. Full140 selection delegates to the offline exact45 public-version/proof/model-catalog binding; legacy policies remain unchanged. Same catalog GET authentication site, no inference or new credential access. New offline generation-recovery declaration is checked against a complete prior45-sample report, exact original package manifest, actual bounded-summary response evidence, and carried-forward unknown-usage entries. Dedicated credential catalog authentication remains the same GET-only endpoint; this wrapper does not dispatch model calls."
     },
     {
-      "path": "packages/cli/src/assets/web-panel/assets/Artifacts-CE66rTTZ.js",
-      "digest": "sha256:268f3b543c8eb898a95f43d178a6d17f424c351e07ece419bcb9eac697e62968",
+      "path": "packages/cli/src/assets/web-panel/assets/Artifacts-BJJq2BDq.js",
+      "digest": "sha256:d71b16730015a2e31b80c437a113f0ea67ea2b977dbdd1a46cf21c44f36b02ac",
       "category": "SERVICE_API",
-      "rationale": "Production artifact panel downloads stored files with an authenticated same-origin GET to /api/artifacts/:id/download and delegates list, preview, removal and expiry cleanup through the shared CLI WebSocket service. This is artifact service traffic, not direct model inference; server-side authorization, storage effects and any downstream costs remain separate checks. 2026-11-03 independent rebuilt-asset review: after normalizing only eight-character build hashes in same-basename relative JavaScript/CSS resource references, this asset is byte-identical to the previously reviewed asset; network candidate calls and positions are unchanged. Review covers this asset, not referenced chunks or paid admission."
+      "rationale": "Production artifact panel downloads stored files with an authenticated same-origin GET to /api/artifacts/:id/download and delegates list, preview, removal and expiry cleanup through the shared CLI WebSocket service. This is artifact service traffic, not direct model inference; server-side authorization, storage effects and any downstream costs remain separate checks. 2026-11-06 rebuilt-source inspection: the published CLI .142 asset matched the previous reviewed digest; after normalizing only eight-character hashes in same-basename relative JavaScript/CSS resource references, the new asset is byte-identical. AST network candidates and their positions are unchanged. This covers this asset only and does not grant paid or runtime admission."
     },
     {
-      "path": "packages/cli/src/assets/web-panel/assets/MtcAudit-Cx7BR5sz.js",
-      "digest": "sha256:c01a9e11f8a7c83f19173ea954bcbdf8018569df3f9be81f75bde59b38cd5432",
+      "path": "packages/cli/src/assets/web-panel/assets/index-CzoKAiyT.js",
+      "digest": "sha256:4cdc07a75a76ff716c66d0d623bf95ed681d5b4d0458d44d541a8d40b893c54f",
       "category": "REMOTE_EXECUTION_CONTROL",
-      "rationale": "Production MTC audit panel delegates envelope queries, archive push/restore, governance, trust and automatic archive controls to desktop-host WebSocket topics. The flagged s.fetch call is the envelope composable method forwarding mtc.envelope.get, not global HTTP fetch. Delegated operations may cause storage or WebDAV/network effects; their authorization and costs are outside this byte-bound source classification. 2026-11-03 independent rebuilt-asset review: after normalizing only eight-character build hashes in same-basename relative JavaScript/CSS resource references, this asset is byte-identical to the previously reviewed asset; network candidate calls and positions are unchanged. Review covers this asset, not referenced chunks or paid admission."
+      "rationale": "Production application entry includes the modulepreload fetch polyfill and a configurable CLI gateway WebSocket carrying authentication, session creation, commands and model/chat requests. Conservative alias candidates M(...) also match UI render callbacks and are not additional WebSocket launches. Remote execution and provider costs require the serving host's own budget authority; source review does not attest that authority. 2026-11-06 rebuilt-source inspection: the published CLI .142 asset matched the previous reviewed digest; after normalizing only eight-character hashes in same-basename relative JavaScript/CSS resource references, the new asset is byte-identical. AST network candidates and their positions are unchanged. This covers this asset only and does not grant paid or runtime admission."
     },
     {
-      "path": "packages/cli/src/assets/web-panel/assets/RemoteSession-DM74lufU.js",
-      "digest": "sha256:a7d2d1265d82e21bd687a8d949434b821fa85544a1df268e13a7c17e54f63d27",
+      "path": "packages/cli/src/assets/web-panel/assets/MtcAudit-BY68jOZJ.js",
+      "digest": "sha256:a94a447c4e5a4800224470e5f5f35f6a38b9414f2cd8061205d6967923d61dd8",
       "category": "REMOTE_EXECUTION_CONTROL",
-      "rationale": "Production remote-session client opens WebSockets to the configured relay or paired direct host and sends authenticated or encrypted prompts, approvals and interruption controls. Conservative alias candidates also match local cryptographic constructors, interruption-result callbacks, option-label formatting and approval UI callbacks; the actual network constructors remain the relay and direct WebSocket launches. Encryption and command deduplication do not establish remote model budget containment or paid readiness. 2026-11-03 independent rebuilt-asset review: after normalizing only eight-character build hashes in same-basename relative JavaScript/CSS resource references, this asset is byte-identical to the previously reviewed asset; network candidate calls and positions are unchanged. Review covers this asset, not referenced chunks or paid admission."
+      "rationale": "Production MTC audit panel delegates envelope queries, archive push/restore, governance, trust and automatic archive controls to desktop-host WebSocket topics. The flagged s.fetch call is the envelope composable method forwarding mtc.envelope.get, not global HTTP fetch. Delegated operations may cause storage or WebDAV/network effects; their authorization and costs are outside this byte-bound source classification. 2026-11-06 rebuilt-source inspection: the published CLI .142 asset matched the previous reviewed digest; after normalizing only eight-character hashes in same-basename relative JavaScript/CSS resource references, the new asset is byte-identical. AST network candidates and their positions are unchanged. This covers this asset only and does not grant paid or runtime admission."
     },
     {
-      "path": "packages/cli/src/assets/web-panel/assets/index-Cs66y4oC.js",
-      "digest": "sha256:41af0078b1142dabc85cdd3fe2b22710d6e3631b3ce6ab18b11070071367691d",
+      "path": "packages/cli/src/assets/web-panel/assets/RemoteSession-CcYC4v3u.js",
+      "digest": "sha256:827b2047fbdfeaa69c88a065639c2d43d687cd3d8d92eef144aa0c18f02e6e96",
       "category": "REMOTE_EXECUTION_CONTROL",
-      "rationale": "Production application entry includes the modulepreload fetch polyfill and a configurable CLI gateway WebSocket carrying authentication, session creation, commands and model/chat requests. Conservative alias candidates M(...) also match UI render callbacks and are not additional WebSocket launches. Remote execution and provider costs require the serving host's own budget authority; source review does not attest that authority. 2026-11-03 independent rebuilt-asset review: after normalizing only eight-character build hashes in same-basename relative JavaScript/CSS resource references, this asset is byte-identical to the previously reviewed asset; network candidate calls and positions are unchanged. Review covers this asset, not referenced chunks or paid admission."
+      "rationale": "Production remote-session client opens WebSockets to the configured relay or paired direct host and sends authenticated or encrypted prompts, approvals and interruption controls. Conservative alias candidates also match local cryptographic constructors, interruption-result callbacks, option-label formatting and approval UI callbacks; the actual network constructors remain the relay and direct WebSocket launches. Encryption and command deduplication do not establish remote model budget containment or paid readiness. 2026-11-06 rebuilt-source inspection: the published CLI .142 asset matched the previous reviewed digest; after normalizing only eight-character hashes in same-basename relative JavaScript/CSS resource references, the new asset is byte-identical. AST network candidates and their positions are unchanged. This covers this asset only and does not grant paid or runtime admission."
     },
     {
       "path": "packages/cli/src/commands/agenda.js",
@@ -480,15 +480,15 @@
     },
     {
       "path": "packages/cli/src/lib/project-goal-connection.js",
-      "digest": "sha256:c70f158cbb656ffcfa86f6683b12f33102e5e439f4007b7aa851c68cdb2f0c2e",
+      "digest": "sha256:72be1f4d2e8bcfdca755ef4db3b593fbcef748aa9544d24bed4752861161ae58",
       "category": "LOCAL_IPC",
-      "rationale": "Reads a bounded owner-private descriptor and authenticates short-lived exact-loopback 127.0.0.1 HTTP with HMAC, nonce, descriptor identity and bounded response/deadline checks. Separate v4 events and v5 retained-history paths cannot inherit v1-v3 authority; the validated opaque after cursor is bound into the complete signed request path, and v5 error status/body into the response signature. The v3 descriptor still delegates pending-draft operations. Local desktop IPC only, not remote model egress or financial admission."
+      "rationale": "Owner-private, bounded descriptor reading still pins a literal 127.0.0.1 endpoint and rechecks file identity, expiry and descriptor content. Source inspection on 2026-11-06 adds a separately validated v6 task-creation descriptor alongside v3; v1-v5 grants do not gain creation authority. Delegation stays authenticated local desktop IPC, with no provider call or financial admission."
     },
     {
       "path": "packages/cli/src/lib/project-goal-draft-connection.js",
-      "digest": "sha256:eafe20d253a344f77f88b8c5c09889ef1e941234603e4ff1f685caef4c023d47",
+      "digest": "sha256:438e9965357c0b2e69ec294adc89430a95f0dd85eed9a7d957c369e7ee62d111",
       "category": "LOCAL_IPC",
-      "rationale": "Sends HMAC-authenticated, bounded and time-limited GET/POST requests to the desktop loopback goal-drafts endpoint. Reads and receipt/source POSTs are local IPC; enqueue POST persists a user-authorized pending draft, and a missing response after dispatch is reported as an unknown outcome. It does not invoke a provider."
+      "rationale": "Source inspection on 2026-11-06 confirms bounded 16 KiB/5-second HMAC-authenticated local GET/POST, with distinct v3 description and v6 creation domains and endpoint paths. Creation validates its own proposal and response schemas; grant/reference binding, nonce/status/body signatures and no retry after unknown dispatch remain enforced. POST saves a pending desktop draft, not an executed task. No model/provider transport or financial admission is introduced."
     },
     {
       "path": "packages/cli/src/lib/provider-stream.js",

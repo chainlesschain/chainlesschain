@@ -466,9 +466,8 @@ describe("buildChatHtml", () => {
 describe("resolveChatLlm — panel uses the user's cc config provider (bug fix)", () => {
   let resolveChatLlm;
   beforeAll(async () => {
-    ({ resolveChatLlm } = await import(
-      "../../../vscode-extension/src/chat/chat-events.js"
-    ));
+    ({ resolveChatLlm } =
+      await import("../../../vscode-extension/src/chat/chat-events.js"));
   });
 
   it("a non-empty panel override wins (provider + model); a DIFFERENT provider carries no config key/baseUrl", () => {
@@ -554,9 +553,8 @@ describe("mapAgentEvent — compaction (manual /compact result)", () => {
 });
 
 describe("buildSessionArgs (P1: model/provider settings)", async () => {
-  const { buildSessionArgs } = await import(
-    "../../../vscode-extension/src/chat/chat-events.js"
-  );
+  const { buildSessionArgs } =
+    await import("../../../vscode-extension/src/chat/chat-events.js");
   it("maps non-empty settings to CLI flags, skips blanks", () => {
     expect(
       buildSessionArgs({ provider: "volcengine", model: "doubao-x" }),
@@ -590,9 +588,8 @@ describe("buildSessionArgs (P1: model/provider settings)", async () => {
 });
 
 describe("buildSessionArgs resume (P1: session resume)", async () => {
-  const { buildSessionArgs } = await import(
-    "../../../vscode-extension/src/chat/chat-events.js"
-  );
+  const { buildSessionArgs } =
+    await import("../../../vscode-extension/src/chat/chat-events.js");
   it("adds --resume for a stored session id, skips blanks/null", () => {
     expect(buildSessionArgs({ resume: "chat-ws-1" })).toEqual([
       "--resume",
@@ -610,9 +607,8 @@ describe("buildSessionArgs resume (P1: session resume)", async () => {
 });
 
 describe("plan-mode UI plumbing (P1)", async () => {
-  const { mapAgentEvent: mapEvt, createTurnState: mkState } = await import(
-    "../../../vscode-extension/src/chat/chat-events.js"
-  );
+  const { mapAgentEvent: mapEvt, createTurnState: mkState } =
+    await import("../../../vscode-extension/src/chat/chat-events.js");
   it("maps plan_update to the plan card message", () => {
     const st = mkState();
     const m = mapEvt(
@@ -651,9 +647,8 @@ describe("plan-mode UI plumbing (P1)", async () => {
   });
 
   it("chat html carries the plan card + controls", async () => {
-    const { buildChatHtml: html } = await import(
-      "../../../vscode-extension/src/chat/chat-html.js"
-    );
+    const { buildChatHtml: html } =
+      await import("../../../vscode-extension/src/chat/chat-html.js");
     const page = html({ cspSource: "x:", nonce: "N" });
     expect(page).toContain('id="plan-toggle"');
     expect(page).toContain('id="planApprove"');
@@ -662,9 +657,8 @@ describe("plan-mode UI plumbing (P1)", async () => {
 });
 
 describe("approval routing plumbing (P1)", async () => {
-  const { mapAgentEvent: mapA, createTurnState: mkA } = await import(
-    "../../../vscode-extension/src/chat/chat-events.js"
-  );
+  const { mapAgentEvent: mapA, createTurnState: mkA } =
+    await import("../../../vscode-extension/src/chat/chat-events.js");
   it("maps approval_request and approval_resolved", () => {
     const st = mkA();
     expect(
@@ -706,9 +700,8 @@ describe("approval routing plumbing (P1)", async () => {
   });
 
   it("chat html renders approval cards and the panel forwards verdicts", async () => {
-    const { buildChatHtml: htmlA } = await import(
-      "../../../vscode-extension/src/chat/chat-html.js"
-    );
+    const { buildChatHtml: htmlA } =
+      await import("../../../vscode-extension/src/chat/chat-html.js");
     const page = htmlA({ cspSource: "x:", nonce: "N" });
     expect(page).toContain('case "approval"');
     expect(page).toContain('case "approval_done"');
@@ -719,9 +712,8 @@ describe("approval routing plumbing (P1)", async () => {
 
 describe("panel slash commands (P1)", async () => {
   it("the webview maps /commands to the existing controls", async () => {
-    const { buildChatHtml: htmlS } = await import(
-      "../../../vscode-extension/src/chat/chat-html.js"
-    );
+    const { buildChatHtml: htmlS } =
+      await import("../../../vscode-extension/src/chat/chat-html.js");
     const page = htmlS({ cspSource: "x:", nonce: "N" });
     for (const cmd of [
       '"/new"',
@@ -736,9 +728,8 @@ describe("panel slash commands (P1)", async () => {
   });
 
   it("the Send button accepts the highlighted slash suggestion before routing", async () => {
-    const { buildChatHtml: htmlS } = await import(
-      "../../../vscode-extension/src/chat/chat-html.js"
-    );
+    const { buildChatHtml: htmlS } =
+      await import("../../../vscode-extension/src/chat/chat-html.js");
     const page = htmlS({ cspSource: "x:", nonce: "N" });
     const sendStart = page.indexOf("function send()");
     const sendEnd = page.indexOf(
@@ -759,9 +750,8 @@ describe("panel slash commands (P1)", async () => {
 });
 
 describe("session picker (P1)", async () => {
-  const { parseSessionList, listSessions } = await import(
-    "../../../vscode-extension/src/chat/session-list.js"
-  );
+  const { parseSessionList, listSessions } =
+    await import("../../../vscode-extension/src/chat/session-list.js");
   it("parses cc session list --json tolerantly", () => {
     const out = JSON.stringify([
       { id: "s1", title: "fix bug", updated_at: "2026-06-11", _store: "jsonl" },
@@ -796,9 +786,8 @@ describe("session picker (P1)", async () => {
   });
 
   it("webview wires /sessions and /resume to the picker", async () => {
-    const { buildChatHtml: htmlP } = await import(
-      "../../../vscode-extension/src/chat/chat-html.js"
-    );
+    const { buildChatHtml: htmlP } =
+      await import("../../../vscode-extension/src/chat/chat-html.js");
     const page = htmlP({ cspSource: "x:", nonce: "N" });
     expect(page).toContain('"/sessions"');
     expect(page).toContain('"/resume"');
@@ -812,9 +801,8 @@ describe("webview script integrity (regression: template-literal escapes)", asyn
     // literal became a REAL newline in the generated script, breaking a
     // string literal → load-time SyntaxError → Send did nothing. Substring
     // smoke tests can't catch that; parsing the extracted script does.
-    const { buildChatHtml: htmlI } = await import(
-      "../../../vscode-extension/src/chat/chat-html.js"
-    );
+    const { buildChatHtml: htmlI } =
+      await import("../../../vscode-extension/src/chat/chat-html.js");
     const page = htmlI({ cspSource: "x:", nonce: "N" });
     const m = /<script nonce="N">([\s\S]*?)<\/script>/.exec(page);
     expect(m).toBeTruthy();
@@ -828,9 +816,8 @@ describe("IME composition guard (CJK Esc/Enter regression)", async () => {
     // Esc to close the IME candidate window also cancelled the running turn.
     // We guard the document-level Esc→interrupt with a composition flag +
     // event.isComposing/keyCode 229; Enter confirming a candidate must not send.
-    const { buildChatHtml: htmlIme } = await import(
-      "../../../vscode-extension/src/chat/chat-html.js"
-    );
+    const { buildChatHtml: htmlIme } =
+      await import("../../../vscode-extension/src/chat/chat-html.js");
     const page = htmlIme({ cspSource: "x:", nonce: "N" });
     // The page has several nonce'd <script> blocks (md-lite, at-mention, …);
     // the handler markers live only in the main one — assert against the page.
@@ -873,10 +860,17 @@ describe("LLM config wizard plumbing (onboarding)", async () => {
       "gemini",
       "mistral",
       "minimax",
+      "custom",
     ]) {
       expect(ids).toContain(id);
     }
     for (const p of llmCfg.PROVIDER_PRESETS) {
+      if (p.id === "custom") {
+        expect(p.baseUrl).toBe("");
+        expect(p.defaultModel).toBe("");
+        expect(p.needsKey).toBe(false);
+        continue;
+      }
       expect(p.baseUrl).toMatch(/^https?:\/\//);
       expect(p.defaultModel.length).toBeGreaterThan(0);
     }
@@ -935,9 +929,8 @@ describe("LLM config wizard plumbing (onboarding)", async () => {
   });
 
   it("suggestVisionModel stays in sync with the CLI's DEFAULT_VISION_MODEL (drift guard)", async () => {
-    const { DEFAULT_VISION_MODEL } = await import(
-      "../../src/lib/image-input.js"
-    );
+    const { DEFAULT_VISION_MODEL } =
+      await import("../../src/lib/image-input.js");
     expect(llmCfg.suggestVisionModel("volcengine")).toBe(DEFAULT_VISION_MODEL);
   });
 
@@ -1215,9 +1208,8 @@ describe("LLM config wizard plumbing (onboarding)", async () => {
   });
 
   it("webview renders the setup card and wires the configure button", async () => {
-    const { buildChatHtml: htmlC } = await import(
-      "../../../vscode-extension/src/chat/chat-html.js"
-    );
+    const { buildChatHtml: htmlC } =
+      await import("../../../vscode-extension/src/chat/chat-html.js");
     const page = htmlC({ cspSource: "x:", nonce: "N" });
     expect(page).toContain('case "setup"');
     expect(page).toContain("configureLlm");

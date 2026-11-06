@@ -291,7 +291,7 @@ describe("standalone CLI goal extension host", () => {
       ).rejects.toThrow(/GOAL_RECORD_CORRUPT/);
     },
   );
-  it("does not interpret risk/proposal declarations as standalone CLI authority", async () => {
+  it("requires new consent before admitting an added creation declaration in standalone CLI", async () => {
     allow();
     const file = path.join(nameDir, sample.version, "plugin.json");
     const expanded = structuredClone(sample);
@@ -301,7 +301,7 @@ describe("standalone CLI goal extension host", () => {
     const result = await readCliGoalExtensionPanels(goal.id, options);
     expect(result.panels).toEqual([]);
     expect(result.dropped).toContainEqual(
-      expect.objectContaining({ reason: "unsupported_capabilities" }),
+      expect.objectContaining({ reason: "consent_required" }),
     );
   });
   it("serves the actual goal command as JSON and strips terminal escape sequences in text output", async () => {

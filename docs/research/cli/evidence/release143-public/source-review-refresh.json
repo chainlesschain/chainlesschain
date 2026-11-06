@@ -1,0 +1,73 @@
+{
+  "basis": "Published .142 archive matches previously reviewed byte digests; locked-source local build matches CI build hash c2afd0e608be. This source inspection does not grant financial admission.",
+  "resources": [
+    {
+      "oldPath": "packages/cli/src/assets/web-panel/assets/Artifacts-CE66rTTZ.js",
+      "newPath": "packages/cli/src/assets/web-panel/assets/Artifacts-BJJq2BDq.js",
+      "oldDigest": "sha256:268f3b543c8eb898a95f43d178a6d17f424c351e07ece419bcb9eac697e62968",
+      "newDigest": "sha256:d71b16730015a2e31b80c437a113f0ea67ea2b977dbdd1a46cf21c44f36b02ac",
+      "category": "SERVICE_API",
+      "sameAfterResourceHashNormalization": true,
+      "oldNormalizedDigest": "sha256:77acd645866fb6b1f41c2e1cabd76b0a4dc2e89d958722c71f90245ffb0feb1d",
+      "newNormalizedDigest": "sha256:77acd645866fb6b1f41c2e1cabd76b0a4dc2e89d958722c71f90245ffb0feb1d",
+      "newBytes": 7580,
+      "networkCandidatesUnchanged": true,
+      "networkCandidateCount": 1
+    },
+    {
+      "oldPath": "packages/cli/src/assets/web-panel/assets/MtcAudit-Cx7BR5sz.js",
+      "newPath": "packages/cli/src/assets/web-panel/assets/MtcAudit-BY68jOZJ.js",
+      "oldDigest": "sha256:c01a9e11f8a7c83f19173ea954bcbdf8018569df3f9be81f75bde59b38cd5432",
+      "newDigest": "sha256:a94a447c4e5a4800224470e5f5f35f6a38b9414f2cd8061205d6967923d61dd8",
+      "category": "REMOTE_EXECUTION_CONTROL",
+      "sameAfterResourceHashNormalization": true,
+      "oldNormalizedDigest": "sha256:ecf31d5d38d286fb5dea6c5ae4e4418d4e8fd82a659ea0292cb868caa17fa1e2",
+      "newNormalizedDigest": "sha256:ecf31d5d38d286fb5dea6c5ae4e4418d4e8fd82a659ea0292cb868caa17fa1e2",
+      "newBytes": 58877,
+      "networkCandidatesUnchanged": true,
+      "networkCandidateCount": 1
+    },
+    {
+      "oldPath": "packages/cli/src/assets/web-panel/assets/RemoteSession-DM74lufU.js",
+      "newPath": "packages/cli/src/assets/web-panel/assets/RemoteSession-CcYC4v3u.js",
+      "oldDigest": "sha256:a7d2d1265d82e21bd687a8d949434b821fa85544a1df268e13a7c17e54f63d27",
+      "newDigest": "sha256:827b2047fbdfeaa69c88a065639c2d43d687cd3d8d92eef144aa0c18f02e6e96",
+      "category": "REMOTE_EXECUTION_CONTROL",
+      "sameAfterResourceHashNormalization": true,
+      "oldNormalizedDigest": "sha256:a9d0eb08257405c20a4c8a91c2d4e24549201803e4fed2e464bb095fa218f48d",
+      "newNormalizedDigest": "sha256:a9d0eb08257405c20a4c8a91c2d4e24549201803e4fed2e464bb095fa218f48d",
+      "newBytes": 70538,
+      "networkCandidatesUnchanged": true,
+      "networkCandidateCount": 24
+    },
+    {
+      "oldPath": "packages/cli/src/assets/web-panel/assets/index-Cs66y4oC.js",
+      "newPath": "packages/cli/src/assets/web-panel/assets/index-CzoKAiyT.js",
+      "oldDigest": "sha256:41af0078b1142dabc85cdd3fe2b22710d6e3631b3ce6ab18b11070071367691d",
+      "newDigest": "sha256:4cdc07a75a76ff716c66d0d623bf95ed681d5b4d0458d44d541a8d40b893c54f",
+      "category": "REMOTE_EXECUTION_CONTROL",
+      "sameAfterResourceHashNormalization": true,
+      "oldNormalizedDigest": "sha256:6e06e4a005b4d23f65174842943e632186d41fdbe113a8421f2b8a36f85cb357",
+      "newNormalizedDigest": "sha256:6e06e4a005b4d23f65174842943e632186d41fdbe113a8421f2b8a36f85cb357",
+      "newBytes": 418060,
+      "networkCandidatesUnchanged": true,
+      "networkCandidateCount": 4
+    }
+  ],
+  "localIpcReviews": [
+    {
+      "path": "packages/cli/src/lib/project-goal-connection.js",
+      "previousDigest": "sha256:c70f158cbb656ffcfa86f6683b12f33102e5e439f4007b7aa851c68cdb2f0c2e",
+      "newDigest": "sha256:72be1f4d2e8bcfdca755ef4db3b593fbcef748aa9544d24bed4752861161ae58",
+      "category": "LOCAL_IPC",
+      "rationale": "Owner-private, bounded descriptor reading still pins a literal 127.0.0.1 endpoint and rechecks file identity, expiry and descriptor content. Source inspection on 2026-11-06 adds a separately validated v6 task-creation descriptor alongside v3; v1-v5 grants do not gain creation authority. Delegation stays authenticated local desktop IPC, with no provider call or financial admission."
+    },
+    {
+      "path": "packages/cli/src/lib/project-goal-draft-connection.js",
+      "previousDigest": "sha256:eafe20d253a344f77f88b8c5c09889ef1e941234603e4ff1f685caef4c023d47",
+      "newDigest": "sha256:438e9965357c0b2e69ec294adc89430a95f0dd85eed9a7d957c369e7ee62d111",
+      "category": "LOCAL_IPC",
+      "rationale": "Source inspection on 2026-11-06 confirms bounded 16 KiB/5-second HMAC-authenticated local GET/POST, with distinct v3 description and v6 creation domains and endpoint paths. Creation validates its own proposal and response schemas; grant/reference binding, nonce/status/body signatures and no retry after unknown dispatch remain enforced. POST saves a pending desktop draft, not an executed task. No model/provider transport or financial admission is introduced."
+    }
+  ]
+}
