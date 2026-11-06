@@ -290,7 +290,7 @@
     "reviewedSourceCommit": "d2070ce914af8d675191e3492e0ce7db650c79c3",
     "releaseSourceCommit": "3fa3a4b258bbcb60b23b4298cec375661ad6f410",
     "checkedAt": "2026-11-06",
-    "evidenceUrl": "https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release143-public/documentation-review.json",
+    "evidenceUrl": "https://github.com/chainlesschain/chainlesschain/blob/b56683ff17c796929236271f0ea1497609d5a339/docs/research/cli/evidence/release143-public/documentation-review.json",
     "uncommittedRetestsIncluded": false,
     "additionalModelTaskRetestsRun": false
   },
