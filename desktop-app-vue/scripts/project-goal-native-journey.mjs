@@ -272,35 +272,40 @@ try {
       ).getDatabase();
       const wrapper = manager.getDatabase();
       const db = wrapper.db;
-      const relative = path.relative(profile, manager.dbPath);
+      const fs = require("node:fs");
+      if (!db?.open || typeof db.name !== "string")
+        throw new Error("Native fixture database is not open");
+      const nativePath = fs.realpathSync.native(db.name);
+      const relative = path.relative(profile, nativePath);
       if (
         !relative ||
         relative.startsWith("..") ||
         path.isAbsolute(relative) ||
-        !db?.open
+        fs.realpathSync.native(wrapper.dbPath) !== nativePath
       )
         throw new Error("Fixture DB is not the owned open temporary native DB");
       const owner = db
         .prepare("SELECT user_id FROM projects WHERE id=?")
         .get(projectId);
       if (owner?.user_id !== did) throw new Error("Fixture owner differs");
-      const fs = require("node:fs");
       const Driver = require("better-sqlite3-multiple-ciphers");
       let withoutKey,
         noKeyReadRejected = false;
       try {
-        withoutKey = new Driver(manager.dbPath, {
+        withoutKey = new Driver(nativePath, {
           readonly: true,
           fileMustExist: true,
         });
         withoutKey.prepare("SELECT count(*) FROM sqlite_master").get();
-      } catch {
+      } catch (error) {
+        if (!["SQLITE_NOTADB", "SQLITE_CORRUPT"].includes(error.code))
+          throw error;
         noKeyReadRejected = true;
       } finally {
         withoutKey?.close();
       }
       const plaintextHeader = fs
-        .readFileSync(manager.dbPath)
+        .readFileSync(nativePath)
         .subarray(0, 16)
         .equals(Buffer.from("SQLite format 3\0"));
       if (plaintextHeader || !noKeyReadRejected)
