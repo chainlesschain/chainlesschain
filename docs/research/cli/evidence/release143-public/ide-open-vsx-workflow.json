@@ -1,0 +1,192 @@
+{
+  "checkedAt": "2026-11-06T15:18:36.9521648Z",
+  "runId": 42232718846,
+  "workflow": "https://github.com/chainlesschain/chainlesschain/actions/runs/42232718846",
+  "source": "3fa3a4b258bbcb60b23b4298cec375661ad6f410",
+  "ref": "ide-vscode-v0.37.179",
+  "conclusion": "success",
+  "attempt": 1,
+  "jobs": [
+    {
+      "name": "Public IDE capability manifest (drift gate)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42232718846/job/127942389222"
+    },
+    {
+      "name": "VS Code extension (immutable candidate)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42232718846/job/127942678001"
+    },
+    {
+      "name": "Browser evidence (linux)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42232718846/job/127942678074"
+    },
+    {
+      "name": "Browser evidence (windows)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42232718846/job/127942678077"
+    },
+    {
+      "name": "Browser evidence (macos)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42232718846/job/127942678270"
+    },
+    {
+      "name": "JetBrains real host (${{ matrix.os }}, ${{ matrix.ide.version }})",
+      "status": "completed",
+      "conclusion": "skipped",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42232718846/job/127942682117"
+    },
+    {
+      "name": "VS Code Remote-SSH container (scoped trusted cell)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42232718846/job/127943110088"
+    },
+    {
+      "name": "VS Code extension (Windows host gate)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42232718846/job/127943110109"
+    },
+    {
+      "name": "VS Code extension (macOS host gate)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42232718846/job/127943110182"
+    },
+    {
+      "name": "Browser evidence (three-OS required aggregate)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42232718846/job/127947542130"
+    },
+    {
+      "name": "IDE roadmap evidence (trusted scoped aggregate)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42232718846/job/127950394976"
+    },
+    {
+      "name": "JetBrains plugin (build + publish)",
+      "status": "completed",
+      "conclusion": "skipped",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42232718846/job/127952207014"
+    },
+    {
+      "name": "JetBrains Marketplace (post-publish verification)",
+      "status": "completed",
+      "conclusion": "skipped",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42232718846/job/127952207986"
+    },
+    {
+      "name": "VS Code extension (Linux host gate + publish)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42232718846/job/127966675837"
+    }
+  ],
+  "publishSteps": [
+    {
+      "name": "Set up job",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run actions/checkout@v5",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run actions/setup-node@v5",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Download immutable .vsix candidate",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Verify immutable candidate manifest before Linux host gates",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Extension Host multi-root + multi-window journey (Linux stable)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Extension Host multi-root + multi-window journey (Linux minimum 1.85.2)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Upload Linux host journey evidence",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Verify immutable candidate manifest before publishing",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Require published CLI before VS Code release",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Preflight Open VSX credential",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Preflight VS Code Marketplace credential",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "Publish to Open VSX",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Verify Open VSX listing",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Publish to VS Code Marketplace",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "Verify VS Code Marketplace listing and exact VSIX",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "Post Run actions/setup-node@v5",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Post Run actions/checkout@v5",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Complete job",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ]
+}

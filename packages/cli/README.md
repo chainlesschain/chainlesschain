@@ -4,9 +4,10 @@ Command-line interface for installing, configuring, and managing [ChainlessChain
 
 ## CLI 0.166.143 / local compute and controlled task-creation drafts
 
-Session Core **0.3.26** and CLI **0.166.143** are verified public. Paired Open VSX
-**0.37.179** and JetBrains **0.4.196** recommend CLI **0.166.143**; their publication
-is in progress, with public availability tracked in the release record below.
+Session Core **0.3.26**, CLI **0.166.143** and Open VSX **0.37.179** are verified
+public. JetBrains **0.4.196** is uploaded; public listing verification is pending.
+Both IDEs recommend CLI **0.166.143**. The public VSIX matches the official
+artifact; channel availability is tracked in the release record below.
 Both IDEs add a Local compute / OpenAI
 compatible option for LEXDATA, vLLM and SGLang, with explicit endpoint/model,
 optional platform key and HTTP consent. Atomic configuration and first-run setup

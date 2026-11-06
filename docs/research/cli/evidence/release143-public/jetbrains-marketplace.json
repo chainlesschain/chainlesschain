@@ -1,0 +1,17 @@
+{
+  "checkedAt": "2026-11-06T15:13:27.0673345Z",
+  "releaseSource": "3fa3a4b258bbcb60b23b4298cec375661ad6f410",
+  "workflow": "https://github.com/chainlesschain/chainlesschain/actions/runs/42232726964",
+  "recommendedCliVersion": "0.166.143",
+  "marketplace": {
+    "channel": "jetbrains",
+    "endpoint": "https://plugins.jetbrains.com/api/plugins/32208/updates",
+    "status": "pending",
+    "version": "0.4.196",
+    "approve": null,
+    "listed": null,
+    "hidden": null,
+    "reason": "version-not-visible",
+    "attempts": 1
+  }
+}
