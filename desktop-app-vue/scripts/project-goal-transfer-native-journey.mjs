@@ -299,7 +299,9 @@ try {
       locator.click(),
     ]);
     evidence.native.push(picked, confirmed);
-    await expect(locator).toBeEnabled(); // Wait until the real IPC flow settled.
+    await expect(
+      panel.locator('[data-testid="goal-transfer-target"]'),
+    ).toBeEnabled(); // Also settles a refused operation whose record row was cleared.
   }
   stage("real-password-login-and-owned-project");
   const source = cli([
@@ -502,12 +504,147 @@ try {
   );
   assert.equal((await transfers())[0].state, "cancelled");
   assert.equal((await goals()).length, 0);
-  evidence.finalGoalCount = 0;
+  evidence.roundTripGoalCount = 0;
   await window.screenshot({
     path: path.join(output, "restored.png"),
     fullPage: true,
   });
   stage("real-cli-restores-original-bytes-and-native-history-remains");
+  const reexportFile = path.join(profile, "cancellation-reexport.json");
+  await nativeFlow(
+    row.locator('[data-testid="goal-transfer-cancel"]'),
+    "保存 CLI 目标回退回执",
+    reexportFile,
+    "save",
+    "作废目标移交",
+    "作废并导出回退回执",
+    target.id,
+  );
+  assert.deepEqual(
+    fs.readFileSync(reexportFile),
+    fs.readFileSync(cancellationFile),
+  );
+  evidence.reexportedCancellationSha256 = hash(fs.readFileSync(reexportFile));
+  assert.equal(hash(fs.readFileSync(sourceFile)), evidence.originalSha256);
+  stage("native-reexports-the-same-durable-signed-receipt");
+
+  // A second independent synthetic source exercises refusal after real UI
+  // revision. It intentionally remains frozen/imported in the temporary profile.
+  const guardedSource = cli([
+    "goal",
+    "set",
+    "DMM changed target must not roll back",
+    "--json",
+  ]);
+  const guardedSourceFile = path.join(
+    cliHome,
+    "goals",
+    guardedSource.id + ".json",
+  );
+  const guardedTargetFile = path.join(profile, "guarded-target.json");
+  const guardedTransferFile = path.join(profile, "guarded-transfer.json");
+  const refusedReceiptFile = path.join(
+    profile,
+    "must-not-exist-cancellation.json",
+  );
+  await nativeFlow(
+    panel.locator('[data-testid="goal-transfer-target"]'),
+    "导出 CLI 目标导入凭据",
+    guardedTargetFile,
+    "save",
+    "准备 CLI 目标移交",
+    "导出导入凭据",
+    project.id,
+  );
+  const guardedTarget = JSON.parse(fs.readFileSync(guardedTargetFile, "utf8"));
+  cli([
+    "goal",
+    "transfer-to-project",
+    guardedSource.id,
+    "--target",
+    guardedTargetFile,
+    "--output",
+    guardedTransferFile,
+    "--revision",
+    String(guardedSource.revision),
+    "--confirm-transfer",
+    "--json",
+  ]);
+  await nativeFlow(
+    panel.locator('[data-testid="goal-transfer-import"]'),
+    "选择 CLI 目标移交文件",
+    guardedTransferFile,
+    "open",
+    "导入 CLI 目标",
+    "导入并保存映射与备份",
+    guardedSource.objective,
+  );
+  const guardedBefore = (await transfers()).find(
+    (item) => item.target.id === guardedTarget.id,
+  );
+  const guardedArticle = window.locator(
+    `[data-goal-id="${guardedBefore.goalRef.id}"]`,
+  );
+  await guardedArticle.locator('[data-testid="resume-goal"]').click();
+  await expect
+    .poll(
+      async () =>
+        (await api("readGoal", { id: guardedBefore.goalRef.id })).status,
+    )
+    .toBe("active");
+  const revised = await api("readGoal", { id: guardedBefore.goalRef.id });
+  assert.ok(revised.revision > 1);
+  assert.deepEqual(revised.allowedActionTypes, []);
+  const guardedRow = panel.locator("li").filter({ hasText: guardedTarget.id });
+  await nativeFlow(
+    guardedRow.locator('[data-testid="goal-transfer-cancel"]'),
+    "保存 CLI 目标回退回执",
+    refusedReceiptFile,
+    "save",
+    "作废目标移交",
+    "作废并导出回退回执",
+    guardedTarget.id,
+  );
+  await expect(panel).toContainText("操作结果尚未核实");
+  const errorCode = "GOAL_TRANSFER_ROLLBACK_HAS_CHANGES";
+  await expect
+    .poll(() =>
+      fs
+        .readFileSync(path.join(profile, "application.log"), "utf8")
+        .includes(errorCode),
+    )
+    .toBe(true);
+  assert.equal(fs.existsSync(refusedReceiptFile), false);
+  assert.equal(fs.existsSync(guardedSourceFile), false);
+  assert.match(
+    cli(["goal", "progress", guardedSource.id, "--pct", "1"], 1),
+    /GOAL_TRANSFER_FROZEN/,
+  );
+  const guardedAfter = (await transfers()).find(
+    (item) => item.target.id === guardedTarget.id,
+  );
+  assert.deepEqual(guardedAfter, guardedBefore);
+  assert.deepEqual(await api("readGoal", { id: revised.id }), revised);
+  evidence.changedTargetRefusal = {
+    sourceId: guardedSource.id,
+    target: guardedTarget,
+    before: guardedBefore,
+    after: guardedAfter,
+    revised,
+    errorCode,
+    nativeConfirmationAttempted: true,
+    cancellationFileAbsent: true,
+    sourceStillFrozen: true,
+  };
+  await panel.locator('[data-testid="goal-transfer-refresh"]').click();
+  await expect(panel).toContainText(guardedTarget.id);
+  evidence.finalGoalCount = (await goals()).length;
+  assert.equal(evidence.finalGoalCount, 1);
+  await window.screenshot({
+    path: path.join(output, "rollback-refused.png"),
+    fullPage: true,
+  });
+  stage("actual-ui-revision-prevents-rollback-and-source-stays-frozen");
   evidence.status = "passed";
 } catch (error) {
   evidence.status = "failed";
