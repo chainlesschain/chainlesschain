@@ -145,3 +145,43 @@ changed the cloud build or runtime release identities.
 
 The evidence follow-up commit does not replace the deployed source above or
 the immutable npm/IDE source `3fa3a4b258bbcb60b23b4298cec375661ad6f410`.
+
+## Current source-progress follow-up — 2026-11-07
+
+During the documentation update, the separate goal-transfer branch added
+implementation `7b5376091a` and report commit
+`a2e7f17a03df38bd8e97a8a977351f37dd5319c3` in PR #539. The guides, READMEs and
+Chinese/English website now describe this as **unreleased source**, with
+matching-branch build requirements. Public CLI .143, Session Core .26 and
+product .145 do not acquire the new handoff APIs. The source's 49-file/790-pass
+Windows report is attributed to that branch; this documentation task did not
+rerun its runtime suite, perform a transfer or call a model.
+
+The [source-only design](../../../../design/cli-goal-transfer-source-2026-11-07.md)
+explains exact-byte backup/freeze, paused native imports, durable cancellation,
+signed restoration and refusal to overwrite new business data. Both sites'
+navigation and the existing user upgrade guide link to this separate scope.
+
+The current deployment was built at
+`bbd4e713eb98c2043b927b7f57f17ffb1ae99549` by
+[run 42253189586, attempt 1](https://github.com/chainlesschain/chainlesschain/actions/runs/42253189586),
+with all three jobs successful:
+
+| Site                    | HTML pages | Build files |
+| ----------------------- | ---------: | ----------: |
+| User documentation      |        679 |        2064 |
+| Design documentation    |        298 |         920 |
+| Chinese/English website |         20 |          45 |
+
+Deployment `20261106-170040-bbd4e713eb-docs` completed using the same verified
+cloud/transport archive checks, staging, retained assets and rollback procedure.
+All **3029** build-owned files and the three backups passed server checks.
+Eleven public HTML samples, six build-owned CSS/JS samples and ordinary
+homepages matched the exact build; the new handoff page was checked on both
+documentation hosts. All three public source markers identify the commit above.
+
+See the [current public readback](site-deployment-2026-11-07-transfer.json) and
+[current server receipt](site-server-files-2026-11-07-transfer.json). The earlier
+52767 deployment proof is retained as history. Runtime release identity remains
+`3fa3a4b258bbcb60b23b4298cec375661ad6f410`; this evidence-only follow-up does
+not change the deployed build commit.
