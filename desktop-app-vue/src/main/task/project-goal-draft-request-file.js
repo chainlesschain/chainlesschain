@@ -2,7 +2,7 @@
 const fs = require("node:fs");
 const {
   MAX_REQUEST_BYTES,
-  validateGoalDraftRequest,
+  validateGoalDraftImportRequest,
 } = require("@chainlesschain/session-core/goal-draft-request-contract");
 function readBoundedGoalJsonFile(file, maxBytes, validator) {
   const before = fs.lstatSync(file);
@@ -50,15 +50,18 @@ function readGoalDraftRequestFile(file) {
   return readBoundedGoalJsonFile(
     file,
     MAX_REQUEST_BYTES,
-    validateGoalDraftRequest,
+    validateGoalDraftImportRequest,
   );
 }
-function readGoalDraftAccessFile(file) {
+function readGoalDraftAccessFile(file, creation = false) {
   return readBoundedGoalJsonFile(
     file,
     4096,
-    require("@chainlesschain/session-core/goal-draft-connection-contract")
-      .validateGoalDraftAccess,
+    creation
+      ? require("@chainlesschain/session-core/goal-draft-connection-contract")
+          .validateGoalCreateDraftAccess
+      : require("@chainlesschain/session-core/goal-draft-connection-contract")
+          .validateGoalDraftAccess,
   );
 }
 module.exports = { readGoalDraftRequestFile, readGoalDraftAccessFile };

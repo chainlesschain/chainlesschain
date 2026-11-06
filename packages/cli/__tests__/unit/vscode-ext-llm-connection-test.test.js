@@ -9,6 +9,7 @@ const {
 } = require("../../../vscode-extension/src/chat/chat-view.js");
 const {
   openLlmConfigPanel,
+  validateAnswers,
 } = require("../../../vscode-extension/src/ui/llm-config-panel.js");
 
 describe("LLM connection test process failures", () => {
@@ -134,6 +135,47 @@ describe("configuration panel tests the chat CLI", () => {
     expect(
       harness.messages.some((message) => message.text?.includes("连接成功")),
     ).toBe(true);
+  });
+
+  it("saves a keyless LEXDATA connection under custom identity and confirms its readback", async () => {
+    const answers = {
+      provider: "custom",
+      model: "glm5.3-flash-tensorfold",
+      baseUrl: "http://192.168.31.79:8889/v1",
+      apiKey: "",
+      visionModel: "",
+      allowHttp: true,
+    };
+    expect(validateAnswers(answers, null)).toEqual(answers);
+    expect(() =>
+      validateAnswers({ ...answers, allowHttp: false }, null),
+    ).toThrow("HTTP");
+    const api = {
+      PROVIDER_PRESETS: llm.PROVIDER_PRESETS,
+      getConfiguredProvider: async () => answers.provider,
+      getConfiguredModel: async () => answers.model,
+      getConfiguredBaseUrl: async () => answers.baseUrl,
+      getConfiguredVisionModel: async () => "",
+      hasConfiguredApiKey: async () => false,
+      applyLlmConnection: vi.fn(async () => ({ ok: true })),
+    };
+    const onConfigured = vi.fn();
+    const harness = panelHarness({ api, onConfigured });
+    await harness.receive({ type: "ready" });
+    await harness.receive({ type: "save", answers });
+    expect(api.applyLlmConnection).toHaveBeenCalledWith(
+      expect.objectContaining({ answers }),
+    );
+    expect(onConfigured).toHaveBeenCalledOnce();
+    expect(harness.messages.some((m) => m.kind === "success")).toBe(true);
+    await harness.receive({
+      type: "save",
+      answers: { ...answers, apiKey: "new-local-key" },
+    });
+    expect(onConfigured).toHaveBeenCalledTimes(1);
+    expect(harness.messages.some((m) => m.text?.includes("回读结果"))).toBe(
+      true,
+    );
   });
 
   it("tracks changes to the explicit chat CLI path after activation", async () => {

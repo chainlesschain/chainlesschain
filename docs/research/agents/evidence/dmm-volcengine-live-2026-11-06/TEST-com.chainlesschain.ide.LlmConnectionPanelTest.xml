@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.LlmConnectionPanelTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-11-06T02:09:19" hostname="DESKTOP-MTMV2RE" time="1.388">
+  <properties/>
+  <testcase name="destinationChangesRequireANewKeyAndBlankVisionIsPreserved()" classname="com.chainlesschain.ide.LlmConnectionPanelTest" time="1.228"/>
+  <testcase name="loadsSavedValuesWithoutPuttingCredentialsInThePasswordField()" classname="com.chainlesschain.ide.LlmConnectionPanelTest" time="0.024"/>
+  <testcase name="localComputeHasItsOwnProviderAndOptionalSecret()" classname="com.chainlesschain.ide.LlmConnectionPanelTest" time="0.031"/>
+  <testcase name="providerIdentityAndCredentialsSurviveSavedRelayLoad()" classname="com.chainlesschain.ide.LlmConnectionPanelTest" time="0.047"/>
+  <testcase name="sharedRecommendationsNeverReplaceSavedGatewayAliasesOnLoad()" classname="com.chainlesschain.ide.LlmConnectionPanelTest" time="0.026"/>
+  <testcase name="customRelaySupportsProtocolSelectionAndArbitraryModelAliases()" classname="com.chainlesschain.ide.LlmConnectionPanelTest" time="0.027"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

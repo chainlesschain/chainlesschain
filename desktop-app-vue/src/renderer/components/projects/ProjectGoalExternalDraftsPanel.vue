@@ -21,6 +21,13 @@
         {{ entry.enabled ? "已授权" : "已撤权" }}；已保存
         {{ entry.savedCount }} 份；代次 {{ entry.epoch }}
       </p>
+      <p>
+        {{
+          entry.type === "task.create"
+            ? "创建任务提议专用授权"
+            : "任务说明提议专用授权"
+        }}
+      </p>
       <button
         :disabled="busy || !entry.enabled"
         data-testid="read-external-grant"
@@ -63,6 +70,9 @@
       </button>
     </div>
     <div v-if="selected" data-testid="external-draft-body">
+      <p v-if="selected.proposal.type === 'task.create'">
+        待创建的任务类型：{{ selected.proposal.taskType }}
+      </p>
       <pre>{{ selected.proposal.description }}</pre>
       <button
         :disabled="busy || goal.status !== 'active'"
@@ -90,6 +100,7 @@ type Grant = {
   enabled: boolean;
   savedCount: number;
   plugin: { name: string; scope: string; version: string };
+  type?: string;
 };
 const props = defineProps<{
   goal: Goal;

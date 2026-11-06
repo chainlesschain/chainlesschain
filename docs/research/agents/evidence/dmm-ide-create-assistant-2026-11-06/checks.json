@@ -1,0 +1,180 @@
+{
+  "recordedAt": "2026-11-05T22:24:25.062Z",
+  "checks": [
+    {
+      "command": "git diff --check",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe node_modules/prettier/bin/prettier.cjs --check desktop-app-vue/src/main/task/__tests__/project-goal-delivery-drafts-ipc.test.js desktop-app-vue/src/main/task/__tests__/project-goal-draft-imports-ipc.test.js desktop-app-vue/src/main/task/project-goal-delivery-drafts.js desktop-app-vue/src/main/task/project-goal-draft-request-file.js desktop-app-vue/src/main/task/project-goal-ipc.js desktop-app-vue/src/renderer/components/projects/ProjectGoalActionsPanel.vue desktop-app-vue/src/renderer/components/projects/ProjectGoalDraftImportsPanel.vue desktop-app-vue/src/renderer/components/projects/ProjectGoalExtensionDraftsPanel.vue docs/research/agents/README.md docs/research/agents/chainlesschain-dots-muse-mods-analysis-2026-10-06.md docs/research/agents/dots-muse-mods-implementation-progress-2026-10-07.md packages/cli/README.md packages/cli/__tests__/fixtures/goal-extension-conversion-process.mjs packages/cli/__tests__/integration/goal-extension-conversion-process.test.js packages/cli/__tests__/unit/cli-goal-capabilities.test.js packages/cli/__tests__/unit/cli-goal-draft-request.test.js packages/cli/__tests__/unit/cli-goal-drafts-command.test.js packages/cli/__tests__/unit/project-delivery-assistant-lifecycle.test.js packages/cli/__tests__/unit/project-goal-extension-queue.test.js packages/cli/__tests__/unit/project-goal-external-drafts.test.js packages/cli/__tests__/unit/vscode-ext-goal-draft-request-view.test.js packages/cli/src/command-help-index.json packages/cli/src/commands/goal.js packages/cli/src/lib/plugin-runtime/cli-goal-capabilities.js packages/cli/src/lib/plugin-runtime/cli-goal-draft-request.js packages/cli/src/lib/plugin-runtime/examples/project-delivery-assistant/README.md packages/cli/src/lib/plugin-runtime/examples/project-delivery-assistant/plugin.json packages/cli/src/lib/plugin-runtime/goal-extensions.js packages/jetbrains-plugin/README.md packages/session-core/README.md packages/session-core/lib/goal-draft-request-contract.js packages/session-core/lib/goal-extension-proposal-contract.js packages/session-core/lib/project-goal-draft-imports.js packages/session-core/lib/project-goal-extension-conversion.js packages/session-core/lib/project-goal-extension-queue.js packages/vscode-extension/README.md packages/vscode-extension/src/plugin-manager.js packages/vscode-extension/src/ui/plugin-manager-view.js packages/cli/src/lib/plugin-runtime/examples/goal-task-creator/plugin.json packages/cli/src/lib/plugin-runtime/examples/goal-task-creator/README.md docs/research/agents/evidence/dmm-ide-create-assistant-2026-11-06/README.md docs/research/agents/evidence/dmm-ide-create-assistant-2026-11-06/summary.json docs/research/agents/evidence/dmm-ide-create-assistant-2026-11-06/artifacts.json",
+      "exitCode": 0,
+      "output": "Checking formatting...\nAll matched files use Prettier code style!"
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check desktop-app-vue/src/main/task/__tests__/project-goal-delivery-drafts-ipc.test.js",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check desktop-app-vue/src/main/task/__tests__/project-goal-draft-imports-ipc.test.js",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check desktop-app-vue/src/main/task/project-goal-delivery-drafts.js",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check desktop-app-vue/src/main/task/project-goal-draft-request-file.js",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check desktop-app-vue/src/main/task/project-goal-ipc.js",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check packages/cli/__tests__/fixtures/goal-extension-conversion-process.mjs",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check packages/cli/__tests__/integration/goal-extension-conversion-process.test.js",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check packages/cli/__tests__/unit/cli-goal-capabilities.test.js",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check packages/cli/__tests__/unit/cli-goal-draft-request.test.js",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check packages/cli/__tests__/unit/cli-goal-drafts-command.test.js",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check packages/cli/__tests__/unit/project-delivery-assistant-lifecycle.test.js",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check packages/cli/__tests__/unit/project-goal-extension-queue.test.js",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check packages/cli/__tests__/unit/project-goal-external-drafts.test.js",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check packages/cli/__tests__/unit/vscode-ext-goal-draft-request-view.test.js",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check packages/cli/src/commands/goal.js",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check packages/cli/src/lib/plugin-runtime/cli-goal-capabilities.js",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check packages/cli/src/lib/plugin-runtime/cli-goal-draft-request.js",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check packages/cli/src/lib/plugin-runtime/goal-extensions.js",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check packages/session-core/lib/goal-draft-request-contract.js",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check packages/session-core/lib/goal-extension-proposal-contract.js",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check packages/session-core/lib/project-goal-draft-imports.js",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check packages/session-core/lib/project-goal-extension-conversion.js",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check packages/session-core/lib/project-goal-extension-queue.js",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check packages/vscode-extension/src/plugin-manager.js",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check packages/vscode-extension/src/ui/plugin-manager-view.js",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "python -c import ast,pathlib,sys; ast.parse(pathlib.Path(sys.argv[1]).read_text(encoding='utf-8')); print('Python syntax valid') docs/research/agents/evidence/dmm-ide-create-assistant-2026-11-06/verify-artifacts.py",
+      "exitCode": 0,
+      "output": "Python syntax valid"
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe packages/cli/scripts/gen-command-manifest.mjs --check",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe packages/cli/scripts/gen-command-help-index.mjs --check",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe packages/cli/scripts/gen-shell-completions.mjs --check",
+      "exitCode": 0,
+      "output": "Shell completions are current (196 command tokens)."
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe packages/cli/scripts/gen-cli-reference.mjs --check docs/cli/CLI_REFERENCE.generated.md",
+      "exitCode": 0,
+      "output": "No drift: docs/cli/CLI_REFERENCE.generated.md matches the manifest."
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe packages/vscode-extension/scripts/verify-vsix.mjs C:/Users/longfa/AppData/Local/Temp/dmm-ide-create-assistant-20261106/goal-create-local.vsix",
+      "exitCode": 0,
+      "output": "verify-vsix: C:/Users/longfa/AppData/Local/Temp/dmm-ide-create-assistant-20261106/goal-create-local.vsix (185 entries)\n  PASS package.json publisher = \"chainlesschain\"\n  PASS package.json name = \"chainlesschain-ide\"\n  PASS package.json version = \"0.37.178\"\n  PASS package.json engines.vscode present\n  PASS package.json repository.url present\n  PASS package.json displayName non-empty\n  PASS package.json description non-empty\n  PASS icon packed (extension/media/logo.png)\n  PASS main entry packed (extension/src/extension.js)\n  PASS README packed (extension/readme.md)\n  PASS LICENSE packed (extension/LICENSE.txt)\n  PASS [Content_Types].xml present\n  PASS runtime asset packed (extension/src/vendor/elicitation-schema/index.js)\n  PASS vsixmanifest Identity Id = \"chainlesschain-ide\"\n  PASS vsixmanifest Identity Version = \"0.37.178\"\n  PASS vsixmanifest Identity Publisher = \"chainlesschain\"\n  PASS vsixmanifest DisplayName non-empty\n  PASS vsixmanifest Description non-empty\nverify-vsix: all 18 checks passed"
+    },
+    {
+      "command": "changed Markdown relative file links",
+      "exitCode": 0,
+      "broken": []
+    },
+    {
+      "command": "source SHA-256 against final summary",
+      "exitCode": 0,
+      "mismatches": []
+    }
+  ]
+}

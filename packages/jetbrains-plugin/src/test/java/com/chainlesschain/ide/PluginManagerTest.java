@@ -39,6 +39,61 @@ final class PluginManagerTest {
         return PluginManager.parseCliGoalDraftSubmission(MiniJson.stringify(raw), "g1", "drafter", "project", DRAFT_STORE, DRAFT_RECORD, "stable-request", onlineBinding());
     }
     @Test
+    void creationBuildersRequireExplicitTypeAndUseSeparateCommands() {
+        assertEquals("draft-create-access", PluginManager.buildCliGoalCreateDraftAccessArgs("drafter","project","access.json").get(1));
+        assertEquals("draft-create-sources", PluginManager.buildCliGoalCreateDraftSourcesArgs("g1","drafter","project",DRAFT_STORE,"v6.json",null).get(1));
+        List<String> args = PluginManager.buildCliGoalCreateDraftSendArgs("g1","drafter","project",DRAFT_STORE,"v6.json",DRAFT_SOURCE,"stable-request","--help","body.txt",DRAFT_RECORD,"analyze_data");
+        assertEquals("draft-create-send",args.get(1)); assertTrue(args.contains("--task-type=analyze_data")); assertTrue(args.contains("--title=--help"));
+        for (String taskType : Arrays.asList(null,"unknown","--help")) assertThrows(IllegalArgumentException.class, () -> PluginManager.buildCliGoalCreateDraftSendArgs("g1","drafter","project",DRAFT_STORE,"v6.json",DRAFT_SOURCE,"stable-request","Title","body.txt",DRAFT_RECORD,taskType));
+        List<String> lookup = PluginManager.buildCliGoalCreateDraftReceiptArgs("g1","drafter","project",DRAFT_STORE,"v6.json",DRAFT_RECORD);
+        assertEquals("draft-create-receipt",lookup.get(1)); assertFalse(lookup.stream().anyMatch(arg -> arg.startsWith("--task-type") || arg.startsWith("--description-file")));
+    }
+    @Test
+    void creationAccessCannotBeSubstitutedForDescriptionConsent() {
+        Map<String,Object> raw = new java.util.LinkedHashMap<>();
+        raw.put("schema","chainlesschain.goal-create-draft-access-export/v1"); raw.put("state","access-exported"); raw.put("plugin",onlineBinding().get("plugin")); raw.put("declarationDigest",onlineBinding().get("declarationDigest")); raw.put("file","access.json");
+        assertNotNull(PluginManager.parseCliGoalCreateDraftAccess(MiniJson.stringify(raw),"drafter","project","access.json"));
+        assertNull(PluginManager.parseCliGoalDraftAccess(MiniJson.stringify(raw),"drafter","project","access.json"));
+        raw.put("schema","chainlesschain.goal-draft-access-export/v1"); assertNull(PluginManager.parseCliGoalCreateDraftAccess(MiniJson.stringify(raw),"drafter","project","access.json"));
+        raw.put("schema","chainlesschain.goal-create-draft-access-export/v1"); raw.put("key","injected"); assertNull(PluginManager.parseCliGoalCreateDraftAccess(MiniJson.stringify(raw),"drafter","project","access.json"));
+    }
+    @Test
+    void creationSourcesRequireCreationSchemaAndExactNativeBinding() {
+        Map<String,Object> raw = onlineSources();
+        assertNull(PluginManager.parseCliGoalCreateDraftSources(MiniJson.stringify(raw),"g1","drafter","project",DRAFT_STORE,null));
+        raw.put("schema","chainlesschain.goal-create-draft-source-page/v1");
+        assertNotNull(PluginManager.parseCliGoalCreateDraftSources(MiniJson.stringify(raw),"g1","drafter","project",DRAFT_STORE,onlineBinding()));
+        assertNull(PluginManager.parseCliGoalDraftSources(MiniJson.stringify(raw),"g1","drafter","project",DRAFT_STORE,null));
+        Map<String,Object> expected=onlineBinding(); expected.put("grantRef",Map.of("id","goal-external-grant-"+"c".repeat(64),"epoch",2L));
+        assertNull(PluginManager.parseCliGoalCreateDraftSources(MiniJson.stringify(raw),"g1","drafter","project",DRAFT_STORE,expected));
+        raw.put("key","injected"); assertNull(PluginManager.parseCliGoalCreateDraftSources(MiniJson.stringify(raw),"g1","drafter","project",DRAFT_STORE,null));
+        assertNull(PluginManager.parseCliGoalCreateDraftSources(" ".repeat(16385),"g1","drafter","project",DRAFT_STORE,null));
+    }
+    @Test
+    void creationReceiptsDistinguishSavedNotFoundUnknownAndRejectCrossAction() {
+        for (String state : List.of("saved","not-found","unknown")) {
+            Map<String,Object> raw=onlineSubmission(state);
+            assertNull(PluginManager.parseCliGoalCreateDraftSubmission(MiniJson.stringify(raw),"g1","drafter","project",DRAFT_STORE,DRAFT_RECORD,"stable-request",onlineBinding()));
+            raw.put("schema","chainlesschain.goal-create-draft-submission/v1"); raw.put("type","task.create");
+            Map<String,Object> result=PluginManager.parseCliGoalCreateDraftSubmission(MiniJson.stringify(raw),"g1","drafter","project",DRAFT_STORE,DRAFT_RECORD,"stable-request",onlineBinding());
+            assertNotNull(result); assertEquals("task.create",result.get("type")); assertEquals(state,result.get("state"));
+            assertNull(parseOnlineSubmission(raw));
+            String formatted=PluginManager.formatCliGoalDraftSubmission(result);
+            assertTrue(formatted.contains(DRAFT_RECORD));
+            assertTrue(formatted.contains("saved".equals(state)?"Task creation still requires native preview":"No automatic resend"));
+            raw.put("type","task.description.update"); assertNull(PluginManager.parseCliGoalCreateDraftSubmission(MiniJson.stringify(raw),"g1","drafter","project",DRAFT_STORE,DRAFT_RECORD,"stable-request",null));
+        }
+    }
+    @Test
+    void creationReceiptRejectsChangedRequestVersionGrantAndExtraFields() {
+        for(String key : List.of("record","requestId","plugin","grantRef","key")) {
+            Map<String,Object> raw=onlineSubmission("saved"); raw.put("schema","chainlesschain.goal-create-draft-submission/v1"); raw.put("type","task.create");
+            Object value=key.equals("plugin") ? Map.of("name","drafter","scope","project","version","2.0.0") : key.equals("grantRef") ? Map.of("id","goal-external-grant-"+"c".repeat(64),"epoch",2L) : "changed";
+            raw.put(key,value);
+            assertNull(PluginManager.parseCliGoalCreateDraftSubmission(MiniJson.stringify(raw),"g1","drafter","project",DRAFT_STORE,DRAFT_RECORD,"stable-request",onlineBinding()));
+        }
+    }
+    @Test
     void onlineDraftBuildersKeepNativePathsInSingleArgumentsAndRequireReferences() {
         assertEquals(Arrays.asList("goal", "draft-access", "--plugin=drafter", "--scope=project", "--out=C:/new access.json", "--json"),
                 PluginManager.buildCliGoalDraftAccessArgs("drafter", "project", "C:/new access.json"));
@@ -119,6 +174,21 @@ final class PluginManagerTest {
         assertNotNull(PluginManager.parseCliGoalDraftExport(result,"g1","drafter","project",store,out,"stable"));
         assertNull(PluginManager.parseCliGoalDraftExport(result.replace("request-exported","succeeded"),"g1","drafter","project",store,out,"stable"));
         assertNull(PluginManager.parseCliGoalDraftExport(result,"g1","drafter","project",store,"other","stable"));
+    }
+    @Test
+    void creationRequestsBindNativeTaskTypeAndRejectDescriptionOrSpoofedResults() {
+        String store="project-goals-12345678-1234-1234-1234-123456789abc", source="goal-proposal-"+"a".repeat(64), out="C:/exports/create.json";
+        List<String> args=PluginManager.buildCliGoalTaskCreateRequestArgs("g1","assistant","project",store,"C:/private/connection.json",source,"stable","Follow up","C:/input/body.txt",out,"analyze_data");
+        assertEquals("draft-create-request",args.get(1)); assertTrue(args.contains("--task-type=analyze_data"));
+        assertThrows(IllegalArgumentException.class,()->PluginManager.buildCliGoalTaskCreateRequestArgs("g1","assistant","project",store,"c.json",source,"stable","Follow up","body.txt",out,"custom"));
+        Map<String,Object> raw=new java.util.LinkedHashMap<>(Map.of("schema","chainlesschain.goal-task-create-export/v1","state","request-exported","goalRef",Map.of("id","g1","storeId",store,"revision",1L,"controlGeneration",0L),"declaredPlugin",Map.of("name","assistant","scope","project","version","0.3.0"),"file",out,"requestId","stable","contentDigest","sha256:"+"b".repeat(64),"type","task.create","taskType","analyze_data"));
+        String result=MiniJson.stringify(raw);
+        assertNotNull(PluginManager.parseCliGoalTaskCreateExport(result,"g1","assistant","project",store,out,"stable","analyze_data"));
+        assertNull(PluginManager.parseCliGoalTaskCreateExport(result,"g1","assistant","project",store,out,"stable","query_info"));
+        raw.put("schema","chainlesschain.goal-draft-export/v1");
+        assertNull(PluginManager.parseCliGoalTaskCreateExport(MiniJson.stringify(raw),"g1","assistant","project",store,out,"stable","analyze_data"));
+        raw.put("schema","chainlesschain.goal-task-create-export/v1");raw.put("extra",true);
+        assertNull(PluginManager.parseCliGoalTaskCreateExport(MiniJson.stringify(raw),"g1","assistant","project",store,out,"stable","analyze_data"));
     }
     @Test
     void desktopConnectionRequiresExplicitSelectionAndPinsNativeStore() {

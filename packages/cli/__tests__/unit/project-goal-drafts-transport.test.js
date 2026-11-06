@@ -5,6 +5,10 @@ import { createRequire } from "node:module";
 import { createProjectGoalDraftClient } from "../../src/lib/project-goal-draft-connection.js";
 const require = createRequire(import.meta.url);
 const {
+  validateGoalDraftDescriptor,
+  validateGoalCreateDraftDescriptor,
+} = require("@chainlesschain/session-core/goal-draft-connection-contract");
+const {
   handleGoalDraftRequest,
 } = require("../../../../desktop-app-vue/src/main/task/project-goal-drafts-transport.js");
 const {
@@ -172,6 +176,89 @@ function raw({
     } else request.end(body);
   });
 }
+describe("independent v6 creation transport", () => {
+  const creation = {
+    ...proposal,
+    type: "task.create",
+    taskType: "analyze_data",
+  };
+  beforeEach(() => {
+    context.createDrafts = true;
+    descriptor = {
+      ...descriptor,
+      schema: "chainlesschain.project-goal-connection/v6",
+      capability: "goal.create-drafts",
+      expiresAt: Date.now() + 60000,
+      endpoint: descriptor.endpoint.replace(
+        "/goal-drafts",
+        "/goal-create-drafts",
+      ),
+    };
+    client = createProjectGoalDraftClient(descriptor, check);
+  });
+  it("uses creation schemas for read, sources, pending submission and exact receipt", async () => {
+    expect(validateGoalCreateDraftDescriptor(descriptor)).toEqual(descriptor);
+    expect(() => validateGoalDraftDescriptor(descriptor)).toThrow();
+    expect(client).toMatchObject({ drafts: false, createDrafts: true });
+    expect(await client.read()).toMatchObject({
+      schema: "chainlesschain.project-goal-create-drafts/v1",
+      goalRef,
+    });
+    expect((await client.sources()).entries).toHaveLength(1);
+    const saved = await client.enqueue(creation);
+    expect(
+      await client.receipt({
+        requestId: creation.requestId,
+        inputDigest: digest(creation),
+      }),
+    ).toEqual(saved);
+    expect(context.enqueueDraft).toHaveBeenCalledExactlyOnceWith(creation);
+  });
+  it("rejects old MAC domains and description proposals without a write", async () => {
+    expect((await raw()).status).toBe(403);
+    await expect(client.enqueue(proposal)).rejects.toThrow();
+    expect(context.enqueueDraft).not.toHaveBeenCalled();
+    for (const patch of [
+      { capability: "goal.drafts" },
+      {
+        endpoint: descriptor.endpoint.replace(
+          "/goal-create-drafts",
+          "/goal-drafts",
+        ),
+      },
+      { schema: "chainlesschain.project-goal-connection/v3" },
+      { expiresAt: Date.now() - 1 },
+    ])
+      expect(() =>
+        validateGoalCreateDraftDescriptor({ ...descriptor, ...patch }),
+      ).toThrow();
+  });
+  it.each(["lost response", "substituted status"])(
+    "recovers an unknown creation outcome after %s with one pending write",
+    async (kind) => {
+      dropResponse = kind === "lost response";
+      mutateStatus = kind === "substituted status";
+      await expect(client.enqueue(creation)).rejects.toMatchObject({
+        outcomeUnknown: true,
+      });
+      dropResponse = mutateStatus = false;
+      expect(
+        await client.receipt({
+          requestId: creation.requestId,
+          inputDigest: digest(creation),
+        }),
+      ).toMatchObject({ state: "saved" });
+      expect(context.enqueueDraft).toHaveBeenCalledOnce();
+    },
+  );
+  it("checks current authority before dispatch", async () => {
+    check.mockImplementation(() => {
+      throw new Error("revoked");
+    });
+    await expect(client.enqueue(creation)).rejects.toThrow("revoked");
+    expect(context.enqueueDraft).not.toHaveBeenCalled();
+  });
+});
 describe("independent v3 authenticated draft transport", () => {
   it("reads bounded native source identifiers, submits pending only, and queries exact receipts", async () => {
     expect(await client.read()).toMatchObject({

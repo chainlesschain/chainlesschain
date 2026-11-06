@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 /** Real JUnit 5 coverage for the pure (parse/build) parts of {@link LlmConfig}. */
@@ -340,10 +341,32 @@ class LlmConfigTest {
             assertNotNull(p.id);
             assertFalse(p.id.isEmpty());
             assertNotNull(p.baseUrl);
-            assertTrue(p.baseUrl.startsWith("http"));
+            if ("custom".equals(p.id)) assertEquals("", p.baseUrl);
+            else assertTrue(p.baseUrl.startsWith("http"));
             assertNotNull(p.defaultModel);
-            assertFalse(p.defaultModel.isEmpty());
+            if ("custom".equals(p.id)) assertEquals("", p.defaultModel);
+            else assertFalse(p.defaultModel.isEmpty());
         }
+    }
+
+    @Test void savesKeylessLocalPlatformAndReadsBackCustomIdentity() {
+        List<List<String>> calls = new ArrayList<>();
+        String error = LlmConfig.saveConnection(new LlmConfig.Connection("custom", "glm5.3-flash-tensorfold", "http://192.168.31.79:8889/v1", "", false), "", true,
+                (args, stdin) -> {
+                    calls.add(args);
+                    if (args.get(0).equals("llm")) {
+                        Map<String, Object> body = MiniJson.parseObject(stdin);
+                        assertEquals("custom", body.get("provider"));
+                        assertEquals("", body.get("apiKey"));
+                        assertEquals(Boolean.TRUE, body.get("allowHttp"));
+                        return new LlmConfig.CliResult(true, "saved");
+                    }
+                    return new LlmConfig.CliResult(true, "{\"llm\":{\"provider\":\"custom\",\"model\":\"glm5.3-flash-tensorfold\",\"baseUrl\":\"http://192.168.31.79:8889/v1\",\"visionModel\":null}}");
+                });
+        assertNull(error);
+        assertEquals(2, calls.size());
+        assertFalse(LlmConfig.requiresApiKey("custom"));
+        assertTrue(LlmConfig.requiresApiKey("openai"));
     }
 
     @Test

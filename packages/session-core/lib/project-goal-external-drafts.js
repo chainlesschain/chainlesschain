@@ -16,9 +16,17 @@ const {
 } = require("./project-goal-extension-conversion.js");
 
 const ACCESS_SCHEMA = "chainlesschain.goal-draft-access/v1";
+const CREATE_ACCESS_SCHEMA = "chainlesschain.goal-create-draft-access/v1";
 const GRANT_SCHEMA = "chainlesschain.goal-external-grant/v1";
+const CREATE_GRANT_SCHEMA = "chainlesschain.goal-external-create-grant/v1";
 const ORIGIN = "extension-suggestion";
 const ACTION = "task.description.update";
+const actionOf = (record) =>
+  record.type === "task.create" || record.schema === CREATE_ACCESS_SCHEMA
+    ? "task.create"
+    : ACTION;
+const nativeAction = (type) =>
+  type === "task.create" ? type : "task.update-description";
 const MAX_GRANTS = 100;
 const MAX_GRANT_BYTES = 8192;
 const GRANT_ID = /^goal-external-grant-[a-f0-9]{64}$/u;
@@ -44,7 +52,7 @@ function accessValue(raw) {
   exact(raw, ["schema", "plugin", "declarationDigest"]);
   exact(raw.plugin, ["name", "scope", "version"]);
   if (
-    raw.schema !== ACCESS_SCHEMA ||
+    ![ACCESS_SCHEMA, CREATE_ACCESS_SCHEMA].includes(raw.schema) ||
     !DIGEST.test(raw.declarationDigest) ||
     typeof raw.declarationDigest !== "string" ||
     !["user", "project", "local"].includes(raw.plugin.scope) ||
@@ -68,8 +76,8 @@ function grantRefValue(raw) {
     fail();
   return { id: raw.id, epoch: raw.epoch };
 }
-function identity(actor, ref, plugin) {
-  return `goal-external-grant-${digest({ actorDid: actor, storeId: ref.storeId, goalId: ref.id, plugin }).slice(7)}`;
+function identity(actor, ref, plugin, type = ACTION) {
+  return `goal-external-grant-${digest({ actorDid: actor, storeId: ref.storeId, goalId: ref.id, plugin, ...(type === "task.create" ? { type } : {}) }).slice(7)}`;
 }
 function draftIdentity(actor, plugin, goalRef, requestId) {
   return `goal-extension-${digest({ actorDid: actor, plugin, goalRef, requestId }).slice(7)}`;
@@ -84,7 +92,13 @@ function externalBinding(draft) {
     !Number.isSafeInteger(Number(match[2])) ||
     draft.origin !== ORIGIN ||
     !["user", "project", "local"].includes(draft.plugin.scope) ||
-    match[1] !== identity(draft.actorDid, draft.proposal.goalRef, draft.plugin)
+    match[1] !==
+      identity(
+        draft.actorDid,
+        draft.proposal.goalRef,
+        draft.plugin,
+        draft.proposal.type,
+      )
   )
     fail("GOAL_EXTERNAL_BINDING_CORRUPT");
   return { id: match[1], epoch: Number(match[2]) };
@@ -154,8 +168,6 @@ class ProjectGoalExternalDrafts {
       fail("GOAL_EXTERNAL_SOURCE_CHANGED");
     if (live) {
       this.workflow.assertExtensionGoalInTransaction(ref);
-      if (!goal.allowedActionTypes.includes("task.update-description"))
-        fail("ACTION_GOAL_ACTION_OUT_OF_SCOPE");
     }
     return { ref, actor, projectId: goal.projectRef.id };
   }
@@ -186,6 +198,7 @@ class ProjectGoalExternalDrafts {
         "epoch",
         "enabled",
         "updatedAt",
+        ...(record.schema === CREATE_GRANT_SCHEMA ? ["type"] : []),
       ]);
       const ref = goalExtensionRef(record.goalRef);
       accessValue({
@@ -194,13 +207,15 @@ class ProjectGoalExternalDrafts {
         declarationDigest: record.declarationDigest,
       });
       if (
-        record.schema !== GRANT_SCHEMA ||
+        (record.schema !== GRANT_SCHEMA &&
+          (record.schema !== CREATE_GRANT_SCHEMA ||
+            record.type !== "task.create")) ||
         record.id !== id ||
         record.actorDid !== actor ||
         row.actor_did !== actor ||
         row.goal_id !== ref.id ||
         row.plugin_key !== digest(record.plugin) ||
-        identity(actor, ref, record.plugin) !== id ||
+        identity(actor, ref, record.plugin, actionOf(record)) !== id ||
         !same(record.goalRef, ref) ||
         typeof record.projectId !== "string" ||
         !record.projectId ||
@@ -219,6 +234,13 @@ class ProjectGoalExternalDrafts {
     }
   }
   _bound(record, scope, live = false, expectedEpoch) {
+    if (
+      live &&
+      !this.workflow
+        ._goal(scope.ref.id, scope.actor)
+        .allowedActionTypes.includes(nativeAction(actionOf(record)))
+    )
+      fail("ACTION_GOAL_ACTION_OUT_OF_SCOPE");
     if (
       record.actorDid !== scope.actor ||
       record.goalRef.storeId !== scope.ref.storeId ||
@@ -244,9 +266,15 @@ class ProjectGoalExternalDrafts {
   _view(record) {
     const savedCount = this.db
       .prepare(
-        "SELECT COUNT(*) AS n FROM cc_project_goal_extension_drafts WHERE actor_did=? AND goal_id=? AND plugin_key=?",
+        `SELECT COUNT(*) AS n FROM cc_project_goal_extension_drafts WHERE actor_did=? AND goal_id=? AND plugin_key=?
+        AND CASE WHEN length(CAST(record_json AS BLOB))>49152 THEN 1 WHEN json_valid(record_json) THEN COALESCE(json_extract(record_json,'$.proposal.type')=?,1) ELSE 1 END`,
       )
-      .get(record.actorDid, record.goalRef.id, digest(record.plugin)).n;
+      .get(
+        record.actorDid,
+        record.goalRef.id,
+        digest(record.plugin),
+        actionOf(record),
+      ).n;
     if (!Number.isSafeInteger(savedCount) || savedCount < 0 || savedCount > 100)
       fail("GOAL_EXTERNAL_GRANT_CORRUPT");
     return copy({
@@ -257,6 +285,7 @@ class ProjectGoalExternalDrafts {
       epoch: record.epoch,
       enabled: record.enabled,
       savedCount,
+      ...(actionOf(record) === "task.create" ? { type: "task.create" } : {}),
     });
   }
   _save(record) {
@@ -295,7 +324,7 @@ class ProjectGoalExternalDrafts {
           context.actorDid !== scope.actor ||
           context.projectId !== scope.projectId ||
           !same(context.plugin, current.plugin) ||
-          context.type !== ACTION
+          context.type !== actionOf(current)
         )
           fail("GOAL_EXTERNAL_GRANT_CHANGED");
         return `${current.id}:${current.epoch}`;
@@ -310,7 +339,7 @@ class ProjectGoalExternalDrafts {
       draft.origin !== ORIGIN ||
       !same(draft.plugin, record.plugin) ||
       !same(draft.proposal.goalRef, record.goalRef) ||
-      draft.proposal.type !== ACTION ||
+      draft.proposal.type !== actionOf(record) ||
       draft.admissionEpoch !== `${record.id}:${record.epoch}` ||
       draft.id !==
         draftIdentity(
@@ -329,7 +358,7 @@ class ProjectGoalExternalDrafts {
     const access = accessValue(input.access);
     return this._readTx(() => {
       const scope = this._scope(input.goalRef),
-        id = identity(scope.actor, scope.ref, access.plugin);
+        id = identity(scope.actor, scope.ref, access.plugin, actionOf(access));
       const record = this._read(id, scope.actor, true);
       if (record) {
         this._bound(record, scope);
@@ -343,6 +372,7 @@ class ProjectGoalExternalDrafts {
         epoch: 0,
         enabled: false,
         savedCount: 0,
+        ...(actionOf(access) === "task.create" ? { type: "task.create" } : {}),
       };
     });
   }
@@ -355,7 +385,13 @@ class ProjectGoalExternalDrafts {
       fail();
     return this._tx(() => {
       const scope = this._scope(input.goalRef, true),
-        id = identity(scope.actor, scope.ref, access.plugin);
+        id = identity(scope.actor, scope.ref, access.plugin, actionOf(access));
+      if (
+        !this.workflow
+          ._goal(scope.ref.id, scope.actor)
+          .allowedActionTypes.includes(nativeAction(actionOf(access)))
+      )
+        fail("ACTION_GOAL_ACTION_OUT_OF_SCOPE");
       const prior = this._read(id, scope.actor, true);
       if (prior) this._bound(prior, scope);
       if ((prior?.epoch ?? 0) !== input.expectedEpoch)
@@ -378,7 +414,11 @@ class ProjectGoalExternalDrafts {
       )
         fail("GOAL_EXTERNAL_GRANT_LIMIT");
       const record = {
-        schema: GRANT_SCHEMA,
+        schema:
+          actionOf(access) === "task.create"
+            ? CREATE_GRANT_SCHEMA
+            : GRANT_SCHEMA,
+        ...(actionOf(access) === "task.create" ? { type: "task.create" } : {}),
         id,
         actorDid: scope.actor,
         projectId: scope.projectId,
@@ -446,7 +486,7 @@ class ProjectGoalExternalDrafts {
     exact(input, ["goalRef", "grantRef"], ["afterId"]);
     const after = cursor(input.afterId, SOURCE_ID);
     return this._readTx(() => {
-      const { scope } = this._assert(input.goalRef, input.grantRef);
+      const { scope, record } = this._assert(input.goalRef, input.grantRef);
       if (after) {
         const previous = this.workflow._read(after, "proposal", scope.actor);
         if (
@@ -465,7 +505,7 @@ class ProjectGoalExternalDrafts {
       for (const row of rows.slice(0, 20)) {
         const proposal = this.workflow._read(row.id, "proposal", scope.actor);
         if (
-          proposal.actionType !== "task.update-description" ||
+          proposal.actionType !== nativeAction(actionOf(record)) ||
           proposal.intentId !== null
         ) {
           unavailableCount++;
@@ -475,7 +515,7 @@ class ProjectGoalExternalDrafts {
           const source = this.workflow.assertExtensionSourceInTransaction({
             goalRef: scope.ref,
             sourceRef: row.id,
-            nativeActionType: "task.update-description",
+            nativeActionType: nativeAction(actionOf(record)),
           });
           entries.push({
             id: row.id,
@@ -507,13 +547,10 @@ class ProjectGoalExternalDrafts {
   enqueue(input) {
     exact(input, ["goalRef", "grantRef", "proposal"]);
     const proposal = normalizeGoalExtensionProposal(input.proposal);
-    if (
-      proposal.type !== ACTION ||
-      !same(proposal.goalRef, goalExtensionRef(input.goalRef))
-    )
-      fail();
+    if (!same(proposal.goalRef, goalExtensionRef(input.goalRef))) fail();
     return this._tx(() => {
       const { record } = this._assert(input.goalRef, input.grantRef);
+      if (proposal.type !== actionOf(record)) fail();
       const result = this._queue(record).enqueueInTransaction(proposal);
       this._assert(input.goalRef, input.grantRef);
       return result;
@@ -577,6 +614,7 @@ class ProjectGoalExternalDrafts {
     const record = this._native(input);
     return this._queue(record).list({
       goalRef: input.goalRef,
+      ...(actionOf(record) === "task.create" ? { type: "task.create" } : {}),
       ...(input.afterId === undefined ? {} : { afterId: input.afterId }),
     });
   }

@@ -86,14 +86,14 @@ class ProjectGoalExtensionQueue {
     if (this.db.inTransaction) fail("GOAL_EXTENSION_TRANSACTION_BUSY");
     return this.db.transaction(operation).immediate();
   }
-  _scope(goalRef) {
+  _scope(goalRef, type = "task.description.update") {
     goalRef = goalExtensionRef(goalRef);
     const scope = this.workflow.assertExtensionGoalInTransaction(goalRef);
     return {
       ...scope,
       goalRef,
       plugin: this.plugin,
-      type: "task.description.update",
+      type,
     };
   }
   _admission(context) {
@@ -103,10 +103,6 @@ class ProjectGoalExtensionQueue {
     return epoch;
   }
   _source(proposal, extensionResume = null, fresh = true) {
-    // task.create requires a taskType contract; it is deliberately not admitted
-    // by this pending-draft adapter until that contract is implemented.
-    if (proposal.type !== "task.description.update")
-      fail("GOAL_EXTENSION_UNSUPPORTED_ACTION");
     return this.workflow.assertExtensionSourceInTransaction({
       goalRef: proposal.goalRef,
       sourceRef: proposal.sourceRef,
@@ -165,7 +161,7 @@ class ProjectGoalExtensionQueue {
     };
   }
   _current(record, fresh = true) {
-    const context = this._scope(record.proposal.goalRef);
+    const context = this._scope(record.proposal.goalRef, record.proposal.type);
     const epoch = this._admission(context);
     if (
       epoch !== record.admissionEpoch ||
@@ -185,7 +181,7 @@ class ProjectGoalExtensionQueue {
     if (!this.db.inTransaction) fail("GOAL_EXTENSION_TRANSACTION_REQUIRED");
     const proposal = normalizeGoalExtensionProposal(raw);
     {
-      const context = this._scope(proposal.goalRef),
+      const context = this._scope(proposal.goalRef, proposal.type),
         epoch = this._admission(context);
       const id = `goal-extension-${digest({
         actorDid: context.actorDid,
@@ -246,7 +242,7 @@ class ProjectGoalExtensionQueue {
           );
       }
       if (
-        !same(this._scope(proposal.goalRef), context) ||
+        !same(this._scope(proposal.goalRef, proposal.type), context) ||
         this._admission(context) !== epoch ||
         !same(
           this._source(
@@ -296,6 +292,9 @@ class ProjectGoalExtensionQueue {
       expectedRevision: record.proposal.goalRef.revision,
       requestId: conversion.requestId,
       description: record.proposal.description,
+      ...(record.proposal.type === "task.create"
+        ? { taskType: record.proposal.taskType }
+        : {}),
       extensionRef: conversionRef(conversion),
     });
     return this.workflow.getIntent({ intentId: conversion.intentId });
@@ -323,6 +322,7 @@ class ProjectGoalExtensionQueue {
       "title",
       "description",
       "state",
+      ...(context?.type === "task.create" ? ["taskType"] : []),
     ]);
     if (
       !same(context.plugin, this.plugin) ||
@@ -339,6 +339,7 @@ class ProjectGoalExtensionQueue {
           "requestId",
           "title",
           "description",
+          ...(context.type === "task.create" ? ["taskType"] : []),
         ].map((key) => [key, context[key]]),
       ),
     );
@@ -357,13 +358,15 @@ class ProjectGoalExtensionQueue {
     if (
       !input ||
       Object.keys(input).some(
-        (key) => !["goalRef", "limit", "afterId"].includes(key),
+        (key) => !["goalRef", "limit", "afterId", "type"].includes(key),
       )
     )
       fail("GOAL_EXTENSION_INVALID_REQUEST");
     const goalRef = goalExtensionRef(input.goalRef),
+      type = input.type ?? "task.description.update",
       limit = input.limit ?? 20;
     if (
+      !Object.hasOwn(GOAL_EXTENSION_ACTION_MAP, type) ||
       !Number.isSafeInteger(limit) ||
       limit < 1 ||
       limit > 20 ||
@@ -372,17 +375,21 @@ class ProjectGoalExtensionQueue {
     )
       fail("GOAL_EXTENSION_INVALID_REQUEST");
     return this._tx(() => {
-      const context = this._scope(goalRef),
+      const context = this._scope(goalRef, type),
         epoch = this._admission(context);
       const rows = this.db
         .prepare(
-          "SELECT id FROM cc_project_goal_extension_drafts WHERE actor_did=? AND goal_id=? AND plugin_key=? AND id>? ORDER BY id LIMIT ?",
+          `SELECT id FROM cc_project_goal_extension_drafts WHERE actor_did=? AND goal_id=? AND plugin_key=? AND id>?
+          AND CASE WHEN length(CAST(record_json AS BLOB))>${MAX_BYTES} THEN 1
+            WHEN json_valid(record_json) THEN COALESCE(json_extract(record_json,'$.proposal.type') NOT IN ('task.description.update','task.create') OR json_extract(record_json,'$.proposal.type')=?,1)
+            ELSE 1 END ORDER BY id LIMIT ?`,
         )
         .all(
           context.actorDid,
           goalRef.id,
           digest(this.plugin),
           input.afterId ?? "",
+          type,
           limit + 1,
         );
       const entries = [];
@@ -399,11 +406,11 @@ class ProjectGoalExtensionQueue {
       }
       for (const record of entries) this._current(record);
       if (
-        !same(this._scope(goalRef), context) ||
+        !same(this._scope(goalRef, type), context) ||
         this._admission(context) !== epoch
       )
         fail("GOAL_EXTENSION_SOURCE_CHANGED");
-      if (!same(this._scope(goalRef), context))
+      if (!same(this._scope(goalRef, type), context))
         fail("GOAL_EXTENSION_SOURCE_CHANGED");
       return {
         entries: JSON.parse(

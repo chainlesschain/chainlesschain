@@ -3,10 +3,16 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { createProjectGoalConnection } from "../../src/lib/project-goal-connection.js";
-import { exportCliGoalDraftRequest } from "../../src/lib/plugin-runtime/cli-goal-draft-request.js";
+import {
+  exportCliGoalDraftRequest,
+  exportCliGoalTaskCreateRequest,
+} from "../../src/lib/plugin-runtime/cli-goal-draft-request.js";
 import {
   createGoalDraftRequest,
   validateGoalDraftRequest,
+  createGoalTaskCreateRequest,
+  validateGoalTaskCreateRequest,
+  validateGoalDraftImportRequest,
 } from "@chainlesschain/session-core/goal-draft-request-contract";
 import {
   trustPlugin,
@@ -20,6 +26,8 @@ import { normalizeCapabilities } from "../../src/lib/plugin-runtime/capabilities
 import {
   buildCliGoalDraftRequestArgs,
   parseCliGoalDraftExport,
+  buildCliGoalTaskCreateRequestArgs,
+  parseCliGoalTaskCreateExport,
 } from "../../../vscode-extension/src/plugin-manager.js";
 vi.mock("../../src/lib/project-goal-connection.js", () => ({
   createProjectGoalConnection: vi.fn(),
@@ -104,6 +112,134 @@ function allow() {
     capabilities: normalizeCapabilities(sample.permissions),
   });
 }
+function creationPlugin() {
+  sample = JSON.parse(
+    fs.readFileSync(
+      new URL(
+        "../../src/lib/plugin-runtime/examples/goal-task-creator/plugin.json",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+  );
+  const dir = path.join(options.cwd, ".chainlesschain/plugins", sample.name);
+  fs.mkdirSync(path.join(dir, sample.version), { recursive: true });
+  fs.writeFileSync(
+    path.join(dir, sample.version, "plugin.json"),
+    JSON.stringify(sample),
+  );
+  fs.writeFileSync(path.join(dir, ".active"), sample.version);
+  options.plugin = sample.name;
+  options.taskType = "analyze_data";
+}
+describe("explicit task creation file export", () => {
+  it("requires creation-plugin trust and consent and exports only a separate creation request", async () => {
+    creationPlugin();
+    await expect(
+      exportCliGoalTaskCreateRequest("goal-1", options),
+    ).rejects.toThrow("NOT_ADMITTED");
+    allow();
+    const result = await exportCliGoalTaskCreateRequest("goal-1", options);
+    expect(result.state).toBe("request-exported");
+    const selected = {
+      ...options,
+      id: "goal-1",
+      name: options.plugin,
+      expectedStore: snapshot.goalRef.storeId,
+    };
+    expect(buildCliGoalTaskCreateRequestArgs(selected)).toContain(
+      "--task-type=analyze_data",
+    );
+    expect(
+      parseCliGoalTaskCreateExport(JSON.stringify(result), selected),
+    ).toMatchObject({ taskType: "analyze_data", file: options.out });
+    for (const patch of [
+      { taskType: "deploy_project" },
+      { schema: "chainlesschain.goal-draft-export/v1" },
+      { state: "saved" },
+      { extra: true },
+    ])
+      expect(
+        parseCliGoalTaskCreateExport(
+          JSON.stringify({ ...result, ...patch }),
+          selected,
+        ),
+      ).toBeNull();
+    const envelope = JSON.parse(fs.readFileSync(options.out, "utf8"));
+    expect(validateGoalTaskCreateRequest(envelope)).toMatchObject({
+      schema: "chainlesschain.goal-task-create-request/v1",
+      proposal: { type: "task.create", taskType: "analyze_data" },
+    });
+    expect(() => validateGoalDraftRequest(envelope)).toThrow();
+    expect(validateGoalDraftImportRequest(envelope)).toEqual(envelope);
+    await expect(
+      exportCliGoalTaskCreateRequest("goal-1", options),
+    ).rejects.toThrow("EEXIST");
+  });
+  it("does not reinterpret the description plugin or command as creation authority", async () => {
+    allow();
+    await expect(
+      exportCliGoalTaskCreateRequest("goal-1", {
+        ...options,
+        taskType: "query_info",
+      }),
+    ).rejects.toThrow("NOT_ADMITTED");
+    creationPlugin();
+    allow();
+    await expect(exportCliGoalDraftRequest("goal-1", options)).rejects.toThrow(
+      "NOT_ADMITTED",
+    );
+    expect(fs.existsSync(options.out)).toBe(false);
+  });
+  it.each([undefined, "custom", ""])(
+    "rejects invalid taskType %s without creating a file",
+    async (taskType) => {
+      creationPlugin();
+      allow();
+      options.taskType = taskType;
+      await expect(
+        exportCliGoalTaskCreateRequest("goal-1", options),
+      ).rejects.toThrow();
+      expect(fs.existsSync(options.out)).toBe(false);
+    },
+  );
+  it("pins task type and caller options before asynchronous source reads", async () => {
+    creationPlugin();
+    allow();
+    reads.mockImplementationOnce(async () => {
+      options.taskType = "deploy_project";
+      return structuredClone(snapshot);
+    });
+    await exportCliGoalTaskCreateRequest("goal-1", options);
+    expect(
+      JSON.parse(fs.readFileSync(options.out, "utf8")).proposal.taskType,
+    ).toBe("analyze_data");
+  });
+  it("refuses schema substitution and altered task type without a matching digest", async () => {
+    creationPlugin();
+    allow();
+    await exportCliGoalTaskCreateRequest("goal-1", options);
+    const envelope = JSON.parse(fs.readFileSync(options.out, "utf8"));
+    expect(() =>
+      validateGoalDraftImportRequest({
+        ...envelope,
+        schema: "chainlesschain.goal-draft-request/v1",
+      }),
+    ).toThrow();
+    expect(() =>
+      validateGoalTaskCreateRequest({
+        ...envelope,
+        proposal: { ...envelope.proposal, taskType: "query_info" },
+      }),
+    ).toThrow();
+    expect(() =>
+      createGoalTaskCreateRequest({
+        ...envelope,
+        proposal: { ...envelope.proposal, type: "task.description.update" },
+      }),
+    ).toThrow();
+  });
+});
 describe("CLI untrusted request-file export", () => {
   it("requires real plugin trust and capability consent before exporting", async () => {
     await expect(exportCliGoalDraftRequest("goal-1", options)).rejects.toThrow(
@@ -208,7 +344,11 @@ describe("CLI untrusted request-file export", () => {
     expect(() =>
       createGoalDraftRequest({
         ...request,
-        proposal: { ...request.proposal, type: "task.create" },
+        proposal: {
+          ...request.proposal,
+          type: "task.create",
+          taskType: "query_info",
+        },
       }),
     ).toThrow();
     expect(() =>

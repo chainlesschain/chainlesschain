@@ -27,6 +27,7 @@ import {
   askPassword,
 } from "../lib/prompts.js";
 import logger from "../lib/logger.js";
+import { normalizeLlmEndpoint } from "../lib/llm-connection-resolution.js";
 import {
   assessEvolutionDeploymentReadiness,
   getEvolutionDeploymentStatus,
@@ -151,6 +152,10 @@ async function runSetup(options) {
     // Abort before changing provider/baseUrl so an old provider's credential
     // can never be paired with and sent to a newly selected endpoint.
     assertRequiredProviderCredential(providerInfo, apiKey);
+  } else if (provider === "custom") {
+    apiKey = await askPassword(
+      "Enter the platform API key (optional; leave blank if not required):",
+    );
   }
 
   if (provider === "custom" || providerInfo.isProxy) {
@@ -187,6 +192,18 @@ async function runSetup(options) {
 
   // Step 7: Save config
   const applySetupValues = (config) => {
+    const previous = config.llm || {};
+    const sameTarget =
+      previous.provider === provider &&
+      normalizeLlmEndpoint(
+        provider,
+        previous.baseUrl || providerInfo.defaultBaseUrl,
+      ) === normalizeLlmEndpoint(provider, baseUrl);
+    if (provider === "custom" && !apiKey && !sameTarget) {
+      delete previous.apiKey;
+      delete previous.apiKeyHelper;
+    }
+    config.llm = previous;
     config.setupCompleted = true;
     config.completedAt = new Date().toISOString();
     config.edition = edition;

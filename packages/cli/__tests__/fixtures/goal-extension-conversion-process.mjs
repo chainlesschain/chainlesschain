@@ -11,10 +11,12 @@ const {
 } = require("@chainlesschain/session-core/project-goal-extension-queue");
 const { ApprovalGate } = require("@chainlesschain/session-core/approval-gate");
 const [mode, directory] = process.argv.slice(2);
+const setup = mode === "setup" || mode === "setup-create";
+const creation = mode === "setup-create";
 const db = new Database(path.join(directory, "project.sqlite"));
 const owner = "did:chainless:fixture-owner",
   now = 1791244800000;
-if (mode === "setup")
+if (setup)
   db.exec(`CREATE TABLE projects (id TEXT PRIMARY KEY,user_id TEXT,status TEXT,updated_at INTEGER,deleted INTEGER DEFAULT 0);
   CREATE TABLE project_tasks (id TEXT PRIMARY KEY,project_id TEXT,task_type TEXT,description TEXT,status TEXT,
   created_at INTEGER,updated_at INTEGER,deleted INTEGER DEFAULT 0,sync_status TEXT,due_date INTEGER,blocked_by TEXT);
@@ -42,7 +44,7 @@ queue = new ProjectGoalExtensionQueue({
 });
 const stateFile = path.join(directory, "state.json");
 async function main() {
-  if (mode === "setup") {
+  if (setup) {
     let goal = workflow.goals.create({
       projectId: "p1",
       objective: "Recover extension conversion",
@@ -51,7 +53,11 @@ async function main() {
     goal = workflow.goals.revise({
       id: goal.id,
       expectedRevision: goal.revision,
-      patch: { allowedActionTypes: ["task.update-description"] },
+      patch: {
+        allowedActionTypes: [
+          creation ? "task.create" : "task.update-description",
+        ],
+      },
     });
     const review = workflow.risk.evaluate({ projectId: "p1" });
     db.transaction(() =>
@@ -63,10 +69,13 @@ async function main() {
     const source = workflow
       .list({ goalId: goal.id })
       .proposals.find(
-        (e) => e.proposal.actionType === "task.update-description",
+        (e) =>
+          e.proposal.actionType ===
+          (creation ? "task.create" : "task.update-description"),
       ).proposal;
     const draft = queue.enqueue({
-      type: "task.description.update",
+      type: creation ? "task.create" : "task.description.update",
+      ...(creation ? { taskType: "analyze_data" } : {}),
       goalRef: {
         id: goal.id,
         storeId: goal.storeId,
@@ -78,13 +87,21 @@ async function main() {
       title: "Recover delivery",
       description: "Persisted extension recovery",
     });
-    fs.writeFileSync(stateFile, JSON.stringify({ draftId: draft.proposalId }));
+    fs.writeFileSync(
+      stateFile,
+      JSON.stringify({ draftId: draft.proposalId, creation }),
+    );
     return draft;
   }
-  const { draftId } = JSON.parse(fs.readFileSync(stateFile, "utf8"));
+  const { draftId, creation: createTask } = JSON.parse(
+    fs.readFileSync(stateFile, "utf8"),
+  );
   if (mode === "conversion-gap") workflow.prepare = () => process.exit(41);
   if (mode === "native-draft-gap")
-    workflow.descriptionActions.preview = () => process.exit(42);
+    (createTask
+      ? workflow.createActions
+      : workflow.descriptionActions
+    ).preview = () => process.exit(42);
   if (
     [
       "conversion-gap",
@@ -136,6 +153,13 @@ async function main() {
       .get().n,
     description: db.prepare("SELECT description FROM project_tasks").get()
       .description,
+    taskCount: db.prepare("SELECT COUNT(*) AS n FROM project_tasks").get().n,
+    createdTask:
+      db
+        .prepare(
+          "SELECT task_type,description,status FROM project_tasks WHERE id<>'t1'",
+        )
+        .get() ?? null,
     intentStatus: intent?.intent.status ?? null,
     runId: intent?.receipt?.run.id ?? null,
     runStatus: intent?.receipt?.run.status ?? null,

@@ -1,0 +1,27 @@
+{
+  "state": "verified-local-artifacts",
+  "matchedFiles": [
+    "cli:src/commands/goal.js",
+    "cli:src/command-help-index.json",
+    "cli:src/lib/project-goal-connection.js",
+    "cli:src/lib/project-goal-draft-connection.js",
+    "cli:src/lib/plugin-runtime/cli-goal-drafts.js",
+    "cli:src/lib/plugin-runtime/examples/goal-task-creator/plugin.json",
+    "cli:src/lib/plugin-runtime/examples/goal-task-creator/README.md",
+    "cli:src/lib/plugin-runtime/examples/project-delivery-assistant/plugin.json",
+    "cli:src/lib/plugin-runtime/examples/project-delivery-assistant/README.md",
+    "cli:README.md",
+    "session-core:lib/goal-draft-connection-contract.js",
+    "session-core:lib/project-goal-external-drafts.js",
+    "session-core:lib/project-goal-extension-queue.js",
+    "session-core:package.json",
+    "session-core:README.md"
+  ],
+  "sha256": {
+    "cli": "ee1bb270a05874bf0efbf2d982af4ea0695c139b0976341ac1018cbe048a428d",
+    "session-core": "d24773b7537df86655dd101906ff16f99a521ff8f56f16e8e70f6d4b5f825afd"
+  },
+  "corePublicCjsEsmExports": true,
+  "fullIsolatedCliInstall": false,
+  "published": false
+}

@@ -91,8 +91,17 @@
       "defaultModel": "MiniMax-Text-01",
       "needsKey": true,
       "visionModel": ""
+    },
+    {
+      "id": "custom",
+      "label": "Local compute / OpenAI compatible (LEXDATA / vLLM / SGLang)",
+      "cliLabel": "本地算力平台 / OpenAI 兼容 (力数/vLLM/SGLang等)",
+      "baseUrl": "",
+      "defaultModel": "",
+      "needsKey": false,
+      "visionModel": ""
     }
   ],
-  "sourceSha256": "50b2ed9d5d1fc09a070dcb8fbcd0d4f28462e98a613e25c8754a2615b72b3559",
+  "sourceSha256": "7b78e99c75e10fd86e963203b3c8ca14f166733b55582567663c43b1bd750896",
   "sourceDigestBasis": "utf8-lf"
 }

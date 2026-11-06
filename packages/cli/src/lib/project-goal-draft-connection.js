@@ -10,6 +10,7 @@ import {
   validateGoalDraftSources,
   validateGoalDraftReceipt,
   validateGoalDraftProposal,
+  validateGoalCreateDraftProposal,
 } from "@chainlesschain/session-core/goal-draft-connection-contract";
 function unavailable() {
   return new Error("CLI_GOAL_CONNECTION_UNAVAILABLE");
@@ -26,6 +27,12 @@ function exact(raw, keys) {
 }
 /** Constructed only after the shared private-file reader verifies the descriptor. */
 export function createProjectGoalDraftClient(descriptor, validate) {
+  const creation =
+    descriptor.schema === "chainlesschain.project-goal-connection/v6";
+  const domain = creation ? "v6" : "v3",
+    endpointPath = creation ? "/goal-create-drafts" : "/goal-drafts";
+  const schema = (name) =>
+    `chainlesschain.${creation ? name.replace("goal-draft", "goal-create-draft") : name}/v1`;
   const ref = Object.freeze({ ...descriptor.goalRef }),
     grant = Object.freeze({
       id: descriptor.grantRef.id,
@@ -58,7 +65,7 @@ export function createProjectGoalDraftClient(descriptor, validate) {
             headers: {
               "X-CC-Nonce": nonce,
               "X-CC-Signature": mac(
-                `request-v3\n${method}\n/goal-drafts\n${nonce}\n${bodyHash}`,
+                `request-${domain}\n${method}\n${endpointPath}\n${nonce}\n${bodyHash}`,
               ),
               ...(method === "POST"
                 ? {
@@ -90,7 +97,7 @@ export function createProjectGoalDraftClient(descriptor, validate) {
                     Buffer.from(signature),
                     Buffer.from(
                       mac(
-                        `response-v3\n${nonce}\n${response.statusCode}\n${text}`,
+                        `response-${domain}\n${nonce}\n${response.statusCode}\n${text}`,
                       ),
                     ),
                   )
@@ -135,7 +142,7 @@ export function createProjectGoalDraftClient(descriptor, validate) {
       "sources",
     ]);
     if (
-      result.schema !== "chainlesschain.project-goal-drafts/v1" ||
+      result.schema !== schema("project-goal-drafts") ||
       typeof result.objective !== "string" ||
       result.objective.length > 4096 ||
       result.status !== "active" ||
@@ -151,8 +158,7 @@ export function createProjectGoalDraftClient(descriptor, validate) {
       ...(afterId !== undefined ? { afterId } : {}),
     });
     exact(result, ["schema", "goalRef", "sources"]);
-    if (result.schema !== "chainlesschain.goal-draft-sources/v1")
-      throw unavailable();
+    if (result.schema !== schema("goal-draft-sources")) throw unavailable();
     return validateGoalDraftSources(result.sources);
   }
   async function receipt({ requestId, inputDigest }) {
@@ -162,15 +168,16 @@ export function createProjectGoalDraftClient(descriptor, validate) {
       inputDigest,
     });
     exact(result, ["schema", "goalRef", "receipt"]);
-    if (result.schema !== "chainlesschain.goal-draft-receipt/v1")
-      throw unavailable();
+    if (result.schema !== schema("goal-draft-receipt")) throw unavailable();
     const value = validateGoalDraftReceipt(result.receipt);
     if (value.requestId !== requestId || value.inputDigest !== inputDigest)
       throw unavailable();
     return value;
   }
   async function enqueue(raw) {
-    const proposal = validateGoalDraftProposal(raw),
+    const proposal = (
+        creation ? validateGoalCreateDraftProposal : validateGoalDraftProposal
+      )(raw),
       inputDigest = digest(proposal);
     let received = false;
     try {
@@ -181,8 +188,7 @@ export function createProjectGoalDraftClient(descriptor, validate) {
       );
       received = true;
       exact(result, ["schema", "goalRef", "receipt"]);
-      if (result.schema !== "chainlesschain.goal-draft-submit/v1")
-        throw unavailable();
+      if (result.schema !== schema("goal-draft-submit")) throw unavailable();
       const value = validateGoalDraftReceipt(result.receipt);
       if (
         value.state !== "saved" ||
@@ -205,7 +211,8 @@ export function createProjectGoalDraftClient(descriptor, validate) {
   return Object.freeze({
     goalRef: ref,
     evidence: false,
-    drafts: true,
+    drafts: !creation,
+    ...(creation ? { createDrafts: true } : {}),
     plugin: grant.plugin,
     declarationDigest: grant.declarationDigest,
     grantRef: Object.freeze({ ...descriptor.grantRef }),

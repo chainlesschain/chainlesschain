@@ -34,9 +34,7 @@ for (const entry of catalog.providers) {
   ids.add(entry.id);
 }
 const sourceSha256 = createHash("sha256").update(raw).digest("hex");
-const providers = catalog.providers.filter(
-  (entry) => !entry.isProxy && entry.id !== "custom",
-);
+const providers = catalog.providers.filter((entry) => !entry.isProxy);
 const vendor = new URL(
   "packages/vscode-extension/src/vendor/llm-onboarding-presets.json",
   root,

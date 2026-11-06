@@ -1,0 +1,17 @@
+{
+  "date": "2026-11-06",
+  "source": "User-provided LEXDATA API endpoints screenshot",
+  "endpoint": "http://192.168.31.79:8889/v1",
+  "managementModelLabel": "glm5.3-flash-tensorfold",
+  "apiModelIdVerified": false,
+  "attempts": 2,
+  "method": "GET",
+  "path": "/v1/models",
+  "result": "unavailable",
+  "httpStatus": null,
+  "networkCode": "ECONNRESET",
+  "inferenceRequests": 0,
+  "credentialPolicy": "No cloud-key fallback; optional platform key only through DMM_PRIVATE_OPENAI_API_KEY",
+  "command": "$env:DMM_PRIVATE_OPENAI_BASE_URL='http://192.168.31.79:8889/v1'; node desktop-app-vue/scripts/project-goal-private-openai-discover.cjs",
+  "boundary": "No HTTP response received. Authentication, actual API model ID and model inference remain unverified. The first attempt suppressed the error category; the second safely exposed ECONNRESET."
+}

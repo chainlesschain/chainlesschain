@@ -45,7 +45,7 @@ const declaration = normalizeGoalExtension(
 );
 const host = {
   id: "cli",
-  version: "0.166.142",
+  version: "0.166.143",
   capabilities: requiredGoalExtensionCapabilities(declaration),
 };
 const ref = { name: sample.name, version: sample.version, scope: "project" };
@@ -122,9 +122,8 @@ describe("goal extension real files and management output", () => {
   });
   it("CLI validate reports declarations without granting consent or activating a host", async () => {
     const { Command } = await import("commander");
-    const { registerPluginCommand } = await import(
-      "../../src/commands/plugin.js"
-    );
+    const { registerPluginCommand } =
+      await import("../../src/commands/plugin.js");
     const log = vi.spyOn(console, "log").mockImplementation(() => {});
     const program = new Command();
     registerPluginCommand(program);
@@ -141,7 +140,7 @@ describe("goal extension real files and management output", () => {
     expect(result.goalExtensionSummary).toMatchObject({
       status: "declaration-only",
       runtimeAvailable: false,
-      hosts: { cli: ">=0.166.142", jetbrains: ">=0.4.195" },
+      hosts: { cli: ">=0.166.143", jetbrains: ">=0.4.196" },
     });
     expect(result.goalExtension.proposals).toContain("task.description.update");
   });

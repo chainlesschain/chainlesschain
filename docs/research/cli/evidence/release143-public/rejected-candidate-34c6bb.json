@@ -1,0 +1,31 @@
+{
+  "source": "34c6bb3437da17d12bc0de893a9b4b94236a35b9",
+  "publishable": false,
+  "cliCi": {
+    "runId": 42153506653,
+    "failedJobId": 127687466422,
+    "failure": "Source review preflight rejected stale hashes for two changed local IPC modules and four rebuilt Web Panel resource names/digests.",
+    "resolution": "Inspect the local v6 IPC diff and compare all four rebuilt resources against the published .142 archive; preserve existing categories and refresh only byte-bound records. Resource bodies and network candidates are unchanged after strict resource-hash normalization."
+  },
+  "completeCliTest": {
+    "runId": 42153506639,
+    "filesPassed": 2168,
+    "filesFailed": 3,
+    "filesSkipped": 10,
+    "assertionsPassed": 43410,
+    "assertionsFailed": 22,
+    "assertionsSkipped": 252,
+    "failedFiles": [
+      "__tests__/unit/plugin-goal-extension.test.js",
+      "__tests__/unit/cli-goal-extension-host.test.js",
+      "__tests__/unit/vscode-ext-chat-panel.test.js"
+    ],
+    "resolution": "Update stale minimum-host expectations to .143/.196, require new consent for a newly supported creation declaration, and explicitly verify the custom platform requires user-entered endpoint/model and an optional key. Production admission and consent checks are retained."
+  },
+  "strictSandbox": {
+    "runId": 42153506627,
+    "result": "success",
+    "reusedForNewSource": false
+  },
+  "boundary": "This rejected commit did not receive a publication tag. Successful jobs on it do not qualify a subsequent source commit. All required exact-source matrices must be rerun."
+}

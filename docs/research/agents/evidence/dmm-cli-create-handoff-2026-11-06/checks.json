@@ -1,0 +1,160 @@
+{
+  "recordedAt": "2026-11-05T21:34:08.847Z",
+  "checks": [
+    {
+      "command": "git diff --check",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe node_modules/prettier/bin/prettier.cjs --check desktop-app-vue/src/main/task/__tests__/project-goal-delivery-drafts-ipc.test.js desktop-app-vue/src/main/task/__tests__/project-goal-draft-imports-ipc.test.js desktop-app-vue/src/main/task/project-goal-delivery-drafts.js desktop-app-vue/src/main/task/project-goal-draft-request-file.js desktop-app-vue/src/main/task/project-goal-ipc.js desktop-app-vue/src/renderer/components/projects/ProjectGoalActionsPanel.vue desktop-app-vue/src/renderer/components/projects/ProjectGoalDraftImportsPanel.vue desktop-app-vue/src/renderer/components/projects/ProjectGoalExtensionDraftsPanel.vue desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-actions-panel.test.ts desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-draft-imports-panel.test.ts desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-extension-drafts-panel.test.ts docs/research/agents/README.md docs/research/agents/chainlesschain-dots-muse-mods-analysis-2026-10-06.md docs/research/agents/dots-muse-mods-implementation-progress-2026-10-07.md packages/cli/README.md packages/cli/__tests__/fixtures/goal-extension-conversion-process.mjs packages/cli/__tests__/integration/goal-extension-conversion-process.test.js packages/cli/__tests__/unit/cli-goal-capabilities.test.js packages/cli/__tests__/unit/cli-goal-draft-request.test.js packages/cli/__tests__/unit/cli-goal-drafts-command.test.js packages/cli/__tests__/unit/project-goal-extension-queue.test.js packages/cli/__tests__/unit/project-goal-external-drafts.test.js packages/cli/src/command-help-index.json packages/cli/src/commands/goal.js packages/cli/src/lib/plugin-runtime/cli-goal-capabilities.js packages/cli/src/lib/plugin-runtime/cli-goal-draft-request.js packages/cli/src/lib/plugin-runtime/goal-extensions.js packages/session-core/README.md packages/session-core/lib/goal-draft-request-contract.js packages/session-core/lib/goal-extension-proposal-contract.js packages/session-core/lib/project-goal-draft-imports.js packages/session-core/lib/project-goal-extension-conversion.js packages/session-core/lib/project-goal-extension-queue.js packages/cli/src/lib/plugin-runtime/examples/goal-task-creator/plugin.json packages/cli/src/lib/plugin-runtime/examples/goal-task-creator/README.md docs/research/agents/evidence/dmm-cli-create-handoff-2026-11-06/README.md docs/research/agents/evidence/dmm-cli-create-handoff-2026-11-06/verify-package.mjs docs/research/agents/evidence/dmm-cli-create-handoff-2026-11-06/summary.json docs/research/agents/evidence/dmm-cli-create-handoff-2026-11-06/artifacts.json",
+      "exitCode": 0,
+      "output": "Checking formatting...\nAll matched files use Prettier code style!"
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check desktop-app-vue/src/main/task/__tests__/project-goal-delivery-drafts-ipc.test.js",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check desktop-app-vue/src/main/task/__tests__/project-goal-draft-imports-ipc.test.js",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check desktop-app-vue/src/main/task/project-goal-delivery-drafts.js",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check desktop-app-vue/src/main/task/project-goal-draft-request-file.js",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check desktop-app-vue/src/main/task/project-goal-ipc.js",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check packages/cli/__tests__/fixtures/goal-extension-conversion-process.mjs",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check packages/cli/__tests__/integration/goal-extension-conversion-process.test.js",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check packages/cli/__tests__/unit/cli-goal-capabilities.test.js",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check packages/cli/__tests__/unit/cli-goal-draft-request.test.js",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check packages/cli/__tests__/unit/cli-goal-drafts-command.test.js",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check packages/cli/__tests__/unit/project-goal-extension-queue.test.js",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check packages/cli/__tests__/unit/project-goal-external-drafts.test.js",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check packages/cli/src/commands/goal.js",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check packages/cli/src/lib/plugin-runtime/cli-goal-capabilities.js",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check packages/cli/src/lib/plugin-runtime/cli-goal-draft-request.js",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check packages/cli/src/lib/plugin-runtime/goal-extensions.js",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check packages/session-core/lib/goal-draft-request-contract.js",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check packages/session-core/lib/goal-extension-proposal-contract.js",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check packages/session-core/lib/project-goal-draft-imports.js",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check packages/session-core/lib/project-goal-extension-conversion.js",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check packages/session-core/lib/project-goal-extension-queue.js",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe --check docs/research/agents/evidence/dmm-cli-create-handoff-2026-11-06/verify-package.mjs",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe packages/cli/scripts/gen-command-manifest.mjs --check",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe packages/cli/scripts/gen-command-help-index.mjs --check",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe packages/cli/scripts/gen-shell-completions.mjs --check",
+      "exitCode": 0,
+      "output": "Shell completions are current (196 command tokens)."
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe packages/cli/scripts/gen-cli-reference.mjs --check docs/cli/CLI_REFERENCE.generated.md",
+      "exitCode": 0,
+      "output": "No drift: docs/cli/CLI_REFERENCE.generated.md matches the manifest."
+    },
+    {
+      "command": "C:\\nvm4w\\nodejs\\node.exe packages/cli/bin/chainlesschain.js goal draft-create-request --help",
+      "exitCode": 0,
+      "output": "Usage: chainlesschain goal draft-create-request [options] <id>\n\nExport an untrusted task-creation request for explicit desktop adoption\n\nOptions:\n  --connection <file>         Read one explicitly connected desktop goal\n  --plugin <name>             Select the installed proposal plugin\n  --scope <scope>             Select its user, project or local scope\n  --source <proposalId>       Exact native risk proposal ID copied from the\n                              desktop\n  --request-id <id>           Stable request identity; reuse the same file for\n                              retry\n  --title <text>              Request title\n  --description-file <file>   UTF-8 proposed description, at most 8192 bytes\n  --out <file>                New request file; never overwrites an existing\n                              file\n  --expected-store <storeId>  Require the selected project goal store\n  --json                      Output the export result; no native draft is\n                              created\n  --task-type <type>          Explicit native task type for this pending\n                              creation request\n  -h, --help                  display help for command"
+    },
+    {
+      "command": "changed Markdown relative file links",
+      "exitCode": 0,
+      "broken": []
+    },
+    {
+      "command": "final source SHA-256 against summary",
+      "exitCode": 0,
+      "mismatches": []
+    }
+  ]
+}

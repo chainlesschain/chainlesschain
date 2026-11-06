@@ -8,6 +8,7 @@ export const CLI_GOAL_CAPABILITIES = Object.freeze([
   "panel:goal.summary",
   "panel:goal.evidence",
   "proposal:task.description.update",
+  "proposal:task.create",
 ]);
 
 export function cliGoalExtensionHost(activeCapabilities) {

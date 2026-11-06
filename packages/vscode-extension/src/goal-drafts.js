@@ -28,7 +28,7 @@ function selection(input) {
     ...(input.expectedStore ? [`--expected-store=${input.expectedStore}`] : []),
   ];
 }
-function buildGoalDraftAccessArgs({ name, scope, out }) {
+function buildGoalDraftAccessArgs({ name, scope, out }, creation = false) {
   if (
     !clean(name, 256) ||
     !["user", "project", "local"].includes(scope) ||
@@ -37,7 +37,7 @@ function buildGoalDraftAccessArgs({ name, scope, out }) {
     throw new Error("Invalid access request selection");
   return [
     "goal",
-    "draft-access",
+    creation ? "draft-create-access" : "draft-access",
     `--plugin=${name}`,
     "--scope",
     scope,
@@ -45,9 +45,9 @@ function buildGoalDraftAccessArgs({ name, scope, out }) {
     "--json",
   ];
 }
-function buildGoalDraftSourcesArgs(input, after) {
+function buildGoalDraftSourcesArgs(input, after, creation = false) {
   const args = selection(input);
-  args[1] = "draft-sources";
+  args[1] = creation ? "draft-create-sources" : "draft-sources";
   if (after !== undefined) {
     if (!/^goal-proposal-[a-f0-9]{64}$/u.test(after))
       throw new Error("Invalid source cursor");
@@ -55,9 +55,9 @@ function buildGoalDraftSourcesArgs(input, after) {
   }
   return args;
 }
-function buildGoalDraftSendArgs(input) {
+function buildGoalDraftSendArgs(input, creation = false) {
   const args = selection(input);
-  args[1] = "draft-send";
+  args[1] = creation ? "draft-create-send" : "draft-send";
   if (
     !/^goal-proposal-[a-f0-9]{64}$/u.test(input.source || "") ||
     !clean(input.requestId, 128) ||
@@ -73,11 +73,25 @@ function buildGoalDraftSendArgs(input) {
     `--description-file=${input.descriptionFile}`,
     `--record=${input.record}`,
   );
+  if (creation) {
+    if (
+      ![
+        "create_file",
+        "edit_file",
+        "query_info",
+        "analyze_data",
+        "export_file",
+        "deploy_project",
+      ].includes(input.taskType)
+    )
+      throw new Error("Select an explicit pending task type");
+    args.push(`--task-type=${input.taskType}`);
+  }
   return args;
 }
-function buildGoalDraftReceiptArgs(input) {
+function buildGoalDraftReceiptArgs(input, creation = false) {
   const args = selection(input);
-  args[1] = "draft-receipt";
+  args[1] = creation ? "draft-create-receipt" : "draft-receipt";
   if (!clean(input.record)) throw new Error("Invalid submission record");
   args.push(`--record=${input.record}`);
   return args;
@@ -130,9 +144,35 @@ function matchesBinding(value, input) {
     JSON.stringify(binding(value)) === JSON.stringify(input.binding)
   );
 }
-function parseGoalDraftAccess(text, input) {
+const exact = (value, keys) =>
+  value &&
+  typeof value === "object" &&
+  !Array.isArray(value) &&
+  Object.keys(value).length === keys.length &&
+  keys.every((key) => Object.hasOwn(value, key));
+function creationShape(raw, keys) {
+  return (
+    exact(raw, keys) &&
+    exact(raw.plugin, ["name", "scope", "version"]) &&
+    (!raw.goalRef ||
+      (exact(raw.goalRef, ["id", "storeId", "revision", "controlGeneration"]) &&
+        exact(raw.grantRef, ["id", "epoch"])))
+  );
+}
+function parseGoalDraftAccess(text, input, creation = false) {
   const raw = parse(text);
-  return raw?.schema === "chainlesschain.goal-draft-access-export/v1" &&
+  return (!creation ||
+    creationShape(raw, [
+      "schema",
+      "state",
+      "plugin",
+      "declarationDigest",
+      "file",
+    ])) &&
+    raw?.schema ===
+      (creation
+        ? "chainlesschain.goal-create-draft-access-export/v1"
+        : "chainlesschain.goal-draft-access-export/v1") &&
     raw.state === "access-exported" &&
     raw.plugin?.name === input.name &&
     raw.plugin.scope === input.scope &&
@@ -142,14 +182,33 @@ function parseGoalDraftAccess(text, input) {
     ? { file: raw.file }
     : null;
 }
-function parseGoalDraftSources(text, input) {
+function parseGoalDraftSources(text, input, creation = false) {
   const raw = parse(text),
     page = raw?.sources;
   if (
-    raw?.schema !== "chainlesschain.goal-draft-source-page/v1" ||
+    (creation &&
+      !creationShape(raw, [
+        "schema",
+        "goalRef",
+        "plugin",
+        "declarationDigest",
+        "grantRef",
+        "sources",
+      ])) ||
+    raw?.schema !==
+      (creation
+        ? "chainlesschain.goal-create-draft-source-page/v1"
+        : "chainlesschain.goal-draft-source-page/v1") ||
     !bound(raw, input) ||
     !matchesBinding(raw, input) ||
     !page ||
+    (creation &&
+      !exact(page, [
+        "entries",
+        "scannedCount",
+        "unavailableCount",
+        "nextCursor",
+      ])) ||
     !Array.isArray(page.entries) ||
     page.entries.length > 20 ||
     !Number.isSafeInteger(page.scannedCount) ||
@@ -167,6 +226,8 @@ function parseGoalDraftSources(text, input) {
   const entries = [];
   for (const row of page.entries) {
     if (
+      (creation &&
+        !exact(row, ["id", "sourceTaskId", "reviewId", "reviewDigest"])) ||
       !/^goal-proposal-[a-f0-9]{64}$/u.test(row?.id || "") ||
       row.id <= prior ||
       !clean(row.sourceTaskId, 256) ||
@@ -188,10 +249,28 @@ function parseGoalDraftSources(text, input) {
     unavailableCount: page.unavailableCount,
   };
 }
-function parseGoalDraftSubmission(text, input) {
+function parseGoalDraftSubmission(text, input, creation = false) {
   const raw = parse(text);
   if (
-    raw?.schema !== "chainlesschain.goal-draft-submission/v1" ||
+    (creation &&
+      (!creationShape(raw, [
+        "schema",
+        "type",
+        "state",
+        "goalRef",
+        "plugin",
+        "declarationDigest",
+        "grantRef",
+        "requestId",
+        "inputDigest",
+        "proposalId",
+        "record",
+      ]) ||
+        raw.type !== "task.create")) ||
+    raw?.schema !==
+      (creation
+        ? "chainlesschain.goal-create-draft-submission/v1"
+        : "chainlesschain.goal-draft-submission/v1") ||
     !bound(raw, input) ||
     !matchesBinding(raw, input) ||
     !["saved", "not-found", "unknown"].includes(raw.state) ||
@@ -205,6 +284,7 @@ function parseGoalDraftSubmission(text, input) {
   )
     return null;
   return {
+    ...(creation ? { type: "task.create" } : {}),
     state: raw.state,
     record: raw.record,
     requestId: raw.requestId,
@@ -216,12 +296,30 @@ function formatGoalDraftSubmission(result) {
   return `Request: ${result.requestId}\nInput digest: ${result.inputDigest}\nSubmission record: ${result.record}\n${result.state === "saved" ? `Saved pending draft: ${result.proposalId}. Open the desktop to review and confirm.` : result.state === "not-found" ? "No saved receipt found at lookup time. A late submission may still complete. No automatic resend was made." : "Submission outcome unknown. Keep this record and look up its receipt; do not create a new request to retry."}`;
 }
 module.exports = {
-  buildGoalDraftAccessArgs,
-  buildGoalDraftSourcesArgs,
-  buildGoalDraftSendArgs,
-  buildGoalDraftReceiptArgs,
-  parseGoalDraftAccess,
-  parseGoalDraftSources,
-  parseGoalDraftSubmission,
+  creation: Object.freeze({
+    buildGoalDraftAccessArgs: (input) => buildGoalDraftAccessArgs(input, true),
+    buildGoalDraftSourcesArgs: (input, after) =>
+      buildGoalDraftSourcesArgs(input, after, true),
+    buildGoalDraftSendArgs: (input) => buildGoalDraftSendArgs(input, true),
+    buildGoalDraftReceiptArgs: (input) =>
+      buildGoalDraftReceiptArgs(input, true),
+    parseGoalDraftAccess: (text, input) =>
+      parseGoalDraftAccess(text, input, true),
+    parseGoalDraftSources: (text, input) =>
+      parseGoalDraftSources(text, input, true),
+    parseGoalDraftSubmission: (text, input) =>
+      parseGoalDraftSubmission(text, input, true),
+  }),
+  buildGoalDraftAccessArgs: (input) => buildGoalDraftAccessArgs(input, false),
+  buildGoalDraftSourcesArgs: (input, after) =>
+    buildGoalDraftSourcesArgs(input, after, false),
+  buildGoalDraftSendArgs: (input) => buildGoalDraftSendArgs(input, false),
+  buildGoalDraftReceiptArgs: (input) => buildGoalDraftReceiptArgs(input, false),
+  parseGoalDraftAccess: (text, input) =>
+    parseGoalDraftAccess(text, input, false),
+  parseGoalDraftSources: (text, input) =>
+    parseGoalDraftSources(text, input, false),
+  parseGoalDraftSubmission: (text, input) =>
+    parseGoalDraftSubmission(text, input, false),
   formatGoalDraftSubmission,
 };

@@ -214,7 +214,12 @@ describe("personal goal suggestions, native confirmation entry and receipts", ()
     ).toBe(true);
     expect(wrapper.find("form").exists()).toBe(false);
   });
-  it.each(["PROJECT_RISK_REVIEW_STALE", "ACTION_GOAL_SOURCE_CONFLICT"])(
+  it.each([
+    "PROJECT_RISK_REVIEW_STALE",
+    "ACTION_GOAL_SOURCE_CONFLICT",
+    "GOAL_MEMORY_OUTPUT_STALE",
+    "GOAL_MODEL_OUTPUT_STALE",
+  ])(
     "redacts converted previews after a native source rejection: %s",
     async (code) => {
       await loadConverted();
@@ -296,92 +301,111 @@ describe("personal goal suggestions, native confirmation entry and receipts", ()
       expect(wrapper.text()).not.toContain("Review deadline");
     },
   );
-  it("loads the converted child draft into the native preview and waits for an explicit execution click", async () => {
-    api.getGoalDeliveryDraftStatus = vi.fn(async () => ({
-      enabled: true,
-      epoch: 1,
-      savedCount: 1,
-    }));
-    const draft = {
-      id: draftId,
-      state: "pending-confirmation",
-      origin: "builtin-rule",
-      plugin: {
-        name: "project-delivery-drafts",
-        scope: "desktop-builtin",
-        version: "0.1.0",
-      },
-      proposal: {
-        type: "task.description.update",
-        goalRef: {
-          id: goal.id,
-          storeId: "store1",
-          revision: goal.revision,
-          controlGeneration: 1,
+  it.each(["task.update-description", "task.create"])(
+    "loads the converted %s child draft into the native preview and waits for an explicit execution click",
+    async (actionType) => {
+      const creation = actionType === "task.create";
+      api.getGoalDeliveryDraftStatus = vi.fn(async (input) => ({
+        enabled: creation
+          ? input.type === "task.create"
+          : input.type !== "task.create",
+        epoch: 1,
+        savedCount: 1,
+      }));
+      const draft = {
+        id: draftId,
+        state: "pending-confirmation",
+        origin: "builtin-rule",
+        plugin: {
+          name: "project-delivery-drafts",
+          scope: "desktop-builtin",
+          version: "0.1.0",
         },
-        sourceRef: "proposal1",
-        title: "Delivery",
-        description: "Review deadline",
-      },
-    };
-    api.listGoalDeliveryDrafts = vi.fn(async () => ({
-      entries: [draft],
-      unavailableCount: 0,
-      nextCursor: null,
-    }));
-    api.readGoalDeliveryDraft = vi.fn(async () => draft);
-    api.configureGoalDeliveryDrafts = vi.fn();
-    api.proposeGoalDeliveryDraft = vi.fn();
-    const proposal = {
-      ...item().proposal,
-      actionType: "task.update-description",
-      reviewDigest: "review-digest",
-    };
-    api.listGoalProposals.mockResolvedValue({
-      proposals: [{ ...item(), proposal }],
-      nextCursor: null,
-    });
-    await wrapper.setProps({
-      goal: { ...goal, storeId: "store1", controlGeneration: 1 },
-    });
-    await flushPromises();
-    await wrapper.get('[data-testid="read-delivery-draft"]').trigger("click");
-    await flushPromises();
-    let finishOldList!: (value: any) => void;
-    api.listGoalProposals.mockImplementationOnce(
-      () =>
-        new Promise((resolve) => {
-          finishOldList = resolve;
-        }),
-    );
-    await wrapper.get('[data-testid="refresh-goal-actions"]').trigger("click");
-    const listCallsBeforeConversion = api.listGoalProposals.mock.calls.length;
-    api.listGoalProposals.mockResolvedValue({
-      proposals: [{ ...item(converted()), proposal }],
-      nextCursor: null,
-    });
-    await wrapper
-      .get('[data-testid="prepare-delivery-draft"]')
-      .trigger("click");
-    await flushPromises();
-    expect(api.prepareGoalDeliveryDraft).toHaveBeenCalledExactlyOnceWith({
-      id: draftId,
-    });
-    expect(api.prepareGoalIntent).not.toHaveBeenCalled();
-    expect(api.executeGoalIntent).not.toHaveBeenCalled();
-    expect(api.listGoalProposals.mock.calls.length).toBe(
-      listCallsBeforeConversion + 1,
-    );
-    finishOldList({ proposals: [{ ...item(), proposal }], nextCursor: null });
-    await flushPromises();
-    expect(wrapper.text()).toContain("拟保存说明：Review deadline");
-    await wrapper.get('[data-testid="execute-goal-intent"]').trigger("click");
-    await flushPromises();
-    expect(api.executeGoalIntent).toHaveBeenCalledExactlyOnceWith({
-      intentId: "intent1",
-    });
-    expect(wrapper.text()).toContain("receipt1");
-  });
+        proposal: {
+          type: creation ? "task.create" : "task.description.update",
+          ...(creation ? { taskType: "analyze_data" } : {}),
+          goalRef: {
+            id: goal.id,
+            storeId: "store1",
+            revision: goal.revision,
+            controlGeneration: 1,
+          },
+          sourceRef: "proposal1",
+          title: "Delivery",
+          description: "Review deadline",
+        },
+      };
+      api.listGoalDeliveryDrafts = vi.fn(async () => ({
+        entries: [draft],
+        unavailableCount: 0,
+        nextCursor: null,
+      }));
+      api.readGoalDeliveryDraft = vi.fn(async () => draft);
+      api.configureGoalDeliveryDrafts = vi.fn();
+      api.proposeGoalDeliveryDraft = vi.fn();
+      const conversion = {
+        ...converted(),
+        intent: {
+          ...converted().intent,
+          ...(creation ? { taskType: "analyze_data" } : {}),
+        },
+      };
+      api.prepareGoalDeliveryDraft.mockResolvedValue(conversion);
+      const proposal = {
+        ...item().proposal,
+        actionType,
+        reviewDigest: "review-digest",
+      };
+      api.listGoalProposals.mockResolvedValue({
+        proposals: [{ ...item(), proposal }],
+        nextCursor: null,
+      });
+      await wrapper.setProps({
+        goal: { ...goal, storeId: "store1", controlGeneration: 1 },
+      });
+      await flushPromises();
+      await wrapper.get('[data-testid="read-delivery-draft"]').trigger("click");
+      await flushPromises();
+      let finishOldList!: (value: any) => void;
+      api.listGoalProposals.mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            finishOldList = resolve;
+          }),
+      );
+      await wrapper
+        .get('[data-testid="refresh-goal-actions"]')
+        .trigger("click");
+      const listCallsBeforeConversion = api.listGoalProposals.mock.calls.length;
+      api.listGoalProposals.mockResolvedValue({
+        proposals: [{ ...item(conversion), proposal }],
+        nextCursor: null,
+      });
+      await wrapper
+        .get('[data-testid="prepare-delivery-draft"]')
+        .trigger("click");
+      await flushPromises();
+      expect(api.prepareGoalDeliveryDraft).toHaveBeenCalledExactlyOnceWith({
+        id: draftId,
+      });
+      expect(api.prepareGoalIntent).not.toHaveBeenCalled();
+      expect(api.executeGoalIntent).not.toHaveBeenCalled();
+      expect(api.listGoalProposals.mock.calls.length).toBe(
+        listCallsBeforeConversion + 1,
+      );
+      finishOldList({ proposals: [{ ...item(), proposal }], nextCursor: null });
+      await flushPromises();
+      expect(wrapper.text()).toContain("拟保存说明：Review deadline");
+      if (creation)
+        expect(wrapper.text()).toContain("新任务类型：analyze_data");
+      await wrapper.get('[data-testid="execute-goal-intent"]').trigger("click");
+      await flushPromises();
+      expect(api.executeGoalIntent).toHaveBeenCalledExactlyOnceWith({
+        intentId: "intent1",
+      });
+      expect(wrapper.text()).toContain("receipt1");
+    },
+  );
   it("retains request identity across uncertain preview transport", async () => {
     api.prepareGoalIntent.mockRejectedValueOnce(new Error("timeout"));
     await preview();

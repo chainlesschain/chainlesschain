@@ -21,6 +21,7 @@ export default defineConfig({
       "src/main/task/__tests__/project-goal-event-history-ipc.test.js",
       "src/main/task/__tests__/project-goal-completion-ipc.test.js",
       "src/main/task/__tests__/project-goal-memory-ipc.test.js",
+      "src/main/task/__tests__/project-goal-model-drafts-ipc.test.js",
       "src/main/task/__tests__/project-goal-monitoring-host.test.js",
       "src/main/task/__tests__/project-goal-auth-session.test.js",
       "tests/unit/ukey/ukey-ipc.test.js",

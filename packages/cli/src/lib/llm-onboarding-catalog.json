@@ -121,11 +121,12 @@
     },
     {
       "id": "custom",
-      "label": "Custom provider (vLLM / TGI / compatible service)",
-      "cliLabel": "自定义 Provider (自建服务/vLLM/TGI等)",
+      "label": "Local compute / OpenAI compatible (LEXDATA / vLLM / SGLang)",
+      "cliLabel": "本地算力平台 / OpenAI 兼容 (力数/vLLM/SGLang等)",
       "baseUrl": "",
       "defaultModel": "",
-      "needsKey": true
+      "needsKey": false,
+      "visionModel": ""
     }
   ]
 }

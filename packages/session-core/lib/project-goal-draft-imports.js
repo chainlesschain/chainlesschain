@@ -4,7 +4,7 @@ const {
 } = require("./business-object-contract.js");
 const { goalExtensionRef } = require("./goal-extension-proposal-contract.js");
 const {
-  validateGoalDraftRequest,
+  validateGoalDraftImportRequest,
 } = require("./goal-draft-request-contract.js");
 const {
   ProjectGoalExtensionQueue,
@@ -18,6 +18,15 @@ const IMPORT_PLUGIN = Object.freeze({
   scope: "desktop-builtin",
   version: "0.1.0",
 });
+const CREATE_IMPORT_PLUGIN = Object.freeze({
+  name: "native-imported-task-create",
+  scope: "desktop-builtin",
+  version: "0.1.0",
+});
+const importPlugin = (proposal) =>
+  proposal.type === "task.create" ? CREATE_IMPORT_PLUGIN : IMPORT_PLUGIN;
+const nativeAction = (proposal) =>
+  proposal.type === "task.create" ? "task.create" : "task.update-description";
 const same = (a, b) => digest(a) === digest(b);
 function fail(code) {
   throw Object.assign(new Error(code), { code });
@@ -33,10 +42,10 @@ function exact(value, keys) {
     fail("GOAL_DRAFT_IMPORT_INVALID");
 }
 function identity(actorDid, proposal) {
-  return `native-adoption-${digest({ actorDid, storeId: proposal.goalRef.storeId, goalId: proposal.goalRef.id, requestId: proposal.requestId }).slice(7)}`;
+  return `native-adoption-${digest({ actorDid, storeId: proposal.goalRef.storeId, goalId: proposal.goalRef.id, requestId: proposal.requestId, ...(proposal.type === "task.create" ? { type: proposal.type } : {}) }).slice(7)}`;
 }
 function draftId(actorDid, proposal) {
-  return `goal-extension-${digest({ actorDid, plugin: IMPORT_PLUGIN, goalRef: proposal.goalRef, requestId: proposal.requestId }).slice(7)}`;
+  return `goal-extension-${digest({ actorDid, plugin: importPlugin(proposal), goalRef: proposal.goalRef, requestId: proposal.requestId }).slice(7)}`;
 }
 class ProjectGoalDraftImports {
   constructor({ workflow, confirm, clock = Date.now }) {
@@ -96,7 +105,7 @@ class ProjectGoalDraftImports {
         "epoch",
         "adoptedAt",
       ]);
-      const envelope = validateGoalDraftRequest(record.envelope);
+      const envelope = validateGoalDraftImportRequest(record.envelope);
       if (
         record.id !== id ||
         record.id !== identity(actor, envelope.proposal) ||
@@ -120,16 +129,17 @@ class ProjectGoalDraftImports {
       fail("GOAL_DRAFT_IMPORT_CORRUPT");
     }
   }
-  _queue(id) {
+  _queue(id, proposal) {
     if (!this.queues.has(id)) {
       const queue = Object.create(this.baseQueue);
+      queue.plugin = importPlugin(proposal);
       queue.authorizeExtension = (context) => {
         const record = this._read(id, context.actorDid);
         if (
           !record.enabled ||
-          !same(context.plugin, IMPORT_PLUGIN) ||
+          !same(context.plugin, importPlugin(record.envelope.proposal)) ||
           !same(context.goalRef, record.envelope.proposal.goalRef) ||
-          context.type !== "task.description.update"
+          context.type !== record.envelope.proposal.type
         )
           return null;
         return `${record.id}:${record.epoch}`;
@@ -143,7 +153,7 @@ class ProjectGoalDraftImports {
       draft.id !== record.draftId ||
       draft.actorDid !== record.actorDid ||
       draft.origin !== "user-edited" ||
-      !same(draft.plugin, IMPORT_PLUGIN) ||
+      !same(draft.plugin, importPlugin(record.envelope.proposal)) ||
       !same(draft.proposal, record.envelope.proposal) ||
       draft.inputDigest !== digest(record.envelope.proposal) ||
       draft.admissionEpoch !== `${record.id}:${record.epoch}` ||
@@ -165,7 +175,7 @@ class ProjectGoalDraftImports {
       this.db,
       record.draftId,
       record.actorDid,
-      IMPORT_PLUGIN,
+      importPlugin(record.envelope.proposal),
       "user-edited",
     );
     // Revocation retains the immutable saved draft and its previous epoch.
@@ -189,12 +199,15 @@ class ProjectGoalDraftImports {
       epoch: record.epoch,
       available,
       state: record.enabled ? "saved" : "revoked",
+      ...(record.envelope.proposal.type === "task.create"
+        ? { type: "task.create", taskType: record.envelope.proposal.taskType }
+        : {}),
     };
   }
   async adopt(input) {
     exact(input, ["goalRef", "envelope"]);
     const ref = goalExtensionRef(input.goalRef),
-      envelope = validateGoalDraftRequest(input.envelope);
+      envelope = validateGoalDraftImportRequest(input.envelope);
     const before = this._tx(() => {
       const scope = this._scope(ref),
         id = identity(scope.actor, envelope.proposal);
@@ -216,7 +229,7 @@ class ProjectGoalDraftImports {
       const source = this.workflow.assertExtensionSourceInTransaction({
         goalRef: ref,
         sourceRef: envelope.proposal.sourceRef,
-        nativeActionType: "task.update-description",
+        nativeActionType: nativeAction(envelope.proposal),
       });
       return { scope, id, source };
     });
@@ -237,7 +250,7 @@ class ProjectGoalDraftImports {
       this._tx(() => this._scope(ref));
       return { state: "cancelled" };
     }
-    const queue = this._queue(before.id);
+    const queue = this._queue(before.id, envelope.proposal);
     this._tx(() => {
       const scope = this._scope(ref, true);
       if (
@@ -246,7 +259,7 @@ class ProjectGoalDraftImports {
           this.workflow.assertExtensionSourceInTransaction({
             goalRef: ref,
             sourceRef: envelope.proposal.sourceRef,
-            nativeActionType: "task.update-description",
+            nativeActionType: nativeAction(envelope.proposal),
           }),
           before.source,
         )
@@ -313,7 +326,9 @@ class ProjectGoalDraftImports {
     });
     let available = false;
     try {
-      const draft = this._queue(record.id).get({ id: record.draftId });
+      const draft = this._queue(record.id, record.envelope.proposal).get({
+        id: record.draftId,
+      });
       this._assertDraft(record, draft);
       available = true;
     } catch (error) {
@@ -355,13 +370,17 @@ class ProjectGoalDraftImports {
       if (record.goalId !== scope.ref.id) fail("GOAL_DRAFT_IMPORT_NOT_FOUND");
       return record;
     });
-    const draft = this._queue(record.id).get({ id: record.draftId });
+    const draft = this._queue(record.id, record.envelope.proposal).get({
+      id: record.draftId,
+    });
     this._assertDraft(record, draft);
     return { ...this.status(input), draft };
   }
   prepare(input) {
     const value = this.read(input);
-    return this._queue(value.id).prepareDraft({ id: value.draftId });
+    return this._queue(value.id, value.draft.proposal).prepareDraft({
+      id: value.draftId,
+    });
   }
   describeIntent(intentId) {
     return this._tx(() => {
@@ -373,7 +392,10 @@ class ProjectGoalDraftImports {
         intent,
         actor,
       });
-      if (!same(draft.plugin, IMPORT_PLUGIN) || draft.origin !== "user-edited")
+      if (
+        !same(draft.plugin, importPlugin(draft.proposal)) ||
+        draft.origin !== "user-edited"
+      )
         return null;
       const record = this._read(identity(actor, draft.proposal), actor);
       if (!same(record.envelope.proposal, draft.proposal))
@@ -413,16 +435,20 @@ class ProjectGoalDraftImports {
       intent: context.intent,
       actor: context.actor,
     });
-    if (!same(draft.plugin, IMPORT_PLUGIN) || draft.origin !== "user-edited")
+    if (
+      !same(draft.plugin, importPlugin(draft.proposal)) ||
+      draft.origin !== "user-edited"
+    )
       return false;
     const id = identity(context.actor, draft.proposal),
       record = this._read(id, context.actor);
     this._assertDraft(record, draft);
-    return this._queue(id).verifyIntentInTransaction(context);
+    return this._queue(id, draft.proposal).verifyIntentInTransaction(context);
   }
 }
 module.exports = {
   ProjectGoalDraftImports,
   IMPORT_PLUGIN,
+  CREATE_IMPORT_PLUGIN,
   readExtensionIntentBinding,
 };

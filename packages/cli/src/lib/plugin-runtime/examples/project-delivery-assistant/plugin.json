@@ -1,22 +1,23 @@
 {
   "name": "project-delivery-assistant",
-  "version": "0.2.0",
-  "description": "Project evidence, bounded event observation and retained replay, and user-selected description drafts through separately authorized CLI surfaces",
+  "version": "0.3.0",
+  "description": "Project evidence, bounded observations, retained replay, description drafts and separately adopted task-creation request files",
   "permissions": {
     "goalExtension": [
       "event:goal.status.changed",
       "event:risk.review.completed",
       "event:action.receipt.updated",
       "panel:goal.evidence",
-      "proposal:task.description.update"
+      "proposal:task.description.update",
+      "proposal:task.create"
     ]
   },
   "goalExtension": {
     "apiVersion": "1.0.0",
     "hosts": {
-      "cli": ">=0.166.142",
-      "vscode": ">=0.37.178",
-      "jetbrains": ">=0.4.195"
+      "cli": ">=0.166.143",
+      "vscode": ">=0.37.179",
+      "jetbrains": ">=0.4.196"
     },
     "events": [
       "goal.status.changed",
@@ -32,6 +33,6 @@
         "fallback": "text"
       }
     ],
-    "proposals": ["task.description.update"]
+    "proposals": ["task.description.update", "task.create"]
   }
 }

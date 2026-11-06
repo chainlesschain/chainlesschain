@@ -1,0 +1,195 @@
+{
+  "localDate": "2026-11-06",
+  "recordedAt": "2026-11-05T23:43:07.323Z",
+  "taskIds": [
+    "DMM-07",
+    "DMM-08"
+  ],
+  "result": "VS Code and JetBrains dedicated online v6 creation access/send/receipt with native selections, action-specific responses and bounded zero-exit UTF-8 capture. Pending only; desktop preview/confirmation remain required. Completion tables updated.",
+  "source": {
+    "baseCommit": "09843429a48e2146a3c1803c324e6bf8143e5699",
+    "branch": "feature/dmm-native-task-create-20261106",
+    "state": "Uncommitted combined worktree; previous batch evidence retained, totals not accumulated",
+    "sha256": {
+      "desktop-app-vue/src/main/task/__tests__/project-goal-delivery-drafts-ipc.test.js": "73f5f1e163ac756b6e611e153305ced2699ae6a9842df3f0000f5d5853dde8ed",
+      "desktop-app-vue/src/main/task/__tests__/project-goal-draft-imports-ipc.test.js": "16fec55b7884bc491700566b957cae222ac04eb33909495fbfbfebb01bd52974",
+      "desktop-app-vue/src/main/task/__tests__/project-goal-external-drafts-ipc.test.js": "ad84fbc971239590c4795efefcd86a240b33370d1d2b6cccd2260356862e4fe4",
+      "desktop-app-vue/src/main/task/project-goal-cli-bridge.js": "cf61487be852e3628533a274e10ebcdeea53092e3e3da4b8e1ba30a46c58e178",
+      "desktop-app-vue/src/main/task/project-goal-delivery-drafts.js": "599953812b787d19bc3cc0ac016f10ddf4955836f5a7fa002d2ebf8e7087933c",
+      "desktop-app-vue/src/main/task/project-goal-draft-request-file.js": "65c791fe24c94c133a9625759ec521d52a992b18d395d9d9d199aa7ee76655b1",
+      "desktop-app-vue/src/main/task/project-goal-drafts-transport.js": "fd09ea8d3241a96f4d9ceb51876e7a7cbc6c5aa578dec34fe41efa178d597168",
+      "desktop-app-vue/src/main/task/project-goal-ipc.js": "5dd176ca526c9fb66755948b98b3b5766314bf867a50ba0f5930d6cce258f75d",
+      "desktop-app-vue/src/renderer/components/projects/ProjectGoalActionsPanel.vue": "562f791812b494243fccaf1b8bec25d61bbebce3d1cc8d2d357347ce014930cd",
+      "desktop-app-vue/src/renderer/components/projects/ProjectGoalCliConnectionPanel.vue": "a67dd4b4b66a9f764b5aafb5e3d6cbb0cba76ccf5df5fb53ea62156fd4115646",
+      "desktop-app-vue/src/renderer/components/projects/ProjectGoalDraftImportsPanel.vue": "272d25e1bc42f303556c0e9045352208d194669741375d9b14fe2c10169cd780",
+      "desktop-app-vue/src/renderer/components/projects/ProjectGoalExtensionDraftsPanel.vue": "ee06c7e6d318fcb1c919709ebe09278ec71b4fbfe8588385059d4d5c8fd501b6",
+      "desktop-app-vue/src/renderer/components/projects/ProjectGoalExternalDraftsPanel.vue": "f2273886005675607dcb915ed972b6e427404568b1eaed6e91abe963eebcb20e",
+      "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-actions-panel.test.ts": "1dd1d5ceff7dfba6a416ce40c0ae5997acc9480e4258b6330b1093d74f9c9eec",
+      "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-cli-connection-panel.test.ts": "d3c667a17050d2af00bf10ae02e48a7cfe90d2997db28c5120167f0b96a57d86",
+      "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-draft-imports-panel.test.ts": "8a0cca7f3f90d2f7a8aec5cafdb84c60a863f3da71164404396aab6e2025923d",
+      "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-extension-drafts-panel.test.ts": "cc7e97eaf796f1ec7c9d3c24527cf6ac5720138b53142bf61bff15b985473d0d",
+      "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-external-drafts-panel.test.ts": "e15fcc2acab1202bf2e567b86f2dead585a59b5ed7c6d533a7d53f1c1d36ee51",
+      "docs/research/agents/README.md": "94c9ed779edbc5ad7924562b8cf6effba52eb4998691b6272552c84299647a39",
+      "docs/research/agents/chainlesschain-dots-muse-mods-analysis-2026-10-06.md": "48ad72736726286c3e2df007d8eb7f69c813ea0a25d59a2c0ebfc749ccaa0e3d",
+      "docs/research/agents/dots-muse-mods-implementation-progress-2026-10-07.md": "139a6fe6f63fbbf971f965e968a01158aec4b4216b6653f2849341dc3c136481",
+      "docs/research/agents/evidence/dmm-ide-online-create-2026-11-06/README.md": "94736b9053d5ef24cc8ddd3f3bd21651ad244f2950385ebca1e26ca7af48d706",
+      "docs/research/agents/evidence/dmm-ide-online-create-2026-11-06/verify-artifacts.py": "fea137edae09def3d64641428b67bf29bc628be296af8d7e518ef5273ccd2a71",
+      "docs/research/agents/evidence/dmm-ide-online-create-2026-11-06/verify.cjs": "50e06403f008e20e7a9debae62c700221961e6b5c12a8663d55bd22d044cf0ec",
+      "packages/cli/README.md": "7928ed0cf0c3c3ae78b488b699213023663958e992fe47705db50ef545fb6f94",
+      "packages/cli/__tests__/fixtures/goal-extension-conversion-process.mjs": "9e4ae4c99b0588b5dfe60126a7ef3acd3f16bcc3470e98ee9a3880caa106bf5d",
+      "packages/cli/__tests__/integration/goal-extension-conversion-process.test.js": "4685cf4c28b3aabcf87423e9ade83f44ecf0985e1e52e334f3129edcd2d4de62",
+      "packages/cli/__tests__/integration/vscode-goal-create-drafts-process.test.js": "4590f063db98bc600ddc823ac2f384dbd71dc0051890c059bf3a74561e5fac94",
+      "packages/cli/__tests__/unit/cli-goal-capabilities.test.js": "7e9ac3803b1a33282c2ca67a1beb40252f3330f6dbb4e395aa23d18662eeded1",
+      "packages/cli/__tests__/unit/cli-goal-draft-request.test.js": "bce68959cea4770111f495ad01a4802a1a7ce0a51352db52ce1ce640ba09c377",
+      "packages/cli/__tests__/unit/cli-goal-drafts-command.test.js": "3d98db6b5da989648b65d67ab2cb139ef34dcfce50b1088a6ffe57f61056b73b",
+      "packages/cli/__tests__/unit/cli-goal-drafts.test.js": "611003fccc02a396becc004373b6c7390e4ae71370a9b19e34a0e63ba2919d50",
+      "packages/cli/__tests__/unit/project-delivery-assistant-lifecycle.test.js": "d4a3a2a3f0bfce7bc3210c9023804c7fe8f4f4943e4e1cc7a0c5d5f7b79df135",
+      "packages/cli/__tests__/unit/project-goal-drafts-transport.test.js": "a7eebc04b4d6941a5ce395e473431d42c0a2031a95907a17f6fcc0f8a15bf2a6",
+      "packages/cli/__tests__/unit/project-goal-extension-queue.test.js": "053f27982b2313ff1800a0dddc16fedf9e06011e3391d7ffd6352739c7a05812",
+      "packages/cli/__tests__/unit/project-goal-external-drafts.test.js": "ec40a19481b890e5702c8b580d4ef31ee942a17fc9fc6b4a3f73a0f187ac256b",
+      "packages/cli/__tests__/unit/vscode-ext-goal-draft-request-view.test.js": "35437fc6f7c0e75c3c8a3750de89c3b84efbaebefe0719d7a1a327af8e96424a",
+      "packages/cli/__tests__/unit/vscode-ext-goal-drafts.test.js": "52674724cf5a9faf74a7d3fda1e2ecca019c356f60b9d6a1ffd6eb030594fb3b",
+      "packages/cli/src/command-help-index.json": "d24a2d4b1ed9079d3842491a178cb71341d78cd59f56280879e4fe57fb366d6b",
+      "packages/cli/src/commands/goal.js": "adc0e640ab64a902f609bc3b634c8b3ae36a3b96cf46efa1dfc5085aa6d06e53",
+      "packages/cli/src/lib/plugin-runtime/cli-goal-capabilities.js": "e29c9bb6d434917eec8ff7ac514491f449b1e3dd74c9133c771e4d31ac4f2e5b",
+      "packages/cli/src/lib/plugin-runtime/cli-goal-draft-request.js": "9a58fed636b8a76aea6bd76209ec1cc154a5d8296263579c7cebad758ea13829",
+      "packages/cli/src/lib/plugin-runtime/cli-goal-drafts.js": "21e04eac4c6413c534260be43c7694d6699e1f5cd11774a664afe9a2825a2d8d",
+      "packages/cli/src/lib/plugin-runtime/examples/goal-task-creator/README.md": "7908d9abce3b1b15d269c9bf057de3ea34accee85ad7e1d4ac17bdb4b8b1308c",
+      "packages/cli/src/lib/plugin-runtime/examples/goal-task-creator/plugin.json": "9a17b50dc18521b226c08d53bff29deb305813d6c2cdfde5ed39f7a974597736",
+      "packages/cli/src/lib/plugin-runtime/examples/project-delivery-assistant/README.md": "a5f05c0389b7da216cb17bab755a3964e9a7aa4b77f5574cc97f7b13bc0f4d74",
+      "packages/cli/src/lib/plugin-runtime/examples/project-delivery-assistant/plugin.json": "ce75660e10415f5432d7863cfcb7de39a1585fe756f54b74e189403352723ff8",
+      "packages/cli/src/lib/plugin-runtime/goal-extensions.js": "24df25568256b2f85a96893cbd028cf04ad6c0864c805bf31027e0254cb5c08f",
+      "packages/cli/src/lib/project-goal-connection.js": "72be1f4d2e8bcfdca755ef4db3b593fbcef748aa9544d24bed4752861161ae58",
+      "packages/cli/src/lib/project-goal-draft-connection.js": "438e9965357c0b2e69ec294adc89430a95f0dd85eed9a7d957c369e7ee62d111",
+      "packages/jetbrains-plugin/README.md": "974467af5ad92c57c3eab860c0e3504a8199417bc4695f60d070d566f26292b6",
+      "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/GoalTaskCreateExport.java": "06ff9b4e5f8ded0ac0231c9d1e0d9c38f6f511e4bd99a48d6b6a7ff34357989e",
+      "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/PluginManager.java": "79055ad81699bf4c5269ccba32d7c24790d1624b19b9e2fa0e8056fa9e658545",
+      "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/PluginManagerAction.java": "d1238bab19824432077063e2d091d9d0c56d2cc87cbec6610651b0e5a4e0c99e",
+      "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/GoalTaskCreateExportTest.java": "7addc444b475f2a9f0dccabd55df700132ef281e172f548546be6353e440e400",
+      "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/PluginManagerTest.java": "667ac33fa8dcbe3e10e0e35a4d7e159c8e8a6393ca64bd690276b82996f29bd1",
+      "packages/session-core/README.md": "4f6380be8f1cbd608aa7ea348b037db1db3c8445c1f9e7b93f887fb024e6d9f4",
+      "packages/session-core/lib/goal-draft-connection-contract.js": "45f8d490b9a660831e2b781d588f78df02830886dd4bfde006a02e0711ea4a9c",
+      "packages/session-core/lib/goal-draft-request-contract.js": "4c110ebfda3ff4bbc95624dba04c37f1722b5e99922dd8f887bb85676f2f67bb",
+      "packages/session-core/lib/goal-extension-proposal-contract.js": "1f2b2d3ddb5d9c3544ce3c2c6af961bf8d9083e56ee1b0872c47867592553e39",
+      "packages/session-core/lib/project-goal-draft-imports.js": "97bb85e85634bae82354307fb53923489c25864eeea6c1684647b9a9da72cb86",
+      "packages/session-core/lib/project-goal-extension-conversion.js": "da8f04d5cda1ceb7ae3f0753c2e1e52fbffe76a759d4c744acca116da734f4aa",
+      "packages/session-core/lib/project-goal-extension-queue.js": "26b610def2b93ddaf19b51725cfedca55aac58884e5c730e3e697efdbdbf151f",
+      "packages/session-core/lib/project-goal-external-drafts.js": "ea010c3a6db6c72e56f38655eae74734e55ec20835f5934204321222befb5094",
+      "packages/vscode-extension/README.md": "a61e6d451126c311fcbfa2b863432a9abcdcc934685603578775c6a5bbacd304",
+      "packages/vscode-extension/src/chat/introspect-commands.js": "6e02b9903684f242fdd59dda13582cad13a5293262b9f060d170c753c107f3b1",
+      "packages/vscode-extension/src/goal-drafts.js": "09bdec70dc9509d8b62573964aee0e7fe2a92e0c297a23571f7ebbe313fbdeea",
+      "packages/vscode-extension/src/plugin-manager.js": "34e7488435800f9a96df1b51542d78b466456f04d1e3061b6bb0d63a4e63668e",
+      "packages/vscode-extension/src/ui/plugin-manager-view.js": "9c09f88b9f97ed47e2483da7955c60feef82f557e61db4bbb2cd26ffc60990d6"
+    }
+  },
+  "environment": {
+    "node": "v22.22.2",
+    "platform": "win32",
+    "arch": "x64",
+    "vitest": "4.1.10",
+    "java": "JBR 21.0.8",
+    "gradle": "8.7 offline",
+    "intellijSdk": "2024.2",
+    "publicVersionsUnchanged": {
+      "cli": "0.166.142",
+      "sessionCore": "0.3.25",
+      "vscode": "0.37.178",
+      "jetbrains": "0.4.195"
+    },
+    "sourceScenarioVersion": "0.3.0"
+  },
+  "totals": {
+    "testFiles": 19,
+    "passed": 255,
+    "failed": 0,
+    "skipped": 0
+  },
+  "reports": [
+    {
+      "file": "cli-tests.json",
+      "cwd": ".",
+      "environment": "workspace sandbox",
+      "command": "npm.cmd --prefix packages/cli test -- __tests__/unit/vscode-ext-goal-drafts.test.js __tests__/unit/vscode-ext-goal-draft-request-view.test.js __tests__/unit/vscode-ext-introspect-commands.test.js __tests__/unit/vscode-ext-plugin-manager.test.js __tests__/unit/vscode-ext-goal-panels-view.test.js __tests__/unit/vscode-ext-goal-events-view.test.js __tests__/unit/vscode-ext-goal-history-view.test.js __tests__/unit/cli-goal-drafts.test.js __tests__/unit/cli-goal-drafts-command.test.js __tests__/unit/project-goal-external-drafts.test.js __tests__/unit/project-goal-drafts-transport.test.js __tests__/unit/project-delivery-assistant-lifecycle.test.js __tests__/unit/goal-draft-submission-reference.test.js __tests__/integration/vscode-goal-create-drafts-process.test.js --reporter=json --outputFile=../../docs/research/agents/evidence/dmm-ide-online-create-2026-11-06/cli-tests.json",
+      "sha256": "540f527f94b759e7955a70d7f838e867014c781211c0b2070664084ab7bbda52",
+      "testFiles": 14,
+      "passed": 190,
+      "failed": 0,
+      "skipped": 0,
+      "success": true
+    },
+    {
+      "file": "desktop-tests.json",
+      "cwd": "desktop-app-vue",
+      "environment": "approved outside sandbox; isolated synthetic data, real Windows ACL/HTTP/SQLite",
+      "command": "node ../node_modules/vitest/vitest.mjs run --config vitest.business-actions.config.mjs src/main/task/__tests__/project-goal-external-drafts-ipc.test.js src/main/task/__tests__/project-goal-draft-imports-ipc.test.js src/main/task/__tests__/project-goal-event-history-ipc.test.js --reporter=json --outputFile=../docs/research/agents/evidence/dmm-ide-online-create-2026-11-06/desktop-tests.json",
+      "sha256": "630ab657cca071cf1f1834aa16062345c10916db613e72fddf3d53fd50eefc8d",
+      "testFiles": 3,
+      "passed": 37,
+      "failed": 0,
+      "skipped": 0,
+      "success": true
+    },
+    {
+      "file": "jetbrains-plugin-manager-tests.xml",
+      "cwd": "packages/jetbrains-plugin",
+      "command": "JAVA_HOME=<local-JBR-21>; .\\gradlew.bat '-Porg.gradle.java.installations.paths=C:/Users/longfa/AppData/Local/Programs/idea-2025.3/jbr' --offline --no-daemon test --tests com.chainlesschain.ide.PluginManagerTest --tests com.chainlesschain.ide.GoalTaskCreateExportTest buildPlugin --console=plain",
+      "environment": "approved outside sandbox; offline Gradle 8.7, JBR 21.0.8, IntelliJ 2024.2 SDK",
+      "sha256": "67cd1429f252ab6ecf0fdc0065e71ba6a7a6ea7ad57b22e6d97a95adcfa44dcc",
+      "testFiles": 1,
+      "passed": 23,
+      "failed": 0,
+      "skipped": 0,
+      "success": true
+    },
+    {
+      "file": "jetbrains-capture-tests.xml",
+      "cwd": "packages/jetbrains-plugin",
+      "command": "JAVA_HOME=<local-JBR-21>; .\\gradlew.bat '-Porg.gradle.java.installations.paths=C:/Users/longfa/AppData/Local/Programs/idea-2025.3/jbr' --offline --no-daemon test --tests com.chainlesschain.ide.PluginManagerTest --tests com.chainlesschain.ide.GoalTaskCreateExportTest buildPlugin --console=plain",
+      "environment": "approved outside sandbox; offline Gradle 8.7, JBR 21.0.8, IntelliJ 2024.2 SDK",
+      "sha256": "935b142de72c04d4171fb248cbd34808b9231c73fe97bf2a0956f15a99826fbf",
+      "testFiles": 1,
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0,
+      "success": true
+    }
+  ],
+  "artifacts": {
+    "file": "artifacts.json",
+    "sha256": "34d1133aa5a36838f78e6726a0bfad55ebb273cff19c15d5e09deff3c5f1d1fa",
+    "countedAsTests": false,
+    "commands": [
+      "node <cached-vsce>/vsce package --no-dependencies --out <Temp>/dmm-ide-online-create-20261106/ide-online-create-local.vsix (cwd packages/vscode-extension)",
+      "JAVA_HOME=<local-JBR-21>; .\\gradlew.bat '-Porg.gradle.java.installations.paths=C:/Users/longfa/AppData/Local/Programs/idea-2025.3/jbr' --offline --no-daemon test --tests com.chainlesschain.ide.PluginManagerTest --tests com.chainlesschain.ide.GoalTaskCreateExportTest buildPlugin --console=plain",
+      "python docs/research/agents/evidence/dmm-ide-online-create-2026-11-06/verify-artifacts.py <exact-local-vsix> packages/jetbrains-plugin/build/distributions/chainlesschain-ide-bridge-0.4.195.zip"
+    ]
+  },
+  "checks": {
+    "file": "checks.json",
+    "sha256": "407ef603c42642e20ef4a1bb961c0bdacfe12a24675a0967c8ca10961f7877ba",
+    "passed": 47,
+    "failed": 0
+  },
+  "boundaries": {
+    "real": [
+      "actual Node/Java subprocess stdout/exit/bounds/UTF-8/timeout capture",
+      "native v6 plugin admission and real Windows ACL/HTTP/SQLite pending/preview/confirmation data validated by IDE parser",
+      "JetBrains IntelliJ SDK/UI compilation",
+      "local VSIX metadata and packaged source/class byte comparisons"
+    ],
+    "substitutes": [
+      "VS Code API dialogs/webview and creation UI CLI response fixture",
+      "Electron window/identity/native confirmation results",
+      "synthetic personal project",
+      "subprocesses are protocol fixtures, not a live native GUI/CLI crash journey"
+    ],
+    "pending": [
+      "model drafting and Memory output authorization adapter",
+      "real IDE/Electron GUI",
+      "independent business-effect samples",
+      "exact-commit full platform release CI, rollout and migration rollback"
+    ],
+    "published": false,
+    "versionsChanged": false
+  }
+}

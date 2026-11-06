@@ -48,6 +48,7 @@ const proposal = (type = "task.description.update") =>
       requestId: "request-1",
       title: "Follow delivery",
       description: "User-selected draft",
+      ...(type === "task.create" ? { taskType: "query_info" } : {}),
     },
     options,
   );
@@ -139,20 +140,28 @@ describe("combined CLI goal surfaces", () => {
       dropped: [{ reason: "consent_required" }],
     });
   });
-  it("keeps unsupported task creation and executable components out of the deployable assistant", async () => {
+  it("activates only the requested proposal surface in the combined assistant without code entrypoints", async () => {
     expect(plugin.manifest.components.hooks).toBeNull();
     expect(plugin.manifest.components.bin).toEqual([]);
     expect(plugin.manifest.goalExtension.proposals).toEqual([
       "task.description.update",
+      "task.create",
     ]);
-    await expect(proposal("task.create")).rejects.toThrow("undeclared");
+    options.host = cliGoalExtensionHost(["proposal:task.description.update"]);
+    await expect(proposal("task.create")).rejects.toThrow("inactive");
     expect(options.enqueueProposal).not.toHaveBeenCalled();
-    expect(() => cliGoalExtensionHost(["proposal:task.create"])).toThrow(
-      "CAPABILITIES_INVALID",
-    );
+    expect(
+      cliGoalExtensionHost(["proposal:task.create"]).activeCapabilities,
+    ).toEqual(["proposal:task.create"]);
   });
   it("does not admit unsupported capabilities elsewhere in a declaration", () => {
-    plugin.manifest.goalExtension.proposals.push("task.create");
+    plugin.manifest.goalExtension.panels.push({
+      id: "action-panel",
+      title: "Actions",
+      slot: "goal.actions",
+      fields: [],
+      fallback: "text",
+    });
     expect(collectGoalExtensions(options)).toMatchObject({
       extensions: [],
       dropped: [{ reason: "unsupported_capabilities" }],

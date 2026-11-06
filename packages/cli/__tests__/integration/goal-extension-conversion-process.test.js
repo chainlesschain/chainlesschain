@@ -31,6 +31,80 @@ function interrupt(mode, status) {
   expect(caught?.status).toBe(status);
 }
 describe("extension conversion real process recovery", () => {
+  it("recovers creation at every persisted boundary with one created task and one terminal receipt", () => {
+    directory = fs.mkdtempSync(
+      path.join(os.tmpdir(), "cc-extension-create-process-"),
+    );
+    run("setup-create");
+    interrupt("conversion-gap", 41);
+    const conversion = run("inspect");
+    expect(conversion).toMatchObject({
+      conversions: 1,
+      nativeIntents: 0,
+      actionRuns: 0,
+      taskCount: 1,
+    });
+    interrupt("native-draft-gap", 42);
+    const draft = run("inspect");
+    expect(draft).toMatchObject({
+      conversions: 1,
+      nativeIntents: 1,
+      intentStatus: "draft",
+      actionRuns: 0,
+      taskCount: 1,
+    });
+    expect(draft.conversion).toEqual(conversion.conversion);
+    interrupt("preview-gap", 43);
+    expect(run("inspect")).toMatchObject({
+      intentStatus: "prepared",
+      actionRuns: 0,
+      taskCount: 1,
+    });
+    interrupt("run-gap", 44);
+    const complete = run("inspect");
+    expect(complete).toMatchObject({
+      conversions: 1,
+      nativeIntents: 1,
+      actionRuns: 1,
+      runStatus: "succeeded",
+      taskCount: 2,
+      description: "Original",
+      createdTask: {
+        task_type: "analyze_data",
+        description: "Persisted extension recovery",
+        status: "pending",
+      },
+    });
+    expect(run("replay")).toMatchObject({
+      replayed: true,
+      run: { id: complete.runId },
+    });
+    expect(run("inspect")).toMatchObject({ actionRuns: 1, taskCount: 2 });
+  }, 60000);
+  it("does not retry task creation after a process exits during native confirmation", () => {
+    directory = fs.mkdtempSync(
+      path.join(os.tmpdir(), "cc-extension-create-running-"),
+    );
+    run("setup-create");
+    interrupt("running-gap", 45);
+    const unresolved = run("inspect");
+    expect(unresolved).toMatchObject({
+      actionRuns: 1,
+      intentStatus: "running",
+      runStatus: "running",
+      usage: "unknown",
+      taskCount: 1,
+    });
+    expect(run("replay")).toMatchObject({
+      executionState: "unresolved",
+      run: { id: unresolved.runId },
+    });
+    expect(run("inspect")).toMatchObject({
+      actionRuns: 1,
+      taskCount: 1,
+      createdTask: null,
+    });
+  }, 60000);
   it("recovers each committed boundary with one conversion, intent, action and receipt", () => {
     directory = fs.mkdtempSync(path.join(os.tmpdir(), "cc-extension-process-"));
     run("setup");

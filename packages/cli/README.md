@@ -1,6 +1,35 @@
 # chainlesschain CLI
 
+工作树待发布补充：两端 IDE 新增力数/vLLM/SGLang 等本地算力平台入口，使用 `custom` OpenAI 兼容路径，可选平台密钥并显式确认局域网 HTTP。CLI 原子保存与首次设置在更换无密钥平台地址时不复用旧端点密钥；详见 [DMM 当前证据](../../docs/research/agents/evidence/dmm-volcengine-live-2026-11-06/README.md)。此说明不改变下文公开版本及发行限制。
+
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
+
+## CLI 0.166.143 / local compute and controlled task-creation drafts
+
+Release candidate pairing: Session Core **0.3.26**, CLI **0.166.143**, Open VSX
+**0.37.179** and JetBrains **0.4.196**. Both IDEs add a Local compute / OpenAI
+compatible option for LEXDATA, vLLM and SGLang, with explicit endpoint/model,
+optional platform key and HTTP consent. Atomic configuration and first-run setup
+do not carry a previous endpoint credential to a new keyless platform.
+
+The CLI/IDE goal tools add explicit file/v6 pending task-creation requests and
+the admitted data-only project-delivery-assistant 0.3.0. They require matching
+desktop source support and separate native source/creation consent. Published
+clients have not been upgraded by this CLI/IDE release. Model drafting remains
+in the desktop source; the new IDE option configures chat/CLI connectivity.
+
+The candidate passed 374 focused tests and 22 local checks. Two synthetic real
+Volcengine drafts consumed 1,176 tokens, with cost unknown; these are engineering
+samples, not independent business-effect acceptance. LEXDATA's supplied API
+currently resets discovery connections, so actual LEXDATA inference is unverified.
+Real IDE/Electron GUI acceptance remains separate.
+
+Publication requires the exact source's complete Linux/Windows/macOS CLI CI and
+Strict Sandbox results, then Actions OIDC upstream publication/readback before
+CLI and IDE publication. Once verified, install
+`npm i -g chainlesschain@0.166.143 --registry https://registry.npmjs.org`.
+Current release-stage results are tracked in
+[release143 evidence](../../docs/research/cli/evidence/release143-public/README.md).
 
 ## CLI 0.166.142 / authorized goal events and history
 
@@ -2953,6 +2982,32 @@ Native preview and a second explicit native confirmation remain required before
 task modification. Revoking adoption invalidates pending previews; it does not
 undo completed task changes. No versions have been published for this flow.
 
+The source build additionally supports **task-creation request files** using
+`goal-task-creator` and the separate `goal draft-create-request` command:
+
+```powershell
+cc plugin add packages/cli/src/lib/plugin-runtime/examples/goal-task-creator --scope project --json
+cc plugin trust goal-task-creator --scope project
+cc plugin consent goal-task-creator --scope project --grant --json
+cc goal draft-create-request <goal-id> --connection "<summary-connection.json>" --plugin goal-task-creator --scope project --source <current-native-creation-proposal-id> --request-id <stable-id> --title "Delivery follow-up" --task-type analyze_data --description-file "<utf8-description.txt>" --out "<new-create-request.json>" --json
+```
+
+This requires matching local CLI, Session Core and desktop sources; the published
+CLI 0.166.142 does not acquire this command through the manifest version floor.
+Use a current native `task.create` risk proposal ID. The exported schema
+`chainlesschain.goal-task-create-request/v1` is separate from the description-only
+file format. Desktop adoption reviews the full body and task type, saves this
+one pending request under `native-imported-task-create`, and requires a new
+native preview and a second explicit confirmation before creation. It does not
+execute the created task or prove that the source risk is resolved. The same
+request identity with a different task type conflicts; a revoked adoption cannot
+be revived by reimport. The existing online v3 bridge remains description-only.
+Matching source IDE builds now provide **Export
+task creation request…** using native type and file selections; combined assistant
+0.3.0 declares this file-export capability after new version trust and expansion
+consent. A separate v6 CLI creation flow is described below. See the
+[source example](src/lib/plugin-runtime/examples/goal-task-creator/README.md).
+
 The working tree additionally supports a separately authorized **online pending
 draft connection**. Export an access request for the same installed/trusted/
 consented proposal-only plugin:
@@ -2991,8 +3046,58 @@ review, native preview and explicit source revocation. Disconnecting preserves
 saved drafts and the grant across application restarts. Revoking the source
 invalidates its old drafts and pending previews; completed task receipts remain.
 Actual changes require a current preview and separate native confirmation.
-Event subscriptions, the complete delivery assistant and real GUI acceptance
-remain open. See local implementation evidence (`../../docs/research/agents/evidence/dmm-cli-online-drafts-2026-10-18/README.md`).
+The complete delivery assistant and real GUI acceptance remain open. See local
+implementation evidence (`../../docs/research/agents/evidence/dmm-cli-online-drafts-2026-10-18/README.md`).
+
+The matching source CLI and desktop also support **online pending task-creation
+drafts** under a separate v6 `goal.create-drafts` connection. First allow
+`task.create` on the goal and run a fresh native risk check. Install, trust and
+consent `goal-task-creator` (or source assistant 0.3.0), then:
+
+```powershell
+cc goal draft-create-access --plugin goal-task-creator --scope project --out "<new-creation-access.json>" --json
+# Desktop: select “另行授权在线创建任务待审连接”, choose that access file,
+# inspect the native consent, and save a new private connection file.
+cc goal draft-create-sources <goal-id> --connection "<creation-v6.json>" --plugin goal-task-creator --scope project --expected-store <store-id> --json
+cc goal draft-create-send <goal-id> --connection "<creation-v6.json>" --plugin goal-task-creator --scope project --expected-store <store-id> --source <selected-creation-source-id> --request-id <stable-id> --title "Delivery follow-up" --task-type analyze_data --description-file "<utf8-text-file>" --record "<new-creation-submission.json>" --json
+cc goal draft-create-receipt <goal-id> --connection "<creation-v6.json>" --plugin goal-task-creator --scope project --expected-store <store-id> --record "<creation-submission.json>" --json
+```
+
+Creation access files use `chainlesschain.goal-create-draft-access/v1`; old
+description access files and connections are rejected. The native creation
+grant has its own identity and revocation epoch. Each command activates only
+its actual proposal capability, including when the plugin declares both types.
+Task type is fixed in the proposal digest and durable submission identity;
+changing it under the same request ID conflicts. `saved` means only a pending
+creation suggestion was stored. Desktop review, a current native preview and
+individual confirmation are still required to create one pending task.
+
+Keep the body-free submission reference after `unknown`. Existing references
+are only queried, including after `not-found`, and never automatically resent.
+Reconnect the same unchanged creation grant to query again. Disconnect/restart
+preserves drafts; revocation invalidates unconfirmed drafts and previews while
+retaining completed receipts. Description grants do not authorize creation.
+Matching source VS Code and JetBrains builds provide **Export online creation
+access…**, **Submit pending creation…** and **Look up creation receipt…** with
+native connection/source/type/body/reference controls. Creation results require
+their own schemas and successful CLI exit before presentation. Closing the IDE
+or clearing results may leave a dispatched submission saved; keep the original
+reference and use the receipt action, without automatically resending it.
+Both IDEs also retain creation request-file export for per-file desktop adoption.
+This source capability is unpublished. See the
+[verification and status tables](../../docs/research/agents/evidence/dmm-online-create-2026-11-06/README.md).
+
+Matching desktop sources also expose **本机模型起草（逐次原生授权）** in the goal
+actions panel. This is a separate on-demand native pipeline; CLI/IDE proposal
+commands continue to use the user-selected body. Select governed local Ollama
+with a literal `127.0.0.1` or `[::1]` endpoint in model settings, allow the goal's
+action type and run a fresh risk check. Select a current source/type; memory is
+off by default. Native consent shows the selected input and notes that governance
+evidence stores the prompt/response. Saved output still requires current preview
+and individual native task confirmation. Keep the model request ID after an
+interruption, and query it without generating a replacement automatically.
+Unknown cost stays unknown; finite token/cost budgets currently refuse dispatch.
+See [local adapter scope and evidence](../../docs/research/agents/evidence/dmm-local-model-drafts-2026-11-06/README.md).
 
 ### `chainlesschain permissions <action>` (alias: `perms`)
 

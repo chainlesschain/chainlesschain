@@ -43,6 +43,48 @@
       @extension-invalidated="invalidateExtensions"
       @intent-prepared="reloadPreparedIntent"
     />
+    <ProjectGoalExtensionDraftsPanel
+      :goal="goal"
+      :identity-key="identityKey"
+      proposal-type="task.create"
+      :sources="
+        items
+          .filter(
+            (item) =>
+              item.current &&
+              !item.intent &&
+              !item.intentUnavailable &&
+              item.proposal.actionType === 'task.create',
+          )
+          .map((item) => ({
+            id: item.proposal.id,
+            sourceTaskId: item.proposal.sourceTaskId,
+            reviewId: item.proposal.reviewId,
+            reviewDigest: item.proposal.reviewDigest,
+          }))
+      "
+      @authority-error="emit('authority-error')"
+      @extension-invalidated="invalidateExtensions"
+      @intent-prepared="reloadPreparedIntent"
+    />
+    <ProjectGoalModelDraftsPanel
+      :goal="goal"
+      :identity-key="identityKey"
+      :sources="
+        items
+          .filter(
+            (item) => item.current && !item.intent && !item.intentUnavailable,
+          )
+          .map((item) => ({
+            id: item.proposal.id,
+            sourceTaskId: item.proposal.sourceTaskId,
+            actionType: item.proposal.actionType,
+          }))
+      "
+      @authority-error="emit('authority-error')"
+      @extension-invalidated="invalidateExtensions"
+      @intent-prepared="reloadPreparedIntent"
+    />
     <ProjectGoalDraftImportsPanel
       :goal="goal"
       :identity-key="identityKey"
@@ -53,7 +95,9 @@
               item.current &&
               !item.intent &&
               !item.intentUnavailable &&
-              item.proposal.actionType === 'task.update-description',
+              ['task.update-description', 'task.create'].includes(
+                item.proposal.actionType,
+              ),
           )
           .map((item) => item.proposal.id)
       "
@@ -131,6 +175,9 @@
             }}
           </p>
           <p>拟保存说明：{{ item.intent.intent.preview.after.description }}</p>
+          <p v-if="item.proposal.actionType === 'task.create'">
+            新任务类型：{{ item.intent.intent.taskType }}
+          </p>
           <button
             :disabled="busy || !item.current || goal.status !== 'active'"
             data-testid="execute-goal-intent"
@@ -187,6 +234,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from "vue";
 import ProjectGoalExtensionDraftsPanel from "./ProjectGoalExtensionDraftsPanel.vue";
+import ProjectGoalModelDraftsPanel from "./ProjectGoalModelDraftsPanel.vue";
 import ProjectGoalDraftImportsPanel from "./ProjectGoalDraftImportsPanel.vue";
 import ProjectGoalExternalDraftsPanel from "./ProjectGoalExternalDraftsPanel.vue";
 import { actionCode, isAuthorityError } from "./task-description-ui";
@@ -326,7 +374,7 @@ function failure(value: unknown, message: string) {
     emit("authority-error");
     error.value = "当前身份已无法读取这些建议。";
   } else if (
-    /^(ACTION_GOAL_EXTENSION_|GOAL_EXTENSION_|GOAL_EXTERNAL_)/.test(
+    /^(ACTION_GOAL_EXTENSION_|GOAL_EXTENSION_|GOAL_EXTERNAL_|GOAL_MODEL_|GOAL_MEMORY_)/.test(
       actionCode(value),
     ) ||
     (items.value.some((item) => item.intent?.intent.extensionRef) &&

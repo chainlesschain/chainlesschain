@@ -67,9 +67,7 @@ public final class ConfigureLlmAction extends AnAction {
             background(CcBundle.message("llm.form.saving"), () -> {
                 String error = LlmConfig.saveConnection(submitted, key, allowHttp);
                 if (error != null) return () -> form.notice(CcBundle.message("llm.error.configWrite", error));
-                LlmConfig.Connection confirmed = new LlmConfig.Connection(submitted.provider, submitted.model,
-                        LlmConfig.normalizedBaseUrl(submitted.baseUrl), submitted.visionModel,
-                        !"ollama".equals(submitted.provider));
+                LlmConfig.Connection confirmed = LlmConfig.readConnection();
                 return () -> { form.load(confirmed); form.notice(CcBundle.message("llm.form.saved")); };
             });
         }

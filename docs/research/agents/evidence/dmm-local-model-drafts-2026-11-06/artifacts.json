@@ -1,0 +1,16 @@
+{
+  "state": "verified-local-core-package",
+  "matchedFiles": [
+    "lib/project-goal-memory.js",
+    "lib/goal-usage-ledger.js",
+    "lib/project-goal-extension-queue.js",
+    "lib/goal-draft-connection-contract.js",
+    "README.md",
+    "package.json"
+  ],
+  "sha256": "b56bed43440eca9009ec4c0565e2cc2fe3298a0e8b9fbf7a898ec824bf82cd84",
+  "publicCjsEsmOutputGuard": true,
+  "fullElectronPackageBuilt": false,
+  "published": false,
+  "versionsChanged": false
+}

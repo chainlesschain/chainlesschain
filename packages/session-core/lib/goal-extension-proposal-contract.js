@@ -4,6 +4,14 @@ const GOAL_EXTENSION_ACTION_MAP = Object.freeze({
   "task.description.update": "task.update-description",
   "task.create": "task.create",
 });
+const GOAL_EXTENSION_TASK_TYPES = Object.freeze([
+  "create_file",
+  "edit_file",
+  "query_info",
+  "analyze_data",
+  "export_file",
+  "deploy_project",
+]);
 function goalExtensionRef(value) {
   if (
     !value ||
@@ -42,12 +50,19 @@ function normalizeGoalExtensionProposal(raw) {
           "requestId",
           "title",
           "description",
+          "taskType",
         ].includes(key),
     )
   )
     throw new Error("unsupported goal extension proposal fields");
   if (!Object.hasOwn(GOAL_EXTENSION_ACTION_MAP, raw.type))
     throw new Error("unsupported goal extension proposal type");
+  if (
+    raw.type === "task.create"
+      ? !GOAL_EXTENSION_TASK_TYPES.includes(raw.taskType)
+      : Object.hasOwn(raw, "taskType")
+  )
+    throw new Error("invalid proposal taskType");
   const goalRef = goalExtensionRef(raw.goalRef);
   for (const [key, max] of [
     ["sourceRef", 256],
@@ -69,6 +84,7 @@ function normalizeGoalExtensionProposal(raw) {
     requestId: raw.requestId,
     title: raw.title,
     description: raw.description,
+    ...(raw.type === "task.create" ? { taskType: raw.taskType } : {}),
   });
 }
 function validateGoalExtensionIntentRef(value) {
@@ -99,6 +115,7 @@ module.exports = {
   validateGoalExtensionIntentRef,
   goalExtensionIntentId,
   GOAL_EXTENSION_ACTION_MAP,
+  GOAL_EXTENSION_TASK_TYPES,
   goalExtensionRef,
   normalizeGoalExtensionProposal,
 };

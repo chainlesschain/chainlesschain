@@ -1,0 +1,250 @@
+[
+  {
+    "command": [
+      "node",
+      "--check",
+      "desktop-app-vue/scripts/project-goal-volcengine-live.cjs"
+    ],
+    "exitCode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "node",
+      "--check",
+      "desktop-app-vue/scripts/project-goal-private-openai-discover.cjs"
+    ],
+    "exitCode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "node",
+      "--check",
+      "desktop-app-vue/src/main/task/project-goal-volcengine-model.js"
+    ],
+    "exitCode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "node",
+      "--check",
+      "desktop-app-vue/src/main/task/project-goal-model-drafts.js"
+    ],
+    "exitCode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "node",
+      "--check",
+      "desktop-app-vue/src/main/task/project-goal-ipc.js"
+    ],
+    "exitCode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "node",
+      "--check",
+      "desktop-app-vue/src/main/task/__tests__/project-goal-volcengine-fixture.cjs"
+    ],
+    "exitCode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "node",
+      "--check",
+      "desktop-app-vue/src/main/task/__tests__/project-goal-openai-protocol.test.cjs"
+    ],
+    "exitCode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "node",
+      "--check",
+      "desktop-app-vue/src/main/task/__tests__/project-goal-model-drafts-ipc.test.js"
+    ],
+    "exitCode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "node",
+      "--check",
+      "packages/cli/src/commands/setup.js"
+    ],
+    "exitCode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "node",
+      "--check",
+      "packages/cli/scripts/sync-llm-onboarding.mjs"
+    ],
+    "exitCode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "node",
+      "--check",
+      "packages/cli/__tests__/unit/llm-onboarding-catalog.test.js"
+    ],
+    "exitCode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "node",
+      "--check",
+      "packages/cli/__tests__/unit/setup-deployment-readiness.test.js"
+    ],
+    "exitCode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "node",
+      "--check",
+      "packages/cli/__tests__/unit/vscode-ext-llm-connection-test.test.js"
+    ],
+    "exitCode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "node",
+      "--check",
+      "packages/cli/__tests__/unit/vscode-ext-local-compute-form.test.js"
+    ],
+    "exitCode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "node",
+      "--check",
+      "packages/cli/__tests__/integration/llm-connection-config.test.js"
+    ],
+    "exitCode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "node",
+      "--check",
+      "packages/vscode-extension/src/ui/llm-config-panel.js"
+    ],
+    "exitCode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "node",
+      "--check",
+      "packages/vscode-extension/media/llm-config.js"
+    ],
+    "exitCode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "node",
+      "--check",
+      "docs/research/agents/evidence/dmm-volcengine-live-2026-11-06/verify.cjs"
+    ],
+    "exitCode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "node",
+      "packages/cli/scripts/sync-llm-onboarding.mjs",
+      "--check"
+    ],
+    "exitCode": 0,
+    "stdout": "CLI / VS Code / JetBrains onboarding presets are synchronized.\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "node",
+      "desktop-app-vue/scripts/verify-fixed-renderer-ipc.mjs"
+    ],
+    "exitCode": 0,
+    "stdout": "Fixed renderer IPC manifest is current (1376 exact channels; 156 unregistered renderer channels denied).\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "git",
+      "diff",
+      "--check"
+    ],
+    "exitCode": 0,
+    "stdout": "",
+    "stderr": "warning: in the working copy of 'packages/jetbrains-plugin/src/main/resources/messages/CcBundle.properties', CRLF will be replaced by LF the next time Git touches it\nwarning: in the working copy of 'packages/jetbrains-plugin/src/main/resources/messages/CcBundle_zh.properties', CRLF will be replaced by LF the next time Git touches it\n"
+  },
+  {
+    "command": [
+      "node",
+      "node_modules/prettier/bin/prettier.cjs",
+      "--check",
+      "desktop-app-vue/scripts/project-goal-volcengine-live.cjs",
+      "desktop-app-vue/scripts/project-goal-private-openai-discover.cjs",
+      "desktop-app-vue/src/main/task/project-goal-volcengine-model.js",
+      "desktop-app-vue/src/main/task/project-goal-model-drafts.js",
+      "desktop-app-vue/src/main/task/project-goal-ipc.js",
+      "desktop-app-vue/src/main/task/__tests__/project-goal-volcengine-fixture.cjs",
+      "desktop-app-vue/src/main/task/__tests__/project-goal-openai-protocol.test.cjs",
+      "desktop-app-vue/src/main/task/__tests__/project-goal-model-drafts-ipc.test.js",
+      "desktop-app-vue/src/renderer/components/projects/ProjectGoalModelDraftsPanel.vue",
+      "desktop-app-vue/src/renderer/components/LLMSettings.vue",
+      "packages/cli/src/commands/setup.js",
+      "packages/cli/src/lib/llm-onboarding-catalog.json",
+      "packages/cli/scripts/sync-llm-onboarding.mjs",
+      "packages/cli/__tests__/unit/llm-onboarding-catalog.test.js",
+      "packages/cli/__tests__/unit/setup-deployment-readiness.test.js",
+      "packages/cli/__tests__/unit/vscode-ext-llm-connection-test.test.js",
+      "packages/cli/__tests__/unit/vscode-ext-local-compute-form.test.js",
+      "packages/cli/__tests__/integration/llm-connection-config.test.js",
+      "packages/vscode-extension/src/ui/llm-config-panel.js",
+      "packages/vscode-extension/src/vendor/llm-onboarding-presets.json",
+      "packages/vscode-extension/media/llm-config.js",
+      "packages/vscode-extension/README.md",
+      "packages/jetbrains-plugin/README.md",
+      "packages/cli/README.md",
+      "docs/research/agents/README.md",
+      "docs/research/agents/chainlesschain-dots-muse-mods-analysis-2026-10-06.md",
+      "docs/research/agents/dots-muse-mods-implementation-progress-2026-10-07.md",
+      "docs/research/agents/evidence/dmm-volcengine-live-2026-11-06/verify.cjs",
+      "docs/research/agents/evidence/dmm-volcengine-live-2026-11-06/README.md"
+    ],
+    "exitCode": 0,
+    "stdout": "Checking formatting...\nAll matched files use Prettier code style!\n",
+    "stderr": ""
+  }
+]

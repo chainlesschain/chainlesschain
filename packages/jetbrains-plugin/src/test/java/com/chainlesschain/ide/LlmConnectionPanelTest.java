@@ -100,4 +100,26 @@ class LlmConnectionPanelTest {
             assertTrue(panel.needsNewKey());
         });
     }
+
+    @Test void localComputeHasItsOwnProviderAndOptionalSecret() throws Exception {
+        SwingUtilities.invokeAndWait(() -> {
+            LlmConnectionPanel panel = new LlmConnectionPanel(key -> key);
+            panel.load(new LlmConfig.Connection("openai", "cloud-model", "https://api.openai.com/v1", "", true));
+            ((JPasswordField) find(panel, "llm.apiKey")).setText("old-cloud-key");
+            JComboBox<?> choices = (JComboBox<?>) find(panel, "llm.provider");
+            for (int i = 0; i < LlmConfig.PRESETS.length; i++) if ("custom".equals(LlmConfig.PRESETS[i].id)) choices.setSelectedIndex(i);
+            ((JTextField) find(panel, "llm.baseUrl")).setText("http://192.168.31.79:8889/v1");
+            ((JTextField) find(panel, "llm.model")).setText("glm5.3-flash-tensorfold");
+            assertEquals("custom", panel.connection().provider);
+            assertEquals("", panel.apiKey());
+            assertFalse(panel.needsNewKey());
+            assertFalse(find(panel, "llm.protocol").isVisible());
+            assertNotNull(LlmConfig.validateConnection(panel.connection(), false));
+            assertNull(LlmConfig.validateConnection(panel.connection(), true));
+            panel.load(new LlmConfig.Connection("custom", "glm5.3-flash-tensorfold", "http://192.168.31.79:8889/v1", "", false));
+            assertEquals("custom", panel.connection().provider);
+            assertFalse(panel.needsNewKey());
+            assertTrue(find(panel, "llm.test").isEnabled());
+        });
+    }
 }

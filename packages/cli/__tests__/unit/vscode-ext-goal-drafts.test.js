@@ -35,9 +35,11 @@ const input = {
   scope: "project",
   record,
 };
-function sourcePage() {
+function sourcePage(creation = false) {
   return {
-    schema: "chainlesschain.goal-draft-source-page/v1",
+    schema: creation
+      ? "chainlesschain.goal-create-draft-source-page/v1"
+      : "chainlesschain.goal-draft-source-page/v1",
     goalRef,
     plugin,
     grantRef,
@@ -57,9 +59,16 @@ function sourcePage() {
     },
   };
 }
-function submission(state = "saved", requestId = "original-id") {
+function submission(
+  state = "saved",
+  requestId = "original-id",
+  creation = false,
+) {
   return {
-    schema: "chainlesschain.goal-draft-submission/v1",
+    schema: creation
+      ? "chainlesschain.goal-create-draft-submission/v1"
+      : "chainlesschain.goal-draft-submission/v1",
+    ...(creation ? { type: "task.create" } : {}),
     goalRef,
     plugin,
     grantRef,
@@ -71,7 +80,16 @@ function submission(state = "saved", requestId = "original-id") {
     record,
   };
 }
-function harness({ state = "saved", defer = false, cancel = false } = {}) {
+function harness({
+  state = "saved",
+  defer = false,
+  cancel = false,
+  creation = false,
+  cancelType = false,
+  nonzero = false,
+  wrongType = false,
+  wrongSchema = false,
+} = {}) {
   let receive, finish;
   const posts = [];
   const runCliText = vi.fn(({ args }) => {
@@ -98,29 +116,45 @@ function harness({ state = "saved", defer = false, cancel = false } = {}) {
           nextCursor: null,
         }),
       );
-    if (args[1] === "draft-sources")
-      return Promise.resolve(JSON.stringify(sourcePage()));
-    if (args[1] === "draft-access")
+    if (["draft-sources", "draft-create-sources"].includes(args[1]))
+      return Promise.resolve(JSON.stringify(sourcePage(creation)));
+    if (["draft-access", "draft-create-access"].includes(args[1]))
       return Promise.resolve(
         JSON.stringify({
-          schema: "chainlesschain.goal-draft-access-export/v1",
+          schema: creation
+            ? "chainlesschain.goal-create-draft-access-export/v1"
+            : "chainlesschain.goal-draft-access-export/v1",
           state: "access-exported",
           plugin,
           declarationDigest,
           file: out,
         }),
       );
-    if (["draft-send", "draft-receipt"].includes(args[1])) {
+    if (
+      [
+        "draft-send",
+        "draft-receipt",
+        "draft-create-send",
+        "draft-create-receipt",
+      ].includes(args[1])
+    ) {
       const id =
         args.find((x) => x.startsWith("--request-id="))?.slice(13) ||
         "original-id";
-      const value = JSON.stringify(submission(state, id));
+      const result = submission(state, id, creation && !wrongSchema);
+      if (wrongType) result.type = "task.description.update";
+      const value = JSON.stringify(result);
       return defer
         ? new Promise((resolve) => (finish = () => resolve(value)))
         : Promise.resolve(value);
     }
     return Promise.resolve("[]");
   });
+  const runCliResult = vi.fn(async (options) => ({
+    ok: options.args[1] !== nonzero,
+    code: options.args[1] === nonzero ? 1 : 0,
+    stdout: await runCliText(options),
+  }));
   const panel = {
     reveal() {},
     onDidDispose() {},
@@ -135,7 +169,13 @@ function harness({ state = "saved", defer = false, cancel = false } = {}) {
     ViewColumn: { Active: 1 },
     window: {
       createWebviewPanel: () => panel,
-      showQuickPick: vi.fn(async (rows) => rows[0]),
+      showQuickPick: vi.fn(async (rows) =>
+        rows.some((row) => row.taskType)
+          ? cancelType
+            ? undefined
+            : rows.find((row) => row.taskType === "analyze_data")
+          : rows[0],
+      ),
       showOpenDialog: vi
         .fn()
         .mockResolvedValueOnce([{ fsPath: connection }])
@@ -152,7 +192,7 @@ function harness({ state = "saved", defer = false, cancel = false } = {}) {
     exports: module.exports,
     require: (name) =>
       name === "../chat/introspect-commands.js"
-        ? { runCliText }
+        ? { runCliText, runCliResult }
         : name === "../cli-binary"
           ? { getResolvedCli: () => "cc" }
           : realRequire(name),
@@ -167,6 +207,7 @@ function harness({ state = "saved", defer = false, cancel = false } = {}) {
     send: (msg) => receive(msg),
     posts,
     runCliText,
+    runCliResult,
     vscode,
     finish: () => finish?.(),
   };
@@ -174,125 +215,291 @@ function harness({ state = "saved", defer = false, cancel = false } = {}) {
 const flush = async () => {
   await new Promise((resolve) => setTimeout(resolve, 25));
 };
-describe("VS Code online draft native flows", () => {
-  it("takes source and all filesystem paths from native pickers, ignoring webview path injection", async () => {
-    const h = harness();
-    h.send({
-      command: "pluginGoalDraftSend",
-      name: "drafter",
-      scope: "project",
-      connection: "C:/evil",
-      source: "evil",
-      record: "C:/evil",
-      descriptionFile: "C:/evil",
+describe.each([false, true])(
+  "VS Code online draft native flows (creation=%s)",
+  (creation) => {
+    const command = (suffix) =>
+      `pluginGoal${creation ? "Create" : ""}Draft${suffix}`;
+    const cliCommand = (suffix) =>
+      `draft-${creation ? "create-" : ""}${suffix}`;
+    it("takes source and all filesystem paths from native pickers, ignoring webview path injection", async () => {
+      const h = harness({ creation });
+      h.send({
+        command: command("Send"),
+        name: "drafter",
+        scope: "project",
+        connection: "C:/evil",
+        source: "evil",
+        record: "C:/evil",
+        descriptionFile: "C:/evil",
+        taskType: "deploy_project",
+      });
+      await flush();
+      const args = h.runCliText.mock.calls.find(
+        ([arg]) => arg.args[1] === cliCommand("send"),
+      )[0].args;
+      expect(args).toEqual(
+        expect.arrayContaining([
+          `--connection=${connection}`,
+          `--source=${sourceId}`,
+          `--record=${record}`,
+          `--description-file=${body}`,
+        ]),
+      );
+      expect(args.join(" ")).not.toContain("evil");
+      expect(h.vscode.window.showQuickPick).toHaveBeenCalledTimes(
+        creation ? 2 : 1,
+      );
+      if (creation) {
+        expect(args).toContain("--task-type=analyze_data");
+        expect(args).not.toContain("--task-type=deploy_project");
+        expect(
+          h.runCliResult.mock.calls.every(
+            ([options]) =>
+              options.maxBufferBytes === 16384 && options.strictUtf8 === true,
+          ),
+        ).toBe(true);
+      } else
+        expect(args.some((arg) => arg.startsWith("--task-type"))).toBe(false);
+      expect(
+        h.posts.some((msg) => msg.text?.includes("Saved pending draft")),
+      ).toBe(true);
     });
-    await flush();
-    const args = h.runCliText.mock.calls.find(
-      ([arg]) => arg.args[1] === "draft-send",
-    )[0].args;
-    expect(args).toEqual(
-      expect.arrayContaining([
-        `--connection=${connection}`,
-        `--source=${sourceId}`,
-        `--record=${record}`,
-        `--description-file=${body}`,
-      ]),
-    );
-    expect(args.join(" ")).not.toContain("evil");
-    expect(h.vscode.window.showQuickPick).toHaveBeenCalledTimes(1);
-    expect(
-      h.posts.some((msg) => msg.text?.includes("Saved pending draft")),
-    ).toBe(true);
-  });
-  it("exports an access request without opening a connection or submitting", async () => {
-    const h = harness();
-    h.vscode.window.showSaveDialog.mockResolvedValue({ fsPath: out });
+    it("exports an access request without opening a connection or submitting", async () => {
+      const h = harness({ creation });
+      h.vscode.window.showSaveDialog.mockResolvedValue({ fsPath: out });
+      h.send({
+        command: command("Access"),
+        name: "drafter",
+        scope: "project",
+        out: "evil",
+      });
+      await flush();
+      expect(
+        h.runCliText.mock.calls.some(
+          ([arg]) =>
+            arg.args[1] === cliCommand("access") &&
+            arg.args.includes(`--out=${out}`),
+        ),
+      ).toBe(true);
+      expect(
+        h.runCliText.mock.calls.some(
+          ([arg]) => arg.args[1] === cliCommand("send"),
+        ),
+      ).toBe(false);
+    });
+    it("looks up a prior record independently of a previous send UI", async () => {
+      const h = harness({ state: "not-found", creation });
+      h.vscode.window.showOpenDialog
+        .mockReset()
+        .mockResolvedValueOnce([{ fsPath: connection }])
+        .mockResolvedValueOnce([{ fsPath: record }]);
+      h.send({
+        command: command("Receipt"),
+        name: "drafter",
+        scope: "project",
+      });
+      await flush();
+      expect(
+        h.runCliText.mock.calls.find(
+          ([arg]) => arg.args[1] === cliCommand("receipt"),
+        )[0].args,
+      ).toEqual(expect.arrayContaining([`--record=${record}`]));
+      expect(h.posts.some((msg) => msg.text?.includes("at lookup time"))).toBe(
+        true,
+      );
+      expect(
+        h.runCliText.mock.calls.some(
+          ([arg]) => arg.args[1] === cliCommand("send"),
+        ),
+      ).toBe(false);
+    });
+    it("reports an unknown outcome with the durable record and never auto-resends", async () => {
+      const h = harness({ state: "unknown", creation });
+      h.send({
+        command: command("Send"),
+        name: "drafter",
+        scope: "project",
+      });
+      await flush();
+      expect(
+        h.posts.some(
+          (msg) =>
+            msg.text?.includes("Submission outcome unknown") &&
+            msg.text.includes(record),
+        ),
+      ).toBe(true);
+      expect(
+        h.runCliText.mock.calls.filter(
+          ([arg]) => arg.args[1] === cliCommand("send"),
+        ),
+      ).toHaveLength(1);
+    });
+    it("discards late presentation after a clear while leaving the native operation and durable record alone", async () => {
+      const h = harness({ defer: true, creation });
+      h.send({
+        command: command("Send"),
+        name: "drafter",
+        scope: "project",
+      });
+      await flush();
+      h.send({ command: "clearGoalPanels" });
+      h.finish();
+      await flush();
+      expect(
+        h.posts.some((msg) => msg.text?.includes("Saved pending draft")),
+      ).toBe(false);
+    });
+    it("cancels before submission if the record save picker is cancelled", async () => {
+      const h = harness({ cancel: true, creation });
+      h.send({
+        command: command("Send"),
+        name: "drafter",
+        scope: "project",
+      });
+      await flush();
+      expect(
+        h.runCliText.mock.calls.some(
+          ([arg]) => arg.args[1] === cliCommand("send"),
+        ),
+      ).toBe(false);
+    });
+  },
+);
+describe("independent creation draft responses and controls", () => {
+  it.each([
+    { nonzero: "draft-create-send" },
+    { wrongSchema: true },
+    { wrongType: true },
+  ])(
+    "rejects unverified creation output and retains the selected reference (%j)",
+    async (options) => {
+      const h = harness({ creation: true, ...options });
+      h.send({
+        command: "pluginGoalCreateDraftSend",
+        name: "drafter",
+        scope: "project",
+      });
+      await flush();
+      expect(
+        h.posts.some((msg) => msg.text?.includes("Saved pending draft")),
+      ).toBe(false);
+      expect(
+        h.posts.some((msg) => msg.type === "note" && msg.text.includes(record)),
+      ).toBe(true);
+      expect(
+        h.runCliText.mock.calls.filter(
+          ([arg]) => arg.args[1] === "draft-create-send",
+        ),
+      ).toHaveLength(1);
+    },
+  );
+  it("cancels a task-type choice before any creation submission", async () => {
+    const h = harness({ creation: true, cancelType: true });
     h.send({
-      command: "pluginGoalDraftAccess",
+      command: "pluginGoalCreateDraftSend",
       name: "drafter",
       scope: "project",
-      out: "evil",
     });
     await flush();
     expect(
       h.runCliText.mock.calls.some(
-        ([arg]) =>
-          arg.args[1] === "draft-access" && arg.args.includes(`--out=${out}`),
+        ([arg]) => arg.args[1] === "draft-create-send",
       ),
-    ).toBe(true);
-    expect(
-      h.runCliText.mock.calls.some(([arg]) => arg.args[1] === "draft-send"),
     ).toBe(false);
+    expect(h.vscode.window.showSaveDialog).not.toHaveBeenCalled();
   });
-  it("looks up a prior record independently of a previous send UI", async () => {
-    const h = harness({ state: "not-found" });
-    h.vscode.window.showOpenDialog
-      .mockReset()
-      .mockResolvedValueOnce([{ fsPath: connection }])
-      .mockResolvedValueOnce([{ fsPath: record }]);
-    h.send({
-      command: "pluginGoalDraftReceipt",
-      name: "drafter",
-      scope: "project",
-    });
-    await flush();
+  it("never substitutes description response schemas for creation or the reverse", () => {
     expect(
-      h.runCliText.mock.calls.find(
-        ([arg]) => arg.args[1] === "draft-receipt",
-      )[0].args,
-    ).toEqual(expect.arrayContaining([`--record=${record}`]));
-    expect(h.posts.some((msg) => msg.text?.includes("at lookup time"))).toBe(
-      true,
+      draft.creation.parseGoalDraftSources(JSON.stringify(sourcePage()), input),
+    ).toBeNull();
+    expect(
+      draft.parseGoalDraftSources(JSON.stringify(sourcePage(true)), input),
+    ).toBeNull();
+    expect(
+      draft.creation.parseGoalDraftSubmission(
+        JSON.stringify(submission()),
+        input,
+      ),
+    ).toBeNull();
+    expect(
+      draft.parseGoalDraftSubmission(
+        JSON.stringify(submission("saved", "original-id", true)),
+        input,
+      ),
+    ).toBeNull();
+    for (const state of ["saved", "not-found", "unknown"]) {
+      expect(
+        draft.creation.parseGoalDraftSubmission(
+          JSON.stringify(submission(state, "original-id", true)),
+          input,
+        ),
+      ).toMatchObject({ state, type: "task.create", record });
+    }
+  });
+  it("pins native goal/plugin/grant and rejects additional authority or malformed pages", () => {
+    const raw = sourcePage(true);
+    const binding = draft.creation.parseGoalDraftSources(
+      JSON.stringify(raw),
+      input,
+    ).binding;
+    for (const mutate of [
+      (r) => r.grantRef.epoch++,
+      (r) => r.goalRef.revision++,
+      (r) => (r.plugin.version = "2.0.0"),
+      (r) => (r.declarationDigest = `sha256:${"e".repeat(64)}`),
+      (r) => (r.sources.entries[0].key = "injected"),
+      (r) => (r.sources.scannedCount = 2),
+      (r) => (r.key = "injected"),
+    ]) {
+      const bad = structuredClone(raw);
+      mutate(bad);
+      expect(
+        draft.creation.parseGoalDraftSources(JSON.stringify(bad), {
+          ...input,
+          binding,
+        }),
+      ).toBeNull();
+    }
+    const saved = submission("saved", "original-id", true);
+    expect(
+      draft.creation.parseGoalDraftSubmission(
+        JSON.stringify({ ...saved, type: "task.description.update" }),
+        input,
+      ),
+    ).toBeNull();
+    expect(
+      draft.creation.parseGoalDraftSubmission(
+        JSON.stringify({ ...saved, key: "injected" }),
+        input,
+      ),
+    ).toBeNull();
+    expect(
+      draft.creation.parseGoalDraftSubmission(" ".repeat(16385), input),
+    ).toBeNull();
+  });
+  it("requires an explicit allowed task type and keeps command profile fixed by the native action", () => {
+    const args = {
+      ...input,
+      source: sourceId,
+      requestId: "stable",
+      title: "Title",
+      descriptionFile: body,
+      taskType: "analyze_data",
+    };
+    expect(draft.creation.buildGoalDraftSendArgs(args)).toContain(
+      "draft-create-send",
     );
-    expect(
-      h.runCliText.mock.calls.some(([arg]) => arg.args[1] === "draft-send"),
-    ).toBe(false);
-  });
-  it("reports an unknown outcome with the durable record and never auto-resends", async () => {
-    const h = harness({ state: "unknown" });
-    h.send({
-      command: "pluginGoalDraftSend",
-      name: "drafter",
-      scope: "project",
-    });
-    await flush();
-    expect(
-      h.posts.some(
-        (msg) =>
-          msg.text?.includes("Submission outcome unknown") &&
-          msg.text.includes(record),
-      ),
-    ).toBe(true);
-    expect(
-      h.runCliText.mock.calls.filter(([arg]) => arg.args[1] === "draft-send"),
-    ).toHaveLength(1);
-  });
-  it("discards late presentation after a clear while leaving the native operation and durable record alone", async () => {
-    const h = harness({ defer: true });
-    h.send({
-      command: "pluginGoalDraftSend",
-      name: "drafter",
-      scope: "project",
-    });
-    await flush();
-    h.send({ command: "clearGoalPanels" });
-    h.finish();
-    await flush();
-    expect(
-      h.posts.some((msg) => msg.text?.includes("Saved pending draft")),
-    ).toBe(false);
-  });
-  it("cancels before submission if the record save picker is cancelled", async () => {
-    const h = harness({ cancel: true });
-    h.send({
-      command: "pluginGoalDraftSend",
-      name: "drafter",
-      scope: "project",
-    });
-    await flush();
-    expect(
-      h.runCliText.mock.calls.some(([arg]) => arg.args[1] === "draft-send"),
-    ).toBe(false);
+    for (const taskType of [undefined, "unknown", "--help"])
+      expect(() =>
+        draft.creation.buildGoalDraftSendArgs({ ...args, taskType }),
+      ).toThrow();
+    expect(draft.buildGoalDraftSendArgs({ ...args, creation: true })).toContain(
+      "draft-send",
+    );
+    expect(draft.creation.buildGoalDraftReceiptArgs(input)).not.toContain(
+      "draft-create-send",
+    );
   });
 });
 describe("bounded online draft response projections", () => {

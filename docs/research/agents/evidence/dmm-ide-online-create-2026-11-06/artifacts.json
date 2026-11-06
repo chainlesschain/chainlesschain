@@ -1,0 +1,20 @@
+{
+  "state": "verified-local-artifacts",
+  "matchedFiles": [
+    "vsix:src/goal-drafts.js",
+    "vsix:src/ui/plugin-manager-view.js",
+    "vsix:src/chat/introspect-commands.js",
+    "jetbrains:com/chainlesschain/ide/PluginManager.class",
+    "jetbrains:com/chainlesschain/ide/GoalTaskCreateExport.class",
+    "jetbrains:com/chainlesschain/ide/intellij/PluginManagerAction.class",
+    "jetbrains:com/chainlesschain/ide/intellij/PluginManagerAction$1.class",
+    "jetbrains:com/chainlesschain/ide/intellij/PluginManagerAction$1Continuation.class"
+  ],
+  "sha256": {
+    "vsix": "7b891d71b9fc54dd88b21d05d828b431c9e04a9350342cc40d8ee36add5d7797",
+    "jetbrainsZip": "5d952eb33e532b76012cadc900874106208de74673c6c3924ebddb5d336bf793"
+  },
+  "vsixReadmeOnlineCreationSection": true,
+  "published": false,
+  "versionsChanged": false
+}

@@ -15,6 +15,8 @@ const {
   parseCliGoalPanels,
   formatCliGoalPanels,
   buildCliGoalDraftRequestArgs,
+  buildCliGoalTaskCreateRequestArgs,
+  parseCliGoalTaskCreateExport,
   parseCliGoalDraftExport,
   buildMcpConnectArgs,
   buildMcpRemoveArgs,
@@ -224,17 +226,39 @@ async function selectCliGoal(vscode, cwd, current) {
   return null;
 }
 
-async function selectDraftGoal(vscode, cwd, current) {
+async function runDraftCli(args, cwd, creation) {
+  if (!creation) return runCli(args, 30000, cwd);
+  const outcome = await require("../chat/introspect-commands.js").runCliResult({
+    command: require("../cli-binary").getResolvedCli(),
+    args,
+    cwd,
+    timeoutMs: 30000,
+    maxBufferBytes: 16384,
+    strictUtf8: true,
+  });
+  if (!outcome.ok || outcome.code !== 0)
+    throw new Error(
+      "Creation result unavailable; preserve the selected submission reference and query its receipt",
+    );
+  return outcome.stdout;
+}
+async function selectDraftGoal(vscode, cwd, current, creation = false) {
   const files = await vscode.window.showOpenDialog({
     canSelectMany: false,
     canSelectFolders: false,
-    openLabel: "Open online draft connection",
+    openLabel: creation
+      ? "Open separately authorized v6 creation connection"
+      : "Open online draft connection",
     filters: { "Goal draft connection": ["json"] },
   });
   if (!files?.[0] || !current()) return null;
   const connection = files[0].fsPath;
   const page = parseCliGoalCatalog(
-    await runCli(buildCliGoalCatalogArgs(undefined, connection), 30000, cwd),
+    await runDraftCli(
+      buildCliGoalCatalogArgs(undefined, connection),
+      cwd,
+      creation,
+    ),
     undefined,
     connection,
   );
@@ -243,17 +267,35 @@ async function selectDraftGoal(vscode, cwd, current) {
     throw new Error("Desktop draft connection unavailable or expired");
   return { id: page.entries[0].id, expectedStore: page.storeId, connection };
 }
-async function selectDraftSource(vscode, input, cwd, current) {
+async function selectDraftSource(
+  vscode,
+  input,
+  cwd,
+  current,
+  creation = false,
+) {
+  const profile = creation ? drafts.creation : drafts;
   let after;
   const seen = new Set();
   while (current()) {
-    const page = drafts.parseGoalDraftSources(
-      await runCli(drafts.buildGoalDraftSourcesArgs(input, after), 30000, cwd),
+    const page = profile.parseGoalDraftSources(
+      await runDraftCli(
+        profile.buildGoalDraftSourcesArgs(input, after),
+        cwd,
+        creation,
+      ),
       input,
     );
     if (!current()) return null;
     if (!page || (page.nextCursor && seen.has(page.nextCursor)))
       throw new Error("Native source page unavailable");
+    if (
+      creation &&
+      after &&
+      ((page.nextCursor && page.nextCursor <= after) ||
+        page.entries.some((row) => row.id <= after))
+    )
+      throw new Error("Native source page did not advance");
     input = { ...input, binding: page.binding };
     const choices = page.entries.map((entry) => ({
       label: entry.sourceTaskId,
@@ -264,7 +306,7 @@ async function selectDraftSource(vscode, input, cwd, current) {
       choices.push({ label: "Next source page…", next: true });
     if (!choices.length)
       throw new Error(
-        "No current native task-description source is available; check the goal in the desktop",
+        `No current native ${creation ? "creation" : "task-description"} source is available; check the goal in the desktop`,
       );
     const picked = await vscode.window.showQuickPick(choices, {
       title: "Select native draft source",
@@ -553,8 +595,15 @@ async function handleMessage(vscode, msg) {
       "pluginGoalDraftAccess",
       "pluginGoalDraftSend",
       "pluginGoalDraftReceipt",
+      "pluginGoalCreateDraftAccess",
+      "pluginGoalCreateDraftSend",
+      "pluginGoalCreateDraftReceipt",
     ].includes(msg.command)
   ) {
+    const creation = msg.command.startsWith("pluginGoalCreateDraft");
+    const profile = creation ? drafts.creation : drafts;
+    const accessCommand = msg.command.endsWith("Access");
+    const receiptCommand = msg.command.endsWith("Receipt");
     const generation = _goalPanelGeneration,
       panel = _panel,
       cwd = _workspaceCwd;
@@ -566,15 +615,21 @@ async function handleMessage(vscode, msg) {
         name: String(msg.name || ""),
         scope: String(msg.scope || "user"),
       };
-      if (msg.command === "pluginGoalDraftAccess") {
+      if (accessCommand) {
         const file = await vscode.window.showSaveDialog({
-          title: "Export draft access request (choose a new file)",
+          title: creation
+            ? "Export creation access for separate native v6 consent (choose a new file)"
+            : "Export draft access request (choose a new file)",
           filters: { "Goal draft access": ["json"] },
         });
         if (!file || !current()) return;
         const input = { ...plugin, out: file.fsPath };
-        const result = drafts.parseGoalDraftAccess(
-          await runCli(drafts.buildGoalDraftAccessArgs(input), 30000, cwd),
+        const result = profile.parseGoalDraftAccess(
+          await runDraftCli(
+            profile.buildGoalDraftAccessArgs(input),
+            cwd,
+            creation,
+          ),
           input,
         );
         if (!current()) return;
@@ -584,14 +639,14 @@ async function handleMessage(vscode, msg) {
           );
         post({
           type: "goalPanels",
-          text: `Access request exported: ${result.file}\nIn the desktop, choose the separate online draft connection action and select this file for native consent.`,
+          text: `Access request exported: ${result.file}\nIn the desktop, choose the separate ${creation ? "v6 online creation" : "online draft"} connection action and select this file for native consent.`,
         });
         return;
       }
-      const selected = await selectDraftGoal(vscode, cwd, current);
+      const selected = await selectDraftGoal(vscode, cwd, current, creation);
       if (!selected || !current()) return;
       let input = { ...selected, ...plugin };
-      if (msg.command === "pluginGoalDraftReceipt") {
+      if (receiptCommand) {
         const files = await vscode.window.showOpenDialog({
           canSelectMany: false,
           canSelectFolders: false,
@@ -607,6 +662,7 @@ async function handleMessage(vscode, msg) {
           input,
           cwd,
           current,
+          creation,
         );
         if (!selectedSource || !current()) return;
         const title = await vscode.window.showInputBox({
@@ -615,6 +671,26 @@ async function handleMessage(vscode, msg) {
           ignoreFocusOut: true,
         });
         if (!title || !current()) return;
+        let taskType;
+        if (creation) {
+          const choice = await vscode.window.showQuickPick(
+            [
+              "create_file",
+              "edit_file",
+              "query_info",
+              "analyze_data",
+              "export_file",
+              "deploy_project",
+            ].map((taskType) => ({ label: taskType, taskType })),
+            {
+              title:
+                "Choose the pending task type; native preview and confirmation remain required",
+              ignoreFocusOut: true,
+            },
+          );
+          if (!choice || !current()) return;
+          taskType = choice.taskType;
+        }
         const files = await vscode.window.showOpenDialog({
           canSelectMany: false,
           canSelectFolders: false,
@@ -635,14 +711,14 @@ async function handleMessage(vscode, msg) {
           descriptionFile: files[0].fsPath,
           record,
           requestId: require("node:crypto").randomUUID(),
+          ...(creation ? { taskType } : {}),
         };
       }
-      const args =
-        msg.command === "pluginGoalDraftReceipt"
-          ? drafts.buildGoalDraftReceiptArgs(input)
-          : drafts.buildGoalDraftSendArgs(input);
-      const result = drafts.parseGoalDraftSubmission(
-        await runCli(args, 30000, cwd),
+      const args = receiptCommand
+        ? profile.buildGoalDraftReceiptArgs(input)
+        : profile.buildGoalDraftSendArgs(input);
+      const result = profile.parseGoalDraftSubmission(
+        await runDraftCli(args, cwd, creation),
         input,
       );
       if (!current()) return;
@@ -660,7 +736,12 @@ async function handleMessage(vscode, msg) {
     }
     return;
   }
-  if (msg.command === "pluginGoalDraftRequest") {
+  if (
+    ["pluginGoalDraftRequest", "pluginGoalTaskCreateRequest"].includes(
+      msg.command,
+    )
+  ) {
+    const creation = msg.command === "pluginGoalTaskCreateRequest";
     const generation = _goalPanelGeneration,
       panel = _panel,
       cwd = _workspaceCwd;
@@ -685,6 +766,26 @@ async function handleMessage(vscode, msg) {
         ignoreFocusOut: true,
       });
       if (!title || !current()) return;
+      let taskType;
+      if (creation) {
+        const choice = await vscode.window.showQuickPick(
+          [
+            "create_file",
+            "edit_file",
+            "query_info",
+            "analyze_data",
+            "export_file",
+            "deploy_project",
+          ].map((taskType) => ({ label: taskType, taskType })),
+          {
+            title:
+              "Choose the pending task type (native adoption still required)",
+            ignoreFocusOut: true,
+          },
+        );
+        if (!choice || !current()) return;
+        taskType = choice.taskType;
+      }
       const descriptions = await vscode.window.showOpenDialog({
         canSelectMany: false,
         canSelectFolders: false,
@@ -698,7 +799,7 @@ async function handleMessage(vscode, msg) {
         filters: { "Goal draft request": ["json"] },
       });
       if (!output || !current()) return;
-      const input = {
+      const input = Object.freeze({
         ...selected,
         name: String(msg.name || ""),
         scope: String(msg.scope || "user"),
@@ -707,11 +808,27 @@ async function handleMessage(vscode, msg) {
         descriptionFile: descriptions[0].fsPath,
         out: output.fsPath,
         requestId: require("node:crypto").randomUUID(),
-      };
-      const result = parseCliGoalDraftExport(
-        await runCli(buildCliGoalDraftRequestArgs(input), 30000, cwd),
-        input,
-      );
+        ...(creation ? { taskType } : {}),
+      });
+      let result;
+      if (creation) {
+        const outcome =
+          await require("../chat/introspect-commands.js").runCliResult({
+            command: require("../cli-binary").getResolvedCli(),
+            args: buildCliGoalTaskCreateRequestArgs(input),
+            cwd,
+            timeoutMs: 30000,
+            maxBufferBytes: 16384,
+          });
+        result =
+          outcome.ok && outcome.code === 0
+            ? parseCliGoalTaskCreateExport(outcome.stdout, input)
+            : null;
+      } else
+        result = parseCliGoalDraftExport(
+          await runCli(buildCliGoalDraftRequestArgs(input), 30000, cwd),
+          input,
+        );
       if (!current()) return;
       if (!result)
         throw new Error(
@@ -719,7 +836,7 @@ async function handleMessage(vscode, msg) {
         );
       post({
         type: "goalPanels",
-        text: `Request exported: ${result.file}\nRequest ID: ${result.requestId}\nNo native draft has been saved. Import this same file in the desktop and review its full text. Re-import the same file to recover a lost adoption response.`,
+        text: `Request exported: ${result.file}\nRequest ID: ${result.requestId}${creation ? `\nPending task type: ${result.taskType}` : ""}\nNo native draft has been saved. Import this same file in the desktop and review its full text. Re-import the same file to recover a lost adoption response.`,
       });
     } catch (error) {
       if (current())
@@ -1173,6 +1290,7 @@ function renderHtml() {
         + '<td>'
         + (p.goalExtension && p.goalExtension.hosts.cli
           ? '<button class="sec" data-act="pluginGoalPanels" data-name="'+esc(p.name)+'" data-scope="'+esc(p.scope)+'">CLI goal panels…</button><button class="sec" data-act="pluginGoalDraftRequest" data-name="'+esc(p.name)+'" data-scope="'+esc(p.scope)+'">Export goal draft request…</button><button class="sec" data-act="pluginGoalDraftAccess" data-name="'+esc(p.name)+'" data-scope="'+esc(p.scope)+'">Export online draft access…</button><button class="sec" data-act="pluginGoalDraftSend" data-name="'+esc(p.name)+'" data-scope="'+esc(p.scope)+'">Submit pending draft…</button><button class="sec" data-act="pluginGoalDraftReceipt" data-name="'+esc(p.name)+'" data-scope="'+esc(p.scope)+'">Look up draft receipt…</button>' : '')
+        + (p.goalExtension && p.goalExtension.hosts.cli && (p.goalExtension.proposals||[]).includes('task.create') ? '<button class="sec" data-act="pluginGoalTaskCreateRequest" data-name="'+esc(p.name)+'" data-scope="'+esc(p.scope)+'">Export task creation request…</button><button class="sec" data-act="pluginGoalCreateDraftAccess" data-name="'+esc(p.name)+'" data-scope="'+esc(p.scope)+'">Export online creation access…</button><button class="sec" data-act="pluginGoalCreateDraftSend" data-name="'+esc(p.name)+'" data-scope="'+esc(p.scope)+'">Submit pending creation…</button><button class="sec" data-act="pluginGoalCreateDraftReceipt" data-name="'+esc(p.name)+'" data-scope="'+esc(p.scope)+'">Look up creation receipt…</button>' : '')
         + (p.goalExtension && p.goalExtension.hosts.cli ? '<button class="sec" data-act="pluginGoalEvents" data-name="'+esc(p.name)+'" data-scope="'+esc(p.scope)+'">Observe desktop events…</button>' : '')
         + (p.goalExtension && p.goalExtension.hosts.cli ? '<button class="sec" data-act="pluginGoalHistory" data-name="'+esc(p.name)+'" data-scope="'+esc(p.scope)+'">Recover retained history…</button>' : '')
         + '<button class="sec" data-act="pluginLifecycle" data-name="'+esc(p.name)+'" data-scope="'+esc(p.scope)+'">'+(p.enabled?'Disable':'Enable')+'</button>'
@@ -1233,7 +1351,7 @@ function renderHtml() {
     else if (act === 'pluginGoalEvents') vscode.postMessage({command:'pluginGoalEvents', name, scope});
     else if (act === 'pluginGoalHistory') vscode.postMessage({command:'pluginGoalHistory', name, scope});
     else if (act === 'pluginGoalDraftRequest') vscode.postMessage({command:'pluginGoalDraftRequest', name, scope});
-    else if (['pluginGoalDraftAccess','pluginGoalDraftSend','pluginGoalDraftReceipt'].includes(act)) vscode.postMessage({command:act, name, scope});
+    else if (['pluginGoalDraftAccess','pluginGoalDraftSend','pluginGoalDraftReceipt','pluginGoalCreateDraftAccess','pluginGoalCreateDraftSend','pluginGoalCreateDraftReceipt'].includes(act)) vscode.postMessage({command:act, name, scope});
     else if (act === 'pluginUse') {
       vscode.postMessage({command:'pluginUse', name, scope:b.getAttribute('data-scope')||'user', activeVersion:row&&row.version, versions:row&&row.versions});
     }
