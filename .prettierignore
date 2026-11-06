@@ -120,3 +120,7 @@ docs/research/cli/verify01-openai-140-frozen-four-20261103/**
 docs/research/cli/verify01-package-sets/2026-11-03-openai140-frozen-four.json
 
 docs/research/cli/verify01-openai-137/public140-frozen-four-project-revision.json
+
+# Preserve exact CLI source bytes, signed receipts and downloaded CI reports.
+docs/research/agents/evidence/dmm-native-goal-transfer-2026-11-07/**/*.json
+docs/research/agents/evidence/dmm-native-goal-transfer-2026-11-07/parent-ci/*.yml

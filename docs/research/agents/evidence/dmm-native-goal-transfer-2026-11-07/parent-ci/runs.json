@@ -1,0 +1,550 @@
+{
+    "observedAt":  "2026-11-06T20:10:49.9566483Z",
+    "scope":  "Parent 1fa product-engineering evidence. GUI sourceStatus records a modified root package-lock; stricter new workflows require clean locked installs. Not approval for a new SHA or npm release.",
+    "observations":  [
+                         {
+                             "run":  {
+                                         "conclusion":  "success",
+                                         "databaseId":  42280378063,
+                                         "headSha":  "1fa51166b6391b178f8ceba75526b42b349bccf6",
+                                         "jobs":  [
+                                                      {
+                                                          "completedAt":  "2026-11-06T19:45:49Z",
+                                                          "conclusion":  "success",
+                                                          "databaseId":  128107533798,
+                                                          "name":  "Actual Windows Electron goal journey",
+                                                          "startedAt":  "2026-11-06T19:36:04Z",
+                                                          "status":  "completed",
+                                                          "steps":  [
+                                                                        {
+                                                                            "completedAt":  "2026-11-06T19:36:07Z",
+                                                                            "conclusion":  "success",
+                                                                            "name":  "Set up job",
+                                                                            "number":  1,
+                                                                            "startedAt":  "2026-11-06T19:36:05Z",
+                                                                            "status":  "completed"
+                                                                        },
+                                                                        {
+                                                                            "completedAt":  "2026-11-06T19:36:45Z",
+                                                                            "conclusion":  "success",
+                                                                            "name":  "Run actions/checkout@v5",
+                                                                            "number":  2,
+                                                                            "startedAt":  "2026-11-06T19:36:07Z",
+                                                                            "status":  "completed"
+                                                                        },
+                                                                        {
+                                                                            "completedAt":  "2026-11-06T19:36:45Z",
+                                                                            "conclusion":  "success",
+                                                                            "name":  "Verify exact source",
+                                                                            "number":  3,
+                                                                            "startedAt":  "2026-11-06T19:36:45Z",
+                                                                            "status":  "completed"
+                                                                        },
+                                                                        {
+                                                                            "completedAt":  "2026-11-06T19:37:23Z",
+                                                                            "conclusion":  "success",
+                                                                            "name":  "Run actions/setup-node@v5",
+                                                                            "number":  4,
+                                                                            "startedAt":  "2026-11-06T19:36:45Z",
+                                                                            "status":  "completed"
+                                                                        },
+                                                                        {
+                                                                            "completedAt":  "2026-11-06T19:40:40Z",
+                                                                            "conclusion":  "success",
+                                                                            "name":  "Run ./.github/actions/setup-node-deps",
+                                                                            "number":  5,
+                                                                            "startedAt":  "2026-11-06T19:37:23Z",
+                                                                            "status":  "completed"
+                                                                        },
+                                                                        {
+                                                                            "completedAt":  "2026-11-06T19:40:41Z",
+                                                                            "conclusion":  "success",
+                                                                            "name":  "Install locked Electron runtime and matching encrypted SQLite prebuild",
+                                                                            "number":  6,
+                                                                            "startedAt":  "2026-11-06T19:40:40Z",
+                                                                            "status":  "completed"
+                                                                        },
+                                                                        {
+                                                                            "completedAt":  "2026-11-06T19:40:43Z",
+                                                                            "conclusion":  "success",
+                                                                            "name":  "Build actual main and preload",
+                                                                            "number":  7,
+                                                                            "startedAt":  "2026-11-06T19:40:41Z",
+                                                                            "status":  "completed"
+                                                                        },
+                                                                        {
+                                                                            "completedAt":  "2026-11-06T19:43:54Z",
+                                                                            "conclusion":  "success",
+                                                                            "name":  "Build production Vue renderer",
+                                                                            "number":  8,
+                                                                            "startedAt":  "2026-11-06T19:40:43Z",
+                                                                            "status":  "completed"
+                                                                        },
+                                                                        {
+                                                                            "completedAt":  "2026-11-06T19:45:43Z",
+                                                                            "conclusion":  "success",
+                                                                            "name":  "Exercise real login, native dialogs, lineage, acceptance and stop",
+                                                                            "number":  9,
+                                                                            "startedAt":  "2026-11-06T19:43:54Z",
+                                                                            "status":  "completed"
+                                                                        },
+                                                                        {
+                                                                            "completedAt":  "2026-11-06T19:45:45Z",
+                                                                            "conclusion":  "success",
+                                                                            "name":  "Run actions/upload-artifact@v4",
+                                                                            "number":  10,
+                                                                            "startedAt":  "2026-11-06T19:45:43Z",
+                                                                            "status":  "completed"
+                                                                        },
+                                                                        {
+                                                                            "completedAt":  "2026-11-06T19:45:45Z",
+                                                                            "conclusion":  "success",
+                                                                            "name":  "Post Run actions/setup-node@v5",
+                                                                            "number":  19,
+                                                                            "startedAt":  "2026-11-06T19:45:45Z",
+                                                                            "status":  "completed"
+                                                                        },
+                                                                        {
+                                                                            "completedAt":  "2026-11-06T19:45:47Z",
+                                                                            "conclusion":  "success",
+                                                                            "name":  "Post Run actions/checkout@v5",
+                                                                            "number":  20,
+                                                                            "startedAt":  "2026-11-06T19:45:45Z",
+                                                                            "status":  "completed"
+                                                                        },
+                                                                        {
+                                                                            "completedAt":  "2026-11-06T19:45:48Z",
+                                                                            "conclusion":  "success",
+                                                                            "name":  "Complete job",
+                                                                            "number":  21,
+                                                                            "startedAt":  "2026-11-06T19:45:47Z",
+                                                                            "status":  "completed"
+                                                                        }
+                                                                    ],
+                                                          "url":  "https://github.com/chainlesschain/chainlesschain/actions/runs/42280378063/job/128107533798"
+                                                      }
+                                                  ],
+                                         "name":  "DMM Native Goal Journey",
+                                         "status":  "completed",
+                                         "url":  "https://github.com/chainlesschain/chainlesschain/actions/runs/42280378063"
+                                     },
+                             "artifacts":  [
+                                               {
+                                                   "id":  13536191054,
+                                                   "node_id":  "MDg6QXJ0aWZhY3QxMzUzNjE5MTA1NA==",
+                                                   "name":  "dmm-native-goal-journey-windows-1fa51166b6391b178f8ceba75526b42b349bccf6-1",
+                                                   "size_in_bytes":  96001,
+                                                   "url":  "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/13536191054",
+                                                   "archive_download_url":  "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/13536191054/zip",
+                                                   "expired":  false,
+                                                   "digest":  "sha256:58cf5914312a8cf19780ea2cbc5ed5775e7e15849270e4652be5a4d9dde30f9a",
+                                                   "created_at":  "2026-11-06T19:45:45Z",
+                                                   "updated_at":  "2026-11-06T19:45:45Z",
+                                                   "expires_at":  "2026-11-20T19:45:44Z",
+                                                   "workflow_run":  {
+                                                                        "id":  42280378063,
+                                                                        "repository_id":  1107348698,
+                                                                        "head_repository_id":  1107348698,
+                                                                        "head_branch":  "feature/dmm-native-goal-journey-20261107",
+                                                                        "head_sha":  "1fa51166b6391b178f8ceba75526b42b349bccf6"
+                                                                    }
+                                               }
+                                           ]
+                         },
+                         {
+                             "run":  {
+                                         "conclusion":  "success",
+                                         "databaseId":  42280378044,
+                                         "headSha":  "1fa51166b6391b178f8ceba75526b42b349bccf6",
+                                         "jobs":  [
+                                                      {
+                                                          "completedAt":  "2026-11-06T19:38:10Z",
+                                                          "conclusion":  "success",
+                                                          "databaseId":  128107590581,
+                                                          "name":  "Native goal and task controls (ubuntu-latest)",
+                                                          "startedAt":  "2026-11-06T19:35:18Z",
+                                                          "status":  "completed",
+                                                          "steps":  [
+                                                                        {
+                                                                            "completedAt":  "2026-11-06T19:35:20Z",
+                                                                            "conclusion":  "success",
+                                                                            "name":  "Set up job",
+                                                                            "number":  1,
+                                                                            "startedAt":  "2026-11-06T19:35:19Z",
+                                                                            "status":  "completed"
+                                                                        },
+                                                                        {
+                                                                            "completedAt":  "2026-11-06T19:35:42Z",
+                                                                            "conclusion":  "success",
+                                                                            "name":  "Checkout exact candidate",
+                                                                            "number":  2,
+                                                                            "startedAt":  "2026-11-06T19:35:20Z",
+                                                                            "status":  "completed"
+                                                                        },
+                                                                        {
+                                                                            "completedAt":  "2026-11-06T19:35:42Z",
+                                                                            "conclusion":  "success",
+                                                                            "name":  "Verify source identity",
+                                                                            "number":  3,
+                                                                            "startedAt":  "2026-11-06T19:35:42Z",
+                                                                            "status":  "completed"
+                                                                        },
+                                                                        {
+                                                                            "completedAt":  "2026-11-06T19:35:54Z",
+                                                                            "conclusion":  "success",
+                                                                            "name":  "Setup Node.js",
+                                                                            "number":  4,
+                                                                            "startedAt":  "2026-11-06T19:35:42Z",
+                                                                            "status":  "completed"
+                                                                        },
+                                                                        {
+                                                                            "completedAt":  "2026-11-06T19:36:58Z",
+                                                                            "conclusion":  "success",
+                                                                            "name":  "Install locked native and renderer dependencies",
+                                                                            "number":  5,
+                                                                            "startedAt":  "2026-11-06T19:35:54Z",
+                                                                            "status":  "completed"
+                                                                        },
+                                                                        {
+                                                                            "completedAt":  "2026-11-06T19:37:26Z",
+                                                                            "conclusion":  "success",
+                                                                            "name":  "Verify native business-action and goal host boundaries",
+                                                                            "number":  6,
+                                                                            "startedAt":  "2026-11-06T19:36:58Z",
+                                                                            "status":  "completed"
+                                                                        },
+                                                                        {
+                                                                            "completedAt":  "2026-11-06T19:37:40Z",
+                                                                            "conclusion":  "success",
+                                                                            "name":  "Verify renderer controls",
+                                                                            "number":  7,
+                                                                            "startedAt":  "2026-11-06T19:37:26Z",
+                                                                            "status":  "completed"
+                                                                        },
+                                                                        {
+                                                                            "completedAt":  "2026-11-06T19:38:06Z",
+                                                                            "conclusion":  "success",
+                                                                            "name":  "Verify organization authority and shared host compatibility",
+                                                                            "number":  8,
+                                                                            "startedAt":  "2026-11-06T19:37:40Z",
+                                                                            "status":  "completed"
+                                                                        },
+                                                                        {
+                                                                            "completedAt":  "2026-11-06T19:38:07Z",
+                                                                            "conclusion":  "success",
+                                                                            "name":  "Upload exact-source diagnostic reports",
+                                                                            "number":  9,
+                                                                            "startedAt":  "2026-11-06T19:38:06Z",
+                                                                            "status":  "completed"
+                                                                        },
+                                                                        {
+                                                                            "completedAt":  "2026-11-06T19:38:07Z",
+                                                                            "conclusion":  "success",
+                                                                            "name":  "Post Setup Node.js",
+                                                                            "number":  17,
+                                                                            "startedAt":  "2026-11-06T19:38:07Z",
+                                                                            "status":  "completed"
+                                                                        },
+                                                                        {
+                                                                            "completedAt":  "2026-11-06T19:38:07Z",
+                                                                            "conclusion":  "success",
+                                                                            "name":  "Post Checkout exact candidate",
+                                                                            "number":  18,
+                                                                            "startedAt":  "2026-11-06T19:38:07Z",
+                                                                            "status":  "completed"
+                                                                        },
+                                                                        {
+                                                                            "completedAt":  "2026-11-06T19:38:07Z",
+                                                                            "conclusion":  "success",
+                                                                            "name":  "Complete job",
+                                                                            "number":  19,
+                                                                            "startedAt":  "2026-11-06T19:38:07Z",
+                                                                            "status":  "completed"
+                                                                        }
+                                                                    ],
+                                                          "url":  "https://github.com/chainlesschain/chainlesschain/actions/runs/42280378044/job/128107590581"
+                                                      },
+                                                      {
+                                                          "completedAt":  "2026-11-06T19:56:03Z",
+                                                          "conclusion":  "success",
+                                                          "databaseId":  128107591313,
+                                                          "name":  "Native goal and task controls (macos-latest)",
+                                                          "startedAt":  "2026-11-06T19:50:45Z",
+                                                          "status":  "completed",
+                                                          "steps":  [
+                                                                        {
+                                                                            "completedAt":  "2026-11-06T19:50:48Z",
+                                                                            "conclusion":  "success",
+                                                                            "name":  "Set up job",
+                                                                            "number":  1,
+                                                                            "startedAt":  "2026-11-06T19:50:46Z",
+                                                                            "status":  "completed"
+                                                                        },
+                                                                        {
+                                                                            "completedAt":  "2026-11-06T19:51:26Z",
+                                                                            "conclusion":  "success",
+                                                                            "name":  "Checkout exact candidate",
+                                                                            "number":  2,
+                                                                            "startedAt":  "2026-11-06T19:50:48Z",
+                                                                            "status":  "completed"
+                                                                        },
+                                                                        {
+                                                                            "completedAt":  "2026-11-06T19:51:27Z",
+                                                                            "conclusion":  "success",
+                                                                            "name":  "Verify source identity",
+                                                                            "number":  3,
+                                                                            "startedAt":  "2026-11-06T19:51:26Z",
+                                                                            "status":  "completed"
+                                                                        },
+                                                                        {
+                                                                            "completedAt":  "2026-11-06T19:52:05Z",
+                                                                            "conclusion":  "success",
+                                                                            "name":  "Setup Node.js",
+                                                                            "number":  4,
+                                                                            "startedAt":  "2026-11-06T19:51:27Z",
+                                                                            "status":  "completed"
+                                                                        },
+                                                                        {
+                                                                            "completedAt":  "2026-11-06T19:54:20Z",
+                                                                            "conclusion":  "success",
+                                                                            "name":  "Install locked native and renderer dependencies",
+                                                                            "number":  5,
+                                                                            "startedAt":  "2026-11-06T19:52:05Z",
+                                                                            "status":  "completed"
+                                                                        },
+                                                                        {
+                                                                            "completedAt":  "2026-11-06T19:55:00Z",
+                                                                            "conclusion":  "success",
+                                                                            "name":  "Verify native business-action and goal host boundaries",
+                                                                            "number":  6,
+                                                                            "startedAt":  "2026-11-06T19:54:20Z",
+                                                                            "status":  "completed"
+                                                                        },
+                                                                        {
+                                                                            "completedAt":  "2026-11-06T19:55:21Z",
+                                                                            "conclusion":  "success",
+                                                                            "name":  "Verify renderer controls",
+                                                                            "number":  7,
+                                                                            "startedAt":  "2026-11-06T19:55:00Z",
+                                                                            "status":  "completed"
+                                                                        },
+                                                                        {
+                                                                            "completedAt":  "2026-11-06T19:55:51Z",
+                                                                            "conclusion":  "success",
+                                                                            "name":  "Verify organization authority and shared host compatibility",
+                                                                            "number":  8,
+                                                                            "startedAt":  "2026-11-06T19:55:21Z",
+                                                                            "status":  "completed"
+                                                                        },
+                                                                        {
+                                                                            "completedAt":  "2026-11-06T19:55:53Z",
+                                                                            "conclusion":  "success",
+                                                                            "name":  "Upload exact-source diagnostic reports",
+                                                                            "number":  9,
+                                                                            "startedAt":  "2026-11-06T19:55:51Z",
+                                                                            "status":  "completed"
+                                                                        },
+                                                                        {
+                                                                            "completedAt":  "2026-11-06T19:55:54Z",
+                                                                            "conclusion":  "success",
+                                                                            "name":  "Post Setup Node.js",
+                                                                            "number":  17,
+                                                                            "startedAt":  "2026-11-06T19:55:53Z",
+                                                                            "status":  "completed"
+                                                                        },
+                                                                        {
+                                                                            "completedAt":  "2026-11-06T19:55:55Z",
+                                                                            "conclusion":  "success",
+                                                                            "name":  "Post Checkout exact candidate",
+                                                                            "number":  18,
+                                                                            "startedAt":  "2026-11-06T19:55:54Z",
+                                                                            "status":  "completed"
+                                                                        },
+                                                                        {
+                                                                            "completedAt":  "2026-11-06T19:56:00Z",
+                                                                            "conclusion":  "success",
+                                                                            "name":  "Complete job",
+                                                                            "number":  19,
+                                                                            "startedAt":  "2026-11-06T19:55:55Z",
+                                                                            "status":  "completed"
+                                                                        }
+                                                                    ],
+                                                          "url":  "https://github.com/chainlesschain/chainlesschain/actions/runs/42280378044/job/128107591313"
+                                                      },
+                                                      {
+                                                          "completedAt":  "2026-11-06T19:56:52Z",
+                                                          "conclusion":  "success",
+                                                          "databaseId":  128107591369,
+                                                          "name":  "Native goal and task controls (windows-latest)",
+                                                          "startedAt":  "2026-11-06T19:49:27Z",
+                                                          "status":  "completed",
+                                                          "steps":  [
+                                                                        {
+                                                                            "completedAt":  "2026-11-06T19:49:28Z",
+                                                                            "conclusion":  "success",
+                                                                            "name":  "Set up job",
+                                                                            "number":  1,
+                                                                            "startedAt":  "2026-11-06T19:49:27Z",
+                                                                            "status":  "completed"
+                                                                        },
+                                                                        {
+                                                                            "completedAt":  "2026-11-06T19:50:07Z",
+                                                                            "conclusion":  "success",
+                                                                            "name":  "Checkout exact candidate",
+                                                                            "number":  2,
+                                                                            "startedAt":  "2026-11-06T19:49:28Z",
+                                                                            "status":  "completed"
+                                                                        },
+                                                                        {
+                                                                            "completedAt":  "2026-11-06T19:50:08Z",
+                                                                            "conclusion":  "success",
+                                                                            "name":  "Verify source identity",
+                                                                            "number":  3,
+                                                                            "startedAt":  "2026-11-06T19:50:07Z",
+                                                                            "status":  "completed"
+                                                                        },
+                                                                        {
+                                                                            "completedAt":  "2026-11-06T19:50:43Z",
+                                                                            "conclusion":  "success",
+                                                                            "name":  "Setup Node.js",
+                                                                            "number":  4,
+                                                                            "startedAt":  "2026-11-06T19:50:08Z",
+                                                                            "status":  "completed"
+                                                                        },
+                                                                        {
+                                                                            "completedAt":  "2026-11-06T19:53:59Z",
+                                                                            "conclusion":  "success",
+                                                                            "name":  "Install locked native and renderer dependencies",
+                                                                            "number":  5,
+                                                                            "startedAt":  "2026-11-06T19:50:43Z",
+                                                                            "status":  "completed"
+                                                                        },
+                                                                        {
+                                                                            "completedAt":  "2026-11-06T19:55:39Z",
+                                                                            "conclusion":  "success",
+                                                                            "name":  "Verify native business-action and goal host boundaries",
+                                                                            "number":  6,
+                                                                            "startedAt":  "2026-11-06T19:53:59Z",
+                                                                            "status":  "completed"
+                                                                        },
+                                                                        {
+                                                                            "completedAt":  "2026-11-06T19:56:01Z",
+                                                                            "conclusion":  "success",
+                                                                            "name":  "Verify renderer controls",
+                                                                            "number":  7,
+                                                                            "startedAt":  "2026-11-06T19:55:39Z",
+                                                                            "status":  "completed"
+                                                                        },
+                                                                        {
+                                                                            "completedAt":  "2026-11-06T19:56:47Z",
+                                                                            "conclusion":  "success",
+                                                                            "name":  "Verify organization authority and shared host compatibility",
+                                                                            "number":  8,
+                                                                            "startedAt":  "2026-11-06T19:56:01Z",
+                                                                            "status":  "completed"
+                                                                        },
+                                                                        {
+                                                                            "completedAt":  "2026-11-06T19:56:48Z",
+                                                                            "conclusion":  "success",
+                                                                            "name":  "Upload exact-source diagnostic reports",
+                                                                            "number":  9,
+                                                                            "startedAt":  "2026-11-06T19:56:47Z",
+                                                                            "status":  "completed"
+                                                                        },
+                                                                        {
+                                                                            "completedAt":  "2026-11-06T19:56:48Z",
+                                                                            "conclusion":  "success",
+                                                                            "name":  "Post Setup Node.js",
+                                                                            "number":  17,
+                                                                            "startedAt":  "2026-11-06T19:56:48Z",
+                                                                            "status":  "completed"
+                                                                        },
+                                                                        {
+                                                                            "completedAt":  "2026-11-06T19:56:50Z",
+                                                                            "conclusion":  "success",
+                                                                            "name":  "Post Checkout exact candidate",
+                                                                            "number":  18,
+                                                                            "startedAt":  "2026-11-06T19:56:48Z",
+                                                                            "status":  "completed"
+                                                                        },
+                                                                        {
+                                                                            "completedAt":  "2026-11-06T19:56:50Z",
+                                                                            "conclusion":  "success",
+                                                                            "name":  "Complete job",
+                                                                            "number":  19,
+                                                                            "startedAt":  "2026-11-06T19:56:50Z",
+                                                                            "status":  "completed"
+                                                                        }
+                                                                    ],
+                                                          "url":  "https://github.com/chainlesschain/chainlesschain/actions/runs/42280378044/job/128107591369"
+                                                      }
+                                                  ],
+                                         "name":  "DMM Project Host",
+                                         "status":  "completed",
+                                         "url":  "https://github.com/chainlesschain/chainlesschain/actions/runs/42280378044"
+                                     },
+                             "artifacts":  [
+                                               {
+                                                   "id":  13535849094,
+                                                   "node_id":  "MDg6QXJ0aWZhY3QxMzUzNTg0OTA5NA==",
+                                                   "name":  "dmm-project-host-macos-latest-1fa51166b6391b178f8ceba75526b42b349bccf6-1",
+                                                   "size_in_bytes":  44537,
+                                                   "url":  "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/13535849094",
+                                                   "archive_download_url":  "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/13535849094/zip",
+                                                   "expired":  false,
+                                                   "digest":  "sha256:711ee4860afafaed8a014eabf68f7fc75f9f19e6588279af1bd5e2e8844a6d25",
+                                                   "created_at":  "2026-11-06T19:55:54Z",
+                                                   "updated_at":  "2026-11-06T19:55:54Z",
+                                                   "expires_at":  "2026-11-20T19:55:52Z",
+                                                   "workflow_run":  {
+                                                                        "id":  42280378044,
+                                                                        "repository_id":  1107348698,
+                                                                        "head_repository_id":  1107348698,
+                                                                        "head_branch":  "feature/dmm-native-goal-journey-20261107",
+                                                                        "head_sha":  "1fa51166b6391b178f8ceba75526b42b349bccf6"
+                                                                    }
+                                               },
+                                               {
+                                                   "id":  13535801312,
+                                                   "node_id":  "MDg6QXJ0aWZhY3QxMzUzNTgwMTMxMg==",
+                                                   "name":  "dmm-project-host-ubuntu-latest-1fa51166b6391b178f8ceba75526b42b349bccf6-1",
+                                                   "size_in_bytes":  44951,
+                                                   "url":  "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/13535801312",
+                                                   "archive_download_url":  "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/13535801312/zip",
+                                                   "expired":  false,
+                                                   "digest":  "sha256:de3666a21109f88fe6242622d13da8b187d7123f8af51b2858eb29b719126f6e",
+                                                   "created_at":  "2026-11-06T19:38:07Z",
+                                                   "updated_at":  "2026-11-06T19:38:07Z",
+                                                   "expires_at":  "2026-11-20T19:38:06Z",
+                                                   "workflow_run":  {
+                                                                        "id":  42280378044,
+                                                                        "repository_id":  1107348698,
+                                                                        "head_repository_id":  1107348698,
+                                                                        "head_branch":  "feature/dmm-native-goal-journey-20261107",
+                                                                        "head_sha":  "1fa51166b6391b178f8ceba75526b42b349bccf6"
+                                                                    }
+                                               },
+                                               {
+                                                   "id":  13535754505,
+                                                   "node_id":  "MDg6QXJ0aWZhY3QxMzUzNTc1NDUwNQ==",
+                                                   "name":  "dmm-project-host-windows-latest-1fa51166b6391b178f8ceba75526b42b349bccf6-1",
+                                                   "size_in_bytes":  43738,
+                                                   "url":  "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/13535754505",
+                                                   "archive_download_url":  "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/13535754505/zip",
+                                                   "expired":  false,
+                                                   "digest":  "sha256:3445ba4aac84b3907a7612c28f9ccfd84efc5e3c97d49d7a01b529ebd7def40e",
+                                                   "created_at":  "2026-11-06T19:56:48Z",
+                                                   "updated_at":  "2026-11-06T19:56:48Z",
+                                                   "expires_at":  "2026-11-20T19:56:47Z",
+                                                   "workflow_run":  {
+                                                                        "id":  42280378044,
+                                                                        "repository_id":  1107348698,
+                                                                        "head_repository_id":  1107348698,
+                                                                        "head_branch":  "feature/dmm-native-goal-journey-20261107",
+                                                                        "head_sha":  "1fa51166b6391b178f8ceba75526b42b349bccf6"
+                                                                    }
+                                               }
+                                           ]
+                         }
+                     ]
+}
