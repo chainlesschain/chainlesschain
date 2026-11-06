@@ -257,6 +257,7 @@ type Status = {
 type Request = { id: string; expectedRevision: number; requestId: string };
 type StopRequest = Request & { occurrenceId: string; expectedFence: number };
 type GoalApi = {
+  getGoalFeatureStatus?(): Promise<{ enabled: boolean }>;
   createGoal(input: {
     projectId: string;
     objective: string;
@@ -306,7 +307,8 @@ const api = () =>
   (window as unknown as { electronAPI?: { project?: GoalApi } }).electronAPI
     ?.project;
 const focused = computed(() => props.focusGoalId !== undefined);
-const available = computed(() =>
+const featureEnabled = ref(false);
+const apiReady = computed(() =>
   [
     ...(focused.value ? [] : ["createGoal", "listGoals"]),
     "reviseGoal",
@@ -316,6 +318,7 @@ const available = computed(() =>
     "checkGoalNow",
   ].every((key) => typeof api()?.[key as keyof GoalApi] === "function"),
 );
+const available = computed(() => apiReady.value && featureEnabled.value);
 const goals = ref<Status[]>([]),
   pending = ref<Record<string, Request>>({});
 const stopPending = ref<Record<string, StopRequest>>({});
@@ -399,6 +402,11 @@ function authorityFailure() {
   emit("authority-error");
 }
 function failure(value: unknown, message: string) {
+  if (actionCode(value) === "GOAL_FEATURE_DISABLED") {
+    reset();
+    featureEnabled.value = false;
+    return;
+  }
   if (isAuthorityError(value)) {
     reset();
     emit("authority-error");
@@ -410,11 +418,20 @@ function failure(value: unknown, message: string) {
         : message;
 }
 async function loadGoals(more = false) {
-  if (!available.value || busy.value) return;
+  if (!apiReady.value || busy.value) return;
   const stamp = epoch;
   busy.value = true;
   error.value = "";
   try {
+    const status = await api()!.getGoalFeatureStatus?.();
+    if (!current(stamp)) return;
+    featureEnabled.value = status === undefined || status.enabled === true;
+    if (!featureEnabled.value) {
+      goals.value = [];
+      pending.value = {};
+      stopPending.value = {};
+      return;
+    }
     if (focused.value) {
       goals.value = [];
       const goalId = props.focusGoalId;

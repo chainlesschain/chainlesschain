@@ -12,6 +12,7 @@ on:
       - "desktop-app-vue/scripts/lib/project-goal-journey-observer.cjs"
       - "desktop-app-vue/scripts/lib/project-goal-workspace-journey.cjs"
       - "desktop-app-vue/scripts/lib/project-goal-risk-create-journey.cjs"
+      - "desktop-app-vue/scripts/lib/project-goal-default-off-journey.cjs"
       - "desktop-app-vue/src/main/notification/**"
       - "desktop-app-vue/src/renderer/components/common/GoalNotificationList.vue"
       - "desktop-app-vue/src/renderer/components/common/NotificationCenter.vue"
@@ -117,6 +118,13 @@ jobs:
           test "$(git rev-parse HEAD)" = "$DMM_EXPECTED_SHA"
           git diff --exit-code
           git diff --cached --exit-code
+      - name: Exercise default-off task compatibility and real 70-second inactivity
+        shell: bash
+        working-directory: desktop-app-vue
+        run: |
+          node scripts/project-goal-native-journey.mjs --default-off \
+            --electron "$(node -p 'require("electron")')" \
+            --output "$RUNNER_TEMP/dmm-native-goal-default-off"
       - name: Exercise risk task creation, old-preview refusal and the full workspace
         shell: bash
         working-directory: desktop-app-vue
@@ -132,6 +140,7 @@ jobs:
           name: dmm-native-goal-creation-windows-${{ env.DMM_EXPECTED_SHA }}-${{ github.run_attempt }}
           path: |
             ${{ runner.temp }}/dmm-native-goal-creation/
+            ${{ runner.temp }}/dmm-native-goal-default-off/
             ${{ runner.temp }}/dmm-encrypted-goal-preflight.json
           if-no-files-found: warn
           retention-days: 14
