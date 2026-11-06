@@ -10,6 +10,7 @@ const {
   currentProjectGoalDatabase,
 } = require("../project-goal-native-database.js");
 const { createProjectGoalHost } = require("../project-goal-ipc.js");
+const { createTaskDescriptionHost } = require("../task-description-ipc.js");
 const {
   createProjectGoalMonitoringController,
 } = require("../project-goal-monitoring-host.js");
@@ -25,7 +26,7 @@ describe("project goal composition through the desktop SQLCipher wrapper", () =>
     wrapper.open();
     wrapper.db
       .exec(`CREATE TABLE projects(id TEXT PRIMARY KEY,user_id TEXT,status TEXT,updated_at INTEGER,deleted INTEGER DEFAULT 0);
-      CREATE TABLE project_tasks(id TEXT PRIMARY KEY,project_id TEXT,status TEXT,updated_at INTEGER,deleted INTEGER DEFAULT 0,due_date INTEGER,blocked_by TEXT);`);
+      CREATE TABLE project_tasks(id TEXT PRIMARY KEY,project_id TEXT,task_type TEXT,description TEXT NOT NULL,status TEXT,org_id TEXT,workspace_id TEXT,updated_at INTEGER,created_at INTEGER,completed_at INTEGER,sync_status TEXT,deleted INTEGER DEFAULT 0,due_date INTEGER,blocked_by TEXT);`);
     wrapper.db
       .prepare("INSERT INTO projects VALUES (?,?,?,?,0)")
       .run("p1", actor, "active", Date.now());
@@ -40,6 +41,7 @@ describe("project goal composition through the desktop SQLCipher wrapper", () =>
       electron: {
         app: { getPath: () => path.join(root, "user-data") },
         BrowserWindow: { fromWebContents: () => window },
+        dialog: { showMessageBox: vi.fn(async () => ({ response: 1 })) },
       },
       getCurrentUserDid: () => actor,
       getAuthenticationGeneration: () => 1,
@@ -170,5 +172,77 @@ describe("project goal composition through the desktop SQLCipher wrapper", () =>
       wrapper.db.prepare("SELECT phase FROM cc_project_goal_graph_store").get()
         .phase,
     ).toBe("initializing");
+  });
+
+  it("lists and creates controlled tasks on the wrapper through the existing strict confirmation gate", async () => {
+    const tasks = createTaskDescriptionHost(options);
+    expect(tasks.listTasks(event, { projectId: "p1" }).tasks).toEqual([]);
+    expect(tasks.listCreateRuns(event, { projectId: "p1" }).runs).toEqual([]);
+    const preview = tasks.previewCreate(event, {
+      projectId: "p1",
+      taskType: "query_info",
+      description: "Wrapped pending task",
+      idempotencyKey: "wrapped-create",
+    });
+    expect(
+      wrapper.db.prepare("SELECT COUNT(*) AS n FROM project_tasks").get().n,
+    ).toBe(0);
+    const result = await tasks.executeCreate(event, {
+      request: preview.request,
+    });
+    expect(result.run.status).toBe("succeeded");
+    expect(tasks.listTasks(event, { projectId: "p1" }).tasks).toHaveLength(1);
+    expect(options.electron.dialog.showMessageBox).toHaveBeenCalledTimes(1);
+    expect(
+      options.electron.dialog.showMessageBox.mock.calls[0][1],
+    ).toMatchObject({ defaultId: 0, cancelId: 0 });
+  });
+
+  it("does not create a task after native cancellation on the wrapped connection", async () => {
+    const tasks = createTaskDescriptionHost(options);
+    const preview = tasks.previewCreate(event, {
+      projectId: "p1",
+      taskType: "query_info",
+      description: "Cancelled wrapped task",
+      idempotencyKey: "wrapped-cancel",
+    });
+    options.electron.dialog.showMessageBox.mockResolvedValue({ response: 0 });
+    const result = await tasks.executeCreate(event, {
+      request: preview.request,
+    });
+    expect(result.run.status).toBe("cancelled");
+    expect(
+      wrapper.db.prepare("SELECT COUNT(*) AS n FROM project_tasks").get().n,
+    ).toBe(0);
+  });
+
+  it("rejects database replacement during task confirmation while the original native handle is still open", async () => {
+    let selected = wrapper;
+    const replacement = new Database(wrapper.db.name);
+    const tasks = createTaskDescriptionHost({
+      ...options,
+      database: { getDatabase: () => selected },
+    });
+    try {
+      const preview = tasks.previewCreate(event, {
+        projectId: "p1",
+        taskType: "query_info",
+        description: "Stale wrapped task",
+        idempotencyKey: "wrapped-rotation",
+      });
+      options.electron.dialog.showMessageBox.mockImplementation(async () => {
+        selected = replacement;
+        return { response: 1 };
+      });
+      await expect(
+        tasks.executeCreate(event, { request: preview.request }),
+      ).rejects.toThrow("ACTION_AUTHORITY_UNAVAILABLE");
+      expect(wrapper.db.open).toBe(true);
+      expect(
+        wrapper.db.prepare("SELECT COUNT(*) AS n FROM project_tasks").get().n,
+      ).toBe(0);
+    } finally {
+      replacement.close();
+    }
   });
 });

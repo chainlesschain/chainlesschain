@@ -7,36 +7,70 @@ const directory = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(directory, "../../../../..");
 const hash = (file) =>
   createHash("sha256").update(fs.readFileSync(file)).digest("hex");
-const reports = ["desktop-tests.json", "organization-host-tests.json"].map(
-  (file) => {
-    const report = JSON.parse(
-      fs.readFileSync(path.join(directory, file), "utf8"),
-    );
-    if (
-      !report.success ||
-      report.numFailedTests ||
-      report.numPendingTests ||
-      report.testResults.some((result) => result.status !== "passed")
-    )
-      throw new Error(`Incomplete report: ${file}`);
-    return {
-      file,
-      sha256: hash(path.join(directory, file)),
-      passed: report.numPassedTests,
-      files: report.testResults.map((result) =>
-        path.relative(root, result.name).replaceAll("\\", "/"),
-      ),
-    };
-  },
-);
+const reports = [
+  "desktop-tests.json",
+  "organization-host-tests.json",
+  "renderer-tests.json",
+].map((file) => {
+  const report = JSON.parse(
+    fs.readFileSync(path.join(directory, file), "utf8"),
+  );
+  if (
+    !report.success ||
+    report.numFailedTests ||
+    report.numPendingTests ||
+    report.testResults.some((result) => result.status !== "passed")
+  )
+    throw new Error(`Incomplete report: ${file}`);
+  return {
+    file,
+    sha256: hash(path.join(directory, file)),
+    passed: report.numPassedTests,
+    files: report.testResults.map((result) =>
+      path.relative(root, result.name).replaceAll("\\", "/"),
+    ),
+  };
+});
 const testFiles = reports.flatMap((report) => report.files);
 if (testFiles.length !== new Set(testFiles).size)
   throw new Error("Overlapping test reports");
 const probe = JSON.parse(
   fs.readFileSync(path.join(directory, "electron-probe.json"), "utf8"),
 );
-const startup = JSON.parse(fs.readFileSync(path.join(directory, "product-startup.json"), "utf8"));
-if (startup.exitCode !== 0 || hash(path.join(directory, startup.screenshot)) !== startup.screenshotSha256) throw new Error("Product startup observation or screenshot changed");
+const startup = JSON.parse(
+  fs.readFileSync(path.join(directory, "product-startup.json"), "utf8"),
+);
+if (
+  startup.exitCode !== 0 ||
+  hash(path.join(directory, startup.screenshot)) !== startup.screenshotSha256
+)
+  throw new Error("Product startup observation or screenshot changed");
+const gui = JSON.parse(
+  fs.readFileSync(path.join(directory, "product-goal-gui.json"), "utf8"),
+);
+if (
+  gui.exitCode !== 0 ||
+  Object.values(gui.checks).some((value) => value !== true) ||
+  hash(path.join(directory, gui.screenshot)) !== gui.screenshotSha256 ||
+  hash(path.join(directory, "product-goal-gui-smoke.cjs")) !== gui.runnerSha256
+)
+  throw new Error("Product goal GUI observation, runner or screenshot changed");
+const followup = JSON.parse(
+  fs.readFileSync(
+    path.join(directory, "product-followup-observation.json"),
+    "utf8",
+  ),
+);
+if (
+  !followup.basicGoalGui ||
+  followup.nativeTaskDatabaseErrors !== 0 ||
+  followup.modelDraftDeniedListErrors !== 2 ||
+  followup.nativeConfirmationAutomation.passed !== false
+)
+  throw new Error("Unexpected GUI follow-up diagnostic outcome");
+for (const [file, expectedHash] of Object.entries(followup.sources))
+  if (hash(path.join(root, file)) !== expectedHash)
+    throw new Error(`GUI follow-up source changed: ${file}`);
 if (
   !probe.passed ||
   probe.platform !== "win32" ||
@@ -53,6 +87,8 @@ const sources = Object.fromEntries(
       ...Object.keys(probe.sources),
       ...testFiles,
       "desktop-app-vue/vitest.business-actions.config.mjs",
+      "desktop-app-vue/src/main/task/task-description-ipc.js",
+      "desktop-app-vue/src/renderer/components/projects/ProjectGoalModelDraftsPanel.vue",
     ]),
   ].map((file) => [file, hash(path.join(root, file))]),
 );
@@ -102,6 +138,11 @@ const commands = [
     command:
       "node desktop-app-vue/scripts/project-goal-encrypted-electron-probe.mjs --electron <verified Electron 39.8.10 executable> --output <new result file>",
   },
+  {
+    cwd: "desktop-app-vue",
+    command:
+      "node ../node_modules/vitest/vitest.mjs run --config vitest.business-actions-renderer.config.mjs --reporter=json --outputFile=../docs/research/agents/evidence/dmm-encrypted-goal-host-2026-11-07/renderer-tests.json",
+  },
 ];
 const summary = {
   createdAt: new Date().toISOString(),
@@ -142,7 +183,33 @@ const summary = {
     installer: false,
     fullProductGuiJourney: false,
   },
-  productStartup: { file: "product-startup.json", sha256: hash(path.join(directory, "product-startup.json")), screenshot: startup.screenshot, screenshotSha256: startup.screenshotSha256, loginFormObserved: true, passwordLoginPerformed: false, fullDmmJourney: false },
+  productStartup: {
+    file: "product-startup.json",
+    sha256: hash(path.join(directory, "product-startup.json")),
+    screenshot: startup.screenshot,
+    screenshotSha256: startup.screenshotSha256,
+    loginFormObserved: true,
+    passwordLoginPerformed: false,
+    fullDmmJourney: false,
+  },
+  productGoalGui: {
+    file: "product-goal-gui.json",
+    sha256: hash(path.join(directory, "product-goal-gui.json")),
+    runnerSha256: gui.runnerSha256,
+    screenshotSha256: gui.screenshotSha256,
+    basicGoalGuiPassed: true,
+    fullGoalActionJourney: false,
+    snapshotBeforeTaskAndRendererFollowup: true,
+  },
+  productGuiFollowup: {
+    file: "product-followup-observation.json",
+    sha256: hash(path.join(directory, "product-followup-observation.json")),
+    basicGoalGui: true,
+    nativeTaskDatabaseErrors: 0,
+    deniedModelLists: 2,
+    nativeConfirmationJourneyPassed: false,
+    fullRunnerExitCode: 1,
+  },
   boundaries: {
     real: [
       "actual desktop SQLCipherWrapper",
@@ -156,7 +223,7 @@ const summary = {
       "synthetic project and trusted probe identity",
     ],
     pending: [
-      "full product login and DMM renderer journey",
+      "complete goal/risk/action/native confirmation/receipt/recheck renderer journey",
       "real native confirmation interaction",
       "independent business effect",
       "Linux/macOS",

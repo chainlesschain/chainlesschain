@@ -111,6 +111,27 @@ afterEach(() => {
   vi.useRealTimers();
 });
 describe("explicit local model drafting controls and output authorization", () => {
+  it.each(["GOAL_EXTENSION_NOT_ADMITTED", "ACTION_GOAL_NOT_ACTIVE"])(
+    "does not retry a rejected list when the parent rebinds equivalent sources (%s)",
+    async (code) => {
+      api.listGoalModelDrafts.mockRejectedValue(
+        Object.assign(new Error(code), { code }),
+      );
+      setup();
+      await flushPromises();
+      expect(api.listGoalModelDrafts).toHaveBeenCalledTimes(1);
+      for (let index = 0; index < 3; index++) {
+        await w.setProps({ sources: sources.map((entry) => ({ ...entry })) });
+        await flushPromises();
+      }
+      expect(api.listGoalModelDrafts).toHaveBeenCalledTimes(1);
+      expect(api.generateGoalModelDraft).not.toHaveBeenCalled();
+      await w.setProps({ goal: { ...goal, revision: goal.revision + 1 } });
+      await flushPromises();
+      expect(api.listGoalModelDrafts).toHaveBeenCalledTimes(2);
+    },
+  );
+
   it("finds an unknown durable request after restart using body-free history and only queries it", async () => {
     setup();
     await flushPromises();

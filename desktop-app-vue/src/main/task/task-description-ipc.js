@@ -2,6 +2,9 @@
 
 /** Personal task descriptions: main-process identity and native confirmation. */
 const { ApprovalGate } = require("@chainlesschain/session-core/approval-gate");
+const {
+  currentProjectGoalDatabase,
+} = require("./project-goal-native-database");
 
 const CHANNELS = Object.freeze({
   preview: "task:controlled-description-preview",
@@ -69,8 +72,16 @@ function createTaskDescriptionHost({
       return actor;
     };
     getActor();
-    const db = database?.getDatabase ? database.getDatabase() : database;
-    return { db, getActor };
+    const db = currentProjectGoalDatabase(database);
+    return {
+      db,
+      getActor: () => {
+        const actor = getActor();
+        if (currentProjectGoalDatabase(database) !== db)
+          throw hostError("BUSINESS_ACTION_DATABASE_CHANGED");
+        return actor;
+      },
+    };
   }
 
   function createService(event, creation = false) {

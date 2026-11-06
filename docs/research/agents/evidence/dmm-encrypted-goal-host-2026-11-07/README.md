@@ -6,7 +6,9 @@
 
 ## 已运行证据
 
-共 **23 个不重复文件、412 项通过，0 失败、0 跳过**：完整桌面 business-actions 21 文件/398 项，组织宿主兼容 2/14。新增六项覆盖真实 wrapper 接线、原生/只读句柄保留、关闭不复活、拒绝任意 getHandle、同 wrapper 连接轮换与异步加载竞态。Node 测试使用实际 production wrapper 加注入的真实 better-sqlite3 驱动，不将该层当作加密验证。报告见 [desktop-tests.json](./desktop-tests.json) 和 [organization-host-tests.json](./organization-host-tests.json)。这批与此前 Graph 的 55 文件/870 项有重叠，不相加。
+最新完整范围共 **42 个不重复文件、704 项通过，0 失败、0 跳过**：桌面 business-actions 21 文件/401 项，组织宿主兼容 2/14，renderer 全配置 19/289。九项 wrapper 回归覆盖目标接线、原生/只读句柄保留、关闭不复活、拒绝任意 getHandle、连接轮换/异步加载，以及受控任务创建、取消和确认期间数据库替换。Node 测试使用实际 production wrapper 加注入的真实 better-sqlite3 驱动，不将该层当作加密验证。报告见 [desktop-tests.json](./desktop-tests.json)、[organization-host-tests.json](./organization-host-tests.json) 和 [renderer-tests.json](./renderer-tests.json)。此前本批 23 文件/412 项和 Graph 的 55 文件/870 项与此有重叠，不相加。
+
+真实 GUI 检查还发现受控任务入口未解包加密库，以及模型草稿被拒绝后因父组件绑定等值 sources 数组而循环读取。后续让受控任务复用同一解析器，并在确认后/事务内重验当前原生连接身份；仍保留严格原生确认。模型组件改用 Vue 的逐项 source 监听，实际值不变时不重新加载；两项新增 renderer 回归覆盖未准入和目标暂停后的拒绝，真正版本变化仍触发读取。
 
 另有一条独立的[真实 Electron 加密探针](./electron-probe.json)：Electron **39.8.10**、Node **22.22.1**、ABI **140**、better-sqlite3-multiple-ciphers **12.11.1**，未替换 SQLite、Graph kernel 或 Windows 文件 ACL。它验证：原始 wrapper 不符合原生合同；解析后使用同一个加密原生项目连接；canonical Graph 巡检成功；重复请求保留原 occurrence；参与目标升级 v2；项目/调度/Graph 三个文件独立；关闭 wrapper 后不自动重开；显式重开仍能读取目标。数据库文件无明文 SQLite header，未提供密钥时读取 schema 被拒绝。探针使用合成项目和可信测试身份，未执行产品登录、renderer 操作或原生确认交互；不计入上方 unit/integration 测试数量。
 
@@ -23,4 +25,8 @@ Electron/原生数据库模块必须匹配 ABI；探针失败时不退回 sql.js
 
 ## 尚未闭环
 
-真实完整产品启动检查初次 30 秒窗口等待未完成；随后明确使用 180 秒窗口预算，在全新隔离配置、真实加密数据库和实际 production renderer 上读到登录表单并正常退出，见[启动观察](./product-startup.json)及[登录界面截图](./product-login.png)。这仅证明产品窗口可以启动，没有计为密码登录或 DMM GUI 旅程通过。产品登录→目标→检查→原生确认→动作→回执→再检查→结束仍须独立验收。业务效果需要独立样本/预期；Linux/macOS、完整安装包、准确提交远端矩阵、真实生产来源登记/切换与新包发行均未完成。总体 DMM 目标保持进行中。
+真实完整产品启动检查初次 30 秒窗口等待未完成；随后明确使用 180 秒窗口预算，在全新隔离配置、真实加密数据库和实际 production renderer 上读到登录表单并正常退出，见[启动观察](./product-startup.json)及[登录界面截图](./product-login.png)。随后一条[基础目标 GUI 旅程](./product-goal-gui.json)通过：实际 DID API 创建身份、真实密码表单登录、以匹配 DID 创建临时项目，在 Vue 表单保存目标、点击检查、回读 v2、看到检查 1 次并暂停。存档[运行脚本](./product-goal-gui-smoke.cjs)与[暂停界面截图](./product-goal-paused.png)保留修复任务入口和循环读取前的原始快照，截图中的任务错误未被隐藏。没有复制真实用户配置，脚本中的固定密码仅属于每次新建的测试 profile。先前遗漏项目 DID 归属的测试被 GOAL_NOT_FOUND_OR_DENIED 拒绝，修正 fixture 后成功，没有弱化归属检查。
+
+后续最新 renderer 生产重建返回 0；[实际产品复查](./product-followup-observation.json)再次通过基础目标 GUI，受控任务原生数据库错误为 0，模型拒绝列表仅记录 2 次，未再持续循环。原生确认框的 Windows UI Automation 尝试仍未找到目标对话框，整个扩展 runner 返回 1，不能计为通过，也未安装 dialog 或审批替身；该诊断结果与成功的基础 GUI 分开记录。
+
+基础 GUI 成功不等于完整风险→目标 intent→确认→动作→回执→再检查→结束旅程。业务效果需要独立样本/预期；Linux/macOS、完整安装包、准确提交远端矩阵、真实生产来源登记/切换与新包发行均未完成。总体 DMM 目标保持进行中。
