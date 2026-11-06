@@ -1,6 +1,6 @@
 {
-  "createdAt": "2026-11-06T18:23:08.086Z",
-  "checkoutHead": "de18c560104fb2968eb505aa708cc56efbfe1ac8",
+  "createdAt": "2026-11-06T18:27:10.988Z",
+  "checkoutHead": "0364c3eaddbae66f60eb3d5f58350915cca8e15b",
   "sourceState": "local source snapshot bound by hashes; not remote CI or installed product acceptance",
   "total": {
     "files": 42,
@@ -149,6 +149,7 @@
         "desktop-app-vue/src/renderer/components/projects/__tests__/project-task-description-drawer.test.ts",
         "desktop-app-vue/src/renderer/components/projects/__tests__/project-task-description-journey.test.ts",
         "desktop-app-vue/vitest.business-actions.config.mjs",
+        ".github/workflows/dmm-project-host.yml",
         "desktop-app-vue/src/main/task/task-description-ipc.js",
         "desktop-app-vue/src/renderer/components/projects/ProjectGoalModelDraftsPanel.vue"
       ],
@@ -224,6 +225,7 @@
     "desktop-app-vue/src/renderer/components/projects/__tests__/project-task-description-drawer.test.ts": "9356de35b4d91a42664ee24d3370d8e77ec89b72730110f3d28ed66e81726a52",
     "desktop-app-vue/src/renderer/components/projects/__tests__/project-task-description-journey.test.ts": "b7b275725ba7b232ef1d487794173bad1ad93b0a2c3329af7681b7c087d5e251",
     "desktop-app-vue/vitest.business-actions.config.mjs": "6556e0ca4a6572693ba485fba48f9b300095872bcb2c7716218374b28942ce31",
+    ".github/workflows/dmm-project-host.yml": "903dea5b80dda00de70521ece314802b2b789f766c754e28cd771a4026bc9f34",
     "desktop-app-vue/src/main/task/task-description-ipc.js": "e0c070f074fe8d6de06f0dc84046edd425fd45aa103834e9064884e9e13c8372",
     "desktop-app-vue/src/renderer/components/projects/ProjectGoalModelDraftsPanel.vue": "bf72bb6198de89ffa93892125ea2d08e70326e726e80d3ad5be221c580d1c350"
   },

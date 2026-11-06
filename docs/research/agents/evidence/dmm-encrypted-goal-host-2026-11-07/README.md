@@ -30,3 +30,5 @@ Electron/原生数据库模块必须匹配 ABI；探针失败时不退回 sql.js
 后续最新 renderer 生产重建返回 0；[实际产品复查](./product-followup-observation.json)再次通过基础目标 GUI，受控任务原生数据库错误为 0，模型拒绝列表仅记录 2 次，未再持续循环。原生确认框的 Windows UI Automation 尝试仍未找到目标对话框，整个扩展 runner 返回 1，不能计为通过，也未安装 dialog 或审批替身；该诊断结果与成功的基础 GUI 分开记录。
 
 基础 GUI 成功不等于完整风险→目标 intent→确认→动作→回执→再检查→结束旅程。业务效果需要独立样本/预期；Linux/macOS、完整安装包、准确提交远端矩阵、真实生产来源登记/切换与新包发行均未完成。总体 DMM 目标保持进行中。
+
+草稿 PR [#541](https://github.com/chainlesschain/chainlesschain/pull/541) 依赖 [#540](https://github.com/chainlesschain/chainlesschain/pull/540)。既有 CI Tests 只接受 main/develop 目标分支，本批增加 `DMM Project Host`，对叠加 PR 的准确 head 在 Linux/Windows/macOS 执行上述三个完整配置并保存报告，没有删减 ACL 或忽略失败。工作流尚需实际运行完成；它不是实际 Electron GUI/安装包验证，也不能替代 npm 的 CLI CI/Strict Sandbox 发行门禁。

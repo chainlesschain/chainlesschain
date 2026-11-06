@@ -87,6 +87,7 @@ const sources = Object.fromEntries(
       ...Object.keys(probe.sources),
       ...testFiles,
       "desktop-app-vue/vitest.business-actions.config.mjs",
+      ".github/workflows/dmm-project-host.yml",
       "desktop-app-vue/src/main/task/task-description-ipc.js",
       "desktop-app-vue/src/renderer/components/projects/ProjectGoalModelDraftsPanel.vue",
     ]),
