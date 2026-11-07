@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add explicit cross-project goal transfer, signed rollback and the canonical native Graph host boundary; matching desktop source, explicit feature opt-in and native authorization remain required.
 - Enable Git long paths before Windows CI checkout so archived acceptance evidence cannot prevent tests from starting.
 - Preserve an explicitly configured npm cache during isolated Web panel builds, and make the IDE loading/timeout regression deterministic without changing its assertions.
+- Exercise the macOS `ps` process-group fallback explicitly instead of expecting Linux to bypass its `/proc` fast path.
 - Candidate only: no new public packages, desktop/mobile installers, live-model acceptance or production rollout is claimed.
 
 
