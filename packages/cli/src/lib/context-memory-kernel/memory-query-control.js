@@ -17,11 +17,15 @@ export function memoryLockWait(signal) {
 /** Yield between bounded shards while retaining the authority lock/snapshot. */
 export function createMemoryQueryCheckpoint(signal) {
   let yieldedAt = performance.now();
+  let workSinceYield = 0;
   return async (force = false) => {
     checkMemoryQueryAborted(signal);
-    if (force || performance.now() - yieldedAt >= 8) {
+    // Bound work as well as elapsed time so queued Stop handlers run even
+    // when many small shards finish inside one clock slice.
+    if (force || ++workSinceYield >= 32 || performance.now() - yieldedAt >= 8) {
       await setImmediate(undefined, { signal });
       yieldedAt = performance.now();
+      workSinceYield = 0;
     }
     checkMemoryQueryAborted(signal);
   };
