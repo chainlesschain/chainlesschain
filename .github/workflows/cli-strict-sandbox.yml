@@ -223,7 +223,8 @@ on:
       - ".github/actions/setup-node-deps/action.yml"
       - ".github/actions/setup-linux-bwrap/action.yml"
   pull_request:
-    branches: [main]
+    # Keep stacked DMM candidates under the complete three-platform gate.
+    branches: [main, "feature/dmm-*"]
     paths:
       - ".github/workflows/_scoped-docs-check.yml"
       - "scripts/ci/scoped-docs-check.mjs"

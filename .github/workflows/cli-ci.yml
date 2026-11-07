@@ -55,7 +55,9 @@ on:
       - ".github/workflows/_cli-linux-subreaper.yml"
       - ".github/actions/setup-node-deps/action.yml"
   pull_request:
-    branches: [main]
+    # DMM changes are reviewed as a stack; every candidate needs the same
+    # exact-source release gates before it is retargeted or published.
+    branches: [main, "feature/dmm-*"]
     paths:
       - ".github/workflows/_scoped-docs-check.yml"
       - "scripts/ci/scoped-docs-check.mjs"
