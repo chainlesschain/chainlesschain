@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Pair Session Core 0.3.27, VS Code/Open VSX 0.37.180 and JetBrains 0.4.197 after exact-source three-OS CLI CI / Strict Sandbox and Actions OIDC publication/readback.
 - Add explicit cross-project goal transfer, signed rollback and the canonical native Graph host boundary; matching desktop source, explicit feature opt-in and native authorization remain required.
+- Reject nested transfer accessors, proxies and object-valued digests before serialization; invalid envelopes never invoke caller-provided JSON hooks.
 - Enable Git long paths before Windows CI checkout so archived acceptance evidence cannot prevent tests from starting.
 - Preserve an explicitly configured npm cache during isolated Web panel builds, and make the IDE loading/timeout regression deterministic without changing its assertions.
 - Exercise the macOS `ps` process-group fallback explicitly instead of expecting Linux to bypass its `/proc` fast path.
