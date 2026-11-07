@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - cc CLI 0.166.144: goal transfer and release readiness (candidate, 2026-11-08)
+
+- Pair Session Core 0.3.27, VS Code/Open VSX 0.37.180 and JetBrains 0.4.197 after exact-source three-OS CLI CI / Strict Sandbox and Actions OIDC publication/readback.
+- Add explicit cross-project goal transfer, signed rollback and the canonical native Graph host boundary; matching desktop source, explicit feature opt-in and native authorization remain required.
+- Enable Git long paths before Windows CI checkout so archived acceptance evidence cannot prevent tests from starting.
+- Preserve an explicitly configured npm cache during isolated Web panel builds, and make the IDE loading/timeout regression deterministic without changing its assertions.
+- Candidate only: no new public packages, desktop/mobile installers, live-model acceptance or production rollout is claimed.
+
+
 ### Changed - desktop/mobile v5.0.3.145 (release preparation, 2026-11-05)
 
 - Align desktop to `5.0.3-alpha.145`, Android to versionName `5.0.3.145` / versionCode `503145`, and iOS to marketing version `5.0.3` / build `145`.
