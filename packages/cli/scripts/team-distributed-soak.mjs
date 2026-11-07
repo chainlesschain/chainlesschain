@@ -1843,7 +1843,12 @@ function probeManagedProcessCapability(rootDirectory) {
   fs.writeFileSync(path.join(probeRepository, "base.txt"), "before\n");
   git(probeRepository, "init");
   git(probeRepository, "config", "user.name", "Agent Team Soak");
-  git(probeRepository, "config", "user.email", "agent-team-soak@example.invalid");
+  git(
+    probeRepository,
+    "config",
+    "user.email",
+    "agent-team-soak@example.invalid",
+  );
   git(probeRepository, "add", "base.txt");
   git(probeRepository, "commit", "-m", "managed worktree capability probe");
   git(probeRepository, "worktree", "add", "--detach", workspaceRoot, "HEAD");
