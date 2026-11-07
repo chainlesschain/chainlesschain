@@ -173,6 +173,9 @@ jobs:
           - os: macos-latest
             slug: macos
     steps:
+      - name: Enable Windows long paths before checkout
+        if: runner.os == 'Windows'
+        run: git config --global core.longpaths true
       - uses: actions/checkout@v5
         with:
           ref: ${{ env.IDE_RELEASE_COMMIT }}
@@ -403,6 +406,9 @@ jobs:
       run:
         working-directory: packages/vscode-extension
     steps:
+      - name: Enable Windows long paths before checkout
+        if: runner.os == 'Windows'
+        run: git config --global core.longpaths true
       - uses: actions/checkout@v5
         with:
           ref: ${{ env.IDE_RELEASE_COMMIT }}
@@ -910,6 +916,9 @@ jobs:
           - version: "2025.2"
             java: "21"
     steps:
+      - name: Enable Windows long paths before checkout
+        if: runner.os == 'Windows'
+        run: git config --global core.longpaths true
       - uses: actions/checkout@v5
         with:
           ref: ${{ env.IDE_RELEASE_COMMIT }}

@@ -182,6 +182,9 @@ jobs:
     env:
       UPDATE_PUBLIC_KEY_B64: ${{ vars.CLI_UPDATE_ED25519_PUBLIC_KEY_B64 }}
     steps:
+      - name: Enable Windows long paths before checkout
+        if: runner.os == 'Windows'
+        run: git config --global core.longpaths true
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           repository: chainlesschain/chainlesschain
@@ -647,6 +650,9 @@ jobs:
       INSTALLER_NAME: ${{ matrix.installer }}
       NATIVE_TARGET: ${{ matrix.target }}
     steps:
+      - name: Enable Windows long paths before checkout
+        if: runner.os == 'Windows'
+        run: git config --global core.longpaths true
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           repository: chainlesschain/chainlesschain

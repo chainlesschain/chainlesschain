@@ -2,6 +2,14 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
 
+## CLI 0.166.144 release candidate
+
+Source candidate **0.166.144** uses Session Core **0.3.27** and pairs with VS Code/Open VSX **0.37.180** and JetBrains **0.4.197**. These candidate versions are not yet published. The last verified public CLI remains **0.166.143**.
+
+This candidate adds explicit cross-project goal transfer and signed rollback, plus the native canonical Graph host boundary. Desktop participation requires matching source, explicit opt-in and native consent; existing installed desktop clients are not upgraded by this CLI release. Windows CI enables Git long paths before checkout so archived native acceptance evidence cannot prevent the release gates from running.
+
+Publication requires exact-source Linux/Windows/macOS CLI CI and CLI Strict Sandbox, Actions OIDC publication of Session Core before CLI, and independent registry readback before publishing either IDE plugin. No new live-model, installed-client or business-effect acceptance is claimed.
+
 ## CLI 0.166.143 / local compute and controlled task-creation drafts
 
 Session Core **0.3.26**, CLI **0.166.143**, Open VSX **0.37.179** and JetBrains

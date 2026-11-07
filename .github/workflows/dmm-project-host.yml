@@ -44,6 +44,9 @@ jobs:
     env:
       DMM_EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
+      - name: Enable Windows long paths before checkout
+        if: runner.os == 'Windows'
+        run: git config --global core.longpaths true
       - name: Checkout exact candidate
         uses: actions/checkout@v5
         with:

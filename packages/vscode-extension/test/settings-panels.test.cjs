@@ -329,6 +329,7 @@ test("Workbench bounds startup, enables retry and ignores a late previous connec
 });
 
 test("Workbench replays loading state to a reloaded webview and bounds a stalled list", async (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
   const h = host(t);
   let lists = 0;
   openEvolutionWorkbenchPanel(h.vscode, {
@@ -351,6 +352,7 @@ test("Workbench replays loading state to a reloaded webview and bounds a stalled
     /正在读取候选/,
   );
   assert.equal(lists, 1);
+  t.mock.timers.tick(20);
   await opening;
   assert.equal(
     h.messages.findLast((m) => m.type === "snapshot").mode,
