@@ -53,6 +53,9 @@ jobs:
           [[ "${CC_CLIPBOARD_IMAGE_EXPECTED_SHA}" =~ ^[0-9a-f]{40}$ ]]
           [[ "${GITHUB_WORKFLOW_SHA}" =~ ^[0-9a-f]{40}$ ]]
 
+      - name: Enable Windows long paths before checkout
+        if: runner.os == 'Windows'
+        run: git config --global core.longpaths true
       - name: Checkout exact clipboard image commit
         uses: actions/checkout@v5
         with:

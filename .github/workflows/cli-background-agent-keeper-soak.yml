@@ -71,6 +71,9 @@ jobs:
       CC_BACKGROUND_KEEPER_SOAK_MAX_RSS_GROWTH_MB: "192"
       CC_BACKGROUND_KEEPER_SOAK_MAX_RESOURCE_GROWTH: "12"
     steps:
+      - name: Enable Windows long paths before checkout
+        if: runner.os == 'Windows'
+        run: git config --global core.longpaths true
       - name: Checkout exact keeper soak commit
         uses: actions/checkout@v5
         with:

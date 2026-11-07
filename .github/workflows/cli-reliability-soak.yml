@@ -174,6 +174,9 @@ jobs:
       CC_CLI_RELIABILITY_MAX_RSS_GROWTH_MB: "128"
       CC_CLI_RELIABILITY_MAX_RESOURCE_GROWTH: "8"
     steps:
+      - name: Enable Windows long paths before checkout
+        if: runner.os == 'Windows'
+        run: git config --global core.longpaths true
       - name: Checkout exact reliability commit
         uses: actions/checkout@v5
         with:
@@ -294,6 +297,9 @@ jobs:
       CC_SESSION_MESSAGE_SOAK_EXPECTED_SHA: ${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
       CC_SESSION_MESSAGE_SOAK_WORKFLOW_SHA: ${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
     steps:
+      - name: Enable Windows long paths before checkout
+        if: runner.os == 'Windows'
+        run: git config --global core.longpaths true
       - name: Checkout exact cross-session message commit
         uses: actions/checkout@v5
         with:
@@ -426,6 +432,9 @@ jobs:
       CC_CLI_SCHEDULER_SOAK_EXPECTED_SHA: ${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
       CC_CLI_SCHEDULER_SOAK_CHECKPOINT_INTERVAL_SECONDS: "30"
     steps:
+      - name: Enable Windows long paths before checkout
+        if: runner.os == 'Windows'
+        run: git config --global core.longpaths true
       - name: Checkout exact scheduler reliability commit
         uses: actions/checkout@v5
         with:
@@ -521,6 +530,9 @@ jobs:
       CC_CLI_MCP_SECURITY_SOAK_CHECKPOINT_INTERVAL_SECONDS: "30"
       CC_CLI_MCP_SECURITY_SOAK_EXECUTION_CONTEXT_SAMPLES: ${{ github.event_name == 'pull_request' && '0' || '3' }}
     steps:
+      - name: Enable Windows long paths before checkout
+        if: runner.os == 'Windows'
+        run: git config --global core.longpaths true
       - name: Checkout exact MCP security soak commit
         uses: actions/checkout@v5
         with:

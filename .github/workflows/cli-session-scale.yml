@@ -82,6 +82,9 @@ jobs:
       CC_SESSION_SCALE_RESUME_RSS_MB: "100"
       CC_SESSION_SCALE_RESUME_MAX_IO_BYTES: "1048576"
     steps:
+      - name: Enable Windows long paths before checkout
+        if: runner.os == 'Windows'
+        run: git config --global core.longpaths true
       - name: Checkout exact session-scale commit
         uses: actions/checkout@v5
         with:

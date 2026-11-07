@@ -41,6 +41,9 @@ jobs:
           echo "::error::Real-provider secrets may only be used with the workflow event commit"
           exit 1
 
+      - name: Enable Windows long paths before checkout
+        if: runner.os == 'Windows'
+        run: git config --global core.longpaths true
       - uses: actions/checkout@v5
         with:
           ref: ${{ env.JOURNEY_SHA }}

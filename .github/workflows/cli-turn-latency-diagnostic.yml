@@ -20,6 +20,9 @@ jobs:
       CC_TURN_DIAGNOSTIC_SOURCE_SHA: 890510d0311805e591302853f7f348a6d9f6fb66
       CC_TURN_DIAGNOSTIC_DRIVER_SHA: ${{ github.sha }}
     steps:
+      - name: Enable Windows long paths before checkout
+        if: runner.os == 'Windows'
+        run: git config --global core.longpaths true
       - name: Checkout exact runtime source
         uses: actions/checkout@v5
         with:

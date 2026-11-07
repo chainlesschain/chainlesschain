@@ -26,6 +26,9 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 20
     steps:
+      - name: Enable Windows long paths before checkout
+        if: runner.os == 'Windows'
+        run: git config --global core.longpaths true
       - uses: actions/checkout@v5
 
       - uses: actions/setup-node@v5
