@@ -26,11 +26,15 @@ function createProjectGoalCliBridge({
 }) {
   let lease = null,
     operation = 0,
-    opening = false;
+    opening = false,
+    openingDone = Promise.resolve(),
+    finishOpening;
+  const drains = new Set();
   function close() {
     operation++;
     lease?.close();
     lease = null;
+    return openingDone.then(() => Promise.all([...drains]));
   }
   function status() {
     if (lease) {
@@ -49,6 +53,9 @@ function createProjectGoalCliBridge({
   async function open(event, input) {
     if (opening) fail();
     opening = true;
+    openingDone = new Promise((resolve) => {
+      finishOpening = resolve;
+    });
     const stamp = ++operation;
     let pending, context;
     try {
@@ -281,22 +288,31 @@ function createProjectGoalCliBridge({
       server.on("connection", (socket) =>
         socket.setTimeout(5000, () => socket.destroy()),
       );
+      let resolveClosed;
+      const closed = new Promise((resolve) => {
+        resolveClosed = resolve;
+      });
       pending = {
         expiresAt,
         goalRef: goal.goalRef,
         grantId: context.grantRef?.id,
         read,
         close() {
-          if (!active) return;
+          if (!active) return closed;
           active = false;
           clearTimeout(timer);
           unsubscribe();
           detach();
           context.dispose();
           nonces.clear();
-          server.close(() => {});
+          drains.add(closed);
+          server.close(() => {
+            drains.delete(closed);
+            resolveClosed();
+          });
           server.closeIdleConnections();
           if (lease === pending) lease = null;
+          return closed;
         },
       };
       await new Promise((resolve, reject) => {
@@ -374,6 +390,7 @@ function createProjectGoalCliBridge({
     } finally {
       if (!pending || pending !== lease) context?.dispose();
       opening = false;
+      finishOpening();
     }
   }
   return {

@@ -71,6 +71,9 @@ jobs:
       # worktree, and checkpoint exercise without a live model.
       CC_TEAM_SOAK_REQUIRE_MANAGED_AGENT: ${{ matrix.os == 'windows-latest' && 'true' || 'false' }}
     steps:
+      - name: Enable Windows long paths before checkout
+        if: runner.os == 'Windows'
+        run: git config --global core.longpaths true
       - name: Checkout exact soak commit
         uses: actions/checkout@v5
         with:

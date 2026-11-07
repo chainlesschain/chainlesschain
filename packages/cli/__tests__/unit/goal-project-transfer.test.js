@@ -433,6 +433,49 @@ describe("explicit CLI to native project goal handoff", () => {
     expect(() => validateGoalTransfer(value)).toThrow();
     expect(executed).toBe(false);
   });
+  it.each([
+    ["target", "ownerRef"],
+    ["source", "digest"],
+  ])("rejects nested %s accessors without invoking them", (field, key) => {
+    freeze();
+    const value = packet();
+    let executed = false;
+    Object.defineProperty(value[field], key, {
+      enumerable: true,
+      get() {
+        executed = true;
+        return "invalid";
+      },
+    });
+    expect(() => validateGoalTransfer(value)).toThrow();
+    expect(executed).toBe(false);
+  });
+  it("rejects a nested proxy without invoking its traps", () => {
+    freeze();
+    const value = packet();
+    let executed = false;
+    value.target = new Proxy(value.target, {
+      get(target, key) {
+        executed = true;
+        return Reflect.get(target, key);
+      },
+    });
+    expect(() => validateGoalTransfer(value)).toThrow();
+    expect(executed).toBe(false);
+  });
+  it("rejects object-valued digests without invoking toJSON", () => {
+    freeze();
+    const value = packet();
+    let executed = false;
+    value.digest = {
+      toJSON() {
+        executed = true;
+        return "invalid";
+      },
+    };
+    expect(() => validateGoalTransfer(value)).toThrow();
+    expect(executed).toBe(false);
+  });
   it("keeps an expired target cancellable but never imports after its deadline", () => {
     freeze();
     const expired = new ProjectGoalTransferService({

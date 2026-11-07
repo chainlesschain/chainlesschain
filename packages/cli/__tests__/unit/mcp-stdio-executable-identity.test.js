@@ -480,12 +480,14 @@ describe("MCP stdio executable byte identity", () => {
         origin: "test:mcp-byte-identity",
         policy: "allow",
         shell: false,
+        env: prepared.env,
         mcpStdioExecutableIdentityAuthority: prepared.authority,
       });
       expect(nativeSpawn).toHaveBeenCalledOnce();
       expect(nativeSpawn.mock.calls[0][2]).not.toHaveProperty(
         "mcpStdioExecutableIdentityAuthority",
       );
+      expect(nativeSpawn.mock.calls[0][2].env).not.toHaveProperty("NODE_PATH");
       expect(executionBroker.getAuditLog(1)[0]).toMatchObject({
         mcpStdioExecutableIdentityDigest: prepared.identityDigest,
       });
@@ -505,6 +507,7 @@ describe("MCP stdio executable byte identity", () => {
             origin: "test:mcp-byte-identity",
             policy: "allow",
             shell: false,
+            env: changedBeforeSpawn.env,
             mcpStdioExecutableIdentityAuthority: changedBeforeSpawn.authority,
           },
         ),

@@ -95,6 +95,9 @@ jobs:
                 : `Full code checks required at ${e.DOCS_TARGET}; original job steps follow.`
             ).write();
 
+      - name: Enable Windows long paths before checkout
+        if: runner.os == 'Windows'
+        run: git config --global core.longpaths true
       - uses: actions/checkout@v5
         if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' }}
 

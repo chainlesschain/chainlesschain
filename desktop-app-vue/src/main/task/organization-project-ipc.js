@@ -1,6 +1,7 @@
 "use strict";
 
 const { randomUUID } = require("node:crypto");
+const { AsyncLocalStorage } = require("node:async_hooks");
 const { ApprovalGate } = require("@chainlesschain/session-core/approval-gate");
 const {
   digestBusinessObjectContent: digest,
@@ -143,9 +144,12 @@ function createOrganizationProjectHost({
   electron = null,
   clock = Date.now,
   goalMonitoringController = null,
+  featurePolicy = require("./project-goal-feature-policy")
+    .projectGoalFeaturePolicy,
   ...dependencies
 } = {}) {
   const getElectron = () => electron || require("electron");
+  const goalOperations = new AsyncLocalStorage();
   const ownerHost = createOrganizationProjectAuthorityHost({
     ...dependencies,
     database,
@@ -155,23 +159,42 @@ function createOrganizationProjectHost({
   const goalController =
     goalMonitoringController ||
     require("./organization-project-goal-host").createOrganizationProjectGoalController(
-      { ...dependencies, database, electron: getElectron(), clock },
+      {
+        ...dependencies,
+        database,
+        electron: getElectron(),
+        clock,
+        featurePolicy,
+      },
     );
   function factory(event) {
     const authority = ownerHost.createAuthority(event),
-      { db, getActor } = authority;
+      { db } = authority;
+    const readActor = authority.getActor;
+    let goalGuard = goalOperations.getStore();
+    const requireGoals = () => {
+      goalGuard ||= featurePolicy.capture();
+      goalGuard();
+    };
+    const getActor = () => {
+      goalGuard?.();
+      return readActor();
+    };
+    authority.getActor = getActor;
     const risks = new OrganizationProjectRiskReviewService({
       db,
       getActor,
       authority,
       now: clock,
     });
-    const goals = new OrganizationProjectGoalService({
-      db,
-      getActor,
-      authority,
-      clock,
-    });
+    const goals = featurePolicy.isEnabled()
+      ? new OrganizationProjectGoalService({
+          db,
+          getActor,
+          authority,
+          clock,
+        })
+      : null;
     const approvals = new OrganizationProjectApprovalService({
       db,
       getActor,
@@ -186,18 +209,38 @@ function createOrganizationProjectHost({
       approvals,
       now: clock,
     });
-    const goalWorkflow = new OrganizationProjectGoalWorkflow({
-      db,
-      getActor,
-      authority,
-      clock,
-      goals,
-      risk: risks,
-      usage: goals.usage,
-      approvals,
-      proposals,
-    });
-    approvals.goalWorkflow = goalWorkflow;
+    const goalWorkflow = featurePolicy.isEnabled()
+      ? new OrganizationProjectGoalWorkflow({
+          db,
+          getActor,
+          authority,
+          clock,
+          goals,
+          risk: risks,
+          usage: goals.usage,
+          approvals,
+          proposals,
+        })
+      : null;
+    // Generic proposal/action endpoints can also carry goal-bound requests.
+    // Fence their admission and every action phase without disabling old tasks.
+    approvals.goalWorkflow = {
+      verifyApprovalInTransaction(value) {
+        requireGoals();
+        return goalWorkflow.verifyApprovalInTransaction(value);
+      },
+    };
+    const goalContext = Object.freeze(
+      Object.fromEntries(
+        ["begin", "verify", "record", "finish"].map((method) => [
+          method,
+          (value) => {
+            requireGoals();
+            return goalWorkflow.contextAdapter[method](value);
+          },
+        ]),
+      ),
+    );
     const transfers = new OrganizationProjectTransferService({
       db,
       getActor,
@@ -280,90 +323,99 @@ function createOrganizationProjectHost({
                 return true;
               },
         riskService: risks,
-        contextAdapter: goalWorkflow.contextAdapter,
+        contextAdapter: goalContext,
       });
     }
     // All tables/fences exist before a preview captures its schema revision.
     const descriptions = action(),
       creation = action(true);
-    goalWorkflow.descriptionActions = descriptions;
-    goalWorkflow.createActions = creation;
-    const goalCompletion = new OrganizationProjectGoalCompletionService({
-      db,
-      getActor,
-      authority,
-      clock,
-      goals,
-      risk: risks,
-      usage: goals.usage,
-      workflow: goalWorkflow,
-    });
-    const goalMemory = new OrganizationProjectGoalMemoryService({
-      db,
-      getActor,
-      authority,
-      goals,
-      clock,
-      confirm: (preview) =>
-        confirm(
-          "确认组织目标共享记忆",
-          {
-            create: "保存以下记忆并供本目标的授权成员共享？",
-            correct: "修正共享记忆？旧版本将停止供本目标使用。",
-            revoke: "撤销本目标对这条共享记忆的使用权？",
-            delete:
-              "删除共享记忆？授权成员将无法继续读取正文，删除回执会保留。",
-            discard: "放弃未完成的保存并清理未关联记忆？",
-          }[preview.operation] || "确认本次共享记忆操作？",
-          [
-            `项目/组织：${display(preview.projectId)} / ${display(preview.orgId)}`,
-            `目标/版本：${display(preview.goalId)} / ${preview.goalRevision}`,
-            `请求：${display(preview.requestId)}`,
-            `记忆：${display(preview.memoryId)}`,
-            ...(preview.sourceRef
-              ? [`来源版本：${display(preview.sourceRef.version)}`]
-              : []),
-            ...(preview.operationRequestId
-              ? [`原保存请求：${display(preview.operationRequestId)}`]
-              : []),
-            ...(preview.content !== undefined
-              ? [
-                  `分类：${display(preview.category)}`,
-                  `内容：${display(preview.content)}`,
-                  `到期：${display(preview.expiresAt ?? null)}`,
-                ]
-              : []),
-            "记忆或备注不代表目标已通过验收。",
-            `确认摘要：${display(preview.inputDigest)}`,
-          ],
-        ),
-      onAuthorityChanged: () => {
-        const windows = getElectron().BrowserWindow.getAllWindows?.() ?? [
-          getElectron().BrowserWindow.fromWebContents(event.sender),
-        ];
-        for (const window of windows) {
-          const contents = window?.webContents;
-          if (
-            window &&
-            !window.isDestroyed() &&
-            contents &&
-            !contents.isDestroyed()
-          )
-            contents.send("organization-project:goal-memory-invalidated", {});
-        }
-      },
-      memoryHostFactory: ({ scope, authorize }) => {
-        const port = new NativeSqliteMemoryPort({ db, scope, authorize });
-        return {
-          port,
-          kernel: new ContextMemoryKernel({
-            memoryPort: port,
-            reconciliationPort: port,
-            clock,
-          }),
-        };
-      },
-    });
+    if (goalWorkflow) {
+      goalWorkflow.descriptionActions = descriptions;
+      goalWorkflow.createActions = creation;
+    }
+    const goalCompletion = featurePolicy.isEnabled()
+      ? new OrganizationProjectGoalCompletionService({
+          db,
+          getActor,
+          authority,
+          clock,
+          goals,
+          risk: risks,
+          usage: goals.usage,
+          workflow: goalWorkflow,
+        })
+      : null;
+    const goalMemory = featurePolicy.isEnabled()
+      ? new OrganizationProjectGoalMemoryService({
+          db,
+          getActor,
+          authority,
+          goals,
+          clock,
+          confirm: (preview) =>
+            confirm(
+              "确认组织目标共享记忆",
+              {
+                create: "保存以下记忆并供本目标的授权成员共享？",
+                correct: "修正共享记忆？旧版本将停止供本目标使用。",
+                revoke: "撤销本目标对这条共享记忆的使用权？",
+                delete:
+                  "删除共享记忆？授权成员将无法继续读取正文，删除回执会保留。",
+                discard: "放弃未完成的保存并清理未关联记忆？",
+              }[preview.operation] || "确认本次共享记忆操作？",
+              [
+                `项目/组织：${display(preview.projectId)} / ${display(preview.orgId)}`,
+                `目标/版本：${display(preview.goalId)} / ${preview.goalRevision}`,
+                `请求：${display(preview.requestId)}`,
+                `记忆：${display(preview.memoryId)}`,
+                ...(preview.sourceRef
+                  ? [`来源版本：${display(preview.sourceRef.version)}`]
+                  : []),
+                ...(preview.operationRequestId
+                  ? [`原保存请求：${display(preview.operationRequestId)}`]
+                  : []),
+                ...(preview.content !== undefined
+                  ? [
+                      `分类：${display(preview.category)}`,
+                      `内容：${display(preview.content)}`,
+                      `到期：${display(preview.expiresAt ?? null)}`,
+                    ]
+                  : []),
+                "记忆或备注不代表目标已通过验收。",
+                `确认摘要：${display(preview.inputDigest)}`,
+              ],
+            ),
+          onAuthorityChanged: () => {
+            const windows = getElectron().BrowserWindow.getAllWindows?.() ?? [
+              getElectron().BrowserWindow.fromWebContents(event.sender),
+            ];
+            for (const window of windows) {
+              const contents = window?.webContents;
+              if (
+                window &&
+                !window.isDestroyed() &&
+                contents &&
+                !contents.isDestroyed()
+              )
+                contents.send(
+                  "organization-project:goal-memory-invalidated",
+                  {},
+                );
+            }
+          },
+          memoryHostFactory: ({ scope, authorize }) => {
+            const port = new NativeSqliteMemoryPort({ db, scope, authorize });
+            return {
+              port,
+              kernel: new ContextMemoryKernel({
+                memoryPort: port,
+                reconciliationPort: port,
+                clock,
+              }),
+            };
+          },
+        })
+      : null;
     return {
       authority,
       db,
@@ -611,7 +663,7 @@ function createOrganizationProjectHost({
       })
       .immediate();
   }
-  return Object.freeze({
+  const handlers = {
     listGoalMemories: (event, params) => memoryCall(event, "list", params),
     createGoalMemory: (event, params) => memoryCall(event, "create", params),
     correctGoalMemory: (event, params) => memoryCall(event, "correct", params),
@@ -694,7 +746,10 @@ function createOrganizationProjectHost({
         guard: c.getActor,
       });
     },
-    initializeMonitoring: () => goalController.initialize(),
+    initializeMonitoring: () =>
+      featurePolicy.isEnabled()
+        ? goalController.initialize()
+        : Promise.resolve(null),
     listGoalSuggestions: (event, params) =>
       factory(event).goalWorkflow.list(params),
     prepareGoalAction: (event, params) =>
@@ -875,7 +930,10 @@ function createOrganizationProjectHost({
       c.getActor();
       return result;
     },
-    close: () => goalController.close(),
+    close: () => {
+      unsubscribeFeature();
+      return goalController.close();
+    },
     evaluateRisk: (event, params) => factory(event).risks.evaluate(params),
     getRiskReview: (event, params) => factory(event).risks.getReview(params),
     listRiskReviews: (event, params) =>
@@ -1298,7 +1356,17 @@ function createOrganizationProjectHost({
         return c.creation.listProjectRuns(value);
       fail("ORG_AUTH_INVALID_REQUEST");
     },
-  });
+  };
+  const unsubscribeFeature = featurePolicy.subscribe(() =>
+    goalController.close(),
+  );
+  for (const [method, channel] of Object.entries(CHANNELS)) {
+    if (!channel.startsWith("organization-project:goal-")) continue;
+    const execute = handlers[method];
+    handlers[method] = (...args) =>
+      goalOperations.run(featurePolicy.capture(), () => execute(...args));
+  }
+  return Object.freeze(handlers);
 }
 function registerOrganizationProjectIPC(database, dependencies = {}) {
   const electron = dependencies.electron || require("electron");

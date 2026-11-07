@@ -1,0 +1,5 @@
+{
+  "desktop-app-vue/scripts/project-goal-native-journey.mjs": "9caa49fe1f18bb7637ce88743ef4d975f0b57625901410f4dcf5e7df61be3e58",
+  "desktop-app-vue/scripts/lib/project-goal-native-dialog.cjs": "618d498d3d09d863b4f4d4964e987a280effc20c49e87129e7df95d5635d9c94",
+  "desktop-app-vue/scripts/lib/project-goal-modal-revocation-journey.cjs": "7c9cb2d43a862c1667866e7310afd9aa1be3b1f3bc22589193b8240e6225cc76"
+}

@@ -18,6 +18,9 @@ const {
 } = require("@chainlesschain/session-core/scheduler-store");
 const Database = require("better-sqlite3");
 const {
+  createProjectGoalFeaturePolicy,
+} = require("../project-goal-feature-policy");
+const {
   createBusinessActionRequest,
 } = require("@chainlesschain/session-core/business-object-contract");
 
@@ -32,6 +35,7 @@ describe("organization goal suggestions bind native approval and action executio
     permissions,
     rejectTaskWrite,
     failedWrites;
+  let featurePolicy;
   const body = () =>
     f.db.prepare("SELECT description FROM project_tasks WHERE id='t1'").get()
       .description;
@@ -83,9 +87,11 @@ describe("organization goal suggestions bind native approval and action executio
     f.setActor(f.identities.requester);
   }
   beforeEach(async () => {
+    featurePolicy = createProjectGoalFeaturePolicy({ enabled: true });
     directory = mkdtempSync(join(tmpdir(), "cc-org-goal-workflow-"));
     dialog = vi.fn(async () => ({ response: 1 }));
     f = organizationProjectFixture(dialog, {
+      featurePolicy,
       goalMonitoringController: {
         initialize: async () => {
           if (!engine) {
@@ -314,6 +320,31 @@ describe("organization goal suggestions bind native approval and action executio
       ).toBeNull();
     },
   );
+  it("refuses an approved goal request through the generic executor when the trial is disabled", async () => {
+    const prepared = await prepare(),
+      proposal = (await submit(prepared)).proposal;
+    await approve(proposal);
+    await featurePolicy.disable();
+    await expect(
+      Promise.resolve().then(() =>
+        f.host.executeProposal(f.event, { proposalId: proposal.proposalId }),
+      ),
+    ).rejects.toThrow("GOAL_FEATURE_DISABLED");
+    expect(body()).toBe("Original task");
+  });
+  it("fences a goal-bound generic action when the trial is disabled during native confirmation", async () => {
+    const prepared = await prepare(),
+      proposal = (await submit(prepared)).proposal;
+    await approve(proposal);
+    dialog.mockImplementationOnce(async () => {
+      await featurePolicy.disable();
+      return { response: 1 };
+    });
+    await expect(
+      f.host.executeProposal(f.event, { proposalId: proposal.proposalId }),
+    ).rejects.toThrow("GOAL_FEATURE_DISABLED");
+    expect(body()).toBe("Original task");
+  });
   it("rejects same-DID reauthentication during final native confirmation", async () => {
     const submitted = await submit(await prepare());
     await approve(submitted.proposal);

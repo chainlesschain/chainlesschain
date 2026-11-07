@@ -48,6 +48,9 @@ jobs:
     env:
       CC_HOST_RECOVERY_ARTIFACT: ide-host-recovery-wsl-${{ github.run_attempt }}
     steps:
+      - name: Enable Windows long paths before checkout
+        if: runner.os == 'Windows'
+        run: git config --global core.longpaths true
       - name: Checkout exact recovery candidate
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:

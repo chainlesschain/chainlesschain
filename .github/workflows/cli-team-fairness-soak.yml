@@ -52,6 +52,9 @@ jobs:
           [[ "${CC_TEAM_FAIRNESS_EXPECTED_SHA}" =~ ^[0-9a-f]{40}$ ]]
           test "${CC_TEAM_FAIRNESS_WORKFLOW_SHA}" = "${CC_TEAM_FAIRNESS_EXPECTED_SHA}"
 
+      - name: Enable Windows long paths before checkout
+        if: runner.os == 'Windows'
+        run: git config --global core.longpaths true
       - name: Checkout exact fairness commit
         uses: actions/checkout@v5
         with:
