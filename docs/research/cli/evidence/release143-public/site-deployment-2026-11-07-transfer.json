@@ -1,0 +1,240 @@
+{
+  "schema": "chainlesschain.three-site-public-readback/v1",
+  "verifiedAt": "2026-11-06T17:03:24.976Z",
+  "sourceCommit": "bbd4e713eb98c2043b927b7f57f17ffb1ae99549",
+  "runtimeReleaseSource": "3fa3a4b258bbcb60b23b4298cec375661ad6f410",
+  "additionalUnreleasedSource": "a2e7f17a03df38bd8e97a8a977351f37dd5319c3",
+  "scope": "All three deployment/build identities and every build-owned file hash checked on server; eleven public HTML samples, six CSS/JS samples and ordinary homepages compared to exact build bytes; not every public page fetched",
+  "sites": [
+    {
+      "site": "docs",
+      "baseUrl": "https://docs.chainlesschain.com",
+      "cloudBuild": {
+        "schema": "chainlesschain.docs-snapshot-build/v1",
+        "sourceCommit": "bbd4e713eb98c2043b927b7f57f17ffb1ae99549",
+        "runId": "42253189586",
+        "runAttempt": "1",
+        "site": "docs",
+        "archive": "docs.tar.gz",
+        "archiveSha256": "fb81d8f014a9dfc92eda0c252f3f14c767c5ed1f6e3e6c43c85ff9ebe3a24253",
+        "htmlPages": 679,
+        "files": 2064
+      },
+      "deployment": {
+        "schema": "chainlesschain.site-deployment/v1",
+        "stamp": "20261106-170040-bbd4e713eb-docs",
+        "sourceHeadCommit": "bbd4e713eb98c2043b927b7f57f17ffb1ae99549",
+        "sourceStatus": "clean-commit",
+        "site": "docs",
+        "archiveSha256": "408f39075e18d72bab691acc2aa12b5e2ecb4036b0732a6fc7a0a91f6c6a6c8c",
+        "newHtmlPages": 679,
+        "newFiles": 2064
+      },
+      "serverCheck": {
+        "site": "docs",
+        "files": 2064,
+        "allBuildFilesVerified": true,
+        "backupRetained": true
+      },
+      "backupDirectory": "/www/wwwroot/docs.chainlesschain.com.bak-20261106-170040-bbd4e713eb-docs",
+      "publicChecks": [
+        {
+          "url": "https://docs.chainlesschain.com/?source=bbd4e713eb98c2043b927b7f57f17ffb1ae99549",
+          "status": 200,
+          "bytes": 161374,
+          "sha256": "32d78221cd0b7ab1dd8b4728f8914cb2abd788ac9945806aa934b680ba2ab4e7",
+          "matchesBuild": true
+        },
+        {
+          "url": "https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-11-06-143.html?source=bbd4e713eb98c2043b927b7f57f17ffb1ae99549",
+          "status": 200,
+          "bytes": 275509,
+          "sha256": "06cbcbe265f40022d055dd7dd868e6646cecec736feaff29b8018d04d6891d27",
+          "matchesBuild": true
+        },
+        {
+          "url": "https://docs.chainlesschain.com/chainlesschain/cli.html?source=bbd4e713eb98c2043b927b7f57f17ffb1ae99549",
+          "status": 200,
+          "bytes": 344023,
+          "sha256": "ce3194dc0bde54bd845fb448a5f82f6ea623d244a8a08664f139e5c8087a5332",
+          "matchesBuild": true
+        },
+        {
+          "url": "https://docs.chainlesschain.com/chainlesschain/ide-bridge.html?source=bbd4e713eb98c2043b927b7f57f17ffb1ae99549",
+          "status": 200,
+          "bytes": 324807,
+          "sha256": "39f1e650d11b41abe11bddbc0d9153425a367426be34126910e276ad90d0d6e4",
+          "matchesBuild": true
+        },
+        {
+          "url": "https://docs.chainlesschain.com/chainlesschain/goal-drafts-current.html?source=bbd4e713eb98c2043b927b7f57f17ffb1ae99549",
+          "status": 200,
+          "bytes": 283955,
+          "sha256": "5a58ca6df1fa5e7565f8d4c30026c5e6f1b8f7d96470a97b38b63ec2b79e90c0",
+          "matchesBuild": true
+        },
+        {
+          "url": "https://docs.chainlesschain.com/design/cli-goal-transfer-source-2026-11-07.html?source=bbd4e713eb98c2043b927b7f57f17ffb1ae99549",
+          "status": 200,
+          "bytes": 216919,
+          "sha256": "9e4d12a442c51b7b3851a89b79e0e98e4b700406c0812215eec710d2ebbb759c",
+          "matchesBuild": true
+        }
+      ],
+      "assetChecks": [
+        {
+          "url": "https://docs.chainlesschain.com/assets/style.BYJc7-Cq.css",
+          "status": 200,
+          "bytes": 113059,
+          "sha256": "e6df04fd21bb8aa639d7551f7d5fb0672caf88fcd318ee67fc851d3546e9a6a4",
+          "matchesBuild": true
+        },
+        {
+          "url": "https://docs.chainlesschain.com/assets/app.TliCBhha.js",
+          "status": 200,
+          "bytes": 1352,
+          "sha256": "fd13e3fcb432759ab130301171d6ef4cf34d93b901f37ce252eea948a2647458",
+          "matchesBuild": true
+        }
+      ],
+      "ordinaryHomepageMatchesBuild": true
+    },
+    {
+      "site": "design",
+      "baseUrl": "https://design.chainlesschain.com",
+      "cloudBuild": {
+        "schema": "chainlesschain.docs-snapshot-build/v1",
+        "sourceCommit": "bbd4e713eb98c2043b927b7f57f17ffb1ae99549",
+        "runId": "42253189586",
+        "runAttempt": "1",
+        "site": "design",
+        "archive": "design.tar.gz",
+        "archiveSha256": "e738e7c8c7986f74a146f6eedfa91be3eb733384c4387f2f403401236c2b2add",
+        "htmlPages": 298,
+        "files": 920
+      },
+      "deployment": {
+        "schema": "chainlesschain.site-deployment/v1",
+        "stamp": "20261106-170040-bbd4e713eb-docs",
+        "sourceHeadCommit": "bbd4e713eb98c2043b927b7f57f17ffb1ae99549",
+        "sourceStatus": "clean-commit",
+        "site": "design",
+        "archiveSha256": "367038823fdade1eeb477374df4323ec57a29a30f0b4d7e45e8662b4dab38ae3",
+        "newHtmlPages": 298,
+        "newFiles": 920
+      },
+      "serverCheck": {
+        "site": "design",
+        "files": 920,
+        "allBuildFilesVerified": true,
+        "backupRetained": true
+      },
+      "backupDirectory": "/www/wwwroot/design.chainlesschain.com.bak-20261106-170040-bbd4e713eb-docs",
+      "publicChecks": [
+        {
+          "url": "https://design.chainlesschain.com/?source=bbd4e713eb98c2043b927b7f57f17ffb1ae99549",
+          "status": 200,
+          "bytes": 114507,
+          "sha256": "e7a8ec160fbc349cd0869741470368a5b15535e075b2f99490db9cfb4beac93a",
+          "matchesBuild": true
+        },
+        {
+          "url": "https://design.chainlesschain.com/release-runtime-update-2026-11-06-143.html?source=bbd4e713eb98c2043b927b7f57f17ffb1ae99549",
+          "status": 200,
+          "bytes": 175786,
+          "sha256": "aa4335ff2a9b9663d073139e1b4416778da050e2fff23c04270ce3ca4c622dd5",
+          "matchesBuild": true
+        },
+        {
+          "url": "https://design.chainlesschain.com/cli-goal-transfer-source-2026-11-07.html?source=bbd4e713eb98c2043b927b7f57f17ffb1ae99549",
+          "status": 200,
+          "bytes": 171854,
+          "sha256": "d5e37ae572a7876556d1372af78095264d9da7e59f02f3cbf04ec728be1ca337",
+          "matchesBuild": true
+        }
+      ],
+      "assetChecks": [
+        {
+          "url": "https://design.chainlesschain.com/assets/style.BYJc7-Cq.css",
+          "status": 200,
+          "bytes": 113059,
+          "sha256": "e6df04fd21bb8aa639d7551f7d5fb0672caf88fcd318ee67fc851d3546e9a6a4",
+          "matchesBuild": true
+        },
+        {
+          "url": "https://design.chainlesschain.com/assets/app.FCLOe700.js",
+          "status": 200,
+          "bytes": 1352,
+          "sha256": "ac23c22fe0db6678560f47aba09f552bb9ab8295f1d67b99c34a8f7fb1f329c2",
+          "matchesBuild": true
+        }
+      ],
+      "ordinaryHomepageMatchesBuild": true
+    },
+    {
+      "site": "www",
+      "baseUrl": "https://www.chainlesschain.com",
+      "cloudBuild": {
+        "schema": "chainlesschain.docs-snapshot-build/v1",
+        "sourceCommit": "bbd4e713eb98c2043b927b7f57f17ffb1ae99549",
+        "runId": "42253189586",
+        "runAttempt": "1",
+        "site": "www",
+        "archive": "www.tar.gz",
+        "archiveSha256": "b3054757af112fda5508b87f709a377bad80f1c1724d776c2bfb6a33059c58fe",
+        "htmlPages": 20,
+        "files": 45
+      },
+      "deployment": {
+        "schema": "chainlesschain.site-deployment/v1",
+        "stamp": "20261106-170040-bbd4e713eb-docs",
+        "sourceHeadCommit": "bbd4e713eb98c2043b927b7f57f17ffb1ae99549",
+        "sourceStatus": "clean-commit",
+        "site": "www",
+        "archiveSha256": "41604813fe3f3219685bd1f945781fc7f0811b8d570e790227994a911e99aad6",
+        "newHtmlPages": 20,
+        "newFiles": 45
+      },
+      "serverCheck": {
+        "site": "www",
+        "files": 45,
+        "allBuildFilesVerified": true,
+        "backupRetained": true
+      },
+      "backupDirectory": "/www/wwwroot/www.chainlesschain.com.bak-20261106-170040-bbd4e713eb-docs",
+      "publicChecks": [
+        {
+          "url": "https://www.chainlesschain.com/?source=bbd4e713eb98c2043b927b7f57f17ffb1ae99549",
+          "status": 200,
+          "bytes": 65987,
+          "sha256": "8a125a041054c407d84ea818554852eff56478b50722be8e54b10f965b9f0141",
+          "matchesBuild": true
+        },
+        {
+          "url": "https://www.chainlesschain.com/en/index.html?source=bbd4e713eb98c2043b927b7f57f17ffb1ae99549",
+          "status": 200,
+          "bytes": 66841,
+          "sha256": "ef100e151735dd93aec7ba5a131db31baabf3a020da717fd741954ba8a0ab824",
+          "matchesBuild": true
+        }
+      ],
+      "assetChecks": [
+        {
+          "url": "https://www.chainlesschain.com/assets/about.ciFbCEc9.css",
+          "status": 200,
+          "bytes": 21463,
+          "sha256": "d91e4f0137c8ff8e537d7674cb69c64b41f088f243b6078dfbaf84108f35710e",
+          "matchesBuild": true
+        },
+        {
+          "url": "https://www.chainlesschain.com/assets/desktop.Bg_wJyc8.css",
+          "status": 200,
+          "bytes": 31048,
+          "sha256": "48e12777a2c209d97a47c86fe9138c2aa69583f3f20121ee7e1792fa9ba05600",
+          "matchesBuild": true
+        }
+      ],
+      "ordinaryHomepageMatchesBuild": true
+    }
+  ]
+}

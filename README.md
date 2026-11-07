@@ -4,6 +4,8 @@
 
 安装 `npm i -g chainlesschain@0.166.143 --registry https://registry.npmjs.org`，重启宿主后运行 `cc --version`、`cc doctor`。本批增加力数/vLLM/SGLang 等本地算力配置、端点凭据隔离和待审目标创建请求；原生创建仍需匹配桌面实现与另行确认。当前公开客户端为 **v5.0.3.145**，来自较早独立源码；本批新增原生创建/模型草稿需要匹配的新桌面构建。本次不重发 PC/移动端，真实 IDE/Electron GUI、力数推理及业务效果验收仍独立进行。[升级说明](docs-site/docs/chainlesschain/cli-ide-update-2026-11-06-143.md) · [设计说明](docs/design/release-runtime-update-2026-11-06-143.md) · [上一版发行记录](docs/research/cli/evidence/release142-public/README.md)
 
+> 未发行源码进展：PR #539 新增 CLI 目标显式移交到原生个人项目、原字节备份/冻结及签名作废回执恢复。新目标保持暂停，不继承旧权限；需匹配分支的 CLI、Session Core 和桌面构建，公开 .143/.145 尚不包含。 [设计与验证边界](docs/design/cli-goal-transfer-source-2026-11-07.md)。
+
 <!-- release141-current:start -->
 
 ## 上版发行快照：CLI 0.166.141 / 配套 IDE 修复

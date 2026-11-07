@@ -14,6 +14,11 @@ Current native clients are **v5.0.3.145** from earlier independent sources. New
 native v6 creation and model drafts require matching newer desktop builds;
 this CLI/IDE release does not upgrade those client binaries. See the
 [current design](../../docs/design/release-runtime-update-2026-11-06-143.md).
+
+Unreleased source in PR #539 adds explicit CLI-goal handoff and signed recovery.
+It requires matching branch builds of CLI, Session Core and desktop; public
+0.166.143 does not include these commands. See the
+[source-only handoff design](../../docs/design/cli-goal-transfer-source-2026-11-07.md).
 Both IDEs add a Local compute / OpenAI
 compatible option for LEXDATA, vLLM and SGLang, with explicit endpoint/model,
 optional platform key and HTTP consent. Atomic configuration and first-run setup
