@@ -1,7 +1,7 @@
 # 后台会话全扫、分页与索引失效容量对照（2026-09-27）
 
 对应 [CLI 审计 PERF-01](./cli-claude-code-codex-gap-analysis-2026-09-27.md) 与
-[实施台账](../cli-ide/cli-ide-gap-implementation-2026-09-27.md)。这份记录补充当前分页生产路径的测量；历史 G10 全扫结果仍保留其原始含义。
+[实施台账](../cli-ide/plans/cli-ide-gap-implementation-2026-09-27.md)。这份记录补充当前分页生产路径的测量；历史 G10 全扫结果仍保留其原始含义。
 
 ## 1. 本批实现
 

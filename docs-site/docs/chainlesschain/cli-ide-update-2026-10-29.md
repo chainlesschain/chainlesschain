@@ -94,7 +94,7 @@ JetBrains 公开 ZIP 共 **1,560,992 字节**，SHA-256 `eed876bdf005856215200a3
 - [公开发行回执](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release129-public/publication.json)：准确源码、工作流和各渠道回读。
 - [CLI README](https://github.com/chainlesschain/chainlesschain/blob/main/packages/cli/README.md)：当前安装命令与发行限制。
 - [VS Code README](https://github.com/chainlesschain/chainlesschain/blob/main/packages/vscode-extension/README.md) · [JetBrains README](https://github.com/chainlesschain/chainlesschain/blob/main/packages/jetbrains-plugin/README.md)：配套版本与制品身份。
-- [当前差距表](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli-ide/cli-ide-codex-claude-gap-review-2026-10-27.md)：未完成任务、后续源码和验收边界。
+- [当前差距表](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli-ide/plans/cli-ide-codex-claude-gap-review-2026-10-27.md)：未完成任务、后续源码和验收边界。
 
 ## 相关文档
 
@@ -102,4 +102,4 @@ JetBrains 公开 ZIP 共 **1,560,992 字节**，SHA-256 `eed876bdf005856215200a3
 - [MCP Tool Search](./cli-tool-search) · [Skills 检索](./cli-skill) · [Memory 查询](./cli-memory)
 - [输入与恢复边界](./agent-input-and-recovery)
 - [上一轮升级说明（.128，历史）](./cli-ide-update-2026-10-28)
-- [本轮发行进度](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli-ide/cli-ide-release129-progress-2026-10-28.md)
+- [本轮发行进度](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli-ide/releases/cli-ide-release129-progress-2026-10-28.md)

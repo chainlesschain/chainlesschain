@@ -54,7 +54,7 @@ Windows x64 / Node 22.22.2 的本地 100K、category-7、limit 20 测量中，�
 
 最新候选仍必须完成自身准确提交的完整 CLI CI、Strict Sandbox 和 IDE 门。旧发行或专项成功不转移为候选发布资格。本次工作只部署静态文档与官网。
 
-历史 unsigned native 六目标验证及后续 journal 诊断已在[实施证据](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli-ide/cli-ide-gap-implementation-2026-10-05.md)分开记录；它们不等于准确候选提交的签名 native 发行。真实 PM 效果、完整成本、真人辅助技术验收和自动 active Skill 晋升仍保持 HOLD。
+历史 unsigned native 六目标验证及后续 journal 诊断已在[实施证据](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli-ide/plans/cli-ide-gap-implementation-2026-10-05.md)分开记录；它们不等于准确候选提交的签名 native 发行。真实 PM 效果、完整成本、真人辅助技术验收和自动 active Skill 晋升仍保持 HOLD。
 
 ## 后续源码：JetBrains CLI 发现与溯源
 

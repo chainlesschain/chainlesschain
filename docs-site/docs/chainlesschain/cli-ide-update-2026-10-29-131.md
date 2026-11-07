@@ -71,7 +71,7 @@ checker 的输入清单、回执格式和恢复步骤见 [Managed Agents](https:
 | 派生索引重建 / 损坏恢复               | 三种规模、两场景各 100 次，共 **600** 次结果摘要匹配参考；100K p95 **23522.737 / 21330.307ms** | 原测量从 98c4 开始，相关 16 个源码与 c9d0 字节一致；不是在新 SHA 重跑完整依赖闭包 |
 | 混合读写补测                          | 1K 的 100 轮完成；10K 最后记录 90 轮后，worker 触发原 **120 秒**上限                           | 进程退出 1，100K 未开始，没有完整 300 轮通过记录，未放宽上限                      |
 
-恢复基准只主动移除或损坏派生索引，没有逐样本独立哈希全部 authority 原始字节。测量方法、原始结果和失败均保留在[查询 / Stop 记录](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli-ide/cli-ide-memory-slo131-progress-2026-10-29.md)及[恢复与混合补测记录](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli-ide/cli-ide-memory-recovery131-progress-2026-10-29.md)。
+恢复基准只主动移除或损坏派生索引，没有逐样本独立哈希全部 authority 原始字节。测量方法、原始结果和失败均保留在[查询 / Stop 记录](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli-ide/implementation/cli-ide-memory-slo131-progress-2026-10-29.md)及[恢复与混合补测记录](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli-ide/implementation/cli-ide-memory-recovery131-progress-2026-10-29.md)。
 
 ## 测试覆盖
 
@@ -107,7 +107,7 @@ checker 的输入清单、回执格式和恢复步骤见 [Managed Agents](https:
 
 - [完整公开发行回执](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release131-public/publication.json)
 - [CLI README](https://github.com/chainlesschain/chainlesschain/blob/main/packages/cli/README.md)
-- [当前任务进度表](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli-ide/cli-ide-codex-claude-gap-review-2026-10-27.md)
+- [当前任务进度表](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli-ide/plans/cli-ide-codex-claude-gap-review-2026-10-27.md)
 - [本版运行时设计](/design/release-runtime-update-2026-10-29-131)
 
 ## 相关文档
