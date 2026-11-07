@@ -651,14 +651,17 @@ describe("background agent supervisor", () => {
     expect(() =>
       assertBackgroundAgentWorkerAcceptsPrompt(false, false),
     ).not.toThrow();
-    expect(() =>
-      assertBackgroundAgentWorkerAcceptsPrompt(false, true),
-    ).toThrow(/session is closing/);
+    expect(() => assertBackgroundAgentWorkerAcceptsPrompt(false, true)).toThrow(
+      /session is closing/,
+    );
   });
 
   it.each([
     ["stop fence", (current) => ({ ...current, stopRequestedAt: 123 })],
-    ["worker generation", (current) => ({ ...current, workerGeneration: "g2" })],
+    [
+      "worker generation",
+      (current) => ({ ...current, workerGeneration: "g2" }),
+    ],
   ])(
     "honors a %s that appears during a final-state lock retry",
     async (_fenceName, addFence) => {

@@ -9,7 +9,7 @@ name: Upstream Watch — Node 23 native-dep prebuild
 
 on:
   schedule:
-    - cron: '0 4 * * 0'  # weekly, Sunday 04:00 UTC
+    - cron: "0 4 * * 0" # weekly, Sunday 04:00 UTC
   workflow_dispatch:
 
 permissions:
@@ -33,7 +33,7 @@ jobs:
 
       - uses: actions/setup-node@v5
         with:
-          node-version: '23.x'
+          node-version: "23.x"
 
       - name: Show toolchain
         shell: pwsh

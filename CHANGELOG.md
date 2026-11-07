@@ -23,7 +23,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Probe managed Git worktree metadata access instead of treating `git --version` as execution readiness; preserve the existing explicit shell-worktree fallback and fail closed when managed execution is required.
 - Candidate only: no new public packages, desktop/mobile installers, live-model acceptance or production rollout is claimed.
 
-
 ### Changed - desktop/mobile v5.0.3.145 (release preparation, 2026-11-05)
 
 - Align desktop to `5.0.3-alpha.145`, Android to versionName `5.0.3.145` / versionCode `503145`, and iOS to marketing version `5.0.3` / build `145`.

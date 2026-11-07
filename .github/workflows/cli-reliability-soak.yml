@@ -136,7 +136,8 @@ on:
         required: true
         default: "all"
         type: choice
-        options: ["all", "session-message", "cli-diagnostic", "cli-windows-diagnostic"]
+        options:
+          ["all", "session-message", "cli-diagnostic", "cli-windows-diagnostic"]
       commit_sha:
         description: "Exact full commit SHA to test (blank uses selected ref)"
         required: false
