@@ -140,3 +140,9 @@ docs/research/agents/evidence/dmm-native-strict-ci-2026-11-07/preflight-module-e
 docs/research/agents/evidence/dmm-native-workspace-2026-11-07/**/*.json
 
 docs/research/agents/evidence/dmm-native-workspace-2026-11-07/**/*.yml
+
+# Preserve the unmodified official Codex 0.167.0 schema generator output.
+packages/cli/__tests__/fixtures/external-agent/codex-app-server-0.167.0-request.schema.json
+packages/cli/__tests__/fixtures/external-agent/codex-app-server-0.167.0-notification.schema.json
+packages/cli/__tests__/fixtures/external-agent/codex-app-server-0.167.0-server-request.schema.json
+packages/cli/__tests__/fixtures/external-agent/codex-app-server-0.167.0-approval-response.schema.json
