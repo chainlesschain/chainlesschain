@@ -330,6 +330,29 @@ describe("SkillCandidateRegistry tenant-scoped v2", () => {
     fs.rmSync(tempRoot, { recursive: true, force: true });
   });
 
+  it("uses an explicit registry root without resolving an invalid default home", () => {
+    const previousHome = process.env.CHAINLESSCHAIN_HOME;
+    process.env.CHAINLESSCHAIN_HOME = "relative-home-must-not-be-used";
+    try {
+      const execution = executionFixture();
+      const registry = new SkillCandidateRegistry(
+        registryOptions(TENANT_ALPHA, [execution], {
+          rootDir: registryBase,
+          secure: false,
+        }),
+      );
+      expect(fs.existsSync(path.join(registry.rootDir, "_tenant.json"))).toBe(
+        true,
+      );
+      expect(
+        () => new SkillCandidateRegistry(registryOptions(TENANT_ALPHA)),
+      ).toThrow(/CHAINLESSCHAIN_HOME/);
+    } finally {
+      if (previousHome === undefined) delete process.env.CHAINLESSCHAIN_HOME;
+      else process.env.CHAINLESSCHAIN_HOME = previousHome;
+    }
+  });
+
   it("waits for participating writer exclusion before hardening existing constructor directories", async () => {
     const execution = executionFixture();
     const options = registryOptions(TENANT_ALPHA, [execution], {
