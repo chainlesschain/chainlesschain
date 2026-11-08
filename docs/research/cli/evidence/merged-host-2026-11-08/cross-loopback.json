@@ -1,0 +1,12 @@
+[
+  {
+    "direction": "Code client to Node server",
+    "code": 0,
+    "output": "connected\n"
+  },
+  {
+    "direction": "Node client to Code server",
+    "connected": false,
+    "code": "ETIMEDOUT"
+  }
+]

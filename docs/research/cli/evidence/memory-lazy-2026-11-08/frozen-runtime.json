@@ -1,0 +1,7 @@
+﻿{
+  "scope": "Frozen CLI src/scripts and Context/Memory Kernel implementation; unrelated installed dependencies resolve from the workspace.",
+  "root": "E:\\code\\chainlesschain\\.tmp\\memory-lazy-frozen-2c331ea50e8c421890b711a1399fc717",
+  "createdAt": "2026-11-08T00:04:49.4538242Z",
+  "kernelResolvedRealpath": "E:/code/chainlesschain/.tmp/memory-lazy-frozen-2c331ea50e8c421890b711a1399fc717/packages/context-memory-kernel/index.mjs",
+  "kernelResolutionVerified": true
+}

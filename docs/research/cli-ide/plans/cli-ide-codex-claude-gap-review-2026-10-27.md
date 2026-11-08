@@ -66,33 +66,35 @@ node --test packages/cli/test-node/memory-lazy-postings.node-test.mjs desktop-ap
 
 真实Electron预检另复现加密SQLite ABI137与当前Electron要求140不匹配；按既有原生CI方式安装39.8.10对应预编译件后，限定加密 / Graph宿主 **10/10检查通过**。首轮失败与修复后回执分别归档；该预检与后续本机GUI分别记账，不代表完整安装或跨平台验收完成。
 
-冻结候选所有排定场景已退出0并审计，50份原字节归档、18个关键源码快照及离线校验器均已保存。当时候选检查点为 `e3687ae0…`，工作区/已提交源码为 `8ed862b2…`，不得移用成绩。后续主分支采用32次工作量让步，见下方分提交复验；完整4.8及生产准入仍未结案。
+冻结候选所有排定场景现已退出0并审计，50份原字节归档、18个关键源码快照及离线校验器均已保存。候选检查点为 `e3687ae0…`，当前/已提交源码仍为 `8ed862b2…`，不得移用成绩。完整4.8及生产准入仍未结案。
 
 实现依次提交到 `feature/cli-ide-memory-validation-20261108`：`884dfffcff`（按需索引/混合诊断/安装器）、`07287a51c0`（NLP依赖）、`8ffcbd8f8d`（原生GUI隔离与失败回执），均通过正常提交门禁并由既有钩子推送GitHub。本轮Windows合成GUI通过，不覆盖原失败或其他平台；[本批归档](../../cli/evidence/memory-lazy-2026-11-08/README.md)保留准确范围。另已核验既有DMM组合归档的87份记录，纠正顶部滞后的未完成状态，不把该历史成绩算作本轮新增。
 
-### 组合查询与派发前授权续作（2026-11-08）
+### 合并后复核（2026-11-08，a3296d55f）
 
-后续`698b87d79`已提交真实service/disk的独立组合oracle、首次冷查询/续页基准及三系统Stop/混合/组合工作流。两个固定身份的本机测量已全部结束并审计：[完整原字节归档](../../cli/evidence/memory-final-2026-11-08/README.md)。
+当前主分支已通过 `91f7eb34d1` 采用每32次工作量主动让步；检查点SHA-256为 `e3687ae0c03273064eebd3c7160107c83af7402eae39435ba0d80b4320c626bc`。上文“当前仍为8ed862b2”的表述仅反映早先观测时间，不再代表本次工作区；组件字节相同不授予新提交整套性能成绩。
 
-- `727c64962`：55项Node合同、600冷/热、600重建/损坏、600取消及300轮混合/1800次变更全部通过对应正确性核对；100K冷/热p95为400.169/43.743ms，混合读p95为1880.978ms。17个关键运行时文件逐字节绑定，1946项源码/锁文件Git核对保留2个PowerShell行尾差异。不是合并后源码的整套SLO。
-- `698b87d79`：900个五条件首次冷查询/直接续页全部对照独立全量authority，三档分页、条件及最终审计通过；100K三个场景p95为484.842/516.613/499.743ms。共享开发工作站、OS缓存未清空、静态依赖扫描非完整闭包，`performanceAccepted:false`。
-- [PR #553](https://github.com/chainlesschain/chainlesschain/pull/553)后来已合并；派发修复PR #556由[PR #558](https://github.com/chainlesschain/chainlesschain/pull/558)整合到`main@7c5d55925`后关闭。完整100次三系统矩阵`42435202150`以及CLI CI/Strict/原生GUI仍按准确提交和实际云端终态核对，排队或合并均不算通过。
+本次重新执行文档列出的Memory按需索引、真实进程恢复及安装器Node回归，退出0，**43/43、无跳过**。另运行[完整性能归档校验器](../../cli/evidence/memory-final-2026-11-08/verify-evidence.mjs)，退出0：110份制品、98份gzip摘要和样本内部一致性通过；基线 `727c64962` 的600查询、600恢复、600取消、300轮混合，以及 `698b87d79` 的900次组合首次冷查询均已完整归档。100K组合三场景p95分别为484.842、516.613、499.743ms。
 
-另在canonical已启用范围内真实复现计划后撤权：16项中14项把已删/已替换旧正文送入请求，2项对照通过。新派发约束在实际请求启动前持有短revision锁，复核继承约束、有效期、scope关闭和取消，HTTP响应期间不持锁；显式空scope拒绝，子代理`memory:false`不能被loop override恢复。保留两处微任务关闭竞态、派发后清理不重放、禁用路径兼容和预算锁等待取消的先红后绿证据。
+这是已有归档的离线复核，不是当前提交重新跑基准或重建原始authority。后续[派发前撤权修复及合并接线](../implementation/cli-ide-memory-admission-progress-2026-11-08.md)已经落入当前代码；其最终源码性能、三系统准确提交门禁、真实语义质量、双IDE恢复及安装升级继续保留未验收。完整目标尚未完成。
 
-本轮最终相关回归为Node22的19文件 **402/402**及Node24/ABI137的真实SQLite预算组合 **106/106**，各无跳过；新增33项包含在402中，3项Memory预算交互包含在106中，不另行累加。锁定Web Panel生产构建、89个候选静态出口审计通过，仍保持`paidReady:false`、`runtimeCoverageVerified:false`。见[实现与剩余边界](../implementation/cli-ide-memory-admission-progress-2026-11-08.md)、[失败/成功及源码快照](../../cli/evidence/memory-admission-2026-11-08/README.md)。本轮新增派发代码不继承旧测量SHA、云端门禁或发行身份；真实语义候选质量、REPL旧注入治理、完整跨入口/安装及生产准入仍未完成。
+**当前提交完整矩阵已派发。** 2026-11-08T05:11:12Z，以 `samples=100` 启动 [Memory三系统完整测量42449764159](https://github.com/chainlesschain/chainlesschain/actions/runs/42449764159)，回读HEAD为 `a3296d55fd38f4e186a712ef26c3bd3421bcbab4`，12个job均已建立、当前排队，尚无通过结论。覆盖三系统查询/恢复、Stop、八进程混合及组合冷查询；不重复派发同一运行。旧完整矩阵42435202150保留失败：三系统旧夹具依赖摘要不符、macOS Stop失败。当前旧依赖已固定，本机对应3项通过；同一当前源码的完整Memory合同选择为11文件、141通过、1项Windows不适用场景跳过。当前CLI CI（42444731109）及Strict Sandbox（42444731060）也仍排队，不授予发行准入。
 
-### 模型输入诊断与Memory授权整合（2026-11-08）
+Windows独立profile首轮已退出1：真实VSIX安装与激活成功，多窗口阶段MCP桥接TCP连接ETIMEDOUT，完整恢复未通过。普通Node回环探针通过，宿主网络根因仍待定位。准确包摘要、进程查询入口、证据目录及夹具边界见[合并源码宿主验收](../validation/cli-ide-merged-host-progress-2026-11-08.md)。
 
-将派发修复`5193dcf96`与主线`d23e386a6`整合，解决模型输入诊断、预算传输和adapter的三处冲突。诊断保留主线的body/signal快照与attempt关联，异步observer完成后再做最终Memory复核；governed-body observer在revision锁和markDispatched之前运行，避免回调删除Memory时自锁。新增4条logical-input/fetch-body删除/替换和2条预算诊断删除回归，分别包含在本批21文件425/425及预算108/108中，不额外叠加。Web Panel重新构建成功；89候选静态分类通过，78条调用链仍未映射。[原字节报告、8份源码快照与离线核对](../../cli/evidence/memory-diagnostics-2026-11-08/README.md)单独保存，旧24条派发归档与旧性能身份保持不变。
+**查询基准完成状态修复。** 本轮真实子进程故障注入确认：原查询基准在临时目录清理前写入 `complete:true`，清理报错时进程退出1却保留成功标志。已将整体完成发布移到成功清理之后；先保留样本完成状态，失败时整体仍为false。新增正常/清理失败两条回归，修复前1通过1失败、修复后2/2；与按需索引组合执行11/11，无跳过。已接入既有Memory三系统工作流，修复已正常提交并推送为 `3116842b0fdc5d5c6c747a404bf37b18fb8206c9`，建立[草稿PR #564](https://github.com/chainlesschain/chainlesschain/pull/564)。准确提交Memory矩阵42451059279及CLI CI42451059248已建立、仍排队，尚无该修复的云端成绩。先前已启动的a3296矩阵保持原源码身份，历史报告须结合进程退出码及清理证据阅读。
 
-本批不证明永不结束的诊断observer可即时取消，也不授予真实语义质量、完整REPL/IDE、OS出口、费用、性能或生产准入。准确合并提交仍须自己的云端门禁。
+**修复提交固定测量。** 独立工作树 `.worktrees/memory-a3296d55f-validation` 已干净检出 `3116842b0fdc5d5c6c747a404bf37b18fb8206c9`（目录名称保留初始基线），Kernel物理解析指向该工作树的 `packages/context-memory-kernel/lib/index.js`。已启动三档×冷/热/重建/损坏×100次测量，运行句柄44586，输出 `.tmp/memory-3116842b-validation/query-recovery100.json`；初始1K冷组已有进度，尚未完成。使用本机Node24.12.0，其他第三方依赖沿既有安装解析，未声称冻结完整依赖闭包或受控单因素性能环境。后续先查询同一运行，再审计终态、样本及清理，不重启替换进行中证据。
 
-### 交互召回开关与诊断Stop续作（2026-11-08）
+**后续串行测量队列。** 已确认原查询进程PID23032存活并绑定固定提交；队列只在其退出0且报告complete=true后依次执行Stop（两模式、三档、100次）、混合（三档、100轮）及组合（三档、三场景、100次）。活动句柄66005，阶段记录 `.tmp/memory-3116842b-validation/queue-state-v2.json`；所有进程退出后仍需独立样本审计。首版等待队列58679在尚未开始任何下游场景时终止：隔离探针证明PowerShell5的ErrorActionPreference=Stop会将正常native stderr误判为失败。v2使用隐藏Start-Process、独立stdout/stderr及显式退出码，原查询未重启。队列脚本和首版诊断保留同目录，不覆盖已有报告。
 
-在`main@7c5d55925`真实复现`--no-recall-memory`未约束canonical规划：初次、外部替换后及恢复后的3次请求仍带Memory。修复传递本次召回选择到每请求规划、context engine和child contract，并覆盖直接judge/压缩；恢复时显式重复flag，不宣称偏好持久化。默认召回对照的旧→新→恢复后新正确，没有把此前legacy正文绕过的静态怀疑当作实际缺陷。另以3条先红回归修复诊断observer等待期间取消，保留快照、迟到结果观察、禁用路径与unknown预算责任。
+**固定源码的查询中间审计（2026-11-08 05:45 UTC）。** 对 `3116842b0fdc5d5c6c747a404bf37b18fb8206c9` 的当前报告逐样本复核，1,024 条结果摘要均等于各档全量参考，返回数均为20；独立重算各组p95与报告相符。1K/10K四种场景各100次已结束；100K冷/热各100次，p95分别 **400.745/50.711ms**，低于原清单建议的1s/200ms目标；100K重建仅24次，损坏组尚未开始，整体 `complete:false`。活动原进程及子进程已确认，未重启。脚本与快照在 `.tmp/memory-3116842b-validation/audit-query-live.mjs`、`query-live-audit.json`，仅为本机中间审计，完整退出/清理及后续Stop、混合、组合、跨平台仍须独立验收。准确提交云端Memory运行42451059279的12个作业本次回读均queued。
 
-本批23文件599/599、真实SQLite预算108/108和真实进程交互/恢复2/2通过，绿色请求摘要与两次verified JSONL核对另存原件；原WSL环境失败及旧已取消假fetch测试的合同修正均保留。[实施记录与完整边界](../implementation/cli-ide-recall-policy-progress-2026-11-08.md)、[源码与原字节归档](../../cli/evidence/recall-policy-2026-11-08/README.md)。输入终端为模拟，observer取消不强制终止其自身；完整OS/真人交互、语义质量、当前源码SLO及准确提交三系统发行门禁仍未完成。主线IDE CI `42441006550`已确认公开能力清单漂移失败，其余门禁待核对，不继承旧提交成绩。
+**真实本地语义接入候选。** 独立分支 `feature/memory-local-semantic-20261108` 正在接入离线BGE worker及共享runtime，覆盖search、scoped recall与provider context。当前尚未提交或运行真实模型烟测；轻量合同通过不能作为真实语义质量证明。根审阅发现Unicode输出膨胀边界、烟测缺少语义来源断言，正在修正；完整质量、性能及跨入口验收继续未完成。
+
+**语义接入复审及串行实跑准备（2026-11-08 05:50 UTC）。** 独立候选补齐完整授权语料扫描、推理期间全库revision变化拒绝、单CLI进程单encoder并发限制及Unicode输出，轻量合同17通过、真实模型1跳过；根独立核验9源码与2份证据摘要一致。打包清单发现较早source.js尺寸12520与当前12702不符，已另存旧清单并刷新：新清单source12702、worker4891 bytes与当前文件一致，根再次核验产物摘要；旧清单不作为准确新源码证明。真实BGE等待器PID32308已实时核对存活，持有原性能队列22828及原查询23032的进程句柄；仅待两者终止并确认没有活跃benchmark后，运行三生产入口实际编码烟测。状态在独立树 `.tmp/local-semantic-real-smoke-20261108/state.json`，当前尚未启动模型；通过也仅证明入口接线，不替代完整语义质量或性能验收。九源码在等待期间冻结，未提交或发布。
+
+**IDE网络替代路径补查。** 同一下载VS Code1.145.2对IPv4/IPv6本机回环自连均ETIMEDOUT，系统Node两者成功，未找到IPv6替代路径。结构化结果归档于 `docs/research/cli/evidence/merged-host-2026-11-08/ipv6-loopback.json`，六份归档摘要与长度全部复核。未改系统策略；完整IDE旅程仍未通过，具体系统原因尚未证明。
 
 ## 历史增量状态（2026-11-03）
 

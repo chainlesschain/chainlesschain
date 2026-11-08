@@ -1,0 +1,141 @@
+{
+  "schema": "chainlesschain.memory-frozen-candidate-audit/v1",
+  "auditedAt": "2026-11-08T00:59:02.316Z",
+  "queueExitCode": 0,
+  "results": {
+    "query": {
+      "samples": 600,
+      "fullReferenceMatches": 600,
+      "tiers": [
+        {
+          "count": 1000,
+          "groups": {
+            "cold": {
+              "samples": 100,
+              "p95Ms": 45.446
+            },
+            "hot": {
+              "samples": 100,
+              "p95Ms": 21.563
+            }
+          }
+        },
+        {
+          "count": 10000,
+          "groups": {
+            "cold": {
+              "samples": 100,
+              "p95Ms": 80.748
+            },
+            "hot": {
+              "samples": 100,
+              "p95Ms": 23.584
+            }
+          }
+        },
+        {
+          "count": 100000,
+          "groups": {
+            "cold": {
+              "samples": 100,
+              "p95Ms": 393.375
+            },
+            "hot": {
+              "samples": 100,
+              "p95Ms": 44.448
+            }
+          }
+        }
+      ]
+    },
+    "recovery": {
+      "samples": 600,
+      "fullReferenceMatches": 600,
+      "tiers": [
+        {
+          "count": 1000,
+          "groups": {
+            "rebuild": {
+              "samples": 100,
+              "p95Ms": 761.003
+            },
+            "corrupt": {
+              "samples": 100,
+              "p95Ms": 803.025
+            }
+          }
+        },
+        {
+          "count": 10000,
+          "groups": {
+            "rebuild": {
+              "samples": 100,
+              "p95Ms": 1159.207
+            },
+            "corrupt": {
+              "samples": 100,
+              "p95Ms": 1048.382
+            }
+          }
+        },
+        {
+          "count": 100000,
+          "groups": {
+            "rebuild": {
+              "samples": 100,
+              "p95Ms": 4652.038
+            },
+            "corrupt": {
+              "samples": 100,
+              "p95Ms": 4455.164
+            }
+          }
+        }
+      ]
+    },
+    "stop": {
+      "cancelled": 600,
+      "lateSuccessfulCompletion": 0,
+      "lockReleaseChecks": 600,
+      "authorityCheckScope": "Manifest raw bytes before/after each tier/mode, not every physical shard at every instant."
+    },
+    "mixed": {
+      "rounds": 300,
+      "processOperations": 2400,
+      "mutationCommits": 1800,
+      "fullAuditVerifiedTiers": 3,
+      "tiers": [
+        {
+          "count": 1000,
+          "readP95Ms": 901.254,
+          "lockWaitP95Ms": 740,
+          "operationsPerSecond": 9.69431885891954
+        },
+        {
+          "count": 10000,
+          "readP95Ms": 1096.55,
+          "lockWaitP95Ms": 850,
+          "operationsPerSecond": 8.286264227906674
+        },
+        {
+          "count": 100000,
+          "readP95Ms": 2086.161,
+          "lockWaitP95Ms": 1479,
+          "operationsPerSecond": 4.262775250754875
+        }
+      ]
+    }
+  },
+  "sha256": {
+    "query100-frozen.json": "ae7619d556ced0e5069b1624f7248274fc90ea56f81efd7f1cbbcaa87dd77923",
+    "recovery100-frozen.json": "c8640f35f893a8334c1d75cccfdbf94cb4e87b321e855e60d147f920f5b7555e",
+    "stop100-frozen.json": "1e4d0059e055668aa738d6d4c86f2779271e4ec14fbbbe283f645329ea0ae67a",
+    "mixed100-frozen.json": "ffb04c05e246484b513aaec5aa83da5682cdaf566f16b45fc13234d0a16c0d97"
+  },
+  "sourceBoundary": "Frozen e3687ae0 checkpoint candidate; current workspace/checkpoint source8ed862b2 and final committed runtime require their own validation.",
+  "fullDependencyClosureVerified": false,
+  "currentWorkspaceSloVerified": false,
+  "crossPlatformSloVerified": false,
+  "semanticQualityVerified": false,
+  "releaseAdmissionChanged": false
+}

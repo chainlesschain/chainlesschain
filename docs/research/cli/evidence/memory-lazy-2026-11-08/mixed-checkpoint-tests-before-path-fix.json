@@ -1,0 +1,122 @@
+{
+  "numTotalTestSuites": 2,
+  "numPassedTestSuites": 0,
+  "numFailedTestSuites": 2,
+  "numPendingTestSuites": 0,
+  "numTotalTests": 8,
+  "numPassedTests": 7,
+  "numFailedTests": 1,
+  "numPendingTests": 0,
+  "numTodoTests": 0,
+  "snapshot": {
+    "added": 0,
+    "failure": false,
+    "filesAdded": 0,
+    "filesRemoved": 0,
+    "filesRemovedList": [],
+    "filesUnmatched": 0,
+    "filesUpdated": 0,
+    "matched": 0,
+    "total": 0,
+    "unchecked": 0,
+    "uncheckedKeysByFile": [],
+    "unmatched": 0,
+    "updated": 0,
+    "didUpdate": false
+  },
+  "startTime": 1794095890598,
+  "success": false,
+  "testResults": [
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": ["mixed Memory evidence checkpoints"],
+          "fullName": "mixed Memory evidence checkpoints marks success only after real concurrent rounds and the full audit",
+          "status": "passed",
+          "title": "marks success only after real concurrent rounds and the full audit",
+          "duration": 2558.7528,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["mixed Memory evidence checkpoints"],
+          "fullName": "mixed Memory evidence checkpoints preserves the first verified round when a second-round worker dies",
+          "status": "passed",
+          "title": "preserves the first verified round when a second-round worker dies",
+          "duration": 1870.9613999999997,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["mixed Memory evidence checkpoints"],
+          "fullName": "mixed Memory evidence checkpoints retains verified rounds without granting final audit success when export fails",
+          "status": "passed",
+          "title": "retains verified rounds without granting final audit success when export fails",
+          "duration": 1635.2241000000004,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["mixed Memory evidence checkpoints"],
+          "fullName": "mixed Memory evidence checkpoints preserves both errors when the failure checkpoint cannot be written",
+          "status": "passed",
+          "title": "preserves both errors when the failure checkpoint cannot be written",
+          "duration": 3.1252000000004045,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["mixed Memory evidence checkpoints"],
+          "fullName": "mixed Memory evidence checkpoints does not grant overall completion when the final source binding changes",
+          "status": "passed",
+          "title": "does not grant overall completion when the final source binding changes",
+          "duration": 1673.0839999999998,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["mixed Memory evidence checkpoints"],
+          "fullName": "mixed Memory evidence checkpoints keeps cleanup failure visible after successful audits",
+          "status": "passed",
+          "title": "keeps cleanup failure visible after successful audits",
+          "duration": 2130.127299999999,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["mixed Memory evidence checkpoints"],
+          "fullName": "mixed Memory evidence checkpoints keeps cleanup failure visible after a business failure",
+          "status": "passed",
+          "title": "keeps cleanup failure visible after a business failure",
+          "duration": 2.7545000000009168,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["mixed Memory evidence checkpoints"],
+          "fullName": "mixed Memory evidence checkpoints refuses to overwrite earlier CLI evidence before running any fixture",
+          "status": "failed",
+          "title": "refuses to overwrite earlier CLI evidence before running any fixture",
+          "duration": 58.52459999999883,
+          "failureMessages": [
+            "AssertionError: expected 'node:internal/modules/cjs/loader:1386…' to contain 'EEXIST'\n    at E:/code/chainlesschain/packages/cli/__tests__/integration/memory-mixed-checkpoints.test.js:240:28\n    at file:///E:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///E:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///E:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///E:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///E:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///E:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\n    at file:///E:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64"
+          ],
+          "meta": {},
+          "tags": []
+        }
+      ],
+      "startTime": 1794095891056,
+      "endTime": 1794095900988.5247,
+      "status": "failed",
+      "message": "",
+      "name": "E:/code/chainlesschain/packages/cli/__tests__/integration/memory-mixed-checkpoints.test.js"
+    }
+  ]
+}

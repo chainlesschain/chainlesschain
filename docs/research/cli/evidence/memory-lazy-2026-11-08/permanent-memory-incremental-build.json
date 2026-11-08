@@ -1,0 +1,10 @@
+{
+  "schema": "chainlesschain.incremental-main-build/v1",
+  "createdAt": "2026-11-08T00:48:51.180Z",
+  "source": "desktop-app-vue/src/main/llm/permanent-memory-manager.js",
+  "artifact": "desktop-app-vue/dist/main/llm/permanent-memory-manager.js",
+  "sourceSha256": "c016b60fe19c4bc5b9128ca95a1d40a557a79a23466ce4bd27de5dd0ab46f16b",
+  "artifactSha256": "c016b60fe19c4bc5b9128ca95a1d40a557a79a23466ce4bd27de5dd0ab46f16b",
+  "method": "Same UTF-8 read/write branch as scripts/build-main.js copyDir; all other main/preload files retain the successful full build.",
+  "productGuiAcceptance": false
+}

@@ -1,0 +1,35 @@
+{
+  "observedAt": "2026-11-08T05:23:45.636Z",
+  "results": [
+    {
+      "role": "system-node",
+      "exitCode": 0,
+      "probe": {
+        "node": "v24.12.0",
+        "connected": true,
+        "elapsedMs": 2
+      }
+    },
+    {
+      "role": "downloaded-vscode-1.145.2",
+      "exitCode": 1,
+      "probe": {
+        "node": "v24.22.1",
+        "electron": "43.8.3",
+        "connected": false,
+        "code": "ETIMEDOUT",
+        "elapsedMs": 306
+      }
+    },
+    {
+      "role": "previously-installed-vscode",
+      "exitCode": 0,
+      "probe": {
+        "node": "v20.18.1",
+        "electron": "32.2.6",
+        "connected": true,
+        "elapsedMs": 4
+      }
+    }
+  ]
+}

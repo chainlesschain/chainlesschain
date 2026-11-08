@@ -1,0 +1,73 @@
+{
+  "schema": "chainlesschain.product-electron-phase-diagnostic/v1",
+  "hostNode": "v22.20.0",
+  "startedAt": "2026-11-08T00:49:46.185Z",
+  "productGuiAcceptance": false,
+  "complete": true,
+  "runnerSha256": "6f35101658e6167824fd6282d4e4649e16d7590925ba150b637fc364fbcfc6d0",
+  "permanentMemoryArtifactSha256": "c016b60fe19c4bc5b9128ca95a1d40a557a79a23466ce4bd27de5dd0ab46f16b",
+  "events": [
+    {
+      "stage": "launch-requested",
+      "elapsedMs": 453,
+      "timeoutMs": 30000
+    },
+    {
+      "stage": "launch-resolved",
+      "elapsedMs": 1164
+    },
+    {
+      "stage": "evaluate-requested",
+      "elapsedMs": 1165,
+      "invocation": 1
+    },
+    {
+      "stage": "evaluate-resolved",
+      "elapsedMs": 1169,
+      "invocation": 1
+    },
+    {
+      "stage": "firstWindow-requested",
+      "elapsedMs": 1169,
+      "invocation": 1
+    },
+    {
+      "stage": "firstWindow-rejected",
+      "elapsedMs": 181174,
+      "invocation": 1,
+      "name": "TimeoutError",
+      "timeout30000": false,
+      "timeout180000": true
+    },
+    {
+      "stage": "evaluate-requested",
+      "elapsedMs": 181175,
+      "invocation": 2
+    },
+    {
+      "stage": "evaluate-rejected",
+      "elapsedMs": 181372,
+      "invocation": 2,
+      "name": "Error",
+      "timeout30000": false,
+      "timeout180000": false
+    },
+    {
+      "stage": "close-requested",
+      "elapsedMs": 181384,
+      "invocation": 1
+    },
+    {
+      "stage": "close-resolved",
+      "elapsedMs": 198078,
+      "invocation": 1
+    },
+    {
+      "stage": "phase-observer-exit",
+      "elapsedMs": 198081
+    }
+  ],
+  "playwright": "1.61.1",
+  "exitCode": 1,
+  "finishedAt": "2026-11-08T00:53:04.265Z"
+}

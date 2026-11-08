@@ -1,0 +1,39 @@
+{
+  "observedAt": "2026-11-08T00:30:06.326Z",
+  "status": "in_progress",
+  "goalComplete": false,
+  "sourceHead": "74f8df309ee69741003fab426ae30bb50514505a",
+  "sessions": [
+    {
+      "id": 6285,
+      "pid": 16020,
+      "purpose": "Sequential recovery100, Stop100, mixed100 in frozen candidate",
+      "queue": "validation-queue.json"
+    }
+  ],
+  "frozenQueryComplete": true,
+  "frozenQueryReport": "query100-frozen.json",
+  "kernelResolution": "frozen-runtime.json",
+  "sourceBoundary": "Frozen memory-query-control.js e3687ae0 differs from current workspace 8ed862b2; do not transfer the frozen result to final workspace source.",
+  "next": "Poll benchmark queue session6285. Astra is checking same-host Node22 minimal Electron/Playwright handshake after product runner ended with an uncaught timeout and no journey.json. Preserve failure, diagnose driver and cleanup before the next actual GUI attempt. Current worktree checkpoint source8ed differs from frozene368 candidate; do not transfer SLO to final source. Nine completed code files already committed on feature branch.",
+  "completedCodeCommit": "884dfffcff06924291725dcc332220773561dc5d",
+  "completedCodeBranch": "feature/cli-ide-memory-validation-20261108",
+  "completedCodeRemoteVerified": true,
+  "desktopBuilds": {
+    "main": {
+      "session": 99350,
+      "exitCode": 0
+    },
+    "renderer": {
+      "session": 84646,
+      "exitCode": 0
+    }
+  },
+  "guiAttempt": {
+    "session": 72391,
+    "exitCode": 1,
+    "artifactDirectory": "workspace-gui-20261108",
+    "artifactMissing": true,
+    "error": "Unhandled Playwright ElectronDispatcher TimeoutError after 30000ms; product GUI not verified"
+  }
+}
