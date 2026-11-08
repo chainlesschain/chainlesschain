@@ -190,6 +190,9 @@ async function fixture() {
     unavailable: () => {
       missing = true;
     },
+    complete: () => {
+      status = "completed";
+    },
     async closeHost(host) {
       await host.client.disconnectAll();
       host.lease.release();
@@ -247,6 +250,32 @@ describe("durable MCP task auxiliary runtime", () => {
     expect(JSON.stringify(listDurableMcpTasks(f.sessionId))).not.toContain(
       "delivered artifact",
     );
+  });
+
+  it("watches a remote task and delivers its verified result exactly once", async () => {
+    const f = await fixture();
+    const host = await f.open();
+    const accepted = await host.runtime.create("remote", "export", {});
+    const updates = [];
+    setTimeout(() => f.complete(), 5);
+    const receipt = await host.runtime.watch(accepted.localId, {
+      intervalMs: 10,
+      timeoutMs: 500,
+      onUpdate: (value) => updates.push(value.remoteStatus),
+    });
+    expect(receipt).toMatchObject({
+      localId: accepted.localId,
+      delivered: true,
+      duplicate: false,
+      watched: true,
+    });
+    expect(updates).toContain("completed");
+    expect((await host.runtime.list()).records[0]).toMatchObject({
+      resultSaved: true,
+      delivered: true,
+    });
+    const duplicate = await host.runtime.deliver(accepted.localId);
+    expect(duplicate).toMatchObject({ delivered: true, duplicate: true });
   });
 
   it.each(["disconnect", "404"])(

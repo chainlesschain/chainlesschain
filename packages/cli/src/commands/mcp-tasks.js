@@ -136,7 +136,23 @@ export function registerMcpTaskCommands(
       const result =
         operation === "create"
           ? await runtime.create(serverName, item, args, { ttl })
-          : await runtime[operation](item);
+          : operation === "watch"
+            ? await runtime.watch(item, {
+                intervalMs: numericOption(options.interval, {
+                  name: "--interval",
+                  integer: true,
+                  min: 0,
+                  max: 60_000,
+                }),
+                timeoutMs: numericOption(options.timeout, {
+                  name: "--timeout",
+                  integer: true,
+                  min: 1,
+                  max: 24 * 60 * 60 * 1000,
+                }),
+                deliver: options.deliver !== false,
+              })
+            : await runtime[operation](item);
       emit(result, options.json);
     } catch (error) {
       process.exitCode = 1;
@@ -186,7 +202,7 @@ export function registerMcpTaskCommands(
     .option("--ttl <ms>", "Requested task lifetime in milliseconds")
     .option("--json", "Output as JSON")
     .action(action("create"));
-  for (const operation of ["poll", "result", "deliver", "cancel"]) {
+  for (const operation of ["poll", "result", "deliver", "cancel", "watch"]) {
     tasks
       .command(operation + " <local-id>")
       .description(
@@ -196,9 +212,21 @@ export function registerMcpTaskCommands(
             ? "Retrieve and save a result, or read its saved copy"
             : operation === "deliver"
               ? "Deliver a saved result once to its session as external reference data"
-              : "Request cancellation; remote side effects may already have occurred",
+              : operation === "watch"
+                ? "Poll a remote task until its result is saved, then deliver once"
+                : "Request cancellation; remote side effects may already have occurred",
       )
       .requiredOption("--session <id>", "Owning canonical session")
+      .option("--interval <ms>", "Polling interval in milliseconds", "1000")
+      .option(
+        "--timeout <ms>",
+        "Maximum watch duration in milliseconds",
+        String(15 * 60 * 1000),
+      )
+      .option(
+        "--no-deliver",
+        "Save the result without appending a delivery event",
+      )
       .option("--json", "Output as JSON")
       .action(action(operation));
   }

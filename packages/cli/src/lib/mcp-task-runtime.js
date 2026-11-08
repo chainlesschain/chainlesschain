@@ -17,6 +17,32 @@ function failure(code, message, details = {}) {
   return Object.assign(new Error(message), { code, ...details });
 }
 
+function waitForTaskPoll(ms, signal, leaseSignal) {
+  const delay = Math.max(0, Math.min(60_000, Number(ms) || 0));
+  if (delay === 0) return Promise.resolve();
+  const combined = signal
+    ? AbortSignal.any([leaseSignal, signal])
+    : leaseSignal;
+  if (combined.aborted) return Promise.reject(combined.reason);
+  return new Promise((resolve, reject) => {
+    const abort = () => {
+      clearTimeout(timer);
+      combined.removeEventListener("abort", abort);
+      reject(
+        combined.reason ||
+          new DOMException("The operation was aborted", "AbortError"),
+      );
+    };
+    // The timer is the only successful completion path; remove the listener
+    // before resolving so repeated polling does not retain old closures.
+    const timer = setTimeout(() => {
+      combined.removeEventListener("abort", abort);
+      resolve();
+    }, delay);
+    combined.addEventListener("abort", abort, { once: true });
+  });
+}
+
 function publicRecord(record, projection) {
   const call = projection.callRecovery.records.find(
     (item) => item.ledgerId === record.ledgerId,
@@ -385,6 +411,48 @@ export function createDurableMcpTaskRuntime({
         record = append(record, "observed", { task });
         return publicRecord(record, read());
       });
+    },
+
+    /**
+     * Opt-in foreground/background tracking for one accepted task. This only
+     * polls and durably delivers the verified result; it never starts a model
+     * turn or injects data into conversation history.
+     */
+    async watch(
+      localId,
+      {
+        intervalMs = 1000,
+        timeoutMs = 15 * 60 * 1000,
+        signal,
+        deliver = true,
+        onUpdate = null,
+      } = {},
+    ) {
+      const started = Date.now();
+      let latest = null;
+      for (;;) {
+        latest = await this.poll(localId, { signal });
+        onUpdate?.(latest);
+        if (latest.resultSaved) break;
+        if (
+          ["completed", "failed", "cancelled"].includes(latest.remoteStatus)
+        ) {
+          latest = await this.result(localId, { signal });
+          onUpdate?.(latest);
+          break;
+        }
+        if (Date.now() - started >= timeoutMs) {
+          throw failure(
+            "CC_MCP_TASK_WATCH_TIMEOUT",
+            "MCP task did not produce a verified result before the watch timeout",
+            { localId },
+          );
+        }
+        await waitForTaskPoll(intervalMs, signal, lease.signal);
+      }
+      if (!deliver) return latest;
+      const receipt = await this.deliver(localId);
+      return Object.freeze({ ...receipt, watched: true });
     },
 
     result(localId, { signal } = {}) {
