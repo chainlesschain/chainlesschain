@@ -1,0 +1,15 @@
+✔ a new request settlement cannot erase an interrupted request (1.3201ms)
+✔ malformed settlement leaves usage unknown; genuine zero-token settlement is known (0.1366ms)
+✔ explicit unknown cost and a reused historical call id remain conservative (0.1389ms)
+✔ recovery notice is actionable, content-free and escapes terminal control characters (0.1584ms)
+✔ provider/model/source/operation identity mismatch never settles the original call (0.256ms)
+✔ settled historical calls are not retained by streaming recovery (20.2671ms)
+✔ shared runtime token contract rejects fractional, alias, total and reasoning conflicts (0.2669ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 83.4008

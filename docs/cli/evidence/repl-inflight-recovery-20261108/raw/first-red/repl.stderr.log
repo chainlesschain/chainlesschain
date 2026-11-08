@@ -1,0 +1,29 @@
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  __tests__/e2e/repl-inflight-recovery-e2e.test.js > real interactive REPL inflight request hard-kill recovery > keeps the old request unknown and explains interrupted state when restarting with new input
+AssertionError: {"schema":"chainlesschain.repl-inflight-crash-journey/v1","node":"v24.12.0","platform":"win32","terminal":"emulated stdin isTTY, not an OS PTY","transport":"real CLI/readline/Evolution/JSONL and loopback HTTP; no paid provider","sessionId":"repl-inflight-recovery","requests":[],"stages":[],"encryptedDatabaseInstallationVerified":false,"completed":false,"error":{"message":"original-prompt: timed out","stack":"Error: original-prompt: timed out\n    at waitFor (E:/code/chainlesschain/.worktrees/repl-inflight-recovery-20261108/packages/cli/__tests__/e2e/repl-inflight-recovery-e2e.test.js:181:11)\n    at journey (E:/code/chainlesschain/.worktrees/repl-inflight-recovery-20261108/packages/cli/__tests__/e2e/repl-inflight-recovery-e2e.test.js:213:5)\n    at E:/code/chainlesschain/.worktrees/repl-inflight-recovery-20261108/packages/cli/__tests__/e2e/repl-inflight-recovery-e2e.test.js:355:21\n    at file:///E:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"},"processes":[{"label":"original","pid":13052,"code":null,"signal":"SIGKILL"}],"artifactDirectory":"E:\\code\\chainlesschain\\.worktrees\\repl-inflight-recovery-20261108\\.tmp\\repl-inflight-red-20261108\\artifacts\\run-4sBVdj"}: expected { …(2) } to be undefined
+
+- Expected:
+undefined
+
++ Received:
+{
+  "message": "original-prompt: timed out",
+  "stack": "Error: original-prompt: timed out
+    at waitFor (E:/code/chainlesschain/.worktrees/repl-inflight-recovery-20261108/packages/cli/__tests__/e2e/repl-inflight-recovery-e2e.test.js:181:11)
+    at journey (E:/code/chainlesschain/.worktrees/repl-inflight-recovery-20261108/packages/cli/__tests__/e2e/repl-inflight-recovery-e2e.test.js:213:5)
+    at E:/code/chainlesschain/.worktrees/repl-inflight-recovery-20261108/packages/cli/__tests__/e2e/repl-inflight-recovery-e2e.test.js:355:21
+    at file:///E:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20",
+}
+
+ ❯ __tests__/e2e/repl-inflight-recovery-e2e.test.js:357:52
+    355|     const receipt = await journey();
+    356|     console.info("REPL_INFLIGHT_RECEIPT", JSON.stringify(receipt));
+    357|     expect(receipt.error, JSON.stringify(receipt)).toBeUndefined();
+       |                                                    ^
+    358|     expect(receipt.completed).toBe(true);
+    359|     expect(receipt.killRequested).toBe(true);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+

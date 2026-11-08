@@ -1,3 +1,4 @@
+import { createSessionModelUsageRecoveryProjection } from "./session-model-usage-recovery.js";
 import {
   MCP_TASK_DELIVERY_EVENT,
   projectMcpTaskDeliveryMessage,
@@ -306,6 +307,8 @@ export function projectVerifiedSessionHostSnapshot(sessionId, events) {
     verified: true,
   });
   const deferred = reduceDeferredQuestionEvents(safeEvents, { sessionId });
+  const modelUsage = createSessionModelUsageRecoveryProjection();
+  for (const event of safeEvents) modelUsage.accept(event);
   return Object.freeze({
     snapshot: projectSessionHostObservation({
       sessionId,
@@ -319,10 +322,12 @@ export function projectVerifiedSessionHostSnapshot(sessionId, events) {
     deferredAnswers: deferred.answers,
     deferredQuestionSequence: deferred.maxSequence,
     sessionBudgetRoot: sessionBudgetRootFromEvents(safeEvents),
+    modelUsageRecovery: modelUsage.finish(),
   });
 }
 
 function createStreamingSessionHostProjection(sessionId) {
+  const modelUsage = createSessionModelUsageRecoveryProjection();
   let title = "Untitled";
   let lastEventType = null;
   let sessionBudgetRoot = null;
@@ -344,6 +349,7 @@ function createStreamingSessionHostProjection(sessionId) {
         throw new TypeError("Verified session event must be plain JSON data");
       }
       structure.accept(safeEvent);
+      modelUsage.accept(safeEvent);
       if (safeEvent.type === "session_start") {
         if (safeEvent.data?.title) title = String(safeEvent.data.title);
         if (Object.hasOwn(safeEvent.data || {}, "sessionBudgetRoot")) {
@@ -389,6 +395,7 @@ function createStreamingSessionHostProjection(sessionId) {
         deferredAnswers: deferred.answers,
         deferredQuestionSequence: deferred.maxSequence,
         sessionBudgetRoot,
+        modelUsageRecovery: modelUsage.finish(),
       });
     },
   };

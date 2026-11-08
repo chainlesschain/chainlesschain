@@ -1,0 +1,59 @@
+{
+    "schema":  "chainlesschain.repl-inflight-serial-test/v1",
+    "launcherPid":  5252,
+    "startedAt":  "2026-11-08T06:19:40.8291334Z",
+    "stage":  "real-repl-red-retained",
+    "waitProcesses":  [
+                          {
+                              "pid":  34632,
+                              "exitCode":  0,
+                              "command":  "node  .tmp/memory-3116842b-validation/continue-validation-v3.mjs",
+                              "createdMs":  1794117612535,
+                              "exitMeaning":  "measurement terminated only; no pass inference",
+                              "status":  "original-handle-terminated",
+                              "handleHeld":  true,
+                              "handle":  3028
+                          }
+                      ],
+    "liveBenchmarks":  [
+
+                       ],
+    "sourceBefore":  [
+                         {
+                             "path":  "packages/cli/__tests__/e2e/repl-inflight-recovery-e2e.test.js",
+                             "sha256":  "27f4ee83404e4066457a8f941282ca1c8e164fdec02c995d51f6f7f924ae13bd",
+                             "bytes":  16055
+                         },
+                         {
+                             "path":  "packages/cli/__tests__/fixtures/repl-inflight-recovery-state.mjs",
+                             "sha256":  "21bc00e35adc55ea59ef8a0672e6d167ee874cd4491138dfc51ee0e6b251c995",
+                             "bytes":  2929
+                         }
+                     ],
+    "sourceAfter":  [
+                        {
+                            "path":  "packages/cli/__tests__/e2e/repl-inflight-recovery-e2e.test.js",
+                            "sha256":  "27f4ee83404e4066457a8f941282ca1c8e164fdec02c995d51f6f7f924ae13bd",
+                            "bytes":  16055
+                        },
+                        {
+                            "path":  "packages/cli/__tests__/fixtures/repl-inflight-recovery-state.mjs",
+                            "sha256":  "21bc00e35adc55ea59ef8a0672e6d167ee874cd4491138dfc51ee0e6b251c995",
+                            "bytes":  2929
+                        }
+                    ],
+    "sourceIdentityMatch":  true,
+    "smokeStarted":  true,
+    "smokeExitCode":  1,
+    "launcherExitCode":  1,
+    "paidProviderCallsRequested":  false,
+    "fullQualityAccepted":  false,
+    "performanceAccepted":  false,
+    "wholeGapClosed":  false,
+    "updatedAt":  "2026-11-08T06:27:43.0340697Z",
+    "terminalBoundary":  "emulated stdin.isTTY; not an OS PTY",
+    "smokeCommand":  "node E:/code/chainlesschain/node_modules/vitest/vitest.mjs run --config vitest.e2e.config.js __tests__/e2e/repl-inflight-recovery-e2e.test.js",
+    "smokePid":  6524,
+    "smokeHandle":  2832,
+    "finishedAt":  "2026-11-08T06:27:43.0336985Z"
+}

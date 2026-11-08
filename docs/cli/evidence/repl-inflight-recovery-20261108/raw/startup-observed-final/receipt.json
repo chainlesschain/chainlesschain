@@ -1,0 +1,14 @@
+{
+  "root": "C:\\Users\\admin\\AppData\\Local\\Temp\\cc-repl-inflight-DnzsM3",
+  "environmentSource": "same E2E environment(root)",
+  "cwd": "C:\\Users\\admin\\AppData\\Local\\Temp\\cc-repl-inflight-DnzsM3\\workspace",
+  "requests": [],
+  "spawnRequestedAt": "2026-11-08T07:04:36.186Z",
+  "promptObserved": true,
+  "pid": 21164,
+  "spawnObservedAt": "2026-11-08T07:04:36.216Z",
+  "promptAt": "2026-11-08T07:04:42.472Z",
+  "code": 0,
+  "signal": null,
+  "closedAt": "2026-11-08T07:04:42.615Z"
+}

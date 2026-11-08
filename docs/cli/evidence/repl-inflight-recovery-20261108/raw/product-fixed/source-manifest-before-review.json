@@ -1,0 +1,269 @@
+{
+  "schema": "chainlesschain.repl-inflight-recovery-evidence/v1",
+  "generatedAt": "2026-11-08T06:43:52.531Z",
+  "implementationBaseCommit": "6f9672380",
+  "sources": [
+    {
+      "path": "packages/cli/src/lib/session-model-usage-recovery.js",
+      "bytes": 3078,
+      "sha256": "7666fad593d4138c39b629177c64d094a81a7e4fdf6364181fa7b97749354eb2"
+    },
+    {
+      "path": "packages/cli/src/lib/session-host-snapshot.js",
+      "bytes": 14584,
+      "sha256": "db18a49aed28de75688e447b3529bdb910b89916128d65d83075735969514489"
+    },
+    {
+      "path": "packages/cli/src/repl/agent-repl.js",
+      "bytes": 394708,
+      "sha256": "ea1bcb33bc52d418fd8ca356739824f81af87bcbbfb30a76939ee6f87baa2f1b"
+    },
+    {
+      "path": "packages/cli/__tests__/e2e/repl-inflight-recovery-e2e.test.js",
+      "bytes": 16055,
+      "sha256": "27f4ee83404e4066457a8f941282ca1c8e164fdec02c995d51f6f7f924ae13bd"
+    },
+    {
+      "path": "packages/cli/__tests__/fixtures/repl-inflight-recovery-state.mjs",
+      "bytes": 3455,
+      "sha256": "fab15b2bf14adfed338b07deb8eb151edbf8da34f6320aef67d4cade463bf7c6"
+    },
+    {
+      "path": "packages/cli/test-node/session-model-usage-recovery.node-test.mjs",
+      "bytes": 2458,
+      "sha256": "41250feb9fb306db1d840e9b29c2d2d915d023b550a258febddbe8f43326b1b6"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "docs\\cli\\evidence\\repl-inflight-recovery-20261108\\raw\\dependency-fixed\\artifacts\\run-jUGBtT\\inspect-after-kill.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs\\cli\\evidence\\repl-inflight-recovery-20261108\\raw\\dependency-fixed\\artifacts\\run-jUGBtT\\inspect-after-kill.stdout.log",
+      "bytes": 1452,
+      "sha256": "c9f2d2264a5e75a920e0a392557dad41419b66e107a2328bc015cbf994b98555"
+    },
+    {
+      "path": "docs\\cli\\evidence\\repl-inflight-recovery-20261108\\raw\\dependency-fixed\\artifacts\\run-jUGBtT\\inspect-after-resume.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs\\cli\\evidence\\repl-inflight-recovery-20261108\\raw\\dependency-fixed\\artifacts\\run-jUGBtT\\inspect-after-resume.stdout.log",
+      "bytes": 2071,
+      "sha256": "8c270f489ee0bfecee47d29cc60cadc6c9cd9bfd2e4437ebffba58d996f5ff3b"
+    },
+    {
+      "path": "docs\\cli\\evidence\\repl-inflight-recovery-20261108\\raw\\dependency-fixed\\artifacts\\run-jUGBtT\\inspect-before-held.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs\\cli\\evidence\\repl-inflight-recovery-20261108\\raw\\dependency-fixed\\artifacts\\run-jUGBtT\\inspect-before-held.stdout.log",
+      "bytes": 1208,
+      "sha256": "c5aa01c58fdf33b8e291afc8753495dad6ad19221eedd27ef3bb07135777478b"
+    },
+    {
+      "path": "docs\\cli\\evidence\\repl-inflight-recovery-20261108\\raw\\dependency-fixed\\artifacts\\run-jUGBtT\\inspect-before-kill.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs\\cli\\evidence\\repl-inflight-recovery-20261108\\raw\\dependency-fixed\\artifacts\\run-jUGBtT\\inspect-before-kill.stdout.log",
+      "bytes": 1452,
+      "sha256": "c9f2d2264a5e75a920e0a392557dad41419b66e107a2328bc015cbf994b98555"
+    },
+    {
+      "path": "docs\\cli\\evidence\\repl-inflight-recovery-20261108\\raw\\dependency-fixed\\artifacts\\run-jUGBtT\\original.stderr.log",
+      "bytes": 623,
+      "sha256": "aa94739e762ddb96197a54d9e1813d1fa324e77a312f7f1eecf88f4521d31fc3"
+    },
+    {
+      "path": "docs\\cli\\evidence\\repl-inflight-recovery-20261108\\raw\\dependency-fixed\\artifacts\\run-jUGBtT\\original.stdout.log",
+      "bytes": 746,
+      "sha256": "c5ce417786798f0f7184183d8bc994d00f31c5de356a537cb543913b3e3119a5"
+    },
+    {
+      "path": "docs\\cli\\evidence\\repl-inflight-recovery-20261108\\raw\\dependency-fixed\\artifacts\\run-jUGBtT\\receipt.json",
+      "bytes": 13418,
+      "sha256": "8c9966341697e7e2a7ad55bb06624bc2dc40efa6c7b3c9e1d88838b535c4d085"
+    },
+    {
+      "path": "docs\\cli\\evidence\\repl-inflight-recovery-20261108\\raw\\dependency-fixed\\artifacts\\run-jUGBtT\\resumed.stderr.log",
+      "bytes": 275,
+      "sha256": "b155d5562e21b0e45ce760254415e449dcdba772da019d51673c70aa5421dcf5"
+    },
+    {
+      "path": "docs\\cli\\evidence\\repl-inflight-recovery-20261108\\raw\\dependency-fixed\\artifacts\\run-jUGBtT\\resumed.stdout.log",
+      "bytes": 1249,
+      "sha256": "c532fc0fd92dcd7887791d18f8c12de983f01e1fc501c1f0caca702f5a1ebd0d"
+    },
+    {
+      "path": "docs\\cli\\evidence\\repl-inflight-recovery-20261108\\raw\\dependency-fixed\\environment-receipt.json",
+      "bytes": 2637,
+      "sha256": "f9395ed9301c297be6ab572b1367b6cd0a09a2d7d0aef67019239a022eb91080"
+    },
+    {
+      "path": "docs\\cli\\evidence\\repl-inflight-recovery-20261108\\raw\\dependency-fixed\\exit.json",
+      "bytes": 64,
+      "sha256": "683cc6a200bcd7d968f6051703a9500fff9410673065cd9db4ed635310104dc2"
+    },
+    {
+      "path": "docs\\cli\\evidence\\repl-inflight-recovery-20261108\\raw\\dependency-fixed\\process.json",
+      "bytes": 122,
+      "sha256": "e4f27a820c341d748739a152fae5869c273c8a0108e1e171356f5a05df8a376d"
+    },
+    {
+      "path": "docs\\cli\\evidence\\repl-inflight-recovery-20261108\\raw\\dependency-fixed\\stderr.log",
+      "bytes": 921,
+      "sha256": "945d277fd08648caf279d0f5323db125b21553267114264423c40b142768aaf2"
+    },
+    {
+      "path": "docs\\cli\\evidence\\repl-inflight-recovery-20261108\\raw\\dependency-fixed\\stdout.log",
+      "bytes": 10255,
+      "sha256": "58f98f63f8746c26f0aac191846d0619debb8aaa3c5a852192e9460f58db90ff"
+    },
+    {
+      "path": "docs\\cli\\evidence\\repl-inflight-recovery-20261108\\raw\\first-red\\artifacts\\run-4sBVdj\\original.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs\\cli\\evidence\\repl-inflight-recovery-20261108\\raw\\first-red\\artifacts\\run-4sBVdj\\original.stdout.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs\\cli\\evidence\\repl-inflight-recovery-20261108\\raw\\first-red\\artifacts\\run-4sBVdj\\receipt.json",
+      "bytes": 1182,
+      "sha256": "b0ddcd0823822571211678dd83cf51841d6d67d4dcd63e0d5b8731edc84a0812"
+    },
+    {
+      "path": "docs\\cli\\evidence\\repl-inflight-recovery-20261108\\raw\\first-red\\exclusive.lock",
+      "bytes": 49,
+      "sha256": "0ba4b5e8f0d79b10d46b24bb198627594462bf2ac59357885fe3a12bbb682646"
+    },
+    {
+      "path": "docs\\cli\\evidence\\repl-inflight-recovery-20261108\\raw\\first-red\\launcher.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs\\cli\\evidence\\repl-inflight-recovery-20261108\\raw\\first-red\\launcher.stdout.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs\\cli\\evidence\\repl-inflight-recovery-20261108\\raw\\first-red\\repl.stderr.log",
+      "bytes": 2732,
+      "sha256": "5419250be2ac17d9f71854abf23a4182759d685172339767fd81e9708f3d8779"
+    },
+    {
+      "path": "docs\\cli\\evidence\\repl-inflight-recovery-20261108\\raw\\first-red\\repl.stdout.log",
+      "bytes": 1925,
+      "sha256": "ee41bda8a9b355ad4182f6e58c6b0ddb3750aad63925bde736dc9f501060eadc"
+    },
+    {
+      "path": "docs\\cli\\evidence\\repl-inflight-recovery-20261108\\raw\\first-red\\source-manifest.json",
+      "bytes": 417,
+      "sha256": "d4ecc978f2dc937308bf7027027f75cb91b7b92ec94bf6d5969b39f447968835"
+    },
+    {
+      "path": "docs\\cli\\evidence\\repl-inflight-recovery-20261108\\raw\\first-red\\state.json",
+      "bytes": 2883,
+      "sha256": "a299708422e1370fb7a89433eb5311d0dfd3b8da559e819c8c7aa60fe16a2f1c"
+    },
+    {
+      "path": "docs\\cli\\evidence\\repl-inflight-recovery-20261108\\raw\\product-fixed\\artifacts\\run-cdsjt6\\inspect-after-kill.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs\\cli\\evidence\\repl-inflight-recovery-20261108\\raw\\product-fixed\\artifacts\\run-cdsjt6\\inspect-after-kill.stdout.log",
+      "bytes": 1917,
+      "sha256": "64c77cc890907a4aea0efe70030519594095a07edbd3aa4c7c08df1f139790f4"
+    },
+    {
+      "path": "docs\\cli\\evidence\\repl-inflight-recovery-20261108\\raw\\product-fixed\\artifacts\\run-cdsjt6\\inspect-after-resume.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs\\cli\\evidence\\repl-inflight-recovery-20261108\\raw\\product-fixed\\artifacts\\run-cdsjt6\\inspect-after-resume.stdout.log",
+      "bytes": 2536,
+      "sha256": "a6d56d4eafe66224784571d15ebcb7b69e350861fcd1e84ffca9e6f28b7e81c7"
+    },
+    {
+      "path": "docs\\cli\\evidence\\repl-inflight-recovery-20261108\\raw\\product-fixed\\artifacts\\run-cdsjt6\\inspect-before-held.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs\\cli\\evidence\\repl-inflight-recovery-20261108\\raw\\product-fixed\\artifacts\\run-cdsjt6\\inspect-before-held.stdout.log",
+      "bytes": 1588,
+      "sha256": "1e2a5023fb4970b950ea9e7e85d190df371fdea1c9390b8bf5850220c24bcf2b"
+    },
+    {
+      "path": "docs\\cli\\evidence\\repl-inflight-recovery-20261108\\raw\\product-fixed\\artifacts\\run-cdsjt6\\inspect-before-kill.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs\\cli\\evidence\\repl-inflight-recovery-20261108\\raw\\product-fixed\\artifacts\\run-cdsjt6\\inspect-before-kill.stdout.log",
+      "bytes": 1917,
+      "sha256": "64c77cc890907a4aea0efe70030519594095a07edbd3aa4c7c08df1f139790f4"
+    },
+    {
+      "path": "docs\\cli\\evidence\\repl-inflight-recovery-20261108\\raw\\product-fixed\\artifacts\\run-cdsjt6\\original.stderr.log",
+      "bytes": 623,
+      "sha256": "f3b344a8344258cf0e2c70b5fa98e496fe51b5d05ca5ac589a20e19f4ce271ef"
+    },
+    {
+      "path": "docs\\cli\\evidence\\repl-inflight-recovery-20261108\\raw\\product-fixed\\artifacts\\run-cdsjt6\\original.stdout.log",
+      "bytes": 746,
+      "sha256": "5c933c9e90d07e65db913e02dc284c5328da982db15db8cde3d2928803606a79"
+    },
+    {
+      "path": "docs\\cli\\evidence\\repl-inflight-recovery-20261108\\raw\\product-fixed\\artifacts\\run-cdsjt6\\receipt.json",
+      "bytes": 16716,
+      "sha256": "fc77c273bb2aba1d6c28f196166cb6e99aec42e83fc6567d52ebf0ef6d7c4524"
+    },
+    {
+      "path": "docs\\cli\\evidence\\repl-inflight-recovery-20261108\\raw\\product-fixed\\artifacts\\run-cdsjt6\\resumed.stderr.log",
+      "bytes": 599,
+      "sha256": "11c15ec1088c581b4c90bb6e37e68801a2e10aecacf1acb4058f826830f3c061"
+    },
+    {
+      "path": "docs\\cli\\evidence\\repl-inflight-recovery-20261108\\raw\\product-fixed\\artifacts\\run-cdsjt6\\resumed.stdout.log",
+      "bytes": 1249,
+      "sha256": "fce6564c4a5aa19c3598c1c854a037a9fd091cf9c5a23b643d4a524709f7f2be"
+    },
+    {
+      "path": "docs\\cli\\evidence\\repl-inflight-recovery-20261108\\raw\\product-fixed\\exit.json",
+      "bytes": 64,
+      "sha256": "4fb772a0daa1b865cbf602660df8d1ce56113c98f9e396733c0ed65abe080cf9"
+    },
+    {
+      "path": "docs\\cli\\evidence\\repl-inflight-recovery-20261108\\raw\\product-fixed\\process.json",
+      "bytes": 52,
+      "sha256": "1a25ec06d4e0ede2db365243eb2251023bfb2f1ec76c02d281e55acfad288787"
+    },
+    {
+      "path": "docs\\cli\\evidence\\repl-inflight-recovery-20261108\\raw\\product-fixed\\stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs\\cli\\evidence\\repl-inflight-recovery-20261108\\raw\\product-fixed\\stdout.log",
+      "bytes": 263,
+      "sha256": "26fd228bfc5f69ea5b2d5745ebaa0cf2b4cfafc291b056a315853b81b0143513"
+    }
+  ],
+  "actualReplJourneyPassed": true,
+  "terminal": "emulated stdin.isTTY, not OS PTY",
+  "scopedObservabilityAuthorityGranted": false,
+  "preDispatchPromptDurabilityComplete": false,
+  "wholeGapClosed": false
+}
