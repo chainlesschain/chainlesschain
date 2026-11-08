@@ -19,6 +19,96 @@ import {
 afterEach(() => vi.unstubAllGlobals());
 const sha = (value) => createHash("sha256").update(value).digest("hex");
 
+describe("model input diagnostics Stop while an observer is pending", () => {
+  for (const boundary of [
+    "logical-input",
+    "request-body",
+    "formal-scope",
+    "late-rejection",
+  ]) {
+    it(`settles ${boundary} cancellation before observer release without late dispatch`, async () => {
+      let enter, release, rejectObserver, settled;
+      const entered = new Promise((resolve) => {
+        enter = resolve;
+      });
+      const held = new Promise((resolve, reject) => {
+        release = resolve;
+        rejectObserver = reject;
+      });
+      const controller = new AbortController();
+      const reason = new Error("Synthetic diagnostic Stop");
+      const fetch = vi.fn(async () => new Response("{}"));
+      const observe = (promise) =>
+        promise.then(
+          (value) => (settled = { value }),
+          (error) => (settled = { error }),
+        );
+      let pending;
+      const run = withModelInputDiagnostics(
+        {
+          ...(boundary === "logical-input"
+            ? { signal: controller.signal }
+            : {}),
+          onModelInputDiagnostic: async () => {
+            enter();
+            await held;
+          },
+        },
+        async () => {
+          if (boundary === "logical-input") {
+            pending = observe(
+              recordLogicalModelInput({
+                messages: [{ role: "user", content: "synthetic" }],
+                tools: [],
+              }),
+            );
+          } else if (boundary !== "formal-scope") {
+            pending = observe(
+              providerFetch(
+                "http://unused.invalid",
+                { body: "{}", signal: controller.signal },
+                fetch,
+              ),
+            );
+          } else {
+            await withFormalBudgetProviderScope(
+              {
+                runId: "pending-diagnostic",
+                transport: { createFetch: () => fetch },
+              },
+              async () => {
+                pending = observe(
+                  providerFetch("http://unused.invalid", { body: "{}" }),
+                );
+                await entered;
+              },
+            );
+          }
+          await entered;
+          if (boundary !== "formal-scope") controller.abort(reason);
+          await new Promise((resolve) => setImmediate(resolve));
+          return settled;
+        },
+      );
+      try {
+        const beforeRelease = await run;
+        expect(beforeRelease?.error).toBeDefined();
+        if (boundary !== "formal-scope")
+          expect(beforeRelease.error).toBe(reason);
+        else expect(beforeRelease.error.code).toBe("CC_BUDGET_SCOPE_CLOSED");
+        expect(fetch).not.toHaveBeenCalled();
+      } finally {
+        if (boundary === "late-rejection")
+          rejectObserver(new Error("Late synthetic observer failure"));
+        else release();
+        await pending;
+      }
+      await new Promise((resolve) => setImmediate(resolve));
+      expect(fetch).not.toHaveBeenCalled();
+    });
+  }
+});
+
 describe("model input diagnostic correlation", () => {
   it("keeps concurrent request attempts isolated and emits no original content or paths", async () => {
     const groups = [[], []];
@@ -277,7 +367,6 @@ it("links built-in agent input diagnostics to the persisted usage boundary and p
 
 it("keeps body and cancellation bound to the captured request while the observer awaits", async () => {
   const controller = new AbortController();
-  controller.abort();
   const init = { body: "original", signal: controller.signal };
   let captured;
   await withModelInputDiagnostics(
@@ -295,6 +384,9 @@ it("keeps body and cancellation bound to the captured request while the observer
           transport: {
             createFetch: () => async (_, snapshot) => {
               captured = snapshot;
+              expect(snapshot.signal.aborted).toBe(false);
+              controller.abort();
+              expect(snapshot.signal.aborted).toBe(true);
               return new Response("{}");
             },
           },
@@ -304,6 +396,36 @@ it("keeps body and cancellation bound to the captured request while the observer
   );
   expect(captured.body).toBe("original");
   expect(captured.signal.aborted).toBe(true);
+});
+
+it("rejects an already stopped request before its diagnostic observer or transport", async () => {
+  const controller = new AbortController();
+  const reason = new Error("Already stopped synthetic request");
+  controller.abort(reason);
+  const observer = vi.fn();
+  const fetch = vi.fn();
+  await expect(
+    withModelInputDiagnostics({ onModelInputDiagnostic: observer }, () =>
+      providerFetch(
+        "http://unused.invalid",
+        { body: "{}", signal: controller.signal },
+        fetch,
+      ),
+    ),
+  ).rejects.toBe(reason);
+  expect(observer).not.toHaveBeenCalled();
+  expect(fetch).not.toHaveBeenCalled();
+});
+
+it("keeps the ordinary injected transport path when diagnostics are disabled", async () => {
+  const controller = new AbortController();
+  controller.abort();
+  const init = { body: "{}", signal: controller.signal };
+  const fetch = vi.fn(async () => new Response("{}"));
+  await withModelInputDiagnostics({}, () =>
+    providerFetch("http://unused.invalid", init, fetch),
+  );
+  expect(fetch).toHaveBeenCalledExactlyOnceWith("http://unused.invalid", init);
 });
 
 it("does not attribute a nested call that disabled diagnostics to its parent's request", async () => {

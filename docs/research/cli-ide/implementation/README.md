@@ -2,6 +2,8 @@
 
 [返回 CLI / IDE 索引](../README.md)
 
+- [交互 Memory 召回开关与诊断等待取消（2026-11-08）](./cli-ide-recall-policy-progress-2026-11-08.md)
+
 - [canonical Memory 派发前撤权与授权接线修复（2026-11-08）](./cli-ide-memory-admission-progress-2026-11-08.md)
 
 - [Memory 组合冷查询与跨平台测量续作（2026-11-08）](./cli-ide-memory-compound-progress-2026-11-08.md)

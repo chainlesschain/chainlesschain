@@ -149,12 +149,17 @@ export async function providerFetch(input, init, fetchImpl = globalThis.fetch) {
     "Provider budget scope closed",
     "CC_BUDGET_SCOPE_CLOSED",
   );
-  return withModelInputAttempt(init, true, async (snapshot) => {
-    const signal = snapshot?.signal
-      ? AbortSignal.any([scope.signal, snapshot.signal])
-      : scope.signal;
-    if (hasProviderRequestAdmission())
-      await assertProviderRequestAdmission(undefined, { signal });
-    return scope.fetch(input, { ...snapshot, signal });
-  });
+  return withModelInputAttempt(
+    init,
+    true,
+    async (snapshot) => {
+      const signal = snapshot?.signal
+        ? AbortSignal.any([scope.signal, snapshot.signal])
+        : scope.signal;
+      if (hasProviderRequestAdmission())
+        await assertProviderRequestAdmission(undefined, { signal });
+      return scope.fetch(input, { ...snapshot, signal });
+    },
+    { signal: scope.signal },
+  );
 }

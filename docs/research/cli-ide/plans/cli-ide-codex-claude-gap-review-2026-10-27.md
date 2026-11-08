@@ -76,11 +76,17 @@ node --test packages/cli/test-node/memory-lazy-postings.node-test.mjs desktop-ap
 
 - `727c64962`：55项Node合同、600冷/热、600重建/损坏、600取消及300轮混合/1800次变更全部通过对应正确性核对；100K冷/热p95为400.169/43.743ms，混合读p95为1880.978ms。17个关键运行时文件逐字节绑定，1946项源码/锁文件Git核对保留2个PowerShell行尾差异。不是合并后源码的整套SLO。
 - `698b87d79`：900个五条件首次冷查询/直接续页全部对照独立全量authority，三档分页、条件及最终审计通过；100K三个场景p95为484.842/516.613/499.743ms。共享开发工作站、OS缓存未清空、静态依赖扫描非完整闭包，`performanceAccepted:false`。
-- [PR #553](https://github.com/chainlesschain/chainlesschain/pull/553)为草稿；完整100次三系统矩阵`42435202150`以及CLI CI/Strict/原生GUI仍按实际云端终态核对，排队不算通过。
+- [PR #553](https://github.com/chainlesschain/chainlesschain/pull/553)后来已合并；派发修复PR #556由[PR #558](https://github.com/chainlesschain/chainlesschain/pull/558)整合到`main@7c5d55925`后关闭。完整100次三系统矩阵`42435202150`以及CLI CI/Strict/原生GUI仍按准确提交和实际云端终态核对，排队或合并均不算通过。
 
 另在canonical已启用范围内真实复现计划后撤权：16项中14项把已删/已替换旧正文送入请求，2项对照通过。新派发约束在实际请求启动前持有短revision锁，复核继承约束、有效期、scope关闭和取消，HTTP响应期间不持锁；显式空scope拒绝，子代理`memory:false`不能被loop override恢复。保留两处微任务关闭竞态、派发后清理不重放、禁用路径兼容和预算锁等待取消的先红后绿证据。
 
 本轮最终相关回归为Node22的19文件 **402/402**及Node24/ABI137的真实SQLite预算组合 **106/106**，各无跳过；新增33项包含在402中，3项Memory预算交互包含在106中，不另行累加。锁定Web Panel生产构建、89个候选静态出口审计通过，仍保持`paidReady:false`、`runtimeCoverageVerified:false`。见[实现与剩余边界](../implementation/cli-ide-memory-admission-progress-2026-11-08.md)、[失败/成功及源码快照](../../cli/evidence/memory-admission-2026-11-08/README.md)。本轮新增派发代码不继承旧测量SHA、云端门禁或发行身份；真实语义候选质量、REPL旧注入治理、完整跨入口/安装及生产准入仍未完成。
+
+### 交互召回开关与诊断Stop续作（2026-11-08）
+
+在`main@7c5d55925`真实复现`--no-recall-memory`未约束canonical规划：初次、外部替换后及恢复后的3次请求仍带Memory。修复传递本次召回选择到每请求规划、context engine和child contract，并覆盖直接judge/压缩；恢复时显式重复flag，不宣称偏好持久化。默认召回对照的旧→新→恢复后新正确，没有把此前legacy正文绕过的静态怀疑当作实际缺陷。另以3条先红回归修复诊断observer等待期间取消，保留快照、迟到结果观察、禁用路径与unknown预算责任。
+
+本批23文件599/599、真实SQLite预算108/108和真实进程交互/恢复2/2通过，绿色请求摘要与两次verified JSONL核对另存原件；原WSL环境失败及旧已取消假fetch测试的合同修正均保留。[实施记录与完整边界](../implementation/cli-ide-recall-policy-progress-2026-11-08.md)、[源码与原字节归档](../../cli/evidence/recall-policy-2026-11-08/README.md)。输入终端为模拟，observer取消不强制终止其自身；完整OS/真人交互、语义质量、当前源码SLO及准确提交三系统发行门禁仍未完成。主线IDE CI `42441006550`已确认公开能力清单漂移失败，其余门禁待核对，不继承旧提交成绩。
 
 ## 历史增量状态（2026-11-03）
 

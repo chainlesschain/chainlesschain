@@ -1,5 +1,6 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { createHash, randomUUID } from "node:crypto";
+import { raceWithAbort, throwIfAborted } from "./abort-utils.js";
 
 const storage = new AsyncLocalStorage();
 export const MODEL_INPUT_PLAN = Symbol("modelInputPlan");
@@ -66,18 +67,32 @@ function sourceDiagnostics(plan) {
   };
 }
 
-async function emit(fields) {
+function combineSignals(...values) {
+  const signals = [...new Set(values.filter(Boolean))];
+  return signals.length > 1 ? AbortSignal.any(signals) : signals[0];
+}
+
+async function emit(fields, signal) {
   const state = storage.getStore();
   if (!state) return;
-  await state.observer(
-    Object.freeze({
-      schema: "chainlesschain.model-input-diagnostic/v1",
-      requestId: state.requestId,
-      usageCallId: state.usageCallId,
-      billingVerified: false,
-      ...fields,
-    }),
-  );
+  signal = combineSignals(state.signal, signal);
+  throwIfAborted(signal);
+  const event = Object.freeze({
+    schema: "chainlesschain.model-input-diagnostic/v1",
+    requestId: state.requestId,
+    usageCallId: state.usageCallId,
+    billingVerified: false,
+    ...fields,
+  });
+  const observed = Promise.resolve().then(() => {
+    throwIfAborted(signal);
+    return state.observer(event);
+  });
+  // The observer may ignore cancellation and settle later. Keep its result
+  // observed while Stop releases the caller; it cannot resume dispatch.
+  observed.catch(() => {});
+  await raceWithAbort(observed, signal);
+  throwIfAborted(signal);
 }
 
 export function withModelInputDiagnostics(options, operation) {
@@ -91,6 +106,7 @@ export function withModelInputDiagnostics(options, operation) {
       requestId: randomUUID(),
       usageCallId: options[MODEL_INPUT_USAGE_CALL] || null,
       attempts: 0,
+      signal: options.signal || null,
     },
     operation,
   );
@@ -148,29 +164,42 @@ export async function recordLogicalModelInput({
 
 // One async scope per physical fetch keeps concurrent calls and retry attempts
 // separate. A governed transport can reserialize and records its own final body.
-export function withModelInputAttempt(init, governed, operation) {
+export function withModelInputAttempt(
+  init,
+  governed,
+  operation,
+  controls = {},
+) {
   const state = storage.getStore();
   if (!state) return operation(init);
   const snapshot = { ...init };
-  return storage.run({ ...state, attempt: ++state.attempts }, async () => {
-    await recordModelInputBody(
-      snapshot.body,
-      governed ? "adapter-body" : "fetch-body",
-    );
-    return operation(snapshot);
-  });
+  const signal = combineSignals(state.signal, snapshot.signal, controls.signal);
+  return storage.run(
+    { ...state, signal, attempt: ++state.attempts },
+    async () => {
+      await recordModelInputBody(
+        snapshot.body,
+        governed ? "adapter-body" : "fetch-body",
+      );
+      throwIfAborted(signal);
+      return operation(snapshot);
+    },
+  );
 }
 
-export async function recordModelInputBody(body, stage) {
+export async function recordModelInputBody(body, stage, controls = {}) {
   if (!storage.getStore()) return;
-  await emit({
-    phase: "body-prepared",
-    attempt: storage.getStore().attempt ?? null,
-    stage,
-    bodyCovered: typeof body === "string",
-    bodyDigest: typeof body === "string" ? hash(body) : null,
-    bytes: typeof body === "string" ? Buffer.byteLength(body) : null,
-    // This is a prepared request, not a provider acceptance or usage receipt.
-    providerAcceptanceVerified: false,
-  });
+  await emit(
+    {
+      phase: "body-prepared",
+      attempt: storage.getStore().attempt ?? null,
+      stage,
+      bodyCovered: typeof body === "string",
+      bodyDigest: typeof body === "string" ? hash(body) : null,
+      bytes: typeof body === "string" ? Buffer.byteLength(body) : null,
+      // This is a prepared request, not a provider acceptance or usage receipt.
+      providerAcceptanceVerified: false,
+    },
+    controls.signal,
+  );
 }

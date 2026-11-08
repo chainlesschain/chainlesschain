@@ -1,10 +1,7 @@
 {
   "schema": "chainlesschain.budget-egress-source-review/v1",
   "reviewedAt": "2026-11-08",
-  "scope": [
-    "packages/cli/src",
-    "packages/cli/scripts"
-  ],
+  "scope": ["packages/cli/src", "packages/cli/scripts"],
   "basis": "Implementation source inspection; byte-bound classifications only. Not an independent financial/OS admission decision.",
   "entries": [
     {
@@ -369,15 +366,15 @@
     },
     {
       "path": "packages/cli/src/lib/formal-budget-provider-scope.js",
-      "digest": "sha256:9e6eb1bac3164c09c3f67a5b1989fa89f363a88c747bd779b9df9c7fe25d5667",
+      "digest": "sha256:cab55bc6c6b65b484bd0d43a1370859b768a2bd4e5ca4213487d9ff0d0d1a01d",
       "category": "BUDGET_BOUNDARY",
-      "rationale": "Async-local routing boundary; ordinary fallback and scope.fetch calls are retained as candidates. Canonical Agent tools, direct IPC descendant controls, external service and direct web/browser tools reject under formal scope before argument/context inspection. Model-input diagnostics .144 review: ordinary and governed requests wrap an immutable init/body diagnostic snapshot and still dispatch through the same fallback fetch or scoped fetch. Closed-scope rejection and combined cancellation remain. Diagnostics add no outbound route or financial authority. Memory admission .144 review: inherited revision, TTL, sink and scope constraints are checked before physical dispatch under ordered authority locks. Request startup and lock cleanup uncertainty prohibit replay; locks do not cover HTTP response waiting. No additional transport or paid/native admission is established."
+      "rationale": "Async-local routing boundary; ordinary fallback and scope.fetch calls are retained as candidates. Canonical Agent tools, direct IPC descendant controls, external service and direct web/browser tools reject under formal scope before argument/context inspection. Model-input diagnostics .144 review: ordinary and governed requests wrap an immutable init/body diagnostic snapshot and still dispatch through the same fallback fetch or scoped fetch. Closed-scope rejection and combined cancellation remain. Diagnostics add no outbound route or financial authority. Memory admission .144 review: inherited revision, TTL, sink and scope constraints are checked before physical dispatch under ordered authority locks. Request startup and lock cleanup uncertainty prohibit replay; locks do not cover HTTP response waiting. No additional transport or paid/native admission is established. 2026-11-08 diagnostic Stop review: pass the host budget lifetime signal to the existing diagnostic-attempt scope before observer waits. Preserve adapter request body/signal snapshots, ordinary disabled-diagnostic routing and final Memory validation. No new endpoint or replay authority is introduced."
     },
     {
       "path": "packages/cli/src/lib/formal-budget-transport.js",
-      "digest": "sha256:a03e494792890bb16659f6cb92c8b30ad08005716f06170efe8ab65220490b5e",
+      "digest": "sha256:f5cea8f86ae332482d8f48ce4eb6df0d4f9ee417313e7737db640efd4728393a",
       "category": "BUDGET_BOUNDARY",
-      "rationale": "Host-owned physical dispatch after durable reservation; source review does not attest real account prices or OS isolation. Model-input diagnostics .144 review: observe the prepared string-body digest before durable dispatch admission, then recheck cancellation. There remains no await between markDispatched and physical fetch. Diagnostic preparation does not prove provider acceptance, billed usage or native isolation. Memory admission .144 review: inherited revision, TTL, sink and scope constraints are checked before physical dispatch under ordered authority locks. Request startup and lock cleanup uncertainty prohibit replay; locks do not cover HTTP response waiting. No additional transport or paid/native admission is established."
+      "rationale": "Host-owned physical dispatch after durable reservation; source review does not attest real account prices or OS isolation. Model-input diagnostics .144 review: observe the prepared string-body digest before durable dispatch admission, then recheck cancellation. There remains no await between markDispatched and physical fetch. Diagnostic preparation does not prove provider acceptance, billed usage or native isolation. Memory admission .144 review: inherited revision, TTL, sink and scope constraints are checked before physical dispatch under ordered authority locks. Request startup and lock cleanup uncertainty prohibit replay; locks do not cover HTTP response waiting. No additional transport or paid/native admission is established. 2026-11-08 diagnostic Stop review: final-body observers inherit the existing combined timeout/cancellation signal before durable dispatch. Cancellation releases only the waiting caller, observes late observer outcomes, retains conservative unknown reservation and prevents late physical dispatch. No new credential, financial or OS admission is granted."
     },
     {
       "path": "packages/cli/src/lib/gateway-client-resilience.js",
