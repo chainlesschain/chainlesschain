@@ -269,3 +269,5 @@ docs/cli/evidence/repl-input-durability-post-wire-20261108/raw/** -text !eol -wh
 docs/research/cli/evidence/real-volcengine-live-20261108/agent-read-file/receipt.json -text !eol -whitespace
 # Preserve the bounded real MCP provider receipt byte-for-byte.
 docs/cli/evidence/mcp-context-real-volcengine-20261108/receipt.json -text !eol -whitespace
+# Preserve the bounded real MCP Recall@5 receipt byte-for-byte.
+docs/cli/evidence/mcp-context-real-volcengine-recall5-20261108/receipt.json -text !eol -whitespace
