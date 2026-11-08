@@ -13,6 +13,8 @@ on:
       - "desktop-app-vue/package.json"
       - "desktop-app-vue/scripts/install-electron.cjs"
       - "desktop-app-vue/scripts/__tests__/install-electron.test.mjs"
+      - "desktop-app-vue/scripts/__tests__/permanent-memory-startup.test.mjs"
+      - "desktop-app-vue/src/main/llm/permanent-memory-manager.js"
       - "packages/core-db/**"
       - "packages/session-core/**"
       - "packages/personal-data-hub/**"
@@ -69,6 +71,8 @@ on:
       - "desktop-app-vue/package.json"
       - "desktop-app-vue/scripts/install-electron.cjs"
       - "desktop-app-vue/scripts/__tests__/install-electron.test.mjs"
+      - "desktop-app-vue/scripts/__tests__/permanent-memory-startup.test.mjs"
+      - "desktop-app-vue/src/main/llm/permanent-memory-manager.js"
       - "packages/core-db/**"
       - "packages/session-core/**"
       - "packages/personal-data-hub/**"
@@ -193,7 +197,10 @@ jobs:
         with:
           python-version: "3.12"
       - name: Verify portable desktop lifecycle before installing dependencies
-        run: node --test desktop-app-vue/scripts/__tests__/install-electron.test.mjs
+        run: >-
+          node --test
+          desktop-app-vue/scripts/__tests__/install-electron.test.mjs
+          desktop-app-vue/scripts/__tests__/permanent-memory-startup.test.mjs
       - uses: ./.github/actions/setup-node-deps
       - name: Verify native campaign dispatch and acceptance preflight without provider execution
         run: >-
