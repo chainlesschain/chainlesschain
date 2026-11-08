@@ -191,4 +191,6 @@ Claude Code 的 MCP Tasks 当前处于公开测试阶段，可在服务端受理
 
 第 4 项后续实现提交 525f088b5a7f20e4479cb03813cf49080f14489f，加入原子任务交付及真实用户显式续跑：24 文件 664 通过、4 个平台条件跳过，4 项真实签名 / HTTP 协议组合及 Windows 交付后 SIGKILL 去重证据见[交付实施记录](../implementation/cli-ide-mcp-task-delivery-progress-2026-11-08.md)。第 9 项同步抽出共享纯投影；自动模型任务路径与其余原生旅程仍未完成。
 
+本次在当前主分支复核 MCP Tasks 相关 6 个定向单测文件，共 114 项全部通过（需要允许本机回环端口和 Windows ACL 校验的测试环境）。在受限沙箱直接运行时，失败原因分别为 `EACCES 127.0.0.1` 和 `owner-only native ACL verification failed`，未作为代码回归计入；该结果只证明当前实现的专项回归可复现通过，不能替代真实第三方任务服务、模型后台跟踪、双 IDE / 桌面组合旅程或多平台验收。
+
 第 2 项跨阶段来源映射实现提交 e94c1f49bb3dafc83dcb4cabd4fff48c98e776a4，见[后续实施记录](../implementation/cli-ide-model-input-mapping-progress-2026-11-08.md)：规划私有请求摘要、签名投影位置、Chat / Responses / Anthropic / Ollama 转换位置共同绑定实际准备的 HTTP 正文。17 文件最终回归 182 项通过；完整 production composition 文件在独立单实例依赖布局下 288 项通过；基线与首次失败分别保留。没有将部分来源截断报为完整覆盖，双 IDE 新明细及真实独立任务仍待完成。
