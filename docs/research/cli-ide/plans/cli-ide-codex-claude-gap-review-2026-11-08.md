@@ -185,4 +185,4 @@ Claude Code 的 MCP Tasks 当前处于公开测试阶段，可在服务端受理
 
 第 4 项实验性协议入口及 236 项相关测试见[MCP Tasks 实施记录](../implementation/cli-ide-mcp-tasks-progress-2026-11-08.md)，代码提交 677b9c35e968426fefdcf3697cac5769428f4229。此前第 4 节静态检索结论属于历史基线；本批已新增标准方法，但 durable 任务账本及宿主完整旅程仍未完成。
 
-第 4 项后续已接入可用的 durable CLI：原调用账本与任务日志联合投影、OS Secret Store、身份校验、取消核对及离线结果缓存。Windows DPAPI 子进程崩溃恢复和 303 项相关测试见[持久化实施记录](../implementation/cli-ide-mcp-task-durable-progress-2026-11-08.md)。完整模型继续与原生双 IDE / 桌面任务旅程仍未完成。
+第 4 项后续已接入可用的 durable CLI：原调用账本与任务日志联合投影、OS Secret Store、身份校验、取消核对及离线结果缓存。Windows DPAPI 子进程崩溃恢复和 303 项相关测试见[持久化实施记录](../implementation/cli-ide-mcp-task-durable-progress-2026-11-08.md)。本批代码提交为 2cde23e9f7e950992692b52192cd38b7be5cd6f8；完整模型继续与原生双 IDE / 桌面任务旅程仍未完成。

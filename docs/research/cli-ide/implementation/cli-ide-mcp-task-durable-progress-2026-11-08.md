@@ -2,6 +2,8 @@
 
 本批继续推进[差距复核第 4 项](../plans/cli-ide-codex-claude-gap-review-2026-11-08.md)。分支 feature/mcp-task-durable-runtime-20261108；实现基线 520508fb3ad6847955a62a8e24153fc019902e2d。[用户指南](../../../cli/mcp-tasks.md)说明可用命令及恢复边界。
 
+代码提交：2cde23e9f7e950992692b52192cd38b7be5cd6f8。提交钩子通过并已推送 GitHub；未合并或发布，准确提交的跨平台 Actions 尚未完成验证。
+
 **本批行为**
 
 - 新增 mcp tasks create / list / poll / result / cancel，要求明确的 canonical 会话；恢复操作使用原记录的服务器名，不能由参数重定向到其他服务器。
