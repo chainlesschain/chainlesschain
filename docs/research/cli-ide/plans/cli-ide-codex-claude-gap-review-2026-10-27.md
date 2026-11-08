@@ -102,6 +102,8 @@ Windows独立profile首轮已退出1：真实VSIX安装与激活成功，多窗�
 
 **Codex 冷扫描零推理回放（2026-11-08）。** 固定准确源码 b60efe3a7c79d91c7994bddf18631e9b9f47adef，使用官方 registry 完整性、lock、native SHA 和版本回执，分别运行 0.160.0 与 0.164.0；四个独立冷 home 每个版本均无 provider 请求、无 turn/start。两版本都复现上游发现缺口：recency_at 升序仅1/2，降序2/2；created_at 升降序均1/2。原始 rollout 字节、首次页、严格错误和进程关闭均保留在 [Codex回放归档](../implementation/evidence/codex-archived-replay-20261108/)。这确认4.6的上游分页/首次发现缺口，但不代表生产准入或4.6完成；当前没有修改原生分页语义或扩大allowlist。
 
+**accepted/settled 输入生命周期合同（2026-11-08）。** 已在准确main提交中加入共享纯合同及12项测试：accepted事件只供本地待核对投影，settled单事件才投影完整user/assistant对；重复、孤立、摘要/turn错误、空assistant和pending容量均有拒绝或边界测试，usage/HOLD/预算事件不会清除pending。该合同尚未接入REPL/IDE生产派发和所有历史读路径，因而不能代替预派发输入持久化验收；后续接线必须保持旧prompt不自动重放、显式重新提交新ID以及billing未知状态。
+
 **Stop独立审计（2026-11-08 06:02 UTC）。** 固定3116842的Stop进程退出0，三档×两模式各100次，共600样本全部达到原500ms投递/确认上限：580次实际取消，20次在10ms时限前完成；均无锁残留、无晚完成，authority未变。根逐样本核对并与隔离树11份源码摘要匹配；100K validate-disk投递/确认p95为0.693/1.444ms。原始报告及审计追加到[本批归档](../../cli/evidence/memory-3116842b-2026-11-08/README.md)。混合阶段仍在原句柄74479运行，尚未验收。云端旧3116842运行42451059279的12作业本次回读为cancelled；当前文档提交6f9672380的Memory42452517512及CLI CI42452517514仍queued，不作为通过证明。
 
 **混合三档完整批次（2026-11-08 06:09 UTC）。** 原进程退出0、报告complete=true；1K/10K/100K各100轮，四读、两更新、两删除/清除在IPC barrier后实际重叠。根独立审计300轮/2400 worker结果，核对13份源码摘要、逐轮6个连续提交版本、读版本范围、同轮删除可见性及worker close。基准另执行全量records/events最终参考断言；归档保留压缩原始报告及独立审计。100K读/锁等待p95为1816.706/1333ms；此为本机混合工作负载，不证明跨平台或完整Memory SLO。句柄74479继续执行组合查询，尚未完成。
