@@ -65,7 +65,8 @@
         "cli/evidence/codex-current-head-native-0167-20261109",
         "cli/evidence/codex-app-server-137-20261109",
         "cli/evidence/codex-ci-0167-cancelled-20261109",
-        "cli/evidence/ci-tests-42516074674-20261109"
+        "cli/evidence/ci-tests-42516074674-20261109",
+        "cli/evidence/codex-app-server-static-rerun-current-20261109"
       ],
       "remaining": [
         "strict cold scan repair",
