@@ -78,14 +78,16 @@ jobs:
         run: >-
           npm exec --offline -- vitest run
           --config vitest.business-actions.config.mjs
-          --reporter=json --outputFile=test-results/dmm-host.json
+          --reporter=default --reporter=github-actions --reporter=json
+          --outputFile.json=test-results/dmm-host.json
 
       - name: Verify renderer controls
         working-directory: desktop-app-vue
         run: >-
           npm exec --offline -- vitest run
           --config vitest.business-actions-renderer.config.mjs
-          --reporter=json --outputFile=test-results/dmm-renderer.json
+          --reporter=default --reporter=github-actions --reporter=json
+          --outputFile.json=test-results/dmm-renderer.json
 
       # Login authority generations also bind organization actions/approvals.
       # Exercise the full organization configuration after authentication fixes.
@@ -94,14 +96,16 @@ jobs:
         run: >-
           npm exec --offline -- vitest run
           --config vitest.organization-authority.config.mjs
-          --reporter=json --outputFile=test-results/dmm-organization-host.json
+          --reporter=default --reporter=github-actions --reporter=json
+          --outputFile.json=test-results/dmm-organization-host.json
 
       - name: Verify organization renderer and default-off controls
         working-directory: desktop-app-vue
         run: >-
           npm exec --offline -- vitest run
           --config vitest.organization-renderer.config.mjs
-          --reporter=json --outputFile=test-results/dmm-organization-renderer.json
+          --reporter=default --reporter=github-actions --reporter=json
+          --outputFile.json=test-results/dmm-organization-renderer.json
 
       - name: Upload exact-source diagnostic reports
         if: always()

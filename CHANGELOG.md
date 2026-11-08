@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Preserve an explicitly configured npm cache during isolated Web panel builds, and make the IDE loading/timeout regression deterministic without changing its assertions.
 - Exercise the macOS `ps` process-group fallback explicitly instead of expecting Linux to bypass its `/proc` fast path.
 - Honor explicit Skill candidate registry directories without unnecessarily resolving an invalid default home.
+- Bound Memory query work before yielding to queued Stop requests, including frozen clocks; preserve pre-bundle compatibility using the original dependency Git blobs and unchanged expected hashes.
 - Probe managed Git worktree metadata access instead of treating `git --version` as execution readiness; preserve the existing explicit shell-worktree fallback and fail closed when managed execution is required.
 - Candidate only: no new public packages, desktop/mobile installers, live-model acceptance or production rollout is claimed.
 

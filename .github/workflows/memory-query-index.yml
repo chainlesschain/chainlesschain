@@ -14,6 +14,9 @@ on:
     paths:
       - ".github/actions/setup-node-deps/action.yml"
       - "packages/cli/src/lib/context-memory-kernel/**"
+      - "packages/cli/__tests__/helpers/legacy-segmented-memory-port.js"
+      - "packages/cli/__tests__/fixtures/segmented-memory-port-e7.*"
+      - "packages/cli/__tests__/fixtures/memory-query-control-e7.mjs.txt"
       - "packages/cli/src/lib/secure-file-identity.js"
       - "packages/context-memory-kernel/lib/**"
       - "packages/cli/scripts/memory-query-index-benchmark.mjs"
@@ -23,6 +26,9 @@ on:
     paths:
       - ".github/actions/setup-node-deps/action.yml"
       - "packages/cli/src/lib/context-memory-kernel/**"
+      - "packages/cli/__tests__/helpers/legacy-segmented-memory-port.js"
+      - "packages/cli/__tests__/fixtures/segmented-memory-port-e7.*"
+      - "packages/cli/__tests__/fixtures/memory-query-control-e7.mjs.txt"
       - "packages/cli/src/lib/secure-file-identity.js"
       - "packages/context-memory-kernel/lib/**"
       - "packages/cli/scripts/memory-query-index-benchmark.mjs"
@@ -61,7 +67,8 @@ jobs:
       - name: Query, cursor, corruption and concurrency contracts
         working-directory: packages/cli
         run: >-
-          npx vitest run __tests__/unit/memory-query-index.test.js
+          npx vitest run __tests__/unit/memory-query-control.test.js
+          __tests__/unit/memory-query-index.test.js
           __tests__/unit/segmented-memory-port.test.js
           __tests__/unit/memory-shard-snapshots.test.js
           __tests__/unit/memory-query-cancellation.test.js
