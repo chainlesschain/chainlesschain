@@ -14,7 +14,8 @@
         "cli/evidence/implementation-plan-volcengine-live-20261109",
         "cli/evidence/context-token-volcengine-live-probe-20261109",
         "cli/evidence/implementation-plan-volcengine-live-current-20261109",
-        "cli/evidence/implementation-plan-volcengine-live-current2-20261109"
+        "cli/evidence/implementation-plan-volcengine-live-current2-20261109",
+        "cli/evidence/project-goal-volcengine-live-current-20261109"
       ],
       "remaining": [
         "independent real provider task matrix",
@@ -96,7 +97,8 @@
         "cli/evidence/accessibility-performance-contract-current-20261109",
         "cli/evidence/ide-extensions-ci-42518446281-20261109",
         "cli/evidence/vscode-live-extension-host-rerun-current-20261109",
-        "cli/evidence/jetbrains-scripted-journey-rerun-current-20261109"
+        "cli/evidence/jetbrains-scripted-journey-rerun-current-20261109",
+        "cli/evidence/project-goal-volcengine-live-current-20261109"
       ],
       "remaining": [
         "VS Code bridge loopback",
@@ -133,4 +135,4 @@
     }
   },
   "completionRule": "Do not promote overall to complete until every item has scope-matching evidence and every remaining gate is closed."
-}
+}\n

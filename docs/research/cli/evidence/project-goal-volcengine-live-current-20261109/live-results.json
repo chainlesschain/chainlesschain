@@ -1,0 +1,43 @@
+{
+  "schema": "chainlesschain.dmm-volcengine-live/v1",
+  "startedAt": "2026-11-08T22:13:48.292Z",
+  "config": {
+    "provider": "volcengine",
+    "model": "deepseek-v4-1-flash-economy-261017",
+    "endpoint": "https://ark.cn-beijing.volces.com/api/v3",
+    "credentialPresent": true
+  },
+  "boundary": "Real Volcengine inference; synthetic project/Memory; signed TEST ingress; native confirmation callback approved by this opt-in runner; no Electron GUI or business task mutation.",
+  "limits": {
+    "maximumDispatches": 2,
+    "maximumOutputTokensPerCall": 512,
+    "timeoutMsPerCall": 30000,
+    "retries": 0
+  },
+  "criteria": [
+    "Strict title/description JSON accepted as pending",
+    "Overdue review follow-up is actionable",
+    "No unverified completion claim",
+    "Memory scenario incorporates AZURE-17 or Mira",
+    "No task mutation; original ID never re-dispatched; revoked Memory invalidates output"
+  ],
+  "sources": {
+    "desktop-app-vue/scripts/project-goal-volcengine-live.cjs": "474541244e59064a0e36919e8b1521375ae9a04b7973b4de19275b8a6b8f5429",
+    "desktop-app-vue/src/main/task/project-goal-volcengine-model.js": "9c294d11e84c6791038cfd4ff875a02e49bf0209d669ce57652d418c48adec88",
+    "desktop-app-vue/src/main/task/project-goal-model-drafts.js": "f3fef5d31c6a1df6c3b446f2b26aee792811419d87e2dca42f81b4f502360a35",
+    "desktop-app-vue/src/main/task/__tests__/project-goal-volcengine-fixture.cjs": "b737a054f7d99d2410d037aac23cd7d5e1c5bdec036bec3e8230ba3c642169bb",
+    "desktop-app-vue/src/main/evolution/desktop-model-ingress.js": "4a57af44b5886b94fcd841e92555b49f1654af7d01cf31d2806710805955fde6",
+    "packages/session-core/lib/project-goal-memory.js": "618a016cff7e815ab348af69bf666d64ad246b29ea2a751813902b6f480149e6"
+  },
+  "cases": [
+    {
+      "type": "task.description.update",
+      "useMemory": false,
+      "startedAt": "2026-11-08T22:13:48.323Z",
+      "passed": false,
+      "failureCode": "LIVE_CHECK_FAILED"
+    }
+  ],
+  "status": "failed",
+  "finishedAt": "2026-11-08T22:13:48.345Z"
+}
