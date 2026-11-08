@@ -45,6 +45,14 @@ const RESPONSE_CACHE_IDENTIFIER_BINDING_SCHEMA =
 const HEX_ALPHA = "abcdefghijklmnop";
 
 const INGRESSES = new WeakSet();
+const MODEL_REQUEST_RECEIPTS = new WeakMap();
+
+// Only requests released by this module after authenticated readback carry a
+// receipt. Copied messages or provenance-looking text confer no authority.
+export function getAgentModelRequestReceipt(request) {
+  return MODEL_REQUEST_RECEIPTS.get(request) ?? null;
+}
+
 const CORE_EVENT_KINDS = new Map([
   ["tool-executing", "tool-requested"],
   ["tool-result", "tool-completed"],
@@ -469,10 +477,27 @@ export function createAgentEvolutionIngress({
             }),
           });
         }
-        return buildAgentModelRequest(
+        const request = buildAgentModelRequest(
           modelRequest,
           resolved.bundle.modelProjection,
         );
+        MODEL_REQUEST_RECEIPTS.set(
+          request,
+          Object.freeze({
+            tenantId: descriptor.tenantId,
+            runId: descriptor.runId,
+            eventId,
+            evidenceId: persisted.evidenceId,
+            manifestDigest: persisted.manifest.digest,
+            projectionDigest: resolved.bundle.modelProjection.projectionDigest,
+            rulesetDigest: resolved.bundle.modelProjection.rulesetDigest,
+            redactionCount:
+              resolved.bundle.modelProjection.redactionSummary.total,
+            injectionCount:
+              resolved.bundle.modelProjection.injectionFindings.length,
+          }),
+        );
+        return request;
       }),
     );
 

@@ -12,7 +12,14 @@ import {
 } from "node:fs";
 import http from "node:http";
 import { tmpdir } from "node:os";
-import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
+import {
+  dirname,
+  isAbsolute,
+  relative,
+  resolve,
+  sep,
+  toNamespacedPath,
+} from "node:path";
 import { fileURLToPath } from "node:url";
 import { CodexAppServerAdapter } from "../src/lib/codex-app-server-adapter.js";
 import {
@@ -82,6 +89,52 @@ export function createHistoryCheckRecorder() {
       if (firstError) throw firstError;
     },
   };
+}
+
+// A failed child shutdown must never leave the loopback listener alive. Stop
+// every owned client, even when it can no longer communicate, independently.
+export async function cleanupHistoryResources({ clients, server, failure }) {
+  const operations = [...new Set(clients)].map((client, index) => ({
+    resource: `client:${index}`,
+    stop: () =>
+      bounded(client.stop(), 12_000, `history client ${index} shutdown`),
+  }));
+  operations.push({
+    resource: "provider",
+    stop: async () => {
+      const closed = new Promise((resolve, reject) => {
+        server.close((error) => {
+          if (error && error.code !== "ERR_SERVER_NOT_RUNNING") reject(error);
+          else resolve();
+        });
+      });
+      server.closeAllConnections();
+      await bounded(closed, 5000, "history provider shutdown");
+    },
+  });
+  const results = await Promise.allSettled(
+    operations.map(({ stop }) => Promise.resolve().then(stop)),
+  );
+  const closures = [],
+    cleanupErrors = [];
+  for (const [index, result] of results.entries()) {
+    const { resource } = operations[index];
+    if (result.status === "fulfilled") {
+      if (resource !== "provider") closures.push(result.value);
+      continue;
+    }
+    const error = result.reason;
+    failure ||= error;
+    cleanupErrors.push({
+      resource,
+      error: {
+        name: error?.name || "Error",
+        message: String(error?.message ?? error).slice(0, 2000),
+        ...(error?.code ? { code: error.code } : {}),
+      },
+    });
+  }
+  return { closures, cleanupErrors, failure };
 }
 
 export async function collectHistoryPages(
@@ -192,8 +245,8 @@ export function assertCompleteScanHistory(observed) {
 // Only genuine rollouts from this probe's stopped process may enter the new
 // home. Never copy a state DB or follow links out of the isolated fixture.
 export function copyHistoryRollouts(threads, sourceHome, targetHome) {
-  const sourceRoot = resolve(sourceHome);
-  const destinationRoot = resolve(targetHome);
+  const sourceRoot = toNamespacedPath(resolve(sourceHome));
+  const destinationRoot = toNamespacedPath(resolve(targetHome));
   assert.notEqual(sourceRoot, destinationRoot, "rollout homes must differ");
   for (const directory of [sourceRoot, destinationRoot]) {
     const stat = lstatSync(directory);
@@ -209,7 +262,7 @@ export function copyHistoryRollouts(threads, sourceHome, targetHome) {
       "string",
       "missing generated rollout path",
     );
-    const source = resolve(thread.path);
+    const source = toNamespacedPath(resolve(thread.path));
     const local = relative(sourceRoot, source);
     const parts = local.split(sep);
     assert.ok(
@@ -421,6 +474,7 @@ export async function runHistoryProbe({
   const strictChecks = createHistoryCheckRecorder();
   let threadSample;
   let client, report, failure;
+  let cleanupErrors = [];
   const guard = (promise, label) =>
     bounded(Promise.race([promise, provider.failure]), 30_000, label);
   const request = (method, params) =>
@@ -868,7 +922,7 @@ export async function runHistoryProbe({
               });
             }
           } finally {
-            if (client?.running) closures.push(await client.stop());
+            if (client) closures.push(await client.stop());
           }
         });
         repair.verified =
@@ -950,17 +1004,14 @@ export async function runHistoryProbe({
       historyChecks.rolloutRepair.status = "failed";
     failure = error;
   } finally {
-    try {
-      if (client?.running) closures.push(await client.stop());
-      provider.server.closeAllConnections();
-      await bounded(
-        new Promise((yes) => provider.server.close(yes)),
-        5000,
-        "history provider shutdown",
-      );
-    } catch (error) {
-      failure ||= error;
-    }
+    const cleaned = await cleanupHistoryResources({
+      clients,
+      server: provider.server,
+      failure,
+    });
+    failure = cleaned.failure;
+    cleanupErrors = cleaned.cleanupErrors;
+    closures.splice(0, closures.length, ...cleaned.closures);
   }
   const transcript =
     JSON.stringify(clients.map((entry) => entry.notifications)) + "\n";
@@ -1015,6 +1066,7 @@ export async function runHistoryProbe({
       historyChecks.rolloutScanRecency.verified === true,
     providerRequests: provider.requests,
     processClosed: closures,
+    cleanupErrors,
     notificationsSha256: sha256(transcript),
     ...(failure
       ? {

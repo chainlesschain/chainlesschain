@@ -1,3 +1,4 @@
+import { withModelInputAttempt } from "./model-input-diagnostics.js";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { budgetError, label, requireBudget } from "./formal-budget-errors.js";
 
@@ -128,16 +129,21 @@ export async function withFormalBudgetProviderScope(
 /** The injected fallback is used only outside a host-owned budget scope. */
 export async function providerFetch(input, init, fetchImpl = globalThis.fetch) {
   const scope = providerScope.getStore();
-  if (!scope) return fetchImpl(input, init);
+  if (!scope)
+    return withModelInputAttempt(init, false, (snapshot) =>
+      fetchImpl(input, snapshot),
+    );
   requireBudget(
     !scope.closed,
     "Provider budget scope closed",
     "CC_BUDGET_SCOPE_CLOSED",
   );
-  return scope.fetch(input, {
-    ...init,
-    signal: init?.signal
-      ? AbortSignal.any([scope.signal, init.signal])
-      : scope.signal,
-  });
+  return withModelInputAttempt(init, true, (snapshot) =>
+    scope.fetch(input, {
+      ...snapshot,
+      signal: snapshot?.signal
+        ? AbortSignal.any([scope.signal, snapshot.signal])
+        : scope.signal,
+    }),
+  );
 }

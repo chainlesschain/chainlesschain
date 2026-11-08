@@ -1,4 +1,10 @@
 import {
+  withModelInputDiagnostics,
+  recordLogicalModelInput,
+  MODEL_INPUT_PLAN,
+  MODEL_INPUT_USAGE_CALL,
+} from "../lib/model-input-diagnostics.js";
+import {
   projectMessagesWithTaskBinding,
   getTaskCompactionBindings,
 } from "./message-roles.js";
@@ -121,7 +127,10 @@ import os from "os";
 import { createHash, randomUUID } from "node:crypto";
 import skillInvocationReceipt from "@chainlesschain/session-core/skill-invocation-receipt";
 import { isProxy } from "node:util/types";
-import { captureAgentEvolutionIngress } from "../lib/evolution/agent-evolution-ingress.js";
+import {
+  captureAgentEvolutionIngress,
+  getAgentModelRequestReceipt,
+} from "../lib/evolution/agent-evolution-ingress.js";
 import {
   assertSkillRuntimeAdmission,
   captureSkillRuntimeDependencies,
@@ -1618,19 +1627,18 @@ function filesystemIdentity(stats) {
 function sameFilesystemObjectIdentity(left, right) {
   return Boolean(
     left &&
-      right &&
-      left.dev === right.dev &&
-      left.ino === right.ino &&
-      left.type === right.type,
+    right &&
+    left.dev === right.dev &&
+    left.ino === right.ino &&
+    left.type === right.type,
   );
 }
 
 function sameFilesystemIdentity(left, right, { content = false } = {}) {
   return Boolean(
     sameFilesystemObjectIdentity(left, right) &&
-      left.nlink === right.nlink &&
-      (!content ||
-        (left.size === right.size && left.mtimeNs === right.mtimeNs)),
+    left.nlink === right.nlink &&
+    (!content || (left.size === right.size && left.mtimeNs === right.mtimeNs)),
   );
 }
 
@@ -3522,9 +3530,8 @@ export async function executeTool(name, args, context = {}) {
     GUARDED_FILE_MUTATION_TOOLS.has(name) &&
     settingsVerdict.decision !== "allow"
   ) {
-    const { sensitiveFileReason, autoExecConfigReason } = await import(
-      "../lib/sensitive-file-guard.js"
-    );
+    const { sensitiveFileReason, autoExecConfigReason } =
+      await import("../lib/sensitive-file-guard.js");
     const guarded = fileMutationPaths(name, args)
       .map((candidatePath) => ({
         path: candidatePath,
@@ -3559,9 +3566,8 @@ export async function executeTool(name, args, context = {}) {
     GUARDED_FILE_MUTATION_TOOLS.has(name) &&
     settingsVerdict.decision !== "allow"
   ) {
-    const { sessionStorePathReason } = await import(
-      "../lib/session-store-guard.js"
-    );
+    const { sessionStorePathReason } =
+      await import("../lib/session-store-guard.js");
     const guarded = fileMutationPaths(name, args)
       .map((candidatePath) => ({
         path: candidatePath,
@@ -4308,9 +4314,8 @@ export async function executeTool(name, args, context = {}) {
     context.externalToolExecutors
   ) {
     try {
-      const { collectIdeDiagnostics, formatIdeDiagnostics } = await import(
-        "../lib/ide-context.js"
-      );
+      const { collectIdeDiagnostics, formatIdeDiagnostics } =
+        await import("../lib/ide-context.js");
       const diags = await collectIdeDiagnostics(
         {
           mcpClient: context.mcpHostClient || context.mcpClient,
@@ -4852,9 +4857,8 @@ export async function _getSharedCodeIntel(cwd) {
   const root = path.resolve(cwd || process.cwd());
   let entry = _codeIntelPool.get(root);
   if (!entry) {
-    const { CodeIntelligence } = await import(
-      "../lib/lsp/code-intelligence.js"
-    );
+    const { CodeIntelligence } =
+      await import("../lib/lsp/code-intelligence.js");
     // Re-check AFTER the await: two concurrent callers (the parallel read-only
     // batch runs several `code_intelligence` calls at once) both observed an
     // empty pool before this `await import`, so without this guard both would
@@ -4943,9 +4947,8 @@ async function _postEditDiagnostics(filePath, cwd, additionalDirectories) {
   }
   let hasServer = false;
   try {
-    const { languageIdForFile, resolveServer } = await import(
-      "../lib/lsp/lsp-server-registry.js"
-    );
+    const { languageIdForFile, resolveServer } =
+      await import("../lib/lsp/lsp-server-registry.js");
     const languageId = languageIdForFile(filePath);
     if (!languageId) return null; // unsupported file type — no LSP, no cost
     hasServer = Boolean(resolveServer(languageId, root));
@@ -4968,9 +4971,8 @@ async function _postEditDiagnostics(filePath, cwd, additionalDirectories) {
       // the model sees the most severe diagnostics first and can't be flooded by
       // a pathological diagnostics dump. Budget is overridable via
       // CC_EDIT_DIAGNOSTICS_TOKENS (default 2000).
-      const { capDiagnostics } = await import(
-        "../lib/lsp/diagnostics-scheduler.js"
-      );
+      const { capDiagnostics } =
+        await import("../lib/lsp/diagnostics-scheduler.js");
       const budget = Number(process.env.CC_EDIT_DIAGNOSTICS_TOKENS) || 2000;
       const { kept } = capDiagnostics(diags, { maxTokens: budget });
       return kept.length ? kept : null;
@@ -5028,9 +5030,8 @@ export async function _withPostEditDiagnostics(
         workspaceRootsFor(cwd, additionalDirectories),
       );
       if (root) {
-        const { collectFileImportDiagnostics } = await import(
-          "../lib/file-import-diagnostics.js"
-        );
+        const { collectFileImportDiagnostics } =
+          await import("../lib/file-import-diagnostics.js");
         const checked = collectFileImportDiagnostics({
           filePath,
           content: writtenContent,
@@ -5102,14 +5103,12 @@ async function _getSubtreeLoader(cwd, sessionScope = "__legacy__") {
   }
   let loader = scopedLoaders.get(sessionScope);
   if (!loader) {
-    const { SubtreeInstructionLoader } = await import(
-      "../lib/project-instructions.js"
-    );
+    const { SubtreeInstructionLoader } =
+      await import("../lib/project-instructions.js");
     let instructionExcludes;
     try {
-      const { readStringArraySetting } = await import(
-        "../lib/settings-loader.cjs"
-      );
+      const { readStringArraySetting } =
+        await import("../lib/settings-loader.cjs");
       instructionExcludes = readStringArraySetting("instructionExcludes", {
         cwd: root,
       });
@@ -5154,9 +5153,8 @@ async function _prepareSubtreeInstructions(
     }
     const fresh = [...discovered.values()];
     if (!fresh || !fresh.length) return null;
-    const { DEFAULT_MAX_FILE_BYTES } = await import(
-      "../lib/project-instructions.js"
-    );
+    const { DEFAULT_MAX_FILE_BYTES } =
+      await import("../lib/project-instructions.js");
     const out = [];
     const errors = [];
     for (const f of fresh) {
@@ -5263,9 +5261,8 @@ async function _withSubtreeInstructions(
 async function filterSkillsByCwd(skills, cwd) {
   try {
     if (!Array.isArray(skills) || skills.every((s) => !s?.paths)) return skills;
-    const { filterSkillsByRelCwd, relCwdForCwd } = await import(
-      "../lib/skill-path-scope.js"
-    );
+    const { filterSkillsByRelCwd, relCwdForCwd } =
+      await import("../lib/skill-path-scope.js");
     const { findProjectRoot } = await import("../lib/project-detector.js");
     const root = (cwd && findProjectRoot(cwd)) || cwd || "";
     return filterSkillsByRelCwd(skills, relCwdForCwd(cwd, root));
@@ -5280,9 +5277,8 @@ async function promoteBrowserGeneratedArtifact(
 ) {
   if (!filePath) return { artifact: null, error: null };
   try {
-    const { ArtifactStore, publicArtifactMetadata } = await import(
-      "../lib/artifact-store.js"
-    );
+    const { ArtifactStore, publicArtifactMetadata } =
+      await import("../lib/artifact-store.js");
     const entry = new ArtifactStore().publish({
       filePath,
       title,
@@ -5335,9 +5331,8 @@ async function promoteBrowserDownload(
 async function publishBrowserEvidence(envelope, sessionId) {
   if (!envelope?.envelopeDigest) return { artifact: null, error: null };
   try {
-    const { ArtifactStore, publicArtifactMetadata } = await import(
-      "../lib/artifact-store.js"
-    );
+    const { ArtifactStore, publicArtifactMetadata } =
+      await import("../lib/artifact-store.js");
     const {
       browserEvidenceDigest,
       canonicalBrowserEvidenceJson,
@@ -5400,9 +5395,8 @@ async function publishBrowserEvidence(envelope, sessionId) {
 }
 
 async function resolveBrowserUploadArtifact(artifactId, sessionId) {
-  const { ArtifactStore, publicArtifactMetadata } = await import(
-    "../lib/artifact-store.js"
-  );
+  const { ArtifactStore, publicArtifactMetadata } =
+    await import("../lib/artifact-store.js");
   const store = new ArtifactStore();
   return store.withIndexSnapshot((entries) => {
     const matches = entries.filter((entry) => entry.id === artifactId);
@@ -6406,9 +6400,8 @@ async function executeToolInner(
       // through PowerShell via explicit argv (`powershell.exe -NoProfile
       // [-ExecutionPolicy <p>] -Command <cmd>`). The unconfigured path keeps
       // the historical default shell byte-identical (useDefaultShell=true).
-      const { resolveShellInvocation } = await import(
-        "../lib/shell-selector.cjs"
-      );
+      const { resolveShellInvocation } =
+        await import("../lib/shell-selector.cjs");
       let shellInv = resolveShellInvocation({
         command: args.command,
         requested: args.shell,
@@ -7181,9 +7174,8 @@ async function executeToolInner(
         let removeSettingsAuthorityListener = null;
         if (needsEgress) {
           try {
-            const { startEgressProxyWorker } = await import(
-              "../lib/sandbox-egress-worker.js"
-            );
+            const { startEgressProxyWorker } =
+              await import("../lib/sandbox-egress-worker.js");
             if (dockerEgress) {
               privateSocketDir = fs.mkdtempSync(
                 path.join(os.tmpdir(), "cc-egress-"),
@@ -7224,9 +7216,8 @@ async function executeToolInner(
           // Proxy startup and dynamic imports are asynchronous. Re-read the
           // live authority after they settle and before sandbox dispatch.
           if (dockerEgress && proxyHandle?.socketPath) {
-            const { createDockerEgressAuthorityMonitor } = await import(
-              "../lib/sandbox-egress-authority-monitor.js"
-            );
+            const { createDockerEgressAuthorityMonitor } =
+              await import("../lib/sandbox-egress-authority-monitor.js");
             authorityMonitor = createDockerEgressAuthorityMonitor({
               sessionId: sessionId || null,
               policyVersion:
@@ -7848,9 +7839,8 @@ async function executeToolInner(
         !ruleAllowed &&
         typeof approvalGate.decide === "function"
       ) {
-        const { APPROVAL_RISK, APPROVAL_DECISION } = await import(
-          "@chainlesschain/session-core"
-        );
+        const { APPROVAL_RISK, APPROVAL_DECISION } =
+          await import("@chainlesschain/session-core");
         const gate = await approvalGate.decide({
           sessionId,
           riskLevel: APPROVAL_RISK.HIGH,
@@ -8064,9 +8054,8 @@ async function executeToolInner(
 
     case "slash_command": {
       try {
-        const { getCommand, expandCommand, discoverCommands } = await import(
-          "../lib/slash-commands.js"
-        );
+        const { getCommand, expandCommand, discoverCommands } =
+          await import("../lib/slash-commands.js");
         const raw = String(args.command || "").trim();
         if (!raw) {
           return attachDescriptor({
@@ -8277,9 +8266,8 @@ async function executeToolInner(
 
     case "notify": {
       try {
-        const { sendAgentNotification } = await import(
-          "../lib/agent-notify.js"
-        );
+        const { sendAgentNotification } =
+          await import("../lib/agent-notify.js");
         const outcome = await sendAgentNotification({
           title: args.title,
           body: args.body,
@@ -8301,9 +8289,8 @@ async function executeToolInner(
         if (refusal) return attachDescriptor(refusal);
       }
       try {
-        const { AgentScheduleStore } = await import(
-          "../lib/agent-schedule-store.js"
-        );
+        const { AgentScheduleStore } =
+          await import("../lib/agent-schedule-store.js");
         const { parseDuration } = await import("../lib/loop.js");
         const store = new AgentScheduleStore();
         const action = String(args.action || "").toLowerCase();
@@ -8426,9 +8413,8 @@ async function executeToolInner(
       // Only METADATA returns to the conversation (the transcript never
       // carries the file body); `cc artifacts` lists/inspects/cleans.
       try {
-        const { ArtifactStore, publicArtifactMetadata } = await import(
-          "../lib/artifact-store.js"
-        );
+        const { ArtifactStore, publicArtifactMetadata } =
+          await import("../lib/artifact-store.js");
         const store = new ArtifactStore();
         const entry = store.publish({
           filePath: path.resolve(cwd, String(args.path || "")),
@@ -8518,9 +8504,8 @@ async function executeToolInner(
           !ruleAllowed &&
           typeof approvalGate.decide === "function"
         ) {
-          const { APPROVAL_RISK, APPROVAL_DECISION } = await import(
-            "@chainlesschain/session-core"
-          );
+          const { APPROVAL_RISK, APPROVAL_DECISION } =
+            await import("@chainlesschain/session-core");
           const summary = Array.isArray(args.actions)
             ? args.actions
                 .map((a) => a?.type)
@@ -8645,9 +8630,8 @@ async function executeToolInner(
     case "search_files": {
       if (typeof args.path === "string" && args.path.length > 0) {
         const file = path.resolve(cwd, args.path);
-        const { credentialFileReason } = await import(
-          "../lib/credential-guard.js"
-        );
+        const { credentialFileReason } =
+          await import("../lib/credential-guard.js");
         const reason =
           credentialFileReason(file) ||
           (fs.existsSync(file)
@@ -11072,9 +11056,8 @@ async function _executeSpawnSubAgent(args, ctx) {
   // the breadth counter increments so spawnedCount is this-spawn-exclusive.
   if (ctx.subAgentContract) {
     try {
-      const { enforceRecursionLimits } = await import(
-        "../lib/subagent-contract.js"
-      );
+      const { enforceRecursionLimits } =
+        await import("../lib/subagent-contract.js");
       const recur = enforceRecursionLimits({
         depth: currentDepth,
         spawnedCount: ctx.subAgentBudget?.spawned || 0,
@@ -11267,9 +11250,8 @@ async function _executeSpawnSubAgent(args, ctx) {
   let inheritedMcp = null;
   let inheritedHooks = null;
   try {
-    const { filterInheritedMcp, filterInheritedHooks } = await import(
-      "../lib/subagent-inheritance.js"
-    );
+    const { filterInheritedMcp, filterInheritedHooks } =
+      await import("../lib/subagent-inheritance.js");
     inheritedMcp = filterInheritedMcp(
       {
         extraToolDefinitions: ctx.extraToolDefinitions,
@@ -11302,9 +11284,8 @@ async function _executeSpawnSubAgent(args, ctx) {
   // repo, refuse the spawn instead of silently running in the parent checkout.
   if (subIsolation === "worktree") {
     try {
-      const { resolveIsolationFailClosed } = await import(
-        "../lib/subagent-contract.js"
-      );
+      const { resolveIsolationFailClosed } =
+        await import("../lib/subagent-contract.js");
       const { isGitRepo } = await import("../lib/git-integration.js");
       const iso = resolveIsolationFailClosed({
         requested: "worktree",
@@ -11323,9 +11304,8 @@ async function _executeSpawnSubAgent(args, ctx) {
   let profile = null;
   if (profileName) {
     try {
-      const { getSubAgentProfile } = await import(
-        "../lib/sub-agent-profiles.js"
-      );
+      const { getSubAgentProfile } =
+        await import("../lib/sub-agent-profiles.js");
       profile = getSubAgentProfile(profileName);
       if (!profile) {
         return {
@@ -11396,9 +11376,8 @@ async function _executeSpawnSubAgent(args, ctx) {
   let childApprovalGate = null;
   if (effectiveContract?.permissionMode) {
     try {
-      const { resolvePermissionMode, resolveEnabledTools } = await import(
-        "./headless-runner.js"
-      );
+      const { resolvePermissionMode, resolveEnabledTools } =
+        await import("./headless-runner.js");
       const perm = resolvePermissionMode(effectiveContract.permissionMode);
       if (perm.readOnly) {
         allowedTools = resolveEnabledTools({ allowedTools, readOnly: true });
@@ -11433,9 +11412,8 @@ async function _executeSpawnSubAgent(args, ctx) {
     !(Array.isArray(mcpAllow) && mcpAllow.length === 0)
   ) {
     try {
-      const { createInheritedMcpToolCatalog } = await import(
-        "../lib/subagent-inheritance.js"
-      );
+      const { createInheritedMcpToolCatalog } =
+        await import("../lib/subagent-inheritance.js");
       childMcpCatalog = createInheritedMcpToolCatalog(
         ctx,
         mcpAllow,
@@ -11682,9 +11660,8 @@ async function _executeSpawnSubAgent(args, ctx) {
   let subWorktreeOptions = null;
   if (subIsolation === "worktree") {
     try {
-      const { normalizeSparsePaths } = await import(
-        "../lib/worktree-sparse.js"
-      );
+      const { normalizeSparsePaths } =
+        await import("../lib/worktree-sparse.js");
       const sparse = normalizeSparsePaths(
         args.sparsePaths ?? mdSparsePaths ?? null,
       );
@@ -11888,11 +11865,10 @@ async function _executeSpawnSubAgent(args, ctx) {
 
   // Resolve the registry ONCE before the try so the failure path can also move
   // the sub-agent out of `_active` (the success path does this via complete()).
-  const { SubAgentRegistry } = await import(
-    "../lib/sub-agent-registry.js"
-  ).catch(() => ({
-    SubAgentRegistry: null,
-  }));
+  const { SubAgentRegistry } =
+    await import("../lib/sub-agent-registry.js").catch(() => ({
+      SubAgentRegistry: null,
+    }));
   let registry = null;
   if (SubAgentRegistry) {
     try {
@@ -12273,6 +12249,12 @@ function _openAIProviderRequestReceipt(response, data, clientRequestId) {
  * @returns {Promise<object>} response with .message
  */
 export async function chatWithTools(rawMessages, options) {
+  return withModelInputDiagnostics(options, () =>
+    chatWithToolsDiagnosed(rawMessages, options),
+  );
+}
+
+async function chatWithToolsDiagnosed(rawMessages, options) {
   rawMessages = projectRejectedToolArguments(rawMessages);
   if (options.serviceTier != null) {
     resolveModelServiceTier(
@@ -12317,9 +12299,8 @@ export async function chatWithTools(rawMessages, options) {
     options.contextMemoryPreplanned !== true &&
     options.contextMemorySkipPlanning !== true
   ) {
-    const { prepareCanonicalProviderContext } = await import(
-      "../lib/context-memory-kernel/provider-context.js"
-    );
+    const { prepareCanonicalProviderContext } =
+      await import("../lib/context-memory-kernel/provider-context.js");
     const prepared = await prepareCanonicalProviderContext(rawMessages, {
       ...options,
       contextMemoryToolDefinitions: tools,
@@ -12341,14 +12322,23 @@ export async function chatWithTools(rawMessages, options) {
         })
       : providerMessages;
 
+  let modelInputReceipt = null;
   if (evolutionIngress !== null) {
     const projected = await evolutionIngress.prepareModelRequest({
       messages,
       tools,
     });
+    modelInputReceipt = getAgentModelRequestReceipt(projected);
     messages = projected.messages;
     tools = projected.tools;
   }
+
+  ({ messages, tools } = await recordLogicalModelInput({
+    messages,
+    tools,
+    plan: canonicalPlan || options[MODEL_INPUT_PLAN],
+    receipt: modelInputReceipt,
+  }));
 
   if (options[READ_FILE_REQUEST_CONTEXT]) {
     options[READ_FILE_REQUEST_CONTEXT].messages = messages;
@@ -14603,9 +14593,8 @@ async function _getAutoCompactor(options) {
   let canonicalRequired = false;
   try {
     const { feature } = await import("../lib/feature-flags.js");
-    const { resolveCliContextMemoryCutover } = await import(
-      "../lib/context-memory-kernel/authority.js"
-    );
+    const { resolveCliContextMemoryCutover } =
+      await import("../lib/context-memory-kernel/authority.js");
     const cutover = resolveCliContextMemoryCutover({
       env: options.contextMemoryEnv || process.env,
       scopeKey: options.sessionId
@@ -14614,9 +14603,8 @@ async function _getAutoCompactor(options) {
     });
     canonicalRequired = cutover.canonical;
     if (feature("PROMPT_COMPRESSOR") || cutover.canonical) {
-      const { PromptCompressor } = await import(
-        "../harness/prompt-compressor.js"
-      );
+      const { PromptCompressor } =
+        await import("../harness/prompt-compressor.js");
       const llmQuery =
         typeof options.compactionLlmQuery === "function"
           ? options.compactionLlmQuery
@@ -14669,9 +14657,8 @@ async function _getAutoCompactor(options) {
       compressor = _instrumentAutoCompactorUsage(compressor, options);
       if (cutover.canonical) {
         const compatibilitySummarizer = compressor;
-        const { compactLiveMessagesCanonical } = await import(
-          "../lib/context-memory-kernel/live-compaction.js"
-        );
+        const { compactLiveMessagesCanonical } =
+          await import("../lib/context-memory-kernel/live-compaction.js");
         compressor = {
           canonicalKernel: true,
           shouldAutoCompact: (messages) =>
@@ -15109,9 +15096,8 @@ export async function* agentLoop(messages, options) {
       : captureAgentEvolutionIngress(options.evolutionIngress);
   let llmCall = configuredChatFn || chatWithTools;
   if (evolutionIngress !== null && configuredChatFn) {
-    const { captureCanonicalFallbackChatFn } = await import(
-      "./fallback-model.js"
-    );
+    const { captureCanonicalFallbackChatFn } =
+      await import("./fallback-model.js");
     llmCall = captureCanonicalFallbackChatFn(
       configuredChatFn,
       evolutionIngress,
@@ -15120,9 +15106,8 @@ export async function* agentLoop(messages, options) {
   // Shared iteration budget — replaces hardcoded MAX_ITERATIONS.
   // When options.iterationBudget is provided (e.g. from parent agent),
   // the same budget instance is shared, so parent+child consume from one pool.
-  const { IterationBudget, WarningLevel } = await import(
-    "../lib/iteration-budget.js"
-  );
+  const { IterationBudget, WarningLevel } =
+    await import("../lib/iteration-budget.js");
   const budget = options.iterationBudget || new IterationBudget();
   const { HostResourceBudget } = await import("../lib/host-resource-budget.js");
   const hostResourceBudget =
@@ -15581,9 +15566,8 @@ export async function* agentLoop(messages, options) {
     options.strictUsageTelemetry !== true &&
     workflowEffectId == null
   ) {
-    const { makeRunnableProviderFallback } = await import(
-      "../lib/runnable-provider.js"
-    );
+    const { makeRunnableProviderFallback } =
+      await import("../lib/runnable-provider.js");
     llmCall = makeRunnableProviderFallback(llmCall, {
       onFallback: ({ from, to, reason, fromModel, toModel }) => {
         // Telemetry: a provider/model fallback is a reliability signal — count
@@ -16353,9 +16337,8 @@ export async function* agentLoop(messages, options) {
         }
         compactionUsageCall =
           compactionUsageCall || compactionUsageState?.calls?.at(-1) || null;
-        const { getRejectedCompactionUsage } = await import(
-          "../lib/context-memory-kernel/live-compaction.js"
-        );
+        const { getRejectedCompactionUsage } =
+          await import("../lib/context-memory-kernel/live-compaction.js");
         const rejectedUsage = getRejectedCompactionUsage(_e);
         const returnedUsage = compactionUsageCall?.returnedUsage;
         const providerReceipt = _takeCompactionProviderReceipt(
@@ -16836,9 +16819,8 @@ export async function* agentLoop(messages, options) {
     // the run-level ids (turn.id correlates with the agent.iteration counter).
     let canonicalProviderContext = null;
     if (options.contextMemorySkipPlanning !== true) {
-      const { prepareCanonicalProviderContext } = await import(
-        "../lib/context-memory-kernel/provider-context.js"
-      );
+      const { prepareCanonicalProviderContext } =
+        await import("../lib/context-memory-kernel/provider-context.js");
       canonicalProviderContext = await prepareCanonicalProviderContext(
         callMessages,
         {
@@ -16919,6 +16901,7 @@ export async function* agentLoop(messages, options) {
     // projection. Commit visibility only after a successful model response.
     const readFileRequestContext = { messages: callMessages };
     const providerCallOptions = {
+      [MODEL_INPUT_PLAN]: canonicalProviderContext?.plan || null,
       [READ_FILE_REQUEST_CONTEXT]: readFileRequestContext,
       ...(evolutionIngress !== null
         ? { ...requestOptions, evolutionIngress }
@@ -16956,6 +16939,7 @@ export async function* agentLoop(messages, options) {
           }
         : {}),
     };
+    providerCallOptions[MODEL_INPUT_USAGE_CALL] = modelUsageCall.callId;
     // Resolve before dispatch, including compatibility/skip-planning runs.
     // The panel and persisted transcript use this same request configuration.
     const requestContextWindow =

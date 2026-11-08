@@ -246,3 +246,12 @@ docs/research/agents/evidence/dmm-native-modal-revocation-2026-11-07/verify-evid
 
 # Preserve the original legacy cancellation module independently of current code.
 packages/cli/__tests__/fixtures/memory-query-control-e7.mjs.txt -text !eol -whitespace
+# Keep archived native-host log hashes stable across checkouts.
+docs/research/cli-ide/implementation/evidence/ide-model-input-20261108/*.log -text
+docs/research/cli-ide/implementation/evidence/jetbrains-model-input-20261108/* -text whitespace=cr-at-eol
+docs/research/cli-ide/implementation/evidence/model-input-source-20261108/* -text
+docs/research/cli-ide/implementation/evidence/mcp-tasks-20261108/* -text
+docs/research/cli-ide/implementation/evidence/mcp-task-durable-20261108/* -text
+
+# Freeze the pre-lazy query index for genuine legacy compatibility.
+packages/cli/__tests__/fixtures/memory-query-index-e7.mjs.txt -text !eol -whitespace

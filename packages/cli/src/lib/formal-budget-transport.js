@@ -1,3 +1,4 @@
+import { recordModelInputBody } from "./model-input-diagnostics.js";
 import { randomUUID } from "node:crypto";
 import { raceWithAbort } from "./abort-utils.js";
 import {
@@ -348,6 +349,8 @@ export function createFormalBudgetTransport({
         body: JSON.stringify(request),
         signal: combined,
       };
+      await recordModelInputBody(options.body, "governed-fetch-body");
+      combined.throwIfAborted();
       // No await between durable admission and physical fetch.
       const contract = authority.markDispatched(callId, request);
       const pendingResponse = Promise.resolve(

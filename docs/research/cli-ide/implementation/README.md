@@ -2,6 +2,10 @@
 
 [返回 CLI / IDE 索引](../README.md)
 
+- [Memory 组合冷查询与跨平台测量续作（2026-11-08）](./cli-ide-memory-compound-progress-2026-11-08.md)
+
+- [Memory 按需索引和混合基准诊断续作（2026-11-08）](./cli-ide-memory-lazy-progress-2026-11-08.md)
+
 - [CLI 与 IDE 输入交付、草稿恢复续做（2026-10-23）](./cli-ide-recovery-progress-2026-10-23.md)
 - [CLI / IDE 保存输入删除与恢复续做（2026-10-26）](./cli-ide-recovery-progress-2026-10-26.md)
 - [CLI / IDE 差距优化首批实施：Goal 验收与检查点恢复](./cli-ide-goal-completion-progress-2026-10-27.md)
@@ -40,3 +44,8 @@
 - [Terra API 能力与缓存计费修复](./cli-ide-terra-model-progress-2026-10-29.md)
 - [第四十六批：修复 .131 干净构建与产物来源审计](./cli-ide-web-panel-production131-progress-2026-10-29.md)
 - [临时 worktree 消费者生命周期修复](./cli-ide-worktree-lifetime-progress-2026-10-29.md)
+- [Codex 0.167 兼容、断流与冷历史扫描（2026-11-08）](./cli-ide-codex-167-progress-2026-11-08.md)
+- [最终模型输入诊断首批实施（2026-11-08）](./cli-ide-model-input-diagnostics-progress-2026-11-08.md)
+- [模型输入诊断持久化与查询（2026-11-08）](./cli-ide-model-input-journal-progress-2026-11-08.md)
+- [IDE模型输入诊断入口与原生宿主验证（2026-11-08）](./cli-ide-model-input-ide-progress-2026-11-08.md)
+- [模型输入逐来源规划与投影计数（2026-11-08）](./cli-ide-model-input-source-progress-2026-11-08.md)

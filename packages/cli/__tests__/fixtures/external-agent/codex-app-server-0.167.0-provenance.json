@@ -1,0 +1,24 @@
+{
+  "schema": "chainlesschain.codex-generated-schema-fixture/v1",
+  "upstream": {
+    "package": "@openai/codex",
+    "version": "0.167.0",
+    "license": "Apache-2.0",
+    "documentation": "https://learn.chatgpt.com/docs/app-server",
+    "npmIntegrity": "sha512-1FSQgbTIKAdTub5Ln6z36NT4eXDmBRkinfigzycbgn9yLZdJ3UdkQZqr0N7jnl8/D1xxT/Pz3Fl2l7S2dmRaFA=="
+  },
+  "generator": "codex app-server generate-json-schema --out <isolated-schema-directory>",
+  "scope": "Unmodified upstream schemas. Probe configuration and schema agreement do not grant experimental or production admission.",
+  "files": {
+    "ClientRequest.json": "codex-app-server-0.167.0-request.schema.json",
+    "ServerNotification.json": "codex-app-server-0.167.0-notification.schema.json",
+    "ServerRequest.json": "codex-app-server-0.167.0-server-request.schema.json",
+    "CommandExecutionRequestApprovalResponse.json": "codex-app-server-0.167.0-approval-response.schema.json"
+  },
+  "sha256": {
+    "ClientRequest.json": "94074a415950787a25e09ae3b4d9de312cc264eb0f021633dfca921d300cd42a",
+    "ServerNotification.json": "6371619bc83dd2c7a3ff348704d514c5be9f0d8e992275a1fa592cf51bfd2c1f",
+    "ServerRequest.json": "58df585160941977d6e7a0ce458750b0c0d37987ce326fc4c880bf1dfbd3802f",
+    "CommandExecutionRequestApprovalResponse.json": "6d0767113e22f311381809b6b236b0dde2b99b01992879c26bf7b1ea0e003cb7"
+  }
+}

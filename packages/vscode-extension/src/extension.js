@@ -1080,6 +1080,22 @@ async function activate(context) {
         getSessionId: () => chatProvider.activeSessionId(),
       });
     }),
+    vscode.commands.registerCommand(
+      "chainlesschain.session.modelInputs",
+      () => {
+        const {
+          openModelInputDiagnostics,
+        } = require("./model-input-diagnostics.js");
+        const { getResolvedCli } = require("./cli-binary.js");
+        const { runCliResult } = require("./chat/introspect-commands.js");
+        return openModelInputDiagnostics(vscode, {
+          getSessionId: () => chatProvider.activeSessionId(),
+          command: getResolvedCli(),
+          runCliResult,
+          cwd: vscode.workspace.workspaceFolders?.[0]?.uri?.fsPath,
+        });
+      },
+    ),
     vscode.commands.registerCommand("chainlesschain.context.show", () => {
       const { openContextCenter } = require("./ui/context-center-view.js");
       return openContextCenter(vscode, {

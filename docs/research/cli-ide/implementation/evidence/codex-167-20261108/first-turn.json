@@ -1,0 +1,15 @@
+{
+  "schema": "chainlesschain.codex-real-turn-probe/v1",
+  "commitSha": "d546737f3d8a6348f459425c0f1bbdbadd2be897",
+  "platform": "win32",
+  "arch": "x64",
+  "realProviderAcceptance": false,
+  "productionAdmission": false,
+  "status": "failed",
+  "notificationsSha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+  "approvalsSha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+  "error": {
+    "name": "Error",
+    "message": "unknown format \"int64\" is used in schema at path \"#/definitions/RequestId/anyOf/1\""
+  }
+}

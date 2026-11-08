@@ -1,0 +1,25 @@
+{
+  "codeCommit": "5501891ee3c61728e1661fb6fee7c740c76aae8d",
+  "files": {
+    "input-diagnostic-three-stage-tests.json": {
+      "bytes": 96025,
+      "sha256": "ba5f056a351f94c758acfb6e83223c4ec5083247eaa89321584bcbbb124d1738"
+    },
+    "input-diagnostic-journal-tests.json": {
+      "bytes": 4874,
+      "sha256": "483f47a0a1e01c5ec840f534f083e7c381015ddd8ab9e948602e4c66c5cbdf2a"
+    },
+    "input-diagnostic-host-journal-tests.json": {
+      "bytes": 2720,
+      "sha256": "b2f20d8034801fc51452e32d5714f74e4a0de5d6d58dd887ef6cf41bd81d7b4b"
+    },
+    "input-diagnostic-host-journal-tests-r2.json": {
+      "bytes": 3907,
+      "sha256": "56a6815d5f65f50e0333b4961fcac30fd9316f0958a2503995040446cd1120ae"
+    },
+    "input-diagnostic-host-journal-tests-r3.json": {
+      "bytes": 2605,
+      "sha256": "b4c8371ad3466b3621cf4854094c0fbb2ddfdb2b451f386e6de013055588d0d7"
+    }
+  }
+}

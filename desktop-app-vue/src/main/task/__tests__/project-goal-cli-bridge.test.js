@@ -110,7 +110,9 @@ beforeEach(() => {
 afterEach(async () => {
   await host.close();
   vi.restoreAllMocks();
-  if (db.open) db.close();
+  if (db.open) {
+    db.close();
+  }
   fs.rmSync(dir, { recursive: true, force: true });
 });
 // Real Windows DACL operations launch PowerShell and exceed the ordinary 30s
@@ -226,8 +228,9 @@ describe("explicit desktop goal connection", { timeout: 90_000 }, () => {
       "/goal-evidence",
       "/goal-drafts",
       "/goal-events?goal=other",
-    ])
+    ]) {
       expect((await request(descriptor(), { pathname })).status).toBe(403);
+    }
     expect(
       (
         await request(descriptor(), {
@@ -440,9 +443,12 @@ consent.storePath=()=>process.env.DMM_TEST_CONSENT_FILE;`,
           pendingLines = lines.pop();
           for (const line of lines.filter(Boolean)) {
             const record = JSON.parse(line);
-            if (record.kind === "ready")
+            if (record.kind === "ready") {
               childCheck = check("event-check-child");
-            if (record.kind === "event") host.closeCliConnection(event);
+            }
+            if (record.kind === "event") {
+              host.closeCliConnection(event);
+            }
           }
         } catch (error) {
           callbackError = error;
@@ -450,7 +456,9 @@ consent.storePath=()=>process.env.DMM_TEST_CONSENT_FILE;`,
         }
       });
       const finished = await completion;
-      if (callbackError) throw callbackError;
+      if (callbackError) {
+        throw callbackError;
+      }
       expect(finished.code).toBe(1);
       const records = finished.stdout
         .trim()
@@ -484,17 +492,23 @@ consent.storePath=()=>process.env.DMM_TEST_CONSENT_FILE;`,
     "does not export an event credential after %s during confirmation",
     async (mode) => {
       electron.dialog.showMessageBox.mockImplementation(async () => {
-        if (mode === "navigation") event.sender.emit("did-start-navigation");
-        if (mode === "identity") generation++;
+        if (mode === "navigation") {
+          event.sender.emit("did-start-navigation");
+        }
+        if (mode === "identity") {
+          generation++;
+        }
         return { response: mode === "cancel" ? 0 : 1 };
       });
       const opening = host.openCliConnection(event, {
         goalRef: ref(),
         events: true,
       });
-      if (mode === "cancel")
+      if (mode === "cancel") {
         expect(await opening).toMatchObject({ enabled: false });
-      else await expect(opening).rejects.toThrow("GOAL_BRIDGE_UNAVAILABLE");
+      } else {
+        await expect(opening).rejects.toThrow("GOAL_BRIDGE_UNAVAILABLE");
+      }
       expect(fs.existsSync(file)).toBe(false);
     },
   );
@@ -504,14 +518,19 @@ consent.storePath=()=>process.env.DMM_TEST_CONSENT_FILE;`,
       await host.openCliConnection(event, { goalRef: ref(), events: true });
       const source = createProjectGoalConnection(file);
       expect((await source.readEvents()).goalRef).toEqual(ref());
-      if (mode === "navigation") event.sender.emit("did-navigate-in-page");
-      if (mode === "login") clearProjectGoalAuth();
-      if (mode === "revision")
+      if (mode === "navigation") {
+        event.sender.emit("did-navigate-in-page");
+      }
+      if (mode === "login") {
+        clearProjectGoalAuth();
+      }
+      if (mode === "revision") {
         goal = host.revise(event, {
           id: goal.id,
           expectedRevision: goal.revision,
           patch: { objective: "Revised" },
         });
+      }
       await expect(source.readEvents()).rejects.toThrow(
         "CONNECTION_UNAVAILABLE",
       );
@@ -955,11 +974,21 @@ consent.storePath=()=>process.env.DMM_TEST_CONSENT_FILE;`,
     async (kind) => {
       const original = db;
       electron.dialog.showMessageBox.mockImplementation(async () => {
-        if (kind === "identity") actor = "did:chainless:other";
-        if (kind === "generation") generation++;
-        if (kind === "frame") event.senderFrame = { ...event.senderFrame };
-        if (kind === "navigation") event.sender.emit("did-start-navigation");
-        if (kind === "database") db = new Database(":memory:");
+        if (kind === "identity") {
+          actor = "did:chainless:other";
+        }
+        if (kind === "generation") {
+          generation++;
+        }
+        if (kind === "frame") {
+          event.senderFrame = { ...event.senderFrame };
+        }
+        if (kind === "navigation") {
+          event.sender.emit("did-start-navigation");
+        }
+        if (kind === "database") {
+          db = new Database(":memory:");
+        }
         return { response: 1 };
       });
       await expect(open()).rejects.toThrow("GOAL_BRIDGE_UNAVAILABLE");
@@ -981,19 +1010,31 @@ consent.storePath=()=>process.env.DMM_TEST_CONSENT_FILE;`,
   ])("invalidates a saved connection after %s", async (kind) => {
     await open();
     const source = createProjectGoalConnection(file);
-    if (kind === "login") clearProjectGoalAuth();
-    if (kind === "navigation") event.sender.emit("did-navigate-in-page");
-    if (kind === "closed") parent.emit("closed");
-    if (kind === "project")
+    if (kind === "login") {
+      clearProjectGoalAuth();
+    }
+    if (kind === "navigation") {
+      event.sender.emit("did-navigate-in-page");
+    }
+    if (kind === "closed") {
+      parent.emit("closed");
+    }
+    if (kind === "project") {
       db.prepare("UPDATE projects SET status='archived'").run();
-    if (kind === "revision")
+    }
+    if (kind === "revision") {
       goal = host.revise(event, {
         id: goal.id,
         expectedRevision: goal.revision,
         patch: { objective: "Revised" },
       });
-    if (kind === "expiry") now += 15 * 60 * 1000 + 1;
-    if (kind === "stop") host.closeCliConnection(event);
+    }
+    if (kind === "expiry") {
+      now += 15 * 60 * 1000 + 1;
+    }
+    if (kind === "stop") {
+      host.closeCliConnection(event);
+    }
     await expect(source.read()).rejects.toThrow("CONNECTION_UNAVAILABLE");
     expect(host.cliConnectionStatus(event).enabled).toBe(false);
   });
@@ -1005,8 +1046,9 @@ consent.storePath=()=>process.env.DMM_TEST_CONSENT_FILE;`,
       { pathname: "/goal-summary?goal=other" },
       { headers: { Origin: "http://evil.invalid" } },
       { headers: { "X-CC-Signature": "0".repeat(64) } },
-    ])
+    ]) {
       expect((await request(data, options)).status).toBe(403);
+    }
     const nonce = "a".repeat(64);
     expect((await request(data, { nonce })).status).toBe(200);
     expect((await request(data, { nonce })).status).toBe(429);

@@ -1,0 +1,25 @@
+{
+  "codeCommit": "2ba726cd9c40cf640d6950dac27c088039d0cece",
+  "files": {
+    "input-diagnostic-tests.json": {
+      "bytes": 23317,
+      "sha256": "1c92edf0c29ec4a580502b59fcc2a6607534f314f67f2e06166ead1a7d3c7800"
+    },
+    "input-diagnostic-tests-r2.json": {
+      "bytes": 23599,
+      "sha256": "878788a0d537c4e6332b42d8a7d323d68cb79ca7b31b11ff368d893470cee848"
+    },
+    "input-diagnostic-tests-r3.json": {
+      "bytes": 23054,
+      "sha256": "53e6ce0aea122b16fbf570bffb47d97495806642c3aefd7ce7e38c4ebf4347d5"
+    },
+    "input-diagnostic-read-guard-tests.json": {
+      "bytes": 23991,
+      "sha256": "dfd8f656c9bfdedd887f31c0eef1a46e97bcf319845571fb1325952ed580d509"
+    },
+    "input-diagnostic-real-receipt-tests.json": {
+      "bytes": 95390,
+      "sha256": "f2ab09b71a398faa043659c25160fe5c06fa96f18248ce6f0d508a256e6249fc"
+    }
+  }
+}

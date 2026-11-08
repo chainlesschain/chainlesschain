@@ -141,6 +141,14 @@ docs/research/agents/evidence/dmm-native-workspace-2026-11-07/**/*.json
 
 docs/research/agents/evidence/dmm-native-workspace-2026-11-07/**/*.yml
 
+# Preserve the unmodified official Codex 0.167.0 schema generator output.
+packages/cli/__tests__/fixtures/external-agent/codex-app-server-0.167.0-request.schema.json
+packages/cli/__tests__/fixtures/external-agent/codex-app-server-0.167.0-notification.schema.json
+packages/cli/__tests__/fixtures/external-agent/codex-app-server-0.167.0-server-request.schema.json
+packages/cli/__tests__/fixtures/external-agent/codex-app-server-0.167.0-approval-response.schema.json
+
+# Preserve raw Codex 0.167 probe evidence bytes.
+docs/research/cli-ide/implementation/evidence/codex-167-20261108/**/*.json
 # Preserve native risk creation snapshots and authoritative raw CI reports.
 
 docs/research/agents/evidence/dmm-native-risk-create-2026-11-07/**/*.json
@@ -155,3 +163,19 @@ docs/research/agents/evidence/dmm-goal-trial-switch-2026-11-07/**/*.yml
 docs/research/agents/evidence/dmm-native-modal-revocation-2026-11-07/**/*.json
 docs/research/agents/evidence/dmm-native-modal-revocation-2026-11-07/**/*.cjs
 docs/research/agents/evidence/dmm-native-modal-revocation-2026-11-07/local/**/*.mjs
+# Preserve the unmodified official Codex 0.167.0 schema generator output.
+packages/cli/__tests__/fixtures/external-agent/codex-app-server-0.167.0-request.schema.json
+packages/cli/__tests__/fixtures/external-agent/codex-app-server-0.167.0-notification.schema.json
+packages/cli/__tests__/fixtures/external-agent/codex-app-server-0.167.0-server-request.schema.json
+packages/cli/__tests__/fixtures/external-agent/codex-app-server-0.167.0-approval-response.schema.json
+
+# Preserve raw Codex 0.167 probe evidence bytes.
+docs/research/cli-ide/implementation/evidence/codex-167-20261108/**/*.json
+docs/research/cli-ide/implementation/evidence/model-input-20261108/**/*.json
+docs/research/cli-ide/implementation/evidence/model-input-journal-20261108/**/*.json
+docs/research/cli-ide/implementation/evidence/ide-model-input-20261108/**/*.json
+docs/research/cli-ide/implementation/evidence/ide-model-input-20261108/**/*.log
+docs/research/cli-ide/implementation/evidence/jetbrains-model-input-20261108/**
+docs/research/cli-ide/implementation/evidence/model-input-source-20261108/**
+docs/research/cli-ide/implementation/evidence/mcp-tasks-20261108/**
+docs/research/cli-ide/implementation/evidence/mcp-task-durable-20261108/**

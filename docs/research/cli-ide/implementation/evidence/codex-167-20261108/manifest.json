@@ -1,0 +1,112 @@
+{
+  "schema": "chainlesschain.codex-167-evidence/v1",
+  "date": "2026-11-08",
+  "codeCommit": "e55e99ca22eda1f202d516e42ef306ee9cf28af6",
+  "platform": "win32",
+  "arch": "x64",
+  "node": "24.12.0",
+  "realProviderAcceptance": false,
+  "productionAdmission": false,
+  "files": {
+    "first-database.json": {
+      "bytes": 2100,
+      "sha256": "8a897bf6283ed109faf70d9674ad58e0c4669a80722af81b3183c53de9f7c91b"
+    },
+    "first-database.json.notifications.json": {
+      "bytes": 5,
+      "sha256": "a930ec39e7339fde7af6a7f1009d621c595aab52ec9324dde1e8387212ae64aa"
+    },
+    "first-scan-repair.json": {
+      "bytes": 2195,
+      "sha256": "d8e7ddb55d5a515a0dc9d13152c213fb8f74440d11d94084d50d1343fb1ad3a5"
+    },
+    "first-scan-repair.json.notifications.json": {
+      "bytes": 5,
+      "sha256": "a930ec39e7339fde7af6a7f1009d621c595aab52ec9324dde1e8387212ae64aa"
+    },
+    "first-turn.json": {
+      "bytes": 571,
+      "sha256": "21302d83d855d8edb3453964a900a52f2f4e8f806e2e10e0c885fcea474dc654"
+    },
+    "first-turn.json.approvals.json": {
+      "bytes": 3,
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    "first-turn.json.notifications.json": {
+      "bytes": 3,
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    "isolated-database.json": {
+      "bytes": 3015,
+      "sha256": "038a374766e47595cc8957723618d61ffc65c4a67b231d2ef8f2439c928a52a9"
+    },
+    "isolated-database.json.notifications.json": {
+      "bytes": 10703,
+      "sha256": "27df34e93d020f9472f0d0d15a538cc02cb2eabe2417d4de8bf1995e193fb351"
+    },
+    "isolated-scan-repair.json": {
+      "bytes": 3110,
+      "sha256": "0e9f86d804edd0417c85fd4b3154fd8747b9b1b0d2a92a2f3ce6955fa8d3655d"
+    },
+    "isolated-scan-repair.json.notifications.json": {
+      "bytes": 10703,
+      "sha256": "a8e45d267e94afc2d7dbead34d7d4780cd937178a44fb283fb65f77b92c4ada8"
+    },
+    "isolated-turn.json": {
+      "bytes": 516,
+      "sha256": "8c4c791e6591d3f0fa6f919b631660318a9c77a91964c9f24a5873196edc7249"
+    },
+    "isolated-turn.json.approvals.json": {
+      "bytes": 1132,
+      "sha256": "9fc79c5fd2cfc5473b57eee3260b7e999899a3807a4e67cc61baa7ce0176fd4d"
+    },
+    "isolated-turn.json.notifications.json": {
+      "bytes": 21367,
+      "sha256": "21a8cdff6ef428521bc99a5cef0813be76b083c27167b62eacde9e7c32cfd9a1"
+    },
+    "fixed-database.json": {
+      "bytes": 6169,
+      "sha256": "f53a590c08b690d58fbbdf9cb94e6fd233600a6916a5764e7c9e9578fc8009dc"
+    },
+    "fixed-database.json.notifications.json": {
+      "bytes": 15663,
+      "sha256": "9682835a3f54a51fbcf951d7f9f32cc15be739e28cc055ca4cc7eb51e50c116c"
+    },
+    "fixed-scan-repair.json": {
+      "bytes": 34649,
+      "sha256": "5890a769414e2630bd715052de518aae4be3759b841f8c33143c557d5c6c17eb"
+    },
+    "fixed-scan-repair.json.notifications.json": {
+      "bytes": 19121,
+      "sha256": "86c7034b9af8d71232941f37bde7a9626d9f18554aef1be1d933f916a64b4711"
+    },
+    "fixed-turn.json": {
+      "bytes": 4890,
+      "sha256": "3bb703e415e8cabb53e6802751f307a29ae36896ea426c7ca1e03b60f9824eda"
+    },
+    "fixed-turn.json.approvals.json": {
+      "bytes": 1132,
+      "sha256": "f7f91a4fd060057a96517a2814d9d0dbddeb45d52b24e83a0074e8db8d2d5529"
+    },
+    "fixed-turn.json.notifications.json": {
+      "bytes": 21367,
+      "sha256": "8453ac89068ba2c6e142d3d90e6ddbf59c394864ac92f77d00a93cae9800821a"
+    },
+    "baseline-tests.json": {
+      "bytes": 35936,
+      "sha256": "c109586e317573f5754621209ee5422c2f3a58f92b6a6ae9aab40dc29b27c7d0"
+    },
+    "updated-tests.json": {
+      "bytes": 65553,
+      "sha256": "04b6a7a209dcc4a525f79f3ae8fc43cf32689bb01310c4316fd305ba23049b30"
+    },
+    "updated-tests-r2.json": {
+      "bytes": 41990,
+      "sha256": "2bf9cfb37978e056718bad933edec57cd836a98c5123e2b05e0a004ab14d7167"
+    },
+    "final-tests.json": {
+      "bytes": 46071,
+      "sha256": "e7a37a9d276241eaa75bf6406a7deb22a35c87275c385dedab22ddcd6736cbdd"
+    }
+  }
+}
