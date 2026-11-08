@@ -1,0 +1,20 @@
+# 发布与文档同步
+
+[返回 CLI / IDE 索引](../README.md)
+
+- [CLI / IDE 候选版本范围（2026-09-27）](./cli-ide-release-candidate-2026-09-27.md)
+- [CLI .128 与配套 IDE / 客户端发布记录](./cli-ide-release128-progress-2026-10-27.md)
+- [CLI 0.166.129 与 IDE 发布进度（2026-10-28 准备，2026-10-29 发布）](./cli-ide-release129-progress-2026-10-28.md)
+- [代码、Git 与公共文档对齐记录（2026-10-28）](./documentation-code-git-sync-2026-10-28.md)
+- [Memory 子包 0.1.11 发布准备](./cli-ide-memory-child-release-progress-2026-10-29.md)
+- [CLI .129 公开配对文档同步](./cli-ide-public-docs129-progress-2026-10-29.md)
+- [.130 发布门禁失败与调度器租约测试修复](./cli-ide-release130-ci-recovery-2026-10-29.md)
+- [.130 候选分支合并与发布前置核对](./cli-ide-release130-merge-progress-2026-10-29.md)
+- [.130 公开配对回读与主线合并核对](./cli-ide-release130-reconcile-progress-2026-10-29.md)
+- [.131 新发行候选准备](./cli-ide-release131-preparation-progress-2026-10-29.md)
+- [CLI .129 官网、设计站与三站构建同步](./cli-ide-sites129-progress-2026-10-29.md)
+- [.130 公开升级入口与三站同步](./cli-ide-sites130-progress-2026-10-29.md)
+- [.131 设计、用户文档、README 与三站部署](./cli-ide-sites131-progress-2026-10-29.md)
+- [CLI .132 / 配对 IDE：本批修复与发行进度](./cli-ide-release132-progress-2026-10-30.md)
+- [CLI .133 路径声明修复与发行门禁](./cli-ide-release133-progress-2026-10-30.md)
+- [CLI .132 文档、README 与三站部署进度](./cli-ide-sites132-progress-2026-10-30.md)

@@ -199,10 +199,48 @@ describe("monitoring login authority through production authentication handlers"
 
   it("does not treat unrelated hardware loss as software logout", async () => {
     await passwordLogin();
+    const generation = auth.getProjectGoalAuthGeneration();
+    const changed = vi.fn();
+    const unsubscribe = auth.subscribeProjectGoalAuthChanges(changed);
     await handlers["ukey:lock"](event);
     driver.detected = false;
     await manager.detect();
+    await manager.detect();
     expect(auth.getProjectGoalActor()).toBe(owner);
+    expect(auth.getProjectGoalAuthGeneration()).toBe(generation);
+    expect(changed).not.toHaveBeenCalled();
+    unsubscribe();
+    await logout();
+    expect(auth.getProjectGoalAuthGeneration()).toBeGreaterThan(generation);
+  });
+
+  it("invalidates a pending PIN on hardware loss without expiring the password session generation", async () => {
+    await passwordLogin();
+    let release;
+    driver.verifyPIN = () =>
+      new Promise((resolve) => {
+        release = resolve;
+      });
+    const pending = pinLogin();
+    const generation = auth.getProjectGoalAuthGeneration();
+    driver.detected = false;
+    await manager.detect();
+    driver.unlocked = true;
+    release({ success: true });
+    await pending;
+    expect(auth.getProjectGoalActor()).toBe(owner);
+    expect(auth.getProjectGoalAuthGeneration()).toBe(generation);
+    // A fresh successful hardware login replaces the software session; revoking
+    // it must still clear authority and invalidate an old native preview.
+    driver.detected = true;
+    driver.verifyPIN = async () => ({ success: true });
+    await pinLogin();
+    const hardwareGeneration = auth.getProjectGoalAuthGeneration();
+    manager.lock();
+    expect(auth.getProjectGoalActor()).toBeNull();
+    expect(auth.getProjectGoalAuthGeneration()).toBeGreaterThan(
+      hardwareGeneration,
+    );
   });
 
   it("never falls back to an earlier software session after hardware login is revoked", async () => {

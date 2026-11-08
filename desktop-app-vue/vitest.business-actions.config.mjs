@@ -3,6 +3,7 @@ import { defineConfig } from "vitest/config";
 // Narrow main-process regression: actual SQLite, injected Electron UI boundary.
 export default defineConfig({
   test: {
+    env: { CHAINLESSCHAIN_PROJECT_GOALS: "1" },
     environment: "node",
     pool: "forks",
     maxWorkers: 1,
@@ -10,9 +11,11 @@ export default defineConfig({
     testTimeout: 30_000,
     hookTimeout: 30_000,
     include: [
+      "src/main/task/__tests__/project-goal-feature-policy.test.js",
       "src/main/notification/__tests__/*.test.js",
       "src/main/task/__tests__/task-description-ipc.test.js",
       "src/main/task/__tests__/project-goal-ipc.test.js",
+      "src/main/task/__tests__/project-goal-transfer-ipc.test.js",
       "src/main/task/__tests__/project-goal-workflow-ipc.test.js",
       "src/main/task/__tests__/project-goal-delivery-drafts-ipc.test.js",
       "src/main/task/__tests__/project-goal-draft-imports-ipc.test.js",
@@ -23,6 +26,8 @@ export default defineConfig({
       "src/main/task/__tests__/project-goal-memory-ipc.test.js",
       "src/main/task/__tests__/project-goal-model-drafts-ipc.test.js",
       "src/main/task/__tests__/project-goal-monitoring-host.test.js",
+      "src/main/task/__tests__/project-goal-graph-host.test.js",
+      "src/main/task/__tests__/project-goal-encrypted-host.test.js",
       "src/main/task/__tests__/project-goal-auth-session.test.js",
       "tests/unit/ukey/ukey-ipc.test.js",
       "src/preload/__tests__/legacy-ipc-policy.test.js",

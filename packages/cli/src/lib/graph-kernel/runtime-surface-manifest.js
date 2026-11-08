@@ -144,15 +144,15 @@ export function assertGraphProductionRuntimeSurfaceManifest(manifest) {
   if (
     surfaces.length !== 5 ||
     JSON.stringify(surfaceNames) !== JSON.stringify(expectedSurfaceNames) ||
-    entries.length !== 23 ||
-    counts.migrate !== 7 ||
+    entries.length !== 24 ||
+    counts.migrate !== 8 ||
     counts.retire !== 13 ||
     counts.disabled !== 3 ||
     JSON.stringify(manifest?.cutoverPolicy?.legacyMutationErrorCodes) !==
       JSON.stringify(expectedLegacyMutationErrorCodes)
   ) {
     const error = new Error(
-      "production Graph runtime manifest must freeze exactly 5 surfaces, 23 entries, 20 durable, 7 migrate, 13 retire, and 3 disabled",
+      "production Graph runtime manifest must freeze exactly 5 surfaces, 24 entries, 21 durable, 8 migrate, 13 retire, and 3 disabled",
     );
     error.name = "GraphRuntimeSurfaceManifestError";
     error.code = "CC_GRAPH_PRODUCTION_MANIFEST_CONTRACT_MISMATCH";
@@ -167,9 +167,9 @@ export function assertGraphProductionRuntimeSurfaceManifest(manifest) {
   }
   return Object.freeze({
     surfaceCount: 5,
-    entryCount: 23,
-    durableEntryCount: 20,
-    migratableEntryCount: 7,
+    entryCount: 24,
+    durableEntryCount: 21,
+    migratableEntryCount: 8,
     retirementEntryCount: 13,
     disabledEntryCount: 3,
     manifestDigest: graphRuntimeSurfaceManifestDigest(manifest),

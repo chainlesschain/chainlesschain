@@ -119,10 +119,14 @@ function runBuild() {
   // failed under `npm publish` in CI.)
   const childEnv = (() => {
     const env = { ...process.env };
+    // Cache storage does not select the workspace. Preserve an explicitly
+    // writable cache instead of falling back to ~/.npm in restricted runners.
+    const npmCache = env.npm_config_cache || env.NPM_CONFIG_CACHE;
     for (const k of Object.keys(env)) {
       if (k.toLowerCase().startsWith("npm_config_")) delete env[k];
       if (k.toLowerCase().startsWith("npm_package_")) delete env[k];
     }
+    if (npmCache) env.npm_config_cache = npmCache;
     delete env.npm_lifecycle_event;
     delete env.npm_lifecycle_script;
     delete env.npm_execpath;

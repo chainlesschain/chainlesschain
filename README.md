@@ -1,5 +1,7 @@
 # ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+> 发布候选：CLI **0.166.144** / Session Core **0.3.27** / VS Code **0.37.180** / JetBrains **0.4.197** 正在验证，尚未发布；下方安装说明仍指向已核验的公开版本。候选增加目标转移与签名回退，并修复 Windows CI 长路径及受限环境的 Web 面板构建缓存。
+
 当前公开 CLI **0.166.143**、Session Core **0.3.26** 已通过准确提交三平台门禁、Actions OIDC 发布及独立公开字节/签名来源核验。Open VSX **0.37.179** 已公开，公开 VSIX 与官方制品一致；JetBrains **0.4.196** 已获批且可下载，627 个原始 payload 文件与官方构建一致。两端均推荐 CLI **0.166.143**，详见[本次发布记录](docs/research/cli/evidence/release143-public/README.md)。准确发行源码为 `3fa3a4b258bbcb60b23b4298cec375661ad6f410`。
 
 安装 `npm i -g chainlesschain@0.166.143 --registry https://registry.npmjs.org`，重启宿主后运行 `cc --version`、`cc doctor`。本批增加力数/vLLM/SGLang 等本地算力配置、端点凭据隔离和待审目标创建请求；原生创建仍需匹配桌面实现与另行确认。当前公开客户端为 **v5.0.3.145**，来自较早独立源码；本批新增原生创建/模型草稿需要匹配的新桌面构建。本次不重发 PC/移动端，真实 IDE/Electron GUI、力数推理及业务效果验收仍独立进行。[升级说明](docs-site/docs/chainlesschain/cli-ide-update-2026-11-06-143.md) · [设计说明](docs/design/release-runtime-update-2026-11-06-143.md) · [上一版发行记录](docs/research/cli/evidence/release142-public/README.md)
@@ -136,17 +138,17 @@ CLI **0.166.135** 已通过 Actions OIDC 发布，Open VSX **0.37.173** 已公�
 
 `.129` 加强交付复查的上下文隔离，并统一实验性 Codex App Server 兼容清单；交付复查和实验路由仍须显式启用。准确 CLI 源码 `fd8a21637ab188dae0c777442d312ae85d420a9b` 的三系统 CLI CI / Strict Sandbox、OIDC 发布及公开包核验均通过。IDE 源码单独绑定 `800e9cc99711f9f02eb3bbd78eb14600406bdba5`；JetBrains 已批准上架，ZIP 成员与 CI 一致，外层 ZIP 字节不同。[发行证据](docs/research/cli/evidence/release129-public/publication.json) · [升级指南](docs-site/docs/chainlesschain/cli-ide-update-2026-10-29.md)。
 
-累计合格交付为 **34/45**（普通 **27/36**、首次入口 **7/9**），剩余 **11** 项；它不是 `.129` 单版本成功率，正式付费 / native 准入与自动晋升仍保留 **NOT_PAID_READY / NOT_ADMITTED / HOLD**。后续主分支的独立 Goal checker、Memory 磁盘 / 缓存修复和 Terra 能力 / 计费尚未发布，见[当前任务表](docs/research/cli-ide/cli-ide-codex-claude-gap-review-2026-10-27.md)。PC / 移动端继续使用独立发行 [v5.0.3.143](https://github.com/chainlesschain/chainlesschain/releases/tag/v5.0.3.143)；下方带日期章节保留历史状态。
+累计合格交付为 **34/45**（普通 **27/36**、首次入口 **7/9**），剩余 **11** 项；它不是 `.129` 单版本成功率，正式付费 / native 准入与自动晋升仍保留 **NOT_PAID_READY / NOT_ADMITTED / HOLD**。后续主分支的独立 Goal checker、Memory 磁盘 / 缓存修复和 Terra 能力 / 计费尚未发布，见[当前任务表](docs/research/cli-ide/plans/cli-ide-codex-claude-gap-review-2026-10-27.md)。PC / 移动端继续使用独立发行 [v5.0.3.143](https://github.com/chainlesschain/chainlesschain/releases/tag/v5.0.3.143)；下方带日期章节保留历史状态。
 
 ## CLI 0.166.128 已公开（2026-10-28）
 
-CLI **0.166.128** 已通过 [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/40552876222) 发布，准确提交 `dfa158e36171e347a40e23356c2ed7bd04e0c061` 的三系统 CLI CI / Strict Sandbox 全部通过。[独立公开回读](https://github.com/chainlesschain/chainlesschain/actions/runs/40556529770) 确认 npm 归档与不可变 CI 制品逐字节一致，签名来源和十个直接子依赖均已核验。安装：`npm i -g chainlesschain@0.166.128 --registry https://registry.npmjs.org`。包含 Goal 验收与检查点恢复、双 IDE 模型配置支持、MCP / Skills 多语言检索、可选紧凑目录和 Memory 索引优化。配套 Open VSX `0.37.166` / JetBrains `0.4.183` 已公开并完成下载包回读，移动/PC 安装包 [v5.0.3.143](https://github.com/chainlesschain/chainlesschain/releases/tag/v5.0.3.143) 已公开，五平台构建、22 个公开资产与三套桌面更新元数据均已核验，见[发布进度](docs/research/cli-ide/cli-ide-release128-progress-2026-10-27.md)和[公开状态](docs/research/cli/evidence/release128-public/publication.json)。
+CLI **0.166.128** 已通过 [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/40552876222) 发布，准确提交 `dfa158e36171e347a40e23356c2ed7bd04e0c061` 的三系统 CLI CI / Strict Sandbox 全部通过。[独立公开回读](https://github.com/chainlesschain/chainlesschain/actions/runs/40556529770) 确认 npm 归档与不可变 CI 制品逐字节一致，签名来源和十个直接子依赖均已核验。安装：`npm i -g chainlesschain@0.166.128 --registry https://registry.npmjs.org`。包含 Goal 验收与检查点恢复、双 IDE 模型配置支持、MCP / Skills 多语言检索、可选紧凑目录和 Memory 索引优化。配套 Open VSX `0.37.166` / JetBrains `0.4.183` 已公开并完成下载包回读，移动/PC 安装包 [v5.0.3.143](https://github.com/chainlesschain/chainlesschain/releases/tag/v5.0.3.143) 已公开，五平台构建、22 个公开资产与三套桌面更新元数据均已核验，见[发布进度](docs/research/cli-ide/releases/cli-ide-release128-progress-2026-10-27.md)和[公开状态](docs/research/cli/evidence/release128-public/publication.json)。
 
 本版加入显式 `--review-changes`：在原预算与权限内复查写入/编辑交付，默认关闭，开启时仅输出最终文本。相关 36+9 原生复测在配套公开发行与安装核验后进行，当前仍为 **32/45**；本地测试及合成性能结果不替代真实任务与费用验收。
 
 [当前升级指南](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-28.html) · [运行时与发行设计](https://design.chainlesschain.com/release-runtime-update-2026-10-28.html)。Microsoft Marketplace 仍未发布。
 
-文档已按代码与 Git 提交复核：[Agent 完成条件与复查](https://docs.chainlesschain.com/chainlesschain/cli-agent.html) · [IDE 模型配置](https://docs.chainlesschain.com/chainlesschain/ide-plugin.html) · [MCP 紧凑目录](https://docs.chainlesschain.com/chainlesschain/cli-tool-search.html) · [Skills](https://docs.chainlesschain.com/chainlesschain/cli-skill.html) · [Memory](https://docs.chainlesschain.com/chainlesschain/cli-memory.html)。[代码与文档对齐记录](docs/research/cli-ide/documentation-code-git-sync-2026-10-28.md)保留具体提交和验证范围。
+文档已按代码与 Git 提交复核：[Agent 完成条件与复查](https://docs.chainlesschain.com/chainlesschain/cli-agent.html) · [IDE 模型配置](https://docs.chainlesschain.com/chainlesschain/ide-plugin.html) · [MCP 紧凑目录](https://docs.chainlesschain.com/chainlesschain/cli-tool-search.html) · [Skills](https://docs.chainlesschain.com/chainlesschain/cli-skill.html) · [Memory](https://docs.chainlesschain.com/chainlesschain/cli-memory.html)。[代码与文档对齐记录](docs/research/cli-ide/releases/documentation-code-git-sync-2026-10-28.md)保留具体提交和验证范围。
 
 ## CLI 0.166.127 自进化开关（已公开，2026-10-27）
 
@@ -410,7 +412,7 @@ cc --version
 
 Open VSX **0.37.126** 与 JetBrains Marketplace **0.4.146** 已公开。[IDE 精确提交宿主门](https://github.com/chainlesschain/chainlesschain/actions/runs/36996293161)、[Open VSX 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/37013013953)和 [JetBrains 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/37013013151)成功。2026-10-02 独立商店回读确认 Open VSX `latest=0.37.126`，JetBrains `0.4.146` 为 `approve/listed=true`、`hidden=false`；两个 IDE 均推荐 CLI `0.166.84`，源码同为 `d93c9c9766`。 升级 CLI 后重启 IDE 聊天宿主。Microsoft Marketplace 未发行；桌面与移动端继续使用独立产品发行 **v5.0.3.138**。
 
-**2026-10-03 开发进度**：较早的 VS Code **0.37.127@96cbf6ba56** 完成三系统宿主测量与严格沙箱检查，CLI CI 的 Windows worker 同提交重跑仍失败；候选随后整合到 `13095fd426` 重新验收，仍未发布。后续 CLI 提交完成同次严格 settings 观察的权限投影、Linux standalone 固定监督器打包及准确源码的真实 pkg 入口验证；这些 CLI 改动尚未进入 npm `latest`。实现 SHA、可重放证据和未完成的跨进程/SLO/完整宿主验收见[共享实施状态](docs/research/cli-ide/cli-ide-gap-implementation-2026-09-27.md)。
+**2026-10-03 开发进度**：较早的 VS Code **0.37.127@96cbf6ba56** 完成三系统宿主测量与严格沙箱检查，CLI CI 的 Windows worker 同提交重跑仍失败；候选随后整合到 `13095fd426` 重新验收，仍未发布。后续 CLI 提交完成同次严格 settings 观察的权限投影、Linux standalone 固定监督器打包及准确源码的真实 pkg 入口验证；这些 CLI 改动尚未进入 npm `latest`。实现 SHA、可重放证据和未完成的跨进程/SLO/完整宿主验收见[共享实施状态](docs/research/cli-ide/plans/cli-ide-gap-implementation-2026-09-27.md)。
 
 `f7ec90ec9b` 进一步消除打包目标检查的隐式进程探测，并为两处真实编译请求有限资源预算；454 项定向测试及真实 Linux CLI dry-run 通过，完整原生矩阵继续验收。设计、用户文档与官网已部署，公网页面及客户端模块字节核对通过。
 
@@ -2321,14 +2323,14 @@ KG 4 个 tab：force-directed graph (ECharts) / 实体表 / 关系表 / 类型�
 
 收口跨链桥设计 §11 + 联邦治理 v0.2 §11 列出的全部可做项（链上锚定阻塞 Q-COMP-3、真实 RPC 适配器需 desktop 大工程，此两项继续保留）：
 
-| Wave | 模块 | 内容 |
+| Wave                                            | 模块                                    | 内容                                                                                                                                                                                                                                        |
 | ----------------------------------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| **A1** Cross-federation 互信（v0.3 #1） | `core-mtc/lib/federation-governance.js` | `SCHEMA_CROSS_FED_TRUST_ANCHOR` schema + `createCrossFederationTrustAnchor` + `validateCrossFederationTrustAnchor`（含 EXPIRED 检查）。CLI: `cc mtc federation cross-trust-create/validate` |
-| **A2** 离线审计第三方接口（v0.3 #3） | 同上 lib | `auditGovernanceLog(events, fedId)` 纯函数：检测 UNKNOWN_ACTOR / ACTOR_KEY_MISMATCH / BOOTSTRAP_KEY_MISMATCH / OUT_OF_ORDER 四类问题，返回 `{ok, findings[], final_state}`。CLI: `cc mtc federation audit <fed> [--summary                  | --json]` |
-| **B1** 多跳桥（bridge §11 #3） | `cross-chain-mtc.js` | `buildMultiHopBridgeEnvelope` 链 ≥2 个单跳 envelope，强制 `leg[i].dst_chain == leg[i+1].src_chain` 连续性；新 schema `mtc-bridge-multihop/v1`。`verifyMultiHopBridgeEnvelope` per-leg 验证。CLI: `cc crosschain mtc-multihop-build/-verify` |
-| **B2** Gas-aware batch（bridge §11 #4） | 同上 | `shouldCloseBatchGasAware` 启发式：staged ≥ 50 硬关；current_gas > baseline×1.5 延迟；否则关。CLI: `cc crosschain mtc-gas-check <chain> --staged-count <n> [--current-gas-usd]` |
-| **B3** SLA Manager 集成（bridge §11 #6） | 同上 | `getBridgeMtcSlaMetrics` 输出 `cc sla` 兼容形状：`sla_status` (ok/degraded/down) + staging/批次/最近批次时间。CLI: `cc crosschain mtc-sla` |
-| **C** Web-panel 监控 dashboard（bridge §11 #5） | `Mtc.vue` 跨链桥 tab | 新增"SLA / Monitoring" 卡片：4 个统计 (status / staged / batches/h / last batch) + 30s 自动 poll `cc crosschain mtc-sla --json`，可纳入外部 Prometheus / Grafana |
+| **A1** Cross-federation 互信（v0.3 #1）         | `core-mtc/lib/federation-governance.js` | `SCHEMA_CROSS_FED_TRUST_ANCHOR` schema + `createCrossFederationTrustAnchor` + `validateCrossFederationTrustAnchor`（含 EXPIRED 检查）。CLI: `cc mtc federation cross-trust-create/validate`                                                 |
+| **A2** 离线审计第三方接口（v0.3 #3）            | 同上 lib                                | `auditGovernanceLog(events, fedId)` 纯函数：检测 UNKNOWN_ACTOR / ACTOR_KEY_MISMATCH / BOOTSTRAP_KEY_MISMATCH / OUT_OF_ORDER 四类问题，返回 `{ok, findings[], final_state}`。CLI: `cc mtc federation audit <fed> [--summary                  | --json]` |
+| **B1** 多跳桥（bridge §11 #3）                  | `cross-chain-mtc.js`                    | `buildMultiHopBridgeEnvelope` 链 ≥2 个单跳 envelope，强制 `leg[i].dst_chain == leg[i+1].src_chain` 连续性；新 schema `mtc-bridge-multihop/v1`。`verifyMultiHopBridgeEnvelope` per-leg 验证。CLI: `cc crosschain mtc-multihop-build/-verify` |
+| **B2** Gas-aware batch（bridge §11 #4）         | 同上                                    | `shouldCloseBatchGasAware` 启发式：staged ≥ 50 硬关；current_gas > baseline×1.5 延迟；否则关。CLI: `cc crosschain mtc-gas-check <chain> --staged-count <n> [--current-gas-usd]`                                                             |
+| **B3** SLA Manager 集成（bridge §11 #6）        | 同上                                    | `getBridgeMtcSlaMetrics` 输出 `cc sla` 兼容形状：`sla_status` (ok/degraded/down) + staging/批次/最近批次时间。CLI: `cc crosschain mtc-sla`                                                                                                  |
+| **C** Web-panel 监控 dashboard（bridge §11 #5） | `Mtc.vue` 跨链桥 tab                    | 新增"SLA / Monitoring" 卡片：4 个统计 (status / staged / batches/h / last batch) + 30s 自动 poll `cc crosschain mtc-sla --json`，可纳入外部 Prometheus / Grafana                                                                            |
 
 **累计测试**：core-mtc 232 (+12 v0.3 lib) + CLI integration 66 (+6 governance + 4 crosschain) + lib unit 70 (+14 v0.2 lib) = **358 全绿**。
 
@@ -2432,15 +2434,15 @@ KG 4 个 tab：force-directed graph (ECharts) / 实体表 / 关系表 / 类型�
 
 落地两份治理 / 跨链设计文档（关闭 §12 已知限制 #2/#6）+ `cc crosschain mtc-*` 一组新子命令，让现有桥流程能 opt-in 写 MTC envelope：
 
-| 模块 | 内容 |
+| 模块                        | 内容                                                                                                                                                                                                              |
 | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 设计文档 — 联邦治理 v1 | `docs/design/MTC_联邦治理_v1.md`：5 阶段联邦生命周期 (Bootstrap/Steady/Dispute/Wind-down/Closed) + 准入审批流（候选期权重 0.5）+ M-of-N 阈值业务场景分级 + 三种退出路径 + Fork/Merge 语义 + governance.log schema |
-| 设计文档 — 跨链桥 MTC 化 v1 | `docs/design/MTC_跨链桥_v1.md`：`mtc/v1/bridge/<chain-pair>/...` 字典序 namespace + 桥两侧 MTCA 三种互信模式（Independent/Federated/Light Client）+ 跨链特有威胁分析 (T1 oracle 共谋 / T5 censorship) |
-| CLI lib | `packages/cli/src/lib/cross-chain-mtc.js` 新增：`bridgeNamespace` 强制字典序 + 信任锚 store (Independent 模式) + `assembleBridgeBatch` / `verifyBridgeEnvelope` + `stageBridgeOp` / `closeBatch` staging 生命周期 |
-| 4 个新子命令 | `cc crosschain mtc-status` / `mtc-envelope` / `mtc-verify` / `mtc-trust-anchor {add,list,remove}` / `mtc-batch` |
-| `--mtc` opt-in flag | `cc crosschain bridge                                                                                                                                                                                             | swap | send --mtc` 在原命令成功后写一条 staging op；`cc crosschain mtc-batch` 关 staging 为按 chain-pair 分组的批次（landmark + envelopes 持久化到 batches/<pair>-<seq>/） |
-| Bug fix | `_dbFromCtx` 修向上多层查找 `_db`（之前只看 root program → 永远 null，导致桥命令 spawnSync 全挂）+ crosschain `preAction` 自动 bootstrap DB |
-| core-mtc 改动 | `NAMESPACE_RE` 加 `bridge` kind（additive，不破坏现有 did/skill/audit） |
+| 设计文档 — 联邦治理 v1      | `docs/design/MTC_联邦治理_v1.md`：5 阶段联邦生命周期 (Bootstrap/Steady/Dispute/Wind-down/Closed) + 准入审批流（候选期权重 0.5）+ M-of-N 阈值业务场景分级 + 三种退出路径 + Fork/Merge 语义 + governance.log schema |
+| 设计文档 — 跨链桥 MTC 化 v1 | `docs/design/MTC_跨链桥_v1.md`：`mtc/v1/bridge/<chain-pair>/...` 字典序 namespace + 桥两侧 MTCA 三种互信模式（Independent/Federated/Light Client）+ 跨链特有威胁分析 (T1 oracle 共谋 / T5 censorship)             |
+| CLI lib                     | `packages/cli/src/lib/cross-chain-mtc.js` 新增：`bridgeNamespace` 强制字典序 + 信任锚 store (Independent 模式) + `assembleBridgeBatch` / `verifyBridgeEnvelope` + `stageBridgeOp` / `closeBatch` staging 生命周期 |
+| 4 个新子命令                | `cc crosschain mtc-status` / `mtc-envelope` / `mtc-verify` / `mtc-trust-anchor {add,list,remove}` / `mtc-batch`                                                                                                   |
+| `--mtc` opt-in flag         | `cc crosschain bridge                                                                                                                                                                                             | swap | send --mtc` 在原命令成功后写一条 staging op；`cc crosschain mtc-batch` 关 staging 为按 chain-pair 分组的批次（landmark + envelopes 持久化到 batches/<pair>-<seq>/） |
+| Bug fix                     | `_dbFromCtx` 修向上多层查找 `_db`（之前只看 root program → 永远 null，导致桥命令 spawnSync 全挂）+ crosschain `preAction` 自动 bootstrap DB                                                                       |
+| core-mtc 改动               | `NAMESPACE_RE` 加 `bridge` kind（additive，不破坏现有 did/skill/audit）                                                                                                                                           |
 
 **累计测试**：lib 56 unit + CLI 14 integration + 7 e2e + core-mtc 182 + 既有 cross-chain 83 = **342 测试全绿**，覆盖 unit / integration / e2e 三层 + 跨进程独立验证。
 

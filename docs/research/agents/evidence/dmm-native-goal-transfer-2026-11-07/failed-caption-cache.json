@@ -1,0 +1,173 @@
+{
+  "schema": "chainlesschain.dmm-native-transfer-journey/v1",
+  "sourceSha": "1fa51166b6391b178f8ceba75526b42b349bccf6",
+  "sourceStatus": "?? desktop-app-vue/scripts/lib/project-goal-transfer-native.cjs\n?? desktop-app-vue/scripts/project-goal-transfer-native-journey.mjs",
+  "startedAt": "2026-11-06T19:41:03.869Z",
+  "platform": "win32",
+  "release": "10.0.19045",
+  "synthetic": true,
+  "setupSeeded": true,
+  "realBusinessAcceptance": false,
+  "installedProductAcceptance": false,
+  "runnerSha256": "9784496b4ea1c7c6f64854798a686a4b19f0f6b95f17d0871558e3697bcbe075",
+  "native": [
+    {
+      "pid": 28848,
+      "title": "导出 CLI 目标导入凭据",
+      "button": "保存(S)",
+      "file": "target.json",
+      "method": "Win32 filename SetWindowTextW + BM_CLICK",
+      "filenameVerified": true,
+      "at": "2026-11-06T19:42:29.327Z"
+    },
+    {
+      "pid": 28848,
+      "title": "准备 CLI 目标移交",
+      "button": "取消",
+      "method": "Win32 BM_CLICK",
+      "expectedTextVerified": true,
+      "at": "2026-11-06T19:42:34.679Z"
+    },
+    {
+      "pid": 28848,
+      "title": "导出 CLI 目标导入凭据",
+      "button": "保存(S)",
+      "file": "target.json",
+      "method": "Win32 filename SetWindowTextW + BM_CLICK",
+      "filenameVerified": true,
+      "at": "2026-11-06T19:42:35.174Z"
+    },
+    {
+      "pid": 28848,
+      "title": "准备 CLI 目标移交",
+      "button": "导出导入凭据",
+      "method": "Win32 BM_CLICK",
+      "expectedTextVerified": true,
+      "at": "2026-11-06T19:42:39.982Z"
+    }
+  ],
+  "cli": [
+    {
+      "args": [
+        "goal",
+        "set",
+        "DMM CLI source for actual native handoff",
+        "--kr",
+        "Keep the original source bytes",
+        "--kr",
+        "Do not inherit project permissions",
+        "--json"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"schema\": \"chainlesschain.goal/v1\",\n  \"schemaVersion\": 1,\n  \"id\": \"goal-1793994148412-6xbrdv\",\n  \"storeId\": \"cli-goals-e95f9ecc7f99bf6f29ce3fd9df50ea60e6e41c20c4b2de0503aacc9c0b04493a\",\n  \"revision\": 1,\n  \"controlGeneration\": 0,\n  \"ownerRef\": null,\n  \"projectRef\": null,\n  \"title\": \"DMM CLI source for actual native handoff\",\n  \"objective\": \"DMM CLI source for actual native handoff\",\n  \"status\": \"active\",\n  \"progress\": 0,\n  \"keyResults\": [\n    {\n      \"id\": \"kr-1793994148412-not0v0\",\n      \"text\": \"Keep the original source bytes\",\n      \"target\": null,\n      \"current\": 0,\n      \"done\": false\n    },\n    {\n      \"id\": \"kr-1793994148412-dhl059\",\n      \"text\": \"Do not inherit project permissions\",\n      \"target\": null,\n      \"current\": 0,\n      \"done\": false\n    }\n  ],\n  \"linkedSessions\": [],\n  \"notes\": [],\n  \"drift\": {\n    \"lastProgressAt\": null,\n    \"flags\": []\n  },\n  \"createdAt\": \"2026-11-06T19:42:28.412Z\",\n  \"updatedAt\": \"2026-11-06T19:42:28.412Z\",\n  \"acceptanceCriteria\": [],\n  \"budgetPolicy\": {\n    \"maxRuns\": null,\n    \"maxTokens\": null,\n    \"maxTimeMs\": null,\n    \"maxCostUsd\": null\n  },\n  \"expiresAt\": null,\n  \"nextCheckAt\": null,\n  \"triggerRefs\": [],\n  \"allowedActionTypes\": [],\n  \"authorizationRefs\": [],\n  \"notificationPolicy\": {\n    \"channel\": \"in-app\",\n    \"mode\": \"changes-only\"\n  },\n  \"memoryRefs\": [],\n  \"waitingReason\": null,\n  \"executionState\": \"idle\",\n  \"completion\": null\n}\n",
+      "stderr": ""
+    }
+  ],
+  "stages": [
+    {
+      "name": "real-password-login-and-owned-project",
+      "at": "2026-11-06T19:42:27.230Z"
+    },
+    {
+      "name": "native-export-cancel-no-file-or-target",
+      "at": "2026-11-06T19:42:34.722Z"
+    }
+  ],
+  "versions": {
+    "node": "22.22.1",
+    "acorn": "8.15.0",
+    "ada": "2.9.2",
+    "amaro": "1.1.5",
+    "ares": "1.34.6",
+    "brotli": "1.0.9",
+    "cjs_module_lexer": "2.2.0",
+    "cldr": "44.1",
+    "icu": "74.2",
+    "llhttp": "9.3.0",
+    "modules": "140",
+    "napi": "10",
+    "nbytes": "0.1.1",
+    "ncrypto": "0.0.1",
+    "nghttp2": "1.64.0",
+    "openssl": "0.0.0",
+    "simdjson": "4.2.4",
+    "simdutf": "7.3.3",
+    "sqlite": "3.51.2",
+    "tz": "2025b",
+    "undici": "6.23.0",
+    "unicode": "15.1",
+    "uv": "1.51.0",
+    "uvwasi": "0.0.23",
+    "v8": "14.2.231.22-electron.0",
+    "zlib": "1.3.1",
+    "zstd": "1.5.8",
+    "electron": "39.8.10",
+    "chrome": "142.0.7444.265"
+  },
+  "projectId": "011d3358-ceb1-4a8b-bf51-217f816f2995",
+  "source": {
+    "schema": "chainlesschain.goal/v1",
+    "schemaVersion": 1,
+    "id": "goal-1793994148412-6xbrdv",
+    "storeId": "cli-goals-e95f9ecc7f99bf6f29ce3fd9df50ea60e6e41c20c4b2de0503aacc9c0b04493a",
+    "revision": 1,
+    "controlGeneration": 0,
+    "ownerRef": null,
+    "projectRef": null,
+    "title": "DMM CLI source for actual native handoff",
+    "objective": "DMM CLI source for actual native handoff",
+    "status": "active",
+    "progress": 0,
+    "keyResults": [
+      {
+        "id": "kr-1793994148412-not0v0",
+        "text": "Keep the original source bytes",
+        "target": null,
+        "current": 0,
+        "done": false
+      },
+      {
+        "id": "kr-1793994148412-dhl059",
+        "text": "Do not inherit project permissions",
+        "target": null,
+        "current": 0,
+        "done": false
+      }
+    ],
+    "linkedSessions": [],
+    "notes": [],
+    "drift": {
+      "lastProgressAt": null,
+      "flags": []
+    },
+    "createdAt": "2026-11-06T19:42:28.412Z",
+    "updatedAt": "2026-11-06T19:42:28.412Z",
+    "acceptanceCriteria": [],
+    "budgetPolicy": {
+      "maxRuns": null,
+      "maxTokens": null,
+      "maxTimeMs": null,
+      "maxCostUsd": null
+    },
+    "expiresAt": null,
+    "nextCheckAt": null,
+    "triggerRefs": [],
+    "allowedActionTypes": [],
+    "authorizationRefs": [],
+    "notificationPolicy": {
+      "channel": "in-app",
+      "mode": "changes-only"
+    },
+    "memoryRefs": [],
+    "waitingReason": null,
+    "executionState": "idle",
+    "completion": null
+  },
+  "originalSha256": "b06e5e0b61c6830478fa0cce875c69063519fefc838a0c2c2da632c905231dbe",
+  "status": "failed",
+  "error": {
+    "message": "ENOENT: no such file or directory, open 'C:\\Users\\longfa\\AppData\\Local\\Temp\\dmm-native-transfer-DkrlG0\\target.json'",
+    "stack": "Error: ENOENT: no such file or directory, open 'C:\\Users\\longfa\\AppData\\Local\\Temp\\dmm-native-transfer-DkrlG0\\target.json'\n    at Object.readFileSync (node:fs:440:20)\n    at file:///C:/code/chainlesschain/desktop-app-vue/scripts/project-goal-transfer-native-journey.mjs:273:32"
+  },
+  "finishedAt": "2026-11-06T19:42:41.478Z"
+}

@@ -1,0 +1,19 @@
+{
+  "schema": "chainlesschain.local-product-startup-observation/v1",
+  "kind": "local diagnostic observation, not complete GUI acceptance",
+  "command": "node <temporary isolated Playwright smoke runner>",
+  "exitCode": 0,
+  "electron": "39.8.10",
+  "nativeEncryptionOptIn": true,
+  "freshProfile": true,
+  "realUserConfigurationCopied": false,
+  "windowWaitBudgetMs": 180000,
+  "url": "file:///C:/code/chainlesschain/desktop-app-vue/dist/renderer/index.html#/",
+  "title": "ChainlessChain - 个人AI知识库",
+  "observedText": ["未检测到U盾 - 使用密码登录", "用户名:", "密码:", "登 录"],
+  "screenshot": "product-login.png",
+  "screenshotSha256": "9ddc6d26724d4d8d1d1d8eccaee93d787e7e533d866a191ca818cc1a9097ee4b",
+  "passwordLoginPerformed": false,
+  "dmmGoalJourneyPerformed": false,
+  "initial30SecondWindowAttempt": "timed out before a usable window; not counted as passed"
+}

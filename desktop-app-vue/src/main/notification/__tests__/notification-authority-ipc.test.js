@@ -4,6 +4,7 @@ const require = createRequire(import.meta.url);
 const Database = require("better-sqlite3");
 const { registerNotificationIPC } = require("../notification-ipc.js");
 const auth = require("../../task/project-goal-auth-session.js");
+const { SQLCipherWrapper } = require("../../database/sqlcipher-wrapper.js");
 const owner = "did:chainless:alice";
 const other = "did:chainless:bob";
 const goalData = JSON.stringify({
@@ -113,6 +114,66 @@ describe("notification IPC actor and projection authority", () => {
     expect(readGoalProjection).toHaveBeenCalledOnce();
     expect(await call("get-unread-count")).toEqual({ success: true, count: 2 });
     expect(show).not.toHaveBeenCalled();
+  });
+
+  function wrappedDatabase() {
+    // Real production wrapper with the Node SQLite driver; actual encryption
+    // is separately exercised with the Electron cipher ABI and native GUI.
+    const wrapper = new SQLCipherWrapper(":memory:", {}, Database);
+    wrapper.open();
+    db.close();
+    db = wrapper.db;
+    db.exec(`CREATE TABLE notifications (
+      id TEXT PRIMARY KEY,user_did TEXT NOT NULL,type TEXT NOT NULL,title TEXT NOT NULL,
+      content TEXT,data TEXT,is_read INTEGER DEFAULT 0,created_at INTEGER NOT NULL)`);
+    add("a-legacy");
+    add("z-goal", owner, goalData, 0, 2);
+    activeDb = wrapper;
+    return wrapper;
+  }
+
+  it("uses the actual wrapper's native transaction for list, count and read mutations", async () => {
+    wrappedDatabase();
+    expect(
+      (await call("get-goals")).notifications.map((row) => row.id),
+    ).toEqual(["z-goal"]);
+    expect(await call("get-unread-count")).toEqual({ success: true, count: 2 });
+    expect(await call("mark-read", "z-goal")).toEqual({ success: true });
+    expect(state("z-goal")).toBe(1);
+    expect(await call("mark-all-read")).toEqual({ success: true });
+    expect(state("a-legacy")).toBe(1);
+  });
+
+  it("refuses a closed encrypted wrapper without reviving it", async () => {
+    const wrapper = wrappedDatabase();
+    const getHandle = vi.spyOn(wrapper, "getHandle");
+    const open = vi.spyOn(wrapper, "open");
+    wrapper.close();
+    expect((await call("get-goals")).success).toBe(false);
+    await expect(call("mark-read", "z-goal")).rejects.toThrow();
+    expect(wrapper.db).toBeNull();
+    expect(open).not.toHaveBeenCalled();
+    expect(getHandle).not.toHaveBeenCalled();
+  });
+
+  it("rolls back acknowledgments if the same wrapper swaps native connections during projection", async () => {
+    const wrapper = wrappedDatabase();
+    let replacement;
+    projectionHook = () => {
+      replacement = new Database(":memory:");
+      wrapper.db = replacement;
+    };
+    try {
+      await expect(call("mark-all-read")).rejects.toMatchObject({
+        code: "NOTIFICATION_DATABASE_CHANGED",
+      });
+      expect(state("a-legacy")).toBe(0);
+      expect(state("z-goal")).toBe(0);
+      expect(database.saveToFile).not.toHaveBeenCalled();
+    } finally {
+      wrapper.db = db;
+      replacement?.close();
+    }
   });
 
   it("never reads or acknowledges another actor's rows", async () => {

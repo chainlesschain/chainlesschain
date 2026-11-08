@@ -7,7 +7,7 @@ let getUKeyManager = () => null;
 let generation = 0;
 let session = null;
 let watchedManager = null;
-const attempts = new WeakSet();
+let attempts = new WeakSet();
 const authChangeListeners = new Set();
 function advanceGeneration() {
   generation++;
@@ -32,7 +32,14 @@ const revocationEvents = [
 ];
 
 function clearProjectGoalAuth(mode = null) {
-  if (mode === null || session?.mode === mode) session = null;
+  if (mode !== null && session?.mode !== mode) {
+    // Device polling can report a missing UKey every few seconds while a
+    // password session is active. Invalidate pending login attempts, but keep
+    // that unrelated session's authority generation and native previews valid.
+    attempts = new WeakSet();
+    return;
+  }
+  session = null;
   advanceGeneration();
 }
 

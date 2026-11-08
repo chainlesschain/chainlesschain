@@ -1,0 +1,33 @@
+{
+  "schema": "chainlesschain.goal-transfer/v1",
+  "target": {
+    "schema": "chainlesschain.goal-import-target/v1",
+    "id": "transfer-30cb4431-91a1-47ab-b202-e765d74b1d39",
+    "storeId": "project-goals-f313c028-d469-4247-8592-261a8e977615",
+    "ownerRef": "did:chainlesschain:9f625563dcb6661d037e09cd747b826629feffda",
+    "projectRef": {
+      "schema": "chainlesschain.business-object-ref/v1",
+      "schemaVersion": 1,
+      "type": "Project",
+      "id": "efd74f30-8cf6-47a0-9607-b6d3261e178e",
+      "sourceKind": "desktop.project-goals",
+      "scope": {
+        "kind": "personal",
+        "id": "did:chainlesschain:9f625563dcb6661d037e09cd747b826629feffda"
+      },
+      "version": "sha256:9dba8c5f42b65bbe142479f36fd2029dd45c1068c16003bed44fd7e6c05e655a"
+    },
+    "publicKey": "MCowBQYDK2VwAyEANHoeJi4eRJCnF4DFmJWqIhXTGP/Ci+EU1yeR6ZqRmSk=",
+    "createdAt": "2026-11-06T20:13:28.674Z",
+    "expiresAt": "2026-11-07T20:13:28.674Z"
+  },
+  "source": {
+    "storeId": "cli-goals-e1d0096da4fc644d00fb066a77b44b7bc591cb7a739a15d1a19ca301e94c6ef3",
+    "id": "goal-1793995995022-04rou6",
+    "revision": 1,
+    "digest": "sha256:93272de9bff315acb5d71f2503aa69d15a9abbcb31964ef2a4f1cef4719f64d4"
+  },
+  "backup": "{\n  \"schema\": \"chainlesschain.goal/v1\",\n  \"schemaVersion\": 1,\n  \"id\": \"goal-1793995995022-04rou6\",\n  \"storeId\": \"cli-goals-e1d0096da4fc644d00fb066a77b44b7bc591cb7a739a15d1a19ca301e94c6ef3\",\n  \"revision\": 1,\n  \"controlGeneration\": 0,\n  \"ownerRef\": null,\n  \"projectRef\": null,\n  \"title\": \"DMM CLI source for actual native handoff\",\n  \"objective\": \"DMM CLI source for actual native handoff\",\n  \"status\": \"active\",\n  \"progress\": 0,\n  \"keyResults\": [\n    {\n      \"id\": \"kr-1793995995022-w09p5s\",\n      \"text\": \"Keep the original source bytes\",\n      \"target\": null,\n      \"current\": 0,\n      \"done\": false\n    },\n    {\n      \"id\": \"kr-1793995995022-a8457v\",\n      \"text\": \"Do not inherit project permissions\",\n      \"target\": null,\n      \"current\": 0,\n      \"done\": false\n    }\n  ],\n  \"linkedSessions\": [],\n  \"notes\": [],\n  \"drift\": {\n    \"lastProgressAt\": null,\n    \"flags\": []\n  },\n  \"createdAt\": \"2026-11-06T20:13:15.022Z\",\n  \"updatedAt\": \"2026-11-06T20:13:15.022Z\",\n  \"acceptanceCriteria\": [],\n  \"budgetPolicy\": {\n    \"maxRuns\": null,\n    \"maxTokens\": null,\n    \"maxTimeMs\": null,\n    \"maxCostUsd\": null\n  },\n  \"expiresAt\": null,\n  \"nextCheckAt\": null,\n  \"triggerRefs\": [],\n  \"allowedActionTypes\": [],\n  \"authorizationRefs\": [],\n  \"notificationPolicy\": {\n    \"channel\": \"in-app\",\n    \"mode\": \"changes-only\"\n  },\n  \"memoryRefs\": [],\n  \"waitingReason\": null,\n  \"executionState\": \"idle\",\n  \"completion\": null\n}",
+  "backupDigest": "sha256:40d6a472b872630f4091b4d0f135cb5c43f1cbd6805ca1628c77ba5c012f6bb3",
+  "digest": "sha256:45ee9f632dd0801579f0be8c71a51790389c52ef0191ef4d26c7ede0853b2b17"
+}

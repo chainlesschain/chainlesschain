@@ -8,7 +8,7 @@
 
 最新续做：[2026-11-03 CLI .139 第三轮原生复测](./verify01-openai-139-r3-20261103/README.md)：verify-08 原生 **1/1**、基线 **59/59**、候选 **2/2**、原变异检出 **1/1**，近期 OpenAI 待复测队列清空；各版本及项目修订分别记账，不称为同版本 45 项全量重跑。
 
-输入恢复历史：[2026-10-26 保存输入删除与恢复](../cli-ide/cli-ide-recovery-progress-2026-10-26.md)，承接 RUN-03 与 IDE-03，记录删除竞态修复、本地回归及 CLI .125 的既有发布证据。此前进度见 [2026-10-23 CLI / 双 IDE 输入交付与草稿恢复](../cli-ide/cli-ide-recovery-progress-2026-10-23.md)。
+输入恢复历史：[2026-10-26 保存输入删除与恢复](../cli-ide/implementation/cli-ide-recovery-progress-2026-10-26.md)，承接 RUN-03 与 IDE-03，记录删除竞态修复、本地回归及 CLI .125 的既有发布证据。此前进度见 [2026-10-23 CLI / 双 IDE 输入交付与草稿恢复](../cli-ide/implementation/cli-ide-recovery-progress-2026-10-23.md)。
 
 CLI / IDE 持续目标扩展的独立在线草稿连接、来源选择与未知结果查询，见 [Dots / Muse / Mods 实施进度](../agents/dots-muse-mods-implementation-progress-2026-10-07.md#cliide-在线待审草稿连接2026-10-18)。该能力仍为本地未发布实现。
 

@@ -3,8 +3,16 @@
 const {
   PersonalProjectGoalService,
 } = require("@chainlesschain/session-core/project-goal-service");
+const {
+  currentProjectGoalDatabase,
+} = require("./project-goal-native-database");
 const CHANNELS = Object.freeze({
+  featureStatus: "project:goal-feature-status",
   create: "project:goal-create",
+  exportTransferTarget: "project:goal-transfer-target-export",
+  importTransfer: "project:goal-transfer-import",
+  listTransfers: "project:goal-transfers-list",
+  cancelTransfer: "project:goal-transfer-cancel",
   read: "project:goal-read",
   openCliConnection: "project:goal-cli-connection-open",
   closeCliConnection: "project:goal-cli-connection-close",
@@ -84,15 +92,21 @@ function createProjectGoalHost({
   clock = Date.now,
   getAuthenticationGeneration = () =>
     require("./project-goal-auth-session").getProjectGoalAuthGeneration(),
+  featurePolicy = require("./project-goal-feature-policy")
+    .projectGoalFeaturePolicy,
 } = {}) {
   const getElectron = () => electron || require("electron");
-  const currentDatabase = () =>
-    database?.getDatabase ? database.getDatabase() : database;
-  function currentWindow(event) {
+  const currentDatabase = () => currentProjectGoalDatabase(database);
+  function trustedWindow(event) {
     if (validateSender(event)?.trusted !== true)
       throw error("GOAL_UNTRUSTED_SENDER");
     const window = getElectron().BrowserWindow.fromWebContents(event?.sender);
     if (!window || window.isDestroyed()) throw error("GOAL_WINDOW_UNAVAILABLE");
+    return window;
+  }
+  function currentWindow(event) {
+    const window = trustedWindow(event);
+    featurePolicy.assertEnabled();
     return window;
   }
   function service(event) {
@@ -106,7 +120,7 @@ function createProjectGoalHost({
     };
     getActor();
     return new PersonalProjectGoalService({
-      db: database?.getDatabase ? database.getDatabase() : database,
+      db: currentDatabase(),
       getActor,
       now: () => new Date(clock()).toISOString(),
     });
@@ -160,6 +174,12 @@ function createProjectGoalHost({
     getActor();
     return { parent, db, getActor, actorDid };
   }
+  const transferHost =
+    require("./project-goal-transfer-host").createProjectGoalTransferHost({
+      capture: (event) => pinnedContext(event, true),
+      dialog: () => getElectron().dialog,
+      clock,
+    });
   const cliBridge =
     require("./project-goal-cli-bridge").createProjectGoalCliBridge({
       dialog: () => getElectron().dialog,
@@ -627,6 +647,7 @@ function createProjectGoalHost({
         database,
         electron: getElectron(),
         getCurrentUserDid,
+        featurePolicy,
         clock,
         onError: (error) =>
           require("../utils/logger.js").logger.error(
@@ -816,17 +837,30 @@ function createProjectGoalHost({
     context.getActor();
     return result;
   }
-  return Object.freeze({
+  const unsubscribeFeature = featurePolicy.subscribe(() => {
+    return Promise.all([cliBridge.close(), controller.close()]);
+  });
+  const handlers = {
+    featureStatus: (event) => {
+      trustedWindow(event);
+      return featurePolicy.status();
+    },
     create: (event, params) => service(event).create(params),
+    exportTransferTarget: (event, params) =>
+      transferHost.exportTarget(event, params),
+    importTransfer: (event, params) =>
+      transferHost.importTransfer(event, params),
+    listTransfers: (event, params) => transferHost.list(event, params),
+    cancelTransfer: (event, params) => transferHost.cancel(event, params),
     read: (event, params) => service(event).get(params),
     openCliConnection: (event, params) => cliBridge.open(event, params),
     closeCliConnection: (event) => {
-      currentWindow(event);
+      trustedWindow(event);
       cliBridge.close();
       return cliBridge.status();
     },
     cliConnectionStatus: (event) => {
-      currentWindow(event);
+      trustedWindow(event);
       return cliBridge.status();
     },
     list: (event, params) => service(event).list(params),
@@ -927,12 +961,30 @@ function createProjectGoalHost({
       memoryCall(event, "operations", params),
     memoryRecover: (event, params) => memoryCall(event, "recover", params),
     memoryDiscard: (event, params) => memoryCall(event, "discard", params),
-    initializeMonitoring: () => controller.initialize(),
+    initializeMonitoring: () =>
+      featurePolicy.isEnabled()
+        ? controller.initialize()
+        : Promise.resolve(null),
+    disableFeature: () => featurePolicy.disable(),
     close: () => {
-      cliBridge.close();
-      return controller.close();
+      unsubscribeFeature();
+      return Promise.all([cliBridge.close(), controller.close()]);
     },
-  });
+  };
+  for (const method of Object.keys(CHANNELS)) {
+    if (
+      ["featureStatus", "closeCliConnection", "cliConnectionStatus"].includes(
+        method,
+      )
+    )
+      continue;
+    const execute = handlers[method];
+    handlers[method] = (...args) => {
+      featurePolicy.assertEnabled();
+      return execute(...args);
+    };
+  }
+  return Object.freeze(handlers);
 }
 function registerProjectGoalIPC(database, dependencies = {}) {
   const electron = dependencies.electron || require("electron");

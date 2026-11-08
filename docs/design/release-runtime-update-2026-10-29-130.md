@@ -43,4 +43,4 @@ Git 范围不包含被忽略依赖 / 构建目录和外部环境；具体产物�
 `docs/design/` 为设计权威源，两个 VitePress 站点使用同步副本。官网的数据只更新已核实的当前公开渠道，旧发行对象和客户端归档继续保留历史时间。源码同步、准确提交构建、线上部署 / 公网回读分别记账。
 
 - [当前用户升级指南](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-29-130.html)
-- [任务完成情况表](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli-ide/cli-ide-codex-claude-gap-review-2026-10-27.md)
+- [任务完成情况表](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli-ide/plans/cli-ide-codex-claude-gap-review-2026-10-27.md)

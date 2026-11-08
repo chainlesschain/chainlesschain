@@ -1,0 +1,9 @@
+{
+  "root": "C:\\Users\\longfa\\AppData\\Local\\Temp\\dmm-npm-workspace-repro-QJTo0X",
+  "syntheticLocalPackages": true,
+  "network": false,
+  "lifecycleScripts": false,
+  "afterRootCi": true,
+  "afterChildWorkspaceCi": false,
+  "afterRootWorkspaceCiAgain": true
+}

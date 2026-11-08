@@ -29,7 +29,7 @@
 
 - [RSI 差距与累计实施状态](../../reports/rsiagent/rsiagent-gap-analysis-2026-09-17.md)：已有 G01–G08、逐轮探索与真实 PM 对照要求。
 - [RSI 第 218 批](../../reports/rsiagent/rsiagent-two-hundred-eighteenth-batch-implementation-2026-09-26.md)：PM 计划分母与封存准入逐槽绑定，仍保留回执全集和真实效果边界。
-- [CLI 差距分析](../cli/cli-claude-code-codex-gap-analysis-2026-10-05.md)、[后续实施状态](../cli-ide/cli-ide-gap-implementation-2026-10-05.md)、[续做验证](../cli-ide/cli-ide-gap-validation-2026-10-05.md)：按 10 月 6 日更新理解依赖，原审计正文保留历史含义。
+- [CLI 差距分析](../cli/cli-claude-code-codex-gap-analysis-2026-10-05.md)、[后续实施状态](../cli-ide/plans/cli-ide-gap-implementation-2026-10-05.md)、[续做验证](../cli-ide/validation/cli-ide-gap-validation-2026-10-05.md)：按 10 月 6 日更新理解依赖，原审计正文保留历史含义。
 - [受治理技能自进化设计](../../design/modules/112-governed-skill-evolution-design.md)：沿用候选、评测、审核、试用、晋级和撤销边界。
 
 本期改进对象是候选 Memory、Skill 的策略说明和受限工作流参数，不更新基础模型权重。模型目录、价格、权限策略、grader、评测集和发布门属于独立维护对象，不能被被测候选自行修改。

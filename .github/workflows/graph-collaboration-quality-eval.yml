@@ -101,6 +101,9 @@ jobs:
       QUALITY_PROVIDER: ${{ vars.CC_P2_3_PROVIDER || vars.CC_LLM_PROVIDER || 'openai' }}
       QUALITY_MAX_TOTAL_COST_USD: ${{ vars.CC_P2_3_MAX_TOTAL_COST_USD }}
     steps:
+      - name: Enable Windows long paths before checkout
+        if: runner.os == 'Windows'
+        run: git config --global core.longpaths true
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           ref: ${{ inputs.commit_sha }}

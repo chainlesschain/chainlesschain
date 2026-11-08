@@ -1,0 +1,844 @@
+{
+  "schema": "chainlesschain.dmm-native-transfer-journey/v1",
+  "sourceSha": "947f861886a7592753dc4d2de362413c8f0320e6",
+  "sourceStatus": "?? docs/research/agents/evidence/dmm-native-goal-transfer-2026-11-07/",
+  "startedAt": "2026-11-06T20:11:51.649Z",
+  "platform": "win32",
+  "release": "10.0.19045",
+  "synthetic": true,
+  "setupSeeded": true,
+  "realBusinessAcceptance": false,
+  "installedProductAcceptance": false,
+  "runnerSha256": "f054f60c73498c530513fa28692ede022e241e11b2c07d1093fd01fd5dc60073",
+  "native": [
+    {
+      "pid": 26436,
+      "title": "导出 CLI 目标导入凭据",
+      "button": "保存(S)",
+      "file": "target.json",
+      "method": "Win32 filename WM_CHAR + WM_GETTEXT + BM_CLICK",
+      "filenameVerified": true,
+      "at": "2026-11-06T20:13:17.024Z"
+    },
+    {
+      "pid": 26436,
+      "title": "准备 CLI 目标移交",
+      "button": "取消",
+      "method": "Win32 BM_CLICK",
+      "expectedTextVerified": true,
+      "at": "2026-11-06T20:13:21.282Z"
+    },
+    {
+      "pid": 26436,
+      "title": "导出 CLI 目标导入凭据",
+      "button": "保存(S)",
+      "file": "target.json",
+      "method": "Win32 filename WM_CHAR + WM_GETTEXT + BM_CLICK",
+      "filenameVerified": true,
+      "at": "2026-11-06T20:13:23.392Z"
+    },
+    {
+      "pid": 26436,
+      "title": "准备 CLI 目标移交",
+      "button": "导出导入凭据",
+      "method": "Win32 BM_CLICK",
+      "expectedTextVerified": true,
+      "at": "2026-11-06T20:13:28.615Z"
+    },
+    {
+      "pid": 26436,
+      "title": "选择 CLI 目标移交文件",
+      "button": "打开(O)",
+      "file": "transfer.json",
+      "method": "Win32 filename WM_CHAR + WM_GETTEXT + BM_CLICK",
+      "filenameVerified": true,
+      "at": "2026-11-06T20:13:31.865Z"
+    },
+    {
+      "pid": 26436,
+      "title": "导入 CLI 目标",
+      "button": "取消",
+      "method": "Win32 BM_CLICK",
+      "expectedTextVerified": true,
+      "at": "2026-11-06T20:13:36.436Z"
+    },
+    {
+      "pid": 26436,
+      "title": "选择 CLI 目标移交文件",
+      "button": "打开(O)",
+      "file": "transfer.json",
+      "method": "Win32 filename WM_CHAR + WM_GETTEXT + BM_CLICK",
+      "filenameVerified": true,
+      "at": "2026-11-06T20:13:38.203Z"
+    },
+    {
+      "pid": 26436,
+      "title": "导入 CLI 目标",
+      "button": "导入并保存映射与备份",
+      "method": "Win32 BM_CLICK",
+      "expectedTextVerified": true,
+      "at": "2026-11-06T20:13:43.128Z"
+    },
+    {
+      "pid": 26436,
+      "title": "选择 CLI 目标移交文件",
+      "button": "打开(O)",
+      "file": "transfer.json",
+      "method": "Win32 filename WM_CHAR + WM_GETTEXT + BM_CLICK",
+      "filenameVerified": true,
+      "at": "2026-11-06T20:13:45.537Z"
+    },
+    {
+      "pid": 26436,
+      "title": "导入 CLI 目标",
+      "button": "导入并保存映射与备份",
+      "method": "Win32 BM_CLICK",
+      "expectedTextVerified": true,
+      "at": "2026-11-06T20:13:50.168Z"
+    },
+    {
+      "pid": 26436,
+      "title": "保存 CLI 目标回退回执",
+      "button": "保存(S)",
+      "file": "cancellation.json",
+      "method": "Win32 filename WM_CHAR + WM_GETTEXT + BM_CLICK",
+      "filenameVerified": true,
+      "at": "2026-11-06T20:13:52.330Z"
+    },
+    {
+      "pid": 26436,
+      "title": "作废目标移交",
+      "button": "取消",
+      "method": "Win32 BM_CLICK",
+      "expectedTextVerified": true,
+      "at": "2026-11-06T20:13:57.222Z"
+    },
+    {
+      "pid": 26436,
+      "title": "保存 CLI 目标回退回执",
+      "button": "保存(S)",
+      "file": "cancellation.json",
+      "method": "Win32 filename WM_CHAR + WM_GETTEXT + BM_CLICK",
+      "filenameVerified": true,
+      "at": "2026-11-06T20:13:59.446Z"
+    },
+    {
+      "pid": 26436,
+      "title": "作废目标移交",
+      "button": "作废并导出回退回执",
+      "method": "Win32 BM_CLICK",
+      "expectedTextVerified": true,
+      "at": "2026-11-06T20:14:04.331Z"
+    },
+    {
+      "pid": 26436,
+      "title": "保存 CLI 目标回退回执",
+      "button": "保存(S)",
+      "file": "cancellation-reexport.json",
+      "method": "Win32 filename WM_CHAR + WM_GETTEXT + BM_CLICK",
+      "filenameVerified": true,
+      "at": "2026-11-06T20:14:09.271Z"
+    },
+    {
+      "pid": 26436,
+      "title": "作废目标移交",
+      "button": "作废并导出回退回执",
+      "method": "Win32 BM_CLICK",
+      "expectedTextVerified": true,
+      "at": "2026-11-06T20:14:13.490Z"
+    },
+    {
+      "pid": 26436,
+      "title": "导出 CLI 目标导入凭据",
+      "button": "保存(S)",
+      "file": "guarded-target.json",
+      "method": "Win32 filename WM_CHAR + WM_GETTEXT + BM_CLICK",
+      "filenameVerified": true,
+      "at": "2026-11-06T20:14:16.223Z"
+    },
+    {
+      "pid": 26436,
+      "title": "准备 CLI 目标移交",
+      "button": "导出导入凭据",
+      "method": "Win32 BM_CLICK",
+      "expectedTextVerified": true,
+      "at": "2026-11-06T20:14:21.123Z"
+    },
+    {
+      "pid": 26436,
+      "title": "选择 CLI 目标移交文件",
+      "button": "打开(O)",
+      "file": "guarded-transfer.json",
+      "method": "Win32 filename WM_CHAR + WM_GETTEXT + BM_CLICK",
+      "filenameVerified": true,
+      "at": "2026-11-06T20:14:23.989Z"
+    },
+    {
+      "pid": 26436,
+      "title": "导入 CLI 目标",
+      "button": "导入并保存映射与备份",
+      "method": "Win32 BM_CLICK",
+      "expectedTextVerified": true,
+      "at": "2026-11-06T20:14:30.729Z"
+    },
+    {
+      "pid": 26436,
+      "title": "保存 CLI 目标回退回执",
+      "button": "保存(S)",
+      "file": "must-not-exist-cancellation.json",
+      "method": "Win32 filename WM_CHAR + WM_GETTEXT + BM_CLICK",
+      "filenameVerified": true,
+      "at": "2026-11-06T20:14:33.994Z"
+    },
+    {
+      "pid": 26436,
+      "title": "作废目标移交",
+      "button": "作废并导出回退回执",
+      "method": "Win32 BM_CLICK",
+      "expectedTextVerified": true,
+      "at": "2026-11-06T20:14:39.565Z"
+    }
+  ],
+  "cli": [
+    {
+      "args": [
+        "goal",
+        "set",
+        "DMM CLI source for actual native handoff",
+        "--kr",
+        "Keep the original source bytes",
+        "--kr",
+        "Do not inherit project permissions",
+        "--json"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"schema\": \"chainlesschain.goal/v1\",\n  \"schemaVersion\": 1,\n  \"id\": \"goal-1793995995022-04rou6\",\n  \"storeId\": \"cli-goals-e1d0096da4fc644d00fb066a77b44b7bc591cb7a739a15d1a19ca301e94c6ef3\",\n  \"revision\": 1,\n  \"controlGeneration\": 0,\n  \"ownerRef\": null,\n  \"projectRef\": null,\n  \"title\": \"DMM CLI source for actual native handoff\",\n  \"objective\": \"DMM CLI source for actual native handoff\",\n  \"status\": \"active\",\n  \"progress\": 0,\n  \"keyResults\": [\n    {\n      \"id\": \"kr-1793995995022-w09p5s\",\n      \"text\": \"Keep the original source bytes\",\n      \"target\": null,\n      \"current\": 0,\n      \"done\": false\n    },\n    {\n      \"id\": \"kr-1793995995022-a8457v\",\n      \"text\": \"Do not inherit project permissions\",\n      \"target\": null,\n      \"current\": 0,\n      \"done\": false\n    }\n  ],\n  \"linkedSessions\": [],\n  \"notes\": [],\n  \"drift\": {\n    \"lastProgressAt\": null,\n    \"flags\": []\n  },\n  \"createdAt\": \"2026-11-06T20:13:15.022Z\",\n  \"updatedAt\": \"2026-11-06T20:13:15.022Z\",\n  \"acceptanceCriteria\": [],\n  \"budgetPolicy\": {\n    \"maxRuns\": null,\n    \"maxTokens\": null,\n    \"maxTimeMs\": null,\n    \"maxCostUsd\": null\n  },\n  \"expiresAt\": null,\n  \"nextCheckAt\": null,\n  \"triggerRefs\": [],\n  \"allowedActionTypes\": [],\n  \"authorizationRefs\": [],\n  \"notificationPolicy\": {\n    \"channel\": \"in-app\",\n    \"mode\": \"changes-only\"\n  },\n  \"memoryRefs\": [],\n  \"waitingReason\": null,\n  \"executionState\": \"idle\",\n  \"completion\": null\n}\n",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "goal",
+        "transfer-to-project",
+        "goal-1793995995022-04rou6",
+        "--target",
+        "C:\\Users\\longfa\\AppData\\Local\\Temp\\dmm-native-transfer-1BeBwq\\target.json",
+        "--output",
+        "C:\\Users\\longfa\\AppData\\Local\\Temp\\dmm-native-transfer-1BeBwq\\transfer.json",
+        "--revision",
+        "1",
+        "--confirm-transfer",
+        "--json"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"state\": \"frozen\",\n  \"targetId\": \"transfer-30cb4431-91a1-47ab-b202-e765d74b1d39\",\n  \"source\": {\n    \"storeId\": \"cli-goals-e1d0096da4fc644d00fb066a77b44b7bc591cb7a739a15d1a19ca301e94c6ef3\",\n    \"id\": \"goal-1793995995022-04rou6\",\n    \"revision\": 1,\n    \"digest\": \"sha256:93272de9bff315acb5d71f2503aa69d15a9abbcb31964ef2a4f1cef4719f64d4\"\n  },\n  \"backupFile\": \"C:\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\dmm-native-transfer-1BeBwq\\\\cli-home\\\\goals\\\\goal-1793995995022-04rou6.json.transfer-30cb4431-91a1-47ab-b202-e765d74b1d39.transfer-backup\",\n  \"output\": \"C:\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\dmm-native-transfer-1BeBwq\\\\transfer.json\",\n  \"digest\": \"sha256:45ee9f632dd0801579f0be8c71a51790389c52ef0191ef4d26c7ede0853b2b17\"\n}\n",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "goal",
+        "progress",
+        "goal-1793995995022-04rou6",
+        "--pct",
+        "10"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "✖ goal progress failed: GOAL_TRANSFER_FROZEN\n"
+    },
+    {
+      "args": [
+        "goal",
+        "restore-transfer",
+        "goal-1793995995022-04rou6",
+        "--cancellation",
+        "C:\\Users\\longfa\\AppData\\Local\\Temp\\dmm-native-transfer-1BeBwq\\forged-cancellation.json",
+        "--json"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "{\"error\":{\"message\":\"goal restore-transfer failed: GOAL_TRANSFER_CANCELLATION_INVALID\"}}\n"
+    },
+    {
+      "args": [
+        "goal",
+        "restore-transfer",
+        "goal-1793995995022-04rou6",
+        "--cancellation",
+        "C:\\Users\\longfa\\AppData\\Local\\Temp\\dmm-native-transfer-1BeBwq\\cancellation.json",
+        "--json"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"state\": \"restored\",\n  \"source\": {\n    \"storeId\": \"cli-goals-e1d0096da4fc644d00fb066a77b44b7bc591cb7a739a15d1a19ca301e94c6ef3\",\n    \"id\": \"goal-1793995995022-04rou6\",\n    \"revision\": 1,\n    \"digest\": \"sha256:93272de9bff315acb5d71f2503aa69d15a9abbcb31964ef2a4f1cef4719f64d4\"\n  }\n}\n",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "goal",
+        "show",
+        "goal-1793995995022-04rou6",
+        "--json"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"schema\": \"chainlesschain.goal/v1\",\n  \"schemaVersion\": 1,\n  \"id\": \"goal-1793995995022-04rou6\",\n  \"storeId\": \"cli-goals-e1d0096da4fc644d00fb066a77b44b7bc591cb7a739a15d1a19ca301e94c6ef3\",\n  \"revision\": 1,\n  \"controlGeneration\": 0,\n  \"ownerRef\": null,\n  \"projectRef\": null,\n  \"title\": \"DMM CLI source for actual native handoff\",\n  \"objective\": \"DMM CLI source for actual native handoff\",\n  \"status\": \"active\",\n  \"progress\": 0,\n  \"keyResults\": [\n    {\n      \"id\": \"kr-1793995995022-w09p5s\",\n      \"text\": \"Keep the original source bytes\",\n      \"target\": null,\n      \"current\": 0,\n      \"done\": false\n    },\n    {\n      \"id\": \"kr-1793995995022-a8457v\",\n      \"text\": \"Do not inherit project permissions\",\n      \"target\": null,\n      \"current\": 0,\n      \"done\": false\n    }\n  ],\n  \"linkedSessions\": [],\n  \"notes\": [],\n  \"drift\": {\n    \"lastProgressAt\": null,\n    \"flags\": []\n  },\n  \"createdAt\": \"2026-11-06T20:13:15.022Z\",\n  \"updatedAt\": \"2026-11-06T20:13:15.022Z\",\n  \"acceptanceCriteria\": [],\n  \"budgetPolicy\": {\n    \"maxRuns\": null,\n    \"maxTokens\": null,\n    \"maxTimeMs\": null,\n    \"maxCostUsd\": null\n  },\n  \"expiresAt\": null,\n  \"nextCheckAt\": null,\n  \"triggerRefs\": [],\n  \"allowedActionTypes\": [],\n  \"authorizationRefs\": [],\n  \"notificationPolicy\": {\n    \"channel\": \"in-app\",\n    \"mode\": \"changes-only\"\n  },\n  \"memoryRefs\": [],\n  \"waitingReason\": null,\n  \"executionState\": \"idle\",\n  \"completion\": null\n}\n",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "goal",
+        "set",
+        "DMM changed target must not roll back",
+        "--json"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"schema\": \"chainlesschain.goal/v1\",\n  \"schemaVersion\": 1,\n  \"id\": \"goal-1793996054145-bud2np\",\n  \"storeId\": \"cli-goals-e1d0096da4fc644d00fb066a77b44b7bc591cb7a739a15d1a19ca301e94c6ef3\",\n  \"revision\": 1,\n  \"controlGeneration\": 0,\n  \"ownerRef\": null,\n  \"projectRef\": null,\n  \"title\": \"DMM changed target must not roll back\",\n  \"objective\": \"DMM changed target must not roll back\",\n  \"status\": \"active\",\n  \"progress\": 0,\n  \"keyResults\": [],\n  \"linkedSessions\": [],\n  \"notes\": [],\n  \"drift\": {\n    \"lastProgressAt\": null,\n    \"flags\": []\n  },\n  \"createdAt\": \"2026-11-06T20:14:14.146Z\",\n  \"updatedAt\": \"2026-11-06T20:14:14.146Z\",\n  \"acceptanceCriteria\": [],\n  \"budgetPolicy\": {\n    \"maxRuns\": null,\n    \"maxTokens\": null,\n    \"maxTimeMs\": null,\n    \"maxCostUsd\": null\n  },\n  \"expiresAt\": null,\n  \"nextCheckAt\": null,\n  \"triggerRefs\": [],\n  \"allowedActionTypes\": [],\n  \"authorizationRefs\": [],\n  \"notificationPolicy\": {\n    \"channel\": \"in-app\",\n    \"mode\": \"changes-only\"\n  },\n  \"memoryRefs\": [],\n  \"waitingReason\": null,\n  \"executionState\": \"idle\",\n  \"completion\": null\n}\n",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "goal",
+        "transfer-to-project",
+        "goal-1793996054145-bud2np",
+        "--target",
+        "C:\\Users\\longfa\\AppData\\Local\\Temp\\dmm-native-transfer-1BeBwq\\guarded-target.json",
+        "--output",
+        "C:\\Users\\longfa\\AppData\\Local\\Temp\\dmm-native-transfer-1BeBwq\\guarded-transfer.json",
+        "--revision",
+        "1",
+        "--confirm-transfer",
+        "--json"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"state\": \"frozen\",\n  \"targetId\": \"transfer-5471111c-2db3-48fb-9187-2f20d21159a1\",\n  \"source\": {\n    \"storeId\": \"cli-goals-e1d0096da4fc644d00fb066a77b44b7bc591cb7a739a15d1a19ca301e94c6ef3\",\n    \"id\": \"goal-1793996054145-bud2np\",\n    \"revision\": 1,\n    \"digest\": \"sha256:cd00e88e57f15ccd20ecf13863e239183917673c2addc62188a420c3f190acdc\"\n  },\n  \"backupFile\": \"C:\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\dmm-native-transfer-1BeBwq\\\\cli-home\\\\goals\\\\goal-1793996054145-bud2np.json.transfer-5471111c-2db3-48fb-9187-2f20d21159a1.transfer-backup\",\n  \"output\": \"C:\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\dmm-native-transfer-1BeBwq\\\\guarded-transfer.json\",\n  \"digest\": \"sha256:c7046d4755002df40b0878286f82cd6d01afff31ef2b4e359c7b86479c78d3c4\"\n}\n",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "goal",
+        "progress",
+        "goal-1793996054145-bud2np",
+        "--pct",
+        "1"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "✖ goal progress failed: GOAL_TRANSFER_FROZEN\n"
+    }
+  ],
+  "stages": [
+    {
+      "name": "real-password-login-and-owned-project",
+      "at": "2026-11-06T20:13:14.355Z"
+    },
+    {
+      "name": "native-export-cancel-no-file-or-target",
+      "at": "2026-11-06T20:13:21.380Z"
+    },
+    {
+      "name": "real-cli-frozen-with-exact-backup-and-write-rejection",
+      "at": "2026-11-06T20:13:30.067Z"
+    },
+    {
+      "name": "native-import-cancel-does-not-write-or-unfreeze",
+      "at": "2026-11-06T20:13:36.527Z"
+    },
+    {
+      "name": "native-import-persists-paused-unprivileged-goal-and-deduplicates",
+      "at": "2026-11-06T20:13:50.334Z"
+    },
+    {
+      "name": "native-cancellation-persists-before-cli-restore-and-rejects-forgery",
+      "at": "2026-11-06T20:14:05.228Z"
+    },
+    {
+      "name": "real-cli-restores-original-bytes-and-native-history-remains",
+      "at": "2026-11-06T20:14:07.363Z"
+    },
+    {
+      "name": "native-reexports-the-same-durable-signed-receipt",
+      "at": "2026-11-06T20:14:13.546Z"
+    },
+    {
+      "name": "actual-ui-revision-prevents-rollback-and-source-stays-frozen",
+      "at": "2026-11-06T20:14:41.134Z"
+    }
+  ],
+  "versions": {
+    "node": "22.22.1",
+    "acorn": "8.15.0",
+    "ada": "2.9.2",
+    "amaro": "1.1.5",
+    "ares": "1.34.6",
+    "brotli": "1.0.9",
+    "cjs_module_lexer": "2.2.0",
+    "cldr": "44.1",
+    "icu": "74.2",
+    "llhttp": "9.3.0",
+    "modules": "140",
+    "napi": "10",
+    "nbytes": "0.1.1",
+    "ncrypto": "0.0.1",
+    "nghttp2": "1.64.0",
+    "openssl": "0.0.0",
+    "simdjson": "4.2.4",
+    "simdutf": "7.3.3",
+    "sqlite": "3.51.2",
+    "tz": "2025b",
+    "undici": "6.23.0",
+    "unicode": "15.1",
+    "uv": "1.51.0",
+    "uvwasi": "0.0.23",
+    "v8": "14.2.231.22-electron.0",
+    "zlib": "1.3.1",
+    "zstd": "1.5.8",
+    "electron": "39.8.10",
+    "chrome": "142.0.7444.265"
+  },
+  "projectId": "efd74f30-8cf6-47a0-9607-b6d3261e178e",
+  "pickerProbe": {
+    "native": {
+      "pid": 26436,
+      "title": "导出 CLI 目标导入凭据",
+      "button": "保存(S)",
+      "file": "picker-probe-selected.json",
+      "method": "Win32 filename WM_CHAR + WM_GETTEXT + BM_CLICK",
+      "filenameVerified": true,
+      "at": "2026-11-06T20:13:12.130Z"
+    },
+    "actualSelectedExpectedPath": true,
+    "changedDefaultFilename": true,
+    "businessFileWritten": false,
+    "open": {
+      "native": {
+        "pid": 26436,
+        "title": "选择 CLI 目标移交文件",
+        "button": "打开(O)",
+        "file": "picker-probe-existing.json",
+        "method": "Win32 filename WM_CHAR + WM_GETTEXT + BM_CLICK",
+        "filenameVerified": true,
+        "at": "2026-11-06T20:13:14.157Z"
+      },
+      "actualSelectedExpectedPath": true,
+      "syntheticInputFixture": true
+    }
+  },
+  "source": {
+    "schema": "chainlesschain.goal/v1",
+    "schemaVersion": 1,
+    "id": "goal-1793995995022-04rou6",
+    "storeId": "cli-goals-e1d0096da4fc644d00fb066a77b44b7bc591cb7a739a15d1a19ca301e94c6ef3",
+    "revision": 1,
+    "controlGeneration": 0,
+    "ownerRef": null,
+    "projectRef": null,
+    "title": "DMM CLI source for actual native handoff",
+    "objective": "DMM CLI source for actual native handoff",
+    "status": "active",
+    "progress": 0,
+    "keyResults": [
+      {
+        "id": "kr-1793995995022-w09p5s",
+        "text": "Keep the original source bytes",
+        "target": null,
+        "current": 0,
+        "done": false
+      },
+      {
+        "id": "kr-1793995995022-a8457v",
+        "text": "Do not inherit project permissions",
+        "target": null,
+        "current": 0,
+        "done": false
+      }
+    ],
+    "linkedSessions": [],
+    "notes": [],
+    "drift": {
+      "lastProgressAt": null,
+      "flags": []
+    },
+    "createdAt": "2026-11-06T20:13:15.022Z",
+    "updatedAt": "2026-11-06T20:13:15.022Z",
+    "acceptanceCriteria": [],
+    "budgetPolicy": {
+      "maxRuns": null,
+      "maxTokens": null,
+      "maxTimeMs": null,
+      "maxCostUsd": null
+    },
+    "expiresAt": null,
+    "nextCheckAt": null,
+    "triggerRefs": [],
+    "allowedActionTypes": [],
+    "authorizationRefs": [],
+    "notificationPolicy": {
+      "channel": "in-app",
+      "mode": "changes-only"
+    },
+    "memoryRefs": [],
+    "waitingReason": null,
+    "executionState": "idle",
+    "completion": null
+  },
+  "originalSha256": "40d6a472b872630f4091b4d0f135cb5c43f1cbd6805ca1628c77ba5c012f6bb3",
+  "target": {
+    "schema": "chainlesschain.goal-import-target/v1",
+    "id": "transfer-30cb4431-91a1-47ab-b202-e765d74b1d39",
+    "storeId": "project-goals-f313c028-d469-4247-8592-261a8e977615",
+    "ownerRef": "did:chainlesschain:9f625563dcb6661d037e09cd747b826629feffda",
+    "projectRef": {
+      "schema": "chainlesschain.business-object-ref/v1",
+      "schemaVersion": 1,
+      "type": "Project",
+      "id": "efd74f30-8cf6-47a0-9607-b6d3261e178e",
+      "sourceKind": "desktop.project-goals",
+      "scope": {
+        "kind": "personal",
+        "id": "did:chainlesschain:9f625563dcb6661d037e09cd747b826629feffda"
+      },
+      "version": "sha256:9dba8c5f42b65bbe142479f36fd2029dd45c1068c16003bed44fd7e6c05e655a"
+    },
+    "publicKey": "MCowBQYDK2VwAyEANHoeJi4eRJCnF4DFmJWqIhXTGP/Ci+EU1yeR6ZqRmSk=",
+    "createdAt": "2026-11-06T20:13:28.674Z",
+    "expiresAt": "2026-11-07T20:13:28.674Z"
+  },
+  "frozen": {
+    "state": "frozen",
+    "targetId": "transfer-30cb4431-91a1-47ab-b202-e765d74b1d39",
+    "source": {
+      "storeId": "cli-goals-e1d0096da4fc644d00fb066a77b44b7bc591cb7a739a15d1a19ca301e94c6ef3",
+      "id": "goal-1793995995022-04rou6",
+      "revision": 1,
+      "digest": "sha256:93272de9bff315acb5d71f2503aa69d15a9abbcb31964ef2a4f1cef4719f64d4"
+    },
+    "backupFile": "C:\\Users\\longfa\\AppData\\Local\\Temp\\dmm-native-transfer-1BeBwq\\cli-home\\goals\\goal-1793995995022-04rou6.json.transfer-30cb4431-91a1-47ab-b202-e765d74b1d39.transfer-backup",
+    "output": "C:\\Users\\longfa\\AppData\\Local\\Temp\\dmm-native-transfer-1BeBwq\\transfer.json",
+    "digest": "sha256:45ee9f632dd0801579f0be8c71a51790389c52ef0191ef4d26c7ede0853b2b17"
+  },
+  "imported": {
+    "record": {
+      "target": {
+        "schema": "chainlesschain.goal-import-target/v1",
+        "id": "transfer-30cb4431-91a1-47ab-b202-e765d74b1d39",
+        "storeId": "project-goals-f313c028-d469-4247-8592-261a8e977615",
+        "ownerRef": "did:chainlesschain:9f625563dcb6661d037e09cd747b826629feffda",
+        "projectRef": {
+          "schema": "chainlesschain.business-object-ref/v1",
+          "schemaVersion": 1,
+          "type": "Project",
+          "id": "efd74f30-8cf6-47a0-9607-b6d3261e178e",
+          "sourceKind": "desktop.project-goals",
+          "scope": {
+            "kind": "personal",
+            "id": "did:chainlesschain:9f625563dcb6661d037e09cd747b826629feffda"
+          },
+          "version": "sha256:9dba8c5f42b65bbe142479f36fd2029dd45c1068c16003bed44fd7e6c05e655a"
+        },
+        "publicKey": "MCowBQYDK2VwAyEANHoeJi4eRJCnF4DFmJWqIhXTGP/Ci+EU1yeR6ZqRmSk=",
+        "createdAt": "2026-11-06T20:13:28.674Z",
+        "expiresAt": "2026-11-07T20:13:28.674Z"
+      },
+      "state": "imported",
+      "source": {
+        "storeId": "cli-goals-e1d0096da4fc644d00fb066a77b44b7bc591cb7a739a15d1a19ca301e94c6ef3",
+        "id": "goal-1793995995022-04rou6",
+        "revision": 1,
+        "digest": "sha256:93272de9bff315acb5d71f2503aa69d15a9abbcb31964ef2a4f1cef4719f64d4"
+      },
+      "backupDigest": "sha256:40d6a472b872630f4091b4d0f135cb5c43f1cbd6805ca1628c77ba5c012f6bb3",
+      "goalRef": {
+        "storeId": "project-goals-f313c028-d469-4247-8592-261a8e977615",
+        "id": "goal-748326be-57df-4589-b9fa-e9514e0447b4"
+      },
+      "cancellation": null
+    },
+    "goal": {
+      "schema": "chainlesschain.goal/v1",
+      "schemaVersion": 1,
+      "id": "goal-748326be-57df-4589-b9fa-e9514e0447b4",
+      "storeId": "project-goals-f313c028-d469-4247-8592-261a8e977615",
+      "revision": 1,
+      "controlGeneration": 0,
+      "ownerRef": "did:chainlesschain:9f625563dcb6661d037e09cd747b826629feffda",
+      "projectRef": {
+        "schema": "chainlesschain.business-object-ref/v1",
+        "schemaVersion": 1,
+        "type": "Project",
+        "id": "efd74f30-8cf6-47a0-9607-b6d3261e178e",
+        "sourceKind": "desktop.project-goals",
+        "scope": {
+          "kind": "personal",
+          "id": "did:chainlesschain:9f625563dcb6661d037e09cd747b826629feffda"
+        },
+        "version": "sha256:9dba8c5f42b65bbe142479f36fd2029dd45c1068c16003bed44fd7e6c05e655a"
+      },
+      "title": "DMM CLI source for actual native handoff",
+      "objective": "DMM CLI source for actual native handoff",
+      "status": "paused",
+      "progress": 0,
+      "keyResults": [
+        {
+          "id": "kr-1793995995022-w09p5s",
+          "text": "Keep the original source bytes",
+          "target": null,
+          "current": 0,
+          "done": false
+        },
+        {
+          "id": "kr-1793995995022-a8457v",
+          "text": "Do not inherit project permissions",
+          "target": null,
+          "current": 0,
+          "done": false
+        }
+      ],
+      "linkedSessions": [],
+      "notes": [],
+      "drift": {
+        "lastProgressAt": null,
+        "flags": []
+      },
+      "createdAt": "2026-11-06T20:13:43.190Z",
+      "updatedAt": "2026-11-06T20:13:43.190Z",
+      "acceptanceCriteria": [],
+      "budgetPolicy": {
+        "maxRuns": null,
+        "maxTokens": null,
+        "maxTimeMs": null,
+        "maxCostUsd": null
+      },
+      "expiresAt": null,
+      "nextCheckAt": null,
+      "triggerRefs": [],
+      "allowedActionTypes": [],
+      "authorizationRefs": [],
+      "notificationPolicy": {
+        "channel": "in-app",
+        "mode": "changes-only"
+      },
+      "memoryRefs": [],
+      "waitingReason": null,
+      "executionState": "idle",
+      "completion": null
+    }
+  },
+  "cancelled": {
+    "target": {
+      "schema": "chainlesschain.goal-import-target/v1",
+      "id": "transfer-30cb4431-91a1-47ab-b202-e765d74b1d39",
+      "storeId": "project-goals-f313c028-d469-4247-8592-261a8e977615",
+      "ownerRef": "did:chainlesschain:9f625563dcb6661d037e09cd747b826629feffda",
+      "projectRef": {
+        "schema": "chainlesschain.business-object-ref/v1",
+        "schemaVersion": 1,
+        "type": "Project",
+        "id": "efd74f30-8cf6-47a0-9607-b6d3261e178e",
+        "sourceKind": "desktop.project-goals",
+        "scope": {
+          "kind": "personal",
+          "id": "did:chainlesschain:9f625563dcb6661d037e09cd747b826629feffda"
+        },
+        "version": "sha256:9dba8c5f42b65bbe142479f36fd2029dd45c1068c16003bed44fd7e6c05e655a"
+      },
+      "publicKey": "MCowBQYDK2VwAyEANHoeJi4eRJCnF4DFmJWqIhXTGP/Ci+EU1yeR6ZqRmSk=",
+      "createdAt": "2026-11-06T20:13:28.674Z",
+      "expiresAt": "2026-11-07T20:13:28.674Z"
+    },
+    "state": "cancelled",
+    "source": {
+      "storeId": "cli-goals-e1d0096da4fc644d00fb066a77b44b7bc591cb7a739a15d1a19ca301e94c6ef3",
+      "id": "goal-1793995995022-04rou6",
+      "revision": 1,
+      "digest": "sha256:93272de9bff315acb5d71f2503aa69d15a9abbcb31964ef2a4f1cef4719f64d4"
+    },
+    "backupDigest": "sha256:40d6a472b872630f4091b4d0f135cb5c43f1cbd6805ca1628c77ba5c012f6bb3",
+    "goalRef": {
+      "storeId": "project-goals-f313c028-d469-4247-8592-261a8e977615",
+      "id": "goal-748326be-57df-4589-b9fa-e9514e0447b4"
+    },
+    "cancellation": {
+      "schema": "chainlesschain.goal-transfer-cancellation/v1",
+      "targetId": "transfer-30cb4431-91a1-47ab-b202-e765d74b1d39",
+      "targetDigest": "sha256:d71140d0ce4d06cd70a14a01472b199753c884386bbf8a7d3badf2546730fba4",
+      "state": "cancelled",
+      "at": "2026-11-06T20:14:04.395Z",
+      "signature": "ygm1HPpWQsIoe35LV3l5i58oX97YcfbfNrMQtM2V8UWkHrpXCELL4P1UEDlPei8zBslB1uilo/DI2exTkWAEAA=="
+    }
+  },
+  "cancellation": {
+    "schema": "chainlesschain.goal-transfer-cancellation/v1",
+    "targetId": "transfer-30cb4431-91a1-47ab-b202-e765d74b1d39",
+    "targetDigest": "sha256:d71140d0ce4d06cd70a14a01472b199753c884386bbf8a7d3badf2546730fba4",
+    "state": "cancelled",
+    "at": "2026-11-06T20:14:04.395Z",
+    "signature": "ygm1HPpWQsIoe35LV3l5i58oX97YcfbfNrMQtM2V8UWkHrpXCELL4P1UEDlPei8zBslB1uilo/DI2exTkWAEAA=="
+  },
+  "restored": {
+    "state": "restored",
+    "source": {
+      "storeId": "cli-goals-e1d0096da4fc644d00fb066a77b44b7bc591cb7a739a15d1a19ca301e94c6ef3",
+      "id": "goal-1793995995022-04rou6",
+      "revision": 1,
+      "digest": "sha256:93272de9bff315acb5d71f2503aa69d15a9abbcb31964ef2a4f1cef4719f64d4"
+    }
+  },
+  "restoredSha256": "40d6a472b872630f4091b4d0f135cb5c43f1cbd6805ca1628c77ba5c012f6bb3",
+  "roundTripGoalCount": 0,
+  "reexportedCancellationSha256": "a7c31094081628de50985e8a8fdeffd6709279c17f804f5b606ad5a0e0368c39",
+  "changedTargetRefusal": {
+    "sourceId": "goal-1793996054145-bud2np",
+    "target": {
+      "schema": "chainlesschain.goal-import-target/v1",
+      "id": "transfer-5471111c-2db3-48fb-9187-2f20d21159a1",
+      "storeId": "project-goals-f313c028-d469-4247-8592-261a8e977615",
+      "ownerRef": "did:chainlesschain:9f625563dcb6661d037e09cd747b826629feffda",
+      "projectRef": {
+        "schema": "chainlesschain.business-object-ref/v1",
+        "schemaVersion": 1,
+        "type": "Project",
+        "id": "efd74f30-8cf6-47a0-9607-b6d3261e178e",
+        "sourceKind": "desktop.project-goals",
+        "scope": {
+          "kind": "personal",
+          "id": "did:chainlesschain:9f625563dcb6661d037e09cd747b826629feffda"
+        },
+        "version": "sha256:9dba8c5f42b65bbe142479f36fd2029dd45c1068c16003bed44fd7e6c05e655a"
+      },
+      "publicKey": "MCowBQYDK2VwAyEAyBI2lCxCen7KWr6rCsYAL/QniTCtTXcDLBH9wgjAiqg=",
+      "createdAt": "2026-11-06T20:14:21.174Z",
+      "expiresAt": "2026-11-07T20:14:21.174Z"
+    },
+    "before": {
+      "target": {
+        "schema": "chainlesschain.goal-import-target/v1",
+        "id": "transfer-5471111c-2db3-48fb-9187-2f20d21159a1",
+        "storeId": "project-goals-f313c028-d469-4247-8592-261a8e977615",
+        "ownerRef": "did:chainlesschain:9f625563dcb6661d037e09cd747b826629feffda",
+        "projectRef": {
+          "schema": "chainlesschain.business-object-ref/v1",
+          "schemaVersion": 1,
+          "type": "Project",
+          "id": "efd74f30-8cf6-47a0-9607-b6d3261e178e",
+          "sourceKind": "desktop.project-goals",
+          "scope": {
+            "kind": "personal",
+            "id": "did:chainlesschain:9f625563dcb6661d037e09cd747b826629feffda"
+          },
+          "version": "sha256:9dba8c5f42b65bbe142479f36fd2029dd45c1068c16003bed44fd7e6c05e655a"
+        },
+        "publicKey": "MCowBQYDK2VwAyEAyBI2lCxCen7KWr6rCsYAL/QniTCtTXcDLBH9wgjAiqg=",
+        "createdAt": "2026-11-06T20:14:21.174Z",
+        "expiresAt": "2026-11-07T20:14:21.174Z"
+      },
+      "state": "imported",
+      "source": {
+        "storeId": "cli-goals-e1d0096da4fc644d00fb066a77b44b7bc591cb7a739a15d1a19ca301e94c6ef3",
+        "id": "goal-1793996054145-bud2np",
+        "revision": 1,
+        "digest": "sha256:cd00e88e57f15ccd20ecf13863e239183917673c2addc62188a420c3f190acdc"
+      },
+      "backupDigest": "sha256:40436754ee28695f80113f06ea30e97b60985e15a41be377cae8fc7147caf03a",
+      "goalRef": {
+        "storeId": "project-goals-f313c028-d469-4247-8592-261a8e977615",
+        "id": "goal-c5af66da-9fa5-4244-9aa9-a9ecf1a63c5b"
+      },
+      "cancellation": null
+    },
+    "after": {
+      "target": {
+        "schema": "chainlesschain.goal-import-target/v1",
+        "id": "transfer-5471111c-2db3-48fb-9187-2f20d21159a1",
+        "storeId": "project-goals-f313c028-d469-4247-8592-261a8e977615",
+        "ownerRef": "did:chainlesschain:9f625563dcb6661d037e09cd747b826629feffda",
+        "projectRef": {
+          "schema": "chainlesschain.business-object-ref/v1",
+          "schemaVersion": 1,
+          "type": "Project",
+          "id": "efd74f30-8cf6-47a0-9607-b6d3261e178e",
+          "sourceKind": "desktop.project-goals",
+          "scope": {
+            "kind": "personal",
+            "id": "did:chainlesschain:9f625563dcb6661d037e09cd747b826629feffda"
+          },
+          "version": "sha256:9dba8c5f42b65bbe142479f36fd2029dd45c1068c16003bed44fd7e6c05e655a"
+        },
+        "publicKey": "MCowBQYDK2VwAyEAyBI2lCxCen7KWr6rCsYAL/QniTCtTXcDLBH9wgjAiqg=",
+        "createdAt": "2026-11-06T20:14:21.174Z",
+        "expiresAt": "2026-11-07T20:14:21.174Z"
+      },
+      "state": "imported",
+      "source": {
+        "storeId": "cli-goals-e1d0096da4fc644d00fb066a77b44b7bc591cb7a739a15d1a19ca301e94c6ef3",
+        "id": "goal-1793996054145-bud2np",
+        "revision": 1,
+        "digest": "sha256:cd00e88e57f15ccd20ecf13863e239183917673c2addc62188a420c3f190acdc"
+      },
+      "backupDigest": "sha256:40436754ee28695f80113f06ea30e97b60985e15a41be377cae8fc7147caf03a",
+      "goalRef": {
+        "storeId": "project-goals-f313c028-d469-4247-8592-261a8e977615",
+        "id": "goal-c5af66da-9fa5-4244-9aa9-a9ecf1a63c5b"
+      },
+      "cancellation": null
+    },
+    "revised": {
+      "schema": "chainlesschain.goal/v1",
+      "schemaVersion": 1,
+      "id": "goal-c5af66da-9fa5-4244-9aa9-a9ecf1a63c5b",
+      "storeId": "project-goals-f313c028-d469-4247-8592-261a8e977615",
+      "revision": 2,
+      "controlGeneration": 1,
+      "ownerRef": "did:chainlesschain:9f625563dcb6661d037e09cd747b826629feffda",
+      "projectRef": {
+        "schema": "chainlesschain.business-object-ref/v1",
+        "schemaVersion": 1,
+        "type": "Project",
+        "id": "efd74f30-8cf6-47a0-9607-b6d3261e178e",
+        "sourceKind": "desktop.project-goals",
+        "scope": {
+          "kind": "personal",
+          "id": "did:chainlesschain:9f625563dcb6661d037e09cd747b826629feffda"
+        },
+        "version": "sha256:9dba8c5f42b65bbe142479f36fd2029dd45c1068c16003bed44fd7e6c05e655a"
+      },
+      "title": "DMM changed target must not roll back",
+      "objective": "DMM changed target must not roll back",
+      "status": "active",
+      "progress": 0,
+      "keyResults": [],
+      "linkedSessions": [],
+      "notes": [],
+      "drift": {
+        "lastProgressAt": null,
+        "flags": []
+      },
+      "createdAt": "2026-11-06T20:14:30.768Z",
+      "updatedAt": "2026-11-06T20:14:31.106Z",
+      "acceptanceCriteria": [],
+      "budgetPolicy": {
+        "maxRuns": null,
+        "maxTokens": null,
+        "maxTimeMs": null,
+        "maxCostUsd": null
+      },
+      "expiresAt": null,
+      "nextCheckAt": null,
+      "triggerRefs": [],
+      "allowedActionTypes": [],
+      "authorizationRefs": [],
+      "notificationPolicy": {
+        "channel": "in-app",
+        "mode": "changes-only"
+      },
+      "memoryRefs": [],
+      "waitingReason": null,
+      "executionState": "idle",
+      "completion": null
+    },
+    "errorCode": "GOAL_TRANSFER_ROLLBACK_HAS_CHANGES",
+    "nativeConfirmationAttempted": true,
+    "cancellationFileAbsent": true,
+    "sourceStillFrozen": true
+  },
+  "finalGoalCount": 1,
+  "status": "passed",
+  "finishedAt": "2026-11-06T20:14:41.435Z"
+}

@@ -1,0 +1,255 @@
+{
+  "schema": "chainlesschain.dmm-native-transfer-journey/v1",
+  "sourceSha": "68334f09c130d09bad365c408145f9b4821e09a2",
+  "sourceStatus": "M .github/workflows/dmm-native-goal-journey.yml\n M .github/workflows/dmm-native-goal-transfer.yml\n M desktop-app-vue/scripts/lib/project-goal-transfer-native.cjs\n M desktop-app-vue/scripts/project-goal-transfer-native-journey.mjs",
+  "startedAt": "2026-11-06T19:59:01.357Z",
+  "platform": "win32",
+  "release": "10.0.19045",
+  "synthetic": true,
+  "setupSeeded": true,
+  "realBusinessAcceptance": false,
+  "installedProductAcceptance": false,
+  "runnerSha256": "4d70e30537a66c1de957f4eb90903386175c91913f418adb810513534d9aa541",
+  "native": [
+    {
+      "pid": 28268,
+      "title": "导出 CLI 目标导入凭据",
+      "button": "保存(S)",
+      "file": "target.json",
+      "method": "Win32 filename WM_CHAR + WM_GETTEXT + BM_CLICK",
+      "filenameVerified": true,
+      "at": "2026-11-06T20:00:25.731Z"
+    },
+    {
+      "pid": 28268,
+      "title": "准备 CLI 目标移交",
+      "button": "取消",
+      "method": "Win32 BM_CLICK",
+      "expectedTextVerified": true,
+      "at": "2026-11-06T20:00:31.576Z"
+    },
+    {
+      "pid": 28268,
+      "title": "导出 CLI 目标导入凭据",
+      "button": "保存(S)",
+      "file": "target.json",
+      "method": "Win32 filename WM_CHAR + WM_GETTEXT + BM_CLICK",
+      "filenameVerified": true,
+      "at": "2026-11-06T20:00:33.787Z"
+    },
+    {
+      "pid": 28268,
+      "title": "准备 CLI 目标移交",
+      "button": "导出导入凭据",
+      "method": "Win32 BM_CLICK",
+      "expectedTextVerified": true,
+      "at": "2026-11-06T20:00:39.328Z"
+    }
+  ],
+  "cli": [
+    {
+      "args": [
+        "goal",
+        "set",
+        "DMM CLI source for actual native handoff",
+        "--kr",
+        "Keep the original source bytes",
+        "--kr",
+        "Do not inherit project permissions",
+        "--json"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"schema\": \"chainlesschain.goal/v1\",\n  \"schemaVersion\": 1,\n  \"id\": \"goal-1793995223495-3admi7\",\n  \"storeId\": \"cli-goals-e5e000ad72aeeb2c93f991d085b6c0904b4f57fa66d4df9cde765db2f796abb7\",\n  \"revision\": 1,\n  \"controlGeneration\": 0,\n  \"ownerRef\": null,\n  \"projectRef\": null,\n  \"title\": \"DMM CLI source for actual native handoff\",\n  \"objective\": \"DMM CLI source for actual native handoff\",\n  \"status\": \"active\",\n  \"progress\": 0,\n  \"keyResults\": [\n    {\n      \"id\": \"kr-1793995223496-gpqyd7\",\n      \"text\": \"Keep the original source bytes\",\n      \"target\": null,\n      \"current\": 0,\n      \"done\": false\n    },\n    {\n      \"id\": \"kr-1793995223496-mzu583\",\n      \"text\": \"Do not inherit project permissions\",\n      \"target\": null,\n      \"current\": 0,\n      \"done\": false\n    }\n  ],\n  \"linkedSessions\": [],\n  \"notes\": [],\n  \"drift\": {\n    \"lastProgressAt\": null,\n    \"flags\": []\n  },\n  \"createdAt\": \"2026-11-06T20:00:23.496Z\",\n  \"updatedAt\": \"2026-11-06T20:00:23.496Z\",\n  \"acceptanceCriteria\": [],\n  \"budgetPolicy\": {\n    \"maxRuns\": null,\n    \"maxTokens\": null,\n    \"maxTimeMs\": null,\n    \"maxCostUsd\": null\n  },\n  \"expiresAt\": null,\n  \"nextCheckAt\": null,\n  \"triggerRefs\": [],\n  \"allowedActionTypes\": [],\n  \"authorizationRefs\": [],\n  \"notificationPolicy\": {\n    \"channel\": \"in-app\",\n    \"mode\": \"changes-only\"\n  },\n  \"memoryRefs\": [],\n  \"waitingReason\": null,\n  \"executionState\": \"idle\",\n  \"completion\": null\n}\n",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "goal",
+        "transfer-to-project",
+        "goal-1793995223495-3admi7",
+        "--target",
+        "C:\\Users\\longfa\\AppData\\Local\\Temp\\dmm-native-transfer-NuJpiC\\target.json",
+        "--output",
+        "C:\\Users\\longfa\\AppData\\Local\\Temp\\dmm-native-transfer-NuJpiC\\transfer.json",
+        "--revision",
+        "1",
+        "--confirm-transfer",
+        "--json"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"state\": \"frozen\",\n  \"targetId\": \"transfer-2c4db86b-de0e-48d1-9164-a59a7073c5d1\",\n  \"source\": {\n    \"storeId\": \"cli-goals-e5e000ad72aeeb2c93f991d085b6c0904b4f57fa66d4df9cde765db2f796abb7\",\n    \"id\": \"goal-1793995223495-3admi7\",\n    \"revision\": 1,\n    \"digest\": \"sha256:baa39787f3fbadcbf4af8f4e8680169d24d19acb0d80f06ed529310554c01b26\"\n  },\n  \"backupFile\": \"C:\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\dmm-native-transfer-NuJpiC\\\\cli-home\\\\goals\\\\goal-1793995223495-3admi7.json.transfer-2c4db86b-de0e-48d1-9164-a59a7073c5d1.transfer-backup\",\n  \"output\": \"C:\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\dmm-native-transfer-NuJpiC\\\\transfer.json\",\n  \"digest\": \"sha256:2eb6daa993171cea929f007854d276a8718059d907106b287f46bf414ac91906\"\n}\n",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "goal",
+        "progress",
+        "goal-1793995223495-3admi7",
+        "--pct",
+        "10"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "✖ goal progress failed: GOAL_TRANSFER_FROZEN\n"
+    }
+  ],
+  "stages": [
+    {
+      "name": "real-password-login-and-owned-project",
+      "at": "2026-11-06T20:00:22.618Z"
+    },
+    {
+      "name": "native-export-cancel-no-file-or-target",
+      "at": "2026-11-06T20:00:31.646Z"
+    },
+    {
+      "name": "real-cli-frozen-with-exact-backup-and-write-rejection",
+      "at": "2026-11-06T20:00:41.126Z"
+    }
+  ],
+  "versions": {
+    "node": "22.22.1",
+    "acorn": "8.15.0",
+    "ada": "2.9.2",
+    "amaro": "1.1.5",
+    "ares": "1.34.6",
+    "brotli": "1.0.9",
+    "cjs_module_lexer": "2.2.0",
+    "cldr": "44.1",
+    "icu": "74.2",
+    "llhttp": "9.3.0",
+    "modules": "140",
+    "napi": "10",
+    "nbytes": "0.1.1",
+    "ncrypto": "0.0.1",
+    "nghttp2": "1.64.0",
+    "openssl": "0.0.0",
+    "simdjson": "4.2.4",
+    "simdutf": "7.3.3",
+    "sqlite": "3.51.2",
+    "tz": "2025b",
+    "undici": "6.23.0",
+    "unicode": "15.1",
+    "uv": "1.51.0",
+    "uvwasi": "0.0.23",
+    "v8": "14.2.231.22-electron.0",
+    "zlib": "1.3.1",
+    "zstd": "1.5.8",
+    "electron": "39.8.10",
+    "chrome": "142.0.7444.265"
+  },
+  "projectId": "02dfeaea-0830-4a0c-a051-ce4cb293d446",
+  "pickerProbe": {
+    "native": {
+      "pid": 28268,
+      "title": "导出 CLI 目标导入凭据",
+      "button": "保存(S)",
+      "file": "picker-probe-selected.json",
+      "method": "Win32 filename WM_CHAR + WM_GETTEXT + BM_CLICK",
+      "filenameVerified": true,
+      "at": "2026-11-06T20:00:22.403Z"
+    },
+    "actualSelectedExpectedPath": true,
+    "changedDefaultFilename": true,
+    "businessFileWritten": false
+  },
+  "source": {
+    "schema": "chainlesschain.goal/v1",
+    "schemaVersion": 1,
+    "id": "goal-1793995223495-3admi7",
+    "storeId": "cli-goals-e5e000ad72aeeb2c93f991d085b6c0904b4f57fa66d4df9cde765db2f796abb7",
+    "revision": 1,
+    "controlGeneration": 0,
+    "ownerRef": null,
+    "projectRef": null,
+    "title": "DMM CLI source for actual native handoff",
+    "objective": "DMM CLI source for actual native handoff",
+    "status": "active",
+    "progress": 0,
+    "keyResults": [
+      {
+        "id": "kr-1793995223496-gpqyd7",
+        "text": "Keep the original source bytes",
+        "target": null,
+        "current": 0,
+        "done": false
+      },
+      {
+        "id": "kr-1793995223496-mzu583",
+        "text": "Do not inherit project permissions",
+        "target": null,
+        "current": 0,
+        "done": false
+      }
+    ],
+    "linkedSessions": [],
+    "notes": [],
+    "drift": {
+      "lastProgressAt": null,
+      "flags": []
+    },
+    "createdAt": "2026-11-06T20:00:23.496Z",
+    "updatedAt": "2026-11-06T20:00:23.496Z",
+    "acceptanceCriteria": [],
+    "budgetPolicy": {
+      "maxRuns": null,
+      "maxTokens": null,
+      "maxTimeMs": null,
+      "maxCostUsd": null
+    },
+    "expiresAt": null,
+    "nextCheckAt": null,
+    "triggerRefs": [],
+    "allowedActionTypes": [],
+    "authorizationRefs": [],
+    "notificationPolicy": {
+      "channel": "in-app",
+      "mode": "changes-only"
+    },
+    "memoryRefs": [],
+    "waitingReason": null,
+    "executionState": "idle",
+    "completion": null
+  },
+  "originalSha256": "95cc05797e6ac480034b614ac5832d7d0edc7f32814c608d73c9f168be15c38f",
+  "target": {
+    "schema": "chainlesschain.goal-import-target/v1",
+    "id": "transfer-2c4db86b-de0e-48d1-9164-a59a7073c5d1",
+    "storeId": "project-goals-ed6e9eb0-6fe4-4696-ae52-220fedaffcda",
+    "ownerRef": "did:chainlesschain:5a06391bb31b9e69d2390beae1c6e6f9b4ff2a17",
+    "projectRef": {
+      "schema": "chainlesschain.business-object-ref/v1",
+      "schemaVersion": 1,
+      "type": "Project",
+      "id": "02dfeaea-0830-4a0c-a051-ce4cb293d446",
+      "sourceKind": "desktop.project-goals",
+      "scope": {
+        "kind": "personal",
+        "id": "did:chainlesschain:5a06391bb31b9e69d2390beae1c6e6f9b4ff2a17"
+      },
+      "version": "sha256:d2516ef30b4cdc834dc9aaeaf2d41693b1675181a8c870444b246f3d240529ec"
+    },
+    "publicKey": "MCowBQYDK2VwAyEAG5vsHUawgHQeWImhEXQyCf28lS0aDqM2+9ThwCVIQlY=",
+    "createdAt": "2026-11-06T20:00:39.365Z",
+    "expiresAt": "2026-11-07T20:00:39.365Z"
+  },
+  "frozen": {
+    "state": "frozen",
+    "targetId": "transfer-2c4db86b-de0e-48d1-9164-a59a7073c5d1",
+    "source": {
+      "storeId": "cli-goals-e5e000ad72aeeb2c93f991d085b6c0904b4f57fa66d4df9cde765db2f796abb7",
+      "id": "goal-1793995223495-3admi7",
+      "revision": 1,
+      "digest": "sha256:baa39787f3fbadcbf4af8f4e8680169d24d19acb0d80f06ed529310554c01b26"
+    },
+    "backupFile": "C:\\Users\\longfa\\AppData\\Local\\Temp\\dmm-native-transfer-NuJpiC\\cli-home\\goals\\goal-1793995223495-3admi7.json.transfer-2c4db86b-de0e-48d1-9164-a59a7073c5d1.transfer-backup",
+    "output": "C:\\Users\\longfa\\AppData\\Local\\Temp\\dmm-native-transfer-NuJpiC\\transfer.json",
+    "digest": "sha256:2eb6daa993171cea929f007854d276a8718059d907106b287f46bf414ac91906"
+  },
+  "status": "failed",
+  "error": {
+    "message": "Native filename field unavailable",
+    "stack": "Error: Native filename field unavailable\n    at chooseTransferFile (C:\\code\\chainlesschain\\desktop-app-vue\\scripts\\lib\\project-goal-transfer-native.cjs:188:11)\n    at async Promise.all (index 0)\n    at async nativeFlow (file:///C:/code/chainlesschain/desktop-app-vue/scripts/project-goal-transfer-native-journey.mjs:250:33)\n    at async file:///C:/code/chainlesschain/desktop-app-vue/scripts/project-goal-transfer-native-journey.mjs:342:3"
+  },
+  "finishedAt": "2026-11-06T20:00:52.683Z"
+}

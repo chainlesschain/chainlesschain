@@ -651,14 +651,17 @@ describe("background agent supervisor", () => {
     expect(() =>
       assertBackgroundAgentWorkerAcceptsPrompt(false, false),
     ).not.toThrow();
-    expect(() =>
-      assertBackgroundAgentWorkerAcceptsPrompt(false, true),
-    ).toThrow(/session is closing/);
+    expect(() => assertBackgroundAgentWorkerAcceptsPrompt(false, true)).toThrow(
+      /session is closing/,
+    );
   });
 
   it.each([
     ["stop fence", (current) => ({ ...current, stopRequestedAt: 123 })],
-    ["worker generation", (current) => ({ ...current, workerGeneration: "g2" })],
+    [
+      "worker generation",
+      (current) => ({ ...current, workerGeneration: "g2" }),
+    ],
   ])(
     "honors a %s that appears during a final-state lock retry",
     async (_fenceName, addFence) => {
@@ -5060,14 +5063,30 @@ describe("background agent supervisor", () => {
   );
 
   it.skipIf(process.platform === "win32")(
-    "reads POSIX group states through the constrained execution broker",
+    "reads macOS group states through the constrained execution broker",
     () => {
       _deps.spawnSync = vi.fn(() => ({
         status: 0,
         stdout: "  41 Z\n  42 Ss\n  42 Z+\n",
       }));
 
-      expect(originalReadProcessGroupStates(42)).toEqual(["S", "Z"]);
+      // Linux now reads /proc first, so a fake group id never reaches the
+      // mocked ps command there. Exercise the portable ps branch explicitly.
+      const platformDescriptor = Object.getOwnPropertyDescriptor(
+        process,
+        "platform",
+      );
+      let states;
+      try {
+        Object.defineProperty(process, "platform", {
+          ...platformDescriptor,
+          value: "darwin",
+        });
+        states = originalReadProcessGroupStates(42);
+      } finally {
+        Object.defineProperty(process, "platform", platformDescriptor);
+      }
+      expect(states).toEqual(["S", "Z"]);
       expect(_deps.spawnSync).toHaveBeenCalledWith(
         "ps",
         ["-A", "-o", "pgid=", "-o", "stat="],

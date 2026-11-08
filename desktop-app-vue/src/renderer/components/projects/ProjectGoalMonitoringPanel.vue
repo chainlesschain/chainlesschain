@@ -10,6 +10,13 @@
       巡检在应用运行且身份解锁时检查逾期和依赖信号；重新打开后补做一次到期检查。
     </p>
     <p v-if="error" role="alert">{{ error }}</p>
+    <ProjectGoalTransferPanel
+      v-if="!focused"
+      :project-id="projectId"
+      :identity-key="identityKey"
+      @changed="loadGoals()"
+      @authority-error="authorityFailure"
+    />
     <form
       v-if="!focused"
       data-testid="create-goal"
@@ -212,6 +219,7 @@ import ProjectGoalCliConnectionPanel from "./ProjectGoalCliConnectionPanel.vue";
 import ProjectGoalAcceptancePanel from "./ProjectGoalAcceptancePanel.vue";
 import ProjectGoalMemoryPanel from "./ProjectGoalMemoryPanel.vue";
 import ProjectGoalNotificationPolicyPanel from "./ProjectGoalNotificationPolicyPanel.vue";
+import ProjectGoalTransferPanel from "./ProjectGoalTransferPanel.vue";
 type Goal = {
   id: string;
   revision: number;
@@ -249,6 +257,7 @@ type Status = {
 type Request = { id: string; expectedRevision: number; requestId: string };
 type StopRequest = Request & { occurrenceId: string; expectedFence: number };
 type GoalApi = {
+  getGoalFeatureStatus?(): Promise<{ enabled: boolean }>;
   createGoal(input: {
     projectId: string;
     objective: string;
@@ -298,7 +307,8 @@ const api = () =>
   (window as unknown as { electronAPI?: { project?: GoalApi } }).electronAPI
     ?.project;
 const focused = computed(() => props.focusGoalId !== undefined);
-const available = computed(() =>
+const featureEnabled = ref(false);
+const apiReady = computed(() =>
   [
     ...(focused.value ? [] : ["createGoal", "listGoals"]),
     "reviseGoal",
@@ -308,6 +318,7 @@ const available = computed(() =>
     "checkGoalNow",
   ].every((key) => typeof api()?.[key as keyof GoalApi] === "function"),
 );
+const available = computed(() => apiReady.value && featureEnabled.value);
 const goals = ref<Status[]>([]),
   pending = ref<Record<string, Request>>({});
 const stopPending = ref<Record<string, StopRequest>>({});
@@ -391,6 +402,11 @@ function authorityFailure() {
   emit("authority-error");
 }
 function failure(value: unknown, message: string) {
+  if (actionCode(value) === "GOAL_FEATURE_DISABLED") {
+    reset();
+    featureEnabled.value = false;
+    return;
+  }
   if (isAuthorityError(value)) {
     reset();
     emit("authority-error");
@@ -402,11 +418,20 @@ function failure(value: unknown, message: string) {
         : message;
 }
 async function loadGoals(more = false) {
-  if (!available.value || busy.value) return;
+  if (!apiReady.value || busy.value) return;
   const stamp = epoch;
   busy.value = true;
   error.value = "";
   try {
+    const status = await api()!.getGoalFeatureStatus?.();
+    if (!current(stamp)) return;
+    featureEnabled.value = status === undefined || status.enabled === true;
+    if (!featureEnabled.value) {
+      goals.value = [];
+      pending.value = {};
+      stopPending.value = {};
+      return;
+    }
     if (focused.value) {
       goals.value = [];
       const goalId = props.focusGoalId;
@@ -516,7 +541,7 @@ async function control(
           requestId: crypto.randomUUID(),
         };
         pending.value[id] = request;
-        const outcome = await api()!.checkGoalNow(request);
+        const outcome = await api()!.checkGoalNow({ ...request });
         if (!current(stamp)) return;
         if (
           [
@@ -574,7 +599,7 @@ async function stopOccurrence(
   };
   stopPending.value[occurrence.id] = request;
   try {
-    const result = await api()!.stopGoalOccurrence!(request);
+    const result = await api()!.stopGoalOccurrence!({ ...request });
     if (!current(stamp)) return;
     if (result.goalId !== item.goal.id || result.occurrenceId !== occurrence.id)
       throw new Error("GOAL_NOT_FOUND_OR_DENIED");

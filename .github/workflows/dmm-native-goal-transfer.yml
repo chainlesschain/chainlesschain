@@ -1,0 +1,136 @@
+name: DMM Native Goal Transfer
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/dmm-native-goal-transfer.yml"
+      - "desktop-app-vue/scripts/project-goal-transfer-native-journey.mjs"
+      - "desktop-app-vue/scripts/project-goal-encrypted-electron-probe.mjs"
+      - "desktop-app-vue/src/main/task/__tests__/fixtures/project-goal-encrypted-electron.cjs"
+      - "desktop-app-vue/scripts/lib/project-goal-transfer-native.cjs"
+      - "desktop-app-vue/scripts/lib/project-goal-journey-observer.cjs"
+      - "desktop-app-vue/scripts/lib/project-goal-native-dialog.ps1"
+      - "desktop-app-vue/src/main/task/project-goal*.js"
+      - "desktop-app-vue/src/main/task/task-description-ipc.js"
+      - "desktop-app-vue/src/renderer/components/projects/ProjectGoal*Panel.vue"
+      - "packages/session-core/lib/project-goal*.js"
+      - "packages/session-core/lib/goal-transfer*.js"
+      - "packages/cli/src/lib/goal-store.js"
+      - "packages/cli/src/commands/goal.js"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dmm-native-goal-transfer-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows:
+    name: Actual Windows Electron and CLI goal transfer
+    runs-on: windows-latest
+    timeout-minutes: 45
+    env:
+      DMM_EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      NODE_OPTIONS: --max-old-space-size=8192
+    steps:
+      - name: Enable Windows long paths before checkout
+        if: runner.os == 'Windows'
+        run: git config --global core.longpaths true
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.DMM_EXPECTED_SHA }}
+          persist-credentials: false
+      - name: Verify exact source
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "$DMM_EXPECTED_SHA"
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22.22.2
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            desktop-app-vue/package-lock.json
+      - name: Canonicalize the owned Windows temporary root
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const root = fs.realpathSync.native(require('node:os').tmpdir());
+          if (/[\r\n]/u.test(root)) throw new Error('Invalid temporary root');
+          fs.appendFileSync(process.env.GITHUB_ENV, `TEMP=${root}\nTMP=${root}\n`);
+          NODE
+      - name: Install all locked root workspaces once
+        run: npm ci --legacy-peer-deps --workspaces --include-workspace-root
+      # A child-workspace npm ci would remove the CLI's nested Ajv 8 even though
+      # the root lock correctly declares it. Keep both consumers installed.
+      - name: Verify desktop and CLI workspace dependencies survived installation
+        shell: bash
+        run: |
+          node <<'NODE'
+          const assert = require('node:assert/strict');
+          const path = require('node:path');
+          const { createRequire } = require('node:module');
+          const root = process.cwd();
+          const workspaces = require('./package.json').workspaces;
+          assert(workspaces.includes('desktop-app-vue') && workspaces.includes('packages/cli'));
+          const cli = createRequire(path.join(root, 'packages/cli/package.json'));
+          const desktop = createRequire(path.join(root, 'desktop-app-vue/package.json'));
+          assert.equal(cli('ajv/package.json').version.split('.')[0], '8');
+          console.log(JSON.stringify({ ajv2020: cli.resolve('ajv/dist/2020.js'), electron: desktop.resolve('electron'), encryptedDb: desktop.resolve('better-sqlite3-multiple-ciphers/package.json') }));
+          NODE
+      - name: Refuse tracked source or lockfile drift
+        shell: bash
+        run: |
+          git diff --exit-code
+          git diff --cached --exit-code
+      - name: Install locked Electron runtime and matching encrypted SQLite prebuild
+        shell: bash
+        working-directory: desktop-app-vue
+        run: |
+          node <<'NODE'
+          const path = require('node:path');
+          const { execFileSync } = require('node:child_process');
+          const electronVersion = require('electron/package.json').version;
+          execFileSync(process.execPath, [require.resolve('electron/install.js')], { stdio: 'inherit' });
+          const nativeRoot = path.dirname(require.resolve('better-sqlite3-multiple-ciphers/package.json'));
+          execFileSync(process.execPath, [require.resolve('prebuild-install/bin.js'), '--runtime=electron', '--target=' + electronVersion], { cwd: nativeRoot, stdio: 'inherit' });
+          NODE
+      - name: Build actual main and preload
+        working-directory: desktop-app-vue
+        run: node scripts/build-main.js
+      - name: Probe the locked encrypted Graph host before renderer execution
+        shell: bash
+        working-directory: desktop-app-vue
+        run: |
+          node scripts/project-goal-encrypted-electron-probe.mjs \
+            --electron "$(node -p 'require("electron")')" \
+            --output "$RUNNER_TEMP/dmm-encrypted-goal-preflight.json"
+      - name: Build production Vue renderer
+        working-directory: desktop-app-vue
+        run: npm exec --offline -- vite build --logLevel warn
+      - name: Recheck source identity after runtime preparation and build
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "$DMM_EXPECTED_SHA"
+          git diff --exit-code
+          git diff --cached --exit-code
+      - name: Exercise real file pickers, CLI freeze, native import and signed rollback
+        shell: bash
+        working-directory: desktop-app-vue
+        run: |
+          node scripts/project-goal-transfer-native-journey.mjs \
+            --electron "$(node -p 'require("electron")')" \
+            --output "$RUNNER_TEMP/dmm-native-goal-transfer"
+      # Upload only the bounded synthetic report/screenshots. App logs, login
+      # material and the encrypted profile remain outside this directory.
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dmm-native-goal-transfer-windows-${{ env.DMM_EXPECTED_SHA }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/dmm-native-goal-transfer/
+            ${{ runner.temp }}/dmm-encrypted-goal-preflight.json
+          if-no-files-found: warn
+          retention-days: 14

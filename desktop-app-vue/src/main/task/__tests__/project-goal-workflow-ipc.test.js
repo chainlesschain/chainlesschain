@@ -4,14 +4,18 @@ const require = createRequire(import.meta.url);
 const Database = require("better-sqlite3");
 const { createProjectGoalHost } = require("../project-goal-ipc.js");
 const {
+  createProjectGoalFeaturePolicy,
+} = require("../project-goal-feature-policy");
+const {
   ProjectGoalWorkflow,
 } = require("@chainlesschain/session-core/project-goal-workflow");
 const owner = "did:chainless:owner";
 
 // Native SQLite is real; Electron window/dialog APIs are explicit test doubles.
 describe("goal workflow trusted desktop IPC and native confirmation boundary", () => {
-  let db, actor, window, event, electron, host, workflow, g;
+  let db, actor, window, event, electron, host, workflow, g, featurePolicy;
   beforeEach(() => {
+    featurePolicy = createProjectGoalFeaturePolicy({ enabled: true });
     db = new Database(":memory:");
     actor = owner;
     db.exec(`CREATE TABLE projects (id TEXT PRIMARY KEY,user_id TEXT,status TEXT,updated_at INTEGER,deleted INTEGER DEFAULT 0);
@@ -29,6 +33,7 @@ describe("goal workflow trusted desktop IPC and native confirmation boundary", (
       dialog: { showMessageBox: vi.fn(async () => ({ response: 1 })) },
     };
     host = createProjectGoalHost({
+      featurePolicy,
       database: { getDatabase: () => db },
       getCurrentUserDid: () => actor,
       electron,
@@ -97,42 +102,48 @@ describe("goal workflow trusted desktop IPC and native confirmation boundary", (
       expect(electron.dialog.showMessageBox).toHaveBeenCalledTimes(1);
     },
   );
-  it.each(["pause", "logout", "window", "database", "navigation", "identity"])(
-    "rejects an old native confirmation after %s changes",
-    async (change) => {
-      const prepared = prepare();
-      const original = db;
-      electron.dialog.showMessageBox.mockImplementation(async () => {
-        if (change === "pause")
-          host.revise(event, {
-            id: g.id,
-            expectedRevision: g.revision,
-            patch: { status: "paused" },
-          });
-        if (change === "logout") actor = null;
-        if (change === "window") window.isDestroyed.mockReturnValue(true);
-        if (change === "database") db = new Database(":memory:");
-        if (change === "navigation")
-          event.senderFrame.url = "https://untrusted.example";
-        if (change === "identity") actor = "did:chainless:other";
-        return { response: 1 };
-      });
-      await expect(
-        host.executeIntent(event, { intentId: prepared.intent.id }),
-      ).rejects.toThrow();
-      expect(
-        original.prepare("SELECT count(*) AS n FROM project_tasks").get().n,
-      ).toBe(1);
-      expect(
-        JSON.parse(
-          original.prepare("SELECT run_json FROM cc_business_action_runs").get()
-            .run_json,
-        ).status,
-      ).toBe("denied");
-      if (db !== original) db.close();
-      db = original;
-    },
-  );
+  it.each([
+    "pause",
+    "logout",
+    "window",
+    "database",
+    "navigation",
+    "identity",
+    "disable",
+  ])("rejects an old native confirmation after %s changes", async (change) => {
+    const prepared = prepare();
+    const original = db;
+    electron.dialog.showMessageBox.mockImplementation(async () => {
+      if (change === "disable") await featurePolicy.disable();
+      if (change === "pause")
+        host.revise(event, {
+          id: g.id,
+          expectedRevision: g.revision,
+          patch: { status: "paused" },
+        });
+      if (change === "logout") actor = null;
+      if (change === "window") window.isDestroyed.mockReturnValue(true);
+      if (change === "database") db = new Database(":memory:");
+      if (change === "navigation")
+        event.senderFrame.url = "https://untrusted.example";
+      if (change === "identity") actor = "did:chainless:other";
+      return { response: 1 };
+    });
+    await expect(
+      host.executeIntent(event, { intentId: prepared.intent.id }),
+    ).rejects.toThrow();
+    expect(
+      original.prepare("SELECT count(*) AS n FROM project_tasks").get().n,
+    ).toBe(1);
+    expect(
+      JSON.parse(
+        original.prepare("SELECT run_json FROM cc_business_action_runs").get()
+          .run_json,
+      ).status,
+    ).toBe("denied");
+    if (db !== original) db.close();
+    db = original;
+  });
   it.each(["proposals", "prepareIntent", "executeIntent", "readIntent"])(
     "checks trusted sender for %s before reading business data",
     (method) => {

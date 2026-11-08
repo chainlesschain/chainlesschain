@@ -1,0 +1,117 @@
+name: DMM Project Host
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/dmm-project-host.yml"
+      - ".github/workflows/dmm-native-goal*.yml"
+      - ".github/actions/setup-node-deps/action.yml"
+      - "desktop-app-vue/src/main/task/**"
+      - "desktop-app-vue/src/main/notification/**"
+      - "desktop-app-vue/scripts/project-goal-*-journey.mjs"
+      - "desktop-app-vue/scripts/lib/project-goal-*.cjs"
+      - "desktop-app-vue/src/main/database/sqlcipher-wrapper.js"
+      - "desktop-app-vue/src/renderer/components/projects/**"
+      - "desktop-app-vue/vitest.business-actions*.config.mjs"
+      - "desktop-app-vue/vitest.organization-authority.config.mjs"
+      - "desktop-app-vue/vitest.organization-renderer.config.mjs"
+      - "packages/session-core/**"
+      - "packages/cli/src/host/**"
+      - "packages/cli/src/lib/graph-kernel/**"
+      - "packages/cli/src/lib/scheduler-kernel/**"
+      - "package.json"
+      - "package-lock.json"
+      - "desktop-app-vue/package.json"
+      - "desktop-app-vue/package-lock.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dmm-project-host-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  host:
+    name: Native goal and task controls (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    env:
+      DMM_EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Enable Windows long paths before checkout
+        if: runner.os == 'Windows'
+        run: git config --global core.longpaths true
+      - name: Checkout exact candidate
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ env.DMM_EXPECTED_SHA }}
+          persist-credentials: false
+
+      - name: Verify source identity
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "$DMM_EXPECTED_SHA"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22.22.2
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            desktop-app-vue/package-lock.json
+
+      - name: Install locked native and renderer dependencies
+        uses: ./.github/actions/setup-node-deps
+        with:
+          install-desktop-app-vue: "true"
+
+      # Keep the complete existing configurations. In particular, do not replace
+      # Windows ACL guards or skip the host boundary tests on another OS.
+      - name: Verify native business-action and goal host boundaries
+        working-directory: desktop-app-vue
+        run: >-
+          npm exec --offline -- vitest run
+          --config vitest.business-actions.config.mjs
+          --reporter=default --reporter=github-actions --reporter=json
+          --outputFile.json=test-results/dmm-host.json
+
+      - name: Verify renderer controls
+        working-directory: desktop-app-vue
+        run: >-
+          npm exec --offline -- vitest run
+          --config vitest.business-actions-renderer.config.mjs
+          --reporter=default --reporter=github-actions --reporter=json
+          --outputFile.json=test-results/dmm-renderer.json
+
+      # Login authority generations also bind organization actions/approvals.
+      # Exercise the full organization configuration after authentication fixes.
+      - name: Verify organization authority and shared host compatibility
+        working-directory: desktop-app-vue
+        run: >-
+          npm exec --offline -- vitest run
+          --config vitest.organization-authority.config.mjs
+          --reporter=default --reporter=github-actions --reporter=json
+          --outputFile.json=test-results/dmm-organization-host.json
+
+      - name: Verify organization renderer and default-off controls
+        working-directory: desktop-app-vue
+        run: >-
+          npm exec --offline -- vitest run
+          --config vitest.organization-renderer.config.mjs
+          --reporter=default --reporter=github-actions --reporter=json
+          --outputFile.json=test-results/dmm-organization-renderer.json
+
+      - name: Upload exact-source diagnostic reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dmm-project-host-${{ matrix.os }}-${{ env.DMM_EXPECTED_SHA }}-${{ github.run_attempt }}
+          path: desktop-app-vue/test-results/dmm-*.json
+          if-no-files-found: warn
+          retention-days: 14

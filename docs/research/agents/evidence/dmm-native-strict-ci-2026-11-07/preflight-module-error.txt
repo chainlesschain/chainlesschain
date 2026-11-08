@@ -1,0 +1,3 @@
+Actual Windows Electron goal journey	Probe the locked encrypted Graph host before renderer execution	2026-11-06T20:43:45.1185051Z Error [ERR_MODULE_NOT_FOUND]: Cannot find module 'D:\a\chainlesschain\chainlesschain\node_modules\ajv\dist\2020.js' imported from D:\a\chainlesschain\chainlesschain\packages\cli\src\lib\json-schema-validate.js
+Actual Windows Electron goal journey	Probe the locked encrypted Graph host before renderer execution	2026-11-06T20:43:45.1188973Z   code: 'ERR_MODULE_NOT_FOUND',
+Actual Windows Electron goal journey	Probe the locked encrypted Graph host before renderer execution	2026-11-06T20:43:45.1189318Z   url: 'file:///D:/a/chainlesschain/chainlesschain/node_modules/ajv/dist/2020.js'

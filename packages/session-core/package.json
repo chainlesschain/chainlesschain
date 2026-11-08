@@ -1,6 +1,6 @@
 {
   "name": "@chainlesschain/session-core",
-  "version": "0.3.26",
+  "version": "0.3.27",
   "description": "Session lifecycle, trace store, agent definition, idle parker — shared by Desktop and CLI (Managed Agents parity)",
   "type": "commonjs",
   "main": "lib/index.js",
@@ -42,6 +42,9 @@
     "./organization-project-goal-completion": "./lib/organization-project-goal-completion.js",
     "./organization-task-action-service": "./lib/organization-task-action-service.js",
     "./goal-contract": "./lib/goal-contract.js",
+    "./goal-transfer-contract": "./lib/goal-transfer-contract.js",
+    "./goal-transfer-files": "./lib/goal-transfer-files.js",
+    "./project-goal-transfer": "./lib/project-goal-transfer.js",
     "./goal-extension-proposal-contract": "./lib/goal-extension-proposal-contract.js",
     "./project-goal-extension-queue": "./lib/project-goal-extension-queue.js",
     "./goal-draft-request-contract": "./lib/goal-draft-request-contract.js",

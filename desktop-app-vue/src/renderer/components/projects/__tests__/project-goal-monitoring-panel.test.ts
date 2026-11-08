@@ -63,6 +63,46 @@ describe("personal project goal controls", () => {
     expect(api.startGoalMonitoring).not.toHaveBeenCalled();
     expect(api.checkGoalNow).not.toHaveBeenCalled();
   });
+  it("hides trial controls and does not read goals when the host reports disabled", async () => {
+    wrapper.unmount();
+    await flushPromises();
+    vi.clearAllMocks();
+    api.getGoalFeatureStatus = vi.fn(async () => ({ enabled: false }));
+    wrapper = mount(Panel, {
+      props: { projectId: "p1", identityKey: "owner" },
+    });
+    await flushPromises();
+    expect(wrapper.find('[data-testid="project-goal-panel"]').exists()).toBe(
+      false,
+    );
+    expect(api.listGoals).not.toHaveBeenCalled();
+    expect(api.createGoal).not.toHaveBeenCalled();
+  });
+  it("waits for the host opt-in response before exposing trial controls", async () => {
+    wrapper.unmount();
+    await flushPromises();
+    vi.clearAllMocks();
+    let resolveStatus!: (value: { enabled: boolean }) => void;
+    api.getGoalFeatureStatus = vi.fn(
+      () =>
+        new Promise((resolve) => {
+          resolveStatus = resolve;
+        }),
+    );
+    wrapper = mount(Panel, {
+      props: { projectId: "p1", identityKey: "owner" },
+    });
+    expect(wrapper.find('[data-testid="project-goal-panel"]').exists()).toBe(
+      false,
+    );
+    expect(api.listGoals).not.toHaveBeenCalled();
+    resolveStatus({ enabled: true });
+    await flushPromises();
+    expect(wrapper.find('[data-testid="project-goal-panel"]').exists()).toBe(
+      true,
+    );
+    expect(api.listGoals).toHaveBeenCalledOnce();
+  });
   it("refreshes goal state after explicitly saving its notification policy", async () => {
     await flushPromises();
     api.reviseGoal.mockImplementation(async (input) =>
@@ -141,14 +181,16 @@ describe("personal project goal controls", () => {
   });
   it("retries an uncertain occurrence stop with the original request identity", async () => {
     await flushPromises();
-    api.stopGoalOccurrence = vi
-      .fn()
-      .mockRejectedValueOnce(new Error("timeout"))
-      .mockResolvedValue({
+    const forwarded: unknown[] = [];
+    api.stopGoalOccurrence = vi.fn(async (input) => {
+      forwarded.push(structuredClone(input));
+      if (forwarded.length === 1) throw new Error("timeout");
+      return {
         status: "stop-requested",
         goalId: "g1",
         occurrenceId: "occ1",
-      });
+      };
+    });
     api.getGoalMonitoringStatus.mockResolvedValue(
       state({
         executionState: "running",
@@ -164,6 +206,8 @@ describe("personal project goal controls", () => {
     await wrapper.get('[data-testid="stop-goal-occurrence"]').trigger("click");
     await flushPromises();
     expect(api.stopGoalOccurrence.mock.calls[1][0]).toEqual(original);
+    expect(forwarded).toHaveLength(2);
+    expect(forwarded[1]).toEqual(forwarded[0]);
   });
   it("ends long-term follow-up separately and keeps pending termination distinct from ended", async () => {
     await flushPromises();
@@ -215,7 +259,12 @@ describe("personal project goal controls", () => {
   });
   it("preserves manual request identity when the transport outcome is unknown", async () => {
     await flushPromises();
-    api.checkGoalNow.mockRejectedValueOnce(new Error("transport timeout"));
+    const forwarded: unknown[] = [];
+    api.checkGoalNow.mockImplementation(async (input) => {
+      forwarded.push(structuredClone(input));
+      if (forwarded.length === 1) throw new Error("transport timeout");
+      return { status: "succeeded", occurrenceId: "occ-1" };
+    });
     await wrapper.get('[data-testid="check-goal"]').trigger("click");
     await flushPromises();
     const first = api.checkGoalNow.mock.calls[0][0];
@@ -223,6 +272,8 @@ describe("personal project goal controls", () => {
     await wrapper.get('[data-testid="check-goal"]').trigger("click");
     await flushPromises();
     expect(api.checkGoalNow.mock.calls[1][0]).toEqual(first);
+    expect(forwarded).toHaveLength(2);
+    expect(forwarded[1]).toEqual(forwarded[0]);
     expect(wrapper.text()).not.toContain("重试本次检查");
   });
   it("does not label a requested stop as confirmed while work remains active", async () => {

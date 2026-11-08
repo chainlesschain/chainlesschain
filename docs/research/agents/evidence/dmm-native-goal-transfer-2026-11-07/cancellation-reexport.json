@@ -1,0 +1,8 @@
+{
+  "schema": "chainlesschain.goal-transfer-cancellation/v1",
+  "targetId": "transfer-30cb4431-91a1-47ab-b202-e765d74b1d39",
+  "targetDigest": "sha256:d71140d0ce4d06cd70a14a01472b199753c884386bbf8a7d3badf2546730fba4",
+  "state": "cancelled",
+  "at": "2026-11-06T20:14:04.395Z",
+  "signature": "ygm1HPpWQsIoe35LV3l5i58oX97YcfbfNrMQtM2V8UWkHrpXCELL4P1UEDlPei8zBslB1uilo/DI2exTkWAEAA=="
+}

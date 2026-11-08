@@ -1,0 +1,26 @@
+{
+  "candidateHead": "3fa3a4b258bbcb60b23b4298cec375661ad6f410",
+  "workflow": "VERIFY01 Host Diagnostics",
+  "runId": 42165323451,
+  "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42165323451",
+  "initialFailure": {
+    "attempt": 1,
+    "jobId": 127721456536,
+    "jobName": "vscode (windows-latest)",
+    "step": "Prepare exact VS Code outside task deadline",
+    "error": "All three @vscode/test-electron download attempts timed out at 15000 ms for the official 326.58 MB VS Code 1.132.0 Windows archive.",
+    "helperTestsPassed": 68,
+    "helperTestsSkipped": 3,
+    "hostJourneyStarted": false
+  },
+  "retry": {
+    "attempt": 2,
+    "jobId": 127732692685,
+    "jobConclusion": "success",
+    "workflowConclusion": "success",
+    "officialDownloadConclusion": "success",
+    "scope": "Same candidate, failed job rerun only; other successful Linux, macOS and JetBrains platform jobs retained. No source edits or test exclusions."
+  },
+  "authority": "Supplementary PR host diagnostic; this workflow checks out the PR merge ref. Exact-head CLI release matrices and independent IDE tag release gates remain separately required.",
+  "macosCleanupCorrection": "Onboarding identity and port-release phase passed, followed by complete cold initialization/boundary journeys."
+}

@@ -129,16 +129,16 @@ describe("Graph store cutover evidence", () => {
     );
     expect(coverage).toMatchObject({
       evidenceRecordCount: 1,
-      migratableEntryCount: 7,
+      migratableEntryCount: 8,
       completeEntryCount: 0,
-      storeSlotCount: 20,
+      storeSlotCount: 22,
       coveredStoreSlotCount: 11,
-      missingStoreSlotCount: 9,
+      missingStoreSlotCount: 11,
       completeStoreSlotCount: 0,
-      incompletePlatformStoreSlotCount: 20,
-      platformStoreSlotCount: 60,
+      incompletePlatformStoreSlotCount: 22,
+      platformStoreSlotCount: 66,
       coveredPlatformStoreSlotCount: 11,
-      missingPlatformStoreSlotCount: 49,
+      missingPlatformStoreSlotCount: 55,
     });
     expect(
       coverage.entries.find((entry) => entry.entryId === "desktop-team"),
@@ -206,11 +206,11 @@ describe("Graph store cutover evidence", () => {
     const coverage = graphStoreCutoverCoverage(manifest, evidence);
     expect(coverage).toMatchObject({
       requiredPlatforms: ["linux", "macos", "windows"],
-      completeEntryCount: 7,
-      completeStoreSlotCount: 20,
+      completeEntryCount: 8,
+      completeStoreSlotCount: 22,
       incompletePlatformStoreSlotCount: 0,
-      platformStoreSlotCount: 60,
-      coveredPlatformStoreSlotCount: 60,
+      platformStoreSlotCount: 66,
+      coveredPlatformStoreSlotCount: 66,
       missingPlatformStoreSlotCount: 0,
     });
   });

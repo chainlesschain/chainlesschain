@@ -1,0 +1,318 @@
+{
+  "createdAt": "2026-11-06T18:27:10.988Z",
+  "checkoutHead": "0364c3eaddbae66f60eb3d5f58350915cca8e15b",
+  "sourceState": "local source snapshot bound by hashes; not remote CI or installed product acceptance",
+  "total": {
+    "files": 42,
+    "passed": 704,
+    "failed": 0,
+    "skipped": 0
+  },
+  "reports": [
+    {
+      "file": "desktop-tests.json",
+      "sha256": "261adf68a9d1d24dcb276e70f041c61f183716e315ca8266a51cbc265213728e",
+      "passed": 401,
+      "files": [
+        "desktop-app-vue/src/preload/__tests__/legacy-ipc-policy.test.js",
+        "desktop-app-vue/tests/unit/ukey/ukey-ipc.test.js",
+        "desktop-app-vue/src/main/ipc/__tests__/ipc-sender-guard.test.js",
+        "desktop-app-vue/src/main/notification/__tests__/notification-authority-ipc.test.js",
+        "desktop-app-vue/src/main/notification/__tests__/project-goal-notification-journey.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-auth-session.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-cli-bridge.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-completion-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-delivery-drafts-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-draft-imports-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-encrypted-host.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-event-history-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-external-drafts-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-graph-host.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-memory-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-model-drafts-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-monitoring-host.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-transfer-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-workflow-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/task-description-ipc.test.js"
+      ]
+    },
+    {
+      "file": "organization-host-tests.json",
+      "sha256": "99b462c3f59c3c96347b862a3a7975c357b72aa5790914c237abc605409f1755",
+      "passed": 14,
+      "files": [
+        "desktop-app-vue/src/main/task/__tests__/organization-project-goal-host.test.js",
+        "desktop-app-vue/src/main/task/__tests__/organization-project-goal-periodic-host.test.js"
+      ]
+    },
+    {
+      "file": "renderer-tests.json",
+      "sha256": "f9c83f19d4e8bb417c99100610a5b18c28c9d350acf24dd631425c023f13fc3a",
+      "passed": 289,
+      "files": [
+        "desktop-app-vue/src/renderer/stores/__tests__/auth.test.ts",
+        "desktop-app-vue/src/renderer/stores/__tests__/goal-notifications.test.ts",
+        "desktop-app-vue/src/renderer/stores/__tests__/social.test.ts",
+        "desktop-app-vue/src/renderer/components/common/__tests__/goal-notification-list.test.ts",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-acceptance-panel.test.ts",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-actions-panel.test.ts",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-cli-connection-panel.test.ts",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-draft-imports-panel.test.ts",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-extension-drafts-panel.test.ts",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-external-drafts-panel.test.ts",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-memory-panel.test.ts",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-model-drafts-panel.test.ts",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-monitoring-panel.test.ts",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-notification-drawer.test.ts",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-notification-policy-panel.test.ts",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-transfer-panel.test.ts",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-risk-review-panel.test.ts",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-task-description-drawer.test.ts",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-task-description-journey.test.ts"
+      ]
+    }
+  ],
+  "commands": [
+    {
+      "cwd": "desktop-app-vue",
+      "command": "node ../node_modules/vitest/vitest.mjs run --config vitest.business-actions.config.mjs --reporter=json --outputFile=../docs/research/agents/evidence/dmm-encrypted-goal-host-2026-11-07/desktop-tests.json",
+      "nativeWindowsAcl": true
+    },
+    {
+      "cwd": "desktop-app-vue",
+      "command": "node ../node_modules/vitest/vitest.mjs run --config vitest.organization-authority.config.mjs src/main/task/__tests__/organization-project-goal-host.test.js src/main/task/__tests__/organization-project-goal-periodic-host.test.js --reporter=json --outputFile=../docs/research/agents/evidence/dmm-encrypted-goal-host-2026-11-07/organization-host-tests.json"
+    },
+    {
+      "cwd": ".",
+      "command": "node desktop-app-vue/scripts/project-goal-encrypted-electron-probe.mjs --electron <verified Electron 39.8.10 executable> --output <new result file>"
+    },
+    {
+      "cwd": "desktop-app-vue",
+      "command": "node ../node_modules/vitest/vitest.mjs run --config vitest.business-actions-renderer.config.mjs --reporter=json --outputFile=../docs/research/agents/evidence/dmm-encrypted-goal-host-2026-11-07/renderer-tests.json"
+    }
+  ],
+  "checks": [
+    {
+      "command": [
+        "git",
+        "diff",
+        "HEAD",
+        "--check",
+        "--",
+        "desktop-app-vue/src/main/task/project-goal-native-database.js",
+        "desktop-app-vue/src/main/task/project-goal-ipc.js",
+        "desktop-app-vue/src/main/task/project-goal-monitoring-host.js",
+        "desktop-app-vue/src/main/database/sqlcipher-wrapper.js",
+        "desktop-app-vue/src/main/task/__tests__/fixtures/project-goal-encrypted-electron.cjs",
+        "desktop-app-vue/scripts/project-goal-encrypted-electron-probe.mjs",
+        "desktop-app-vue/src/preload/__tests__/legacy-ipc-policy.test.js",
+        "desktop-app-vue/tests/unit/ukey/ukey-ipc.test.js",
+        "desktop-app-vue/src/main/ipc/__tests__/ipc-sender-guard.test.js",
+        "desktop-app-vue/src/main/notification/__tests__/notification-authority-ipc.test.js",
+        "desktop-app-vue/src/main/notification/__tests__/project-goal-notification-journey.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-auth-session.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-cli-bridge.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-completion-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-delivery-drafts-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-draft-imports-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-encrypted-host.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-event-history-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-external-drafts-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-graph-host.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-memory-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-model-drafts-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-monitoring-host.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-transfer-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-workflow-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/task-description-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/organization-project-goal-host.test.js",
+        "desktop-app-vue/src/main/task/__tests__/organization-project-goal-periodic-host.test.js",
+        "desktop-app-vue/src/renderer/stores/__tests__/auth.test.ts",
+        "desktop-app-vue/src/renderer/stores/__tests__/goal-notifications.test.ts",
+        "desktop-app-vue/src/renderer/stores/__tests__/social.test.ts",
+        "desktop-app-vue/src/renderer/components/common/__tests__/goal-notification-list.test.ts",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-acceptance-panel.test.ts",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-actions-panel.test.ts",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-cli-connection-panel.test.ts",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-draft-imports-panel.test.ts",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-extension-drafts-panel.test.ts",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-external-drafts-panel.test.ts",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-memory-panel.test.ts",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-model-drafts-panel.test.ts",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-monitoring-panel.test.ts",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-notification-drawer.test.ts",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-notification-policy-panel.test.ts",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-transfer-panel.test.ts",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-risk-review-panel.test.ts",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-task-description-drawer.test.ts",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-task-description-journey.test.ts",
+        "desktop-app-vue/vitest.business-actions.config.mjs",
+        ".github/workflows/dmm-project-host.yml",
+        "desktop-app-vue/src/main/task/task-description-ipc.js",
+        "desktop-app-vue/src/renderer/components/projects/ProjectGoalModelDraftsPanel.vue"
+      ],
+      "status": 0,
+      "stdout": ""
+    },
+    {
+      "command": [
+        "C:\\nvm4w\\nodejs\\node.exe",
+        "desktop-app-vue/scripts/verify-fixed-renderer-ipc.mjs"
+      ],
+      "status": 0,
+      "stdout": "Fixed renderer IPC manifest is current (1380 exact channels; 156 unregistered renderer channels denied).\n"
+    },
+    {
+      "command": [
+        "C:\\nvm4w\\nodejs\\node.exe",
+        "packages/cli/scripts/implementation-plan-budget-egress.mjs",
+        "--check",
+        "--include-scripts"
+      ],
+      "status": 0,
+      "stdout": "{\"categories\":8,\"candidateFiles\":89,\"unclassifiedFiles\":0,\"sourceReviewPassed\":true,\"reviewIssues\":[],\"parseErrors\":0,\"paidReady\":false,\"runtimeCoverageVerified\":false}\n"
+    }
+  ],
+  "sources": {
+    "desktop-app-vue/src/main/task/project-goal-native-database.js": "932fc6473e599b7450fcd0cb9aebbb9eb0f13a650a79d88567984d19a3ca9338",
+    "desktop-app-vue/src/main/task/project-goal-ipc.js": "59f10d037d016db145a7f66be1b01ce75b70bed515d7b6c84e1693673ab4628e",
+    "desktop-app-vue/src/main/task/project-goal-monitoring-host.js": "051e075d21bb6e68c75542cb776ed55c8558d7be3a02616874b7e9ac858d6eff",
+    "desktop-app-vue/src/main/database/sqlcipher-wrapper.js": "5f50415f97b7080af43d0c8641fcadc50af2f651d62414ba1974ac3b4ba6fa66",
+    "desktop-app-vue/src/main/task/__tests__/fixtures/project-goal-encrypted-electron.cjs": "9697583674b62e52f24452f4fc01e7ed28e526e53790c342791240b0de352094",
+    "desktop-app-vue/scripts/project-goal-encrypted-electron-probe.mjs": "9e44aaf30c55bd8a2c4d3f7442857dd6ed6acb4a4ba4e8097270247a36c3ce32",
+    "desktop-app-vue/src/preload/__tests__/legacy-ipc-policy.test.js": "8526e502ef709f883460a8eba69f79da05b63be140bf4e7241d273bf36b4d88d",
+    "desktop-app-vue/tests/unit/ukey/ukey-ipc.test.js": "1e1e368aadcb6a99bd03345b83e76a1be9866d5b0e3b41341570007f5df85d40",
+    "desktop-app-vue/src/main/ipc/__tests__/ipc-sender-guard.test.js": "d488ee962ad990bd2a29d3c746539f8d5d3a5900fda14662aab887b0d778358a",
+    "desktop-app-vue/src/main/notification/__tests__/notification-authority-ipc.test.js": "9e829d6886c70ebc936506b20338e3650c7ade472ff5c77cd88042483549cfb1",
+    "desktop-app-vue/src/main/notification/__tests__/project-goal-notification-journey.test.js": "8428e2ae93ed185a3abc9a59ca9bf68218fe4d091d657fc4a8f5cc1ee4c57858",
+    "desktop-app-vue/src/main/task/__tests__/project-goal-auth-session.test.js": "59c7abaa30b7269eef17253c22a67e554d1ab2869a789f6cf631cbf3155264bd",
+    "desktop-app-vue/src/main/task/__tests__/project-goal-cli-bridge.test.js": "00655cef7d759b718d0478b77c1ec35d4104808600da5b26b6ce033a5650b543",
+    "desktop-app-vue/src/main/task/__tests__/project-goal-completion-ipc.test.js": "ab7dff2713e04f218f1bfaacbfc6adc158806e66accf92d7ea2ca48b5234c3eb",
+    "desktop-app-vue/src/main/task/__tests__/project-goal-delivery-drafts-ipc.test.js": "73f5f1e163ac756b6e611e153305ced2699ae6a9842df3f0000f5d5853dde8ed",
+    "desktop-app-vue/src/main/task/__tests__/project-goal-draft-imports-ipc.test.js": "16fec55b7884bc491700566b957cae222ac04eb33909495fbfbfebb01bd52974",
+    "desktop-app-vue/src/main/task/__tests__/project-goal-encrypted-host.test.js": "78955d5537f90b59ac9d87733538837baccd61153deb6c6e2896f8f853aa4f77",
+    "desktop-app-vue/src/main/task/__tests__/project-goal-event-history-ipc.test.js": "328930780b2238d436e096f09ea01f031b90576488a863b3f26510b4f8f6c925",
+    "desktop-app-vue/src/main/task/__tests__/project-goal-external-drafts-ipc.test.js": "ad84fbc971239590c4795efefcd86a240b33370d1d2b6cccd2260356862e4fe4",
+    "desktop-app-vue/src/main/task/__tests__/project-goal-graph-host.test.js": "15039964dfd945121d1b36e49b05dfce84faa896a0d297c6709b17efda716474",
+    "desktop-app-vue/src/main/task/__tests__/project-goal-ipc.test.js": "53f157aa4eb4f5d498cb0c938e8e111fb5b4f6660080ca4a8cf048532bf49f3e",
+    "desktop-app-vue/src/main/task/__tests__/project-goal-memory-ipc.test.js": "5995f0c98db907bf82446476fb48e4652fb5795a01530cd3efd5b4ce6d087899",
+    "desktop-app-vue/src/main/task/__tests__/project-goal-model-drafts-ipc.test.js": "92fbe898a635765fec863f388e434a774710adf1b09f8d29607a57ae7f1cef40",
+    "desktop-app-vue/src/main/task/__tests__/project-goal-monitoring-host.test.js": "3d50ef9624a4515bb92178e163125a050cb348913261a96484689fdff3230046",
+    "desktop-app-vue/src/main/task/__tests__/project-goal-transfer-ipc.test.js": "020dfd354f05a21e3e8f80b111d234df1fa922df237073fb931a3882c7158c5e",
+    "desktop-app-vue/src/main/task/__tests__/project-goal-workflow-ipc.test.js": "a47f57851caada31f38b236b1eb2d1d9b7a0c5d43f69af5245a9dc9cf5b0b219",
+    "desktop-app-vue/src/main/task/__tests__/task-description-ipc.test.js": "447a1dd369ed0e8c8532f361ee9fe3f57488b2426886c42ae0f85ce7933f0d1e",
+    "desktop-app-vue/src/main/task/__tests__/organization-project-goal-host.test.js": "c5b3d9bf7ae25656ac6d5ed53612d787558301fb05cae6d8ecac0cf5561a97c3",
+    "desktop-app-vue/src/main/task/__tests__/organization-project-goal-periodic-host.test.js": "0d0865ac545c217bf56aadf6b11da81f97abcafe4e8de9616ff81fe184964563",
+    "desktop-app-vue/src/renderer/stores/__tests__/auth.test.ts": "f57b13ff029ae58683af7bf11970f01d859cf3f9f50258ee656a0eb67ef5cba6",
+    "desktop-app-vue/src/renderer/stores/__tests__/goal-notifications.test.ts": "59359e5a98779eb0d2cdf3fbf7245c4fc95d5620e6abd3788a67f6f72414edff",
+    "desktop-app-vue/src/renderer/stores/__tests__/social.test.ts": "d2ea9acc48a2d98df1eaef424df40792b77f4a5212636dbdebf43d24a64318a8",
+    "desktop-app-vue/src/renderer/components/common/__tests__/goal-notification-list.test.ts": "a4fcaa72fab61fc87cc924586e7d4807619ae44f21d242a51235cf5aac8e1665",
+    "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-acceptance-panel.test.ts": "c738108d7ccbe4d6644613d48c3c9c23be0f0e2cf29dfb88790105cd11067b36",
+    "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-actions-panel.test.ts": "faaec9e71b4f867662235ce9ce6dcbd327f7d04cbec8bde4cc43531e5b8fa011",
+    "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-cli-connection-panel.test.ts": "d3c667a17050d2af00bf10ae02e48a7cfe90d2997db28c5120167f0b96a57d86",
+    "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-draft-imports-panel.test.ts": "8a0cca7f3f90d2f7a8aec5cafdb84c60a863f3da71164404396aab6e2025923d",
+    "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-extension-drafts-panel.test.ts": "cc7e97eaf796f1ec7c9d3c24527cf6ac5720138b53142bf61bff15b985473d0d",
+    "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-external-drafts-panel.test.ts": "e15fcc2acab1202bf2e567b86f2dead585a59b5ed7c6d533a7d53f1c1d36ee51",
+    "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-memory-panel.test.ts": "edb568042544485f4314169f00d83726f66bc2309afd7e07840ca05190632601",
+    "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-model-drafts-panel.test.ts": "4065fb635f8e8716a6249e69cf5d23ddbc1bf4de57a8278cd82f970b71064ac7",
+    "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-monitoring-panel.test.ts": "77e4f91bf600d51b5393b9cd4402206b0c286a0a99148df9567a42bb6e128111",
+    "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-notification-drawer.test.ts": "dfb472f701e8865cc9d2c1beb4804378059e5c6b81bb9f23ad803bd74319efe5",
+    "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-notification-policy-panel.test.ts": "b953ce48f1a9fd126498a6fbe980ba26a67a307c4d1501dc86b248548dca7d8f",
+    "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-transfer-panel.test.ts": "86a4b580b4db78cd49495b1fa3d9ca64093164f76865f7ab599125105784bfc8",
+    "desktop-app-vue/src/renderer/components/projects/__tests__/project-risk-review-panel.test.ts": "d5e6d6dd01f2aa1abb0648c0a8a0415423ff6c662fc0ecddab5ca6c69e513ae1",
+    "desktop-app-vue/src/renderer/components/projects/__tests__/project-task-description-drawer.test.ts": "9356de35b4d91a42664ee24d3370d8e77ec89b72730110f3d28ed66e81726a52",
+    "desktop-app-vue/src/renderer/components/projects/__tests__/project-task-description-journey.test.ts": "b7b275725ba7b232ef1d487794173bad1ad93b0a2c3329af7681b7c087d5e251",
+    "desktop-app-vue/vitest.business-actions.config.mjs": "6556e0ca4a6572693ba485fba48f9b300095872bcb2c7716218374b28942ce31",
+    ".github/workflows/dmm-project-host.yml": "903dea5b80dda00de70521ece314802b2b789f766c754e28cd771a4026bc9f34",
+    "desktop-app-vue/src/main/task/task-description-ipc.js": "e0c070f074fe8d6de06f0dc84046edd425fd45aa103834e9064884e9e13c8372",
+    "desktop-app-vue/src/renderer/components/projects/ProjectGoalModelDraftsPanel.vue": "bf72bb6198de89ffa93892125ea2d08e70326e726e80d3ad5be221c580d1c350"
+  },
+  "realElectron": {
+    "file": "electron-probe.json",
+    "sha256": "19be420719ab770536dd2899b575b5f50a4a09a7b0a4f4bb04863ad57e1057cb",
+    "electron": "39.8.10",
+    "node": "22.22.1",
+    "abi": "140",
+    "databasePackage": "12.11.1",
+    "passed": true,
+    "checks": {
+      "originalWrapperRejectedByNativeContract": true,
+      "actualEncryptedProject": true,
+      "noKeyReadRejected": true,
+      "canonicalGraphResult": true,
+      "repeatedRequestRetainsOccurrence": true,
+      "separateStorageDomains": true,
+      "participatingGoalV2": true,
+      "closedWrapperNotReopenedByResolver": true,
+      "explicitReopenRetainsGoal": true,
+      "nativeWindowsAclGuardsUsed": true
+    }
+  },
+  "productBuild": {
+    "commands": [
+      "node scripts/build-main.js",
+      "node ../node_modules/vite/bin/vite.js build"
+    ],
+    "cwd": "desktop-app-vue",
+    "observedExitCodes": [
+      0,
+      0
+    ],
+    "rendererModules": 8018,
+    "rendererIndexSha256": "9e38e39aef603ff5591a5fd40e98ed44f3d9e80dd6b54f12ff61621e3bcb2a2c",
+    "installer": false,
+    "fullProductGuiJourney": false
+  },
+  "productStartup": {
+    "file": "product-startup.json",
+    "sha256": "3f7f1828383d2240fb957f749464b164f1c52ec61b54ef87b543916106a71478",
+    "screenshot": "product-login.png",
+    "screenshotSha256": "9ddc6d26724d4d8d1d1d8eccaee93d787e7e533d866a191ca818cc1a9097ee4b",
+    "loginFormObserved": true,
+    "passwordLoginPerformed": false,
+    "fullDmmJourney": false
+  },
+  "productGoalGui": {
+    "file": "product-goal-gui.json",
+    "sha256": "af224aa2998ce53b57cfdedca83502a9f335c04e901d6a753fbc56af458501c3",
+    "runnerSha256": "e3ae1b6a04de6303fdd848ad517081fbf0e90bd32b01b9b18abf9469fd6763b3",
+    "screenshotSha256": "4930b9549c417a713202dc7a04304eaab11a65f82bfa22a86c4e6174f3a8d7e3",
+    "basicGoalGuiPassed": true,
+    "fullGoalActionJourney": false,
+    "snapshotBeforeTaskAndRendererFollowup": true
+  },
+  "productGuiFollowup": {
+    "file": "product-followup-observation.json",
+    "sha256": "c731eb29cca70a65531ef63ce5c202d18f7ea2e3cc07b55d0596403840565f06",
+    "basicGoalGui": true,
+    "nativeTaskDatabaseErrors": 0,
+    "deniedModelLists": 2,
+    "nativeConfirmationJourneyPassed": false,
+    "fullRunnerExitCode": 1
+  },
+  "boundaries": {
+    "real": [
+      "actual desktop SQLCipherWrapper",
+      "native SQLite and immediate transactions",
+      "Electron 39.8.10 with actual encrypted database and rejected no-key read",
+      "Windows ACL",
+      "canonical Graph kernel"
+    ],
+    "doubles": [
+      "unit-test Electron windows/dialogs",
+      "synthetic project and trusted probe identity"
+    ],
+    "pending": [
+      "complete goal/risk/action/native confirmation/receipt/recheck renderer journey",
+      "real native confirmation interaction",
+      "independent business effect",
+      "Linux/macOS",
+      "installers",
+      "exact-source remote matrices",
+      "new publication",
+      "production Graph enrollment and cutover"
+    ]
+  }
+}

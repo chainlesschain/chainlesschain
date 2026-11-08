@@ -6,7 +6,7 @@
 
 跨端计划、功能进度、验收与发布记录见 [CLI / IDE 联合实施与验证](../cli-ide/README.md)。
 
-最新续做：[2026-10-26 保存输入删除与恢复](../cli-ide/cli-ide-recovery-progress-2026-10-26.md)，修复 VS Code 删除保存输入时的附件丢失和旧页面排队竞态，并通过公开 JetBrains .179 / Linux 2025.2 的 verify-33 归档回复恢复检查。完整九入口验收仍开放。此前双 IDE / SDK 修复见 [2026-10-23 记录](../cli-ide/cli-ide-recovery-progress-2026-10-23.md)。
+最新续做：[2026-10-26 保存输入删除与恢复](../cli-ide/implementation/cli-ide-recovery-progress-2026-10-26.md)，修复 VS Code 删除保存输入时的附件丢失和旧页面排队竞态，并通过公开 JetBrains .179 / Linux 2025.2 的 verify-33 归档回复恢复检查。完整九入口验收仍开放。此前双 IDE / SDK 修复见 [2026-10-23 记录](../cli-ide/implementation/cli-ide-recovery-progress-2026-10-23.md)。
 
 - [Claude Code IDE 插件对照优化建议](./CLAUDE_CODE_IDE_GAP_ANALYSIS_2026-07-10.md)
 - [ChainlessChain IDE 对照 Claude Code IDE 差距与优化建议](./CLAUDE_CODE_IDE_GAP_ANALYSIS.md)

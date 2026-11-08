@@ -1,5 +1,9 @@
 "use strict";
 
+const {
+  currentProjectGoalDatabase,
+} = require("./project-goal-native-database");
+
 const { createHash } = require("node:crypto");
 const { existsSync, realpathSync } = require("node:fs");
 const { isAbsolute, join, dirname } = require("node:path");
@@ -40,9 +44,18 @@ function createProjectGoalMonitoringController({
   engineFactory = (options) => new ProjectGoalMonitoringEngine(options),
   storageDirectory = "goal-monitoring",
   autoStart = true,
+  graphMode = () =>
+    String(process.env.CHAINLESSCHAIN_GRAPH_PROJECT_GOALS ?? "legacy")
+      .trim()
+      .toLowerCase(),
+  graphHostLoader = undefined,
+  featurePolicy = require("./project-goal-feature-policy")
+    .projectGoalFeaturePolicy,
 } = {}) {
   if (
     typeof engineFactory !== "function" ||
+    typeof graphMode !== "function" ||
+    (graphHostLoader !== undefined && typeof graphHostLoader !== "function") ||
     typeof autoStart !== "boolean" ||
     !["goal-monitoring", "organization-goal-monitoring"].includes(
       storageDirectory,
@@ -54,13 +67,14 @@ function createProjectGoalMonitoringController({
     opening = null,
     closed = false,
     closing = null;
-  const currentDb = () =>
-    database?.getDatabase ? database.getDatabase() : database;
+  const currentDb = () => currentProjectGoalDatabase(database);
   function getEngine() {
     if (closed) fail("GOAL_MONITOR_HOST_CLOSED");
+    if (!featurePolicy.isEnabled()) return Promise.resolve(null);
     if (opening) return opening;
     opening = (async () => {
       const native = currentDb();
+      featurePolicy.assertEnabled();
       if (engine && sourceDb === native) return engine;
       if (engine) {
         await engine.close();
@@ -108,14 +122,38 @@ function createProjectGoalMonitoringController({
       });
       try {
         const captured = native;
+        const graphAuthorityFactory =
+          storageDirectory === "goal-monitoring"
+            ? await require("./project-goal-graph-host.js").prepareProjectGoalGraphFactory(
+                {
+                  db: native,
+                  file: join(dirname(file), "graph.sqlite"),
+                  mode: graphMode(),
+                  clock,
+                  protectFile,
+                  ...(graphHostLoader ? { loadHost: graphHostLoader } : {}),
+                  assertCurrent: () => {
+                    featurePolicy.assertEnabled();
+                    if (closed) fail("GOAL_MONITOR_HOST_CLOSED");
+                    if (currentDb() !== native)
+                      fail("GOAL_MONITOR_DATABASE_CHANGED");
+                  },
+                },
+              )
+            : null;
+        if (closed) fail("GOAL_MONITOR_HOST_CLOSED");
+        featurePolicy.assertEnabled();
+        if (currentDb() !== native) fail("GOAL_MONITOR_DATABASE_CHANGED");
         engine = engineFactory({
           db: native,
           store,
           clock,
+          graphAuthorityFactory,
           getActor: () => {
             // Connection replacement locks the old engine until the next command
             // rotates it, after draining the previous host.
             try {
+              featurePolicy.assertEnabled();
               return currentDb() === captured ? getCurrentUserDid() : null;
             } catch {
               return null;
@@ -149,6 +187,7 @@ function createProjectGoalMonitoringController({
   function close() {
     if (closing) return closing;
     closed = true;
+    unsubscribe();
     closing = (async () => {
       try {
         await opening;
@@ -157,6 +196,7 @@ function createProjectGoalMonitoringController({
     })();
     return closing;
   }
+  const unsubscribe = featurePolicy.subscribe(close);
   return Object.freeze({ initialize: getEngine, close });
 }
 

@@ -117,4 +117,4 @@ MCP token 数字和 Memory 局部性能基线属于合成估算，不代表真�
 - [输入与恢复边界](./agent-input-and-recovery)
 - [运行时与发行设计](/design/release-runtime-update-2026-10-28)
 - [上一轮升级说明（历史）](./cli-ide-update-2026-10-27)
-- [本轮发布进度](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli-ide/cli-ide-release128-progress-2026-10-27.md)
+- [本轮发布进度](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli-ide/releases/cli-ide-release128-progress-2026-10-27.md)

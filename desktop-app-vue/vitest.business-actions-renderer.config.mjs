@@ -8,6 +8,7 @@ export default defineConfig({
     alias: { "@": fileURLToPath(new URL("./src/renderer", import.meta.url)) },
   },
   test: {
+    env: { CHAINLESSCHAIN_PROJECT_GOALS: "1" },
     environment: "happy-dom",
     pool: "forks",
     maxWorkers: 1,
@@ -21,6 +22,7 @@ export default defineConfig({
       "src/renderer/components/projects/__tests__/project-task-description-journey.test.ts",
       "src/renderer/components/projects/__tests__/project-risk-review-panel.test.ts",
       "src/renderer/components/projects/__tests__/project-goal-monitoring-panel.test.ts",
+      "src/renderer/components/projects/__tests__/project-goal-transfer-panel.test.ts",
       "src/renderer/components/projects/__tests__/project-goal-actions-panel.test.ts",
       "src/renderer/components/projects/__tests__/project-goal-extension-drafts-panel.test.ts",
       "src/renderer/components/projects/__tests__/project-goal-draft-imports-panel.test.ts",

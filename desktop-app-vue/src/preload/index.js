@@ -990,6 +990,7 @@ const FIXED_RENDERER_IPC_CHANNELS = new Set([
   "project:goal-external-drafts-prepare",
   "project:goal-external-drafts-read",
   "project:goal-external-drafts-revoke",
+  "project:goal-feature-status",
   "project:goal-follow-up-end",
   "project:goal-intent-execute",
   "project:goal-intent-prepare",
@@ -1019,6 +1020,10 @@ const FIXED_RENDERER_IPC_CHANNELS = new Set([
   "project:goal-proposals",
   "project:goal-read",
   "project:goal-revise",
+  "project:goal-transfer-cancel",
+  "project:goal-transfer-import",
+  "project:goal-transfer-target-export",
+  "project:goal-transfers-list",
   "project:import-file",
   "project:move-file",
   "project:risk-evaluate",
@@ -2988,6 +2993,16 @@ contextBridge.exposeInMainWorld("electronAPI", {
   // 项目管理
   project: {
     createGoal: (params) => ipcRenderer.invoke("project:goal-create", params),
+    getGoalFeatureStatus: () =>
+      ipcRenderer.invoke("project:goal-feature-status"),
+    exportGoalTransferTarget: (params) =>
+      ipcRenderer.invoke("project:goal-transfer-target-export", params),
+    importGoalTransfer: (params) =>
+      ipcRenderer.invoke("project:goal-transfer-import", params),
+    listGoalTransfers: (params) =>
+      ipcRenderer.invoke("project:goal-transfers-list", params),
+    cancelGoalTransfer: (params) =>
+      ipcRenderer.invoke("project:goal-transfer-cancel", params),
     listGoals: (params) => ipcRenderer.invoke("project:goal-list", params),
     readGoal: (params) => ipcRenderer.invoke("project:goal-read", params),
     reviseGoal: (params) => ipcRenderer.invoke("project:goal-revise", params),

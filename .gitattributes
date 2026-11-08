@@ -218,3 +218,31 @@ docs/research/cli/evidence/native131-assisted-integration-2026-10-30/** -text !e
 # Preserve the byte-digest-bound JUnit reports from local DMM IDE validation.
 docs/research/agents/evidence/dmm-ide-event-replay-2026-11-04/jetbrains-*-tests.xml -text !eol -whitespace
 docs/research/agents/evidence/dmm-ide-goal-events-2026-11-04/jetbrains-*-tests.xml -text !eol -whitespace
+
+# Preserve exact strict native CI diagnostics, reports and reproduction bytes.
+docs/research/agents/evidence/dmm-native-strict-ci-2026-11-07/** -text !eol -whitespace
+docs/research/agents/evidence/dmm-native-strict-ci-2026-11-07/README.md text eol=lf
+docs/research/agents/evidence/dmm-native-strict-ci-2026-11-07/verify-evidence.mjs text eol=lf
+
+# Keep original memory/notification native journey diagnostics and test reports.
+docs/research/agents/evidence/dmm-native-workspace-2026-11-07/** -text !eol -whitespace
+docs/research/agents/evidence/dmm-native-workspace-2026-11-07/README.md text eol=lf
+docs/research/agents/evidence/dmm-native-workspace-2026-11-07/verify-evidence.mjs text eol=lf
+
+# Native risk creation reports retain source-bound original bytes.
+docs/research/agents/evidence/dmm-native-risk-create-2026-11-07/** -text !eol -whitespace
+docs/research/agents/evidence/dmm-native-risk-create-2026-11-07/README.md text eol=lf
+docs/research/agents/evidence/dmm-native-risk-create-2026-11-07/verify-evidence.mjs text eol=lf
+
+# Preserve original desktop trial switch native reports and exact-source CI.
+docs/research/agents/evidence/dmm-goal-trial-switch-2026-11-07/** -text !eol -whitespace
+docs/research/agents/evidence/dmm-goal-trial-switch-2026-11-07/README.md text eol=lf
+docs/research/agents/evidence/dmm-goal-trial-switch-2026-11-07/verify-evidence.mjs text eol=lf
+
+# Preserve original live-native-modal reports, screenshots and source captures.
+docs/research/agents/evidence/dmm-native-modal-revocation-2026-11-07/** -text !eol -whitespace
+docs/research/agents/evidence/dmm-native-modal-revocation-2026-11-07/README.md text eol=lf
+docs/research/agents/evidence/dmm-native-modal-revocation-2026-11-07/verify-evidence.mjs text eol=lf
+
+# Preserve the original legacy cancellation module independently of current code.
+packages/cli/__tests__/fixtures/memory-query-control-e7.mjs.txt -text !eol -whitespace

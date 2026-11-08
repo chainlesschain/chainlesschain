@@ -138,6 +138,35 @@ describe("goal typed acceptance and independent completion UI", () => {
     await flushPromises();
     expect(api.completeGoal.mock.calls[1][0]).toEqual(original);
   });
+  it.each([
+    ["acknowledge-acceptance", "acknowledgeGoalAcceptance"],
+    ["check-acceptance", "checkGoalAcceptance"],
+    ["complete-goal", "completeGoal"],
+  ])(
+    "sends cloneable IPC data for %s and preserves retry identity",
+    async (button, method) => {
+      await flushPromises();
+      const forwarded: unknown[] = [];
+      api[method].mockImplementation(async (input) => {
+        // Electron's contextBridge rejects Vue proxies before ipcMain receives
+        // them. Exercise that transport requirement, including an uncertain retry.
+        forwarded.push(structuredClone(input));
+        if (forwarded.length === 1) throw new Error("transport result unknown");
+        return method === "acknowledgeGoalAcceptance"
+          ? { acknowledgement: { status: "accepted" } }
+          : { goal, report, completed: false };
+      });
+      await wrapper.get(`[data-testid="${button}"]`).trigger("click");
+      await flushPromises();
+      await wrapper.get(`[data-testid="${button}"]`).trigger("click");
+      await flushPromises();
+      expect(forwarded).toHaveLength(2);
+      expect(forwarded[1]).toEqual(forwarded[0]);
+      if (method === "acknowledgeGoalAcceptance")
+        expect(wrapper.text()).toContain("人工验收已记录");
+      else expect(wrapper.find('[role="alert"]').exists()).toBe(false);
+    },
+  );
   it("requests the parent to show the canonical completed goal after an applied receipt", async () => {
     await flushPromises();
     api.completeGoal.mockResolvedValue({

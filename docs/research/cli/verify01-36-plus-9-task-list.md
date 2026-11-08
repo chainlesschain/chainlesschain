@@ -1262,7 +1262,7 @@ Sol 的 45/45 是跨版本、包含修复后的项目源码的任务覆盖累计
 
 Sol `.139` 轮冻结时公开 CLI **0.166.139** / Open VSX **0.37.175** 已核验，JetBrains **0.4.192** 已批准公开且公开 ZIP 内容与官方制品一致；当前火山全量复测的 `.140` 包来源另见[版本核验](./verify01-volcengine-140-full-20261103/package-resolution.json)。`.139` 第三轮 `verify-08` **原生 1/1 通过**：基线 **59/59**、候选 **2/2**，检出原父会话错绑变异 **1/1**；**21/21** 请求用量完整，token 估算 **$0.5873909**，实际账单未知，临时模型 Secret 已删除。见[第三轮结果](./verify01-openai-139-r3-20261103/README.md)。第二轮已通过的 `verify-36` 不再执行；近期 OpenAI 未通过队列已清空，但不是同一版本完整 45 项重跑。历史 `.139` 第二轮原生 1/2、辅助 1/1，首轮原生 0/2、辅助 2/2，`.138` 的 2/4、`.136` 的 41/45 与 `.137` 的 0/5 保持各自身份。
 
-辅助回归现已安装 **7/36**：`verify-04`、`07`、`08`、`09`、`10`、`13`、`36`。本轮新安装 08/36，仅经 Prettier 格式化，相关 **10 文件 84/84、零跳过**；三系统 CI 定向步骤已纳入七项。原 Docker 验收与当前工作区兼容验证分别保留，详见[安装记录](../cli-ide/cli-ide-assisted-0836-install-progress-2026-11-02.md)。安装不增加模型验收数；准确新提交的完整云端矩阵待运行。
+辅助回归现已安装 **7/36**：`verify-04`、`07`、`08`、`09`、`10`、`13`、`36`。本轮新安装 08/36，仅经 Prettier 格式化，相关 **10 文件 84/84、零跳过**；三系统 CI 定向步骤已纳入七项。原 Docker 验收与当前工作区兼容验证分别保留，详见[安装记录](../cli-ide/validation/cli-ide-assisted-0836-install-progress-2026-11-02.md)。安装不增加模型验收数；准确新提交的完整云端矩阵待运行。
 
 verify-08 第二轮候选的辅助修复经 Astra 静态审阅及原 Docker 验收通过：基线 **59/59**、修复候选 **4/4**、原变异检出 **1/1**。见[辅助修复](./verify01-openai-139-r2-20261103/README.md#verify-08-辅助修复与原验收复跑)。第三轮的原生通过来自重新生成的候选，辅助答案没有提供给模型；该辅助 **1/1** 和第二轮原生 **1/2** 均不改写。
 
@@ -1437,9 +1437,9 @@ npx.cmd --no-install vitest run __tests__/unit/session-branch-ownership-regressi
 [check-first-run-darwin-vscode]: ./verify01-openai-135/retest-six-99b93fc209/receipts/first-run-darwin-vscode-check.json
 [accepted32]: ./evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-accepted-deliverables.json
 [round128]: ./evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-128-review-20261028.json
-[volc131]: ../cli-ide/cli-ide-native-retest131-progress-2026-10-29.md
-[volc132]: ../cli-ide/cli-ide-native132-first-run-progress-2026-10-30.md
-[assisted5]: ../cli-ide/cli-ide-assisted-0413-install-progress-2026-10-30.md
+[volc131]: ../cli-ide/validation/cli-ide-native-retest131-progress-2026-10-29.md
+[volc132]: ../cli-ide/validation/cli-ide-native132-first-run-progress-2026-10-30.md
+[assisted5]: ../cli-ide/validation/cli-ide-assisted-0413-install-progress-2026-10-30.md
 [readiness]: ./verify01-plan-2026-10-13-volcengine/execution-readiness.json
 [openai136]: ./verify01-openai-136/retest-five-23e26368c8/REPORT.md
 [openai136-image]: ./verify01-openai-136/retest-image-cc568f4821/REPORT.md

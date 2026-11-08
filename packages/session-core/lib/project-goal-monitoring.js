@@ -209,6 +209,7 @@ class ProjectGoalMonitoringState {
     });
     this.adapter = this.goals.adapter;
     this.db = db;
+    this.graphAuthorityAvailable = false;
     this.risk = new ProjectRiskReviewService({ db, getActor, now: clock });
     this.usageLedger = new GoalUsageLedger({ db });
     this.workflow = new ProjectGoalWorkflow({
@@ -760,6 +761,8 @@ class ProjectGoalMonitoringState {
   authorize({ job, occurrence }) {
     try {
       return this._withGoal(occurrence.payload.goalId, (goal, actor) => {
+        if (goal.requiresGraphAwareHost && !this.graphAuthorityAvailable)
+          throw goalError("GOAL_MONITOR_GRAPH_AUTHORITY_REQUIRED");
         this._validateBinding(occurrence.payload, goal, actor);
         if (
           job.kind !== KIND ||
@@ -805,6 +808,8 @@ class ProjectGoalMonitoringState {
     if (typeof assertAuthority !== "function")
       throw goalError("GOAL_MONITOR_AUTHORITY_REQUIRED");
     return this._withGoal(context.occurrence.payload.goalId, (goal, actor) => {
+      if (goal.requiresGraphAwareHost && !this.graphAuthorityAvailable)
+        throw goalError("GOAL_MONITOR_GRAPH_AUTHORITY_REQUIRED");
       this._validateBinding(context.occurrence.payload, goal, actor);
       const renew = () => {
         context.renewLease();
@@ -938,7 +943,20 @@ class ProjectGoalMonitoringState {
 }
 
 class ProjectGoalMonitoringEngine {
-  constructor({ db, getActor, store, clock = Date.now, ownerId, leaseMs }) {
+  constructor({
+    db,
+    getActor,
+    store,
+    clock = Date.now,
+    ownerId,
+    leaseMs,
+    graphAuthorityFactory = null,
+  }) {
+    if (
+      graphAuthorityFactory !== null &&
+      typeof graphAuthorityFactory !== "function"
+    )
+      throw goalError("GOAL_MONITOR_INVALID_HOST");
     this.getActor = getActor;
     this.store = store;
     this.clock = clock;
@@ -949,35 +967,88 @@ class ProjectGoalMonitoringEngine {
     this.closePromise = null;
     this.dueCursor = null;
     this.state = new ProjectGoalMonitoringState({ db, getActor, clock });
-    this.runtime = new SchedulerRuntime({
-      store,
-      graphAuthorityMode: "legacy",
-      ownerId,
-      leaseMs,
-      authorize: createSchedulerAuthorityResolver({
-        store,
-        validate: (context) => this.state.authorize(context),
-      }),
-      adapters: [
-        {
-          kind: KIND,
-          runtimeControl: RUNTIME_CONTROL,
-          execute: (context) =>
-            this.state.perform(context, () => {
-              const current = checkSchedulerAuthorityPolicy(
-                store,
-                context.occurrence.authority,
-              );
-              if (
-                !current.allowed ||
-                current.policyRevision !== context.decision.policyRevision
-              )
-                throw goalError("GOAL_MONITOR_AUTHORITY_CHANGED");
-            }),
-          classifyError: () => ({ retryable: false }),
+    // Only trusted host composition selects Graph authority. This module never
+    // loads CLI internals or derives paths/identity from a renderer request.
+    const hostGraphAuthority =
+      graphAuthorityFactory?.({
+        readCommittedResult: (context) => {
+          try {
+            return {
+              found: true,
+              result: this.state.readCheck(context.occurrence),
+            };
+          } catch (error) {
+            if (error.code === "GOAL_MONITOR_CHECK_MISSING")
+              return { found: false };
+            throw error;
+          }
         },
-      ],
-    });
+        clock,
+      }) ?? null;
+    if (
+      !hostGraphAuthority &&
+      ((this.state.adapter._hasTable("cc_project_goal_graph_store") &&
+        db
+          .prepare("SELECT 1 FROM cc_project_goal_graph_store LIMIT 1")
+          .get()) ||
+        (this.state.adapter._hasTable("cc_project_goal_graph_occurrences") &&
+          db
+            .prepare("SELECT 1 FROM cc_project_goal_graph_occurrences LIMIT 1")
+            .get()))
+    )
+      throw Object.assign(
+        goalError(
+          "CC_CLI_LEGACY_RUNTIME_READ_ONLY",
+          "GOAL_MONITOR_GRAPH_AUTHORITY_REQUIRED",
+        ),
+        { entryId: "desktop-project-goals" },
+      );
+    try {
+      this.graphAuthority = hostGraphAuthority
+        ? new (require("./project-goal-graph-journal.js").ProjectGoalGraphJournal)(
+            { state: this.state, authority: hostGraphAuthority },
+          )
+        : null;
+    } catch (error) {
+      hostGraphAuthority?.close?.();
+      throw error;
+    }
+    this.state.graphAuthorityAvailable = this.graphAuthority !== null;
+    try {
+      this.runtime = new SchedulerRuntime({
+        store,
+        graphAuthority: this.graphAuthority,
+        graphAuthorityMode: this.graphAuthority?.mode ?? "legacy",
+        ownerId,
+        leaseMs,
+        authorize: createSchedulerAuthorityResolver({
+          store,
+          validate: (context) => this.state.authorize(context),
+        }),
+        adapters: [
+          {
+            kind: KIND,
+            runtimeControl: RUNTIME_CONTROL,
+            execute: (context) =>
+              this.state.perform(context, () => {
+                const current = checkSchedulerAuthorityPolicy(
+                  store,
+                  context.occurrence.authority,
+                );
+                if (
+                  !current.allowed ||
+                  current.policyRevision !== context.decision.policyRevision
+                )
+                  throw goalError("GOAL_MONITOR_AUTHORITY_CHANGED");
+              }),
+            classifyError: () => ({ retryable: false }),
+          },
+        ],
+      });
+    } catch (error) {
+      this.graphAuthority?.close?.();
+      throw error;
+    }
     this.service = createSchedulerService({
       drivers: [{ name: KIND, run: (context) => this.tick(context) }],
     });
@@ -1212,6 +1283,15 @@ class ProjectGoalMonitoringEngine {
         outcome.status === "succeeded"
           ? this.state.readCheck(outcome.occurrence)
           : null;
+      if (result !== null && this.graphAuthority)
+        this.graphAuthority.validateCommittedResult(
+          {
+            occurrence: outcome.occurrence,
+            job: this.store.getJob(outcome.occurrence.jobId),
+            authority: outcome.occurrence.authority,
+          },
+          result,
+        );
       return {
         status: outcome.status,
         occurrenceId: occurrence.id,
@@ -1348,7 +1428,11 @@ class ProjectGoalMonitoringEngine {
       try {
         await this.service.close();
       } finally {
-        this.store.close();
+        try {
+          this.store.close();
+        } finally {
+          await this.graphAuthority?.close?.();
+        }
       }
     })();
     return this.closePromise;

@@ -10,7 +10,7 @@
 
 最新冻结候选 `b2aa3aba08` 配对 CLI **0.166.86**、VS Code **0.37.131**、JetBrains **0.4.149**，均待准确提交完整发布门和公共回读。新增 canonical Memory v2 分片：保留单文件 64 MiB，活动 bucket 合计上限 1 GiB；旧 v1 客户端拒绝 v2，降级需兼容快照，默认 shadow 不迁移。Windows formal 的 1K/10K/100K 新进程重开、读取、更新、删除与审计后验已验证；100K 点读 p95 110.072 ms、全量查询 p95 13,954.915 ms，不能据此宣称索引或全局 SLO。Windows 超过 260 字符的图片草稿路径创建与清理已修复；这些是发布后的源码进展。
 
-最新容量、ARM64 真容器独立回读与 updater 诊断见[实施状态](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli-ide/cli-ide-gap-implementation-2026-09-27.md)。旧 ARM64 失败与新独立诊断成功均保留：先行安装器/Bash/测试顺序尚未对齐，不能推导原失败的唯一原因或完整 native 发布门已通过。
+最新容量、ARM64 真容器独立回读与 updater 诊断见[实施状态](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli-ide/plans/cli-ide-gap-implementation-2026-09-27.md)。旧 ARM64 失败与新独立诊断成功均保留：先行安装器/Bash/测试顺序尚未对齐，不能推导原失败的唯一原因或完整 native 发布门已通过。
 
 ### 发行与验收
 
@@ -47,7 +47,7 @@ flowchart LR
 
 发布后的 `48fd92562a` 在预览解码前解析 PNG/JPEG/GIF/WebP 容器，校验完整性、画布与动画帧预算；累计不超过 **200 帧 / 4000 万解码画布像素**，包含 fallback 画布。VS Code 与 JetBrains 的文件附件使用有界快照并检查文件身份/前后状态。40px CSS 缩略图尺寸不能充当解码资源上限；这些源码保护尚未纳入已公开 VSIX/ZIP，不推导全局性能 SLO 或所有图片路径已认证。
 
-实施 SHA、原始报告与失败日志见 [共享实施状态](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli-ide/cli-ide-gap-implementation-2026-09-27.md)。真实 PM 收益、完整启动与成本证据、真人辅助技术及 automatic active Skill promotion 仍未验收。
+实施 SHA、原始报告与失败日志见 [共享实施状态](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli-ide/plans/cli-ide-gap-implementation-2026-09-27.md)。真实 PM 收益、完整启动与成本证据、真人辅助技术及 automatic active Skill promotion 仍未验收。
 
 以下 2026-10-02 与更早章节保留历史时点。
 
@@ -96,7 +96,7 @@ JetBrains 首次回执仅证明上传成功、尚不可见；2026-10-02 后续�
 
 调查元数据读取成功、日志下载成功和修复验证成功是不同证据；无关命令报错不会抹掉已验证记录。模型应由已知断言和源码提出可证伪假设，再执行定向复现和验证；PR 合并或诊断重试通过不等于原问题解决。重复读取的恢复预算仍有界，不保证任意任务自动完成。
 
-官方 settings 修订仅覆盖同一执行环境、同一模块实例中通过 `addRule()` 开始的修改，保守撤销该进程所有 settings provider 的 shell。同步保证是锁存并启动清理，容器退出仍异步；文件恢复原内容也不恢复旧许可。跨进程/worker、外部编辑、其他写口、ScopedPermissionStore、持久 generation 与 legacy sampled callback 尚未闭合。静态冻结不替代持续动态授权。完整状态和原始证据见[CLI/IDE 实施记录](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli-ide/cli-ide-gap-implementation-2026-09-27.md)。
+官方 settings 修订仅覆盖同一执行环境、同一模块实例中通过 `addRule()` 开始的修改，保守撤销该进程所有 settings provider 的 shell。同步保证是锁存并启动清理，容器退出仍异步；文件恢复原内容也不恢复旧许可。跨进程/worker、外部编辑、其他写口、ScopedPermissionStore、持久 generation 与 legacy sampled callback 尚未闭合。静态冻结不替代持续动态授权。完整状态和原始证据见[CLI/IDE 实施记录](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli-ide/plans/cli-ide-gap-implementation-2026-09-27.md)。
 
 以下 2026-09-30 与更早章节保留其历史时点。
 

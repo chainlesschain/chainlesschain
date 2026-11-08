@@ -88,6 +88,9 @@ jobs:
           [[ "${CC_SCHEDULER_SOAK_EXPECTED_SHA}" =~ ^[0-9a-f]{40}$ ]]
           [[ "${CC_SCHEDULER_SOAK_WORKFLOW_SHA}" =~ ^[0-9a-f]{40}$ ]]
 
+      - name: Enable Windows long paths before checkout
+        if: runner.os == 'Windows'
+        run: git config --global core.longpaths true
       - name: Checkout exact scheduler soak commit
         uses: actions/checkout@v5
         with:

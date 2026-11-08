@@ -1,0 +1,58 @@
+{
+  "schema": "chainlesschain.goal/v1",
+  "schemaVersion": 1,
+  "id": "goal-1793995995022-04rou6",
+  "storeId": "cli-goals-e1d0096da4fc644d00fb066a77b44b7bc591cb7a739a15d1a19ca301e94c6ef3",
+  "revision": 1,
+  "controlGeneration": 0,
+  "ownerRef": null,
+  "projectRef": null,
+  "title": "DMM CLI source for actual native handoff",
+  "objective": "DMM CLI source for actual native handoff",
+  "status": "active",
+  "progress": 0,
+  "keyResults": [
+    {
+      "id": "kr-1793995995022-w09p5s",
+      "text": "Keep the original source bytes",
+      "target": null,
+      "current": 0,
+      "done": false
+    },
+    {
+      "id": "kr-1793995995022-a8457v",
+      "text": "Do not inherit project permissions",
+      "target": null,
+      "current": 0,
+      "done": false
+    }
+  ],
+  "linkedSessions": [],
+  "notes": [],
+  "drift": {
+    "lastProgressAt": null,
+    "flags": []
+  },
+  "createdAt": "2026-11-06T20:13:15.022Z",
+  "updatedAt": "2026-11-06T20:13:15.022Z",
+  "acceptanceCriteria": [],
+  "budgetPolicy": {
+    "maxRuns": null,
+    "maxTokens": null,
+    "maxTimeMs": null,
+    "maxCostUsd": null
+  },
+  "expiresAt": null,
+  "nextCheckAt": null,
+  "triggerRefs": [],
+  "allowedActionTypes": [],
+  "authorizationRefs": [],
+  "notificationPolicy": {
+    "channel": "in-app",
+    "mode": "changes-only"
+  },
+  "memoryRefs": [],
+  "waitingReason": null,
+  "executionState": "idle",
+  "completion": null
+}

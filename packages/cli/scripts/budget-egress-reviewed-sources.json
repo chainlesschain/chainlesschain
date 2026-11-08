@@ -12,9 +12,9 @@
     },
     {
       "path": "packages/cli/scripts/collect-graph-production-source-receipts.mjs",
-      "digest": "sha256:a865dbe0ee00d507dcf5fdd12130268e0702e1b33e3d3980a27242a259ad98a3",
+      "digest": "sha256:32bf09275163d8f4455a97cfa7539afd37eae384c4d29b8d2611baf3cc6c7ec3",
       "category": "REMOTE_EXECUTION_CONTROL",
-      "rationale": "Authenticated POST to registered production evidence collectors can trigger collector work. Operator authority and any remote costs are outside the Chat budget contract."
+      "rationale": "Authenticated POST to registered production evidence collectors can trigger collector work. Operator authority and any remote costs are outside the Chat budget contract. 2026-11-07 source inspection: receipt validation now derives exact declared entry coverage from the frozen 24-entry manifest and rejects undeclared substitutions; extraction into a pure response validator changes no endpoint, token, request, timeout, response bound or execution authority. Static classification remains REMOTE_EXECUTION_CONTROL; no production collector call or paid admission is authorized by this update."
     },
     {
       "path": "packages/cli/scripts/context-token-volcengine-live-probe.mjs",

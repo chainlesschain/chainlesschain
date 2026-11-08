@@ -1,0 +1,34 @@
+{
+  "schema": "chainlesschain.local-product-goal-gui-observation/v1",
+  "kind": "one local synthetic GUI journey; not independent business acceptance",
+  "sourceCommit": "de18c560104fb2968eb505aa708cc56efbfe1ac8",
+  "command": "node docs/research/agents/evidence/dmm-encrypted-goal-host-2026-11-07/product-goal-gui-smoke.cjs --goals",
+  "runnerSha256": "e3ae1b6a04de6303fdd848ad517081fbf0e90bd32b01b9b18abf9469fd6763b3",
+  "exitCode": 0,
+  "electron": "39.8.10",
+  "freshProfile": true,
+  "projectRootInsideFreshProfile": true,
+  "projectId": "ce56d694-f8db-472e-96fa-451779e10c18",
+  "goalId": "goal-da6090a1-7d60-4937-86e0-484aaed6d315",
+  "checks": {
+    "realDidCreatedThroughPublicPreloadApi": true,
+    "realPasswordLoginThroughRenderedForm": true,
+    "projectCreatedThroughPublicPreloadApiWithMatchingDid": true,
+    "goalCreatedThroughActualVueForm": true,
+    "canonicalCheckTriggeredThroughActualVueButton": true,
+    "displayedChecksOne": true,
+    "v2GoalReadBackThroughPublicPreloadApi": true,
+    "pausedThroughActualVueButton": true
+  },
+  "negativeSetupControl": "A prior project without the matching DID owner was rejected with GOAL_NOT_FOUND_OR_DENIED; the fixture was corrected without changing ownership checks.",
+  "screenshot": "product-goal-paused.png",
+  "screenshotSha256": "4930b9549c417a713202dc7a04304eaab11a65f82bfa22a86c4e6174f3a8d7e3",
+  "observedRemainingDefectsAtThisSnapshot": [
+    "controlled task list/create history rejected the SQLCipher wrapper with ACTION_NATIVE_DATABASE_REQUIRED",
+    "model draft denial plus equivalent source-array rebinding caused repeated reads"
+  ],
+  "followup": "Both defects are addressed by the subsequent local task-host and renderer changes with new regression reports; this screenshot remains the pre-followup observation.",
+  "nativeConfirmationJourney": false,
+  "goalToRiskToActionLineageJourney": false,
+  "independentBusinessEffect": false
+}
