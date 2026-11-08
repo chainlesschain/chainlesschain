@@ -102,6 +102,8 @@ Windows独立profile首轮已退出1：真实VSIX安装与激活成功，多窗�
 
 **混合三档完整批次（2026-11-08 06:09 UTC）。** 原进程退出0、报告complete=true；1K/10K/100K各100轮，四读、两更新、两删除/清除在IPC barrier后实际重叠。根独立审计300轮/2400 worker结果，核对13份源码摘要、逐轮6个连续提交版本、读版本范围、同轮删除可见性及worker close。基准另执行全量records/events最终参考断言；归档保留压缩原始报告及独立审计。100K读/锁等待p95为1816.706/1333ms；此为本机混合工作负载，不证明跨平台或完整Memory SLO。句柄74479继续执行组合查询，尚未完成。
 
+**组合查询完整审计（2026-11-08 06:35 UTC）。** 固定3116842的组合进程退出0，三档×三场景各100次，共900次实际冷查询；根重算全部entries摘要及p95，核对全量oracle绑定、scope/sink/state/TTL、分页和generation，并确认source/git稳定及scratch清理完成。100K类别窄选、标签窄选、冷续页p95为492.568/507.993/498.497ms，峰值RSS最高293134336 bytes；负载标记unspecified，performanceAccepted仍false。压缩原始报告、独立审计和可复跑核验器归档于同批目录。当前本地主分支整合为85b915d39，语义烟测身份单列；历史311测量不充当新整合HEAD的三OS准入。
+
 ## 历史增量状态（2026-11-03）
 
 CLI **0.166.139** 与 Open VSX **0.37.175** 已公开核验，发行源码为 `eec8b97b6040d19004670bfead0bec1b8a27b71b`，准确源码的三系统 CLI CI / Strict Sandbox 已通过。JetBrains **0.4.192** 已批准公开，update **1209958** 的公开 ZIP 内容与官方制品一致，推荐 CLI .139；[新公开包证明](../../cli/verify01-openai-139-r2-20261103/jetbrains-public.json)与历史[发行回执](../../cli/evidence/release139-public/publication.json)、[准确源码门禁](../../cli/evidence/release139-public/gates.json)分别保留。

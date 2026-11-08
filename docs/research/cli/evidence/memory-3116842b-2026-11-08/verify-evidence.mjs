@@ -136,6 +136,72 @@ for (const t of mixed.tiers) {
 }
 assert.equal(rounds, 300);
 assert.equal(workers, 2400);
+const compoundBytes = zlib.gunzipSync(bytes("compound100.json.gz"));
+const compoundReport = JSON.parse(compoundBytes);
+assert.equal(
+  "sha256:" + sha(compoundBytes),
+  read("compound100-audit.json").reportSha256,
+);
+for (const key of [
+  "complete",
+  "cleanupComplete",
+  "sourceStable",
+  "gitStable",
+  "sampleMatrixComplete",
+])
+  assert.equal(compoundReport[key], true, key);
+assert.equal(compoundReport.sourceHead, manifest.sourceHead);
+assert.equal(
+  compoundReport.sourceIdentityHash,
+  "sha256:" + sha(JSON.stringify(compoundReport.sourceIdentity)),
+);
+assert.deepEqual(compoundReport.counts, [1000, 10000, 100000]);
+let compoundTotal = 0;
+for (const tier of compoundReport.tiers) {
+  assert.equal(tier.complete, true);
+  assert.equal(tier.finalAuditVerified, true);
+  assert.equal(tier.oracle.fullAuthorityVerified, true);
+  assert.equal(tier.oracle.recordsDigest, tier.setup.fixture.recordsDigest);
+  const sem = tier.semantics;
+  for (const key of [
+    "finalAuditVerified",
+    "manifestUnchanged",
+    "equivalentCursorVerified",
+    "changedPageSizeVerified",
+  ])
+    assert.equal(sem[key], true, key);
+  assert.equal(sem.invalidCursorCases, 4);
+  assert.equal(sem.allPages.noDuplicates, true);
+  assert.equal(sem.allPages.fullOracleVerified, true);
+  for (const name of ["category-narrow", "tag-narrow", "cold-continuation"]) {
+    const group = tier.groups[name],
+      oracle = tier.oracle.scenarios.find((s) => s.name === name);
+    assert.equal(group.complete, true);
+    assert.equal(group.samplesComplete, true);
+    assert.equal(group.samples.length, 100);
+    assert.deepEqual(group.query, oracle.query);
+    for (let i = 0; i < group.samples.length; i++) {
+      const row = group.samples[i];
+      assert.equal(row.round, i + 1);
+      assert.equal(row.scenario, name);
+      assert.equal(
+        row.rowsDigest,
+        "sha256:" + sha(JSON.stringify(row.entries)),
+      );
+      assert.equal(row.rowsDigest, oracle.expectedDigest);
+      assert.equal(row.entries.length, oracle.expectedCount);
+      assert.equal(row.storeRevision, tier.setup.fixture.storeRevision);
+      assert.deepEqual(row.query, oracle.query);
+      assert.equal(Boolean(row.nextCursor), oracle.expectedHasNext);
+      assert.equal(row.oracleVerified, true);
+      assert.equal(row.manifestUnchanged, true);
+      compoundTotal++;
+    }
+    const sorted = group.samples.map((s) => s.durationMs).sort((a, b) => a - b);
+    assert.ok(Math.abs(sorted[94] - group.latency.p95Ms) < 0.000001);
+  }
+}
+assert.equal(compoundTotal, 900);
 console.log(
   JSON.stringify({
     verified: true,
@@ -147,6 +213,7 @@ console.log(
     completedBeforeDeadline: early,
     mixedRounds: rounds,
     workerResults: workers,
+    compoundSamples: compoundTotal,
     boundary: manifest.boundary,
   }),
 );

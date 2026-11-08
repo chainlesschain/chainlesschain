@@ -30,6 +30,16 @@
       "name": "mixed100-audit.json",
       "bytes": 995,
       "sha256": "0c9ad30675242e040ad7852c3025864efe02c6390da4c1fc23c4c1de37df16a3"
+    },
+    {
+      "name": "compound100.json.gz",
+      "bytes": 208148,
+      "sha256": "10b97e84b7de596bce15062d0edc6087ae5538a9e2d0afcba6bef0cb09d2166a"
+    },
+    {
+      "name": "compound100-audit.json",
+      "bytes": 2448,
+      "sha256": "05e247cf7e502a6ee618ff572939a9a34d31edb0aad1286c05d28bef9781d76e"
     }
   ],
   "boundary": "Archived local Windows fixture evidence only. This verifier does not prove current-source, cross-platform, IDE, semantic quality or production admission."
