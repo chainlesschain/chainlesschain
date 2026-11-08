@@ -135,4 +135,4 @@
     }
   },
   "completionRule": "Do not promote overall to complete until every item has scope-matching evidence and every remaining gate is closed."
-}\n
+}
