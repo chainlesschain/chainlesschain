@@ -59,6 +59,7 @@ async function fixture(
     credentialProvider = async () => "synthetic-host-key",
     fetchImpl,
     onValidate,
+    timeoutMs = 30_000,
   } = {},
 ) {
   const root = fs.mkdtempSync(path.join(parent, "cc-memory-budget-admission-"));
@@ -129,7 +130,7 @@ async function fixture(
     credentials = 0;
   const transport = createFormalBudgetTransport({
     authority,
-    timeoutMs: 30_000,
+    timeoutMs,
     credentialProvider: async (...args) => {
       credentials += 1;
       return credentialProvider(...args);
@@ -401,4 +402,41 @@ test("governed-body diagnostic revocation is checked before durable dispatch adm
   assert.equal(observed, 1);
   assertUnknown(f, outcome.error);
   assert.equal(f.counts().credentials, 1);
+});
+
+test("transport timeout ends a held final-body diagnostic before release and retains unknown liability", async (t) => {
+  const f = await fixture(t, { timeoutMs: 2000 });
+  const entered = deferred();
+  const held = deferred();
+  const pending = observe(
+    f.run(() =>
+      withModelInputDiagnostics(
+        {
+          onModelInputDiagnostic: async (event) => {
+            if (event.stage !== "governed-fetch-body") return;
+            entered.resolve();
+            await held.promise;
+          },
+        },
+        () => providerFetch(endpoint, f.post()),
+      ),
+    ),
+  );
+  try {
+    await deadline(entered.promise, "Final-body observer was not reached");
+    const exposure = f.authority.status().exposureUsdMicros;
+    assert(exposure > 0);
+    const outcome = await deadline(
+      pending,
+      "Timeout waited for diagnostic observer release",
+    );
+    assertUnknown(f, outcome.error, exposure);
+    assert.equal(f.counts().credentials, 1);
+  } finally {
+    held.resolve();
+    await deadline(pending, "Held diagnostic did not clean up");
+  }
+  await delay(25);
+  assert.equal(f.counts().physical, 0);
+  assert.equal(f.authority.status().pending[0].state, "unknown");
 });

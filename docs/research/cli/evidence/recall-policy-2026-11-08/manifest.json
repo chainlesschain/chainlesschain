@@ -1,0 +1,342 @@
+{
+  "schema": "chainlesschain.recall-policy-evidence/v1",
+  "capturedAt": "2026-11-08T03:29:47.379Z",
+  "sourceIdentity": {
+    "parentCommit": "7c5d559255070f9ad1e23c454a616091899c7c29",
+    "uncommittedSnapshot": true,
+    "sourceSnapshotCount": 11,
+    "coverage": "Selected five production modules, three tests, one fixture, review catalogue and generated command help; not complete dependency closure",
+    "gitStatus": [
+      "M packages/cli/__tests__/unit/model-input-diagnostics.test.js",
+      " M packages/cli/scripts/budget-egress-reviewed-sources.json",
+      " M packages/cli/src/command-help-index.json",
+      " M packages/cli/src/commands/agent.js",
+      " M packages/cli/src/lib/formal-budget-provider-scope.js",
+      " M packages/cli/src/lib/formal-budget-transport.js",
+      " M packages/cli/src/lib/model-input-diagnostics.js",
+      " M packages/cli/src/repl/agent-repl.js",
+      " M packages/cli/test-node/memory-budget-admission.node-test.mjs",
+      "?? packages/cli/__tests__/e2e/repl-memory-recall-e2e.test.js",
+      "?? packages/cli/__tests__/fixtures/repl-memory-recall-state.mjs"
+    ]
+  },
+  "captureRuntime": {
+    "node": "v24.12.0",
+    "platform": "win32",
+    "arch": "x64",
+    "executableSha256": "2ffe3acc0458fdde999f50d11809bbe7c9b7ef204dcf17094e325d26ace101d8"
+  },
+  "summary": {
+    "related": {
+      "files": 23,
+      "total": 599,
+      "passed": 599,
+      "failed": 0,
+      "skipped": 0
+    },
+    "budget": {
+      "total": 108,
+      "topLevel": 72,
+      "passed": 108,
+      "skipped": 0
+    },
+    "repl": {
+      "passed": 2,
+      "cases": 2,
+      "requestsPerCase": 3,
+      "verifiedTranscriptInspectionsPerCase": 2,
+      "originalVerifiedReportIsPriorRerun": true
+    },
+    "egress": {
+      "classified": 89,
+      "callChainUnmapped": 78,
+      "digestLinksChecked": 3
+    },
+    "distinctCoverageCountsAdditive": false
+  },
+  "failureHistory": {
+    "replBefore": {
+      "passed": 1,
+      "failed": 1
+    },
+    "stopBefore": {
+      "passed": 12,
+      "failed": 3
+    },
+    "stopIntermediate": {
+      "passed": 45,
+      "failed": 1,
+      "reason": "Prior pre-aborted snapshot-positive expectation conflicted with cancellation contract; split into live snapshot positive and pre-aborted rejection"
+    },
+    "relatedOriginalPath": {
+      "passed": 597,
+      "failed": 2,
+      "reason": "Existing direct Bash commands selected unavailable WSL; final run changed only invocation PATH to installed Git Bash"
+    }
+  },
+  "limits": {
+    "terminal": "emulated input isTTY; not OS PTY",
+    "recallPreference": "Flag repeated on resume; preference persistence not established",
+    "observerCancellation": "Only caller wait is cancelled; observer itself may continue",
+    "network": "Synthetic loopback provider in REPL; no real model calls",
+    "sourceReview": "Offline verification does not rerun AST scanner or verify all scanned source bytes",
+    "build": "Log completion markers verified; exit 0 is runner-observed, not encoded as a signed receipt"
+  },
+  "admission": {
+    "paidReady": false,
+    "productionReady": false,
+    "fullOperatingSystemMatrixVerified": false,
+    "semanticRetrievalQualityVerified": false,
+    "performanceSloVerified": false,
+    "encryptedDatabaseInstallationVerified": false,
+    "fullDependencyClosureVerified": false
+  },
+  "privacyScan": {
+    "scope": "Exact archived bytes; limited private-key/token/full-Call-log patterns, not a universal secret-detection proof",
+    "hits": []
+  },
+  "artifacts": [
+    {
+      "id": "repl-before",
+      "kind": "report",
+      "originalFile": "repl-memory-recall-before-20261108.json",
+      "archive": "raw/repl-before.gz",
+      "encoding": "utf8",
+      "bytes": 3400,
+      "sha256": "ea649130f54e4ffe4914589f67c84d89112406a05525334bffe7a64b835d0ba5",
+      "gzipBytes": 1169,
+      "gzipSha256": "55e3d49309e84e4efdd03b7c63941cd690a7be0d71ca875d0a238e19d108e0d7"
+    },
+    {
+      "id": "repl-verified",
+      "kind": "report",
+      "originalFile": "recall-policy-repl-verified-20261108.json",
+      "archive": "raw/repl-verified.gz",
+      "encoding": "utf8",
+      "bytes": 1507,
+      "sha256": "16f498ae906e17057f1f63d8e77f135ccb20c7ad25de71eb0de02d3e2f138e9f",
+      "gzipBytes": 545,
+      "gzipSha256": "db361162b29a56454c780e05423027210f1542c00f5c52ed04b4c71d1fd28129"
+    },
+    {
+      "id": "repl-recorded",
+      "kind": "report",
+      "originalFile": "recall-policy-repl-recorded-20261108.json",
+      "archive": "raw/repl-recorded.gz",
+      "encoding": "utf8",
+      "bytes": 1509,
+      "sha256": "044917d928e3e001e61874a0fac316a451d3ae8f6be8fd676007ea71338a43ae",
+      "gzipBytes": 546,
+      "gzipSha256": "3f99653033a7120404cf1935aed4864fcc210801dbc4ef6add640f4ed1e755da"
+    },
+    {
+      "id": "repl-receipts",
+      "kind": "report",
+      "originalFile": "recall-policy-repl-receipts-20261108.jsonl",
+      "archive": "raw/repl-receipts.gz",
+      "encoding": "utf8",
+      "bytes": 2566,
+      "sha256": "93553d662b155f78fd33f2a4061162303892655417bc0c9823e1bd8411386e8d",
+      "gzipBytes": 564,
+      "gzipSha256": "8fdedcec3095b35ef5ab43a5f2c044448ad00b57e2eac8670294b5ff4ede3814"
+    },
+    {
+      "id": "stop-before",
+      "kind": "report",
+      "originalFile": "diagnostic-stop-before-20261108.json",
+      "archive": "raw/stop-before.gz",
+      "encoding": "utf8",
+      "bytes": 6730,
+      "sha256": "7fd3212863389c671bb0462c552b4559e0bf36c3a6b0e2f62e58a79b97b6a89b",
+      "gzipBytes": 1365,
+      "gzipSha256": "1d460a677fa86f7f14f95228e896c48c3119649a4aabfd9a74574d8b7feda074"
+    },
+    {
+      "id": "stop-intermediate",
+      "kind": "report",
+      "originalFile": "diagnostic-stop-after-20261108.json",
+      "archive": "raw/stop-intermediate.gz",
+      "encoding": "utf8",
+      "bytes": 18393,
+      "sha256": "eca24ba8d843fc121357ef1d0b3d57f2ef4b417d5f28c2c9ca4f424bca02220c",
+      "gzipBytes": 2765,
+      "gzipSha256": "8a21f9a733caf4e417b98e9b38ea5f2c387689bd56ef72b40862e6f9508e6b66"
+    },
+    {
+      "id": "related-wsl-failure",
+      "kind": "report",
+      "originalFile": "recall-policy-related-final-20261108.json",
+      "archive": "raw/related-wsl-failure.gz",
+      "encoding": "utf8",
+      "bytes": 207453,
+      "sha256": "dc2c3de9687a16c9e5069b3c2e48588c4f1c9bfcacaf5509ccc121021be7d6df",
+      "gzipBytes": 24640,
+      "gzipSha256": "f3035a3c4826169957c4a85252e62b8cfebd3e1825d26d424e107f701b02617f"
+    },
+    {
+      "id": "related-final",
+      "kind": "report",
+      "originalFile": "recall-policy-related-gitbash-final-20261108.json",
+      "archive": "raw/related-final.gz",
+      "encoding": "utf8",
+      "bytes": 205414,
+      "sha256": "ae3cb30915fb18f340ec02dd854385634ce255877ff4c2a6a1dbb4cb957f1317",
+      "gzipBytes": 24287,
+      "gzipSha256": "47d4629639b1b3fab38cd7fdd305ddca779cc625b252d258e54523d9e951d50f"
+    },
+    {
+      "id": "budget-final",
+      "kind": "report",
+      "originalFile": "diagnostic-stop-budget-final-20261108.tap",
+      "archive": "raw/budget-final.gz",
+      "encoding": "utf16le-bom",
+      "bytes": 41554,
+      "sha256": "8cce881e3fd50fd9ac5073c1efc0debfe467290797d8a4f8ae15b8aab26c0009",
+      "gzipBytes": 4976,
+      "gzipSha256": "e05537935c8437173368573f7fd0f03108a8d124199f952ccb6721a4a849dc9b"
+    },
+    {
+      "id": "egress",
+      "kind": "report",
+      "originalFile": "recall-policy-egress-verified-20261108.json",
+      "archive": "raw/egress.gz",
+      "encoding": "utf8",
+      "bytes": 127288,
+      "sha256": "e4de096cc1958ea133c7aa6d30adc4eb8aba8e240ef5185950a14a1e1700883f",
+      "gzipBytes": 30452,
+      "gzipSha256": "e6dec26a205f920dccba3836d5798940973d9486c4a62afb83cd2ebd4d430849"
+    },
+    {
+      "id": "web-panel",
+      "kind": "report",
+      "originalFile": "recall-policy-web-panel-20261108.log",
+      "archive": "raw/web-panel.gz",
+      "encoding": "utf16le-bom",
+      "bytes": 46326,
+      "sha256": "b831b1e9a3169468511a83fabc37775100af4925f03c6d7eba4ecd44f7a290b3",
+      "gzipBytes": 8115,
+      "gzipSha256": "6f30bcf5b7fef21038ddfbbd1d7403ef6ab7cc38885480e1c26e4c4074bb7f31"
+    },
+    {
+      "id": "diagnostics",
+      "kind": "source",
+      "sourcePath": "packages/cli/src/lib/model-input-diagnostics.js",
+      "archive": "raw/diagnostics.gz",
+      "encoding": "utf8",
+      "bytes": 6472,
+      "sha256": "9af2f143b8d422427b8013a3cef11b876cab487bf20db030f2ffb0297188ce7a",
+      "gzipBytes": 2248,
+      "gzipSha256": "883490ff1f2b7e4c70b7effbbd0b21e4e8bf767d2047bc9df988130e2f784e5c"
+    },
+    {
+      "id": "provider-scope",
+      "kind": "source",
+      "sourcePath": "packages/cli/src/lib/formal-budget-provider-scope.js",
+      "archive": "raw/provider-scope.gz",
+      "encoding": "utf8",
+      "bytes": 5343,
+      "sha256": "cab55bc6c6b65b484bd0d43a1370859b768a2bd4e5ca4213487d9ff0d0d1a01d",
+      "gzipBytes": 1661,
+      "gzipSha256": "f39f19d6d98d0d00fa9deab589c4ab8857ca4e0a3934dca16e208624360aa365"
+    },
+    {
+      "id": "transport",
+      "kind": "source",
+      "sourcePath": "packages/cli/src/lib/formal-budget-transport.js",
+      "archive": "raw/transport.gz",
+      "encoding": "utf8",
+      "bytes": 16095,
+      "sha256": "f5cea8f86ae332482d8f48ce4eb6df0d4f9ee417313e7737db640efd4728393a",
+      "gzipBytes": 5008,
+      "gzipSha256": "4992a9d55a84ea61504bda8aaa79ca503e87be2ce961e5a2e4ab89bea99bbbe3"
+    },
+    {
+      "id": "repl",
+      "kind": "source",
+      "sourcePath": "packages/cli/src/repl/agent-repl.js",
+      "archive": "raw/repl.gz",
+      "encoding": "utf8",
+      "bytes": 394108,
+      "sha256": "a0b634f101f15446b96106dd4974c9ec42ff0b7843fc1b54183818c9cb3b2f82",
+      "gzipBytes": 101164,
+      "gzipSha256": "d765e4d6d0cfa2ccb4b5fd0fa02ebd27aae900ba430c8ae5b7dca59dfb942212"
+    },
+    {
+      "id": "agent-command",
+      "kind": "source",
+      "sourcePath": "packages/cli/src/commands/agent.js",
+      "archive": "raw/agent-command.gz",
+      "encoding": "utf8",
+      "bytes": 159193,
+      "sha256": "5a49cccdc07a9fc02960bfe2b10f7859ed60406494a925b7922336abbbfe8bec",
+      "gzipBytes": 31840,
+      "gzipSha256": "2e465b6121f93b26d81daf7434244c6d683b47ef7aa6f050eeecde9168736cab"
+    },
+    {
+      "id": "test-diagnostics",
+      "kind": "source",
+      "sourcePath": "packages/cli/__tests__/unit/model-input-diagnostics.test.js",
+      "archive": "raw/test-diagnostics.gz",
+      "encoding": "utf8",
+      "bytes": 17434,
+      "sha256": "22a37a094bc0a93a273fae0244759589a0a4a6f8efdb2fb7f18a3074ef90439e",
+      "gzipBytes": 4502,
+      "gzipSha256": "8cf357c9d27ee7af57554fe339bca633f7ad1f6fe101476bfdf5e68b1da9d98b"
+    },
+    {
+      "id": "test-budget",
+      "kind": "source",
+      "sourcePath": "packages/cli/test-node/memory-budget-admission.node-test.mjs",
+      "archive": "raw/test-budget.gz",
+      "encoding": "utf8",
+      "bytes": 13056,
+      "sha256": "5341f0dfb5d624078175df738135bab7b69fc2ef44dc3b2ecafbe9ecfb8b1678",
+      "gzipBytes": 3811,
+      "gzipSha256": "382987bfe06b597a5e8d879226087053ade4922aaa9c8b9c55c87481cc0db47c"
+    },
+    {
+      "id": "test-repl",
+      "kind": "source",
+      "sourcePath": "packages/cli/__tests__/e2e/repl-memory-recall-e2e.test.js",
+      "archive": "raw/test-repl.gz",
+      "encoding": "utf8",
+      "bytes": 10249,
+      "sha256": "69d88f83d21f2ed5146be470fe0b698571aa16e340881021938f350cbeae716a",
+      "gzipBytes": 3638,
+      "gzipSha256": "e674a29399864f53a09a3ed1ac92a88444779bb57ef22314f3b1e46b2bb76105"
+    },
+    {
+      "id": "fixture-repl",
+      "kind": "source",
+      "sourcePath": "packages/cli/__tests__/fixtures/repl-memory-recall-state.mjs",
+      "archive": "raw/fixture-repl.gz",
+      "encoding": "utf8",
+      "bytes": 3090,
+      "sha256": "46d4bc2955e180f09abc87eb094210e3cf0b9114e269cad2e7d885ba247f8980",
+      "gzipBytes": 1324,
+      "gzipSha256": "36a4dd33d17abe4c6ffece7e38ef593b4643fe726994dc6dcec6429733af9dec"
+    },
+    {
+      "id": "review-catalogue",
+      "kind": "source",
+      "sourcePath": "packages/cli/scripts/budget-egress-reviewed-sources.json",
+      "archive": "raw/review-catalogue.gz",
+      "encoding": "utf8",
+      "bytes": 67745,
+      "sha256": "a8fd2012d7815c586d99f6bd3a4c6f023d85762e0712d25271d6c46a1e2766bb",
+      "gzipBytes": 20756,
+      "gzipSha256": "72f49546c15724a40f08b43205f0a1a182513d226a4f39c90ec7a2966d5742c8"
+    },
+    {
+      "id": "command-help",
+      "kind": "source",
+      "sourcePath": "packages/cli/src/command-help-index.json",
+      "archive": "raw/command-help.gz",
+      "encoding": "utf8",
+      "bytes": 443439,
+      "sha256": "69f3514b7133e804c1eebf39c35dcd158956e5f591592ae12f8f98f4b1abdc71",
+      "gzipBytes": 89292,
+      "gzipSha256": "90d5ee6fe699055a2c8a9eddc79294fefa1e28a89b6d5cefd3820ef7233b5105"
+    }
+  ]
+}

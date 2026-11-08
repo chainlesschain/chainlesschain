@@ -491,7 +491,10 @@ export function registerAgentCommand(program, dependencies = {}) {
     .option("--agent-id <id>", "Agent id for scoped memory recall")
     .option("--recall-limit <n>", "Top-K memories to inject into system prompt")
     .option("--recall-query <q>", "Query string for startup memory recall")
-    .option("--no-recall-memory", "Disable startup memory recall")
+    .option(
+      "--no-recall-memory",
+      "Disable automatic Memory recall in the interactive session",
+    )
     .option(
       "--vim",
       "Start the interactive REPL in vim-mode line editing (toggle later with /vim; or CC_VIM=1)",
@@ -800,9 +803,8 @@ export function registerAgentCommand(program, dependencies = {}) {
       // --capabilities: print the machine-readable manifest and exit — no
       // config, no bootstrap, no network (gap-analysis 2026-07-11 快速收益 #6).
       if (options.capabilities) {
-        const { buildAgentCapabilities } = await import(
-          "../lib/headless-manifest.js"
-        );
+        const { buildAgentCapabilities } =
+          await import("../lib/headless-manifest.js");
         console.log(JSON.stringify(buildAgentCapabilities(), null, 2));
         return;
       }
@@ -821,9 +823,8 @@ export function registerAgentCommand(program, dependencies = {}) {
       let toolAdmission = null;
       if (process.env.CC_TOOL_ADMISSION) {
         try {
-          const { parseToolAdmissionConfig } = await import(
-            "../lib/agent-tool-admission.js"
-          );
+          const { parseToolAdmissionConfig } =
+            await import("../lib/agent-tool-admission.js");
           toolAdmission = parseToolAdmissionConfig(
             process.env.CC_TOOL_ADMISSION,
           );
@@ -913,9 +914,8 @@ export function registerAgentCommand(program, dependencies = {}) {
       // screen readers (mono theme + no repainting status line). Applied
       // before anything renders.
       {
-        const { screenReaderRequested, applyScreenReaderMode } = await import(
-          "../lib/accessibility.js"
-        );
+        const { screenReaderRequested, applyScreenReaderMode } =
+          await import("../lib/accessibility.js");
         if (screenReaderRequested(options)) {
           applyScreenReaderMode();
         }
@@ -948,9 +948,8 @@ export function registerAgentCommand(program, dependencies = {}) {
       };
       if (options.worktree !== undefined || backgroundRequested) {
         try {
-          const { resolveBackgroundWorktreePolicy } = await import(
-            "../lib/background-worktree-policy.js"
-          );
+          const { resolveBackgroundWorktreePolicy } =
+            await import("../lib/background-worktree-policy.js");
           worktreeDecision = resolveBackgroundWorktreePolicy({
             background: backgroundRequested,
             worktree: options.worktree,
@@ -1002,9 +1001,8 @@ export function registerAgentCommand(program, dependencies = {}) {
       };
       if (worktreeDecision.enabled) {
         try {
-          const { setupAgentWorktree, finishAgentWorktree } = await import(
-            "../lib/agent-worktree.js"
-          );
+          const { setupAgentWorktree, finishAgentWorktree } =
+            await import("../lib/agent-worktree.js");
           _finishAgentWorktreeFn = finishAgentWorktree;
           const detectedRepoRoot = worktreeDecision.repoRoot || invocationCwd;
           const worktreeCwd =
@@ -1032,9 +1030,8 @@ export function registerAgentCommand(program, dependencies = {}) {
             const { loadHooks } = await import("../lib/settings-hooks.cjs");
             _worktreeSettingsHooks =
               loadHooks({ cwd: _worktree.repoRoot }).hooks || null;
-            const { runWorktreeCreateHooks, dispatchAsyncHooks } = await import(
-              "../lib/settings-hook-events.js"
-            );
+            const { runWorktreeCreateHooks, dispatchAsyncHooks } =
+              await import("../lib/settings-hook-events.js");
             await runWorktreeCreateHooks(_worktreeSettingsHooks, {
               worktreePath: _worktree.path,
               branch: _worktree.branch,
@@ -1042,9 +1039,8 @@ export function registerAgentCommand(program, dependencies = {}) {
               cwd: _worktree.path,
             });
             if (!_worktreeAsyncSupervisor) {
-              const { AsyncHookSupervisor } = await import(
-                "../lib/async-hook-supervisor.js"
-              );
+              const { AsyncHookSupervisor } =
+                await import("../lib/async-hook-supervisor.js");
               _worktreeAsyncSupervisor = new AsyncHookSupervisor({
                 persistStats: true,
               });
@@ -1129,9 +1125,8 @@ export function registerAgentCommand(program, dependencies = {}) {
       // Claude-Code parity: auto-checkpoint defaults ON inside a git repo
       // (shadow-commit engine, zero working-tree touch); explicit
       // --checkpoint / --no-checkpoint always wins.
-      const { resolveAutoCheckpoint } = await import(
-        "../lib/auto-checkpoint-default.js"
-      );
+      const { resolveAutoCheckpoint } =
+        await import("../lib/auto-checkpoint-default.js");
       const autoCheckpoint = resolveAutoCheckpoint({
         flagValue: options.checkpoint,
         flagSource: command?.getOptionValueSource?.("checkpoint"),
@@ -1159,9 +1154,8 @@ export function registerAgentCommand(program, dependencies = {}) {
           options.outputFormat !== "text" ||
           !process.stdin.isTTY;
         if (headlessIntent) {
-          const { getLastLogicalSessionId } = await import(
-            "../lib/session-transcript-migration.js"
-          );
+          const { getLastLogicalSessionId } =
+            await import("../lib/session-transcript-migration.js");
           const database =
             sessionBootstrapContext.db?.getDatabase?.() ||
             sessionBootstrapContext.db?.getDb?.() ||
@@ -1169,9 +1163,8 @@ export function registerAgentCommand(program, dependencies = {}) {
           options.session = getLastLogicalSessionId(database);
         } else {
           // Interactive: picker across both stores (agent REPL rebuilds either).
-          const { pickRecentSession } = await import(
-            "../lib/session-picker.js"
-          );
+          const { pickRecentSession } =
+            await import("../lib/session-picker.js");
           const picked = await pickRecentSession(sessionBootstrapContext, {
             message: "Resume which agent session?",
           });
@@ -1198,9 +1191,8 @@ export function registerAgentCommand(program, dependencies = {}) {
         // JSON/NDJSON protocol selected by this command.
         try {
           await withQuietStdout(async () => {
-            const { sessionHasPersistedEvidence } = await import(
-              "../harness/jsonl-session-store.js"
-            );
+            const { sessionHasPersistedEvidence } =
+              await import("../harness/jsonl-session-store.js");
             if (!sessionHasPersistedEvidence(options.session)) {
               const [{ bootstrap }, { ensureCanonicalSessionFromDatabase }] =
                 await Promise.all([
@@ -1261,9 +1253,8 @@ export function registerAgentCommand(program, dependencies = {}) {
       // a no-op (silent) for a fresh run.
       if (options.forkSession && options.session) {
         const store = await import("../harness/jsonl-session-store.js");
-        const { applyForkSession } = await import(
-          "../runtime/headless-runner.js"
-        );
+        const { applyForkSession } =
+          await import("../runtime/headless-runner.js");
         const fork = applyForkSession(
           {
             forkSession: true,
@@ -1336,9 +1327,8 @@ export function registerAgentCommand(program, dependencies = {}) {
       let settingsSandbox = null;
       let managedSettingsSandbox = null;
       try {
-        const { loadSettingsConfig } = await import(
-          "../lib/settings-loader.cjs"
-        );
+        const { loadSettingsConfig } =
+          await import("../lib/settings-loader.cjs");
         const sc = loadSettingsConfig({
           cwd: process.cwd(),
           settingsFile: options.settings || null,
@@ -1533,9 +1523,8 @@ export function registerAgentCommand(program, dependencies = {}) {
       // never pollutes spawned-bin test stderr.
       if (!process.env.VITEST && !process.env.VITEST_WORKER_ID) {
         try {
-          const { maybeWarnDeprecatedModel } = await import(
-            "../lib/model-deprecation.js"
-          );
+          const { maybeWarnDeprecatedModel } =
+            await import("../lib/model-deprecation.js");
           maybeWarnDeprecatedModel({ model: options.model });
         } catch {
           /* fail-open: a deprecation notice must never affect the run */
@@ -1619,9 +1608,8 @@ export function registerAgentCommand(program, dependencies = {}) {
         ) {
           decisionConfig = Object.freeze({ mode: "off" });
         } else {
-          const { resolveHeadlessSkillDecisionOptions } = await import(
-            "../runtime/headless-runner.js"
-          );
+          const { resolveHeadlessSkillDecisionOptions } =
+            await import("../runtime/headless-runner.js");
           decisionConfig = resolveHeadlessSkillDecisionOptions(options);
         }
       } catch (error) {
@@ -1683,9 +1671,8 @@ export function registerAgentCommand(program, dependencies = {}) {
           process.exit(1);
           return;
         }
-        const { runAgentHeadlessStream } = await import(
-          "../runtime/headless-stream.js"
-        );
+        const { runAgentHeadlessStream } =
+          await import("../runtime/headless-stream.js");
         const { parseToolList, validateHeadlessInvocationOptions } =
           await import("../runtime/headless-runner.js");
         const cwd = process.cwd();
@@ -1946,9 +1933,8 @@ export function registerAgentCommand(program, dependencies = {}) {
         // presenting a fresh conversation as a successful resume.
         if (resumeRequested && options.session) {
           const hasPersistedEvidence = await withQuietStdout(async () => {
-            const { sessionHasPersistedEvidence } = await import(
-              "../harness/jsonl-session-store.js"
-            );
+            const { sessionHasPersistedEvidence } =
+              await import("../harness/jsonl-session-store.js");
             return sessionHasPersistedEvidence(options.session);
           });
           if (!hasPersistedEvidence) {
@@ -1958,16 +1944,14 @@ export function registerAgentCommand(program, dependencies = {}) {
             );
           }
         }
-        const { runAgentHeadless, parseToolList } = await import(
-          "../runtime/headless-runner.js"
-        );
+        const { runAgentHeadless, parseToolList } =
+          await import("../runtime/headless-runner.js");
         // --goal-condition: validate the spec up front so a bad prefix fails
         // fast (before any model call) with a clear message.
         if (options.goalCondition) {
           try {
-            const { parseGoalCondition } = await import(
-              "../lib/goal-condition-engine.js"
-            );
+            const { parseGoalCondition } =
+              await import("../lib/goal-condition-engine.js");
             parseGoalCondition(options.goalCondition);
           } catch (e) {
             process.stderr.write(`--goal-condition: ${e.message}\n`);
@@ -1996,9 +1980,8 @@ export function registerAgentCommand(program, dependencies = {}) {
           : null;
         let evolutionComposition;
         try {
-          const { validateHeadlessInvocationOptions } = await import(
-            "../runtime/headless-runner.js"
-          );
+          const { validateHeadlessInvocationOptions } =
+            await import("../runtime/headless-runner.js");
           validateHeadlessInvocationOptions({
             outputFormat: options.outputFormat,
             permissionMode: options.permissionMode,
