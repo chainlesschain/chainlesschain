@@ -8907,7 +8907,7 @@ async function startAgentReplInWorkspaceOwned(
         const records = listDurableMcpTasks(sessionId).records.filter(
           (record) =>
             (!requested || record.localId === requested) &&
-            !record.resultSaved &&
+            !record.delivered &&
             !_mcpTaskTrackers.has(record.localId),
         );
         if (

@@ -303,6 +303,20 @@ describe("durable MCP task auxiliary runtime", () => {
     expect(f.calls("tasks/get")).toHaveLength(0);
   });
 
+  it("recovers a saved but undelivered result without refetching it", async () => {
+    const f = await fixture();
+    const host = await f.open();
+    const accepted = await host.runtime.create("remote", "export", {});
+    await host.runtime.result(accepted.localId);
+    const resultCallsBefore = f.calls("tasks/result").length;
+    const receipt = await host.runtime.watch(accepted.localId, {
+      intervalMs: 0,
+      timeoutMs: 500,
+    });
+    expect(receipt).toMatchObject({ delivered: true, duplicate: false });
+    expect(f.calls("tasks/result")).toHaveLength(resultCallsBefore);
+  });
+
   it.each(["disconnect", "404"])(
     "keeps prepare-only %s unknown and blocks both task and ordinary replay",
     async (mode) => {
