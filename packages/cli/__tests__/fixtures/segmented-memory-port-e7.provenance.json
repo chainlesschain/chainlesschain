@@ -14,12 +14,13 @@
     },
     {
       "path": "packages/cli/src/lib/context-memory-kernel/memory-query-control.js",
-      "gitBlob": "4290c15c421db54b92003fa22e60d1b204465c06"
+      "gitBlob": "4290c15c421db54b92003fa22e60d1b204465c06",
+      "fixture": "memory-query-control-e7.mjs.txt"
     },
     {
       "path": "packages/cli/src/lib/context-memory-kernel/memory-shard-snapshots.js",
       "gitBlob": "10d291b0a92a16491a3f4bb8426c71b33674f2e3"
     }
   ],
-  "method": "Exact Git blob; test loader changes only import resolution to the same dependency files."
+  "method": "Exact Git blobs; test loader changes only import resolution. The cancellation dependency is frozen to its original blob; other declared dependency hashes remain enforced."
 }

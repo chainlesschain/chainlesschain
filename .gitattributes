@@ -243,3 +243,6 @@ docs/research/agents/evidence/dmm-goal-trial-switch-2026-11-07/verify-evidence.m
 docs/research/agents/evidence/dmm-native-modal-revocation-2026-11-07/** -text !eol -whitespace
 docs/research/agents/evidence/dmm-native-modal-revocation-2026-11-07/README.md text eol=lf
 docs/research/agents/evidence/dmm-native-modal-revocation-2026-11-07/verify-evidence.mjs text eol=lf
+
+# Preserve the original legacy cancellation module independently of current code.
+packages/cli/__tests__/fixtures/memory-query-control-e7.mjs.txt -text !eol -whitespace
