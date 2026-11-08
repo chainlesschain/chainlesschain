@@ -79,7 +79,8 @@
                                              "cli/evidence/jetbrains-scripted-journey-20261109",
                                              "cli/evidence/desktop-e2e-ci-42509137812-20261109",
                                              "cli/evidence/ide-extensions-ci-42505953777-20261109",
-                                             "cli/evidence/vscode-live-extension-host-rerun-20261109"
+                                             "cli/evidence/vscode-live-extension-host-rerun-20261109",
+                                             "cli/evidence/vscode-bridge-server-direct-20261109"
                                          ],
                             "remaining":  [
                                               "VS Code bridge loopback",
