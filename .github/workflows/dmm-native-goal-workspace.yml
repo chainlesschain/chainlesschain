@@ -7,6 +7,7 @@ on:
       - ".github/workflows/dmm-native-goal-workspace.yml"
       - "desktop-app-vue/scripts/project-goal-native-journey.mjs"
       - "desktop-app-vue/scripts/__tests__/permanent-memory-startup.test.mjs"
+      - "desktop-app-vue/scripts/__tests__/goal-journey-observation.test.mjs"
       - "desktop-app-vue/src/main/llm/permanent-memory-manager.js"
       - "desktop-app-vue/scripts/project-goal-encrypted-electron-probe.mjs"
       - "desktop-app-vue/src/main/task/__tests__/fixtures/project-goal-encrypted-electron.cjs"
@@ -63,8 +64,11 @@ jobs:
           if (/[\r\n]/u.test(root)) throw new Error('Invalid temporary root');
           fs.appendFileSync(process.env.GITHUB_ENV, `TEMP=${root}\nTMP=${root}\n`);
           NODE
-      - name: Verify Memory startup dependency contract before installing dependencies
-        run: node --test desktop-app-vue/scripts/__tests__/permanent-memory-startup.test.mjs
+      - name: Verify Memory startup and journey observation contracts before installing dependencies
+        run: >-
+          node --test
+          desktop-app-vue/scripts/__tests__/permanent-memory-startup.test.mjs
+          desktop-app-vue/scripts/__tests__/goal-journey-observation.test.mjs
       - name: Install all locked root workspaces once
         run: npm ci --legacy-peer-deps --workspaces --include-workspace-root
       # desktop-app-vue is a root workspace. A second npm ci from that directory

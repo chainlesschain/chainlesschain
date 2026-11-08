@@ -14,6 +14,8 @@ on:
       - "desktop-app-vue/scripts/install-electron.cjs"
       - "desktop-app-vue/scripts/__tests__/install-electron.test.mjs"
       - "desktop-app-vue/scripts/__tests__/permanent-memory-startup.test.mjs"
+      - "desktop-app-vue/scripts/__tests__/goal-journey-observation.test.mjs"
+      - "desktop-app-vue/scripts/lib/project-goal-journey-observer.cjs"
       - "desktop-app-vue/src/main/llm/permanent-memory-manager.js"
       - "packages/core-db/**"
       - "packages/session-core/**"
@@ -72,6 +74,8 @@ on:
       - "desktop-app-vue/scripts/install-electron.cjs"
       - "desktop-app-vue/scripts/__tests__/install-electron.test.mjs"
       - "desktop-app-vue/scripts/__tests__/permanent-memory-startup.test.mjs"
+      - "desktop-app-vue/scripts/__tests__/goal-journey-observation.test.mjs"
+      - "desktop-app-vue/scripts/lib/project-goal-journey-observer.cjs"
       - "desktop-app-vue/src/main/llm/permanent-memory-manager.js"
       - "packages/core-db/**"
       - "packages/session-core/**"
@@ -201,6 +205,7 @@ jobs:
           node --test
           desktop-app-vue/scripts/__tests__/install-electron.test.mjs
           desktop-app-vue/scripts/__tests__/permanent-memory-startup.test.mjs
+          desktop-app-vue/scripts/__tests__/goal-journey-observation.test.mjs
       - uses: ./.github/actions/setup-node-deps
       - name: Verify native campaign dispatch and acceptance preflight without provider execution
         run: >-
