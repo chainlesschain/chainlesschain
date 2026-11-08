@@ -690,6 +690,10 @@ export class SubAgentContext {
     if (Array.isArray(toolSelection.enabledToolNames))
       options.exactToolNames = true;
     options.subAgentContract = this.subAgentContract;
+    if (!this._memoryEnabled || this.subAgentContract?.memory === false) {
+      // Apply the same tighten-only contract to canonical recall after overrides.
+      options.contextMemoryRecall = false;
+    }
     options.sessionBudget = this.sessionBudget;
     options.hostResourceBudget = this.hostResourceBudget;
     options.taskProgressTracker = this.taskProgressTracker;
@@ -1554,9 +1558,9 @@ export class SubAgentContext {
   isAborted() {
     return Boolean(
       this._signal?.aborted ||
-        this._abortController.signal.aborted ||
-        this._runAbortController?.signal.aborted ||
-        this.sessionBudget?.signal?.aborted,
+      this._abortController.signal.aborted ||
+      this._runAbortController?.signal.aborted ||
+      this.sessionBudget?.signal?.aborted,
     );
   }
 

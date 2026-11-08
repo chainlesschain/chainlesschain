@@ -1,5 +1,10 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { budgetError, label, requireBudget } from "./formal-budget-errors.js";
+import {
+  hasProviderRequestAdmission,
+  assertProviderRequestAdmission,
+  dispatchProviderRequest,
+} from "./provider-request-admission.js";
 
 const providerScope = new AsyncLocalStorage();
 
@@ -128,16 +133,27 @@ export async function withFormalBudgetProviderScope(
 /** The injected fallback is used only outside a host-owned budget scope. */
 export async function providerFetch(input, init, fetchImpl = globalThis.fetch) {
   const scope = providerScope.getStore();
-  if (!scope) return fetchImpl(input, init);
+  if (!scope) {
+    if (!hasProviderRequestAdmission()) return fetchImpl(input, init);
+    const dispatched = await dispatchProviderRequest(
+      () => fetchImpl(input, init),
+      undefined,
+      { signal: init?.signal },
+    );
+    return dispatched.value;
+  }
   requireBudget(
     !scope.closed,
     "Provider budget scope closed",
     "CC_BUDGET_SCOPE_CLOSED",
   );
+  const signal = init?.signal
+    ? AbortSignal.any([scope.signal, init.signal])
+    : scope.signal;
+  if (hasProviderRequestAdmission())
+    await assertProviderRequestAdmission(undefined, { signal });
   return scope.fetch(input, {
     ...init,
-    signal: init?.signal
-      ? AbortSignal.any([scope.signal, init.signal])
-      : scope.signal,
+    signal,
   });
 }
