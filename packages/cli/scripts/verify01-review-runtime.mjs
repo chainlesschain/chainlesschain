@@ -548,6 +548,34 @@ export function runReviewStage(
           !installation.signal,
         "locked dependency installation failed",
       );
+      // The generated evaluator probes the host-Node driver from the root
+      // node_modules path. The CLI/desktop workspace install above can place
+      // optional native dependencies only in a nested workspace, so install
+      // this fixed host driver explicitly at the root before running its
+      // prebuild installer. Lifecycle scripts remain disabled and the binary
+      // is still validated below before any evaluator executes.
+      const nativePackage = runner.run(
+        [
+          "npm",
+          "install",
+          "--prefix",
+          "/workspace",
+          "--no-save",
+          "--package-lock=false",
+          "--ignore-scripts",
+          "--legacy-peer-deps",
+          "--no-audit",
+          "--no-fund",
+          "better-sqlite3@11.10.0",
+        ],
+        { setup: true },
+      );
+      requireCondition(
+        nativePackage.status === 0 &&
+          !nativePackage.error &&
+          !nativePackage.signal,
+        "locked SQLite package installation failed",
+      );
       // npm lifecycle hooks stay disabled. Explicitly invoke only the locked
       // native dependency's prebuild installer, before any candidate exists.
       // Do not fall back to arbitrary install scripts or a source build.
