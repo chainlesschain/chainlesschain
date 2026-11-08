@@ -17,7 +17,6 @@ import { CliCanonicalMemoryService } from "../src/lib/context-memory-kernel/memo
 import { SegmentedMemoryPort } from "../src/lib/context-memory-kernel/segmented-memory-port.js";
 import { prepareCanonicalProviderContext } from "../src/lib/context-memory-kernel/provider-context.js";
 import { isRetryableStreamError } from "../src/lib/stream-retry.js";
-import { withModelInputDiagnostics } from "../src/lib/model-input-diagnostics.js";
 import {
   NOW,
   body,
