@@ -1,6 +1,6 @@
 # ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
-> 发布候选：CLI **0.166.144** / Session Core **0.3.27** / VS Code **0.37.180** / JetBrains **0.4.197** 正在验证，尚未发布；下方安装说明仍指向已核验的公开版本。候选增加目标转移与签名回退，并修复 Windows CI 长路径及受限环境的 Web 面板构建缓存。
+> 发布候选：CLI **0.166.145** / Session Core **0.3.27** / VS Code **0.37.180** / JetBrains **0.4.197** 正在验证，尚未发布；下方安装说明仍指向已核验的公开版本。候选增加目标转移与签名回退，并修复 Windows CI 长路径及受限环境的 Web 面板构建缓存。
 
 当前公开 CLI **0.166.143**、Session Core **0.3.26** 已通过准确提交三平台门禁、Actions OIDC 发布及独立公开字节/签名来源核验。Open VSX **0.37.179** 已公开，公开 VSIX 与官方制品一致；JetBrains **0.4.196** 已获批且可下载，627 个原始 payload 文件与官方构建一致。两端均推荐 CLI **0.166.143**，详见[本次发布记录](docs/research/cli/evidence/release143-public/README.md)。准确发行源码为 `3fa3a4b258bbcb60b23b4298cec375661ad6f410`。
 

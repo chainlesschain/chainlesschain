@@ -1,0 +1,1615 @@
+{
+  "schema": "chainlesschain.memory-two-commit-evidence/v1",
+  "archivedAt": "2026-11-08T02:38:50.533Z",
+  "claims": {
+    "sampleMatricesComplete": true,
+    "currentAdmissionHeadSloVerified": false,
+    "fullDependencyClosureVerified": false,
+    "semanticQualityVerified": false,
+    "crossPlatformVerified": false,
+    "paidReady": false,
+    "productionAdmission": false,
+    "providerCalls": 0
+  },
+  "baseline": {
+    "head": "727c64962fb2ea9e20447d7b59b459a13e0625d6",
+    "reportSourceBindings": 17,
+    "sources": {
+      "packages/cli/scripts/memory-mixed-concurrency-benchmark.mjs": "baseline-source/packages/cli/scripts/memory-mixed-concurrency-benchmark.mjs",
+      "packages/cli/scripts/memory-query-index-benchmark.mjs": "baseline-source/packages/cli/scripts/memory-query-index-benchmark.mjs",
+      "packages/cli/scripts/memory-query-responsiveness-benchmark.mjs": "baseline-source/packages/cli/scripts/memory-query-responsiveness-benchmark.mjs",
+      "packages/cli/scripts/persistent-capacity-benchmark.mjs": "baseline-source/packages/cli/scripts/persistent-capacity-benchmark.mjs",
+      "packages/cli/src/lib/context-memory-kernel/durable-memory-port.js": "baseline-source/packages/cli/src/lib/context-memory-kernel/durable-memory-port.js",
+      "packages/cli/src/lib/context-memory-kernel/memory-query-bundle.js": "baseline-source/packages/cli/src/lib/context-memory-kernel/memory-query-bundle.js",
+      "packages/cli/src/lib/context-memory-kernel/memory-query-control.js": "baseline-source/packages/cli/src/lib/context-memory-kernel/memory-query-control.js",
+      "packages/cli/src/lib/context-memory-kernel/memory-query-index.js": "baseline-source/packages/cli/src/lib/context-memory-kernel/memory-query-index.js",
+      "packages/cli/src/lib/context-memory-kernel/memory-service.js": "baseline-source/packages/cli/src/lib/context-memory-kernel/memory-service.js",
+      "packages/cli/src/lib/context-memory-kernel/memory-shard-snapshots.js": "baseline-source/packages/cli/src/lib/context-memory-kernel/memory-shard-snapshots.js",
+      "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js": "baseline-source/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+      "packages/cli/src/lib/secure-file-identity.js": "baseline-source/packages/cli/src/lib/secure-file-identity.js",
+      "packages/cli/src/lib/with-file-lock.js": "baseline-source/packages/cli/src/lib/with-file-lock.js",
+      "packages/context-memory-kernel/lib/canonical.js": "baseline-source/packages/context-memory-kernel/lib/canonical.js",
+      "packages/context-memory-kernel/lib/contracts.js": "baseline-source/packages/context-memory-kernel/lib/contracts.js",
+      "packages/context-memory-kernel/lib/memory-reducer.js": "baseline-source/packages/context-memory-kernel/lib/memory-reducer.js",
+      "packages/context-memory-kernel/lib/runtime.js": "baseline-source/packages/context-memory-kernel/lib/runtime.js"
+    }
+  },
+  "compound": {
+    "head": "698b87d79720c75809e830fa826437e021569a1c",
+    "localSourceBindings": 55,
+    "kernelSourceBindings": 18,
+    "sources": {
+      "packages/cli/scripts/memory-compound-query-benchmark.mjs": "compound-source/packages/cli/scripts/memory-compound-query-benchmark.mjs",
+      "packages/cli/scripts/memory-compound-query-fixture.mjs": "compound-source/packages/cli/scripts/memory-compound-query-fixture.mjs",
+      "packages/cli/src/constants.js": "compound-source/packages/cli/src/constants.js",
+      "packages/cli/src/harness/jsonl-session-store.js": "compound-source/packages/cli/src/harness/jsonl-session-store.js",
+      "packages/cli/src/harness/session-list-index.js": "compound-source/packages/cli/src/harness/session-list-index.js",
+      "packages/cli/src/harness/transcript-integrity.js": "compound-source/packages/cli/src/harness/transcript-integrity.js",
+      "packages/cli/src/lib/bounded-artifact-file-read.js": "compound-source/packages/cli/src/lib/bounded-artifact-file-read.js",
+      "packages/cli/src/lib/claude-project-storage-layout.js": "compound-source/packages/cli/src/lib/claude-project-storage-layout.js",
+      "packages/cli/src/lib/context-memory-kernel/authority.js": "compound-source/packages/cli/src/lib/context-memory-kernel/authority.js",
+      "packages/cli/src/lib/context-memory-kernel/durable-memory-port.js": "compound-source/packages/cli/src/lib/context-memory-kernel/durable-memory-port.js",
+      "packages/cli/src/lib/context-memory-kernel/jsonl-session-context-port.js": "compound-source/packages/cli/src/lib/context-memory-kernel/jsonl-session-context-port.js",
+      "packages/cli/src/lib/context-memory-kernel/memory-query-bundle.js": "compound-source/packages/cli/src/lib/context-memory-kernel/memory-query-bundle.js",
+      "packages/cli/src/lib/context-memory-kernel/memory-query-control.js": "compound-source/packages/cli/src/lib/context-memory-kernel/memory-query-control.js",
+      "packages/cli/src/lib/context-memory-kernel/memory-query-index.js": "compound-source/packages/cli/src/lib/context-memory-kernel/memory-query-index.js",
+      "packages/cli/src/lib/context-memory-kernel/memory-service.js": "compound-source/packages/cli/src/lib/context-memory-kernel/memory-service.js",
+      "packages/cli/src/lib/context-memory-kernel/memory-shard-snapshots.js": "compound-source/packages/cli/src/lib/context-memory-kernel/memory-shard-snapshots.js",
+      "packages/cli/src/lib/context-memory-kernel/message-adapter.js": "compound-source/packages/cli/src/lib/context-memory-kernel/message-adapter.js",
+      "packages/cli/src/lib/context-memory-kernel/message-bundle-store.js": "compound-source/packages/cli/src/lib/context-memory-kernel/message-bundle-store.js",
+      "packages/cli/src/lib/context-memory-kernel/privacy-purge-port.js": "compound-source/packages/cli/src/lib/context-memory-kernel/privacy-purge-port.js",
+      "packages/cli/src/lib/context-memory-kernel/runtime.js": "compound-source/packages/cli/src/lib/context-memory-kernel/runtime.js",
+      "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js": "compound-source/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+      "packages/cli/src/lib/cost-budget.js": "compound-source/packages/cli/src/lib/cost-budget.js",
+      "packages/cli/src/lib/durable-security-store.js": "compound-source/packages/cli/src/lib/durable-security-store.js",
+      "packages/cli/src/lib/evolution/agent-model-projection.js": "compound-source/packages/cli/src/lib/evolution/agent-model-projection.js",
+      "packages/cli/src/lib/evolution/bounded-descriptor-read.js": "compound-source/packages/cli/src/lib/evolution/bounded-descriptor-read.js",
+      "packages/cli/src/lib/evolution/evidence-json-text.js": "compound-source/packages/cli/src/lib/evolution/evidence-json-text.js",
+      "packages/cli/src/lib/evolution/evolution-artifact-identity.js": "compound-source/packages/cli/src/lib/evolution/evolution-artifact-identity.js",
+      "packages/cli/src/lib/evolution/evolution-file-identity.js": "compound-source/packages/cli/src/lib/evolution/evolution-file-identity.js",
+      "packages/cli/src/lib/execution-location-contract.js": "compound-source/packages/cli/src/lib/execution-location-contract.js",
+      "packages/cli/src/lib/execution-location-result-store.js": "compound-source/packages/cli/src/lib/execution-location-result-store.js",
+      "packages/cli/src/lib/execution-location-result.js": "compound-source/packages/cli/src/lib/execution-location-result.js",
+      "packages/cli/src/lib/execution-location.js": "compound-source/packages/cli/src/lib/execution-location.js",
+      "packages/cli/src/lib/file-lines.js": "compound-source/packages/cli/src/lib/file-lines.js",
+      "packages/cli/src/lib/image-file-boundary.js": "compound-source/packages/cli/src/lib/image-file-boundary.js",
+      "packages/cli/src/lib/image-token-estimate.js": "compound-source/packages/cli/src/lib/image-token-estimate.js",
+      "packages/cli/src/lib/llm-onboarding-catalog.json": "compound-source/packages/cli/src/lib/llm-onboarding-catalog.json",
+      "packages/cli/src/lib/llm-pricing.js": "compound-source/packages/cli/src/lib/llm-pricing.js",
+      "packages/cli/src/lib/model-context-catalog.js": "compound-source/packages/cli/src/lib/model-context-catalog.js",
+      "packages/cli/src/lib/paths.js": "compound-source/packages/cli/src/lib/paths.js",
+      "packages/cli/src/lib/platform.js": "compound-source/packages/cli/src/lib/platform.js",
+      "packages/cli/src/lib/scheduler-kernel/contract.js": "compound-source/packages/cli/src/lib/scheduler-kernel/contract.js",
+      "packages/cli/src/lib/secure-file-identity.js": "compound-source/packages/cli/src/lib/secure-file-identity.js",
+      "packages/cli/src/lib/secure-fs.js": "compound-source/packages/cli/src/lib/secure-fs.js",
+      "packages/cli/src/lib/session-anti-rollback-anchor.js": "compound-source/packages/cli/src/lib/session-anti-rollback-anchor.js",
+      "packages/cli/src/lib/session-branch-history.js": "compound-source/packages/cli/src/lib/session-branch-history.js",
+      "packages/cli/src/lib/session-budget-production-root.js": "compound-source/packages/cli/src/lib/session-budget-production-root.js",
+      "packages/cli/src/lib/session-budget-runtime.js": "compound-source/packages/cli/src/lib/session-budget-runtime.js",
+      "packages/cli/src/lib/session-host-lease.js": "compound-source/packages/cli/src/lib/session-host-lease.js",
+      "packages/cli/src/lib/session-message-provenance.js": "compound-source/packages/cli/src/lib/session-message-provenance.js",
+      "packages/cli/src/lib/session-persistence-failure.js": "compound-source/packages/cli/src/lib/session-persistence-failure.js",
+      "packages/cli/src/lib/session-resource-budget.js": "compound-source/packages/cli/src/lib/session-resource-budget.js",
+      "packages/cli/src/lib/session-tool-round.js": "compound-source/packages/cli/src/lib/session-tool-round.js",
+      "packages/cli/src/lib/session-transcript-structure.js": "compound-source/packages/cli/src/lib/session-transcript-structure.js",
+      "packages/cli/src/lib/usage-pricing-context.js": "compound-source/packages/cli/src/lib/usage-pricing-context.js",
+      "packages/cli/src/lib/with-file-lock.js": "compound-source/packages/cli/src/lib/with-file-lock.js",
+      "packages/context-memory-kernel/index.mjs": "compound-source/packages/context-memory-kernel/index.mjs",
+      "packages/context-memory-kernel/lib/adapters.js": "compound-source/packages/context-memory-kernel/lib/adapters.js",
+      "packages/context-memory-kernel/lib/authority.js": "compound-source/packages/context-memory-kernel/lib/authority.js",
+      "packages/context-memory-kernel/lib/canonical.js": "compound-source/packages/context-memory-kernel/lib/canonical.js",
+      "packages/context-memory-kernel/lib/compaction.js": "compound-source/packages/context-memory-kernel/lib/compaction.js",
+      "packages/context-memory-kernel/lib/conformance.js": "compound-source/packages/context-memory-kernel/lib/conformance.js",
+      "packages/context-memory-kernel/lib/constants.js": "compound-source/packages/context-memory-kernel/lib/constants.js",
+      "packages/context-memory-kernel/lib/contracts.js": "compound-source/packages/context-memory-kernel/lib/contracts.js",
+      "packages/context-memory-kernel/lib/errors.js": "compound-source/packages/context-memory-kernel/lib/errors.js",
+      "packages/context-memory-kernel/lib/index.js": "compound-source/packages/context-memory-kernel/lib/index.js",
+      "packages/context-memory-kernel/lib/inventory.js": "compound-source/packages/context-memory-kernel/lib/inventory.js",
+      "packages/context-memory-kernel/lib/memory-reducer.js": "compound-source/packages/context-memory-kernel/lib/memory-reducer.js",
+      "packages/context-memory-kernel/lib/native-sqlite-memory-port.js": "compound-source/packages/context-memory-kernel/lib/native-sqlite-memory-port.js",
+      "packages/context-memory-kernel/lib/planner.js": "compound-source/packages/context-memory-kernel/lib/planner.js",
+      "packages/context-memory-kernel/lib/runtime.js": "compound-source/packages/context-memory-kernel/lib/runtime.js",
+      "packages/context-memory-kernel/lib/schema-validator.js": "compound-source/packages/context-memory-kernel/lib/schema-validator.js",
+      "packages/context-memory-kernel/lib/task-checkpoint.js": "compound-source/packages/context-memory-kernel/lib/task-checkpoint.js",
+      "packages/context-memory-kernel/package.json": "compound-source/packages/context-memory-kernel/package.json"
+    }
+  },
+  "historicalGitAudit": {
+    "files": 1946,
+    "receipt": "baseline/independent-audit.json",
+    "script": "baseline/audit-memory-727c.mjs",
+    "rerunByOfflineVerifier": false,
+    "scope": "Historical Git blob audit receipt; offline verifier rechecks only archived source subset against recorded digests."
+  },
+  "supplementalSources": {
+    "package-lock.json": "baseline-source/package-lock.json"
+  },
+  "measurementBoundary": {
+    "platform": "win32",
+    "arch": "x64",
+    "node": "v22.20.0",
+    "workstation": "Shared development workstation; other workloads uncontrolled",
+    "serialWithinThisWorkstream": true,
+    "loadContext": "unspecified",
+    "coldDefinition": "First query in a fresh Node process; OS filesystem cache not flushed",
+    "thirdPartyDependenciesFrozen": false,
+    "nodeExecutableEmbedded": false
+  },
+  "artifacts": [
+    {
+      "id": "baseline/independent-audit-pending.json",
+      "kind": "historical-incomplete-receipt-not-accepted",
+      "sha256": "8f5719ddabb4099b1af97dc8a07cff3c4dc3de0d4831c5470c157dd95201b785",
+      "originalFile": "E:\\code\\chainlesschain\\.tmp\\memory-final-727c64962-20261108\\independent-audit-pending.json"
+    },
+    {
+      "id": "baseline/independent-audit.json",
+      "kind": "original-run-artifact",
+      "sha256": "a519022891760bf9294fa595a1dc6e31e69482d7d4f0889dfba11762936e8b9c",
+      "originalFile": "E:\\code\\chainlesschain\\.tmp\\memory-final-727c64962-20261108\\independent-audit.json"
+    },
+    {
+      "id": "baseline/mixed100.json",
+      "kind": "original-run-artifact",
+      "sha256": "9e79339c87361743ee47ee7facee81c0b2f5bb9998b5af7beb547c4468637420",
+      "originalFile": "E:\\code\\chainlesschain\\.tmp\\memory-final-727c64962-20261108\\mixed100.json"
+    },
+    {
+      "id": "baseline/mixed100.log",
+      "kind": "original-run-artifact",
+      "sha256": "b27e2bcf566189152e8579f38a05c23dd120fd40e4135ea3704aa3d1b4b5b0cf",
+      "originalFile": "E:\\code\\chainlesschain\\.tmp\\memory-final-727c64962-20261108\\mixed100.log"
+    },
+    {
+      "id": "baseline/node-contracts.log",
+      "kind": "original-run-artifact",
+      "sha256": "6dc097818c4fff28248b99811c45782689ad5870c005aba92ed97b6ac7973472",
+      "originalFile": "E:\\code\\chainlesschain\\.tmp\\memory-final-727c64962-20261108\\node-contracts.log"
+    },
+    {
+      "id": "baseline/query100.json",
+      "kind": "original-run-artifact",
+      "sha256": "f53e703951b6f4a669387fd0d6906ef1157fa808d5952079b1f6ca86ff3ceac0",
+      "originalFile": "E:\\code\\chainlesschain\\.tmp\\memory-final-727c64962-20261108\\query100.json"
+    },
+    {
+      "id": "baseline/query100.log",
+      "kind": "original-run-artifact",
+      "sha256": "2656dab280669070f7678a57997d12460c3d09dbef5cd8b1bfb55d0ef88db559",
+      "originalFile": "E:\\code\\chainlesschain\\.tmp\\memory-final-727c64962-20261108\\query100.log"
+    },
+    {
+      "id": "baseline/queue.json",
+      "kind": "original-run-artifact",
+      "sha256": "6f47ff1a1026d43dc2ce6ffd7f041e97fe319adfd925e8b0820e09fc8347a583",
+      "originalFile": "E:\\code\\chainlesschain\\.tmp\\memory-final-727c64962-20261108\\queue.json"
+    },
+    {
+      "id": "baseline/recovery100.json",
+      "kind": "original-run-artifact",
+      "sha256": "4513ff15433330624915f2617396cf8d5b22bbf8a038a5d2450e945548134e4f",
+      "originalFile": "E:\\code\\chainlesschain\\.tmp\\memory-final-727c64962-20261108\\recovery100.json"
+    },
+    {
+      "id": "baseline/recovery100.log",
+      "kind": "original-run-artifact",
+      "sha256": "120a896b43c061b8d25c166beab69505d8c9e8d562c2fe06742084656b13789e",
+      "originalFile": "E:\\code\\chainlesschain\\.tmp\\memory-final-727c64962-20261108\\recovery100.log"
+    },
+    {
+      "id": "baseline/run.mjs",
+      "kind": "original-run-artifact",
+      "sha256": "53ad10d7b0b652b2a271e639c58f21f9e7ab88edf6898aa014964c0948ebab25",
+      "originalFile": "E:\\code\\chainlesschain\\.tmp\\memory-final-727c64962-20261108\\run.mjs"
+    },
+    {
+      "id": "baseline/source-identity.json",
+      "kind": "original-run-artifact",
+      "sha256": "f2f3ff6e623e285f172d89710a3d4c3787f70fbe93aca3dde40c08d977e8a3ca",
+      "originalFile": "E:\\code\\chainlesschain\\.tmp\\memory-final-727c64962-20261108\\source-identity.json"
+    },
+    {
+      "id": "baseline/stop100.json",
+      "kind": "original-run-artifact",
+      "sha256": "8f741d70b9becfcfa7a1c06886d99bebc08b087002594215d2124ae518b7df29",
+      "originalFile": "E:\\code\\chainlesschain\\.tmp\\memory-final-727c64962-20261108\\stop100.json"
+    },
+    {
+      "id": "baseline/stop100.log",
+      "kind": "original-run-artifact",
+      "sha256": "90f54c20bb1708c0ddf8c1c56a2cadeaa0f7b664d90b93412d1bc59210a8d363",
+      "originalFile": "E:\\code\\chainlesschain\\.tmp\\memory-final-727c64962-20261108\\stop100.log"
+    },
+    {
+      "id": "baseline/audit-memory-727c.mjs",
+      "kind": "historical-git-audit-script-not-executed-offline",
+      "sha256": "066c11d6e1f830da559ebe9a8f33e9ce520f7fe9732ebdab12e47dbaba1674c3",
+      "originalFile": "E:/code/chainlesschain/.tmp/audit-memory-727c.mjs"
+    },
+    {
+      "id": "compound/compound100.json",
+      "kind": "original-run-artifact",
+      "sha256": "267dcc4b855907b03469391b53bfbffe8ac1ec8a7a15baf74911beeada6306e3",
+      "originalFile": "E:\\code\\chainlesschain\\.tmp\\memory-compound-698b87d79-full-20261108\\compound100.json"
+    },
+    {
+      "id": "compound/compound100.log",
+      "kind": "original-run-artifact",
+      "sha256": "f8fd6dba2594b27356ad87105c4d947ee0d9b19cdd6e9495c9c8163482fc0b15",
+      "originalFile": "E:\\code\\chainlesschain\\.tmp\\memory-compound-698b87d79-full-20261108\\compound100.log"
+    },
+    {
+      "id": "compound/pipeline-state.json",
+      "kind": "original-run-artifact",
+      "sha256": "fc4b3f9938472cb2d9613f2be9c42c7781c272aa624be25c2db6440152591c65",
+      "originalFile": "E:\\code\\chainlesschain\\.tmp\\memory-compound-698b87d79-full-20261108\\pipeline-state.json"
+    },
+    {
+      "id": "compound/run.mjs",
+      "kind": "original-run-artifact",
+      "sha256": "b06b28083e5814bf3b7a957fdf81dd6d689956712f1c0c845bb85fcb8db54859",
+      "originalFile": "E:\\code\\chainlesschain\\.tmp\\memory-compound-698b87d79-full-20261108\\run.mjs"
+    },
+    {
+      "id": "baseline-source/packages/cli/scripts/memory-mixed-concurrency-benchmark.mjs",
+      "kind": "measured-source-snapshot",
+      "sha256": "07e28d73f63643be66555d89b0d8ed8db69bb26a890c42e6bd979d22896f4001",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-validation-20261108\\packages\\cli\\scripts\\memory-mixed-concurrency-benchmark.mjs"
+    },
+    {
+      "id": "baseline-source/packages/cli/scripts/memory-query-index-benchmark.mjs",
+      "kind": "measured-source-snapshot",
+      "sha256": "2a04c3b3263707502468794aaeaba420e896b8ac5c758a8a7a1d9535628f71c2",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-validation-20261108\\packages\\cli\\scripts\\memory-query-index-benchmark.mjs"
+    },
+    {
+      "id": "baseline-source/packages/cli/scripts/memory-query-responsiveness-benchmark.mjs",
+      "kind": "measured-source-snapshot",
+      "sha256": "0725e839bda441a378930f266692a9d603e532a83cdce8d5a64ffbd2eebe82ad",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-validation-20261108\\packages\\cli\\scripts\\memory-query-responsiveness-benchmark.mjs"
+    },
+    {
+      "id": "baseline-source/packages/cli/scripts/persistent-capacity-benchmark.mjs",
+      "kind": "measured-source-snapshot",
+      "sha256": "81faa3e691865a6cf6da13cf50cbe133552fd12e976c8e98f9e311c8287c5939",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-validation-20261108\\packages\\cli\\scripts\\persistent-capacity-benchmark.mjs"
+    },
+    {
+      "id": "baseline-source/packages/cli/src/lib/context-memory-kernel/durable-memory-port.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "a59f1e42f7e8126a4f0eb0da581fa84037eae53a3083a135f1d288aaa16db8e1",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-validation-20261108\\packages\\cli\\src\\lib\\context-memory-kernel\\durable-memory-port.js"
+    },
+    {
+      "id": "baseline-source/packages/cli/src/lib/context-memory-kernel/memory-query-bundle.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "a31c85af9b44b20db36a02d7ffea39dc462d621ca5124d0983a79a98ddf25309",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-validation-20261108\\packages\\cli\\src\\lib\\context-memory-kernel\\memory-query-bundle.js"
+    },
+    {
+      "id": "baseline-source/packages/cli/src/lib/context-memory-kernel/memory-query-control.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "8ed862b2f44187e2019bb51e5be767fd0ba28573b14a87647a4380fd167bd259",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-validation-20261108\\packages\\cli\\src\\lib\\context-memory-kernel\\memory-query-control.js"
+    },
+    {
+      "id": "baseline-source/packages/cli/src/lib/context-memory-kernel/memory-query-index.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "a2d710dffd179bba6284ae7bc7d33374c0d80e8064d5c2e043cb33af942bb1f7",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-validation-20261108\\packages\\cli\\src\\lib\\context-memory-kernel\\memory-query-index.js"
+    },
+    {
+      "id": "baseline-source/packages/cli/src/lib/context-memory-kernel/memory-service.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "288ab749ff129b440393f7325958621cead34cad85f66114f914d8f2c559d9d3",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-validation-20261108\\packages\\cli\\src\\lib\\context-memory-kernel\\memory-service.js"
+    },
+    {
+      "id": "baseline-source/packages/cli/src/lib/context-memory-kernel/memory-shard-snapshots.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "b88e6ccb3b18bf659a81c8ba43ac3df5f52d259c2bccefb4815fa1a6744dc436",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-validation-20261108\\packages\\cli\\src\\lib\\context-memory-kernel\\memory-shard-snapshots.js"
+    },
+    {
+      "id": "baseline-source/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "0f4059e776eb85684b0dfd46eedfcf9d8f7f8925bad24eae51d2cd6374c95850",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-validation-20261108\\packages\\cli\\src\\lib\\context-memory-kernel\\segmented-memory-port.js"
+    },
+    {
+      "id": "baseline-source/packages/cli/src/lib/secure-file-identity.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "d4170c7443c075d89c73478b4fa617d264999fb95f75456b1e1232797092a376",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-validation-20261108\\packages\\cli\\src\\lib\\secure-file-identity.js"
+    },
+    {
+      "id": "baseline-source/packages/cli/src/lib/with-file-lock.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "2f6391d58ca38ecb98fd51a0025adb64439c4ab8b2baadb57842ebfe73604f3f",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-validation-20261108\\packages\\cli\\src\\lib\\with-file-lock.js"
+    },
+    {
+      "id": "baseline-source/packages/context-memory-kernel/lib/canonical.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "3db98f893d915e74cd78144322a6736052ab29a5d0856eca86a6f171341640e7",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-validation-20261108\\packages\\context-memory-kernel\\lib\\canonical.js"
+    },
+    {
+      "id": "baseline-source/packages/context-memory-kernel/lib/contracts.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "114126ce78d7e22a274d2807c9a73965f1f26f0fda0ad440682d0d0527738943",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-validation-20261108\\packages\\context-memory-kernel\\lib\\contracts.js"
+    },
+    {
+      "id": "baseline-source/packages/context-memory-kernel/lib/memory-reducer.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "676618acae4034403956d3ccc78607110841e479e0ccb5dc673e466e13a0bd72",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-validation-20261108\\packages\\context-memory-kernel\\lib\\memory-reducer.js"
+    },
+    {
+      "id": "baseline-source/packages/context-memory-kernel/lib/runtime.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "8674678d0091486a1cd70cf381ee2555bb515364461e81e19cb035b59830928b",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-validation-20261108\\packages\\context-memory-kernel\\lib\\runtime.js"
+    },
+    {
+      "id": "compound-source/packages/cli/scripts/memory-compound-query-benchmark.mjs",
+      "kind": "measured-source-snapshot",
+      "sha256": "ab3412fdad0e48f703e6bbc33ae0ff6eacf7dc629e0aa85388951c2d90cec7e7",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\cli\\scripts\\memory-compound-query-benchmark.mjs"
+    },
+    {
+      "id": "compound-source/packages/cli/scripts/memory-compound-query-fixture.mjs",
+      "kind": "measured-source-snapshot",
+      "sha256": "17fdafb8b7e624f1d19d54965d0d276e8b0246a270d66cb2c0438125730b5fdd",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\cli\\scripts\\memory-compound-query-fixture.mjs"
+    },
+    {
+      "id": "compound-source/packages/cli/src/constants.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "14739a9132c080f35dd991ac757cb0ef97291fc55e5d23e77e62678657866638",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\cli\\src\\constants.js"
+    },
+    {
+      "id": "compound-source/packages/cli/src/harness/jsonl-session-store.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "f0f3322c126f2249e47dcc0afced010394f4c30a50e50a94970e926b17ee5146",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\cli\\src\\harness\\jsonl-session-store.js"
+    },
+    {
+      "id": "compound-source/packages/cli/src/harness/session-list-index.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "11502b561fbe9314a7b17591a42469a023d732258bd9a696f18f7f6eda1ca587",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\cli\\src\\harness\\session-list-index.js"
+    },
+    {
+      "id": "compound-source/packages/cli/src/harness/transcript-integrity.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "39509e062193bcc666a42c553bc59a682834d51bc71051c2efc7edc0ab6c4a7d",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\cli\\src\\harness\\transcript-integrity.js"
+    },
+    {
+      "id": "compound-source/packages/cli/src/lib/bounded-artifact-file-read.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "31e6033b40e46c47c31b37541b019c28f6703d361a6911175777dd0a14c511e0",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\cli\\src\\lib\\bounded-artifact-file-read.js"
+    },
+    {
+      "id": "compound-source/packages/cli/src/lib/claude-project-storage-layout.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "3553f64546d55a5020a1b8fb59693f7a9ff715f34108801e7ba6a37b8ccd8ed9",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\cli\\src\\lib\\claude-project-storage-layout.js"
+    },
+    {
+      "id": "compound-source/packages/cli/src/lib/context-memory-kernel/authority.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "0c6175aeb522b229876527fd62ca897aa9132bb1d965db5b6463d25a26895c84",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\cli\\src\\lib\\context-memory-kernel\\authority.js"
+    },
+    {
+      "id": "compound-source/packages/cli/src/lib/context-memory-kernel/durable-memory-port.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "a59f1e42f7e8126a4f0eb0da581fa84037eae53a3083a135f1d288aaa16db8e1",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\cli\\src\\lib\\context-memory-kernel\\durable-memory-port.js"
+    },
+    {
+      "id": "compound-source/packages/cli/src/lib/context-memory-kernel/jsonl-session-context-port.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "af56de83f273d89d4688d40e4f40493e683ff23db156f5bf93d73c71400f0a22",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\cli\\src\\lib\\context-memory-kernel\\jsonl-session-context-port.js"
+    },
+    {
+      "id": "compound-source/packages/cli/src/lib/context-memory-kernel/memory-query-bundle.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "a31c85af9b44b20db36a02d7ffea39dc462d621ca5124d0983a79a98ddf25309",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\cli\\src\\lib\\context-memory-kernel\\memory-query-bundle.js"
+    },
+    {
+      "id": "compound-source/packages/cli/src/lib/context-memory-kernel/memory-query-control.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "e3687ae0c03273064eebd3c7160107c83af7402eae39435ba0d80b4320c626bc",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\cli\\src\\lib\\context-memory-kernel\\memory-query-control.js"
+    },
+    {
+      "id": "compound-source/packages/cli/src/lib/context-memory-kernel/memory-query-index.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "a2d710dffd179bba6284ae7bc7d33374c0d80e8064d5c2e043cb33af942bb1f7",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\cli\\src\\lib\\context-memory-kernel\\memory-query-index.js"
+    },
+    {
+      "id": "compound-source/packages/cli/src/lib/context-memory-kernel/memory-service.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "288ab749ff129b440393f7325958621cead34cad85f66114f914d8f2c559d9d3",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\cli\\src\\lib\\context-memory-kernel\\memory-service.js"
+    },
+    {
+      "id": "compound-source/packages/cli/src/lib/context-memory-kernel/memory-shard-snapshots.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "b88e6ccb3b18bf659a81c8ba43ac3df5f52d259c2bccefb4815fa1a6744dc436",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\cli\\src\\lib\\context-memory-kernel\\memory-shard-snapshots.js"
+    },
+    {
+      "id": "compound-source/packages/cli/src/lib/context-memory-kernel/message-adapter.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "bfb6aab468818c9fff56f9fdaf878e93e9f39cf4ee7322304c348f380fbd3ce3",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\cli\\src\\lib\\context-memory-kernel\\message-adapter.js"
+    },
+    {
+      "id": "compound-source/packages/cli/src/lib/context-memory-kernel/message-bundle-store.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "57d8684a26a7e52c723206e35a0e5a5b96330f5757a5182e6279c0c9284509aa",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\cli\\src\\lib\\context-memory-kernel\\message-bundle-store.js"
+    },
+    {
+      "id": "compound-source/packages/cli/src/lib/context-memory-kernel/privacy-purge-port.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "462be2c70c8ebcf827c129a34efa51d02c32f01a0f01586cf911798f87d0db46",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\cli\\src\\lib\\context-memory-kernel\\privacy-purge-port.js"
+    },
+    {
+      "id": "compound-source/packages/cli/src/lib/context-memory-kernel/runtime.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "0226e07f70dbeddf1508d9841e6abfc938968f2cf0d7944f58917ca62d1c38ca",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\cli\\src\\lib\\context-memory-kernel\\runtime.js"
+    },
+    {
+      "id": "compound-source/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "0f4059e776eb85684b0dfd46eedfcf9d8f7f8925bad24eae51d2cd6374c95850",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\cli\\src\\lib\\context-memory-kernel\\segmented-memory-port.js"
+    },
+    {
+      "id": "compound-source/packages/cli/src/lib/cost-budget.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "3bdc8cb58c61b6cdf659d34faff4634ed8a5219998430533b29c02577ff548e1",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\cli\\src\\lib\\cost-budget.js"
+    },
+    {
+      "id": "compound-source/packages/cli/src/lib/durable-security-store.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "f6be9c208312f07ecdc99eea98eb43e63288e7cf5268fc1261e3caec69df5c54",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\cli\\src\\lib\\durable-security-store.js"
+    },
+    {
+      "id": "compound-source/packages/cli/src/lib/evolution/agent-model-projection.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "e86dfc8b05000ea1063f4fc63ca557c0f7fa0c3fc6ea50add93d4cf917d46701",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\cli\\src\\lib\\evolution\\agent-model-projection.js"
+    },
+    {
+      "id": "compound-source/packages/cli/src/lib/evolution/bounded-descriptor-read.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "326c864205412e3b419a7c1b18d009eb6f1470a6f8514b80cb3502f59aeefa3d",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\cli\\src\\lib\\evolution\\bounded-descriptor-read.js"
+    },
+    {
+      "id": "compound-source/packages/cli/src/lib/evolution/evidence-json-text.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "2023b1958e107fb27314b0518e73970e5ae0bab94fba4da72e7b1dcd197820d2",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\cli\\src\\lib\\evolution\\evidence-json-text.js"
+    },
+    {
+      "id": "compound-source/packages/cli/src/lib/evolution/evolution-artifact-identity.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "fda6b4c4fb48897c86296ae9e6afa611172fe06f5e77fe44b458788b128a505b",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\cli\\src\\lib\\evolution\\evolution-artifact-identity.js"
+    },
+    {
+      "id": "compound-source/packages/cli/src/lib/evolution/evolution-file-identity.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "b92a4e75a5a55a0752341326e13bd4935f70561b4e4793425700ad293d70fdfd",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\cli\\src\\lib\\evolution\\evolution-file-identity.js"
+    },
+    {
+      "id": "compound-source/packages/cli/src/lib/execution-location-contract.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "29fe955164f24d0d07cbe2b62283a26b7b9578d66337268737c827b278e591fb",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\cli\\src\\lib\\execution-location-contract.js"
+    },
+    {
+      "id": "compound-source/packages/cli/src/lib/execution-location-result-store.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "38473734b95d303eb31b3a3645748c399ed00ef763a4cb6e794ef89a5c0aaa10",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\cli\\src\\lib\\execution-location-result-store.js"
+    },
+    {
+      "id": "compound-source/packages/cli/src/lib/execution-location-result.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "5e2a5d8499987558a532f098d1c6191c3ba46de49eefb62d10bf9827250b571f",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\cli\\src\\lib\\execution-location-result.js"
+    },
+    {
+      "id": "compound-source/packages/cli/src/lib/execution-location.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "f34b60d70fad6f2c1ae6496d6e081dc7120bc431521c1810b7ed83b2e55ebe66",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\cli\\src\\lib\\execution-location.js"
+    },
+    {
+      "id": "compound-source/packages/cli/src/lib/file-lines.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "cac27a7a07892db633c776586b17cba0958a79f90a6ed50e9eb8c5e47511d0ca",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\cli\\src\\lib\\file-lines.js"
+    },
+    {
+      "id": "compound-source/packages/cli/src/lib/image-file-boundary.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "4aa8ca526e5fb4b7b9b7563cca14cebd082292f3a01285b544228d851d69d709",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\cli\\src\\lib\\image-file-boundary.js"
+    },
+    {
+      "id": "compound-source/packages/cli/src/lib/image-token-estimate.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "d559cd3693eb7723de05f4602f045de1b4c5917bd7bb04a234b4821eaabbcf6a",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\cli\\src\\lib\\image-token-estimate.js"
+    },
+    {
+      "id": "compound-source/packages/cli/src/lib/llm-onboarding-catalog.json",
+      "kind": "measured-source-snapshot",
+      "sha256": "7b78e99c75e10fd86e963203b3c8ca14f166733b55582567663c43b1bd750896",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\cli\\src\\lib\\llm-onboarding-catalog.json"
+    },
+    {
+      "id": "compound-source/packages/cli/src/lib/llm-pricing.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "c81141f94b62a4cdf051c3801d22493910572a91a873481303b4e515cbc244f6",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\cli\\src\\lib\\llm-pricing.js"
+    },
+    {
+      "id": "compound-source/packages/cli/src/lib/model-context-catalog.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "b8ac4baae6fdbbfcaffed2869ed3404d96379593f68b87168867dd05a6d66c50",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\cli\\src\\lib\\model-context-catalog.js"
+    },
+    {
+      "id": "compound-source/packages/cli/src/lib/paths.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "a8a8f7ea2231dc08ccb3c9162721753a4a10d5fe808e154e5095e94b719d3704",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\cli\\src\\lib\\paths.js"
+    },
+    {
+      "id": "compound-source/packages/cli/src/lib/platform.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "9eb843d83b10e5958853ae765f310e4fff00631fb9c44f37725215556d01c860",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\cli\\src\\lib\\platform.js"
+    },
+    {
+      "id": "compound-source/packages/cli/src/lib/scheduler-kernel/contract.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "e5976948a5b00ae7dea2ff4f8c09e86b0eb9c804d5a46a1a053230fd0c5cab0c",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\cli\\src\\lib\\scheduler-kernel\\contract.js"
+    },
+    {
+      "id": "compound-source/packages/cli/src/lib/secure-file-identity.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "d4170c7443c075d89c73478b4fa617d264999fb95f75456b1e1232797092a376",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\cli\\src\\lib\\secure-file-identity.js"
+    },
+    {
+      "id": "compound-source/packages/cli/src/lib/secure-fs.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "40b027bf8ea3e249432f03d60db872e781d25233f7da92c3865f4fa98960a112",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\cli\\src\\lib\\secure-fs.js"
+    },
+    {
+      "id": "compound-source/packages/cli/src/lib/session-anti-rollback-anchor.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "fa942b7b558daf05e3644a268d8af207bcb8d0a7423f49c70654a480cef5a7f7",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\cli\\src\\lib\\session-anti-rollback-anchor.js"
+    },
+    {
+      "id": "compound-source/packages/cli/src/lib/session-branch-history.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "5ddd05dec04ecf8378904417f8c29b6b81475acdd24bfceb723aaa4a368e8857",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\cli\\src\\lib\\session-branch-history.js"
+    },
+    {
+      "id": "compound-source/packages/cli/src/lib/session-budget-production-root.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "aeaf4b147c17aecce21b9668d372edf1eadb4fd183209aa19ea519ec8e384dcd",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\cli\\src\\lib\\session-budget-production-root.js"
+    },
+    {
+      "id": "compound-source/packages/cli/src/lib/session-budget-runtime.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "614e2561ce33c335b8406012cc9b58be2bbb4846eba20b32196b30c99612b5ec",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\cli\\src\\lib\\session-budget-runtime.js"
+    },
+    {
+      "id": "compound-source/packages/cli/src/lib/session-host-lease.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "3418fb3735545531a2ddafe9b32ddcb0626a36440d49ec8e84e5fba2a06d7bfa",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\cli\\src\\lib\\session-host-lease.js"
+    },
+    {
+      "id": "compound-source/packages/cli/src/lib/session-message-provenance.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "9d5c8a9853d22709f0ae85e19308f325461e5bc701ca314fcd6652cc28d49fd6",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\cli\\src\\lib\\session-message-provenance.js"
+    },
+    {
+      "id": "compound-source/packages/cli/src/lib/session-persistence-failure.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "4df926268e8458177344b4483ba8daa9276f58d593995a0e7f06bf4562c34991",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\cli\\src\\lib\\session-persistence-failure.js"
+    },
+    {
+      "id": "compound-source/packages/cli/src/lib/session-resource-budget.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "52f35997ac98e5d1d05241f865b85627899e76082cc0aae611ff7ef9e565fc60",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\cli\\src\\lib\\session-resource-budget.js"
+    },
+    {
+      "id": "compound-source/packages/cli/src/lib/session-tool-round.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "c972e13751e7f801b347a1a6152b6d166cb79d365d5065586da7d307e2722b7e",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\cli\\src\\lib\\session-tool-round.js"
+    },
+    {
+      "id": "compound-source/packages/cli/src/lib/session-transcript-structure.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "f18d1cbf51d0c7fc954be1f22faf71b9bbc52c15c8a8542f990dcf963d6ee478",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\cli\\src\\lib\\session-transcript-structure.js"
+    },
+    {
+      "id": "compound-source/packages/cli/src/lib/usage-pricing-context.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "6f9d6d357788c775ea307fec44756ae27d9575e68406befa9f7975403bb15c38",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\cli\\src\\lib\\usage-pricing-context.js"
+    },
+    {
+      "id": "compound-source/packages/cli/src/lib/with-file-lock.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "2f6391d58ca38ecb98fd51a0025adb64439c4ab8b2baadb57842ebfe73604f3f",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\cli\\src\\lib\\with-file-lock.js"
+    },
+    {
+      "id": "compound-source/packages/context-memory-kernel/index.mjs",
+      "kind": "measured-source-snapshot",
+      "sha256": "ae5ab3a96002a2027772d3af8ee2ad341f3ec157b30f4815f291a1679f58df36",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\context-memory-kernel\\index.mjs"
+    },
+    {
+      "id": "compound-source/packages/context-memory-kernel/lib/adapters.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "feecaf5eda3baebe6cd96e2c86634930e71d281d3f79f766c1cf3e7ff608b3be",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\context-memory-kernel\\lib\\adapters.js"
+    },
+    {
+      "id": "compound-source/packages/context-memory-kernel/lib/authority.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "a4eba141b2671d77715ba0ccfcc180821948d6ceb668db7b393bd462e795da2d",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\context-memory-kernel\\lib\\authority.js"
+    },
+    {
+      "id": "compound-source/packages/context-memory-kernel/lib/canonical.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "3db98f893d915e74cd78144322a6736052ab29a5d0856eca86a6f171341640e7",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\context-memory-kernel\\lib\\canonical.js"
+    },
+    {
+      "id": "compound-source/packages/context-memory-kernel/lib/compaction.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "c20037ed2d90d6aa62e8d642ffc65f48b27282b048896a40d840ff0b93c59a98",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\context-memory-kernel\\lib\\compaction.js"
+    },
+    {
+      "id": "compound-source/packages/context-memory-kernel/lib/conformance.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "e2f98e732d7bf883316c7124161a7ed662cc3f96bb6b576c174e8b14cd270cc1",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\context-memory-kernel\\lib\\conformance.js"
+    },
+    {
+      "id": "compound-source/packages/context-memory-kernel/lib/constants.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "31ddefd99cb84bcf74e6829f13c547af0bc7c2eb34b0e3a7fdc36bfd08f82e5e",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\context-memory-kernel\\lib\\constants.js"
+    },
+    {
+      "id": "compound-source/packages/context-memory-kernel/lib/contracts.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "114126ce78d7e22a274d2807c9a73965f1f26f0fda0ad440682d0d0527738943",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\context-memory-kernel\\lib\\contracts.js"
+    },
+    {
+      "id": "compound-source/packages/context-memory-kernel/lib/errors.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "27a67aa4147317c28df95c7cada1d9ca39a86476c328f8fc9b0cadaf95a6aa70",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\context-memory-kernel\\lib\\errors.js"
+    },
+    {
+      "id": "compound-source/packages/context-memory-kernel/lib/index.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "15646726869c8731906d17ca19888f30f78182807ad8a40c43c8602de998b958",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\context-memory-kernel\\lib\\index.js"
+    },
+    {
+      "id": "compound-source/packages/context-memory-kernel/lib/inventory.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "61b80934c2a7fd094b7585886054f53d996b576da80cfb589bf009a5183dd2ff",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\context-memory-kernel\\lib\\inventory.js"
+    },
+    {
+      "id": "compound-source/packages/context-memory-kernel/lib/memory-reducer.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "676618acae4034403956d3ccc78607110841e479e0ccb5dc673e466e13a0bd72",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\context-memory-kernel\\lib\\memory-reducer.js"
+    },
+    {
+      "id": "compound-source/packages/context-memory-kernel/lib/native-sqlite-memory-port.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "3743c1a534acb8c556d2060b55603d3fc1d35db271c9dce92f8a04a3c8ed91c2",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\context-memory-kernel\\lib\\native-sqlite-memory-port.js"
+    },
+    {
+      "id": "compound-source/packages/context-memory-kernel/lib/planner.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "0fe3ac129427d066b25fd1e873053e0e543471dc4b8f3ed218d235b03aa09204",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\context-memory-kernel\\lib\\planner.js"
+    },
+    {
+      "id": "compound-source/packages/context-memory-kernel/lib/runtime.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "8674678d0091486a1cd70cf381ee2555bb515364461e81e19cb035b59830928b",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\context-memory-kernel\\lib\\runtime.js"
+    },
+    {
+      "id": "compound-source/packages/context-memory-kernel/lib/schema-validator.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "d59b3510d5e55960b4dce6e94924258981d057b070d569319ced64e27a252528",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\context-memory-kernel\\lib\\schema-validator.js"
+    },
+    {
+      "id": "compound-source/packages/context-memory-kernel/lib/task-checkpoint.js",
+      "kind": "measured-source-snapshot",
+      "sha256": "6545e5d10e7f3c0c6dd14643f4fbcac951433fb4b8086d2d84d8691c9fdf9b13",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\context-memory-kernel\\lib\\task-checkpoint.js"
+    },
+    {
+      "id": "compound-source/packages/context-memory-kernel/package.json",
+      "kind": "measured-source-snapshot",
+      "sha256": "ed0a010ee0146aebc4aed67cf7f7a79073298c517c6f85c83b21d0afb030e3a7",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-main-20261108\\packages\\context-memory-kernel\\package.json"
+    },
+    {
+      "id": "baseline-source/package-lock.json",
+      "kind": "measured-lockfile-snapshot",
+      "sha256": "fdc7b76a38b1bb4df29af072885997035ef399e23572fa9cbe5a64637909936a",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-validation-20261108\\package-lock.json"
+    }
+  ],
+  "blobs": [
+    {
+      "path": "raw/8f5719ddabb4099b1af97dc8a07cff3c4dc3de0d4831c5470c157dd95201b785.gz",
+      "sha256": "8f5719ddabb4099b1af97dc8a07cff3c4dc3de0d4831c5470c157dd95201b785",
+      "bytes": 1348,
+      "gzipSha256": "2170a377739c1901a0ff65bda194a8e96ff083fde97872d2d36fc9761fc6f78a",
+      "gzipBytes": 594
+    },
+    {
+      "path": "raw/a519022891760bf9294fa595a1dc6e31e69482d7d4f0889dfba11762936e8b9c.gz",
+      "sha256": "a519022891760bf9294fa595a1dc6e31e69482d7d4f0889dfba11762936e8b9c",
+      "bytes": 1644,
+      "gzipSha256": "03cd7dd565f543d640c98d690fa796f7569e801818522b67ca544ed6a36ea593",
+      "gzipBytes": 664
+    },
+    {
+      "path": "raw/9e79339c87361743ee47ee7facee81c0b2f5bb9998b5af7beb547c4468637420.gz",
+      "sha256": "9e79339c87361743ee47ee7facee81c0b2f5bb9998b5af7beb547c4468637420",
+      "bytes": 7585053,
+      "gzipSha256": "df31d7b189d04f6d807849ee98c6eeea1cb87a390b38106b234f8d4ba6e0d98f",
+      "gzipBytes": 326074
+    },
+    {
+      "path": "raw/b27e2bcf566189152e8579f38a05c23dd120fd40e4135ea3704aa3d1b4b5b0cf.gz",
+      "sha256": "b27e2bcf566189152e8579f38a05c23dd120fd40e4135ea3704aa3d1b4b5b0cf",
+      "bytes": 1359,
+      "gzipSha256": "76e7a4d6ef92a758d93084116c73b46e5683c7fce854a70eccd515c8f400436c",
+      "gzipBytes": 253
+    },
+    {
+      "path": "raw/6dc097818c4fff28248b99811c45782689ad5870c005aba92ed97b6ac7973472.gz",
+      "sha256": "6dc097818c4fff28248b99811c45782689ad5870c005aba92ed97b6ac7973472",
+      "bytes": 17955,
+      "gzipSha256": "18299a0e0341e3353569ca56e992deaba0a7b58b718ae50200984241f20471bc",
+      "gzipBytes": 3948
+    },
+    {
+      "path": "raw/f53e703951b6f4a669387fd0d6906ef1157fa808d5952079b1f6ca86ff3ceac0.gz",
+      "sha256": "f53e703951b6f4a669387fd0d6906ef1157fa808d5952079b1f6ca86ff3ceac0",
+      "bytes": 338346,
+      "gzipSha256": "3b6268fb7c1cefb79db234b32b6d67d4d069d08e3eade5360bcd8cfe282bd850",
+      "gzipBytes": 19204
+    },
+    {
+      "path": "raw/2656dab280669070f7678a57997d12460c3d09dbef5cd8b1bfb55d0ef88db559.gz",
+      "sha256": "2656dab280669070f7678a57997d12460c3d09dbef5cd8b1bfb55d0ef88db559",
+      "bytes": 1728,
+      "gzipSha256": "af1e254fe2e135f6046db4aeeecfa9e6c8abce974e027a7a1c10da74dd65c63c",
+      "gzipBytes": 394
+    },
+    {
+      "path": "raw/6f47ff1a1026d43dc2ce6ffd7f041e97fe319adfd925e8b0820e09fc8347a583.gz",
+      "sha256": "6f47ff1a1026d43dc2ce6ffd7f041e97fe319adfd925e8b0820e09fc8347a583",
+      "bytes": 3854,
+      "gzipSha256": "8219f2498a8534ba598bb9308cfc12002102749584a893f0295f490c15b4c6e5",
+      "gzipBytes": 809
+    },
+    {
+      "path": "raw/4513ff15433330624915f2617396cf8d5b22bbf8a038a5d2450e945548134e4f.gz",
+      "sha256": "4513ff15433330624915f2617396cf8d5b22bbf8a038a5d2450e945548134e4f",
+      "bytes": 339111,
+      "gzipSha256": "0e0cae468d0a84eff95b906064c8b06d21d095fc865b6afdcb13cbee02373b26",
+      "gzipBytes": 19924
+    },
+    {
+      "path": "raw/120a896b43c061b8d25c166beab69505d8c9e8d562c2fe06742084656b13789e.gz",
+      "sha256": "120a896b43c061b8d25c166beab69505d8c9e8d562c2fe06742084656b13789e",
+      "bytes": 1999,
+      "gzipSha256": "9801c4ffebbf3043d4dd86651ed6d8506e4b421e6cbaa1fc073c534378ea9594",
+      "gzipBytes": 414
+    },
+    {
+      "path": "raw/53ad10d7b0b652b2a271e639c58f21f9e7ab88edf6898aa014964c0948ebab25.gz",
+      "sha256": "53ad10d7b0b652b2a271e639c58f21f9e7ab88edf6898aa014964c0948ebab25",
+      "bytes": 4911,
+      "gzipSha256": "d270576febf048688cfc95af133b4e5918ae5ff24a7ba6909e11c8efc06a99a6",
+      "gzipBytes": 1831
+    },
+    {
+      "path": "raw/f2f3ff6e623e285f172d89710a3d4c3787f70fbe93aca3dde40c08d977e8a3ca.gz",
+      "sha256": "f2f3ff6e623e285f172d89710a3d4c3787f70fbe93aca3dde40c08d977e8a3ca",
+      "bytes": 245985,
+      "gzipSha256": "82386d6b3af63ac8a9469f0aeb844f36812722472918b5b3ca7f8ec953dcb1df",
+      "gzipBytes": 91484
+    },
+    {
+      "path": "raw/8f741d70b9becfcfa7a1c06886d99bebc08b087002594215d2124ae518b7df29.gz",
+      "sha256": "8f741d70b9becfcfa7a1c06886d99bebc08b087002594215d2124ae518b7df29",
+      "bytes": 237274,
+      "gzipSha256": "441954e0d726ace3c101b741a2671018bafcadf4b6400febc7a073985381926c",
+      "gzipBytes": 15491
+    },
+    {
+      "path": "raw/90f54c20bb1708c0ddf8c1c56a2cadeaa0f7b664d90b93412d1bc59210a8d363.gz",
+      "sha256": "90f54c20bb1708c0ddf8c1c56a2cadeaa0f7b664d90b93412d1bc59210a8d363",
+      "bytes": 513,
+      "gzipSha256": "6f825480bdf74514aa55afbd878909af43c24c023692ea40f8a8606e9c3884a3",
+      "gzipBytes": 162
+    },
+    {
+      "path": "raw/066c11d6e1f830da559ebe9a8f33e9ce520f7fe9732ebdab12e47dbaba1674c3.gz",
+      "sha256": "066c11d6e1f830da559ebe9a8f33e9ce520f7fe9732ebdab12e47dbaba1674c3",
+      "bytes": 7551,
+      "gzipSha256": "1171a07ee6f075cac76439eba2353dc6c9b1d74486f457cdd34a1651fa4338d6",
+      "gzipBytes": 2791
+    },
+    {
+      "path": "raw/267dcc4b855907b03469391b53bfbffe8ac1ec8a7a15baf74911beeada6306e3.gz",
+      "sha256": "267dcc4b855907b03469391b53bfbffe8ac1ec8a7a15baf74911beeada6306e3",
+      "bytes": 13711220,
+      "gzipSha256": "e0d33bf547e32d6189a58d6b9b10c8e34d2427653751b1d694eb301bd9d51b11",
+      "gzipBytes": 196384
+    },
+    {
+      "path": "raw/f8fd6dba2594b27356ad87105c4d947ee0d9b19cdd6e9495c9c8163482fc0b15.gz",
+      "sha256": "f8fd6dba2594b27356ad87105c4d947ee0d9b19cdd6e9495c9c8163482fc0b15",
+      "bytes": 2822,
+      "gzipSha256": "5d2c3c5e9eb8ec41468623bf4e5008f7add4087fffb59ab22dc71d4d48c66f43",
+      "gzipBytes": 412
+    },
+    {
+      "path": "raw/fc4b3f9938472cb2d9613f2be9c42c7781c272aa624be25c2db6440152591c65.gz",
+      "sha256": "fc4b3f9938472cb2d9613f2be9c42c7781c272aa624be25c2db6440152591c65",
+      "bytes": 1007,
+      "gzipSha256": "5239529f56e8d59e37b9c53d0ac43f75320229f2efd5fee50f0da9c6da3920f2",
+      "gzipBytes": 580
+    },
+    {
+      "path": "raw/b06b28083e5814bf3b7a957fdf81dd6d689956712f1c0c845bb85fcb8db54859.gz",
+      "sha256": "b06b28083e5814bf3b7a957fdf81dd6d689956712f1c0c845bb85fcb8db54859",
+      "bytes": 3842,
+      "gzipSha256": "c5e058e8340135ada2c1dc63bbc063715aa4de396a0319121d5aacb8527a7f40",
+      "gzipBytes": 1664
+    },
+    {
+      "path": "raw/07e28d73f63643be66555d89b0d8ed8db69bb26a890c42e6bd979d22896f4001.gz",
+      "sha256": "07e28d73f63643be66555d89b0d8ed8db69bb26a890c42e6bd979d22896f4001",
+      "bytes": 17552,
+      "gzipSha256": "a2db2988bb67ce0d2f00c2bb3dceabc13a36d93f22577b0bacda5726530928f8",
+      "gzipBytes": 5463
+    },
+    {
+      "path": "raw/2a04c3b3263707502468794aaeaba420e896b8ac5c758a8a7a1d9535628f71c2.gz",
+      "sha256": "2a04c3b3263707502468794aaeaba420e896b8ac5c758a8a7a1d9535628f71c2",
+      "bytes": 13677,
+      "gzipSha256": "2243e1b06227aa22237e489b2265a82918f8a807cba73c87d90c917719604a46",
+      "gzipBytes": 4425
+    },
+    {
+      "path": "raw/0725e839bda441a378930f266692a9d603e532a83cdce8d5a64ffbd2eebe82ad.gz",
+      "sha256": "0725e839bda441a378930f266692a9d603e532a83cdce8d5a64ffbd2eebe82ad",
+      "bytes": 7815,
+      "gzipSha256": "989e2e7682cfc453a62cd0ed5602cb85b239485d8446fa6600e96b7588f97e12",
+      "gzipBytes": 2771
+    },
+    {
+      "path": "raw/81faa3e691865a6cf6da13cf50cbe133552fd12e976c8e98f9e311c8287c5939.gz",
+      "sha256": "81faa3e691865a6cf6da13cf50cbe133552fd12e976c8e98f9e311c8287c5939",
+      "bytes": 28848,
+      "gzipSha256": "6af31a1fad780df25d1efbce5fc12a5a70a079dc3a97463f930bee7ab6912b3d",
+      "gzipBytes": 7494
+    },
+    {
+      "path": "raw/a59f1e42f7e8126a4f0eb0da581fa84037eae53a3083a135f1d288aaa16db8e1.gz",
+      "sha256": "a59f1e42f7e8126a4f0eb0da581fa84037eae53a3083a135f1d288aaa16db8e1",
+      "bytes": 12596,
+      "gzipSha256": "d68b16d428875a2ac43496248b0581715ceb2ea8c3a984e4fb79eedac28f61c3",
+      "gzipBytes": 3630
+    },
+    {
+      "path": "raw/a31c85af9b44b20db36a02d7ffea39dc462d621ca5124d0983a79a98ddf25309.gz",
+      "sha256": "a31c85af9b44b20db36a02d7ffea39dc462d621ca5124d0983a79a98ddf25309",
+      "bytes": 12287,
+      "gzipSha256": "0e4e151e99a7c7952d555339605a9734526da89edcf0d5bab45a4656ea77631c",
+      "gzipBytes": 3609
+    },
+    {
+      "path": "raw/8ed862b2f44187e2019bb51e5be767fd0ba28573b14a87647a4380fd167bd259.gz",
+      "sha256": "8ed862b2f44187e2019bb51e5be767fd0ba28573b14a87647a4380fd167bd259",
+      "bytes": 925,
+      "gzipSha256": "d40214992f27e7f64be0618439824994eb6aae6f4f5c94f5141675d86bedcaf0",
+      "gzipBytes": 413
+    },
+    {
+      "path": "raw/a2d710dffd179bba6284ae7bc7d33374c0d80e8064d5c2e043cb33af942bb1f7.gz",
+      "sha256": "a2d710dffd179bba6284ae7bc7d33374c0d80e8064d5c2e043cb33af942bb1f7",
+      "bytes": 10703,
+      "gzipSha256": "295b9d0b92e0f1e0130f6d0c027fb48dd0d4ca5c271fc020d34f0e1056b96c94",
+      "gzipBytes": 3494
+    },
+    {
+      "path": "raw/288ab749ff129b440393f7325958621cead34cad85f66114f914d8f2c559d9d3.gz",
+      "sha256": "288ab749ff129b440393f7325958621cead34cad85f66114f914d8f2c559d9d3",
+      "bytes": 23160,
+      "gzipSha256": "6272c8eeee423a412a01d2f4cdec40fcf4a262b029a82cf559c85363f591d1d5",
+      "gzipBytes": 5019
+    },
+    {
+      "path": "raw/b88e6ccb3b18bf659a81c8ba43ac3df5f52d259c2bccefb4815fa1a6744dc436.gz",
+      "sha256": "b88e6ccb3b18bf659a81c8ba43ac3df5f52d259c2bccefb4815fa1a6744dc436",
+      "bytes": 1950,
+      "gzipSha256": "0b962e8e9b595e1054f41193c69eb190972aaea9b31483a172a6f2752846a64c",
+      "gzipBytes": 785
+    },
+    {
+      "path": "raw/0f4059e776eb85684b0dfd46eedfcf9d8f7f8925bad24eae51d2cd6374c95850.gz",
+      "sha256": "0f4059e776eb85684b0dfd46eedfcf9d8f7f8925bad24eae51d2cd6374c95850",
+      "bytes": 40921,
+      "gzipSha256": "f2411d440553a50d71f410423b46f825aabaa0c9181786c99fff12a4ca7ef621",
+      "gzipBytes": 10417
+    },
+    {
+      "path": "raw/d4170c7443c075d89c73478b4fa617d264999fb95f75456b1e1232797092a376.gz",
+      "sha256": "d4170c7443c075d89c73478b4fa617d264999fb95f75456b1e1232797092a376",
+      "bytes": 15752,
+      "gzipSha256": "c5839352e8b8b3f8124a60a99833c817225bfd793b23b394469c3edfb2aba443",
+      "gzipBytes": 3894
+    },
+    {
+      "path": "raw/2f6391d58ca38ecb98fd51a0025adb64439c4ab8b2baadb57842ebfe73604f3f.gz",
+      "sha256": "2f6391d58ca38ecb98fd51a0025adb64439c4ab8b2baadb57842ebfe73604f3f",
+      "bytes": 31146,
+      "gzipSha256": "59b8af413550cf715c562772ace51419b11d24b2e19ef527e0fb89f0a8f91a40",
+      "gzipBytes": 8325
+    },
+    {
+      "path": "raw/3db98f893d915e74cd78144322a6736052ab29a5d0856eca86a6f171341640e7.gz",
+      "sha256": "3db98f893d915e74cd78144322a6736052ab29a5d0856eca86a6f171341640e7",
+      "bytes": 3372,
+      "gzipSha256": "d03d94b40a145706e5f78bd2046bd6e233dbc089eb146065b6578ed4f9a4503f",
+      "gzipBytes": 1045
+    },
+    {
+      "path": "raw/114126ce78d7e22a274d2807c9a73965f1f26f0fda0ad440682d0d0527738943.gz",
+      "sha256": "114126ce78d7e22a274d2807c9a73965f1f26f0fda0ad440682d0d0527738943",
+      "bytes": 18376,
+      "gzipSha256": "34734adbfef06b191aa97cac1168a2ba5db79cb0323980e75a11ece51b6bab2d",
+      "gzipBytes": 4372
+    },
+    {
+      "path": "raw/676618acae4034403956d3ccc78607110841e479e0ccb5dc673e466e13a0bd72.gz",
+      "sha256": "676618acae4034403956d3ccc78607110841e479e0ccb5dc673e466e13a0bd72",
+      "bytes": 23857,
+      "gzipSha256": "23b5bc0fdb18ef592e6b292885b4c8e34d6fb7847466674d550d4107d690585e",
+      "gzipBytes": 6716
+    },
+    {
+      "path": "raw/8674678d0091486a1cd70cf381ee2555bb515364461e81e19cb035b59830928b.gz",
+      "sha256": "8674678d0091486a1cd70cf381ee2555bb515364461e81e19cb035b59830928b",
+      "bytes": 21237,
+      "gzipSha256": "27182fbd111818cb4f04791546ca9c404a7883c161c5d60af2dcd4e3c902cb37",
+      "gzipBytes": 4499
+    },
+    {
+      "path": "raw/ab3412fdad0e48f703e6bbc33ae0ff6eacf7dc629e0aa85388951c2d90cec7e7.gz",
+      "sha256": "ab3412fdad0e48f703e6bbc33ae0ff6eacf7dc629e0aa85388951c2d90cec7e7",
+      "bytes": 35025,
+      "gzipSha256": "491dd3cb65593fec40db39cb4b620ef5712c5e62e09df3ded62015bd84b0be09",
+      "gzipBytes": 9852
+    },
+    {
+      "path": "raw/17fdafb8b7e624f1d19d54965d0d276e8b0246a270d66cb2c0438125730b5fdd.gz",
+      "sha256": "17fdafb8b7e624f1d19d54965d0d276e8b0246a270d66cb2c0438125730b5fdd",
+      "bytes": 10828,
+      "gzipSha256": "a06ba3aff6e3edb07b394a5dd90ebf5c075301e7b601acda524047d0c5e8a426",
+      "gzipBytes": 3450
+    },
+    {
+      "path": "raw/14739a9132c080f35dd991ac757cb0ef97291fc55e5d23e77e62678657866638.gz",
+      "sha256": "14739a9132c080f35dd991ac757cb0ef97291fc55e5d23e77e62678657866638",
+      "bytes": 3005,
+      "gzipSha256": "632c1192c6019ae4d0f2a8179630b2b9d99a7f7b2e6e7b3aa15fe9cbdbc1fc8f",
+      "gzipBytes": 1446
+    },
+    {
+      "path": "raw/f0f3322c126f2249e47dcc0afced010394f4c30a50e50a94970e926b17ee5146.gz",
+      "sha256": "f0f3322c126f2249e47dcc0afced010394f4c30a50e50a94970e926b17ee5146",
+      "bytes": 256049,
+      "gzipSha256": "1ba722dc4a38f445e77d85480787901ba404105998c357793ac64e1dc56001e0",
+      "gzipBytes": 54576
+    },
+    {
+      "path": "raw/11502b561fbe9314a7b17591a42469a023d732258bd9a696f18f7f6eda1ca587.gz",
+      "sha256": "11502b561fbe9314a7b17591a42469a023d732258bd9a696f18f7f6eda1ca587",
+      "bytes": 22289,
+      "gzipSha256": "ddb9729a3ce9a8bd13fd3ff819dfee01803a0fd290fb0891c2acac358144cb92",
+      "gzipBytes": 6221
+    },
+    {
+      "path": "raw/39509e062193bcc666a42c553bc59a682834d51bc71051c2efc7edc0ab6c4a7d.gz",
+      "sha256": "39509e062193bcc666a42c553bc59a682834d51bc71051c2efc7edc0ab6c4a7d",
+      "bytes": 6323,
+      "gzipSha256": "b29d24b651fbb4445f566f435a0f910dcfa5339b5f21bf8a538ab4e1cb4bffd9",
+      "gzipBytes": 2458
+    },
+    {
+      "path": "raw/31e6033b40e46c47c31b37541b019c28f6703d361a6911175777dd0a14c511e0.gz",
+      "sha256": "31e6033b40e46c47c31b37541b019c28f6703d361a6911175777dd0a14c511e0",
+      "bytes": 7093,
+      "gzipSha256": "666daba49e606ef075a1d597075a2adc1442d59c38ec0a48405f05ea32726a6c",
+      "gzipBytes": 2192
+    },
+    {
+      "path": "raw/3553f64546d55a5020a1b8fb59693f7a9ff715f34108801e7ba6a37b8ccd8ed9.gz",
+      "sha256": "3553f64546d55a5020a1b8fb59693f7a9ff715f34108801e7ba6a37b8ccd8ed9",
+      "bytes": 3039,
+      "gzipSha256": "8a004eb6b245ee0b7468ce2a79b8ad7229de4548e5c789cb139732749b761da6",
+      "gzipBytes": 1296
+    },
+    {
+      "path": "raw/0c6175aeb522b229876527fd62ca897aa9132bb1d965db5b6463d25a26895c84.gz",
+      "sha256": "0c6175aeb522b229876527fd62ca897aa9132bb1d965db5b6463d25a26895c84",
+      "bytes": 2982,
+      "gzipSha256": "8274fbc62b882eca75bd517e5970826c09f2f2d2431e8b6a910ab87014eb854a",
+      "gzipBytes": 1251
+    },
+    {
+      "path": "raw/af56de83f273d89d4688d40e4f40493e683ff23db156f5bf93d73c71400f0a22.gz",
+      "sha256": "af56de83f273d89d4688d40e4f40493e683ff23db156f5bf93d73c71400f0a22",
+      "bytes": 8748,
+      "gzipSha256": "6a92775c3ca444bed9f744f9b3634938abb45cc60f2a26ff47438561252b766b",
+      "gzipBytes": 2278
+    },
+    {
+      "path": "raw/e3687ae0c03273064eebd3c7160107c83af7402eae39435ba0d80b4320c626bc.gz",
+      "sha256": "e3687ae0c03273064eebd3c7160107c83af7402eae39435ba0d80b4320c626bc",
+      "bytes": 1139,
+      "gzipSha256": "092a4526f6d4dfb6eda7255eeb00d2d64e7c3dbb7af0fa026023cdd2347014d3",
+      "gzipBytes": 517
+    },
+    {
+      "path": "raw/bfb6aab468818c9fff56f9fdaf878e93e9f39cf4ee7322304c348f380fbd3ce3.gz",
+      "sha256": "bfb6aab468818c9fff56f9fdaf878e93e9f39cf4ee7322304c348f380fbd3ce3",
+      "bytes": 18014,
+      "gzipSha256": "8ae41a99a8d66e90f3642ad9127d50a1d166c4ea972cf8bb2dfd1f90f3ee56d0",
+      "gzipBytes": 5018
+    },
+    {
+      "path": "raw/57d8684a26a7e52c723206e35a0e5a5b96330f5757a5182e6279c0c9284509aa.gz",
+      "sha256": "57d8684a26a7e52c723206e35a0e5a5b96330f5757a5182e6279c0c9284509aa",
+      "bytes": 36215,
+      "gzipSha256": "c913390136ca35b0db87900ac03ed78345bef5766d09f33600bcbbd678773539",
+      "gzipBytes": 7825
+    },
+    {
+      "path": "raw/462be2c70c8ebcf827c129a34efa51d02c32f01a0f01586cf911798f87d0db46.gz",
+      "sha256": "462be2c70c8ebcf827c129a34efa51d02c32f01a0f01586cf911798f87d0db46",
+      "bytes": 6954,
+      "gzipSha256": "16263469e9628d0a620242af67f8a494221876fedb56f2c2acfda5fd2fedcbe7",
+      "gzipBytes": 2295
+    },
+    {
+      "path": "raw/0226e07f70dbeddf1508d9841e6abfc938968f2cf0d7944f58917ca62d1c38ca.gz",
+      "sha256": "0226e07f70dbeddf1508d9841e6abfc938968f2cf0d7944f58917ca62d1c38ca",
+      "bytes": 2175,
+      "gzipSha256": "bb35e3636979798ca5d2666d453277bd8dd1096d3e15ab3ae1280b27f7eaa560",
+      "gzipBytes": 764
+    },
+    {
+      "path": "raw/3bdc8cb58c61b6cdf659d34faff4634ed8a5219998430533b29c02577ff548e1.gz",
+      "sha256": "3bdc8cb58c61b6cdf659d34faff4634ed8a5219998430533b29c02577ff548e1",
+      "bytes": 5789,
+      "gzipSha256": "c030f27e880ef4fa7fa73eb1212261fde0f323740dfcd1cafd7d8070b1f757c9",
+      "gzipBytes": 2294
+    },
+    {
+      "path": "raw/f6be9c208312f07ecdc99eea98eb43e63288e7cf5268fc1261e3caec69df5c54.gz",
+      "sha256": "f6be9c208312f07ecdc99eea98eb43e63288e7cf5268fc1261e3caec69df5c54",
+      "bytes": 4610,
+      "gzipSha256": "cb8922008a52f87a7462af44d7a76793f791f9d73ac8c6592892f63e9d61e623",
+      "gzipBytes": 1837
+    },
+    {
+      "path": "raw/e86dfc8b05000ea1063f4fc63ca557c0f7fa0c3fc6ea50add93d4cf917d46701.gz",
+      "sha256": "e86dfc8b05000ea1063f4fc63ca557c0f7fa0c3fc6ea50add93d4cf917d46701",
+      "bytes": 20883,
+      "gzipSha256": "c3efcb82ffd9a907406186edbc604274b1478660ce23499fa002517e7bb8e7f1",
+      "gzipBytes": 5427
+    },
+    {
+      "path": "raw/326c864205412e3b419a7c1b18d009eb6f1470a6f8514b80cb3502f59aeefa3d.gz",
+      "sha256": "326c864205412e3b419a7c1b18d009eb6f1470a6f8514b80cb3502f59aeefa3d",
+      "bytes": 1052,
+      "gzipSha256": "fc89f5f2e53a100a4e3a3fdd5affe4d937ef2e29c243ca278e2937e96e2d243f",
+      "gzipBytes": 537
+    },
+    {
+      "path": "raw/2023b1958e107fb27314b0518e73970e5ae0bab94fba4da72e7b1dcd197820d2.gz",
+      "sha256": "2023b1958e107fb27314b0518e73970e5ae0bab94fba4da72e7b1dcd197820d2",
+      "bytes": 40941,
+      "gzipSha256": "c29442cc4848a7c14e14178864bab3afa5cfb43acac3fb48d294ec3e7d4fccc1",
+      "gzipBytes": 10829
+    },
+    {
+      "path": "raw/fda6b4c4fb48897c86296ae9e6afa611172fe06f5e77fe44b458788b128a505b.gz",
+      "sha256": "fda6b4c4fb48897c86296ae9e6afa611172fe06f5e77fe44b458788b128a505b",
+      "bytes": 810,
+      "gzipSha256": "da8b1e984de4b8b377c28aebfa0b93c37414b8c7fe39dc536ae4f5b7b6718729",
+      "gzipBytes": 466
+    },
+    {
+      "path": "raw/b92a4e75a5a55a0752341326e13bd4935f70561b4e4793425700ad293d70fdfd.gz",
+      "sha256": "b92a4e75a5a55a0752341326e13bd4935f70561b4e4793425700ad293d70fdfd",
+      "bytes": 2530,
+      "gzipSha256": "91b70451b067b0c7bc91107b6eff88cd1abf4e8318112084e45b5329af472645",
+      "gzipBytes": 762
+    },
+    {
+      "path": "raw/29fe955164f24d0d07cbe2b62283a26b7b9578d66337268737c827b278e591fb.gz",
+      "sha256": "29fe955164f24d0d07cbe2b62283a26b7b9578d66337268737c827b278e591fb",
+      "bytes": 21360,
+      "gzipSha256": "f1090ea4985cd6ce0f5f4dc866170e3fc9f3a7dbeaf7fc5499cf46658bcd5ef0",
+      "gzipBytes": 5271
+    },
+    {
+      "path": "raw/38473734b95d303eb31b3a3645748c399ed00ef763a4cb6e794ef89a5c0aaa10.gz",
+      "sha256": "38473734b95d303eb31b3a3645748c399ed00ef763a4cb6e794ef89a5c0aaa10",
+      "bytes": 10990,
+      "gzipSha256": "bbcfc91873b30ccce20f7d4fd0f81f6604ffd84dac7c24f59552109384976d5c",
+      "gzipBytes": 2810
+    },
+    {
+      "path": "raw/5e2a5d8499987558a532f098d1c6191c3ba46de49eefb62d10bf9827250b571f.gz",
+      "sha256": "5e2a5d8499987558a532f098d1c6191c3ba46de49eefb62d10bf9827250b571f",
+      "bytes": 19812,
+      "gzipSha256": "4ee4ecf66414969756868943ce41145398be6dd51f8af70f39c82fb8c7d6e116",
+      "gzipBytes": 4418
+    },
+    {
+      "path": "raw/f34b60d70fad6f2c1ae6496d6e081dc7120bc431521c1810b7ed83b2e55ebe66.gz",
+      "sha256": "f34b60d70fad6f2c1ae6496d6e081dc7120bc431521c1810b7ed83b2e55ebe66",
+      "bytes": 10614,
+      "gzipSha256": "690ccb1cb95b16d29b7f58ef091c46b52ea7dd3f8390084fac3edd8f15b9f6e3",
+      "gzipBytes": 3953
+    },
+    {
+      "path": "raw/cac27a7a07892db633c776586b17cba0958a79f90a6ed50e9eb8c5e47511d0ca.gz",
+      "sha256": "cac27a7a07892db633c776586b17cba0958a79f90a6ed50e9eb8c5e47511d0ca",
+      "bytes": 8729,
+      "gzipSha256": "a16ee96d0c9b9c78c9f3cf391a73b6420b61fca379cc229f6531c5221ef6e947",
+      "gzipBytes": 2274
+    },
+    {
+      "path": "raw/4aa8ca526e5fb4b7b9b7563cca14cebd082292f3a01285b544228d851d69d709.gz",
+      "sha256": "4aa8ca526e5fb4b7b9b7563cca14cebd082292f3a01285b544228d851d69d709",
+      "bytes": 4915,
+      "gzipSha256": "9572be71e2af7edd869175f5af41828c81d0c6c9c2016e4ba92b3433dcf5d4f6",
+      "gzipBytes": 1793
+    },
+    {
+      "path": "raw/d559cd3693eb7723de05f4602f045de1b4c5917bd7bb04a234b4821eaabbcf6a.gz",
+      "sha256": "d559cd3693eb7723de05f4602f045de1b4c5917bd7bb04a234b4821eaabbcf6a",
+      "bytes": 2081,
+      "gzipSha256": "01446ec63ab584d8afa1bdbc7f83d426a4186fded2f2488e580d8d2c43f30641",
+      "gzipBytes": 999
+    },
+    {
+      "path": "raw/7b78e99c75e10fd86e963203b3c8ca14f166733b55582567663c43b1bd750896.gz",
+      "sha256": "7b78e99c75e10fd86e963203b3c8ca14f166733b55582567663c43b1bd750896",
+      "bytes": 3706,
+      "gzipSha256": "75b736e30055b79dbc08a00aa525e0f949bac5140613b7c8b413547ea4fd9ebf",
+      "gzipBytes": 1045
+    },
+    {
+      "path": "raw/c81141f94b62a4cdf051c3801d22493910572a91a873481303b4e515cbc244f6.gz",
+      "sha256": "c81141f94b62a4cdf051c3801d22493910572a91a873481303b4e515cbc244f6",
+      "bytes": 21369,
+      "gzipSha256": "23d44cf82609121b65e5ef36546023e6a6f246692d47e17bb4bd0235436fd91c",
+      "gzipBytes": 6693
+    },
+    {
+      "path": "raw/b8ac4baae6fdbbfcaffed2869ed3404d96379593f68b87168867dd05a6d66c50.gz",
+      "sha256": "b8ac4baae6fdbbfcaffed2869ed3404d96379593f68b87168867dd05a6d66c50",
+      "bytes": 8594,
+      "gzipSha256": "71f2c2423462a60b0e53f5ac66301f3d6f224ff3c9e774762a1e2db4537556c6",
+      "gzipBytes": 2078
+    },
+    {
+      "path": "raw/a8a8f7ea2231dc08ccb3c9162721753a4a10d5fe808e154e5095e94b719d3704.gz",
+      "sha256": "a8a8f7ea2231dc08ccb3c9162721753a4a10d5fe808e154e5095e94b719d3704",
+      "bytes": 12673,
+      "gzipSha256": "18d8343404bb273f3530e9ac999740d67414dee10e794f3f998a2c65faab881c",
+      "gzipBytes": 3699
+    },
+    {
+      "path": "raw/9eb843d83b10e5958853ae765f310e4fff00631fb9c44f37725215556d01c860.gz",
+      "sha256": "9eb843d83b10e5958853ae765f310e4fff00631fb9c44f37725215556d01c860",
+      "bytes": 826,
+      "gzipSha256": "418c91c193f7f885c145f360b15801b7e5332a18d3d4f490e23d4dcecda2b17e",
+      "gzipBytes": 321
+    },
+    {
+      "path": "raw/e5976948a5b00ae7dea2ff4f8c09e86b0eb9c804d5a46a1a053230fd0c5cab0c.gz",
+      "sha256": "e5976948a5b00ae7dea2ff4f8c09e86b0eb9c804d5a46a1a053230fd0c5cab0c",
+      "bytes": 741,
+      "gzipSha256": "09bfa97076e43423acaa6365d80e07c4f09d407ffcb16038e9d5cd8d35d5bd90",
+      "gzipBytes": 427
+    },
+    {
+      "path": "raw/40b027bf8ea3e249432f03d60db872e781d25233f7da92c3865f4fa98960a112.gz",
+      "sha256": "40b027bf8ea3e249432f03d60db872e781d25233f7da92c3865f4fa98960a112",
+      "bytes": 456,
+      "gzipSha256": "f0a2bf77f0b9f956ec97711b6932f3676ad4bd3690a43fd6873e9c7de5a16bbf",
+      "gzipBytes": 286
+    },
+    {
+      "path": "raw/fa942b7b558daf05e3644a268d8af207bcb8d0a7423f49c70654a480cef5a7f7.gz",
+      "sha256": "fa942b7b558daf05e3644a268d8af207bcb8d0a7423f49c70654a480cef5a7f7",
+      "bytes": 33674,
+      "gzipSha256": "4f0899633ab054faa1a420ba6492719f2e3853265a376646defcda1e29b1688f",
+      "gzipBytes": 8097
+    },
+    {
+      "path": "raw/5ddd05dec04ecf8378904417f8c29b6b81475acdd24bfceb723aaa4a368e8857.gz",
+      "sha256": "5ddd05dec04ecf8378904417f8c29b6b81475acdd24bfceb723aaa4a368e8857",
+      "bytes": 8425,
+      "gzipSha256": "0967bdd253e9471521c47ccd0685d23d44726296ceada04a080ea4fb965882f9",
+      "gzipBytes": 2384
+    },
+    {
+      "path": "raw/aeaf4b147c17aecce21b9668d372edf1eadb4fd183209aa19ea519ec8e384dcd.gz",
+      "sha256": "aeaf4b147c17aecce21b9668d372edf1eadb4fd183209aa19ea519ec8e384dcd",
+      "bytes": 11822,
+      "gzipSha256": "31cf6f739a3866775f2bd355b98afe43b7da84c766a5c7d35aa73ae5f300f996",
+      "gzipBytes": 3164
+    },
+    {
+      "path": "raw/614e2561ce33c335b8406012cc9b58be2bbb4846eba20b32196b30c99612b5ec.gz",
+      "sha256": "614e2561ce33c335b8406012cc9b58be2bbb4846eba20b32196b30c99612b5ec",
+      "bytes": 46709,
+      "gzipSha256": "7c9f3d03f61a5a54dc4fa9caa219377cfab651b5c5b803b7a2c58ec8fb5e5dce",
+      "gzipBytes": 9685
+    },
+    {
+      "path": "raw/3418fb3735545531a2ddafe9b32ddcb0626a36440d49ec8e84e5fba2a06d7bfa.gz",
+      "sha256": "3418fb3735545531a2ddafe9b32ddcb0626a36440d49ec8e84e5fba2a06d7bfa",
+      "bytes": 36293,
+      "gzipSha256": "3fbcf95ed16b13bd052608479f4b7dd8d2c9fe33bee31e05cb14caeafcc8e839",
+      "gzipBytes": 7584
+    },
+    {
+      "path": "raw/9d5c8a9853d22709f0ae85e19308f325461e5bc701ca314fcd6652cc28d49fd6.gz",
+      "sha256": "9d5c8a9853d22709f0ae85e19308f325461e5bc701ca314fcd6652cc28d49fd6",
+      "bytes": 15036,
+      "gzipSha256": "00f13e7479c30e87553b6bbe6d1f0b804f730553e74e7faad425bf9a8fd4627a",
+      "gzipBytes": 3866
+    },
+    {
+      "path": "raw/4df926268e8458177344b4483ba8daa9276f58d593995a0e7f06bf4562c34991.gz",
+      "sha256": "4df926268e8458177344b4483ba8daa9276f58d593995a0e7f06bf4562c34991",
+      "bytes": 4121,
+      "gzipSha256": "919cf9df9b81d85f9ca47e8307a8da39405685d76668a54ca6ea941e109170dd",
+      "gzipBytes": 1421
+    },
+    {
+      "path": "raw/52f35997ac98e5d1d05241f865b85627899e76082cc0aae611ff7ef9e565fc60.gz",
+      "sha256": "52f35997ac98e5d1d05241f865b85627899e76082cc0aae611ff7ef9e565fc60",
+      "bytes": 67541,
+      "gzipSha256": "5b9677c6e2db41ae4cc529f2b112a522add9ad957c42b821eae12209324ae66d",
+      "gzipBytes": 13941
+    },
+    {
+      "path": "raw/c972e13751e7f801b347a1a6152b6d166cb79d365d5065586da7d307e2722b7e.gz",
+      "sha256": "c972e13751e7f801b347a1a6152b6d166cb79d365d5065586da7d307e2722b7e",
+      "bytes": 1637,
+      "gzipSha256": "e1dcb1176b78e35e31e30b9c3c5a4b1488697140248ef39f0e3b1ce798a3639f",
+      "gzipBytes": 697
+    },
+    {
+      "path": "raw/f18d1cbf51d0c7fc954be1f22faf71b9bbc52c15c8a8542f990dcf963d6ee478.gz",
+      "sha256": "f18d1cbf51d0c7fc954be1f22faf71b9bbc52c15c8a8542f990dcf963d6ee478",
+      "bytes": 3196,
+      "gzipSha256": "46745041b8635b4cd1d513a3b0bf72e1651af0ad4c80f0e26eb081b2f73ce84e",
+      "gzipBytes": 1207
+    },
+    {
+      "path": "raw/6f9d6d357788c775ea307fec44756ae27d9575e68406befa9f7975403bb15c38.gz",
+      "sha256": "6f9d6d357788c775ea307fec44756ae27d9575e68406befa9f7975403bb15c38",
+      "bytes": 8071,
+      "gzipSha256": "e35db99c5347ef0d8a7f0bb8b9ed36ab7a1cc9172e4fa244ede0f0b3b1f9ce99",
+      "gzipBytes": 2263
+    },
+    {
+      "path": "raw/ae5ab3a96002a2027772d3af8ee2ad341f3ec157b30f4815f291a1679f58df36.gz",
+      "sha256": "ae5ab3a96002a2027772d3af8ee2ad341f3ec157b30f4815f291a1679f58df36",
+      "bytes": 1882,
+      "gzipSha256": "82bd51293f3973150dea8791843cd9dededd6a87a20ae37c1e600b26f4ef7ad2",
+      "gzipBytes": 774
+    },
+    {
+      "path": "raw/feecaf5eda3baebe6cd96e2c86634930e71d281d3f79f766c1cf3e7ff608b3be.gz",
+      "sha256": "feecaf5eda3baebe6cd96e2c86634930e71d281d3f79f766c1cf3e7ff608b3be",
+      "bytes": 6391,
+      "gzipSha256": "9e1c871bc682a5f3709efff02448b577786ab13058368ea97f676d0a52c3f8a1",
+      "gzipBytes": 1746
+    },
+    {
+      "path": "raw/a4eba141b2671d77715ba0ccfcc180821948d6ceb668db7b393bd462e795da2d.gz",
+      "sha256": "a4eba141b2671d77715ba0ccfcc180821948d6ceb668db7b393bd462e795da2d",
+      "bytes": 4880,
+      "gzipSha256": "3c7ceae0e1bc50d537276a1f1db4ba647aadef2d9c9a848c77e8b2db73d5e6ee",
+      "gzipBytes": 1455
+    },
+    {
+      "path": "raw/c20037ed2d90d6aa62e8d642ffc65f48b27282b048896a40d840ff0b93c59a98.gz",
+      "sha256": "c20037ed2d90d6aa62e8d642ffc65f48b27282b048896a40d840ff0b93c59a98",
+      "bytes": 18663,
+      "gzipSha256": "c47c04220af85ff8a709878ed25f6def0830a1b1b4748d4cfbe2771bf1801f24",
+      "gzipBytes": 4868
+    },
+    {
+      "path": "raw/e2f98e732d7bf883316c7124161a7ed662cc3f96bb6b576c174e8b14cd270cc1.gz",
+      "sha256": "e2f98e732d7bf883316c7124161a7ed662cc3f96bb6b576c174e8b14cd270cc1",
+      "bytes": 4845,
+      "gzipSha256": "49adae6e87d98b40179a5aec04cc1a27975b825526b94535497fdfe520c3bd6a",
+      "gzipBytes": 1631
+    },
+    {
+      "path": "raw/31ddefd99cb84bcf74e6829f13c547af0bc7c2eb34b0e3a7fdc36bfd08f82e5e.gz",
+      "sha256": "31ddefd99cb84bcf74e6829f13c547af0bc7c2eb34b0e3a7fdc36bfd08f82e5e",
+      "bytes": 2941,
+      "gzipSha256": "9b9d5783b33f6b5f9fdfd0cdfcd3858fb8ffb929f33ff20018cc9074a94125af",
+      "gzipBytes": 1118
+    },
+    {
+      "path": "raw/27a67aa4147317c28df95c7cada1d9ca39a86476c328f8fc9b0cadaf95a6aa70.gz",
+      "sha256": "27a67aa4147317c28df95c7cada1d9ca39a86476c328f8fc9b0cadaf95a6aa70",
+      "bytes": 621,
+      "gzipSha256": "90c245bf8920f75f5d51f58abcb221ca1fbd4d7712c7326b88f85caf6c26de76",
+      "gzipBytes": 297
+    },
+    {
+      "path": "raw/15646726869c8731906d17ca19888f30f78182807ad8a40c43c8602de998b958.gz",
+      "sha256": "15646726869c8731906d17ca19888f30f78182807ad8a40c43c8602de998b958",
+      "bytes": 546,
+      "gzipSha256": "a030ae65d5a622edf9ff8b7ed76711e86d6998271b2ddcedfd23e73242ed5d78",
+      "gzipBytes": 205
+    },
+    {
+      "path": "raw/61b80934c2a7fd094b7585886054f53d996b576da80cfb589bf009a5183dd2ff.gz",
+      "sha256": "61b80934c2a7fd094b7585886054f53d996b576da80cfb589bf009a5183dd2ff",
+      "bytes": 5618,
+      "gzipSha256": "b6d2f8bdd66e7391247ecfbf2fc291967d2c299765206ee70020c20e65c0c9ba",
+      "gzipBytes": 1789
+    },
+    {
+      "path": "raw/3743c1a534acb8c556d2060b55603d3fc1d35db271c9dce92f8a04a3c8ed91c2.gz",
+      "sha256": "3743c1a534acb8c556d2060b55603d3fc1d35db271c9dce92f8a04a3c8ed91c2",
+      "bytes": 22826,
+      "gzipSha256": "a414e58c2344705faaa676bccaae213248dc709dd6464e46227bf13f337425a4",
+      "gzipBytes": 5655
+    },
+    {
+      "path": "raw/0fe3ac129427d066b25fd1e873053e0e543471dc4b8f3ed218d235b03aa09204.gz",
+      "sha256": "0fe3ac129427d066b25fd1e873053e0e543471dc4b8f3ed218d235b03aa09204",
+      "bytes": 12782,
+      "gzipSha256": "e09f4b226aeb8c798ee7a413f094447dd2879b66f48064c00c4317e6150e79b9",
+      "gzipBytes": 3563
+    },
+    {
+      "path": "raw/d59b3510d5e55960b4dce6e94924258981d057b070d569319ced64e27a252528.gz",
+      "sha256": "d59b3510d5e55960b4dce6e94924258981d057b070d569319ced64e27a252528",
+      "bytes": 7416,
+      "gzipSha256": "79a3f3741a4e3f21ed23fe585e07fb5b70013f9681b4d6be77fa1de0879f227c",
+      "gzipBytes": 2109
+    },
+    {
+      "path": "raw/6545e5d10e7f3c0c6dd14643f4fbcac951433fb4b8086d2d84d8691c9fdf9b13.gz",
+      "sha256": "6545e5d10e7f3c0c6dd14643f4fbcac951433fb4b8086d2d84d8691c9fdf9b13",
+      "bytes": 2041,
+      "gzipSha256": "5194a4d5634b6465a54c26d8748628502d814a7c93f75d7fe7eca31c643d1295",
+      "gzipBytes": 827
+    },
+    {
+      "path": "raw/ed0a010ee0146aebc4aed67cf7f7a79073298c517c6f85c83b21d0afb030e3a7.gz",
+      "sha256": "ed0a010ee0146aebc4aed67cf7f7a79073298c517c6f85c83b21d0afb030e3a7",
+      "bytes": 1818,
+      "gzipSha256": "947061f021eb15d63c44edc763d1c34f441cc9a7c5c5e8df578f4ee6de92fd3f",
+      "gzipBytes": 655
+    },
+    {
+      "path": "raw/fdc7b76a38b1bb4df29af072885997035ef399e23572fa9cbe5a64637909936a.gz",
+      "sha256": "fdc7b76a38b1bb4df29af072885997035ef399e23572fa9cbe5a64637909936a",
+      "bytes": 1352254,
+      "gzipSha256": "0f737967a9589bab5d996206512beab29f66a7f7a0b0b23843b8cdaf4f9eb1ab",
+      "gzipBytes": 296363
+    }
+  ],
+  "archiveFilesSha256": {
+    "README.md": "4aad94bb44697283119d28f12b4b287c8509017b402ceb6c8626bd72334ba19c",
+    "verify-evidence.mjs": "083a949c70a16c3919ee752602e9402d6dfc8e819d1da0d3a2a3b46ffc9a27a3"
+  },
+  "summary": {
+    "baselineHead": "727c64962fb2ea9e20447d7b59b459a13e0625d6",
+    "compoundHead": "698b87d79720c75809e830fa826437e021569a1c",
+    "queries": 600,
+    "recovery": 600,
+    "cancelled": 600,
+    "mixedRounds": 300,
+    "mutations": 1800,
+    "compoundSamples": 900,
+    "compoundSemanticCases": 36,
+    "queryP95Ms": [
+      {
+        "count": 1000,
+        "cold": 42.483,
+        "hot": 20.01
+      },
+      {
+        "count": 10000,
+        "cold": 79.315,
+        "hot": 22.704
+      },
+      {
+        "count": 100000,
+        "cold": 400.169,
+        "hot": 43.743
+      }
+    ],
+    "recoveryP95Ms": [
+      {
+        "count": 1000,
+        "rebuild": 635.64,
+        "corrupt": 667.401
+      },
+      {
+        "count": 10000,
+        "rebuild": 967.348,
+        "corrupt": 992.802
+      },
+      {
+        "count": 100000,
+        "rebuild": 4210.296,
+        "corrupt": 4334.758
+      }
+    ],
+    "stopP95Ms": [
+      {
+        "count": 1000,
+        "mode": "validate-disk",
+        "delivery": 8.205,
+        "acknowledgement": 0.104
+      },
+      {
+        "count": 1000,
+        "mode": "verified-memory",
+        "delivery": 3.931,
+        "acknowledgement": 0.061
+      },
+      {
+        "count": 10000,
+        "mode": "validate-disk",
+        "delivery": 8.962,
+        "acknowledgement": 1.336
+      },
+      {
+        "count": 10000,
+        "mode": "verified-memory",
+        "delivery": 4.381,
+        "acknowledgement": 0.055
+      },
+      {
+        "count": 100000,
+        "mode": "validate-disk",
+        "delivery": 8.766,
+        "acknowledgement": 2.02
+      },
+      {
+        "count": 100000,
+        "mode": "verified-memory",
+        "delivery": 9.012,
+        "acknowledgement": 1.765
+      }
+    ],
+    "mixedP95Ms": [
+      {
+        "count": 1000,
+        "read": 935.966,
+        "lockWait": 728,
+        "operationsPerSecond": 9.706701541809931
+      },
+      {
+        "count": 10000,
+        "read": 1011.428,
+        "lockWait": 749,
+        "operationsPerSecond": 9.044756790723966
+      },
+      {
+        "count": 100000,
+        "read": 1880.978,
+        "lockWait": 1338,
+        "operationsPerSecond": 4.654431091619247
+      }
+    ],
+    "compoundP95Ms": [
+      {
+        "count": 1000,
+        "category-narrow": 45.27760000000001,
+        "tag-narrow": 42.9461,
+        "cold-continuation": 45.13039999999998
+      },
+      {
+        "count": 10000,
+        "category-narrow": 87.99600000000001,
+        "tag-narrow": 82.3338,
+        "cold-continuation": 89.8947
+      },
+      {
+        "count": 100000,
+        "category-narrow": 484.84209999999996,
+        "tag-narrow": 516.6129000000001,
+        "cold-continuation": 499.74260000000004
+      }
+    ]
+  }
+}

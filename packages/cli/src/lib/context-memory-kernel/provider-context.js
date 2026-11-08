@@ -29,10 +29,15 @@ function defaultAdmissions(sessionId, options) {
     { scope: "user", scopeId: options.userId || "local-user" },
   ];
   const configured = options.contextMemoryScopeAdmissions;
-  const admissions =
-    Array.isArray(configured) && configured.length > 0
-      ? configured
-      : candidates;
+  if (
+    configured != null &&
+    (!Array.isArray(configured) || configured.length === 0)
+  ) {
+    throw new TypeError(
+      "contextMemoryScopeAdmissions must contain at least one explicit scope",
+    );
+  }
+  const admissions = configured ?? candidates;
   const seen = new Set();
   return admissions.filter((entry) => {
     const key = `${entry.scope}\0${entry.scopeId || ""}`;
@@ -240,7 +245,11 @@ export async function prepareCanonicalProviderContext(
 
   // Review can exclude recalled author/session data while retaining the exact
   // canonical context, tool and output-token planning boundary.
-  const recallEnabled = options.contextMemoryRecall !== false;
+  const recallEnabled =
+    options.contextMemoryRecall !== false &&
+    options.memoryEnabled !== false &&
+    options.contextEngine?.memoryEnabled !== false &&
+    options.subAgentContract?.memory !== false;
   const candidateProvider = recallEnabled
     ? semanticCandidateProvider(options)
     : null;
@@ -390,7 +399,62 @@ export async function prepareCanonicalProviderContext(
     plan.selected.filter((item) => item.kind !== "tool-schema"),
     { sessionId },
   );
-  return {
+  // Capture immutable authority facts before publishing the plan to a host.
+  // A generator consumer can pause for arbitrary work after context planning.
+  const expectedRevision = recall.memoryRevision;
+  const signal = options.signal;
+  const selectedMemoryIds = new Set(
+    plan.selected
+      .filter((item) => item.kind === "memory")
+      .map((item) => item.sourceRef.id),
+  );
+  const expirations = recall.results
+    .filter((entry) => selectedMemoryIds.has(entry.record.memoryId))
+    .map((entry) => entry.record.retentionPolicy.expiresAt)
+    .filter(Boolean)
+    .map(Date.parse);
+  const expiresAt = expirations.length ? Math.min(...expirations) : null;
+  const explicitSink = Boolean(options.contextMemorySink);
+  const dispatchSignal = (controls) =>
+    signal && controls?.signal
+      ? AbortSignal.any([signal, controls.signal])
+      : signal || controls?.signal;
+  function assertDispatchOpen(destination, controls = {}) {
+    signal?.throwIfAborted();
+    controls.signal?.throwIfAborted();
+    if (!recallEnabled) return;
+    if (
+      (expiresAt !== null && Date.now() >= expiresAt) ||
+      (!explicitSink &&
+        destination?.provider != null &&
+        `provider.${destination.provider}` !== sink)
+    ) {
+      const error = new Error(
+        "Memory authorization expired or its provider changed before dispatch",
+      );
+      error.code = "revision_conflict";
+      error.noReplay = true;
+      throw error;
+    }
+  }
+  async function assertCurrent(destination, controls = {}) {
+    assertDispatchOpen(destination, controls);
+    if (!recallEnabled) return;
+    const currentRevision = await runtime.memoryPort.getRevision({
+      signal: dispatchSignal(controls),
+    });
+    assertDispatchOpen(destination, controls);
+    if (currentRevision !== expectedRevision) {
+      const error = new Error(
+        "Memory authorization changed before provider dispatch; prepare a fresh context",
+      );
+      error.code = "revision_conflict";
+      error.details = { expectedRevision, currentRevision };
+      error.noReplay = true;
+      throw error;
+    }
+  }
+  const prepared = {
     messages: restoreContextImageTransport(
       selectedMessages,
       imageTransport.captures,
@@ -403,6 +467,31 @@ export async function prepareCanonicalProviderContext(
     decision: runtime.decision,
     modelCapabilities,
   };
+  // Keep host capabilities and authority paths out of serialized plan evidence.
+  return Object.defineProperties(prepared, {
+    admissionEnabled: { value: recallEnabled },
+    assertCurrent: { value: assertCurrent },
+    assertDispatchOpen: { value: assertDispatchOpen },
+    dispatchResource: {
+      value: recallEnabled
+        ? Object.freeze({
+            key:
+              process.platform === "win32"
+                ? runtime.memoryPort.filePath.toLowerCase()
+                : runtime.memoryPort.filePath,
+            revision: expectedRevision,
+            withLock: (operation, controls = {}) =>
+              runtime.memoryPort.withRevisionGuard(
+                expectedRevision,
+                operation,
+                {
+                  signal: dispatchSignal(controls),
+                },
+              ),
+          })
+        : null,
+    },
+  });
 }
 
 export { defaultAdmissions, toolDefinitionsToContextItems };

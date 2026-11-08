@@ -1,0 +1,254 @@
+{
+  "schema": "chainlesschain.memory-admission-evidence/v1",
+  "archivedAt": "2026-11-08T02:35:46.272Z",
+  "baseCommit": "698b87d79720c75809e830fa826437e021569a1c",
+  "implementation": "uncommitted reviewed worktree, bound by source snapshots below",
+  "providerCallsToRealModels": 0,
+  "paidReady": false,
+  "runtimeCoverageVerified": false,
+  "productionAdmission": false,
+  "files": {
+    "before-initial.json": {
+      "artifact": "raw/before-initial.json.gz",
+      "kind": "report",
+      "bytes": 13702,
+      "sha256": "99ef8c081717c92a49e7d45e6e3311e30fce75fe2600956440216bce457254da",
+      "compressedBytes": 1242,
+      "compressedSha256": "b12df010931980820da0b53374a7652c34339ee86192f9ada1a7263ffa6f84f3"
+    },
+    "before-dispatch.json": {
+      "artifact": "raw/before-dispatch.json.gz",
+      "kind": "report",
+      "bytes": 16279,
+      "sha256": "9458587c0fd590c51a767a3afa4d96a2463d6afdda2569ae247fb0d3f091cd8d",
+      "compressedBytes": 1440,
+      "compressedSha256": "d9804e0747574e94a6fa44d662d52a035a4a9f6b9a8709631f63b9abb6d89506"
+    },
+    "before-scope-close.json": {
+      "artifact": "raw/before-scope-close.json.gz",
+      "kind": "report",
+      "bytes": 3772,
+      "sha256": "0c53a319c7c1cc76fea5d450c0536411c552044e6edc4387a68f7da28bc643d1",
+      "compressedBytes": 956,
+      "compressedSha256": "8c4e7dd6f91b3d234050244d26d5c252864c81bb0db297354732a08910f4a800"
+    },
+    "before-microtask-close.json": {
+      "artifact": "raw/before-microtask-close.json.gz",
+      "kind": "report",
+      "bytes": 4406,
+      "sha256": "f81907333eae15cb05efa4c5db3c52dde8ccbb23fe4f9e2b4e257e32f9d83937",
+      "compressedBytes": 1026,
+      "compressedSha256": "ea8ac748438845a4ae74dab37a53d4a36855e302f52e88a27ce2ee89240ea3fd"
+    },
+    "before-dispatch-errors.json": {
+      "artifact": "raw/before-dispatch-errors.json.gz",
+      "kind": "report",
+      "bytes": 5764,
+      "sha256": "2421ecd6d6fa342d9dfea34570e2e6b2b8524cdfc200aa635f8ba3d4745d71c8",
+      "compressedBytes": 1276,
+      "compressedSha256": "b4d9f8483268259979f4c8351c0fafc1cec728b4e56e0d9679cc8c9a4c5d596d"
+    },
+    "before-disabled-scope.json": {
+      "artifact": "raw/before-disabled-scope.json.gz",
+      "kind": "report",
+      "bytes": 5936,
+      "sha256": "5aa8c6ac8e204286ed91c6e3f10e65d009dec9fec9e660040aa841a4adcd3f23",
+      "compressedBytes": 1340,
+      "compressedSha256": "1c8702f0b108e9deecfb304957d7f70e509957ac8f8d9fdb620ec0a85755c03b"
+    },
+    "before-budget-lock.json": {
+      "artifact": "raw/before-budget-lock.json.gz",
+      "kind": "report",
+      "bytes": 2322,
+      "sha256": "d8176575457ac739301addd26418cc5ed34ff73190fac84e247297b813c2b6de",
+      "compressedBytes": 999,
+      "compressedSha256": "f83d46cd51f584fe2d37b023518aba6f37e8930100c53467743736ef0fad2339"
+    },
+    "after-related.json": {
+      "artifact": "raw/after-related.json.gz",
+      "kind": "report",
+      "bytes": 138146,
+      "sha256": "bd181d76d739100245c3a9fb80c304dd3bb0fca0e2b292c60418037ba0adc797",
+      "compressedBytes": 15825,
+      "compressedSha256": "69b36e46781f501cee011cb11aba81165893fdf715fc8b986e844ba534d0e14b"
+    },
+    "after-budget.tap": {
+      "artifact": "raw/after-budget.tap.gz",
+      "kind": "report",
+      "bytes": 19610,
+      "sha256": "c8240d4fb3aaf8aef9bbe9bcae02ff6cf37255a0c7e4fd126705cb6ed2dc3c11",
+      "compressedBytes": 4110,
+      "compressedSha256": "acff70fd3cc9c34944479f2f90bb50ceec588bc3e70129c7c3821baf9c598998"
+    },
+    "egress-before-review.json": {
+      "artifact": "raw/egress-before-review.json.gz",
+      "kind": "report",
+      "bytes": 107038,
+      "sha256": "6dbd4ed0c521e0790946f1a369b3d5a7e9b51336ffe93f4b869416c29fe77be6",
+      "compressedBytes": 25255,
+      "compressedSha256": "d045e2a8a314549110a22aca3ba1139462fe33008a96a5241e465e9600fabe04"
+    },
+    "egress-final.json": {
+      "artifact": "raw/egress-final.json.gz",
+      "kind": "report",
+      "bytes": 125712,
+      "sha256": "c0e232d042fdecc0b02d38283df61016c78d7a62b93616e57007a2279a30ae19",
+      "compressedBytes": 30110,
+      "compressedSha256": "13e638e8083304592b86d12333daf59f801739f916a19e8a89d91dc28131fcd9"
+    },
+    "budget-environment-failure.tap": {
+      "artifact": "raw/budget-environment-failure.tap.gz",
+      "kind": "report",
+      "bytes": 5776,
+      "sha256": "82f8f8ae1e08513fdaeab833eefa271dd0176b25f339d79bebfd552b45a002c6",
+      "compressedBytes": 2320,
+      "compressedSha256": "893981d072e66ef0bf1fc951abda92182a56dd2b376ecb7af4cad6efe79129fc"
+    },
+    "source:.github/workflows/cli-ci.yml": {
+      "artifact": "raw/sources/20cfebe549270f939c4432d718ad5b91cc08c679406f268d84ac6c1c7a4c5f5d.gz",
+      "kind": "implementation-source",
+      "bytes": 37786,
+      "sha256": "20cfebe549270f939c4432d718ad5b91cc08c679406f268d84ac6c1c7a4c5f5d",
+      "compressedBytes": 6751,
+      "compressedSha256": "ffa61c6f3d2c12f9aed47053fafcbcadfecc68e6786d735f6508254e6baf1d7d"
+    },
+    "source:packages/cli/scripts/budget-egress-reviewed-sources.json": {
+      "artifact": "raw/sources/78789093f3a66c5378f8bd591386b8e0f9a9b3a4a456633625baad37319b64a1.gz",
+      "kind": "implementation-source",
+      "bytes": 66171,
+      "sha256": "78789093f3a66c5378f8bd591386b8e0f9a9b3a4a456633625baad37319b64a1",
+      "compressedBytes": 20437,
+      "compressedSha256": "fa990321af36041bc399d00524aa3a3b6e40384aa95056806c10c5469958eebb"
+    },
+    "source:packages/cli/src/lib/provider-request-admission.js": {
+      "artifact": "raw/sources/553104439f8a5941ed2c4ac725e8dc37000c9b874e84d6c57986db8f2223e336.gz",
+      "kind": "implementation-source",
+      "bytes": 5881,
+      "sha256": "553104439f8a5941ed2c4ac725e8dc37000c9b874e84d6c57986db8f2223e336",
+      "compressedBytes": 1921,
+      "compressedSha256": "088e4298bd5eb64a7966ff3f9c5eef2f9487f9b3178e7973a428400133ab6082"
+    },
+    "source:packages/cli/src/lib/context-memory-kernel/provider-context.js": {
+      "artifact": "raw/sources/3b47c66b60d2c8013d46e45c64bc22573b2182b2b9d965429d80844e4b2a9964.gz",
+      "kind": "implementation-source",
+      "bytes": 16936,
+      "sha256": "3b47c66b60d2c8013d46e45c64bc22573b2182b2b9d965429d80844e4b2a9964",
+      "compressedBytes": 5220,
+      "compressedSha256": "4d6d1149e13be074f077d8f69f602ada086eb441872722288d6aca89190ab16d"
+    },
+    "source:packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js": {
+      "artifact": "raw/sources/cfe27ba5c0f28d058ba568289c5b2432b1e43c53c3660a431b96b35c0ea1a397.gz",
+      "kind": "implementation-source",
+      "bytes": 41851,
+      "sha256": "cfe27ba5c0f28d058ba568289c5b2432b1e43c53c3660a431b96b35c0ea1a397",
+      "compressedBytes": 10663,
+      "compressedSha256": "728010ec0bf0912effbceaf71a2e414887d5b202fe78083eb7289ed35aaf2f30"
+    },
+    "source:packages/cli/src/lib/formal-budget-provider-scope.js": {
+      "artifact": "raw/sources/b7bb444745e47e534d85f0d69486b65c583f92d52c7e61070a55821f6c8fd6d4.gz",
+      "kind": "implementation-source",
+      "bytes": 5032,
+      "sha256": "b7bb444745e47e534d85f0d69486b65c583f92d52c7e61070a55821f6c8fd6d4",
+      "compressedBytes": 1587,
+      "compressedSha256": "e9379d08dc45595ab56e1756545ab1cb8e6063f7dc788094646f46de9f199ba9"
+    },
+    "source:packages/cli/src/lib/formal-budget-transport.js": {
+      "artifact": "raw/sources/d4529b2bf1fcdcc9008a8934105cb618614893684e2f4485fba7e9ad148e60bf.gz",
+      "kind": "implementation-source",
+      "bytes": 15885,
+      "sha256": "d4529b2bf1fcdcc9008a8934105cb618614893684e2f4485fba7e9ad148e60bf",
+      "compressedBytes": 4947,
+      "compressedSha256": "bf7012a14eec4be8257ba401d48790dc7517169798a922bb976f82f475b65565"
+    },
+    "source:packages/cli/src/lib/sub-agent-context.js": {
+      "artifact": "raw/sources/60644fecbdb57012bfe97c2b5c8a5dbc9c88be3b7a4a31270e2f224a47822dad.gz",
+      "kind": "implementation-source",
+      "bytes": 73576,
+      "sha256": "60644fecbdb57012bfe97c2b5c8a5dbc9c88be3b7a4a31270e2f224a47822dad",
+      "compressedBytes": 17356,
+      "compressedSha256": "bb0d8800ac15e73edc72221583d6a40a277e1b935f0e819e786dfb650eee9692"
+    },
+    "source:packages/cli/src/runtime/agent-core.js": {
+      "artifact": "raw/sources/e5f5b7647770db51f49ee7958738a42027ef1cf93dffb2dac58b9e5cf909edbc.gz",
+      "kind": "implementation-source",
+      "bytes": 692404,
+      "sha256": "e5f5b7647770db51f49ee7958738a42027ef1cf93dffb2dac58b9e5cf909edbc",
+      "compressedBytes": 174460,
+      "compressedSha256": "df282be18ca46075c3386127663dfe82f6e519a78994889ee0b961ffbd58f023"
+    },
+    "source:packages/cli/__tests__/integration/memory-dispatch-admission.test.js": {
+      "artifact": "raw/sources/07b347789e9f746472564ff69e02bc99904d0a7cbd5110625b8c7f1f302817bc.gz",
+      "kind": "implementation-source",
+      "bytes": 18687,
+      "sha256": "07b347789e9f746472564ff69e02bc99904d0a7cbd5110625b8c7f1f302817bc",
+      "compressedBytes": 5339,
+      "compressedSha256": "86f4f39bcb2751ac0125f3e42efbd6604822aa4edbc59a2a36f1d54d7c521698"
+    },
+    "source:packages/cli/__tests__/unit/provider-request-admission.test.js": {
+      "artifact": "raw/sources/d15aaaaeb9dd6e66138a89c90b4cb365852fa77dc4db7fa20b32e61f9f60c094.gz",
+      "kind": "implementation-source",
+      "bytes": 13812,
+      "sha256": "d15aaaaeb9dd6e66138a89c90b4cb365852fa77dc4db7fa20b32e61f9f60c094",
+      "compressedBytes": 2986,
+      "compressedSha256": "bc354f16d0945803303e79f0b64dc804f871249bd0cc15e0100fe7d5b61f8a3e"
+    },
+    "source:packages/cli/test-node/memory-budget-admission.node-test.mjs": {
+      "artifact": "raw/sources/4e0edbffbdfe7d36656baeee2c39fdd0db2b475e71130683149bc649f619c1e4.gz",
+      "kind": "implementation-source",
+      "bytes": 11027,
+      "sha256": "4e0edbffbdfe7d36656baeee2c39fdd0db2b475e71130683149bc649f619c1e4",
+      "compressedBytes": 3457,
+      "compressedSha256": "7dd3d70cb7f780eb77acb6b35910f8adaa9e4733500a56a4c53f013693a2059d"
+    }
+  },
+  "sources": {
+    ".github/workflows/cli-ci.yml": {
+      "artifact": "raw/sources/20cfebe549270f939c4432d718ad5b91cc08c679406f268d84ac6c1c7a4c5f5d.gz",
+      "sha256": "20cfebe549270f939c4432d718ad5b91cc08c679406f268d84ac6c1c7a4c5f5d"
+    },
+    "packages/cli/scripts/budget-egress-reviewed-sources.json": {
+      "artifact": "raw/sources/78789093f3a66c5378f8bd591386b8e0f9a9b3a4a456633625baad37319b64a1.gz",
+      "sha256": "78789093f3a66c5378f8bd591386b8e0f9a9b3a4a456633625baad37319b64a1"
+    },
+    "packages/cli/src/lib/provider-request-admission.js": {
+      "artifact": "raw/sources/553104439f8a5941ed2c4ac725e8dc37000c9b874e84d6c57986db8f2223e336.gz",
+      "sha256": "553104439f8a5941ed2c4ac725e8dc37000c9b874e84d6c57986db8f2223e336"
+    },
+    "packages/cli/src/lib/context-memory-kernel/provider-context.js": {
+      "artifact": "raw/sources/3b47c66b60d2c8013d46e45c64bc22573b2182b2b9d965429d80844e4b2a9964.gz",
+      "sha256": "3b47c66b60d2c8013d46e45c64bc22573b2182b2b9d965429d80844e4b2a9964"
+    },
+    "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js": {
+      "artifact": "raw/sources/cfe27ba5c0f28d058ba568289c5b2432b1e43c53c3660a431b96b35c0ea1a397.gz",
+      "sha256": "cfe27ba5c0f28d058ba568289c5b2432b1e43c53c3660a431b96b35c0ea1a397"
+    },
+    "packages/cli/src/lib/formal-budget-provider-scope.js": {
+      "artifact": "raw/sources/b7bb444745e47e534d85f0d69486b65c583f92d52c7e61070a55821f6c8fd6d4.gz",
+      "sha256": "b7bb444745e47e534d85f0d69486b65c583f92d52c7e61070a55821f6c8fd6d4"
+    },
+    "packages/cli/src/lib/formal-budget-transport.js": {
+      "artifact": "raw/sources/d4529b2bf1fcdcc9008a8934105cb618614893684e2f4485fba7e9ad148e60bf.gz",
+      "sha256": "d4529b2bf1fcdcc9008a8934105cb618614893684e2f4485fba7e9ad148e60bf"
+    },
+    "packages/cli/src/lib/sub-agent-context.js": {
+      "artifact": "raw/sources/60644fecbdb57012bfe97c2b5c8a5dbc9c88be3b7a4a31270e2f224a47822dad.gz",
+      "sha256": "60644fecbdb57012bfe97c2b5c8a5dbc9c88be3b7a4a31270e2f224a47822dad"
+    },
+    "packages/cli/src/runtime/agent-core.js": {
+      "artifact": "raw/sources/e5f5b7647770db51f49ee7958738a42027ef1cf93dffb2dac58b9e5cf909edbc.gz",
+      "sha256": "e5f5b7647770db51f49ee7958738a42027ef1cf93dffb2dac58b9e5cf909edbc"
+    },
+    "packages/cli/__tests__/integration/memory-dispatch-admission.test.js": {
+      "artifact": "raw/sources/07b347789e9f746472564ff69e02bc99904d0a7cbd5110625b8c7f1f302817bc.gz",
+      "sha256": "07b347789e9f746472564ff69e02bc99904d0a7cbd5110625b8c7f1f302817bc"
+    },
+    "packages/cli/__tests__/unit/provider-request-admission.test.js": {
+      "artifact": "raw/sources/d15aaaaeb9dd6e66138a89c90b4cb365852fa77dc4db7fa20b32e61f9f60c094.gz",
+      "sha256": "d15aaaaeb9dd6e66138a89c90b4cb365852fa77dc4db7fa20b32e61f9f60c094"
+    },
+    "packages/cli/test-node/memory-budget-admission.node-test.mjs": {
+      "artifact": "raw/sources/4e0edbffbdfe7d36656baeee2c39fdd0db2b475e71130683149bc649f619c1e4.gz",
+      "sha256": "4e0edbffbdfe7d36656baeee2c39fdd0db2b475e71130683149bc649f619c1e4"
+    }
+  }
+}
