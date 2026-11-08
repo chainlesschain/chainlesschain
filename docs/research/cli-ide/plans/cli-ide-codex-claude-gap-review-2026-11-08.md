@@ -18,7 +18,7 @@
 | 第 5 项：成本、上下文与付费准入 | 现有估算和准入限制保留                                                          | 实际请求和用量归因、真实任务 A/B；目标生产范围另行准入             |
 | 第 6 项：Codex 与模型兼容       | .167 官方 schema、130 项专项及 Windows turn / 数据库恢复已验证；冷升序 1/2 失败 | 三系统准确提交 CI 排队；冷扫描支持边界及模型变化闭环待完成         |
 | 第 7 项：IDE / 桌面旅程         | 待补完整验收                                                                    | 干净安装、模型切换、Stop、恢复、升级及真人可访问性                 |
-| 第 8 项：Memory                 | 保留当前工作区的既有改动，不并入本批                                            | 新源码独立正确性、冷 / 热 / 混合 SLO 及语义质量                    |
+| 第 8 项：Memory                 | 已合入离线语义质量评测和输入完整性校验；完整生产验收仍未结案                    | 新源码独立正确性、冷 / 热 / 混合 SLO、真实语义质量及跨平台证据     |
 | 第 9 项：共享逻辑与指导内容     | call / task / generation 纯投影已共用；其余待推进                               | 跨入口行为一致性、独立故障定位及有效规则保留                       |
 
 本批兼容实现使用独立分支 feature/cli-ide-gap-20261108，工作区位于 .worktrees/cli-ide-gap-20261108。这样可满足现有协议探针对干净准确提交的要求，并保留主工作区已有 Memory / CLI CI 改动。尚未合并、发布或宣称生产支持扩大。
@@ -204,3 +204,5 @@ Claude Code 的 MCP Tasks 当前处于公开测试阶段，可在服务端受理
 当前主分支还复跑了真实 CLI REPL 进程的硬杀恢复旅程：`repl-inflight-recovery-e2e.test.js` **2/2 通过**。测试覆盖原请求在 SIGKILL 后保持未知、恢复同一会话并提交一个新的独立请求，未把它扩展为双 IDE、OS PTY、预派发输入持久化或完整费用闭环的通过证明。
 
 本次 durable MCP Task 原生探针完整回执已归档于 `../implementation/evidence/mcp-task-durable-20261108/native-rerun-current.json`，并绑定运行时 `sourceCommit`。回执确认 Windows DPAPI、loopback HTTP、受理后 / 结果保存后 / 交付后 SIGKILL、跨进程恢复和一次性重复交付；`modelContinuationVerified:false`、`offlineProductCliVerified:false` 保持未完成边界。
+
+第 8 项新增实现已合入当前主分支提交 74a4140af：增加固定 SciFact 输入校验、离线向量完整性校验、二值 qrels 约束、Recall@1/5/10、MRR@10、nDCG@10 及确定性排序回归。memory-semantic-quality.node-test.mjs 当前 **6/6 通过**。这是可复核的离线评测基础设施，不等于生产 Memory 候选源已接入，也不替代冷/热/混合 SLO、中文/多语言质量、真实用户任务或三系统准确提交门禁。
