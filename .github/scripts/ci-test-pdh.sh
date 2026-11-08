@@ -34,11 +34,11 @@ cd "$PDH_SCRATCH/packages/personal-data-hub"
 # Prove cross-package imports resolve without any source-workspace node_modules.
 node --input-type=module -e "await import('../cli/src/lib/knowledge-graph.js'); await import('../cli/src/lib/bm25-search.js'); await import('../cli/src/lib/host-adb-bridge.js')"
 
-# Install the manifest's SQLCipher range (^12.5.0), without an Electron rebuild.
-# Legacy peer resolution avoids optional Vitest browser peer placement failures.
-npm install --legacy-peer-deps --no-audit --no-fund --loglevel=warn
-# External SQLite adapters also need the plain driver (normally workspace-hoisted).
-npm install --legacy-peer-deps --no-save --no-audit --no-fund better-sqlite3@11.10.0
+# Install both host-Node native drivers explicitly. A second npm install can
+# prune the manifest's optional SQLCipher dependency on Windows, so keep the
+# drivers in one transaction and force optional dependency placement.
+npm install --legacy-peer-deps --include=optional --no-save --no-audit --no-fund --loglevel=warn \
+  better-sqlite3-multiple-ciphers@12.11.1 better-sqlite3@11.10.0
 
 # Opening both databases is mandatory: the PDH config otherwise excludes vault
 # tests on ABI failure, and adapter tests can skip if the plain driver is absent.
@@ -48,6 +48,7 @@ const path = require('node:path');
 const manifest = require('./package.json');
 const drivers = {};
 for (const name of ['better-sqlite3-multiple-ciphers', 'better-sqlite3']) {
+  require.resolve(name);
   const Database = require(name);
   const db = new Database(':memory:');
   try {
