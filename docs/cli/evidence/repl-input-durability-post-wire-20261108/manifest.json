@@ -1,6 +1,6 @@
 {
   "schema": "chainlesschain.repl-input-durability-post-wire-evidence/v1",
-  "generatedAt": "2026-11-08T10:41:32.632Z",
+  "generatedAt": "2026-11-08T10:48:48.663Z",
   "sourceCommit": "a7a64b2eb238102a98f74513b1f7d8b4606dc32c",
   "sources": [
     {
@@ -107,8 +107,8 @@
     },
     {
       "path": "docs/cli/evidence/repl-input-durability-post-wire-20261108/raw/run-Das8Lf/original.stdout.log",
-      "bytes": 746,
-      "sha256": "7970ca876e6e1bbce3cfe46ca87b893b49780e874b3077be7aae6aeb87434dc2"
+      "bytes": 744,
+      "sha256": "a72c9f0028e47d2d3e55fcde46a85f1079167919b037dedb9171f4eb21f49ad2"
     },
     {
       "path": "docs/cli/evidence/repl-input-durability-post-wire-20261108/raw/run-Das8Lf/receipt.json",
@@ -122,8 +122,8 @@
     },
     {
       "path": "docs/cli/evidence/repl-input-durability-post-wire-20261108/raw/run-Das8Lf/resumed.stdout.log",
-      "bytes": 1249,
-      "sha256": "df9f8f8d32e4943b7f8a208532be2109e4f13b9861e7448fc5f029bee13de07b"
+      "bytes": 1247,
+      "sha256": "2df53e5ed1126d785cb38078bed4652057404db63b909d1e628c29328c8f3fd1"
     },
     {
       "path": "docs/cli/evidence/repl-input-durability-post-wire-20261108/raw/run-KuvFGt/inspect-after-kill.stderr.log",
@@ -172,8 +172,8 @@
     },
     {
       "path": "docs/cli/evidence/repl-input-durability-post-wire-20261108/raw/run-KuvFGt/original.stdout.log",
-      "bytes": 746,
-      "sha256": "082566a036f20f3c9d83b6de84743c19c74edb1badf0f082d37c1ac6ba9d0d14"
+      "bytes": 744,
+      "sha256": "a12d0d30154396a6c3b4d30aad6f534538dd1b812cf81b3d26dfd664e5b440e4"
     },
     {
       "path": "docs/cli/evidence/repl-input-durability-post-wire-20261108/raw/run-KuvFGt/receipt.json",
@@ -187,8 +187,8 @@
     },
     {
       "path": "docs/cli/evidence/repl-input-durability-post-wire-20261108/raw/run-KuvFGt/resumed.stdout.log",
-      "bytes": 1249,
-      "sha256": "c4cbc33f7a3c518adfaae5a1535560cf9ee00e7fd9dcdbdb13136be44b8ef926"
+      "bytes": 1247,
+      "sha256": "7cdcc58a2ae24c6b9824e61b1e4241ee4b34b4d536a8d83cd685d0a0ab917c51"
     },
     {
       "path": "docs/cli/evidence/repl-input-durability-post-wire-20261108/raw/run-RNMBGV/inspect-after-kill.stderr.log",
