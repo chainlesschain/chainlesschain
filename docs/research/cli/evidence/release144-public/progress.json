@@ -1,0 +1,49 @@
+{
+  "schema": "chainlesschain.release-progress/v1",
+  "checkedAt": "2026-11-08T03:00:59.502Z",
+  "status": "PENDING_FULL_CLI_CI_NOT_PUBLISHED",
+  "sourceSha": "1ac18717f603a84a75dcb11ea9069907b6d43c18",
+  "sourceTree": "7cd55b2ff1d71f6593aaa26f1fee7bc946da7838",
+  "versions": {
+    "cli": "0.166.144",
+    "sessionCore": "0.3.27",
+    "openVsx": "0.37.180",
+    "jetbrains": "0.4.197",
+    "productCandidate": "v5.0.3.146"
+  },
+  "gates": {
+    "cliCi": {
+      "runId": 42437252348,
+      "status": "pending"
+    },
+    "strictSandbox": {
+      "runId": 42430680249,
+      "status": "success",
+      "jobs": 6
+    },
+    "memoryQueryIndex": {
+      "runId": 42430680151,
+      "status": "success",
+      "platforms": ["linux", "windows", "macos"]
+    },
+    "backgroundInteraction": {
+      "runId": 42430680274,
+      "status": "success"
+    }
+  },
+  "publication": {
+    "sessionCore": "not-published",
+    "cli": "not-published",
+    "openVsx": "not-published",
+    "jetbrains": "not-published",
+    "product": "not-published"
+  },
+  "limits": {
+    "paidReadiness": "NOT_PAID_READY",
+    "nativeAdmission": "NOT_ADMITTED",
+    "automaticPromotion": "HOLD",
+    "microsoftMarketplace": "deferred-unpublished",
+    "modelTaskRetest": "NOT_RUN_NO_ADDITIONAL_MODEL_TASK_RETEST"
+  },
+  "scope": "Frozen goal-transfer/native-goal source and memory-query cancellation fixes. Later main MCP/diagnostic/Memory source changes are excluded. No registry publication claim until OIDC and public readback succeed."
+}
