@@ -90,4 +90,64 @@ describe("REPL accepted/settled integration contract", () => {
       ],
     });
   });
+
+  it("rejects a settlement with a different turn binding atomically", () => {
+    const sessionId = "repl-turn-binding";
+    startSession(sessionId, { provider: "test", model: "test" });
+    const accepted = appendSessionInputAcceptance(sessionId, {
+      inputId: "repl-input-binding",
+      turnId: "repl-turn-binding:turn-1",
+      prompt: "must remain pending",
+    });
+    expect(() =>
+      appendSessionInputSettlement(
+        sessionId,
+        { ...accepted, turnId: "repl-turn-binding:turn-forged" },
+        "forged settlement",
+      ),
+    ).toThrow();
+    expect(rebuildMessages(sessionId)).toEqual([]);
+    expect(
+      readEvents(sessionId).some(
+        (event) => event.type === "session_input_settled",
+      ),
+    ).toBe(false);
+    const projected = projectVerifiedSessionHostSnapshot(
+      sessionId,
+      readEvents(sessionId),
+    );
+    expect(projected.inputRecovery.summary.pendingCount).toBe(1);
+    expect(projected.inputRecovery.pendingInputs[0].turnId).toBe(
+      "repl-turn-binding:turn-1",
+    );
+  });
+
+  it("rebuilds a settled turn as one pair and clears private pending state", () => {
+    const sessionId = "repl-settled-restart";
+    startSession(sessionId, { provider: "test", model: "test" });
+    const accepted = appendSessionInputAcceptance(sessionId, {
+      inputId: "repl-input-settled",
+      turnId: "repl-settled-restart:turn-1",
+      prompt: "persisted user prompt",
+    });
+    appendSessionInputSettlement(
+      sessionId,
+      accepted,
+      "persisted assistant reply",
+    );
+    expect(rebuildMessages(sessionId)).toEqual([
+      { role: "user", content: "persisted user prompt" },
+      { role: "assistant", content: "persisted assistant reply" },
+    ]);
+    const projected = projectVerifiedSessionHostSnapshot(
+      sessionId,
+      readEvents(sessionId),
+    );
+    expect(projected.inputRecovery.summary.pendingCount).toBe(0);
+    expect(projected.snapshot.messages).toHaveLength(2);
+    expect(projected.snapshot.messages.map(({ role }) => role)).toEqual([
+      "user",
+      "assistant",
+    ]);
+  });
 });

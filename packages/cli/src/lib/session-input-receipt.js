@@ -155,6 +155,15 @@ export function appendSessionInputAcceptance(
 
 /** Publish the complete user/assistant pair as one replayable event. */
 export function appendSessionInputSettlement(sessionId, accepted, response) {
+  const pending = readSessionInputAcceptance(sessionId, accepted?.inputId);
+  if (
+    !pending ||
+    pending.turnId !== accepted?.turnId ||
+    pending.inputDigest !== accepted?.inputDigest ||
+    pending.acceptanceHash !== accepted?.acceptanceHash
+  ) {
+    throw new Error("Settlement does not match the pending accepted input");
+  }
   const data = createSessionInputSettled(
     accepted,
     accepted.acceptanceHash,
