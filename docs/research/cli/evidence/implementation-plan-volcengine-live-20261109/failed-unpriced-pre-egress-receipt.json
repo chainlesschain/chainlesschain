@@ -1,0 +1,44 @@
+{
+  "schema": "chainlesschain.implementation-plan-volcengine-diagnostic/v1",
+  "startedAt": "2026-11-08T18:07:43.039Z",
+  "provider": "volcengine",
+  "model": "deepseek-v4-1-flash-economy-261017",
+  "formalSample": false,
+  "billingVerified": false,
+  "outputUpperBoundVerified": false,
+  "estimatedStopIsHardBudget": false,
+  "requestLimit": 8,
+  "estimatedSpendStopUsd": 0.05,
+  "requests": [],
+  "checks": [
+    {
+      "name": "stream-and-usage",
+      "status": "failed",
+      "errorCode": "ERR_ASSERTION"
+    }
+  ],
+  "sourceCommit": "b06c12eb5f5a28636e8e62a385507b1bc3417035",
+  "sourceBindings": [
+    {
+      "path": "../src/runtime/agent-core.js",
+      "digest": "sha256:70f87daf74b35da4e7daba7c5ba582bf63d8942fb00a0986fe77cd23b2759192"
+    },
+    {
+      "path": "../src/runtime/provider-stream-state.js",
+      "digest": "sha256:be1c3f7e29e752835a09c70fef427ebe241c91c5c862a8bdf70650c5206e548e"
+    },
+    {
+      "path": "../src/harness/provider-backed-compaction.js",
+      "digest": "sha256:d21bc2192e8ea2695be47bff8b1b77b0d415f5e47497afd7ee8b2087a3dd3e02"
+    },
+    {
+      "path": "../src/lib/llm-pricing.js",
+      "digest": "sha256:c81141f94b62a4cdf051c3801d22493910572a91a873481303b4e515cbc244f6"
+    }
+  ],
+  "errorCode": "ERR_ASSERTION",
+  "knownEstimatedCostUsd": 0,
+  "totalEstimatedCostUsd": 0,
+  "finishedAt": "2026-11-08T18:07:43.095Z",
+  "passed": false
+}
