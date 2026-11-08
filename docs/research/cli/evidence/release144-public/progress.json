@@ -1,8 +1,8 @@
 {
   "schema": "chainlesschain.release-progress/v1",
-  "checkedAt": "2026-11-08T03:00:59.502Z",
+  "checkedAt": "2026-11-08T03:07:36.237Z",
   "status": "PENDING_FULL_CLI_CI_NOT_PUBLISHED",
-  "sourceSha": "1ac18717f603a84a75dcb11ea9069907b6d43c18",
+  "sourceSha": "6b8a39e27d4e59fdf81891ce8d3ee1f6f5bc76c7",
   "sourceTree": "7cd55b2ff1d71f6593aaa26f1fee7bc946da7838",
   "versions": {
     "cli": "0.166.144",
@@ -13,21 +13,20 @@
   },
   "gates": {
     "cliCi": {
-      "runId": 42437252348,
+      "runId": 42441293875,
       "status": "pending"
     },
     "strictSandbox": {
-      "runId": 42430680249,
-      "status": "success",
-      "jobs": 6
+      "runId": 42441297198,
+      "status": "pending"
     },
     "memoryQueryIndex": {
-      "runId": 42430680151,
+      "runId": 42431440827,
       "status": "success",
       "platforms": ["linux", "windows", "macos"]
     },
     "backgroundInteraction": {
-      "runId": 42430680274,
+      "runId": 42431440874,
       "status": "success"
     }
   },
@@ -36,7 +35,12 @@
     "cli": "not-published",
     "openVsx": "not-published",
     "jetbrains": "not-published",
-    "product": "not-published"
+    "product": "not-published",
+    "oidcRun": {
+      "runId": 42438360843,
+      "status": "failed-at-exact-sha-gate-no-packages-published",
+      "reason": "Original main CLI CI and Strict runs were canceled; immutable-tag manual full matrices now queued."
+    }
   },
   "limits": {
     "paidReadiness": "NOT_PAID_READY",
@@ -45,5 +49,7 @@
     "microsoftMarketplace": "deferred-unpublished",
     "modelTaskRetest": "NOT_RUN_NO_ADDITIONAL_MODEL_TASK_RETEST"
   },
-  "scope": "Frozen goal-transfer/native-goal source and memory-query cancellation fixes. Later main MCP/diagnostic/Memory source changes are excluded. No registry publication claim until OIDC and public readback succeed."
+  "scope": "Frozen goal-transfer/native-goal source and memory-query cancellation fixes. Later main MCP/diagnostic/Memory source changes are excluded. No registry publication claim until OIDC and public readback succeed.",
+  "identicalCandidateCommit": "1ac18717f603a84a75dcb11ea9069907b6d43c18",
+  "immutableNpmTag": "v-npm-0-166-144"
 }
