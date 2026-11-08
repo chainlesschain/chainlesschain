@@ -12,7 +12,7 @@
 
 | 对应项                          | 当前状态                                                                        | 剩余完成证据                                                       |
 | ------------------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| 第 2 项：实际输入诊断和任务归因 | CLI 已绑定规划、签名投影及四类协议出站来源；双 IDE 诊断入口已有                 | 双 IDE 新明细与完整原生旅程、真实独立任务和完整失败归因待完成      |
+| 第 2 项：实际输入诊断和任务归因 | CLI、VS Code、JetBrains 已绑定白名单逐来源投影；原生入口已有                    | 完整原生旅程、真实独立任务和完整失败归因待完成                     |
 | 第 3 项：任务生命周期恢复       | 已有局部实现，完整旅程未结案                                                    | CLI / 双 IDE、压缩、崩溃窗口、并发输入及副作用核对                 |
 | 第 4 项：MCP Tasks              | durable CLI、单次原会话交付及显式续跑已验证；Windows DPAPI 崩溃恢复通过         | 模型后台跟踪 / 自动唤醒、双 IDE / 桌面、真实服务及多平台验收待完成 |
 | 第 5 项：成本、上下文与付费准入 | 现有估算和准入限制保留                                                          | 实际请求和用量归因、真实任务 A/B；目标生产范围另行准入             |
@@ -206,3 +206,5 @@ Claude Code 的 MCP Tasks 当前处于公开测试阶段，可在服务端受理
 本次 durable MCP Task 原生探针完整回执已归档于 `../implementation/evidence/mcp-task-durable-20261108/native-rerun-current.json`，并绑定运行时 `sourceCommit`。回执确认 Windows DPAPI、loopback HTTP、受理后 / 结果保存后 / 交付后 SIGKILL、跨进程恢复和一次性重复交付；`modelContinuationVerified:false`、`offlineProductCliVerified:false` 保持未完成边界。
 
 第 8 项新增实现已合入当前主分支提交 74a4140af：增加固定 SciFact 输入校验、离线向量完整性校验、二值 qrels 约束、Recall@1/5/10、MRR@10、nDCG@10 及确定性排序回归。memory-semantic-quality.node-test.mjs 当前 **6/6 通过**。这是可复核的离线评测基础设施，不等于生产 Memory 候选源已接入，也不替代冷/热/混合 SLO、中文/多语言质量、真实用户任务或三系统准确提交门禁。
+
+第 2 项现已把 CLI 的逐来源规划 / 逻辑映射 / 协议正文映射投影接入 VS Code 和 JetBrains 的只读解析器：仅保留 digest、索引、状态、原因、协议路径和字节等白名单字段，拒绝任意正文、未知路径和越界数组。VS Code 回归为 **10/10 通过**；JetBrains 纯 JDK 解析源在本机 JDK 17 下 javac --release 17 通过。真实 canonical 双 IDE 任务旅程、真人可访问性和 provider 账单仍未验收。

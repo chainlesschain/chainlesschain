@@ -21,19 +21,35 @@ class SessionModelInputsTest {
         event.put("bytes", 200L);
         event.put("rawBody", "PRIVATE-SOURCE");
         if (logical) {
+            Map<String, Object> planningSource = new LinkedHashMap<>();
+            planningSource.put("ordinal", 0L); planningSource.put("digest", HASH); planningSource.put("kind", "message");
+            planningSource.put("disposition", "selected"); planningSource.put("reason", null);
             event.put("logicalDigest", HASH);
             event.put("messageCount", 2L);
             event.put("toolCount", 0L);
             event.put("planning", Map.of("covered", true, "digest", "sha256:" + HASH, "selectedCount", 2L,
-                    "dropped", Map.of("input_budget", 1L, "PRIVATE-PATH", 999L)));
+                    "dropped", Map.of("input_budget", 1L, "PRIVATE-PATH", 999L),
+                    "sourceDetailsCovered", true, "sourceCount", 1L, "sourcesTruncated", false,
+                    "sources", List.of(planningSource)));
             event.put("projection", Map.of("covered", true, "manifestDigest", HASH, "projectionDigest", HASH,
                     "rulesetDigest", HASH, "tenantId", "PRIVATE-TENANT"));
+            event.put("sourceMapping", Map.of("covered", true, "reason", "complete", "sourceCount", 1L,
+                    "sourcesTruncated", false, "sources", List.of(Map.of("ordinal", 0L,
+                            "input", List.of(Map.of("kind", "message", "index", 0L, "digest", HASH)),
+                            "logical", List.of(Map.of("kind", "message", "index", 0L, "digest", HASH)),
+                            "changed", false, "redactionTouched", false, "injectionTouched", false, "derived", false))));
         } else {
+            Map<String, Object> fragment = new LinkedHashMap<>();
+            fragment.put("path", "/messages/0"); fragment.put("start", null); fragment.put("end", null);
+            fragment.put("digest", HASH); fragment.put("bytes", 12L);
             event.put("stage", "fetch-body");
             event.put("attempt", 1L);
             event.put("bodyCovered", true);
             event.put("bodyDigest", HASH);
             event.put("providerAcceptanceVerified", false);
+            event.put("sourceMapping", Map.of("covered", true, "reason", "complete", "sourceCount", 1L,
+                    "sourcesTruncated", false, "protocol", "openai-chat", "sources", List.of(Map.of("ordinal", 0L,
+                            "status", "mapped", "fragments", List.of(fragment))))));
         }
         return event;
     }
@@ -56,6 +72,7 @@ class SessionModelInputsTest {
         assertTrue(text.contains("input_budget=1"));
         assertTrue(text.contains("planDigest: sha256:" + HASH));
         assertTrue(text.contains("bodyDigest: " + HASH));
+        assertTrue(text.contains("sourceMapping"));
         assertTrue(text.contains("Billing / actual token usage: unknown"));
         assertFalse(text.contains("PRIVATE"));
         assertFalse(text.contains("rawBody"));
