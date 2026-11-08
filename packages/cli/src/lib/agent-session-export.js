@@ -14,6 +14,7 @@ import { projectToolRoundMessages } from "./session-tool-round.js";
  */
 
 export const TOOL_BLOCK_CAP = 4000;
+import { projectSessionInputMessages } from "./session-input-lifecycle.js";
 
 function asText(content) {
   if (content == null) return "";
@@ -116,6 +117,24 @@ export function renderAgentSessionMarkdown(sessionId, events, opts = {}) {
           L.push("");
         }
         break;
+      case "session_input_settled": {
+        const pair = projectSessionInputMessages(ev);
+        if (pair) {
+          users += 1;
+          assistants += 1;
+          L.push(
+            "## 👤 User",
+            "",
+            asText(pair[0].content),
+            "",
+            "## 🤖 Assistant",
+            "",
+            asText(pair[1].content),
+            "",
+          );
+        }
+        break;
+      }
       case "system":
         L.push("## ⚙ System");
         L.push("");

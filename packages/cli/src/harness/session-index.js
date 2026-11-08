@@ -24,6 +24,7 @@ import { ensureClaudeProjectStorageTree, getHomeDir } from "../lib/paths.js";
 import { resolveClaudeProjectStorageDir } from "../lib/claude-project-storage-layout.js";
 import { ensurePrivateDirectory, ensurePrivateFile } from "../lib/secure-fs.js";
 import { readVerifiedProjection } from "./jsonl-session-store.js";
+import { projectSessionInputMessages } from "../lib/session-input-lifecycle.js";
 
 const requireCjs = createRequire(import.meta.url);
 
@@ -156,6 +157,13 @@ function summarizeVerifiedSession(id) {
           messageCount += 2;
           acceptContent(event.data.user.content);
           acceptContent(event.data.assistant.content);
+        } else if (event.type === "session_input_settled") {
+          const pair = projectSessionInputMessages(event);
+          if (pair) {
+            messageCount += 2;
+            acceptContent(pair[0].content);
+            acceptContent(pair[1].content);
+          }
         }
         if (typeof event.hash === "string") chainHash = event.hash;
       },
