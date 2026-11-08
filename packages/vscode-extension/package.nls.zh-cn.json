@@ -87,5 +87,6 @@
   "cmd.inlineChat.fix.title": "修复代码问题",
   "cmd.inlineChat.generateDocs.title": "生成文档注释",
   "cmd.inlineChat.generateTests.title": "生成单元测试",
-  "submenu.inlineChat.title": "ChainlessChain AI"
+  "submenu.inlineChat.title": "ChainlessChain AI",
+  "cmd.session.modelInputs.title": "ChainlessChain：查看模型输入诊断"
 }

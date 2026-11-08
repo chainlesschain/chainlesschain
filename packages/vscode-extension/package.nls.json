@@ -87,5 +87,6 @@
   "cmd.inlineChat.fix.title": "Fix Code Issues",
   "cmd.inlineChat.generateDocs.title": "Generate Documentation",
   "cmd.inlineChat.generateTests.title": "Generate Unit Tests",
-  "submenu.inlineChat.title": "ChainlessChain AI"
+  "submenu.inlineChat.title": "ChainlessChain AI",
+  "cmd.session.modelInputs.title": "ChainlessChain: Show Model Input Diagnostics"
 }

@@ -107,7 +107,9 @@ function runCliResult({
     throw new TypeError("CLI output buffer limit is invalid or unbounded");
   }
   const run = (deps && deps.execFile) || execFile;
-  const useShell = process.platform === "win32";
+  const nativeExecutable =
+    require("node:path").isAbsolute(command) && /\.(?:exe|com)$/i.test(command);
+  const useShell = process.platform === "win32" && !nativeExecutable;
   return new Promise((resolve) => {
     run(
       command,
