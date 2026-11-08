@@ -337,4 +337,4 @@
   ],
   "sourceCommit": "0ff22eb044727052b2392e48be29932f5b294368",
   "command": "node packages/cli/scripts/probe-mcp-task-durable.mjs"
-}\n
+}
