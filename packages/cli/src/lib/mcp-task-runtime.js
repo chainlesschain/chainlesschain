@@ -60,6 +60,11 @@ function publicRecord(record, projection) {
     revision: record.revision,
     taskId: record.task?.taskId ?? null,
     remoteStatus: record.task?.status ?? null,
+    pollIntervalMs:
+      Number.isSafeInteger(record.task?.pollInterval) &&
+      record.task.pollInterval >= 0
+        ? record.task.pollInterval
+        : null,
     cancelRequested: record.cancelRequested,
     cancelUnknown: record.cancelUnknown,
     resultSaved: record.result !== null,
@@ -421,7 +426,7 @@ export function createDurableMcpTaskRuntime({
     async watch(
       localId,
       {
-        intervalMs = 1000,
+        intervalMs = null,
         timeoutMs = 15 * 60 * 1000,
         signal,
         deliver = true,
@@ -429,6 +434,22 @@ export function createDurableMcpTaskRuntime({
         onDelivery = null,
       } = {},
     ) {
+      const requestedInterval = intervalMs == null ? null : Number(intervalMs);
+      const requestedTimeout = Number(timeoutMs);
+      if (
+        (requestedInterval !== null &&
+          (!Number.isSafeInteger(requestedInterval) ||
+            requestedInterval < 0 ||
+            requestedInterval > 60_000)) ||
+        !Number.isSafeInteger(requestedTimeout) ||
+        requestedTimeout < 1 ||
+        requestedTimeout > 24 * 60 * 60 * 1000
+      ) {
+        throw failure(
+          "CC_MCP_TASK_WATCH_OPTIONS_INVALID",
+          "MCP task watch interval/timeout is outside the allowed bounds",
+        );
+      }
       const started = Date.now();
       let latest = null;
       for (;;) {
@@ -442,14 +463,18 @@ export function createDurableMcpTaskRuntime({
           onUpdate?.(latest);
           break;
         }
-        if (Date.now() - started >= timeoutMs) {
+        if (Date.now() - started >= requestedTimeout) {
           throw failure(
             "CC_MCP_TASK_WATCH_TIMEOUT",
             "MCP task did not produce a verified result before the watch timeout",
             { localId },
           );
         }
-        await waitForTaskPoll(intervalMs, signal, lease.signal);
+        await waitForTaskPoll(
+          requestedInterval ?? latest.pollIntervalMs ?? 1000,
+          signal,
+          lease.signal,
+        );
       }
       if (!deliver) return latest;
       const receipt = await this.deliver(localId);

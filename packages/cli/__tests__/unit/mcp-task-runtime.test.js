@@ -287,9 +287,20 @@ describe("durable MCP task auxiliary runtime", () => {
     expect((await host.runtime.list()).records[0]).toMatchObject({
       resultSaved: true,
       delivered: true,
+      pollIntervalMs: 5000,
     });
     const duplicate = await host.runtime.deliver(accepted.localId);
     expect(duplicate).toMatchObject({ delivered: true, duplicate: true });
+  });
+
+  it("rejects unbounded watch options before contacting the server", async () => {
+    const f = await fixture();
+    const host = await f.open();
+    const accepted = await host.runtime.create("remote", "export", {});
+    await expect(
+      host.runtime.watch(accepted.localId, { intervalMs: 60_001 }),
+    ).rejects.toMatchObject({ code: "CC_MCP_TASK_WATCH_OPTIONS_INVALID" });
+    expect(f.calls("tasks/get")).toHaveLength(0);
   });
 
   it.each(["disconnect", "404"])(

@@ -217,7 +217,7 @@ export function registerMcpTaskCommands(
                 : "Request cancellation; remote side effects may already have occurred",
       )
       .requiredOption("--session <id>", "Owning canonical session")
-      .option("--interval <ms>", "Polling interval in milliseconds", "1000")
+      .option("--interval <ms>", "Polling interval in milliseconds")
       .option(
         "--timeout <ms>",
         "Maximum watch duration in milliseconds",
