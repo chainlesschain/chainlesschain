@@ -1,0 +1,25 @@
+{
+  "codeCommit": "bb27c9091637235dc86f9238a473b0e1514209a1",
+  "files": {
+    "sdk-compile-result.log": {
+      "bytes": 964,
+      "sha256": "a56a2c892de65518a1bd4f7c0f77a1c764af927d0fa4a1666fd783b1c9d60894"
+    },
+    "sdk-junit-result.log": {
+      "bytes": 1956,
+      "sha256": "90c1fdba01f7b1cb77adbb590800797a3144e7a0aec4692e6c67fe798c2702c0"
+    },
+    "gradle-test-worker-failure.json": {
+      "bytes": 771,
+      "sha256": "8755063009d1ab68b15ba532d22a6f4914dad5c8ee2d08304407d66c45e0b512"
+    },
+    "jdk-package.json": {
+      "bytes": 307,
+      "sha256": "bdc8c0c35d5f09ecd0e362fc11486fafff3dcbfad7dfa65a77c86e716ff5b09b"
+    },
+    "ideaIC-2024.2.win.zip.sha256": {
+      "bytes": 88,
+      "sha256": "367e2dc81c21b73d53b4c66bcd37c67bd2b1957ac6a62ae2a23b4a9a25d813f8"
+    }
+  }
+}

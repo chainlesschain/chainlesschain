@@ -1,6 +1,6 @@
 # IDE 模型输入诊断入口与 VS Code 原生宿主验证（2026-11-08）
 
-本批继续[差距复核第 2 项](../plans/cli-ide-codex-claude-gap-review-2026-11-08.md)。VS Code 代码已提交 `fdaead01e067ad4db3024b3eb8e9e81747a6fd25`，分支 feature/ide-model-input-diagnostics-20261108。JetBrains 代码正在目标 SDK 构建验证，尚未计入已完成提交。
+本批继续[差距复核第 2 项](../plans/cli-ide-codex-claude-gap-review-2026-11-08.md)。VS Code 代码已提交 `fdaead01e067ad4db3024b3eb8e9e81747a6fd25`，分支 feature/ide-model-input-diagnostics-20261108。JetBrains 入口已在后续提交 bb27c9091637235dc86f9238a473b0e1514209a1 完成并推送，目标 SDK 编译结果见下文。
 
 **VS Code 入口**
 
@@ -24,10 +24,16 @@
 
 保留了首次原生超时、定位后的原生程序参数错误，以及修复后成功回执。测试驱动也修正了等待错误通知关闭和展开 VS Code API 对象误触 experimental getter 的问题；没有启用 proposed API 或放宽产品校验。一次驱动预检失败却误启动的重复测试已按独立 profile 进程身份停止，不计入通过。
 
-**JetBrains 当前状态**
+**JetBrains 验证结果**
 
-已接入 Tools / Find Action 的当前会话摘要入口，以及 nullable 当前会话选择、后台 CLI 查询、返回时会话核对和只读文本对话框。纯 Java 层已在 JDK 21 编译并通过 5 项测试。原机 JDK 低于目标要求，已下载并核验独立官方 JDK 21；真实目标 IntelliJ 2024.2 SDK 构建仍在进行。此状态不等于 IDE SDK 编译或原生 JetBrains UI 已通过。
+Tools / Find Action 已提供“当前会话模型输入诊断”，使用 nullable 当前会话选择、后台 CLI 查询、返回时会话核对及只读文本对话框。没有会话时不会改查 default；错误 stderr 和原始正文不进入 UI。
+
+- JDK 21 + 默认 IntelliJ IDEA Community 2024.2 的 compileJava / compileTestJava / processResources 已取得 BUILD SUCCESSFUL：[编译日志](./evidence/jetbrains-model-input-20261108/sdk-compile-result.log)。
+- 使用这批 Gradle 编译产物、项目 JUnit 5.10.2 和 SDK 自带 JBR 21 直接执行专项，5/5 通过：[测试日志](./evidence/jetbrains-model-input-20261108/sdk-junit-result.log)。
+- 原 Gradle test worker 在执行测试之前无法连接本机 127.0.0.1:61354，保留[失败记录](./evidence/jetbrains-model-input-20261108/gradle-test-worker-failure.json)；没有将这次 Gradle test 声明为通过。
+- 官方 JDK / SDK 下载与校验信息一并归档；未降低目标 SDK、修改 JVM 目标或放宽生产限制。
+- 原生 JetBrains GUI、真实 canonical 会话组合与真人可访问性旅程尚未验收。
 
 **剩余验收**
 
-继续完成 JetBrains 目标 SDK 编译与原生入口验证、使用真实 CLI 会话的双 IDE 组合旅程，以及逐来源失败归因和独立任务验收。现有公开 CLI 版本不自动具备未发布的 --model-inputs；旧 CLI 失败会提示检查功能支持。生产可用性与版本配对仍需按既有发布顺序及 GitHub Actions 准确提交门禁验证。本批未发布版本或扩展付费准入。
+继续完成 JetBrains 原生入口验证、使用真实 CLI 会话的双 IDE 组合旅程，以及逐来源失败归因和独立任务验收。现有公开 CLI 版本不自动具备未发布的 --model-inputs；旧 CLI 失败会提示检查功能支持。生产可用性与版本配对仍需按既有发布顺序及 GitHub Actions 准确提交门禁验证。本批未发布版本或扩展付费准入。

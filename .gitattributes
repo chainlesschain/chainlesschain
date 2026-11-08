@@ -231,3 +231,4 @@ docs/research/agents/evidence/dmm-native-workspace-2026-11-07/verify-evidence.mj
 
 # Keep archived native-host log hashes stable across checkouts.
 docs/research/cli-ide/implementation/evidence/ide-model-input-20261108/*.log -text
+docs/research/cli-ide/implementation/evidence/jetbrains-model-input-20261108/* -text whitespace=cr-at-eol
