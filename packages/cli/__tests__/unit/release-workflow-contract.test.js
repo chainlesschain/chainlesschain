@@ -18,7 +18,7 @@ function workflowJob(text, name) {
   const start = lines.indexOf(`  ${name}:`, lines.indexOf("jobs:") + 1);
   expect(start, `missing workflow job: ${name}`).toBeGreaterThan(-1);
   const next = lines.findIndex(
-    (line, index) => index > start && /^  [\w-]+:\s*$/u.test(line),
+    (line, index) => index > start && /^ {2}[\w-]+:\s*$/u.test(line),
   );
   return lines.slice(start, next === -1 ? undefined : next).join("\n");
 }
@@ -109,7 +109,7 @@ describe("CLI release workflow contracts", () => {
       "throw new Error('Missing, failed or wrong-source documentation decision')",
     );
     for (const trigger of ["push", "pull_request"]) {
-      const paths = text.split(`\n  ${trigger}:`)[1].split(/\n  \w/u)[0];
+      const paths = text.split(`\n  ${trigger}:`)[1].split(/\n {2}\w/u)[0];
       for (const input of [
         "packages/personal-data-hub/**",
         "packages/personal-data-hub-bridge/**",
@@ -141,7 +141,10 @@ describe("CLI release workflow contracts", () => {
     );
     expect(script).toContain("commit: process.env.PDH_EXPECTED_SHA");
     expect(script).toContain(
-      "npm install --legacy-peer-deps --no-audit --no-fund --loglevel=warn",
+      "npm install --legacy-peer-deps --include=optional --no-save --no-audit --no-fund --loglevel=warn",
+    );
+    expect(script).toContain(
+      "better-sqlite3-multiple-ciphers@12.11.1 better-sqlite3@11.10.0",
     );
     expect(script).toContain("--pool=forks --maxWorkers=2");
     expect(script).toContain("git archive HEAD");
@@ -586,8 +589,12 @@ describe("CLI release workflow contracts", () => {
     expect(preflight).toContain('python-version: "3.12"');
     expect(preflight).toContain("uses: ./.github/actions/setup-node-deps");
     expect(preflight).not.toContain("continue-on-error:");
-    const commands = literalRunBlocks(preflight).filter((run) =>
-      run.trim().startsWith("node --test"),
+    const commands = literalRunBlocks(preflight).filter(
+      (run) =>
+        run.trim().startsWith("node --test") &&
+        run.includes(
+          "packages/cli/test-node/verify01-native-task-campaign.node-test.mjs",
+        ),
     );
     expect(commands).toHaveLength(1);
     expect(commands[0].trim().split(/\s+/u)).toEqual([
@@ -648,7 +655,7 @@ describe("CLI release workflow contracts", () => {
       .split(
         "- name: Verify assisted pricing, pagination, history, attachment and launch policy regressions",
       )[1]
-      ?.split(/\n      - /u)[0];
+      ?.split(/\n {6}- /u)[0];
     expect(step).toBeDefined();
     expect(step).toContain("working-directory: packages/cli");
     expect(step).toContain("npx vitest run");

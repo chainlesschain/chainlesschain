@@ -29,9 +29,46 @@ export const GRAPH_RUNTIME_CANDIDATE_CLASSIFICATIONS = Object.freeze([
   "tool_free_advisor",
   "durable_event_transport",
 ]);
-export const GRAPH_RUNTIME_SURFACE_MANIFEST_PATH = fileURLToPath(
-  new URL("./graph-runtime-surfaces.json", import.meta.url),
-);
+function resolveGraphRuntimeSurfaceManifestPath() {
+  const moduleUrl = new URL("./graph-runtime-surfaces.json", import.meta.url);
+  if (moduleUrl.protocol === "file:") return fileURLToPath(moduleUrl);
+
+  // Desktop/Vitest can evaluate this shared ESM module through a non-file
+  // virtual URL. Resolve only known repository layouts in that environment;
+  // installed CLI modules always use the file URL branch above.
+  const candidates = [
+    path.resolve(
+      process.cwd(),
+      "packages/cli/src/lib/graph-kernel/graph-runtime-surfaces.json",
+    ),
+    path.resolve(
+      process.cwd(),
+      "../packages/cli/src/lib/graph-kernel/graph-runtime-surfaces.json",
+    ),
+    path.resolve(
+      process.cwd(),
+      "../../packages/cli/src/lib/graph-kernel/graph-runtime-surfaces.json",
+    ),
+    path.resolve(
+      process.cwd(),
+      "src/lib/graph-kernel/graph-runtime-surfaces.json",
+    ),
+  ];
+  const resolved = candidates.find((candidate) => {
+    try {
+      return fs.statSync(candidate).isFile();
+    } catch {
+      return false;
+    }
+  });
+  if (resolved) return resolved;
+  throw new TypeError(
+    `Cannot resolve graph runtime surface manifest from module URL ${moduleUrl.href}`,
+  );
+}
+
+export const GRAPH_RUNTIME_SURFACE_MANIFEST_PATH =
+  resolveGraphRuntimeSurfaceManifestPath();
 
 function clone(value) {
   return value == null ? value : JSON.parse(JSON.stringify(value));

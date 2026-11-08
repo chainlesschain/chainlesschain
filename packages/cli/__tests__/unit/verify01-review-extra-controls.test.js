@@ -131,6 +131,26 @@ vi.mock("./packages/cli/src/lib/evolution/agent-evolution-ingress.js", () => ({
     ) {
       copySource(root, "packages/cli/src/lib/session-tool-round.js");
     }
+    // Current transcripts validate real MCP task journals and deliveries.
+    // Frozen audits predating those imports must keep their original sources.
+    if (
+      sourceBytes("packages/cli/src/lib/session-transcript-structure.js").includes(
+        '"./mcp-task-journal-projection.js"',
+      )
+    ) {
+      for (const file of [
+        "mcp-task-journal-projection.js",
+        "mcp-task-delivery-contract.js",
+        "session-generation-authority.js",
+        "session-message-provenance.js",
+        "mcp-call-ledger-projection.js",
+        "mcp-call-ledger.js",
+        "mcp-tool-result.js",
+        "mcp-tasks.js",
+      ]) {
+        copySource(root, `packages/cli/src/lib/${file}`);
+      }
+    }
     copySource(root, "packages/cli/src/harness/jsonl-session-store.js");
     return `
 import { vi } from "vitest";
