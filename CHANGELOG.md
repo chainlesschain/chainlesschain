@@ -14,10 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added - cc CLI 0.166.145: integrated Memory authority and release gate repairs (candidate, 2026-11-08)
 
 - Preserve the failed immutable CLI 0.166.144 tag and use a new candidate version for the repaired source; no public package is claimed by this entry.
-- Pair Session Core 0.3.27, VS Code/Open VSX 0.37.180 and JetBrains 0.4.197 only after exact-source three-OS CLI CI / Strict Sandbox and upstream OIDC publication/readback.
+- Pair Session Core 0.3.27, VS Code/Open VSX 0.37.181 and JetBrains 0.4.198 only after exact-source three-OS CLI CI / Strict Sandbox and upstream OIDC publication/readback.
 - Revalidate Memory revision, expiry, sink and inherited scope at each physical provider dispatch; hold ordered authority locks through request startup and release them before waiting for HTTP.
 - Combine model-input digest diagnostics and durable MCP Tasks with the integrated host admission and cancellation boundaries; asynchronous diagnostic observers cannot authorize stale Memory dispatch.
 - Synchronize generated command help, process-spawn inventory and byte-bound network-source reviews without changing paid/native admission or release gates.
+- Keep IDE 0.37.180 / 0.4.197 paired with the immutable .144 candidate; the repaired .145 source uses fresh IDE versions and includes model-input diagnostics in the public capability contract.
 
 ### Added - cc CLI 0.166.144: goal transfer and release readiness (candidate, 2026-11-08)
 

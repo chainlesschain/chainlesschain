@@ -5,7 +5,7 @@ Command-line interface for installing, configuring, and managing [ChainlessChain
 ## CLI 0.166.145 / Memory authority and release gate repairs
 
 Release pairing: Session Core **0.3.27**, CLI **0.166.145**, VS Code/Open VSX
-**0.37.180** and JetBrains **0.4.197**. Session Core must be published and
+**0.37.181** and JetBrains **0.4.198**. Session Core must be published and
 verified before CLI; the paired IDE releases follow independent CLI registry readback.
 
 After this version is available from the public registry, install

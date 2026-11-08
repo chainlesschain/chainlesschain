@@ -1,5 +1,11 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.198] - Memory authority and diagnostics release candidate (2026-11-08)
+
+- Recommend CLI 0.166.145 and pair with VS Code/Open VSX 0.37.181 after verified Session Core 0.3.27 and CLI publication.
+- Include the read-only model-input diagnostics entry in the canonical public IDE capability contract and generated documentation.
+- Retain strict host matrices and upstream readback. Package publication does not grant native GUI, real-model or paid readiness.
+
 ## [0.4.197] - goal transfer release candidate (2026-11-08)
 
 - Recommend CLI 0.166.144 and pair with the other IDE 0.37.180 after verified Session Core 0.3.27 and CLI publication.
