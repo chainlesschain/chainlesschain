@@ -1,0 +1,21 @@
+{
+  "schema": "chainlesschain.model-input-native-host/v1",
+  "status": "passed",
+  "scope": "real-vscode-command-registration-editor-and-cli-process-fixture",
+  "realCanonicalSessionJourney": false,
+  "vscodeVersion": "1.96.2",
+  "extensionPath": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-gap-20261108\\packages\\vscode-extension",
+  "languageId": "plaintext",
+  "cliArgs": [
+    "session",
+    "show",
+    "native-model-input-session",
+    "--json",
+    "--model-inputs",
+    "--limit",
+    "50"
+  ],
+  "documentBytes": 720,
+  "documentDigest": "dd9b44507bf0041a374c426a867c9c49d71035c5db2363c1ce43f5a41660e24e",
+  "rawSourceExcluded": true
+}

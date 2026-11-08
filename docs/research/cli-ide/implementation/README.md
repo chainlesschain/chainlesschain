@@ -43,3 +43,4 @@
 - [Codex 0.167 兼容、断流与冷历史扫描（2026-11-08）](./cli-ide-codex-167-progress-2026-11-08.md)
 - [最终模型输入诊断首批实施（2026-11-08）](./cli-ide-model-input-diagnostics-progress-2026-11-08.md)
 - [模型输入诊断持久化与查询（2026-11-08）](./cli-ide-model-input-journal-progress-2026-11-08.md)
+- [IDE模型输入诊断入口与原生宿主验证（2026-11-08）](./cli-ide-model-input-ide-progress-2026-11-08.md)

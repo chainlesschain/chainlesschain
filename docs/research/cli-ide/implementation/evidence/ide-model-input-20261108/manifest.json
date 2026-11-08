@@ -1,0 +1,25 @@
+{
+  "codeCommit": "fdaead01e067ad4db3024b3eb8e9e81747a6fd25",
+  "files": {
+    "vscode-model-input-full-unit.log": {
+      "bytes": 29856,
+      "sha256": "1311b5aae997046fed9d6125e1160c89813177df8769b4319983d89002885f83"
+    },
+    "vscode-host-result.json": {
+      "bytes": 649,
+      "sha256": "8c2e9bf742a30801d72d907a9ab2f8a0bf11234c795e95e1aadf3aa2f20e5489"
+    },
+    "vscode-host-cli-result.json": {
+      "bytes": 1533,
+      "sha256": "ae9577ba3b4bcfbdf0dcee1f6081b5d204c57414378055c4ff46ea90a0876112"
+    },
+    "vscode-first-host-timeout.log": {
+      "bytes": 1738,
+      "sha256": "689909a8065827b9b017357cb7f85d32f55069d8286729293e891eabd649f93f"
+    },
+    "vscode-native-argv-failure.json": {
+      "bytes": 3211,
+      "sha256": "16298a114df9383f38dda07254a61b9d01f409f3afcd462ddd1b2ecb61bbe4fa"
+    }
+  }
+}

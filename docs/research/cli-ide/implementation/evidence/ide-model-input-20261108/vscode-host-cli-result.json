@@ -1,0 +1,10 @@
+{
+  "ok": true,
+  "code": 0,
+  "signal": null,
+  "timedOut": false,
+  "stdout": "{\"schema\":\"chainlesschain.session-model-inputs/v1\",\"sessionId\":\"native-model-input-session\",\"total\":1,\"truncated\":false,\"billingVerified\":false,\"records\":[{\"eventHash\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"diagnostic\":{\"schema\":\"chainlesschain.model-input-diagnostic/v1\",\"requestId\":\"11111111-1111-4111-8111-111111111111\",\"usageCallId\":null,\"phase\":\"body-prepared\",\"attempt\":1,\"stage\":\"fetch-body\",\"bytes\":42,\"bodyCovered\":true,\"bodyDigest\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"billingVerified\":false,\"providerAcceptanceVerified\":false,\"rawBody\":\"PRIVATE-SOURCE-MUST-NOT-RENDER\"}}]}",
+  "stderr": "",
+  "text": "{\"schema\":\"chainlesschain.session-model-inputs/v1\",\"sessionId\":\"native-model-input-session\",\"total\":1,\"truncated\":false,\"billingVerified\":false,\"records\":[{\"eventHash\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"diagnostic\":{\"schema\":\"chainlesschain.model-input-diagnostic/v1\",\"requestId\":\"11111111-1111-4111-8111-111111111111\",\"usageCallId\":null,\"phase\":\"body-prepared\",\"attempt\":1,\"stage\":\"fetch-body\",\"bytes\":42,\"bodyCovered\":true,\"bodyDigest\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"billingVerified\":false,\"providerAcceptanceVerified\":false,\"rawBody\":\"PRIVATE-SOURCE-MUST-NOT-RENDER\"}}]}",
+  "error": null
+}
