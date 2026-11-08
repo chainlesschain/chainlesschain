@@ -457,7 +457,9 @@ export function createDurableMcpTaskRuntime({
         (item) =>
           item.localId === localId && item.deliveryId === receipt.deliveryId,
       );
-      onDelivery?.(receipt, delivery?.message || null);
+      // Pass the full verified delivery record so consumers retain the
+      // session/local-id binding and the rendered external-reference message.
+      onDelivery?.(receipt, delivery || null);
       return Object.freeze({ ...receipt, watched: true });
     },
 
