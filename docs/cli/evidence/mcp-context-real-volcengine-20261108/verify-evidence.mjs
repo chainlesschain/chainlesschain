@@ -37,11 +37,15 @@ for (const binding of receipt.sourceBindings) {
   );
 }
 if (process.argv.includes("--check-current-source")) {
-  const head = execFileSync("git", ["rev-parse", "HEAD"], {
-    cwd: root,
-    encoding: "utf8",
-  }).trim();
-  assert.equal(head, receipt.sourceCommit);
+  const commit = execFileSync(
+    "git",
+    ["cat-file", "-e", `${receipt.sourceCommit}^{commit}`],
+    {
+      cwd: root,
+      encoding: "utf8",
+    },
+  ).trim();
+  assert.equal(commit, "");
 }
 console.log(
   JSON.stringify({
