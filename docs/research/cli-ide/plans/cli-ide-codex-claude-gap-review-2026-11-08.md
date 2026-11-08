@@ -16,7 +16,7 @@
 | 第 3 项：任务生命周期恢复       | 具备 owner-only ACL 时真实 CLI/REPL SIGKILL 恢复套件 2/2 通过 | 双 IDE、压缩、并发输入、副作用和跨入口组合验收仍待完成 |
 | 第 4 项：MCP Tasks              | durable CLI、单次原会话交付、显式续跑、Windows DPAPI 恢复、lease-bound tracker、pollInterval、opt-in REPL auto-wake 与 deliveryId 恢复已验证 | 真实第三方服务、双 IDE / 桌面、多平台和完整 provider continuation 旅程待验收 |
 | 第 5 项：成本、上下文与付费准入 | 已有有限真实 provider 请求、usage 字段和 A/B 回执；账单仍未核验                 | 更完整真实任务 A/B、账单归因；目标生产范围另行准入                 |
-| 第 6 项：Codex 与模型兼容       | .167 官方 schema、130 项专项及 Windows turn / 数据库恢复已验证；冷升序 1/2 失败 | 三系统准确提交 CI 排队；冷扫描支持边界及模型变化闭环待完成         |
+| 第 6 项：Codex 与模型兼容       | `.167` schema/support/turn/history 回归 137/137；`.160/.164` 冷扫描失败回执已归档 | 准确 `.167` native 协议、取消恢复、三系统 CI 和模型变化闭环仍待完成 |
 | 第 7 项：IDE / 桌面旅程         | 待补完整验收                                                                    | 干净安装、模型切换、Stop、恢复、升级及真人可访问性                 |
 | 第 9 项：共享逻辑与指导内容     | call / task / generation 纯投影已共用；用量归因单元回归 12/12 通过 | transcript 跨入口集成和生产行为一致性仍待推进 |
 | 第 9 项：共享逻辑与指导内容     | call / task / generation 纯投影已共用；其余待推进                               | 跨入口行为一致性、独立故障定位及有效规则保留                       |
