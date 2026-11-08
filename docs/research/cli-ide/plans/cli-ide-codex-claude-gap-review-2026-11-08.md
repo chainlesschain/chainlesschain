@@ -14,10 +14,10 @@
 | ------------------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
 | 第 2 项：实际输入诊断和任务归因 | CLI、VS Code、JetBrains 来源投影和组合回归已验证；组合用例 2/2 通过 | 真实独立任务、完整失败归因和双 IDE 真实旅程仍待完成 |
 | 第 3 项：任务生命周期恢复       | 具备 owner-only ACL 时真实 CLI/REPL SIGKILL 恢复套件 2/2 通过 | 双 IDE、压缩、并发输入、副作用和跨入口组合验收仍待完成 |
-| 第 4 项：MCP Tasks              | durable CLI、单次原会话交付、显式续跑、Windows DPAPI 恢复、lease-bound tracker、pollInterval、opt-in REPL auto-wake 与 deliveryId 恢复已验证 | 真实第三方服务、双 IDE / 桌面、多平台和完整 provider continuation 旅程待验收 |
+| Item 7: IDE / desktop journey | JetBrains scripted journey/evidence contracts 85/85 passed; live host acceptance remains open | Clean install, model switching, Stop, recovery, upgrade, and accessibility still require live host evidence |
 | Item 5: cost, context, and paid admission | Volcengine live probe 4/4 HTTP 200 with usage captured; finite real provider A/B receipts also archived | Billing, price reconciliation, output-cap enforcement, and target-scope paid readiness remain unverified |
 | 第 6 项：Codex 与模型兼容       | `.167` schema/support/turn/history 回归 137/137；`.160/.164` 冷扫描失败回执已归档 | 准确 `.167` native 协议、取消恢复、三系统 CI 和模型变化闭环仍待完成 |
-| 第 7 项：IDE / 桌面旅程         | 待补完整验收                                                                    | 干净安装、模型切换、Stop、恢复、升级及真人可访问性                 |
+| Item 7: IDE / desktop journey | JetBrains scripted journey/evidence contracts 85/85 passed; live host acceptance remains open | Clean install, model switching, Stop, recovery, upgrade, and accessibility still require live host evidence |
 | Item 9: shared logic and guidance | call / task / generation pure projections are shared; usage attribution unit + transcript integration 19/19 passed | Cross-entry production behavior and independent failure localization still require real IDE/desktop journeys |
 
 本批兼容实现使用独立分支 feature/cli-ide-gap-20261108，工作区位于 .worktrees/cli-ide-gap-20261108。这样可满足现有协议探针对干净准确提交的要求，并保留主工作区已有 Memory / CLI CI 改动。尚未合并、发布或宣称生产支持扩大。
@@ -239,3 +239,8 @@ The `.160` and `.164` zero-turn replay, environment, launcher-registry, and nati
 ### 2026-11-09 Codex 0.164 scan-repair rerun
 
 Using the exact current source commit `72fe88974308bad8f9fea6acc078a3ec811f39e5`, the local official Codex 0.164.0 fixture was rerun with `--scope scan-repair`. The strict probe failed at `cold-asc:first-scan`: the first cold page sequence returned one of two expected identities. Later full-read and known-ID recovery observations were retained but did not promote the incomplete first scan. The negative receipt is archived in [`codex-history-scan-repair-0164-20261109`](../../cli/evidence/codex-history-scan-repair-0164-20261109/). This strengthens the failure boundary; it does not close exact `.167` native, cancellation/recovery, or three-system CI acceptance.
+
+
+### 2026-11-09 JetBrains scripted journey rerun
+
+Four repository-hosted JetBrains journey/evidence suites passed **85/85** with Node's test runner. The receipt is archived in [`jetbrains-scripted-journey-20261109`](../../cli/evidence/jetbrains-scripted-journey-20261109/), with `realIdeHostVerified:false` and `gradleUiHostVerified:false`; this improves scripted contract coverage without claiming a live IntelliJ, dual-IDE, desktop, or accessibility journey.
