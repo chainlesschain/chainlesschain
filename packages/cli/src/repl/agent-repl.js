@@ -3300,6 +3300,7 @@ async function startAgentReplInWorkspaceOwned(
   let _processingLine = false;
   let _lineSettled = null;
   const _activeBtwCalls = new Set();
+  const _mcpTaskTrackers = new Map();
   const _pendingLines = [];
   const _runtimeLedgerTerminalLatch = createReplRuntimeLedgerTerminalLatch({
     onTrip: (terminalError) => {
@@ -5251,6 +5252,7 @@ async function startAgentReplInWorkspaceOwned(
           "/ide",
           "/init",
           "/mcp",
+          "/mcp-watch",
           "/memory",
           "/microcompact",
           "/model",
@@ -8824,6 +8826,80 @@ async function startAgentReplInWorkspaceOwned(
     }
 
     // `/mcp` — overview of connected MCP servers' resources + prompts.
+    // `/mcp-watch [local-id]` starts explicit, lease-bound durable task
+    // tracking in this REPL. Delivery remains an external reference event;
+    // it never becomes an implicit user prompt or model instruction.
+    if (trimmed === "/mcp-watch" || trimmed.startsWith("/mcp-watch ")) {
+      try {
+        if (!sessionId || !useJsonl || !_sessionHostLeaseScope?.lease) {
+          throw new Error(
+            "MCP task tracking requires an active canonical session lease",
+          );
+        }
+        const hostMcp = _getReplHostMcp();
+        if (!hostMcp?.mcpClient) {
+          throw new Error("No connected MCP client is available");
+        }
+        const { listDurableMcpTasks, createDurableMcpTaskRuntime } =
+          await import("../lib/mcp-task-runtime.js");
+        const requested = trimmed.slice("/mcp-watch".length).trim();
+        const records = listDurableMcpTasks(sessionId).records.filter(
+          (record) =>
+            (!requested || record.localId === requested) &&
+            !record.resultSaved &&
+            !_mcpTaskTrackers.has(record.localId),
+        );
+        if (
+          requested &&
+          !records.some((record) => record.localId === requested)
+        ) {
+          throw new Error("No pending durable MCP task matches that local id");
+        }
+        for (const record of records) {
+          const runtime = createDurableMcpTaskRuntime({
+            client: hostMcp.mcpClient,
+            sessionId,
+            lease: _sessionHostLeaseScope.lease,
+          });
+          const tracker = runtime.startTracking(record.localId, {
+            deliver: true,
+            onUpdate: (update) => {
+              logger.verbose(
+                `[mcp-watch] ${record.localId}: ${
+                  update.remoteStatus || update.phase
+                }`,
+              );
+            },
+            onDelivery: (receipt) => {
+              logger.log(
+                chalk.green(
+                  `✓ MCP task ${receipt.localId} delivered as external reference; submit a prompt to continue.`,
+                ),
+              );
+            },
+          });
+          _mcpTaskTrackers.set(record.localId, tracker);
+          void tracker.promise
+            .catch((error) => {
+              if (error?.code !== "CC_MCP_TASK_TRACKING_STOPPED") {
+                logger.warn(
+                  `[mcp-watch] ${record.localId} stopped: ${error.message}`,
+                );
+              }
+            })
+            .finally(() => _mcpTaskTrackers.delete(record.localId));
+        }
+        logger.log(
+          records.length
+            ? `MCP task tracking started for ${records.length} task(s).`
+            : "No pending durable MCP tasks require tracking.",
+        );
+      } catch (error) {
+        logger.error(chalk.red(`/mcp-watch failed: ${error.message}`));
+      }
+      prompt();
+      return;
+    }
     if (trimmed === "/mcp" || trimmed.startsWith("/mcp ")) {
       const mcpClient = _getReplHostMcp()?.mcpClient;
       logger.log(renderMcpSurface(mcpClient));
@@ -10459,6 +10535,8 @@ async function startAgentReplInWorkspaceOwned(
       if (_evolutionSession !== null) _replOutputFailure ||= error;
       _turnAbort.abort(error);
     }
+    for (const tracker of _mcpTaskTrackers.values()) tracker.stop();
+    _mcpTaskTrackers.clear();
     _promptInteractions.dispose();
     // Autonomous goals outlive the input line that submitted them. Cancel
     // their next-step execution and wait for any current call to settle too.
