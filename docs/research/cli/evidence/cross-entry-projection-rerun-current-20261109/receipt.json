@@ -1,0 +1,23 @@
+{
+  "schema": "chainlesschain.cross-entry-projection-rerun/v1",
+  "head": "6c8c8d1a2",
+  "branch": "main",
+  "remotePushed": false,
+  "tests": {
+    "cli": {
+      "command": "npx vitest run __tests__/unit/model-input-diagnostics.test.js __tests__/unit/model-input-source-mapping.test.js __tests__/unit/context-memory-provider-source-mapping.test.js __tests__/unit/session-model-input-diagnostics.test.js --reporter=dot",
+      "passed": 52,
+      "failed": 0
+    },
+    "vscode": {
+      "command": "node --test test/model-input-diagnostics.test.cjs",
+      "passed": 10,
+      "failed": 0
+    }
+  },
+  "limitations": [
+    "JetBrains live runtime not covered",
+    "real IDE/desktop task journey not covered",
+    "independent IDE/desktop failure localization not covered"
+  ]
+}

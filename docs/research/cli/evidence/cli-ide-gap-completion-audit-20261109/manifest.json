@@ -114,7 +114,8 @@
       "evidence": [
         "cli/evidence/usage-attribution-unit-20261109",
         "cli/evidence/model-input-composition-20261109",
-        "cli/evidence/cross-entry-projection-current-20261109"
+        "cli/evidence/cross-entry-projection-current-20261109",
+        "cli/evidence/cross-entry-projection-rerun-current-20261109"
       ],
       "remaining": [
         "JetBrains live runtime",
