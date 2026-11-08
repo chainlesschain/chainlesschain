@@ -257,11 +257,13 @@ describe("durable MCP task auxiliary runtime", () => {
     const host = await f.open();
     const accepted = await host.runtime.create("remote", "export", {});
     const updates = [];
+    const deliveries = [];
     setTimeout(() => f.complete(), 5);
     const receipt = await host.runtime.watch(accepted.localId, {
       intervalMs: 10,
       timeoutMs: 500,
       onUpdate: (value) => updates.push(value.remoteStatus),
+      onDelivery: (value) => deliveries.push(value.deliveryId),
     });
     expect(receipt).toMatchObject({
       localId: accepted.localId,
@@ -270,6 +272,7 @@ describe("durable MCP task auxiliary runtime", () => {
       watched: true,
     });
     expect(updates).toContain("completed");
+    expect(deliveries).toEqual([`mcp-task-delivery:${accepted.localId}`]);
     expect((await host.runtime.list()).records[0]).toMatchObject({
       resultSaved: true,
       delivered: true,

@@ -426,6 +426,7 @@ export function createDurableMcpTaskRuntime({
         signal,
         deliver = true,
         onUpdate = null,
+        onDelivery = null,
       } = {},
     ) {
       const started = Date.now();
@@ -452,6 +453,7 @@ export function createDurableMcpTaskRuntime({
       }
       if (!deliver) return latest;
       const receipt = await this.deliver(localId);
+      onDelivery?.(receipt);
       return Object.freeze({ ...receipt, watched: true });
     },
 
