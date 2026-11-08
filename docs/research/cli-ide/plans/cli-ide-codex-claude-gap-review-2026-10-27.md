@@ -100,6 +100,8 @@ Windows独立profile首轮已退出1：真实VSIX安装与激活成功，多窗�
 
 **REPL 在途请求最终实跑（2026-11-08）。** 准确提交 7f8847c6b01db0397a321ec6a853801787cb5855 的测试源在最终提交后重新执行，真实 loopback CLI/readline/Evolution/JSONL 旅程退出0；提交后111份证据及7份测量源码blob复核通过。硬杀持有中的旧请求后恢复同一session并输入新任务，旧provider重放0、新请求1，旧call保持 model-usage-unsettled，已知tokens从15增至30，提示绑定session/call并要求inspect/reconcile后显式重提；billingComplete=false，scope authority缺失时拒绝。旧prompt不进入恢复后的provider历史，因此预派发输入持久化仍明确未完成；OS PTY、双IDE和跨平台恢复也未因此完成。证据见REPL在途恢复文档及 docs/cli/evidence/repl-inflight-recovery-20261108/。
 
+**真实火山任务补测（2026-11-08）。** 使用本地授权的 `H:/code/api/deepseek.txt`，通过当前生产 `chatWithTools` 入口完成一次只读 `read_file` 任务：临时 fixture、模型工具调用、宿主读取和第二轮 marker 核对均通过，2 次 provider 请求只保留哈希/usage，凭据和响应原文未落盘。source-bound receipt 见[real Volcengine task](../../cli/evidence/real-volcengine-live-20261108/README.md)。`billingVerified:false`，该单任务不改写历史 36+9 campaign 分母，也不构成正式 paid/native readiness。
+
 **Codex 冷扫描零推理回放（2026-11-08）。** 固定准确源码 b60efe3a7c79d91c7994bddf18631e9b9f47adef，使用官方 registry 完整性、lock、native SHA 和版本回执，分别运行 0.160.0 与 0.164.0；四个独立冷 home 每个版本均无 provider 请求、无 turn/start。两版本都复现上游发现缺口：recency_at 升序仅1/2，降序2/2；created_at 升降序均1/2。原始 rollout 字节、首次页、严格错误和进程关闭均保留在 [Codex回放归档](../implementation/evidence/codex-archived-replay-20261108/)。这确认4.6的上游分页/首次发现缺口，但不代表生产准入或4.6完成；当前没有修改原生分页语义或扩大allowlist。
 
 **accepted/settled 输入生命周期合同（2026-11-08）。** 已在准确main提交中加入共享纯合同及12项测试：accepted事件只供本地待核对投影，settled单事件才投影完整user/assistant对；重复、孤立、摘要/turn错误、空assistant和pending容量均有拒绝或边界测试，usage/HOLD/预算事件不会清除pending。该合同尚未接入REPL/IDE生产派发和所有历史读路径，因而不能代替预派发输入持久化验收；后续接线必须保持旧prompt不自动重放、显式重新提交新ID以及billing未知状态。

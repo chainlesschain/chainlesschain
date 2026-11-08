@@ -1,0 +1,20 @@
+{
+  "schema": "chainlesschain.real-volcengine-read-task-evidence/v1",
+  "generatedAt": "2026-11-08T12:04:31.766Z",
+  "sourceCommit": "4b7a248597",
+  "receipt": "docs/research/cli/evidence/real-volcengine-live-20261108/agent-read-file/receipt.json",
+  "artifacts": [
+    {
+      "path": "docs/research/cli/evidence/real-volcengine-live-20261108/agent-read-file/receipt.json",
+      "bytes": 1333,
+      "sha256": "d302eaa41058625f5eb61b09f8a15e94a1fd371d937c22188744b4edff002c52"
+    }
+  ],
+  "sources": [
+    {
+      "path": "packages/cli/src/runtime/agent-core.js",
+      "bytes": 696576,
+      "sha256": "70f87daf74b35da4e7daba7c5ba582bf63d8942fb00a0986fe77cd23b2759192"
+    }
+  ]
+}

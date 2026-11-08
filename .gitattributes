@@ -265,3 +265,5 @@ docs/cli/evidence/local-memory-semantic-20261108/* -text
 docs/cli/evidence/repl-inflight-recovery-20261108/raw/** -text
 # Keep current accepted/settled post-wire crash evidence bytes.
 docs/cli/evidence/repl-input-durability-post-wire-20261108/raw/** -text !eol -whitespace
+# Preserve the real provider receipt byte-for-byte; it contains only digests and usage.
+docs/research/cli/evidence/real-volcengine-live-20261108/agent-read-file/receipt.json -text !eol -whitespace

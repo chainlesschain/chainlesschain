@@ -190,3 +190,4 @@ docs/cli/evidence/local-memory-semantic-20261108/*.json
 docs/cli/evidence/repl-inflight-recovery-20261108/raw/**
 docs/cli/evidence/repl-input-durability-post-wire-20261108/raw/**
 docs/cli/evidence/mcp-context-benchmark-20261108/report.json
+docs/research/cli/evidence/real-volcengine-live-20261108/agent-read-file/receipt.json

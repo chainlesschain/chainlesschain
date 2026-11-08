@@ -1,0 +1,43 @@
+{
+  "schema": "chainlesschain.real-volcengine-read-task/v1",
+  "sourceCommit": "4b7a248597",
+  "provider": "volcengine",
+  "model": "deepseek-v4-1-flash-economy-261017",
+  "task": "read_file fixture and repeat marker",
+  "completed": true,
+  "toolCallObserved": true,
+  "toolResultMarkerVerified": true,
+  "finalMarkerVerified": true,
+  "requests": 2,
+  "calls": [
+    {
+      "requestDigest": "2231032f77d61ec0d0c44fbc4d2c6a2413492d9debc18c76b61c15172721529f",
+      "responseDigest": "c7c754374ef85007eb0abfafb7ca95d0a587fe7775033e2b73621616d84638f1",
+      "messageLength": 31,
+      "usage": {
+        "input_tokens": 583,
+        "output_tokens": 47,
+        "cache_read_input_tokens": 0,
+        "service_tier": "default"
+      },
+      "toolCallCount": 1,
+      "containsMarker": false
+    },
+    {
+      "requestDigest": "a265b91ba33010757aaac5e35a8fe041751908a0d5d26c1abffe826e35ff8fb2",
+      "responseDigest": "37390fd5388d1b8b096b25a3777aaf80b7c90c75262a58ed6477fdefaacd5403",
+      "messageLength": 120,
+      "usage": {
+        "input_tokens": 319,
+        "output_tokens": 94,
+        "cache_read_input_tokens": 0,
+        "service_tier": "default"
+      },
+      "toolCallCount": 0,
+      "containsMarker": true
+    }
+  ],
+  "credentialExposed": false,
+  "responseContentExposed": false,
+  "billingVerified": false
+}
