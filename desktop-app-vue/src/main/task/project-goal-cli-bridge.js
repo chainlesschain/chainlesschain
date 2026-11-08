@@ -51,7 +51,9 @@ function createProjectGoalCliBridge({
     };
   }
   async function open(event, input) {
-    if (opening) fail();
+    if (opening) {
+      fail();
+    }
     opening = true;
     openingDone = new Promise((resolve) => {
       finishOpening = resolve;
@@ -60,7 +62,9 @@ function createProjectGoalCliBridge({
     let pending, context;
     try {
       context = await capture(event, input);
-      if (stamp !== operation) fail();
+      if (stamp !== operation) {
+        fail();
+      }
       const goal = context.read();
       const endpointPath = context.drafts
         ? context.createDrafts
@@ -120,14 +124,20 @@ function createProjectGoalCliBridge({
         noLink: true,
       });
       context.read();
-      if (stamp !== operation) fail();
-      if (choice?.response !== 1) return status();
+      if (stamp !== operation) {
+        fail();
+      }
+      if (choice?.response !== 1) {
+        return status();
+      }
       const directory = path.resolve(getConnectionDirectory());
       ensurePrivateDirectory(directory, {
         applyWindowsAcl: true,
         failIfUnavailable: true,
       });
-      if (!inspectPrivatePath(directory).ok) fail();
+      if (!inspectPrivatePath(directory).ok) {
+        fail();
+      }
       const selected = await dialog().showSaveDialog(context.parent, {
         title: "保存临时目标连接（限本机私有连接目录，选择不存在的文件）",
         defaultPath: path.join(
@@ -137,18 +147,25 @@ function createProjectGoalCliBridge({
         filters: [{ name: "Goal connection", extensions: ["json"] }],
       });
       context.read();
-      if (stamp !== operation) fail();
-      if (selected?.canceled || !selected?.filePath) return status();
+      if (stamp !== operation) {
+        fail();
+      }
+      if (selected?.canceled || !selected?.filePath) {
+        return status();
+      }
       if (
         fs.realpathSync(path.dirname(selected.filePath)) !==
           fs.realpathSync(directory) ||
         !inspectPrivatePath(directory).ok
-      )
+      ) {
         fail();
+      }
       if (context.drafts) {
         context.authorizeDrafts();
         context.read();
-        if (stamp !== operation) fail();
+        if (stamp !== operation) {
+          fail();
+        }
       }
       const key = randomBytes(32).toString("hex");
       const mac = (value) =>
@@ -163,8 +180,9 @@ function createProjectGoalCliBridge({
         unsubscribe = () => {},
         detach = () => {};
       const read = () => {
-        if (!active || clock() >= expiresAt || performance.now() >= deadline)
+        if (!active || clock() >= expiresAt || performance.now() >= deadline) {
           fail();
+        }
         return context.read();
       };
       const server = http.createServer((request, response) => {
@@ -243,7 +261,9 @@ function createProjectGoalCliBridge({
                   : "chainlesschain.project-goal-summary/v1",
             ...snapshot,
           });
-          if (Buffer.byteLength(body) > 16 * 1024) fail();
+          if (Buffer.byteLength(body) > 16 * 1024) {
+            fail();
+          }
           read();
           response.setHeader(
             "X-CC-Signature",
@@ -273,7 +293,9 @@ function createProjectGoalCliBridge({
             );
             response.writeHead(status);
             response.end(body);
-            if (status === 410) pending?.close();
+            if (status === 410) {
+              pending?.close();
+            }
             return;
           }
           response.writeHead(410);
@@ -298,7 +320,9 @@ function createProjectGoalCliBridge({
         grantId: context.grantRef?.id,
         read,
         close() {
-          if (!active) return closed;
+          if (!active) {
+            return closed;
+          }
           active = false;
           clearTimeout(timer);
           unsubscribe();
@@ -311,7 +335,9 @@ function createProjectGoalCliBridge({
             resolveClosed();
           });
           server.closeIdleConnections();
-          if (lease === pending) lease = null;
+          if (lease === pending) {
+            lease = null;
+          }
           return closed;
         },
       };
@@ -323,7 +349,9 @@ function createProjectGoalCliBridge({
       unsubscribe = subscribeAuthChanges(() => pending.close());
       detach = context.onInvalidate(() => pending.close());
       read();
-      if (stamp !== operation) fail();
+      if (stamp !== operation) {
+        fail();
+      }
       const descriptor = {
         schema: context.drafts
           ? context.createDrafts
@@ -371,8 +399,9 @@ function createProjectGoalCliBridge({
           opened.ino !== current.ino ||
           opened.dev !== current.dev ||
           opened.nlink !== 1
-        )
+        ) {
           fail();
+        }
         fs.writeFileSync(fd, JSON.stringify(descriptor));
         fs.fsyncSync(fd);
       } finally {
@@ -388,7 +417,9 @@ function createProjectGoalCliBridge({
       pending?.close();
       fail();
     } finally {
-      if (!pending || pending !== lease) context?.dispose();
+      if (!pending || pending !== lease) {
+        context?.dispose();
+      }
       opening = false;
       finishOpening();
     }
@@ -398,7 +429,9 @@ function createProjectGoalCliBridge({
     close,
     status,
     closeGrant(id) {
-      if (lease?.grantId === id) close();
+      if (lease?.grantId === id) {
+        close();
+      }
     },
   };
 }

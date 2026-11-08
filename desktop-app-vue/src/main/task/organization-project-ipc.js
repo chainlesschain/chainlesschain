@@ -120,16 +120,18 @@ function input(value, required, optional = []) {
     Array.isArray(value) ||
     required.some((key) => !Object.hasOwn(value, key)) ||
     Object.keys(value).some((key) => ![...required, ...optional].includes(key))
-  )
+  ) {
     fail("ORG_AUTH_INVALID_REQUEST");
+  }
   return structuredClone(value);
 }
 function id(value) {
   if (
     typeof value !== "string" ||
     !/^[A-Za-z0-9][A-Za-z0-9._:@-]{0,255}$/u.test(value)
-  )
+  ) {
     fail("ORG_AUTH_INVALID_REQUEST");
+  }
   return value;
 }
 function display(value) {
@@ -260,7 +262,9 @@ function createOrganizationProjectHost({
         cancelId: 0,
         noLink: true,
       });
-      if (getActor() !== actor) fail("ORG_AUTH_IDENTITY_CHANGED");
+      if (getActor() !== actor) {
+        fail("ORG_AUTH_IDENTITY_CHANGED");
+      }
       return result?.response === 1;
     }
     function action(create = false, approvalId = null, proposalId = null) {
@@ -313,13 +317,15 @@ function createOrganizationProjectHost({
             ? null
             : ({ request }) => {
                 const proposal = proposals.getInTransaction({ proposalId });
-                if (!proposal.bodyAvailable || !proposal.request)
+                if (!proposal.bodyAvailable || !proposal.request) {
                   fail("ORG_PROPOSAL_BODY_UNAVAILABLE");
+                }
                 if (
                   proposal.requestDigest !== digest(request) ||
                   proposal.approvalId !== approvalId
-                )
+                ) {
                   fail("ORG_PROPOSAL_BINDING_MISMATCH");
+                }
                 return true;
               },
         riskService: risks,
@@ -396,11 +402,12 @@ function createOrganizationProjectHost({
                 !window.isDestroyed() &&
                 contents &&
                 !contents.isDestroyed()
-              )
+              ) {
                 contents.send(
                   "organization-project:goal-memory-invalidated",
                   {},
                 );
+              }
             }
           },
           memoryHostFactory: ({ scope, authorize }) => {
@@ -438,7 +445,9 @@ function createOrganizationProjectHost({
     const c = factory(event);
     const finish = (value) => {
       c.getActor();
-      if (method === "list") c.goalMemory.revalidateOutput(value.outputToken);
+      if (method === "list") {
+        c.goalMemory.revalidateOutput(value.outputToken);
+      }
       c.getActor();
       return value;
     };
@@ -469,14 +478,17 @@ function createOrganizationProjectHost({
             "SELECT * FROM cc_organization_project_bindings WHERE project_id=?",
           )
           .get(p.id);
-        if (binding && binding.org_id !== params.orgId)
+        if (binding && binding.org_id !== params.orgId) {
           fail("ORG_AUTH_NOT_FOUND_OR_DENIED");
+        }
         const members = c.db
           .prepare(
             `SELECT member_did AS did,role,status,${label(c.db, "organization_members", "display_name")} AS name FROM organization_members WHERE org_id=? ORDER BY member_did LIMIT 1001`,
           )
           .all(params.orgId);
-        if (members.length > 1000) fail("ORG_AUTH_SOURCE_INVALID");
+        if (members.length > 1000) {
+          fail("ORG_AUTH_SOURCE_INVALID");
+        }
         const targets = c.db
           .prepare(
             `SELECT id,${label(c.db, "organization_projects")} AS name FROM organization_projects WHERE org_id=? ORDER BY id LIMIT 101`,
@@ -487,8 +499,9 @@ function createOrganizationProjectHost({
             "SELECT * FROM approval_workflows WHERE org_id=? AND trigger_action IN ('task.create','task.update-description') ORDER BY id LIMIT 21",
           )
           .all(params.orgId);
-        if (targets.length > 100 || workflows.length > 20)
+        if (targets.length > 100 || workflows.length > 20) {
           fail("ORG_AUTH_SOURCE_INVALID");
+        }
         const stored = c.db
           .prepare(
             "SELECT policy_json,policy_digest FROM cc_organization_project_policies WHERE org_id=?",
@@ -500,12 +513,14 @@ function createOrganizationProjectHost({
           if (
             typeof stored.policy_json !== "string" ||
             Buffer.byteLength(stored.policy_json) > 65536
-          )
+          ) {
             fail("ORG_AUTH_POLICY_CORRUPT");
+          }
           try {
             policy = JSON.parse(stored.policy_json);
-            if (digest(policy) !== stored.policy_digest)
+            if (digest(policy) !== stored.policy_digest) {
               fail("ORG_AUTH_POLICY_CORRUPT");
+            }
           } catch {
             fail("ORG_AUTH_POLICY_CORRUPT");
           }
@@ -517,8 +532,9 @@ function createOrganizationProjectHost({
               !/^(ORG_AUTH_POLICY_STALE|ORG_AUTH_NOT_FOUND_OR_DENIED)$/u.test(
                 error.code || "",
               )
-            )
+            ) {
               throw error;
+            }
             policyState = "stale";
           }
         }
@@ -563,7 +579,9 @@ function createOrganizationProjectHost({
             c.authority._owner(binding.org_id, actor);
             canManage = true;
           } catch (error) {
-            if (error.code !== "ORG_AUTH_NOT_FOUND_OR_DENIED") throw error;
+            if (error.code !== "ORG_AUTH_NOT_FOUND_OR_DENIED") {
+              throw error;
+            }
           }
           let reason = null;
           try {
@@ -575,7 +593,9 @@ function createOrganizationProjectHost({
                 permission: "task.read",
               });
             } catch (error) {
-              if (error.code !== "ORG_AUTH_NOT_FOUND_OR_DENIED") throw error;
+              if (error.code !== "ORG_AUTH_NOT_FOUND_OR_DENIED") {
+                throw error;
+              }
               try {
                 auth = c.authority.assertAuthorizedInTransaction({
                   projectId: p.id,
@@ -583,8 +603,9 @@ function createOrganizationProjectHost({
                   permission: "risk.read",
                 });
               } catch (riskError) {
-                if (riskError.code !== "ORG_AUTH_NOT_FOUND_OR_DENIED")
+                if (riskError.code !== "ORG_AUTH_NOT_FOUND_OR_DENIED") {
                   throw riskError;
+                }
                 auth = c.authority.assertAuthorizedInTransaction({
                   projectId: p.id,
                   actorDid: actor,
@@ -615,7 +636,9 @@ function createOrganizationProjectHost({
                     }))
                 : [];
           } catch (error) {
-            if (!canManage) throw error;
+            if (!canManage) {
+              throw error;
+            }
             reason = error.code;
           }
           return {
@@ -640,15 +663,18 @@ function createOrganizationProjectHost({
             `SELECT o.org_id AS id,${columns(c.db, "organization_info").has("name") ? "substr(o.name,1,128)" : "NULL"} AS name FROM organization_info o JOIN organization_members m ON m.org_id=o.org_id AND m.member_did=o.owner_did WHERE o.owner_did=? AND m.status='active' AND m.role='owner' ORDER BY o.org_id LIMIT 101`,
           )
           .all(actor);
-        if (organizations.length > 100) fail("ORG_AUTH_SOURCE_INVALID");
+        if (organizations.length > 100) {
+          fail("ORG_AUTH_SOURCE_INVALID");
+        }
         const fields = columns(c.db, "projects");
         const isProjectOwner = !!c.db
           .prepare(
             `SELECT 1 FROM projects WHERE id=? AND user_id=?${fields.has("deleted") ? " AND (deleted IS NULL OR deleted=0)" : ""}`,
           )
           .get(p.id, actor);
-        if (!isProjectOwner && !organizations.length)
+        if (!isProjectOwner && !organizations.length) {
           fail("ORG_AUTH_NOT_FOUND_OR_DENIED");
+        }
         return {
           actorDid: actor,
           projectId: p.id,
@@ -682,7 +708,9 @@ function createOrganizationProjectHost({
           "expiresAt",
         ]),
         c = factory(event);
-      if (!c.goals.get({ id: value.id })) fail("GOAL_NOT_FOUND_OR_DENIED");
+      if (!c.goals.get({ id: value.id })) {
+        fail("GOAL_NOT_FOUND_OR_DENIED");
+      }
       const engine = await goalController.initialize();
       c.getActor();
       const prepared = engine.prepareStartMonitoring(value);
@@ -705,9 +733,12 @@ function createOrganizationProjectHost({
             "成员、政策或目标变化后需重新启用。离线到期会合并为一次检查，最长授权 24 小时。",
           ],
         ))
-      )
+      ) {
         return { status: "cancelled" };
-      if (c.getActor() !== prepared.actorDid) fail("ORG_AUTH_IDENTITY_CHANGED");
+      }
+      if (c.getActor() !== prepared.actorDid) {
+        fail("ORG_AUTH_IDENTITY_CHANGED");
+      }
       return engine.startMonitoring(value, {
         expectedAuthority: prepared.authority,
         expectedMonitorId: prepared.expectedMonitorId,
@@ -717,7 +748,9 @@ function createOrganizationProjectHost({
     async stopGoalMonitoring(event, params) {
       const value = input(params, ["id", "monitorId", "requestId", "mode"]),
         c = factory(event);
-      if (!c.goals.get({ id: value.id })) fail("GOAL_NOT_FOUND_OR_DENIED");
+      if (!c.goals.get({ id: value.id })) {
+        fail("GOAL_NOT_FOUND_OR_DENIED");
+      }
       const engine = await goalController.initialize();
       c.getActor();
       const prepared = engine.prepareStopMonitoring(value);
@@ -738,9 +771,12 @@ function createOrganizationProjectHost({
             "单独的手动检查不会因此停止。停止请求不表示尚在执行的检查已完成中止。",
           ],
         ))
-      )
+      ) {
         return { status: "cancelled" };
-      if (c.getActor() !== prepared.actorDid) fail("ORG_AUTH_IDENTITY_CHANGED");
+      }
+      if (c.getActor() !== prepared.actorDid) {
+        fail("ORG_AUTH_IDENTITY_CHANGED");
+      }
       return engine.stopMonitoring(value, {
         expectedAuthority: prepared.authority,
         guard: c.getActor,
@@ -767,7 +803,9 @@ function createOrganizationProjectHost({
     async configureGoalAcceptance(event, params) {
       const c = factory(event),
         prepared = c.goalCompletion.prepareConfigure(params);
-      if (prepared.replayed) return c.goalCompletion.configure(params);
+      if (prepared.replayed) {
+        return c.goalCompletion.configure(params);
+      }
       if (
         !(await c.confirm(
           "确认组织目标验收条件",
@@ -781,8 +819,9 @@ function createOrganizationProjectHost({
             `确认摘要：${prepared.requestDigest}`,
           ],
         ))
-      )
+      ) {
         return { status: "cancelled" };
+      }
       return c.goalCompletion.configure(params, {
         expectedAuthority: prepared.authority,
         guard: c.getActor,
@@ -791,7 +830,9 @@ function createOrganizationProjectHost({
     async acknowledgeGoalAcceptance(event, params) {
       const c = factory(event),
         prepared = c.goalCompletion.prepareAcknowledge(params);
-      if (prepared.replayed) return c.goalCompletion.acknowledge(params);
+      if (prepared.replayed) {
+        return c.goalCompletion.acknowledge(params);
+      }
       const confirmed = await c.confirm(
         "确认组织目标人工验收",
         "你已实际核对以下业务结果，并确认这些人工验收条件？",
@@ -815,7 +856,9 @@ function createOrganizationProjectHost({
     async completeGoal(event, params) {
       const c = factory(event),
         prepared = c.goalCompletion.prepareComplete(params);
-      if (prepared.replayed) return c.goalCompletion.complete(params);
+      if (prepared.replayed) {
+        return c.goalCompletion.complete(params);
+      }
       if (
         !(await c.confirm(
           "确认组织目标独立验收",
@@ -831,8 +874,9 @@ function createOrganizationProjectHost({
             "完成后关闭后续周期；停止不表示在途检查已同步中止。",
           ],
         ))
-      )
+      ) {
         return { status: "cancelled" };
+      }
       return c.goalCompletion.complete(params, {
         expectedAuthority: prepared.authority,
         expectedFreshnessDigest: prepared.freshnessDigest,
@@ -844,7 +888,9 @@ function createOrganizationProjectHost({
     async createGoal(event, params) {
       const c = factory(event),
         prepared = c.goals.prepareCreate(params);
-      if (prepared.replayed) return c.goals.create(params);
+      if (prepared.replayed) {
+        return c.goals.create(params);
+      }
       if (
         !(await c.confirm(
           "确认创建组织目标",
@@ -860,15 +906,20 @@ function createOrganizationProjectHost({
             `确认摘要：${prepared.requestDigest}`,
           ],
         ))
-      )
+      ) {
         return { status: "cancelled" };
-      if (c.getActor() !== prepared.actorDid) fail("ORG_AUTH_IDENTITY_CHANGED");
+      }
+      if (c.getActor() !== prepared.actorDid) {
+        fail("ORG_AUTH_IDENTITY_CHANGED");
+      }
       return c.goals.create(params, { expectedAuthority: prepared.authority });
     },
     async reviseGoal(event, params) {
       const c = factory(event),
         prepared = c.goals.prepareRevise(params);
-      if (prepared.replayed) return c.goals.revise(params);
+      if (prepared.replayed) {
+        return c.goals.revise(params);
+      }
       if (
         !(await c.confirm(
           "确认更新组织目标",
@@ -881,9 +932,12 @@ function createOrganizationProjectHost({
             `确认摘要：${prepared.requestDigest}`,
           ],
         ))
-      )
+      ) {
         return { status: "cancelled" };
-      if (c.getActor() !== prepared.actorDid) fail("ORG_AUTH_IDENTITY_CHANGED");
+      }
+      if (c.getActor() !== prepared.actorDid) {
+        fail("ORG_AUTH_IDENTITY_CHANGED");
+      }
       return c.goals.revise(params, { expectedAuthority: prepared.authority });
     },
     async checkGoalNow(event, params) {
@@ -891,7 +945,9 @@ function createOrganizationProjectHost({
         c = factory(event);
       // Authorization is checked before opening protected scheduler storage.
       const goal = c.goals.get({ id: value.id });
-      if (!goal) fail("GOAL_NOT_FOUND_OR_DENIED");
+      if (!goal) {
+        fail("GOAL_NOT_FOUND_OR_DENIED");
+      }
       const engine = await goalController.initialize();
       c.getActor();
       const result = await engine.checkNow(value, { guard: c.getActor });
@@ -901,7 +957,9 @@ function createOrganizationProjectHost({
     async getGoalStatus(event, params) {
       const c = factory(event),
         goal = c.goals.get(params);
-      if (!goal) fail("GOAL_NOT_FOUND_OR_DENIED");
+      if (!goal) {
+        fail("GOAL_NOT_FOUND_OR_DENIED");
+      }
       const engine = await goalController.initialize();
       c.getActor();
       const result = engine.status(params);
@@ -912,7 +970,9 @@ function createOrganizationProjectHost({
       const c = factory(event),
         value = input(params, ["id"], ["beforeId", "limit"]),
         goal = c.goals.get({ id: value.id });
-      if (!goal) fail("GOAL_NOT_FOUND_OR_DENIED");
+      if (!goal) {
+        fail("GOAL_NOT_FOUND_OR_DENIED");
+      }
       const engine = await goalController.initialize();
       c.getActor();
       const result = engine.history(value);
@@ -923,7 +983,9 @@ function createOrganizationProjectHost({
       const c = factory(event),
         value = input(params, ["id", "occurrenceId"]),
         goal = c.goals.get({ id: value.id });
-      if (!goal) fail("GOAL_NOT_FOUND_OR_DENIED");
+      if (!goal) {
+        fail("GOAL_NOT_FOUND_OR_DENIED");
+      }
       const engine = await goalController.initialize();
       c.getActor();
       const result = engine.getCheck(value);
@@ -963,9 +1025,12 @@ function createOrganizationProjectHost({
             `说明：${display(value.comment || "")}`,
           ],
         ))
-      )
+      ) {
         return { status: "cancelled" };
-      if (c.getActor() !== admitted.actorDid) fail("ORG_AUTH_IDENTITY_CHANGED");
+      }
+      if (c.getActor() !== admitted.actorDid) {
+        fail("ORG_AUTH_IDENTITY_CHANGED");
+      }
       return c.risks.recordFeedback({
         ...value,
         expectedAuthority: admitted.authority,
@@ -988,14 +1053,17 @@ function createOrganizationProjectHost({
               "SELECT 1 FROM cc_organization_project_bindings WHERE project_id=?",
             )
             .get(value.projectId);
-          if (!personal || bound)
+          if (!personal || bound) {
             return { canInitiate: false, organizations: [] };
+          }
           const organizations = c.db
             .prepare(
               `SELECT o.org_id AS id,o.owner_did AS ownerDid,${columns(c.db, "organization_info").has("name") ? "substr(o.name,1,128)" : "NULL"} AS name FROM organization_info o JOIN organization_members m ON m.org_id=o.org_id AND m.member_did=? JOIN organization_members owner ON owner.org_id=o.org_id AND owner.member_did=o.owner_did AND owner.role='owner' AND owner.status='active' WHERE m.status='active' AND o.owner_did<>? ORDER BY o.org_id LIMIT 101`,
             )
             .all(actor, actor);
-          if (organizations.length > 100) fail("ORG_AUTH_SOURCE_INVALID");
+          if (organizations.length > 100) {
+            fail("ORG_AUTH_SOURCE_INVALID");
+          }
           for (const org of organizations) {
             c.authority._source(org.id);
             org.projects = c.db
@@ -1003,7 +1071,9 @@ function createOrganizationProjectHost({
                 `SELECT id,${label(c.db, "organization_projects")} AS name FROM organization_projects WHERE org_id=? ORDER BY id LIMIT 101`,
               )
               .all(org.id);
-            if (org.projects.length > 100) fail("ORG_AUTH_SOURCE_INVALID");
+            if (org.projects.length > 100) {
+              fail("ORG_AUTH_SOURCE_INVALID");
+            }
           }
           return { canInitiate: organizations.length > 0, organizations };
         })
@@ -1056,14 +1126,17 @@ function createOrganizationProjectHost({
         c.db
           .transaction(() => {
             const source = c.authority._owner(id(value.orgId), c.getActor());
-            if (digest(source) !== value.expectedSourceDigest)
+            if (digest(source) !== value.expectedSourceDigest) {
               fail("ORG_AUTH_VERSION_CONFLICT");
+            }
             const workflowCount = c.db
               .prepare(
                 "SELECT count(*) AS n FROM (SELECT 1 FROM approval_workflows WHERE org_id=? AND trigger_action IN ('task.create','task.update-description') LIMIT 20)",
               )
               .get(value.orgId).n;
-            if (workflowCount >= 20) fail("ORG_AUTH_SOURCE_INVALID");
+            if (workflowCount >= 20) {
+              fail("ORG_AUTH_SOURCE_INVALID");
+            }
             if (
               !["task.create", "task.update-description"].includes(
                 value.actionType,
@@ -1080,16 +1153,18 @@ function createOrganizationProjectHost({
               !Array.isArray(value.steps) ||
               !value.steps.length ||
               value.steps.length > 32
-            )
+            ) {
               fail("ORG_APPROVAL_INVALID_PLAN");
+            }
             for (const step of value.steps) {
               if (
                 !Array.isArray(step) ||
                 !step.length ||
                 step.length > 32 ||
                 new Set(step).size !== step.length
-              )
+              ) {
                 fail("ORG_APPROVAL_INVALID_PLAN");
+              }
               for (const did of step) {
                 id(did);
                 if (
@@ -1097,8 +1172,9 @@ function createOrganizationProjectHost({
                     (member) =>
                       member.member_did === did && member.status === "active",
                   )
-                )
+                ) {
                   fail("ORG_AUTH_NOT_FOUND_OR_DENIED");
+                }
               }
             }
             return c.getActor();
@@ -1117,14 +1193,18 @@ function createOrganizationProjectHost({
             `有效时长：${value.timeoutHours} 小时`,
           ],
         ))
-      )
+      ) {
         return { status: "cancelled" };
+      }
       return c.db
         .transaction(() => {
-          if (c.getActor() !== actor) fail("ORG_AUTH_IDENTITY_CHANGED");
+          if (c.getActor() !== actor) {
+            fail("ORG_AUTH_IDENTITY_CHANGED");
+          }
           const source = c.authority._owner(value.orgId, actor);
-          if (digest(source) !== value.expectedSourceDigest)
+          if (digest(source) !== value.expectedSourceDigest) {
             fail("ORG_AUTH_VERSION_CONFLICT");
+          }
           const workflowId = randomUUID(),
             at = clock();
           c.db
@@ -1185,14 +1265,17 @@ function createOrganizationProjectHost({
               ["pending", "approved"].includes(proposal.approvalStatus),
             eligibilityReason: null,
           };
-          if (!proposal.bodyAvailable || !proposal.request) return result;
+          if (!proposal.bodyAvailable || !proposal.request) {
+            return result;
+          }
           const known = (error) => {
             if (
               !/^(ORG_AUTH_(NOT_FOUND_OR_DENIED|POLICY_STALE|VERSION_CONFLICT|SCOPE_CONFLICT)|ORG_APPROVAL_(AUTHORITY_CHANGED|WORKFLOW_CHANGED|VERSION_CONFLICT|EXPIRED|NOT_PENDING|NOT_APPROVED|NOT_FOUND_OR_DENIED|ALREADY_RESPONDED|STEP_CONFLICT|ALREADY_CONSUMED)|PROJECT_RISK_(REVIEW_STALE|REVIEW_CONFLICT|ACTION_SOURCE_INVALID|NOT_FOUND_OR_DENIED|REVIEW_CORRUPT|SOURCE_INVALID|READ_FAILED))$/u.test(
                 error.code || "",
               )
-            )
+            ) {
               throw error;
+            }
             result.eligibilityReason = error.code;
           };
           if (
@@ -1235,8 +1318,9 @@ function createOrganizationProjectHost({
       const value = input(params, ["proposalId", "step", "decision"]),
         c = factory(event);
       const proposal = c.proposals.get({ proposalId: value.proposalId });
-      if (!proposal.bodyAvailable || !proposal.request)
+      if (!proposal.bodyAvailable || !proposal.request) {
         fail("ORG_PROPOSAL_BODY_UNAVAILABLE");
+      }
       const response = {
         approvalId: proposal.approvalId,
         step: value.step,
@@ -1282,8 +1366,9 @@ function createOrganizationProjectHost({
               : []),
           ],
         ))
-      )
+      ) {
         return { status: "cancelled-confirmation" };
+      }
       return c.db
         .transaction(() => {
           const current = c.proposals.getInTransaction({
@@ -1292,17 +1377,20 @@ function createOrganizationProjectHost({
           if (
             !current.bodyAvailable ||
             current.requestDigest !== proposal.requestDigest
-          )
+          ) {
             fail("ORG_PROPOSAL_BODY_UNAVAILABLE");
-          if (current.approvalId !== proposal.approvalId)
+          }
+          if (current.approvalId !== proposal.approvalId) {
             fail("ORG_PROPOSAL_BINDING_MISMATCH");
+          }
           const result = c.approvals.respondInTransaction(response);
           if (
             value.decision === "approve" &&
             !c.proposals.getInTransaction({ proposalId: value.proposalId })
               .bodyAvailable
-          )
+          ) {
             fail("ORG_PROPOSAL_BODY_UNAVAILABLE");
+          }
           return result;
         })
         .immediate();
@@ -1311,26 +1399,30 @@ function createOrganizationProjectHost({
       const value = input(params, ["proposalId"]),
         c = factory(event),
         proposal = c.proposals.get(value);
-      if (proposal.requesterDid !== c.getActor())
+      if (proposal.requesterDid !== c.getActor()) {
         fail("ORG_APPROVAL_NOT_FOUND_OR_DENIED");
+      }
       if (
         !(await c.confirm(
           "取消任务提议",
           "取消此提议？已保存任务不会因此改变。",
           [`提议：${display(value.proposalId)}`],
         ))
-      )
+      ) {
         return { status: "cancelled-confirmation" };
+      }
       return c.approvals.cancel({ approvalId: proposal.approvalId });
     },
     executeProposal(event, params) {
       const value = input(params, ["proposalId"]),
         c = factory(event),
         proposal = c.proposals.get(value);
-      if (!proposal.bodyAvailable || !proposal.request)
+      if (!proposal.bodyAvailable || !proposal.request) {
         fail("ORG_PROPOSAL_BODY_UNAVAILABLE");
-      if (proposal.requesterDid !== c.getActor())
+      }
+      if (proposal.requesterDid !== c.getActor()) {
         fail("ORG_APPROVAL_NOT_FOUND_OR_DENIED");
+      }
       return c
         .action(
           proposal.request.actionType === "task.create",
@@ -1350,10 +1442,12 @@ function createOrganizationProjectHost({
           ["projectId", "taskId", "beforeId", "limit"],
         ),
         c = factory(event);
-      if (value.taskId !== undefined && value.projectId === undefined)
+      if (value.taskId !== undefined && value.projectId === undefined) {
         return c.descriptions.listRuns(value);
-      if (value.projectId !== undefined && value.taskId === undefined)
+      }
+      if (value.projectId !== undefined && value.taskId === undefined) {
         return c.creation.listProjectRuns(value);
+      }
       fail("ORG_AUTH_INVALID_REQUEST");
     },
   };
@@ -1361,7 +1455,9 @@ function createOrganizationProjectHost({
     goalController.close(),
   );
   for (const [method, channel] of Object.entries(CHANNELS)) {
-    if (!channel.startsWith("organization-project:goal-")) continue;
+    if (!channel.startsWith("organization-project:goal-")) {
+      continue;
+    }
     const execute = handlers[method];
     handlers[method] = (...args) =>
       goalOperations.run(featurePolicy.capture(), () => execute(...args));
@@ -1375,10 +1471,11 @@ function registerOrganizationProjectIPC(database, dependencies = {}) {
     database,
     electron,
   });
-  for (const [method, channel] of Object.entries(CHANNELS))
+  for (const [method, channel] of Object.entries(CHANNELS)) {
     electron.ipcMain.handle(channel, (event, params) =>
       host[method](event, params),
     );
+  }
   return host;
 }
 module.exports = {

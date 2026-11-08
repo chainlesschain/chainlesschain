@@ -117,8 +117,9 @@ describe("main-process continuous goal trial boundary", () => {
             "closeCliConnection",
             "cliConnectionStatus",
           ].includes(method)
-        )
+        ) {
           continue;
+        }
         await expect(
           Promise.resolve().then(() => host[method](event, {})),
         ).rejects.toThrow("GOAL_FEATURE_DISABLED");
@@ -146,7 +147,9 @@ describe("main-process continuous goal trial boundary", () => {
     });
     try {
       for (const [method, channel] of Object.entries(ORG_CHANNELS)) {
-        if (!channel.startsWith("organization-project:goal-")) continue;
+        if (!channel.startsWith("organization-project:goal-")) {
+          continue;
+        }
         await expect(
           Promise.resolve().then(() => host[method]({}, {})),
         ).rejects.toThrow("GOAL_FEATURE_DISABLED");

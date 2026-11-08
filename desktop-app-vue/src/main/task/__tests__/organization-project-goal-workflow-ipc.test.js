@@ -137,7 +137,7 @@ describe("organization goal suggestions bind native approval and action executio
     f.db.exec(
       "CREATE TRIGGER test_goal_task_write_failure AFTER UPDATE OF description ON project_tasks BEGIN SELECT test_goal_write_guard(); END;",
     );
-    for (const grant of permissions)
+    for (const grant of permissions) {
       grant.permissions.push(
         "goal.read",
         "goal.create",
@@ -147,6 +147,7 @@ describe("organization goal suggestions bind native approval and action executio
         "risk.read",
         "risk.evaluate",
       );
+    }
     await attest();
     f.db.prepare("UPDATE project_tasks SET due_date=1 WHERE id='t1'").run();
     ({ goal } = await f.host.createGoal(f.event, {
@@ -213,7 +214,7 @@ describe("organization goal suggestions bind native approval and action executio
       });
       expect(result.receipt.run.id).toBe(saved.run.id);
       expect((await usage()).totalRuns).toBe(2);
-      if (create)
+      if (create) {
         expect(
           f.db
             .prepare(
@@ -221,7 +222,9 @@ describe("organization goal suggestions bind native approval and action executio
             )
             .get("Human-reviewed goal follow-up").n,
         ).toBe(1);
-      else expect(body()).toBe("Human-reviewed goal follow-up");
+      } else {
+        expect(body()).toBe("Human-reviewed goal follow-up");
+      }
       expect(
         (
           await f.host.executeProposal(f.event, {
@@ -291,16 +294,20 @@ describe("organization goal suggestions bind native approval and action executio
       const submitted = await submit(await prepare());
       await approve(submitted.proposal);
       dialog.mockClear();
-      if (change === "paused")
+      if (change === "paused") {
         await f.host.reviseGoal(f.event, {
           id: goal.id,
           expectedRevision: goal.revision,
           requestId: "pause",
           patch: { status: "paused" },
         });
-      if (change === "source")
+      }
+      if (change === "source") {
         f.db.prepare("UPDATE project_tasks SET due_date=2 WHERE id='t1'").run();
-      if (change === "policy") await attest();
+      }
+      if (change === "policy") {
+        await attest();
+      }
       dialog.mockClear();
       await expect(
         Promise.resolve().then(() =>

@@ -2,6 +2,10 @@
 
 [返回 CLI / IDE 索引](../README.md)
 
+- [Memory 组合冷查询与跨平台测量续作（2026-11-08）](./cli-ide-memory-compound-progress-2026-11-08.md)
+
+- [Memory 按需索引和混合基准诊断续作（2026-11-08）](./cli-ide-memory-lazy-progress-2026-11-08.md)
+
 - [CLI 与 IDE 输入交付、草稿恢复续做（2026-10-23）](./cli-ide-recovery-progress-2026-10-23.md)
 - [CLI / IDE 保存输入删除与恢复续做（2026-10-26）](./cli-ide-recovery-progress-2026-10-26.md)
 - [CLI / IDE 差距优化首批实施：Goal 验收与检查点恢复](./cli-ide-goal-completion-progress-2026-10-27.md)

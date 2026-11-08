@@ -9,7 +9,7 @@
   },
   "scripts": {
     "_postinstall_disabled": "node scripts/link-hoisted-modules.js",
-    "postinstall": "node node_modules/electron/install.js || true",
+    "postinstall": "node scripts/install-electron.cjs",
     "predev": "node scripts/fix-broken-bin-shims.js",
     "dev": "npm run build:main && npx concurrently \"npm run dev:renderer\" \"npm run dev:electron\"",
     "dev:electron": "wait-on http://127.0.0.1:5173 && cross-env CHAINLESSCHAIN_DISABLE_NATIVE_DB=1 ELECTRON_DISABLE_SECURITY_WARNINGS=true NODE_ENV=development electron .",

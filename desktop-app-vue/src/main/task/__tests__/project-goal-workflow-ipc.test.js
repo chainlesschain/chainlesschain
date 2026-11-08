@@ -59,7 +59,9 @@ describe("goal workflow trusted desktop IPC and native confirmation boundary", (
     ).immediate();
   });
   afterEach(() => {
-    if (db?.open) db.close();
+    if (db?.open) {
+      db.close();
+    }
   });
   function prepare(type = "task.create") {
     const proposal = host
@@ -114,19 +116,31 @@ describe("goal workflow trusted desktop IPC and native confirmation boundary", (
     const prepared = prepare();
     const original = db;
     electron.dialog.showMessageBox.mockImplementation(async () => {
-      if (change === "disable") await featurePolicy.disable();
-      if (change === "pause")
+      if (change === "disable") {
+        await featurePolicy.disable();
+      }
+      if (change === "pause") {
         host.revise(event, {
           id: g.id,
           expectedRevision: g.revision,
           patch: { status: "paused" },
         });
-      if (change === "logout") actor = null;
-      if (change === "window") window.isDestroyed.mockReturnValue(true);
-      if (change === "database") db = new Database(":memory:");
-      if (change === "navigation")
+      }
+      if (change === "logout") {
+        actor = null;
+      }
+      if (change === "window") {
+        window.isDestroyed.mockReturnValue(true);
+      }
+      if (change === "database") {
+        db = new Database(":memory:");
+      }
+      if (change === "navigation") {
         event.senderFrame.url = "https://untrusted.example";
-      if (change === "identity") actor = "did:chainless:other";
+      }
+      if (change === "identity") {
+        actor = "did:chainless:other";
+      }
       return { response: 1 };
     });
     await expect(
@@ -141,7 +155,9 @@ describe("goal workflow trusted desktop IPC and native confirmation boundary", (
           .run_json,
       ).status,
     ).toBe("denied");
-    if (db !== original) db.close();
+    if (db !== original) {
+      db.close();
+    }
     db = original;
   });
   it.each(["proposals", "prepareIntent", "executeIntent", "readIntent"])(
