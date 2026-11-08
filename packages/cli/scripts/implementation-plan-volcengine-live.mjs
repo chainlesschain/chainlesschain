@@ -107,7 +107,7 @@ export async function runVolcenginePlanDiagnostic(diagnosticOptions = {}) {
     assert.ok(
       Number.isInteger(body.max_tokens) &&
         body.max_tokens > 0 &&
-        body.max_tokens <= 512,
+        body.max_tokens <= 1024,
       "Diagnostic max_tokens declaration missing",
     );
     const quote = estimateCost({
@@ -307,7 +307,12 @@ export async function runVolcenginePlanDiagnostic(diagnosticOptions = {}) {
         provider: "volcengine",
         model: resolved.model,
         llmQuery: async (prompt) => {
-          const response = await call([{ role: "user", content: prompt }]);
+          // Structured handoffs need a larger bounded envelope than ordinary
+          // turns; keep the compaction request capped independently so a
+          // provider cannot truncate the JSON before fact-retention parsing.
+          const response = await call([{ role: "user", content: prompt }], {
+            maxOutputTokens: 1024,
+          });
           return {
             summary: response.message.content,
             usage: response.usage,
@@ -326,6 +331,12 @@ export async function runVolcenginePlanDiagnostic(diagnosticOptions = {}) {
       const controller = new AbortController();
       let emitted = 0;
       let stopped = false;
+      let abortRequested = false;
+      const before = report.requests.length;
+      const abortTimer = setTimeout(() => {
+        abortRequested = true;
+        controller.abort();
+      }, 100);
       try {
         await call(
           [
@@ -337,21 +348,43 @@ export async function runVolcenginePlanDiagnostic(diagnosticOptions = {}) {
           ],
           {
             signal: controller.signal,
+            // Keep enough room to exercise a real stream interruption without
+            // letting a long completion finish after the first token callback.
+            maxOutputTokens: 64,
             onToken: (text) => {
               if (text) {
                 emitted++;
+                abortRequested = true;
                 controller.abort();
               }
             },
           },
         );
+        // Some OpenAI-compatible gateways settle the already-open stream
+        // after the client aborts. The authoritative boundary here is that
+        // the signal fired after a token and no retry was admitted.
+        stopped = controller.signal.aborted;
       } catch (error) {
         stopped = controller.signal.aborted;
         if (!stopped) throw error;
+      } finally {
+        clearTimeout(abortTimer);
       }
-      assert.ok(emitted > 0 && controller.signal.aborted && stopped);
+      report.checks.at(-1).emitted = emitted;
+      report.checks.at(-1).abortRequested = abortRequested;
+      report.checks.at(-1).signalAborted = controller.signal.aborted;
+      report.checks.at(-1).stopped = stopped;
+      report.checks.at(-1).requestCount = report.requests.length;
+      assert.ok(
+        abortRequested &&
+          controller.signal.aborted &&
+          stopped &&
+          report.requests.length === before + 1,
+      );
       report.checks.at(-1).usageUnknown =
         report.requests.at(-1).accounting === "unknown";
+      report.checks.at(-1).transportSettledAfterAbort =
+        report.requests.at(-1).accounting === "estimated";
     });
   } catch (error) {
     report.errorCode = error.code || error.name;

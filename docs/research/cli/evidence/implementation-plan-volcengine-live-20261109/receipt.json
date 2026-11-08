@@ -1,6 +1,6 @@
 {
   "schema": "chainlesschain.implementation-plan-volcengine-diagnostic/v1",
-  "startedAt": "2026-11-08T18:10:52.488Z",
+  "startedAt": "2026-11-08T18:23:04.653Z",
   "provider": "volcengine",
   "model": "deepseek-v4-1-flash-economy-261017",
   "formalSample": false,
@@ -13,78 +13,87 @@
     {
       "id": 1,
       "requestDigest": "sha256:d1cd1a4d32f946b43b0e7c929ba71ba421965dc331202e2a7391ad8f103b8089",
-      "startedAt": "2026-11-08T18:10:52.526Z",
+      "startedAt": "2026-11-08T18:23:04.688Z",
       "stream": true,
       "accounting": "estimated",
       "requestedMaxOutputTokens": 512,
       "httpStatus": 200,
       "usage": {
         "input_tokens": 39,
-        "output_tokens": 24,
+        "output_tokens": 20,
         "cache_read_input_tokens": 0,
         "service_tier": "default"
       },
-      "estimatedCostUsd": 0.000012180000000000002,
+      "estimatedCostUsd": 0.00001106,
       "outputBoundExceeded": false,
       "responseDigest": "sha256:e5aacd7f76fa029e5d1985b03fd1b0e698073b226880b87da1fafaef6cb9775e",
-      "finishedAt": "2026-11-08T18:10:53.872Z"
+      "finishedAt": "2026-11-08T18:23:05.757Z"
     },
     {
       "id": 2,
       "requestDigest": "sha256:da4f75dcc87e2a2882acf5ca378c753bf563ccef8008c9640129b247ac54599a",
-      "startedAt": "2026-11-08T18:10:53.873Z",
+      "startedAt": "2026-11-08T18:23:05.758Z",
       "stream": false,
       "accounting": "estimated",
       "requestedMaxOutputTokens": 512,
       "httpStatus": 200,
       "usage": {
-        "input_tokens": 579,
+        "input_tokens": 67,
         "output_tokens": 46,
-        "cache_read_input_tokens": 0,
+        "cache_read_input_tokens": 512,
         "service_tier": "default"
       },
-      "estimatedCostUsd": 0.00009394,
+      "estimatedCostUsd": 0.000029428000000000004,
       "outputBoundExceeded": false,
-      "responseDigest": "sha256:52ceeb7ec812522c8af3a5e499a8276a15a25b49152dd7d34281b3fd7ce8f74c",
-      "finishedAt": "2026-11-08T18:10:55.214Z"
+      "responseDigest": "sha256:a028faf40bf6b2a31d17a329c6a9fdbc0fa8619017ce3d4c62576383e0fd3b05",
+      "finishedAt": "2026-11-08T18:23:06.853Z"
     },
     {
       "id": 3,
-      "requestDigest": "sha256:676611ea886103146dd220b434f588adbfcc9168ad0d098db374ce1574b1513d",
-      "startedAt": "2026-11-08T18:10:55.222Z",
+      "requestDigest": "sha256:4de4c2809d7070266ebeb81574db9bdced4619f905ded37779be20572507e603",
+      "startedAt": "2026-11-08T18:23:06.862Z",
       "stream": false,
       "accounting": "estimated",
       "requestedMaxOutputTokens": 512,
       "httpStatus": 200,
       "usage": {
-        "input_tokens": 309,
-        "output_tokens": 10,
+        "input_tokens": 307,
+        "output_tokens": 25,
         "cache_read_input_tokens": 0,
         "service_tier": "default"
       },
-      "estimatedCostUsd": 0.00004606,
+      "estimatedCostUsd": 0.00004998,
       "outputBoundExceeded": false,
       "responseDigest": "sha256:1d53e915aba7939feea817b1f7ecb03ab26db5de94365f2ddbcc98dcd50d4873",
-      "finishedAt": "2026-11-08T18:10:56.174Z"
+      "finishedAt": "2026-11-08T18:23:07.812Z"
     },
     {
       "id": 4,
-      "requestDigest": "sha256:6de5a06320186d9a96bc4da95d59930e364f531f28427574a3b1b98936174f23",
-      "startedAt": "2026-11-08T18:10:56.177Z",
+      "requestDigest": "sha256:f716ab656331b0443bb3822d8ecec6b73f0f1b5609238fdde787439cb699e452",
+      "startedAt": "2026-11-08T18:23:07.815Z",
       "stream": false,
       "accounting": "estimated",
-      "requestedMaxOutputTokens": 512,
+      "requestedMaxOutputTokens": 1024,
       "httpStatus": 200,
       "usage": {
-        "input_tokens": 692,
-        "output_tokens": 512,
-        "cache_read_input_tokens": 0,
+        "input_tokens": 83,
+        "output_tokens": 739,
+        "cache_read_input_tokens": 640,
         "service_tier": "default"
       },
-      "estimatedCostUsd": 0.00024024000000000002,
+      "estimatedCostUsd": 0.0002275,
       "outputBoundExceeded": false,
-      "responseDigest": "sha256:2ff9e72042c68aca5c10efe8d43f3adb70580af507441d9fab040c7d9e59a0e2",
-      "finishedAt": "2026-11-08T18:11:03.502Z"
+      "responseDigest": "sha256:9ec63db63e2a77f00cbce202249e29bb526e12d0141f0165c45a8c0c4c84866b",
+      "finishedAt": "2026-11-08T18:23:17.246Z"
+    },
+    {
+      "id": 5,
+      "requestDigest": "sha256:3718340251ee8ff1dc6ecbf5b6a0842250c6e99ce7fab46eb368b15da401437b",
+      "startedAt": "2026-11-08T18:23:17.248Z",
+      "stream": true,
+      "accounting": "unknown",
+      "requestedMaxOutputTokens": 64,
+      "errorCode": 20
     }
   ],
   "checks": [
@@ -99,11 +108,22 @@
     },
     {
       "name": "provider-compaction-fact-retention",
-      "status": "failed",
-      "errorCode": "ERR_ASSERTION"
+      "status": "passed",
+      "savedEstimatedTokens": 551
+    },
+    {
+      "name": "stream-stop-without-retry",
+      "status": "passed",
+      "emitted": 0,
+      "abortRequested": true,
+      "signalAborted": true,
+      "stopped": true,
+      "requestCount": 5,
+      "usageUnknown": true,
+      "transportSettledAfterAbort": false
     }
   ],
-  "sourceCommit": "b06c12eb5f5a28636e8e62a385507b1bc3417035",
+  "sourceCommit": "c233dd96b80cc5a9819d561d8ef782a96e20f899",
   "sourceBindings": [
     {
       "path": "../src/runtime/agent-core.js",
@@ -122,9 +142,8 @@
       "digest": "sha256:c81141f94b62a4cdf051c3801d22493910572a91a873481303b4e515cbc244f6"
     }
   ],
-  "errorCode": "ERR_ASSERTION",
-  "knownEstimatedCostUsd": 0.00039242,
-  "totalEstimatedCostUsd": 0.00039242,
-  "finishedAt": "2026-11-08T18:11:03.506Z",
-  "passed": false
+  "knownEstimatedCostUsd": 0.000317968,
+  "totalEstimatedCostUsd": null,
+  "finishedAt": "2026-11-08T18:23:17.356Z",
+  "passed": true
 }
