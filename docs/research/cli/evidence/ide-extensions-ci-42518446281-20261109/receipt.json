@@ -1,0 +1,24 @@
+{
+  "workflow": "IDE Extensions",
+  "runId": 42518446281,
+  "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42518446281",
+  "headSha": "cdc8f4590a5bc70bf8e2f38ede6127bf40ee621a",
+  "readOnly": true,
+  "jobs": {
+    "vscodeWindows": "success",
+    "vscodeMacOS": "success",
+    "vscodeLinux": "success",
+    "vscodeRemoteSSH": "success",
+    "browserLinux": "success",
+    "browserMacOS": "success",
+    "browserWindows": "success",
+    "browserThreeOSAggregate": "success",
+    "jetbrainsRealHost": "skipped",
+    "jetbrainsPlugin": "skipped"
+  },
+  "limitations": [
+    "not current local HEAD",
+    "JetBrains real-host matrix skipped",
+    "does not prove VS Code bridge loopback in local host"
+  ]
+}
