@@ -49,11 +49,12 @@
       "evidence": [
         "cli/evidence/context-token-volcengine-live-probe-20261109",
         "cli/evidence/implementation-plan-volcengine-live-20261109",
-        "cli/evidence/implementation-plan-volcengine-cap-live-20261109"
+        "cli/evidence/implementation-plan-volcengine-cap-live-20261109",
+        "cli/evidence/volcengine-model-price-20261109"
       ],
       "remaining": [
         "invoice reconciliation",
-        "formal model price",
+        "time-windowed native-currency settlement integration",
         "formal paid admission"
       ]
     },

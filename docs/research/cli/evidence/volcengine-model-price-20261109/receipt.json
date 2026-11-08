@@ -1,0 +1,24 @@
+{
+  "schema": "chainlesschain.volcengine-model-price-evidence/v1",
+  "retrievedAt": "2026-11-09",
+  "sourceCommit": "b9fc6b5e8af19b1d5de08fc7d451893491ad1c61",
+  "provider": "volcengine",
+  "model": "deepseek-v4-1-flash-economy-261017",
+  "officialSource": "https://docs.volcengine.com/docs/ark/model-pricing?lang=zh&redirect=1",
+  "officialModelDoc": "https://console.volcengine.com/ark/region:cn-beijing/docs/deepseek-v4-1-flash",
+  "currency": "CNY",
+  "unit": "per million tokens",
+  "pricing": {
+    "idle": { "input": 0.8, "cacheRead": 0.016, "output": 3.2 },
+    "peak": { "input": 1.6, "cacheRead": 0.032, "output": 6.4 }
+  },
+  "modelIdentity": {
+    "version": "deepseek-v4-1-flash-261017",
+    "economyAlias": "deepseek-v4-1-flash-economy-261017"
+  },
+  "formalPriceVerified": true,
+  "invoiceReconciled": false,
+  "integratedIntoUsdEstimator": false,
+  "reason": "Official pricing is time-windowed CNY; the current estimator requires fixed USD rates and has no authoritative FX/time-window settlement input.",
+  "remotePushed": false
+}
