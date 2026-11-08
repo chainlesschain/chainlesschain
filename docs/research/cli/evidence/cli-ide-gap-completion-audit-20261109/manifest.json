@@ -101,7 +101,8 @@
       "evidence": [
         "cli/evidence/memory-semantic-quality-20261109",
         "cli/evidence/memory-responsiveness-current-20261109",
-        "cli/evidence/local-memory-semantic-20261108"
+        "cli/evidence/local-memory-semantic-20261108",
+        "cli/evidence/memory-responsiveness-rerun-20261109"
       ],
       "remaining": [
         "cross-platform cold/hot/mixed SLO",

@@ -1,0 +1,858 @@
+{
+  "schema": "chainlesschain.memory-query-responsiveness/v1",
+  "measuredAt": "2026-11-08T21:00:52.584Z",
+  "environment": {
+    "node": "v24.12.0",
+    "platform": "win32",
+    "arch": "x64",
+    "cpu": "13th Gen Intel(R) Core(TM) i9-13900K",
+    "osRelease": "10.0.26200"
+  },
+  "sourceDigests": {
+    "../src/lib/context-memory-kernel/segmented-memory-port.js": "sha256:cfe27ba5c0f28d058ba568289c5b2432b1e43c53c3660a431b96b35c0ea1a397",
+    "../src/lib/context-memory-kernel/durable-memory-port.js": "sha256:a59f1e42f7e8126a4f0eb0da581fa84037eae53a3083a135f1d288aaa16db8e1",
+    "../src/lib/context-memory-kernel/memory-query-index.js": "sha256:a2d710dffd179bba6284ae7bc7d33374c0d80e8064d5c2e043cb33af942bb1f7",
+    "../src/lib/context-memory-kernel/memory-service.js": "sha256:22eee2eb0cb3ef972bce135d7ffcd3bf36eb5693ef3a2c8439945810f41cfc05",
+    "../src/lib/context-memory-kernel/memory-query-control.js": "sha256:e3687ae0c03273064eebd3c7160107c83af7402eae39435ba0d80b4320c626bc",
+    "../src/lib/context-memory-kernel/memory-shard-snapshots.js": "sha256:b88e6ccb3b18bf659a81c8ba43ac3df5f52d259c2bccefb4815fa1a6744dc436",
+    "../src/lib/context-memory-kernel/memory-query-bundle.js": "sha256:a31c85af9b44b20db36a02d7ffea39dc462d621ca5124d0983a79a98ddf25309",
+    "../src/lib/with-file-lock.js": "sha256:2f6391d58ca38ecb98fd51a0025adb64439c4ab8b2baadb57842ebfe73604f3f",
+    "../src/lib/secure-file-identity.js": "sha256:d4170c7443c075d89c73478b4fa617d264999fb95f75456b1e1232797092a376",
+    "../../context-memory-kernel/lib/runtime.js": "sha256:8674678d0091486a1cd70cf381ee2555bb515364461e81e19cb035b59830928b",
+    "./memory-query-responsiveness-benchmark.mjs": "sha256:0725e839bda441a378930f266692a9d603e532a83cdce8d5a64ffbd2eebe82ad"
+  },
+  "samplesPerCase": 11,
+  "providerCalls": 0,
+  "scope": "Disk-backed canonical Memory service listing with a 10 ms host Stop timer, authority locking, index validation and selected shard validation.",
+  "limitations": [
+    "Local fixed hardware measurement, not cross-platform admission or a native IDE Stop journey.",
+    "Timers measure event-loop delivery and acknowledgement separately; OS caches are not flushed.",
+    "A query that completes before the Stop deadline requires no cancellation; late successful completion is reported as a failure of responsiveness."
+  ],
+  "target": {
+    "maximumStopDeliveryDelayMs": 500,
+    "maximumStopAcknowledgementMs": 500
+  },
+  "tiers": [
+    {
+      "count": 1000,
+      "modes": {
+        "validate-disk": {
+          "samples": [
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 11.214200000000005,
+              "stopDeliveryDelayMs": 0,
+              "stopAcknowledgementMs": 1.3928000000000793,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 10.983799999999974,
+              "stopDeliveryDelayMs": 0,
+              "stopAcknowledgementMs": 1.1265999999999394,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 11.018000000000029,
+              "stopDeliveryDelayMs": 0,
+              "stopAcknowledgementMs": 1.2678999999999405,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 11.122799999999984,
+              "stopDeliveryDelayMs": 0,
+              "stopAcknowledgementMs": 1.3501999999999725,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 10.971199999999953,
+              "stopDeliveryDelayMs": 0,
+              "stopAcknowledgementMs": 1.1189999999999145,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 11.4221,
+              "stopDeliveryDelayMs": 0.09699999999997999,
+              "stopAcknowledgementMs": 1.3251000000000204,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 10.445499999999925,
+              "stopDeliveryDelayMs": 0,
+              "stopAcknowledgementMs": 1.2968999999999369,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 10.991499999999974,
+              "stopDeliveryDelayMs": 0,
+              "stopAcknowledgementMs": 1.3415999999999713,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 10.98440000000005,
+              "stopDeliveryDelayMs": 0,
+              "stopAcknowledgementMs": 1.4395000000000664,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 10.763500000000022,
+              "stopDeliveryDelayMs": 0,
+              "stopAcknowledgementMs": 1.2708999999999833,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 11.046600000000012,
+              "stopDeliveryDelayMs": 0.088799999999992,
+              "stopAcknowledgementMs": 0.9578000000000202,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            }
+          ],
+          "stopDeliveryDelay": {
+            "samples": 11,
+            "minMs": 0,
+            "p50Ms": 0,
+            "p95Ms": 0.097,
+            "p99Ms": 0.097,
+            "maxMs": 0.097
+          },
+          "stopAcknowledgement": {
+            "samples": 11,
+            "minMs": 0.958,
+            "p50Ms": 1.297,
+            "p95Ms": 1.44,
+            "p99Ms": 1.44,
+            "maxMs": 1.44
+          },
+          "acknowledged": 11,
+          "lateSuccessfulCompletion": 0,
+          "targetMet": true,
+          "authorityUnchanged": true
+        },
+        "verified-memory": {
+          "samples": [
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 10.57179999999994,
+              "stopDeliveryDelayMs": 0.5126000000000204,
+              "stopAcknowledgementMs": 0.05919999999991887,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 10.051600000000008,
+              "stopDeliveryDelayMs": 0,
+              "stopAcknowledgementMs": 0.052099999999995816,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 10.360400000000027,
+              "stopDeliveryDelayMs": 0.3083000000000311,
+              "stopAcknowledgementMs": 0.052099999999995816,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 10.153299999999945,
+              "stopDeliveryDelayMs": 0.0989999999999327,
+              "stopAcknowledgementMs": 0.054300000000012005,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 9.958700000000135,
+              "stopDeliveryDelayMs": 0,
+              "stopAcknowledgementMs": 0.050700000000006185,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 10.105299999999943,
+              "stopDeliveryDelayMs": 0.057500000000118234,
+              "stopAcknowledgementMs": 0.04779999999982465,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 10.128600000000006,
+              "stopDeliveryDelayMs": 0.08090000000015607,
+              "stopAcknowledgementMs": 0.04769999999984975,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 9.70270000000005,
+              "stopDeliveryDelayMs": 0,
+              "stopAcknowledgementMs": 0.04570000000012442,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 10.791799999999967,
+              "stopDeliveryDelayMs": 0.7389000000000578,
+              "stopAcknowledgementMs": 0.05289999999990869,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 10.082100000000082,
+              "stopDeliveryDelayMs": 0.03929999999991196,
+              "stopAcknowledgementMs": 0.04280000000017026,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 9.90800000000013,
+              "stopDeliveryDelayMs": 0,
+              "stopAcknowledgementMs": 0.048400000000128784,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            }
+          ],
+          "stopDeliveryDelay": {
+            "samples": 11,
+            "minMs": 0,
+            "p50Ms": 0.058,
+            "p95Ms": 0.739,
+            "p99Ms": 0.739,
+            "maxMs": 0.739
+          },
+          "stopAcknowledgement": {
+            "samples": 11,
+            "minMs": 0.043,
+            "p50Ms": 0.051,
+            "p95Ms": 0.059,
+            "p99Ms": 0.059,
+            "maxMs": 0.059
+          },
+          "acknowledged": 11,
+          "lateSuccessfulCompletion": 0,
+          "targetMet": true,
+          "authorityUnchanged": true
+        }
+      }
+    },
+    {
+      "count": 10000,
+      "modes": {
+        "validate-disk": {
+          "samples": [
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 10.6899999999996,
+              "stopDeliveryDelayMs": 0,
+              "stopAcknowledgementMs": 1.2393999999999323,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 11.394000000000233,
+              "stopDeliveryDelayMs": 0.04970000000002983,
+              "stopAcknowledgementMs": 1.344300000000203,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 11.501500000000306,
+              "stopDeliveryDelayMs": 0.26660000000038053,
+              "stopAcknowledgementMs": 1.234899999999925,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 11.56710000000021,
+              "stopDeliveryDelayMs": 0.04040000000031796,
+              "stopAcknowledgementMs": 1.5266999999998916,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 10.615099999999984,
+              "stopDeliveryDelayMs": 0,
+              "stopAcknowledgementMs": 1.3455999999996493,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 10.91879999999992,
+              "stopDeliveryDelayMs": 0,
+              "stopAcknowledgementMs": 1.1922999999997046,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 11.185199999999895,
+              "stopDeliveryDelayMs": 0,
+              "stopAcknowledgementMs": 1.3813999999997577,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 10.849099999999908,
+              "stopDeliveryDelayMs": 0,
+              "stopAcknowledgementMs": 1.2412999999996828,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 10.66190000000006,
+              "stopDeliveryDelayMs": 0,
+              "stopAcknowledgementMs": 1.1696999999999207,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 11.033200000000306,
+              "stopDeliveryDelayMs": 0,
+              "stopAcknowledgementMs": 1.2253000000000611,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 11.769400000000132,
+              "stopDeliveryDelayMs": 0.05120000000033542,
+              "stopAcknowledgementMs": 1.718199999999797,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            }
+          ],
+          "stopDeliveryDelay": {
+            "samples": 11,
+            "minMs": 0,
+            "p50Ms": 0,
+            "p95Ms": 0.267,
+            "p99Ms": 0.267,
+            "maxMs": 0.267
+          },
+          "stopAcknowledgement": {
+            "samples": 11,
+            "minMs": 1.17,
+            "p50Ms": 1.241,
+            "p95Ms": 1.718,
+            "p99Ms": 1.718,
+            "maxMs": 1.718
+          },
+          "acknowledged": 11,
+          "lateSuccessfulCompletion": 0,
+          "targetMet": true,
+          "authorityUnchanged": true
+        },
+        "verified-memory": {
+          "samples": [
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 13.317000000000007,
+              "stopDeliveryDelayMs": 3.250500000000102,
+              "stopAcknowledgementMs": 0.06649999999990541,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 11.071699999999964,
+              "stopDeliveryDelayMs": 1.0235999999999876,
+              "stopAcknowledgementMs": 0.04809999999997672,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 10.533000000000357,
+              "stopDeliveryDelayMs": 0.4832000000001244,
+              "stopAcknowledgementMs": 0.0498000000002321,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 11.608600000000024,
+              "stopDeliveryDelayMs": 1.5583999999998923,
+              "stopAcknowledgementMs": 0.050200000000131695,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 10.722800000000007,
+              "stopDeliveryDelayMs": 0.6714000000001761,
+              "stopAcknowledgementMs": 0.05139999999983047,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 11.073799999999665,
+              "stopDeliveryDelayMs": 1.0178999999998268,
+              "stopAcknowledgementMs": 0.055899999999837746,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 9.88130000000001,
+              "stopDeliveryDelayMs": 0,
+              "stopAcknowledgementMs": 0.043400000000019645,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 12.673899999999776,
+              "stopDeliveryDelayMs": 2.6138999999998305,
+              "stopAcknowledgementMs": 0.05999999999994543,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 10.847400000000107,
+              "stopDeliveryDelayMs": 0.7966999999998734,
+              "stopAcknowledgementMs": 0.05070000000023356,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 10.709100000000035,
+              "stopDeliveryDelayMs": 0.6529000000000451,
+              "stopAcknowledgementMs": 0.056199999999989814,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 11.746999999999844,
+              "stopDeliveryDelayMs": 1.6320000000000618,
+              "stopAcknowledgementMs": 0.11499999999978172,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            }
+          ],
+          "stopDeliveryDelay": {
+            "samples": 11,
+            "minMs": 0,
+            "p50Ms": 1.018,
+            "p95Ms": 3.251,
+            "p99Ms": 3.251,
+            "maxMs": 3.251
+          },
+          "stopAcknowledgement": {
+            "samples": 11,
+            "minMs": 0.043,
+            "p50Ms": 0.051,
+            "p95Ms": 0.115,
+            "p99Ms": 0.115,
+            "maxMs": 0.115
+          },
+          "acknowledged": 11,
+          "lateSuccessfulCompletion": 0,
+          "targetMet": true,
+          "authorityUnchanged": true
+        }
+      }
+    },
+    {
+      "count": 100000,
+      "modes": {
+        "validate-disk": {
+          "samples": [
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 13.079400000000533,
+              "stopDeliveryDelayMs": 1.584100000000035,
+              "stopAcknowledgementMs": 1.4953000000004977,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 11.633599999999205,
+              "stopDeliveryDelayMs": 0.19179999999869324,
+              "stopAcknowledgementMs": 1.4418000000005122,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 11.062399999998888,
+              "stopDeliveryDelayMs": 0,
+              "stopAcknowledgementMs": 1.3461999999999534,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 11.516499999999724,
+              "stopDeliveryDelayMs": 0.12479999999959546,
+              "stopAcknowledgementMs": 1.391700000000128,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 11.481400000000576,
+              "stopDeliveryDelayMs": 0.009300000001530861,
+              "stopAcknowledgementMs": 1.4720999999990454,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 11.791300000000774,
+              "stopDeliveryDelayMs": 0.3845000000001164,
+              "stopAcknowledgementMs": 1.4068000000006577,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 11.823899999999412,
+              "stopDeliveryDelayMs": 0,
+              "stopAcknowledgementMs": 2.1282999999984895,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 11.348700000000463,
+              "stopDeliveryDelayMs": 0.0385999999998603,
+              "stopAcknowledgementMs": 1.3101000000006024,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 11.851800000000367,
+              "stopDeliveryDelayMs": 0,
+              "stopAcknowledgementMs": 1.856999999999971,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 10.83430000000044,
+              "stopDeliveryDelayMs": 0,
+              "stopAcknowledgementMs": 1.3067000000010012,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 11.27219999999943,
+              "stopDeliveryDelayMs": 0,
+              "stopAcknowledgementMs": 1.427799999999479,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            }
+          ],
+          "stopDeliveryDelay": {
+            "samples": 11,
+            "minMs": 0,
+            "p50Ms": 0.009,
+            "p95Ms": 1.584,
+            "p99Ms": 1.584,
+            "maxMs": 1.584
+          },
+          "stopAcknowledgement": {
+            "samples": 11,
+            "minMs": 1.307,
+            "p50Ms": 1.428,
+            "p95Ms": 2.128,
+            "p99Ms": 2.128,
+            "maxMs": 2.128
+          },
+          "acknowledged": 11,
+          "lateSuccessfulCompletion": 0,
+          "targetMet": true,
+          "authorityUnchanged": true
+        },
+        "verified-memory": {
+          "samples": [
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 16.34859999999935,
+              "stopDeliveryDelayMs": 6.248700000000099,
+              "stopAcknowledgementMs": 0.09989999999925203,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 15.106999999999971,
+              "stopDeliveryDelayMs": 5.025099999998929,
+              "stopAcknowledgementMs": 0.08190000000104192,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 14.939800000000105,
+              "stopDeliveryDelayMs": 4.876699999998891,
+              "stopAcknowledgementMs": 0.06310000000121363,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 15.690500000000611,
+              "stopDeliveryDelayMs": 4.402099999999336,
+              "stopAcknowledgementMs": 1.2884000000012747,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 10.366799999999785,
+              "stopDeliveryDelayMs": 0,
+              "stopAcknowledgementMs": 1.2754000000004453,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 11.312699999998586,
+              "stopDeliveryDelayMs": 0,
+              "stopAcknowledgementMs": 1.5560999999997875,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 10.607599999999366,
+              "stopDeliveryDelayMs": 0,
+              "stopAcknowledgementMs": 1.3083000000005995,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 21.77560000000085,
+              "stopDeliveryDelayMs": 9.078100000000632,
+              "stopAcknowledgementMs": 2.6975000000002183,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 18.785399999998845,
+              "stopDeliveryDelayMs": 8.719900000000052,
+              "stopAcknowledgementMs": 0.06549999999879219,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 15.525499999999738,
+              "stopDeliveryDelayMs": 4.413800000000265,
+              "stopAcknowledgementMs": 1.1116999999994732,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 15.79490000000078,
+              "stopDeliveryDelayMs": 5.729400000000169,
+              "stopAcknowledgementMs": 0.06550000000061118,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            }
+          ],
+          "stopDeliveryDelay": {
+            "samples": 11,
+            "minMs": 0,
+            "p50Ms": 4.877,
+            "p95Ms": 9.078,
+            "p99Ms": 9.078,
+            "maxMs": 9.078
+          },
+          "stopAcknowledgement": {
+            "samples": 11,
+            "minMs": 0.063,
+            "p50Ms": 1.112,
+            "p95Ms": 2.698,
+            "p99Ms": 2.698,
+            "maxMs": 2.698
+          },
+          "acknowledged": 11,
+          "lateSuccessfulCompletion": 0,
+          "targetMet": true,
+          "authorityUnchanged": true
+        }
+      }
+    }
+  ],
+  "targetMet": true
+}
