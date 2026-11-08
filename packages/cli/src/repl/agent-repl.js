@@ -3301,6 +3301,9 @@ async function startAgentReplInWorkspaceOwned(
   let _lineSettled = null;
   const _activeBtwCalls = new Set();
   const _mcpTaskTrackers = new Map();
+  const _mcpTaskAutoWakeQueue = [];
+  let _mcpTaskAutoWakeRunning = false;
+  const _mcpTaskAutoWakeSentinel = "__cc_mcp_task_autowake__";
   const _pendingLines = [];
   const _runtimeLedgerTerminalLatch = createReplRuntimeLedgerTerminalLatch({
     onTrip: (terminalError) => {
@@ -5887,7 +5890,43 @@ async function startAgentReplInWorkspaceOwned(
   // continuation backslash keeps the prompt open; `_mlBuffer` accumulates the
   // pieces and the whole block submits when a line does not continue.
   const _mlBuffer = [];
+  const kickMcpTaskAutoWake = () => {
+    if (
+      _processingLine ||
+      _mcpTaskAutoWakeRunning ||
+      _replClosing ||
+      _mcpTaskAutoWakeQueue.length === 0
+    ) {
+      return;
+    }
+    _mcpTaskAutoWakeRunning = true;
+    void handleLine(_mcpTaskAutoWakeSentinel).finally(() => {
+      _mcpTaskAutoWakeRunning = false;
+      kickMcpTaskAutoWake();
+    });
+  };
+  const scheduleMcpTaskAutoWake = (delivery) => {
+    if (process.env.CC_MCP_TASK_AUTOWAKE !== "1" || !delivery?.message) {
+      return false;
+    }
+    if (_mcpTaskAutoWakeQueue.length >= 8) {
+      logger.warn(
+        "[mcp-watch] auto-wake queue is full; delivery remains available in the session",
+      );
+      return false;
+    }
+    _mcpTaskAutoWakeQueue.push(delivery);
+    kickMcpTaskAutoWake();
+    return true;
+  };
   const handleLine = async (input) => {
+    const mcpAutoWakeDelivery =
+      input === _mcpTaskAutoWakeSentinel
+        ? _mcpTaskAutoWakeQueue.shift() || null
+        : null;
+    if (mcpAutoWakeDelivery) {
+      input = "Continue from the verified background MCP task result.";
+    }
     // Backslash continuation — accumulate and re-prompt without firing a turn.
     const _cont = analyzeContinuation(input);
     if (_cont.continued) {
@@ -8870,7 +8909,8 @@ async function startAgentReplInWorkspaceOwned(
                 }`,
               );
             },
-            onDelivery: (receipt) => {
+            onDelivery: (receipt, delivery) => {
+              scheduleMcpTaskAutoWake(delivery);
               logger.log(
                 chalk.green(
                   `✓ MCP task ${receipt.localId} delivered as external reference; submit a prompt to continue.`,
@@ -9660,6 +9700,13 @@ async function startAgentReplInWorkspaceOwned(
 
     // Add user message (keep the object ref so /note-next can be injected for
     // this turn's model call and then stripped before persistence).
+    if (mcpAutoWakeDelivery?.message) {
+      messages.push({
+        role: "assistant",
+        name: "mcp_task_result",
+        content: mcpAutoWakeDelivery.message.content,
+      });
+    }
     const _userMsg = { role: "user", content: _userMessageContent };
     messages.push(_userMsg);
 
@@ -10514,6 +10561,7 @@ async function startAgentReplInWorkspaceOwned(
     } finally {
       _processingLine = false;
       settleLine();
+      kickMcpTaskAutoWake();
       _lineSettled = null;
     }
   });
@@ -10523,6 +10571,7 @@ async function startAgentReplInWorkspaceOwned(
     _replCleanupStarted = true;
     _replClosing = true;
     _pendingLines.length = 0;
+    _mcpTaskAutoWakeQueue.length = 0;
     // Do not certify a Run while its model/tool or auxiliary usage settlement
     // is still in flight. EOF during a main turn cancels and leaves it incomplete.
     if (_turnAbort !== null) {

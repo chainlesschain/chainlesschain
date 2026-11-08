@@ -453,7 +453,11 @@ export function createDurableMcpTaskRuntime({
       }
       if (!deliver) return latest;
       const receipt = await this.deliver(localId);
-      onDelivery?.(receipt);
+      const delivery = read().deliveries.find(
+        (item) =>
+          item.localId === localId && item.deliveryId === receipt.deliveryId,
+      );
+      onDelivery?.(receipt, delivery?.message || null);
       return Object.freeze({ ...receipt, watched: true });
     },
 
