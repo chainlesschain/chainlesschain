@@ -3,6 +3,7 @@ import {
   loadArchivedRollouts,
   replayRequest,
 } from "../../scripts/codex-app-server-archived-replay.mjs";
+import { officialValidators } from "../../scripts/codex-app-server-turn-probe.mjs";
 
 describe("archived native replay preparation", () => {
   it.each(["0.160.0", "0.164.0"])(
@@ -41,5 +42,21 @@ describe("archived native replay preparation", () => {
     expect(() => loadArchivedRollouts("0.999.0", "/missing")).toThrow(
       "unsupported archived version",
     );
+  });
+  it("compiles official int64 schemas and rejects malformed requests", () => {
+    const validators = officialValidators("0.164.0");
+    expect(() =>
+      validators.check("request", {
+        id: Number.MAX_SAFE_INTEGER,
+        method: "initialize",
+        params: { clientInfo: { name: "test", version: "1.0.0" } },
+      }),
+    ).not.toThrow();
+    expect(() =>
+      validators.check("request", {
+        id: Number.MAX_SAFE_INTEGER,
+        params: { clientInfo: { name: "test", version: "1.0.0" } },
+      }),
+    ).toThrow();
   });
 });

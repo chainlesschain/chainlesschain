@@ -127,6 +127,14 @@ export function officialValidators(version = PROBE_VERSION) {
     allErrors: true,
     validateFormats: false,
   });
+  // Ajv 6 still compiles schemas with custom formats even when validation is
+  // disabled; the official app-server schemas use int64 for JSON-RPC IDs.
+  // Register the format locally so schema preflight remains strict and does
+  // not depend on the caller's global Ajv version or configuration.
+  ajv.addFormat("int64", {
+    type: "integer",
+    validate: Number.isSafeInteger,
+  });
   const compiled = new Map(),
     counts = {},
     schemas = {},
