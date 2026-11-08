@@ -1,0 +1,39 @@
+{
+  "schema": "chainlesschain.model-input-mapping-static/v1",
+  "node": "v24.12.0",
+  "sourceFiles": 11,
+  "eslint": {
+    "errors": 0,
+    "warnings": 23,
+    "baseline": [
+      {
+        "file": "packages/cli/src/runtime/agent-core.js",
+        "errors": 0,
+        "warnings": 21
+      },
+      {
+        "file": "packages/cli/__tests__/unit/agent-evolution-runtime-composition.test.js",
+        "errors": 0,
+        "warnings": 2
+      }
+    ]
+  },
+  "prettier": {
+    "passed": true,
+    "sourceFiles": 11,
+    "documents": 5
+  },
+  "sourceSha256": {
+    "packages/cli/__tests__/unit/agent-evolution-runtime-composition.test.js": "9a1a0c8ae00094a1dd148430141ed2954b8d825720afaae9db6303063e7236d4",
+    "packages/cli/__tests__/unit/context-memory-provider-source-mapping.test.js": "31d04953404b58621b717ce2f7ebd0cb14ca5bc5c03c0fc095a855f42e64081e",
+    "packages/cli/__tests__/unit/model-input-source-mapping.test.js": "cab59af042aada335f90ce66a03d2049da3bc841d35bae281069971caf934329",
+    "packages/cli/src/lib/context-memory-kernel/message-adapter.js": "88df13cf95044e00d46d966740e08da1dde53bf9db663b712789dd496e1a5fc3",
+    "packages/cli/src/lib/context-memory-kernel/provider-context.js": "3beefa3da8966acff65d14f203aababeb8082780b62b36d671e987bc6fc1c1dd",
+    "packages/cli/src/lib/evolution/agent-evolution-ingress.js": "c90dff253b239830179d2900a391f51fc7e5ef385582cded295c47ac397ffcf3",
+    "packages/cli/src/lib/model-input-diagnostics.js": "1fc417f5e789c9de13f3891620033071b1f5a8323a954de05e53e3c9c6e7439e",
+    "packages/cli/src/lib/model-input-source-mapping.js": "4dab3515af9f7c1b083dd6c1bbbefdd25fea344c60f59101dce903f4c6c80cb1",
+    "packages/cli/src/lib/openai-responses.js": "ee8b02f74642a51d65f2f66a8ad38ae425c3b8058da31e0926aa5362d22b9d7e",
+    "packages/cli/src/lib/session-model-input-diagnostics.js": "d0619cce147b1eaae01b6e6c45efe0ee737e7ccc3ae481e4b0299c3eedca78ca",
+    "packages/cli/src/runtime/agent-core.js": "04b1eb1d77197b8e47641d113696804adfd3b51bd41d19bc75c01f8355708775"
+  }
+}

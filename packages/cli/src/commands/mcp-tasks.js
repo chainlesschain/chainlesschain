@@ -37,6 +37,14 @@ function emit(value, json) {
           (record.outcomeUnknown ? "  outcome unknown" : ""),
       );
     }
+  } else if (value.delivered === true) {
+    console.log(
+      "Task " +
+        value.localId +
+        (value.duplicate
+          ? ": result already delivered."
+          : ": result delivered for the next user continuation."),
+    );
   } else if (Object.hasOwn(value, "result")) {
     for (const block of value.result.content) {
       if (block.type === "text" && typeof block.text === "string")
@@ -104,7 +112,9 @@ export function registerMcpTaskCommands(
       lease = acquireSessionHostLease(sessionId, { hostKind: "mcp-tasks" });
       const savedResult =
         stored?.result != null &&
-        (operation === "result" || operation === "poll");
+        (operation === "result" ||
+          operation === "poll" ||
+          operation === "deliver");
       if (!savedResult) {
         const connection = await connect(serverName);
         client = connection.client;
@@ -176,7 +186,7 @@ export function registerMcpTaskCommands(
     .option("--ttl <ms>", "Requested task lifetime in milliseconds")
     .option("--json", "Output as JSON")
     .action(action("create"));
-  for (const operation of ["poll", "result", "cancel"]) {
+  for (const operation of ["poll", "result", "deliver", "cancel"]) {
     tasks
       .command(operation + " <local-id>")
       .description(
@@ -184,7 +194,9 @@ export function registerMcpTaskCommands(
           ? "Refresh remote task status without replaying the tool"
           : operation === "result"
             ? "Retrieve and save a result, or read its saved copy"
-            : "Request cancellation; remote side effects may already have occurred",
+            : operation === "deliver"
+              ? "Deliver a saved result once to its session as external reference data"
+              : "Request cancellation; remote side effects may already have occurred",
       )
       .requiredOption("--session <id>", "Owning canonical session")
       .option("--json", "Output as JSON")

@@ -98,6 +98,10 @@ import {
   verifyExecutionLocationResultBundle,
 } from "../lib/execution-location-result.js";
 import { normalizeExecutionLocationResultStoreReceipt } from "../lib/execution-location-result-store.js";
+import {
+  MCP_TASK_DELIVERY_EVENT,
+  projectMcpTaskDeliveryMessage,
+} from "../lib/mcp-task-delivery-contract.js";
 import skillInvocationReceipt from "@chainlesschain/session-core/skill-invocation-receipt";
 import {
   BRANCH_HISTORY_MESSAGE,
@@ -5969,6 +5973,8 @@ function rebuildMessagesFromFile(
       isReplayableMessage(event.data)
     ) {
       suffix.push(decodeMessage(event.data));
+    } else if (event?.type === MCP_TASK_DELIVERY_EVENT) {
+      suffix.push(decodeMessage(projectMcpTaskDeliveryMessage(event)));
     } else if (event?.type === TOOL_ROUND_EVENT) {
       suffix.push(
         ...projectToolRoundMessages(event).map(decodeMessage).reverse(),

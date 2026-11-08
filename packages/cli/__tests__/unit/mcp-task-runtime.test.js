@@ -496,6 +496,13 @@ describe("durable MCP task auxiliary runtime", () => {
       expect(await run(["result", accepted.localId])).toMatchObject({
         cached: true,
       });
+      const delivered = await run(["deliver", accepted.localId]);
+      expect(delivered).toMatchObject({ delivered: true, duplicate: false });
+      expect(await run(["deliver", accepted.localId])).toMatchObject({
+        delivered: true,
+        duplicate: true,
+        eventHash: delivered.eventHash,
+      });
       expect(connect).toHaveBeenCalledTimes(3);
       expect(f.calls("tools/call")).toHaveLength(1);
       expect(f.calls("tasks/result")).toHaveLength(1);

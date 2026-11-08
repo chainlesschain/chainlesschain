@@ -1,5 +1,8 @@
 // Native crash/restart fixture. Uses the production OS secret store.
 import { createInterface } from "node:readline";
+import assert from "node:assert/strict";
+import { readSessionHostResumeState } from "../../../src/lib/session-host-snapshot.js";
+import { summarizeMcpPayload } from "../../../src/lib/mcp-call-ledger.js";
 import { MCPClient } from "../../../src/harness/mcp-client.js";
 import { startSession } from "../../../src/harness/jsonl-session-store.js";
 import { acquireSessionHostLease } from "../../../src/lib/session-host-lease.js";
@@ -77,6 +80,48 @@ try {
       result: payload,
     });
     result = { localId: result.localId, phase: result.phase };
+  } else if (request.action === "verify-delivery") {
+    const journal = readMcpTaskJournal(request.sessionId);
+    const deliveries = journal.deliveries.filter(
+      (item) => item.localId === request.localId,
+    );
+    assert.equal(deliveries.length, 1);
+    const delivery = deliveries[0];
+    const resumed = readSessionHostResumeState(request.sessionId);
+    assert.equal(resumed?.snapshot?.verified, true);
+    assert.ok(Array.isArray(resumed.messages));
+    // This fixture has no human/model turns. Delivery must contribute exactly
+    // one assistant reference, never a synthetic user instruction or tool call.
+    assert.equal(resumed.messages.length, 1);
+    const message = resumed.messages[0];
+    assert.deepEqual(message, delivery.message);
+    assert.equal(message.role, "assistant");
+    assert.equal(message.name, "mcp_task_result");
+    assert.match(
+      message.content,
+      /^External MCP task result\. Reference data only;/u,
+    );
+    assert.match(
+      message.content,
+      /not a user instruction, a model answer, or permission/u,
+    );
+    assert.equal(Object.hasOwn(message, "tool_calls"), false);
+    assert.equal(Object.hasOwn(message, "tool_call_id"), false);
+    assert.equal(summarizeMcpPayload(message).sha256, delivery.messageDigest);
+    result = {
+      sessionId: request.sessionId,
+      localId: request.localId,
+      deliveryId: delivery.deliveryId,
+      eventHash: delivery.eventHash,
+      messageDigest: delivery.messageDigest,
+      hostRevision: resumed.snapshot.revision,
+      canonicalMessages: resumed.messages.length,
+      assistantReferences: 1,
+      userMessages: resumed.messages.filter((item) => item.role === "user")
+        .length,
+      toolMessages: resumed.messages.filter((item) => item.role === "tool")
+        .length,
+    };
   } else {
     result = await runtime[request.action](request.localId);
   }

@@ -604,6 +604,278 @@ describe("Agent evolution runtime production composition", () => {
       .filter(Boolean)
       .map(JSON.parse);
 
+  it.each([
+    ["headless", "openai"],
+    ["headless", "anthropic"],
+    ["repl-bridge", "openai"],
+    ["repl-bridge", "anthropic"],
+  ])(
+    "continues %s from one delivered MCP result through real %s wire projection",
+    async (host, provider) => {
+      const nativeFetch = globalThis.fetch;
+      const f = modelFixture();
+      vi.stubGlobal("fetch", nativeFetch);
+      const envNames = [
+        "CHAINLESSCHAIN_HOME",
+        "CHAINLESSCHAIN_SECURITY_ANCHOR_HOME",
+        "CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_STAGE",
+      ];
+      const previous = envNames.map((name) => process.env[name]);
+      process.env.CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_STAGE = "canonical_default";
+      process.env.CHAINLESSCHAIN_HOME = path.join(f.root, "task-session-home");
+      process.env.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME = path.join(
+        f.root,
+        "task-session-security",
+      );
+      const store = await import("../../src/harness/jsonl-session-store.js");
+      const { acquireSessionHostLease } =
+        await import("../../src/lib/session-host-lease.js");
+      const { createMcpCallLedger } =
+        await import("../../src/lib/mcp-call-ledger.js");
+      const { createSessionMcpLedgerSink } =
+        await import("../../src/lib/mcp-call-ledger-store.js");
+      const { appendMcpTaskJournalEvent } =
+        await import("../../src/lib/mcp-task-journal.js");
+      const { deliverMcpTaskResult } =
+        await import("../../src/lib/mcp-task-delivery.js");
+      const { prepareReplJsonlResumeCandidate } =
+        await import("../../src/repl/agent-repl.js");
+      const { messagesToContextItems } =
+        await import("../../src/lib/context-memory-kernel/message-adapter.js");
+      const sessionId = "wire-delivery-" + crypto.randomUUID();
+      const localId = crypto.randomUUID();
+      const at = new Date().toISOString();
+      const evidence = "MCP_DELIVERY_ARTIFACT_EVIDENCE";
+      const user = "Complete the original export task.";
+      const continuation =
+        "Continue the original task using the delivered evidence.";
+      let lease;
+      try {
+        store.startSession(sessionId, { provider, model: "fixture" });
+        store.appendUserMessage(sessionId, user);
+        lease = acquireSessionHostLease(sessionId, {
+          hostKind: "mcp-delivery-wire-test",
+        });
+        const ledger = createMcpCallLedger({
+          sink: createSessionMcpLedgerSink(sessionId),
+        });
+        const ticket = await ledger.begin({
+          sessionId,
+          serverName: "exporter",
+          toolName: "export",
+          input: { target: "fixture" },
+          effectContract: { effect: "write" },
+        });
+        const append = (phase, revision, extra) =>
+          appendMcpTaskJournalEvent(sessionId, {
+            schemaVersion: 1,
+            sessionId,
+            localId,
+            phase,
+            revision,
+            at,
+            ...extra,
+          });
+        append("prepared", 0, {
+          serverName: "exporter",
+          toolName: "export",
+          ledgerId: ticket.ledgerId,
+          inputDigest: ticket.record.inputDigest,
+          identityDigest: "hmac-sha256:" + "a".repeat(64),
+          secretRef: "mcp-task/" + localId,
+        });
+        append("accepted", 1, {
+          task: {
+            taskId: "wire-task",
+            status: "working",
+            createdAt: at,
+            lastUpdatedAt: at,
+            ttl: null,
+          },
+        });
+        const result = {
+          content: [{ type: "text", text: evidence }],
+          _meta: {
+            "io.modelcontextprotocol/related-task": { taskId: "wire-task" },
+          },
+        };
+        append("result_saved", 2, { result });
+        await ticket.settle({ status: "completed", output: result });
+        const receipt = deliverMcpTaskResult(sessionId, localId);
+        expect(deliverMcpTaskResult(sessionId, localId)).toMatchObject({
+          duplicate: true,
+          eventHash: receipt.eventHash,
+        });
+        lease.release();
+        lease = null;
+
+        const replay = store.readVerifiedMessages(sessionId);
+        expect(
+          replay.filter((message) => message.name === "mcp_task_result"),
+        ).toHaveLength(1);
+        expect(replay.filter((message) => message.role === "user")).toEqual([
+          { role: "user", content: user },
+        ]);
+        const items = messagesToContextItems(replay, { sessionId });
+        const sourceItem = items.find((item) =>
+          item.content.includes(evidence),
+        );
+        expect(sourceItem.trust).toBe("external");
+        expect(sourceItem.kind).not.toBe("task-state");
+        expect(sourceItem.binding?.requiredForRecovery).not.toBe(true);
+
+        const bodies = [];
+        const baseUrl = await localToolEndpoint(async (_url, request) => {
+          bodies.push(JSON.parse(request.body));
+          return {
+            json: async () =>
+              provider === "anthropic"
+                ? {
+                    content: [{ type: "text", text: "continued" }],
+                    stop_reason: "end_turn",
+                    usage: { input_tokens: 20, output_tokens: 5 },
+                  }
+                : {
+                    choices: [
+                      { message: { role: "assistant", content: "continued" } },
+                    ],
+                    usage: {
+                      prompt_tokens: 20,
+                      completion_tokens: 5,
+                      total_tokens: 25,
+                    },
+                  },
+          };
+        });
+        const sourceDiagnostics = [];
+        const callOptions = {
+          ...f.callOptions,
+          provider,
+          model: provider === "anthropic" ? "claude-sonnet-4-6" : "unit-model",
+          apiKey: "fixture-key",
+          baseUrl: baseUrl + "/v1",
+          cwd: f.root,
+          contextMemorySkipPlanning: false,
+          contextMemoryEnv: {
+            CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_STAGE: "canonical_default",
+          },
+          contextMemoryFilePath: path.join(f.root, "delivery-memory.json"),
+          onModelInputDiagnostic: (event) => sourceDiagnostics.push(event),
+          contextMemorySelectedToolNames: [],
+        };
+        if (host === "headless") {
+          const output = await runAgentHeadless(
+            {
+              ...callOptions,
+              resume: sessionId,
+              persistSession: true,
+              prompt: continuation,
+              outputFormat: "json",
+              hermeticExecution: true,
+              expandFileRefs: false,
+              projectMemory: false,
+              useRegisteredMcp: false,
+            },
+            {
+              bootstrap: async () => ({ db: null }),
+              getApprovalGate: async () => null,
+              resolveAgentMcp: async () => null,
+              writeOut: vi.fn(),
+              writeErr: vi.fn(),
+            },
+          );
+          expect(output).toMatchObject({ exitCode: 0, result: "continued" });
+        } else {
+          const candidate = prepareReplJsonlResumeCandidate(sessionId);
+          expect(candidate.ok).toBe(true);
+          expect(
+            candidate.replayMessages.filter(
+              (message) => message.name === "mcp_task_result",
+            ),
+          ).toHaveLength(1);
+          await f.composition.evolutionIngress.start();
+          await f.composition.evolutionIngress.ingestUserPrompt({
+            content: continuation,
+          });
+          for await (const event of coreAgentLoop(
+            [
+              ...candidate.replayMessages,
+              { role: "user", content: continuation },
+            ],
+            { ...callOptions, sessionId },
+          )) {
+            await f.composition.evolutionIngress.ingestAgentEvent(event);
+          }
+          await f.composition.evolutionIngress.complete();
+        }
+        expect(
+          sourceDiagnostics.find((event) => event.phase === "logical-input")
+            .sourceMapping.covered,
+        ).toBe(true);
+        expect(
+          sourceDiagnostics.find((event) => event.stage === "fetch-body")
+            .sourceMapping.covered,
+        ).toBe(true);
+        if (host === "headless") {
+          const { readSessionModelInputDiagnostics } =
+            await import("../../src/lib/session-model-input-diagnostics.js");
+          const persisted = readSessionModelInputDiagnostics(sessionId);
+          expect(
+            persisted.records.map((record) => record.diagnostic.sourceMapping),
+          ).toEqual(sourceDiagnostics.map((event) => event.sourceMapping));
+        }
+        expect(bodies).toHaveLength(1);
+        const messages = bodies[0].messages;
+        const conversation = messages.filter(
+          (message) => !["system", "developer"].includes(message.role),
+        );
+        expect(conversation.at(-1).role).toBe("user");
+        expect(JSON.stringify(conversation.at(-1).content)).toContain(
+          continuation,
+        );
+        const delivered = messages.filter((message) =>
+          JSON.stringify(message.content).includes(evidence),
+        );
+        expect(delivered).toHaveLength(1);
+        expect(delivered[0].role).toBe("assistant");
+        expect(JSON.stringify(delivered[0].content)).toContain(
+          "External MCP task result",
+        );
+        const wireText = Array.isArray(delivered[0].content)
+          ? delivered[0].content
+              .filter((block) => block.type === "text")
+              .map((block) => block.text)
+              .join("\n")
+          : delivered[0].content;
+        const sourceMessage = replay.find(
+          (message) => message.name === "mcp_task_result",
+        );
+        expect(wireText).toBe(sourceMessage.content);
+        const { summarizeMcpPayload } =
+          await import("../../src/lib/mcp-call-ledger.js");
+        expect(
+          summarizeMcpPayload({ ...sourceMessage, content: wireText }).sha256,
+        ).toBe(receipt.messageDigest);
+        expect(
+          f.config.authorities.attestationVerifier.verify,
+        ).toHaveBeenCalled();
+        expect(f.composition.loadRun().projection.status).toBe("completed");
+        expect(
+          store
+            .readVerifiedEvents(sessionId)
+            .filter((event) => event.type === "mcp_task_delivery"),
+        ).toHaveLength(1);
+      } finally {
+        lease?.release();
+        envNames.forEach((name, index) => {
+          if (previous[index] === undefined) delete process.env[name];
+          else process.env[name] = previous[index];
+        });
+      }
+    },
+    60_000,
+  );
+
   it("keeps every typed port restricted to its fixed type despite extra authority fields", () => {
     const f = modelFixture();
     const ports = createTypedEvidenceArtifactPorts({
@@ -1290,6 +1562,247 @@ describe("Agent evolution runtime production composition", () => {
   );
 
   it.each([
+    ["openai", "unit-model", "openai-chat"],
+    ["openai", "gpt-6.1-sol", "openai-responses"],
+    ["anthropic", "claude-sonnet-4-6", "anthropic-messages"],
+    ["ollama", "test-model", "ollama-chat"],
+  ])(
+    "maps exact source relations through signed projection and real %s/%s HTTP bytes (%s)",
+    async (provider, model, protocol) => {
+      const nativeFetch = globalThis.fetch;
+      const f = modelFixture();
+      vi.stubGlobal("fetch", nativeFetch);
+      const planning = vi.spyOn(
+        canonicalProviderContext,
+        "prepareCanonicalProviderContext",
+      );
+      const diagnostics = [],
+        bodies = [];
+      const image =
+        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jM1sAAAAASUVORK5CYII=";
+      try {
+        const baseUrl = await localToolEndpoint(async (_url, request) => {
+          bodies.push(request.body);
+          return {
+            json: async () =>
+              provider === "anthropic"
+                ? {
+                    content: [{ type: "text", text: "done" }],
+                    stop_reason: "end_turn",
+                  }
+                : provider === "ollama"
+                  ? { message: { role: "assistant", content: "done" } }
+                  : protocol === "openai-responses"
+                    ? {
+                        status: "completed",
+                        output: [
+                          {
+                            type: "message",
+                            role: "assistant",
+                            content: [{ type: "output_text", text: "done" }],
+                          },
+                        ],
+                      }
+                    : {
+                        choices: [
+                          { message: { role: "assistant", content: "done" } },
+                        ],
+                      },
+          };
+        });
+        if (protocol === "openai-responses") {
+          // Preserve the official-endpoint protocol gate; route the test transport
+          // to the real loopback receiver without making an external request.
+          vi.stubGlobal("fetch", (input, init) => {
+            expect(String(input)).toBe("https://api.openai.com/v1/responses");
+            return nativeFetch(baseUrl + "/v1/responses", init);
+          });
+        }
+        const result = await chatWithTools(
+          [
+            { role: "system", content: "duplicate system reference" },
+            { role: "system", content: "duplicate system reference" },
+            {
+              role: "user",
+              content: [
+                { type: "text", text: "image evidence" },
+                { type: "image_url", image_url: { url: image } },
+              ],
+            },
+            { role: "assistant", content: "duplicate reference" },
+            { role: "assistant", content: "duplicate reference" },
+            {
+              role: "assistant",
+              content: "historical tool step",
+              tool_calls: [
+                {
+                  id: "history_a",
+                  type: "function",
+                  function: {
+                    name: "read_file",
+                    arguments: '{"path":"a.txt"}',
+                  },
+                },
+                {
+                  id: "history_b",
+                  type: "function",
+                  function: {
+                    name: "search_files",
+                    arguments: '{"pattern":"b"}',
+                  },
+                },
+              ],
+            },
+            {
+              role: "tool",
+              tool_call_id: "history_a",
+              content: "sk-abcdefghijklmnopqrstuvwxyz1234567890",
+            },
+            {
+              role: "tool",
+              tool_call_id: "history_b",
+              content: "clean tool evidence",
+            },
+            { role: "user", content: "Continue using the references." },
+          ],
+          {
+            ...f.callOptions,
+            provider,
+            model,
+            baseUrl:
+              protocol === "openai-responses"
+                ? "https://api.openai.com/v1"
+                : baseUrl + "/v1",
+            apiKey: "fixture-only",
+            cwd: f.root,
+            contextMemorySkipPlanning: false,
+            contextMemoryTrustedSystemIndexes: [0, 1],
+            contextMemoryEnv: {
+              CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_STAGE: "canonical_default",
+            },
+            contextMemoryFilePath: path.join(f.root, "mapped-memory.json"),
+            contextMemoryModelWindowTokens: 32768,
+            maxOutputTokens: 512,
+            enabledToolNames: ["read_file", "search_files"],
+            onModelInputDiagnostic: (event) => diagnostics.push(event),
+          },
+        );
+        expect(result.message.content).toBe("done");
+        expect(result.usage).toBeUndefined();
+        expect(bodies).toHaveLength(1);
+        expect(
+          f.config.authorities.attestationVerifier.verify,
+        ).toHaveBeenCalled();
+        const logical = diagnostics.find(
+          (event) => event.phase === "logical-input",
+        );
+        const wire = diagnostics.find((event) => event.stage === "fetch-body");
+        expect(logical.projection.covered).toBe(true);
+        expect(logical.sourceMapping.covered).toBe(true);
+        expect(wire.sourceMapping).toMatchObject({ covered: true, protocol });
+        expect(wire.requestId).toBe(logical.requestId);
+        expect(wire.bodyDigest).toBe(
+          crypto.createHash("sha256").update(bodies[0]).digest("hex"),
+        );
+        const prepared = await planning.mock.results[0].value;
+        const mapped = logical.sourceMapping.sources;
+        const bundle = mapped.find((source) => source.input.length === 3);
+        expect(bundle).toBeDefined();
+        expect(bundle).toMatchObject({ changed: true, redactionTouched: true });
+        for (let index = 0; index < bundle.input.length; index++)
+          expect(bundle.logical[index].index).toBe(
+            bundle.input[index].index + 1,
+          );
+        const duplicates = mapped.filter(
+          (source) =>
+            source.input.length === 1 &&
+            source.input[0].kind === "message" &&
+            prepared.messages[source.input[0].index].content ===
+              "duplicate reference",
+        );
+        expect(duplicates).toHaveLength(2);
+        expect(duplicates[0].input[0].index).not.toBe(
+          duplicates[1].input[0].index,
+        );
+        expect(
+          duplicates.every(
+            (source) =>
+              source.changed === false && source.redactionTouched === false,
+          ),
+        ).toBe(true);
+        const toolRows = mapped.filter(
+          (source) => source.input[0]?.kind === "tool",
+        );
+        expect(toolRows).toHaveLength(2);
+        expect(
+          toolRows
+            .map(
+              (source) =>
+                wire.sourceMapping.sources[source.ordinal].fragments[0].path,
+            )
+            .sort(),
+        ).toEqual(["/tools/0", "/tools/1"]);
+        if (provider === "anthropic") {
+          const fragments =
+            wire.sourceMapping.sources[bundle.ordinal].fragments;
+          expect(
+            fragments.filter((fragment) =>
+              /\/content\/\d+$/u.test(fragment.path),
+            ),
+          ).toHaveLength(2);
+          const systemRows = mapped.filter(
+            (source) =>
+              source.input.length === 1 &&
+              source.input[0].kind === "message" &&
+              prepared.messages[source.input[0].index].role === "system",
+          );
+          expect(systemRows).toHaveLength(2);
+          const first =
+            wire.sourceMapping.sources[systemRows[0].ordinal].fragments[0];
+          const second =
+            wire.sourceMapping.sources[systemRows[1].ordinal].fragments[0];
+          expect(first.path).toBe(second.path);
+          expect(first.end <= second.start || second.end <= first.start).toBe(
+            true,
+          );
+        }
+        const received = JSON.parse(bodies[0]);
+        const { modelInputNodeDigest } =
+          await import("../../src/lib/model-input-source-mapping.js");
+        const { projectStoredModelInputDiagnostic } =
+          await import("../../src/lib/session-model-input-diagnostics.js");
+        for (const event of diagnostics)
+          expect(
+            projectStoredModelInputDiagnostic(event).sourceMapping,
+          ).toEqual(event.sourceMapping);
+        for (const source of wire.sourceMapping.sources) {
+          for (const fragment of source.fragments) {
+            let value = fragment.path
+              .slice(1)
+              .split("/")
+              .reduce((current, key) => current[key], received);
+            if (fragment.start !== null)
+              value = value.slice(fragment.start, fragment.end);
+            expect(fragment.digest).toBe(modelInputNodeDigest(value));
+            expect(fragment.bytes).toBe(
+              Buffer.byteLength(JSON.stringify(value), "utf8"),
+            );
+          }
+        }
+        expect(bodies[0]).not.toContain(
+          "sk-abcdefghijklmnopqrstuvwxyz1234567890",
+        );
+        expect(JSON.stringify(diagnostics)).not.toMatch(
+          /duplicate reference|image evidence|history_a|a\.txt|fixture-only|abcdefghijklmnopqrstuvwxyz/,
+        );
+      } finally {
+        planning.mockRestore();
+      }
+    },
+    60_000,
+  );
+
+  it.each([
     ["openai", false],
     ["anthropic", false],
     ["openai", true],
@@ -1388,6 +1901,32 @@ describe("Agent evolution runtime production composition", () => {
           digest: prepared.plan.digest,
           selectedCount: prepared.plan.selectedItemIds.length,
         });
+        expect(logical.sourceMapping.covered).toBe(true);
+        expect(wire.sourceMapping.covered).toBe(true);
+        expect(logical.sourceMapping.sources).toHaveLength(
+          logical.planning.sources.length,
+        );
+        const received = JSON.parse(bodies[0]);
+        const { modelInputNodeDigest } =
+          await import("../../src/lib/model-input-source-mapping.js");
+        for (const source of wire.sourceMapping.sources) {
+          for (const fragment of source.fragments) {
+            let value = fragment.path
+              .slice(1)
+              .split("/")
+              .reduce((current, key) => current[key], received);
+            if (fragment.start !== null)
+              value = value.slice(fragment.start, fragment.end);
+            expect(fragment.digest).toBe(modelInputNodeDigest(value));
+            expect(fragment.bytes).toBe(
+              Buffer.byteLength(JSON.stringify(value), "utf8"),
+            );
+          }
+          if (
+            logical.planning.sources[source.ordinal].disposition === "excluded"
+          )
+            expect(source).toMatchObject({ status: "excluded", fragments: [] });
+        }
         expect(logical.planning.sourceDetailsCovered).toBe(true);
         expect(logical.planning.sourcesTruncated).toBe(false);
         expect(
@@ -4037,7 +4576,22 @@ describe("Agent evolution runtime production composition", () => {
     const event = f.composition
       .loadRun()
       .events.find((entry) => entry.data.evidenceKind === "model-input");
+    const { modelInputNodeDigest } =
+      await import("../../src/lib/model-input-source-mapping.js");
     expect(receipt).toEqual({
+      sourceMapping: {
+        inputDigest: modelInputNodeDigest(input),
+        outputDigest: modelInputNodeDigest(request),
+        slots: [
+          {
+            kind: "message",
+            index: 0,
+            logicalIndex: 1,
+            redactionTouched: true,
+            injectionTouched: false,
+          },
+        ],
+      },
       tenantId: f.config.tenantId,
       runId: f.config.runId,
       eventId: event.eventId,
@@ -4050,6 +4604,8 @@ describe("Agent evolution runtime production composition", () => {
     });
     expect(f.config.authorities.attestationVerifier.verify).toHaveBeenCalled();
     expect(receipt.redactionCount).toBeGreaterThan(0);
+    expect(Object.isFrozen(receipt.sourceMapping)).toBe(true);
+    expect(Object.isFrozen(receipt.sourceMapping.slots[0])).toBe(true);
     expect(JSON.stringify(request)).not.toContain(
       "sk-abcdefghijklmnopqrstuvwxyz1234567890",
     );

@@ -9,7 +9,7 @@ import { resolveModelCapabilityProfile } from "../model-capabilities.js";
 import { raceWithAbort } from "../abort-utils.js";
 import { createCliContextMemoryRuntime } from "./runtime.js";
 import {
-  contextItemsToMessages,
+  contextItemsToMessagesWithSources,
   memoryRecordsToContextItems,
   messagesToContextItems,
 } from "./message-adapter.js";
@@ -21,6 +21,34 @@ import {
 
 export const SEMANTIC_CANDIDATE_REQUEST_SCHEMA =
   "chainlesschain.context-memory-semantic-candidate-request/v1";
+
+const PROVIDER_SOURCE_MAPPINGS = new WeakMap();
+const PROVIDER_SOURCE_REQUEST_DOMAIN =
+  "chainlesschain.cli-provider-source-request/v1";
+
+function freezeSourceSnapshot(value) {
+  if (value && typeof value === "object" && !Object.isFrozen(value)) {
+    for (const child of Object.values(value)) freezeSourceSnapshot(child);
+    Object.freeze(value);
+  }
+  return value;
+}
+
+/** Only the actual planning exit can mint a mapping for an exact request. */
+export function getCanonicalProviderSourceMapping(plan, request) {
+  const captured = PROVIDER_SOURCE_MAPPINGS.get(plan);
+  if (!captured) return null;
+  try {
+    if (
+      canonicalDigest(request, PROVIDER_SOURCE_REQUEST_DOMAIN) !==
+      captured.requestDigest
+    )
+      return null;
+  } catch {
+    return null;
+  }
+  return captured.rows;
+}
 
 function defaultAdmissions(sessionId, options) {
   const candidates = [
@@ -395,7 +423,7 @@ export async function prepareCanonicalProviderContext(
     memoryRevision: recall.memoryRevision,
   });
   options.signal?.throwIfAborted();
-  const selectedMessages = contextItemsToMessages(
+  const expanded = contextItemsToMessagesWithSources(
     plan.selected.filter((item) => item.kind !== "tool-schema"),
     { sessionId },
   );
@@ -454,14 +482,79 @@ export async function prepareCanonicalProviderContext(
       throw error;
     }
   }
+  // Image restoration replaces content only, preserving the expansion order.
+  const restoredMessages = restoreContextImageTransport(
+    expanded.messages,
+    imageTransport.captures,
+  );
+  const rows = plan.selected.map((item, selectedIndex) => ({
+    selectedIndex,
+    digest: item.digest,
+    kind: item.kind,
+    derived:
+      Array.isArray(item.provenance?.parentDigests) &&
+      item.provenance.parentDigests.length > 0,
+    slots: [],
+  }));
+  const matchedMessages = new Set();
+  for (const source of expanded.sources) {
+    const index = rows.findIndex(
+      (row) =>
+        row.kind !== "tool-schema" &&
+        row.digest === source.digest &&
+        row.kind === source.kind &&
+        !matchedMessages.has(row.selectedIndex),
+    );
+    if (index < 0)
+      throw new TypeError("Provider message source is outside its plan");
+    matchedMessages.add(index);
+    rows[index].slots = source.messageIndexes.map((index) => ({
+      kind: "message",
+      index,
+    }));
+  }
+  const selectedToolDefinitions = [];
+  const selectedToolNames = [];
+  const matchedTools = new Set();
+  // Match the selected item, not its callable name. Same-name definitions
+  // remain distinct, and transport definitions retain registry input order.
+  for (const item of toolItems) {
+    const index = rows.findIndex(
+      (row) =>
+        row.kind === "tool-schema" &&
+        row.digest === item.digest &&
+        !matchedTools.has(row.selectedIndex),
+    );
+    if (index < 0) continue;
+    matchedTools.add(index);
+    rows[index].slots.push({
+      kind: "tool",
+      index: selectedToolDefinitions.length,
+    });
+    selectedToolDefinitions.push(JSON.parse(item.content));
+    selectedToolNames.push(item.sourceRef.id);
+  }
+  if (rows.some((row) => row.slots.length === 0))
+    throw new TypeError("Provider source has no captured request slot");
+  const requestDigest = canonicalDigest(
+    {
+      messages: restoredMessages,
+      tools: selectedToolDefinitions,
+    },
+    PROVIDER_SOURCE_REQUEST_DOMAIN,
+  );
+  // Retain only the request commitment and source positions, not image/source bytes.
+  PROVIDER_SOURCE_MAPPINGS.set(
+    plan,
+    Object.freeze({
+      requestDigest,
+      rows: freezeSourceSnapshot(rows),
+    }),
+  );
   const prepared = {
-    messages: restoreContextImageTransport(
-      selectedMessages,
-      imageTransport.captures,
-    ),
-    selectedToolNames: toolItems
-      .filter((item) => plan.selectedItemIds.includes(item.itemId))
-      .map((item) => item.sourceRef.id),
+    messages: restoredMessages,
+    selectedToolNames,
+    selectedToolDefinitions: freezeSourceSnapshot(selectedToolDefinitions),
     plan,
     recall,
     decision: runtime.decision,

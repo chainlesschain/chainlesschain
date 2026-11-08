@@ -13,12 +13,21 @@ cc mcp tasks create <tool> --server <configured-server> --session <session-id> -
 cc mcp tasks list --session <session-id> --json
 cc mcp tasks poll <local-id> --session <session-id> --json
 cc mcp tasks result <local-id> --session <session-id> --json
+cc mcp tasks deliver <local-id> --session <session-id> --json
 cc mcp tasks cancel <local-id> --session <session-id> --json
 ```
 
 create 可以追加 --args 传入工具所需的 JSON 参数，或用 --ttl 指定期望保留的毫秒数。create 返回的 localId 用于后续命令；服务器返回的 taskId 是另一种身份。poll / result / cancel 从所属会话读取原服务器配置名，不接受重定向到另一台服务器。
 
 list 只读已验证的本地记录。第一次 result 会领取并保存正文；保存成功后的 result / poll 可在服务端离线或配置删除后完成本地读取及必要的结算修复，不再次领取正文。列表不会输出结果正文、凭据或 HMAC 密钥。
+
+deliver 要求结果已经保存并结算；它离线将一次外部参考写入原会话，重复调用不会再写。随后可以使用真实输入继续，例如：
+
+```text
+cc agent --resume <session-id> "Continue using the delivered result."
+```
+
+这一步仍使用原有模型和权限配置。参考不是新的用户要求或模型回答；正文最多 64 KiB，明确标记摘录，完整结果可用 result 查询。普通分页、history 和压缩恢复能读取同一份参考。
 
 **理解状态**
 
@@ -28,6 +37,7 @@ list 只读已验证的本地记录。第一次 result 会领取并保存正文�
 | accepted / observed               | 已保存受理或查询回执；这不代表工具已交付结果。                                            |
 | remoteStatus                      | 最后一次显式保存的远端状态。取得正文后不据此猜测新的具体状态。                            |
 | resultSaved                       | 最终正文已保存在原会话中。                                                                |
+| delivered                         | 外部参考已一次写入该会话；不表示模型已读取或完成任务。                                    |
 | callStatus                        | 原调用账本的结算状态；只在保存并核对最终结果后完成结算。                                  |
 | cancel_requested / cancel_unknown | 已准备取消或取消回执不确定；再次发送前先 poll 核对。                                      |
 
@@ -41,6 +51,8 @@ list 只读已验证的本地记录。第一次 result 会领取并保存正文�
 
 恢复身份绑定完整 endpoint、有效认证 headers、协议、TLS 材料及相关配置。新的 HTTP transport session 可以变化；凭据、服务器或 TLS 身份变化会拒绝自动续接，避免跨账号领取任务。密钥丢失也会拒绝远端恢复；已经保存的本地结果仍可读取。
 
-本批通过显式 CLI 查询交付结果，不自动向模型历史追加消息。模型自动继续、完整工具回合消费、双 IDE 任务界面及本地 stdio 任务重启恢复仍属于后续工作。原调用未结算时，当前保守门禁也会限制同会话的新副作用调用；可先完成结果领取或核对。
+本批支持显式 deliver 后由真实用户继续，没有自动后台唤醒或模型自行跟踪。fork 保留外部参考，但不继承父任务操作权；原有外来 MCP 调用恢复门禁仍可能限制新操作。双 IDE 任务界面及本地 stdio 任务重启恢复仍属于后续工作。原调用未结算时，保守门禁也会限制同会话的新副作用调用。
 
 实现与测试证据见[实施记录](../research/cli-ide/implementation/cli-ide-mcp-task-durable-progress-2026-11-08.md)。
+
+单次交付与续跑的后续证据见[交付实施记录](../research/cli-ide/implementation/cli-ide-mcp-task-delivery-progress-2026-11-08.md)。

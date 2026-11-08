@@ -1,3 +1,4 @@
+import { deliverMcpTaskResult } from "./mcp-task-delivery.js";
 import { randomBytes, randomUUID } from "node:crypto";
 import { createSecretStore } from "./secret-store.js";
 import { createSessionMcpLedgerSink } from "./mcp-call-ledger-store.js";
@@ -36,6 +37,9 @@ function publicRecord(record, projection) {
     cancelRequested: record.cancelRequested,
     cancelUnknown: record.cancelUnknown,
     resultSaved: record.result !== null,
+    delivered: projection.deliveries.some(
+      (item) => item.localId === record.localId,
+    ),
     callStatus: call?.status ?? null,
     outcomeUnknown: record.task === null && call?.status === "started",
     expiresAt:
@@ -411,6 +415,21 @@ export function createDurableMcpTaskRuntime({
           cached,
           result: record.result,
         });
+      });
+    },
+
+    deliver(localId) {
+      return enqueue(async () => {
+        const projection = read();
+        const record = find(localId, projection);
+        if (record.result === null) {
+          throw failure(
+            "CC_MCP_TASK_RESULT_NOT_SAVED",
+            "Retrieve the task result before delivering it",
+          );
+        }
+        await repairSettlement(record);
+        return deliverMcpTaskResult(sessionId, localId);
       });
     },
 
