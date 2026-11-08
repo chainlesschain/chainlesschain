@@ -369,9 +369,6 @@ if (process.argv.includes("--help")) {
       report.implementationSha256,
       "implementation changed during measurement",
     );
-    report.complete = true;
-    if (output) save();
-    else process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
   } finally {
     if (
       resolve(root).startsWith(`${temporaryRoot}${sep}`) &&
@@ -379,4 +376,8 @@ if (process.argv.includes("--help")) {
     )
       rmSync(root, { recursive: true, force: true });
   }
+  // A finished sample matrix is not a completed run until cleanup succeeds.
+  report.complete = true;
+  if (output) save();
+  else process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
 }
