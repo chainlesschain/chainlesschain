@@ -28,6 +28,7 @@ import {
 } from "../../src/lib/evolution/evolution-evidence-storage-layout.js";
 import { AGENT_MODEL_REQUEST_LIMITS } from "../../src/lib/evolution/agent-model-projection.js";
 import * as agentEvolutionIngress from "../../src/lib/evolution/agent-evolution-ingress.js";
+import * as canonicalProviderContext from "../../src/lib/context-memory-kernel/provider-context.js";
 import {
   captureAgentEvolutionIngress,
   getAgentModelRequestReceipt,
@@ -1288,15 +1289,23 @@ describe("Agent evolution runtime production composition", () => {
     60_000,
   );
 
-  it.each(["openai", "anthropic"])(
-    "binds the %s model input diagnostic to a trusted receipt and real wire bytes",
-    async (provider) => {
+  it.each([
+    ["openai", false],
+    ["anthropic", false],
+    ["openai", true],
+  ])(
+    "binds the %s model input diagnostic to canonical planning, a trusted receipt and real wire bytes (small budget=%s)",
+    async (provider, smallBudget) => {
       const nativeFetch = globalThis.fetch;
       const f = modelFixture();
       vi.stubGlobal("fetch", nativeFetch);
       const receiptLookup = vi.spyOn(
         agentEvolutionIngress,
         "getAgentModelRequestReceipt",
+      );
+      const planning = vi.spyOn(
+        canonicalProviderContext,
+        "prepareCanonicalProviderContext",
       );
       const diagnostics = [];
       const bodies = [];
@@ -1320,6 +1329,14 @@ describe("Agent evolution runtime production composition", () => {
         const result = await chatWithTools(
           [
             { role: "system", content: "project-rule-PRIVATE" },
+            ...(smallBudget
+              ? [
+                  {
+                    role: "assistant",
+                    content: "omitted-source-PRIVATE ".repeat(2000),
+                  },
+                ]
+              : []),
             { role: "user", content: "source-PRIVATE 多字节" },
           ],
           {
@@ -1330,6 +1347,15 @@ describe("Agent evolution runtime production composition", () => {
             baseUrl: `${baseUrl}/v1`,
             apiKey: "credential-PRIVATE",
             cwd: f.root,
+            contextMemorySkipPlanning: false,
+            contextMemoryEnv: {
+              CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_STAGE: "canonical_default",
+            },
+            contextMemoryFilePath: path.join(f.root, "diagnostic-memory.json"),
+            contextMemorySelectedToolNames: [],
+            ...(smallBudget
+              ? { contextMemoryModelWindowTokens: 1024, maxOutputTokens: 256 }
+              : {}),
             onModelInputDiagnostic: async (event) => {
               diagnostics.push(event);
             },
@@ -1354,6 +1380,23 @@ describe("Agent evolution runtime production composition", () => {
           (entry) => entry.phase === "logical-input",
         );
         const wire = diagnostics.find((entry) => entry.stage === "fetch-body");
+        expect(planning).toHaveBeenCalledTimes(1);
+        const prepared = await planning.mock.results[0].value;
+        expect(prepared.plan.digest).toMatch(/^sha256:[a-f0-9]{64}$/u);
+        expect(logical.planning).toMatchObject({
+          covered: true,
+          digest: prepared.plan.digest,
+          selectedCount: prepared.plan.selectedItemIds.length,
+        });
+        if (smallBudget) {
+          expect(prepared.plan.dropped).toHaveLength(1);
+          expect(prepared.plan.dropped[0].reason).toBe("input_budget");
+          expect(logical.planning.dropped).toEqual({ input_budget: 1 });
+          expect(bodies[0]).not.toContain("omitted-source-PRIVATE");
+          expect(bodies[0]).toContain("source-PRIVATE");
+        } else {
+          expect(logical.planning.dropped).toEqual({});
+        }
         expect(logical.projection).toEqual({
           covered: true,
           manifestDigest: receipt.manifestDigest,
@@ -1391,6 +1434,7 @@ describe("Agent evolution runtime production composition", () => {
         }
       } finally {
         receiptLookup.mockRestore();
+        planning.mockRestore();
       }
     },
     60_000,

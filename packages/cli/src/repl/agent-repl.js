@@ -1,3 +1,4 @@
+import { createPersistedModelInputObserver } from "../lib/session-model-input-diagnostics.js";
 /**
  * Agentic REPL - Claude Code / Codex style
  *
@@ -439,9 +440,9 @@ export async function runReplDirectToolWithLedger({
         tool,
         isError: Boolean(
           executionFailed ||
-            result?.error ||
-            result?.is_error ||
-            result?.isError,
+          result?.error ||
+          result?.is_error ||
+          result?.isError,
         ),
         skill: tool === "run_skill" ? args?.skill_name : undefined,
         ...extractPluginUsageAttribution(result),
@@ -531,9 +532,8 @@ async function _fireNotification(message, type = "info", session = null) {
   // Fire settings.json observe hooks first (best-effort)
   if (_settingsHooks) {
     try {
-      const { runObserveHooks } = await import(
-        "../lib/settings-hook-events.js"
-      );
+      const { runObserveHooks } =
+        await import("../lib/settings-hook-events.js");
       await runObserveHooks(
         _settingsHooks,
         "Notification",
@@ -722,6 +722,16 @@ export async function agentLoop(messages, options) {
           );
         }
       : undefined);
+  const onModelInputDiagnostic =
+    options.persistUsageTelemetry === true && options.sessionId
+      ? createPersistedModelInputObserver({
+          append: (type, data) =>
+            persistRuntimeLedger(() =>
+              persistBoundary(options.sessionId, type, data),
+            ),
+          observe: options.onModelInputDiagnostic,
+        })
+      : options.onModelInputDiagnostic;
   const childToolExecs = new Map();
   const onToolCallBoundary =
     options.onToolCallBoundary ||
@@ -783,6 +793,7 @@ export async function agentLoop(messages, options) {
     onUsageSettlement,
     onToolCallBoundary,
     onToolCallSettlement,
+    onModelInputDiagnostic,
     onProviderFallback,
   })) {
     if (evolutionIngress !== null) {
@@ -3535,9 +3546,8 @@ async function startAgentReplInWorkspaceOwned(
   // Initialize prompt compressor (adaptive to model's context window). A
   // canonical cutover cannot disable the Kernel writer by toggling the legacy
   // compressor feature flag; the compressor remains only its summarizer.
-  const { resolveCliContextMemoryCutover } = await import(
-    "../lib/context-memory-kernel/authority.js"
-  );
+  const { resolveCliContextMemoryCutover } =
+    await import("../lib/context-memory-kernel/authority.js");
   const contextMemoryCutover = resolveCliContextMemoryCutover({
     env: options.contextMemoryEnv || process.env,
     scopeKey: sessionId ? `cli:session:${sessionId}` : "cli:repl",
@@ -3585,9 +3595,8 @@ async function startAgentReplInWorkspaceOwned(
     });
     if (contextMemoryCutover.canonical) {
       const compatibilitySummarizer = _compressor;
-      const { compactLiveMessagesCanonical } = await import(
-        "../lib/context-memory-kernel/live-compaction.js"
-      );
+      const { compactLiveMessagesCanonical } =
+        await import("../lib/context-memory-kernel/live-compaction.js");
       _compressor = {
         canonicalKernel: true,
         maxTokens: compatibilitySummarizer.maxTokens,
@@ -3682,9 +3691,8 @@ async function startAgentReplInWorkspaceOwned(
   // MEDIUM/HIGH-risk commands against the session's policy tier
   // (strict / trusted / autopilot).
   try {
-    const { getApprovalGate } = await import(
-      "../lib/session-core-singletons.js"
-    );
+    const { getApprovalGate } =
+      await import("../lib/session-core-singletons.js");
     _approvalGate = await getApprovalGate();
     _approvalGate =
       _approvalGate?.createSessionScope?.(
@@ -3970,14 +3978,12 @@ async function startAgentReplInWorkspaceOwned(
   // project plugins get a process spawned. Reaped in the SessionEnd cleanup +
   // a process-exit backstop, so no monitor outlives the session.
   try {
-    const { collectPluginMonitors } = await import(
-      "../lib/plugin-runtime/monitors.js"
-    );
+    const { collectPluginMonitors } =
+      await import("../lib/plugin-runtime/monitors.js");
     const monitors = collectPluginMonitors({ cwd: process.cwd() });
     if (monitors.length > 0) {
-      const { PluginMonitorSupervisor } = await import(
-        "../lib/plugin-monitor-supervisor.js"
-      );
+      const { PluginMonitorSupervisor } =
+        await import("../lib/plugin-monitor-supervisor.js");
       _pluginMonitors = new PluginMonitorSupervisor();
       const started = _pluginMonitors.start(monitors);
       if (started.length > 0) {
@@ -4009,9 +4015,8 @@ async function startAgentReplInWorkspaceOwned(
   // Apply trusted plugins' default env vars (Phase 3.3o) — only for env keys the
   // user/system didn't already set; restored at SessionEnd.
   try {
-    const { applyPluginSettingsEnv } = await import(
-      "../lib/plugin-runtime/settings.js"
-    );
+    const { applyPluginSettingsEnv } =
+      await import("../lib/plugin-runtime/settings.js");
     const res = applyPluginSettingsEnv({ cwd: process.cwd() });
     _pluginSettingsRestore = res.restore;
     if (res.added.length > 0) {
@@ -4082,9 +4087,8 @@ async function startAgentReplInWorkspaceOwned(
   let _sessionMgr = null;
   let _sessionHandle = null;
   try {
-    const { getSessionManager } = await import(
-      "../lib/session-core-singletons.js"
-    );
+    const { getSessionManager } =
+      await import("../lib/session-core-singletons.js");
     // Keep durable lifecycle sidecars on the same launch-authoritative Claude
     // project bucket as the JSONL transcript. Project settings may not switch
     // this map/path after the REPL has admitted its launch environment.
@@ -4133,9 +4137,8 @@ async function startAgentReplInWorkspaceOwned(
       error.code = "CC_REMOTE_APPROVAL_GATE_UNAVAILABLE";
       throw error;
     }
-    const { startHeadlessRemoteApproval } = await import(
-      "../lib/remote-approval-bridge.js"
-    );
+    const { startHeadlessRemoteApproval } =
+      await import("../lib/remote-approval-bridge.js");
     const started = await startHeadlessRemoteApproval({
       agentSessionId:
         sessionId || `repl-${process.pid}-${Date.now().toString(36)}`,
@@ -4398,9 +4401,8 @@ async function startAgentReplInWorkspaceOwned(
   // project memory is off or no hook is registered.
   if (_settingsHooks && _loadedReplInstructions) {
     try {
-      const { runInstructionsLoadedHooks } = await import(
-        "../lib/settings-hook-events.js"
-      );
+      const { runInstructionsLoadedHooks } =
+        await import("../lib/settings-hook-events.js");
       const ctx = (
         await runInstructionsLoadedHooks(_settingsHooks, {
           files: _loadedReplInstructions.files,
@@ -4417,9 +4419,8 @@ async function startAgentReplInWorkspaceOwned(
   // settings.json SessionStart hooks → inject session context (observe-only).
   if (_settingsHooks) {
     try {
-      const { runSessionStartHooks } = await import(
-        "../lib/settings-hook-events.js"
-      );
+      const { runSessionStartHooks } =
+        await import("../lib/settings-hook-events.js");
       const ctx = (
         await runSessionStartHooks(_settingsHooks, {
           source: "startup",
@@ -4487,18 +4488,15 @@ async function startAgentReplInWorkspaceOwned(
   };
   if (options.bundlePath) {
     try {
-      const { loadBundle } = await import(
-        "@chainlesschain/session-core/agent-bundle-loader"
-      );
-      const { parseUserMdSeed, resolveBundle } = await import(
-        "@chainlesschain/session-core/agent-bundle-resolver"
-      );
+      const { loadBundle } =
+        await import("@chainlesschain/session-core/agent-bundle-loader");
+      const { parseUserMdSeed, resolveBundle } =
+        await import("@chainlesschain/session-core/agent-bundle-resolver");
       const bundle = loadBundle(options.bundlePath);
       if (contextMemoryCutover.canonical) {
         _bundleResolved = resolveBundle(bundle);
-        const { createCliCanonicalMemoryService } = await import(
-          "../lib/context-memory-kernel/memory-service.js"
-        );
+        const { createCliCanonicalMemoryService } =
+          await import("../lib/context-memory-kernel/memory-service.js");
         const memoryService = createCliCanonicalMemoryService({
           env: options.contextMemoryEnv || process.env,
         });
@@ -4540,9 +4538,8 @@ async function startAgentReplInWorkspaceOwned(
         }
         _bundleResolved.seedResult = { seeded, skipped };
       } else {
-        const { getMemoryStore } = await import(
-          "../lib/session-core-singletons.js"
-        );
+        const { getMemoryStore } =
+          await import("../lib/session-core-singletons.js");
         _bundleResolved = resolveBundle(bundle, {
           memoryStore: getMemoryStore(),
           seedOptions: {
@@ -4800,9 +4797,8 @@ async function startAgentReplInWorkspaceOwned(
   // when there are no extra roots. Best-effort.
   if (additionalDirectories.length > 0) {
     try {
-      const { workspaceRootDirs, notifyMcpRootsChanged } = await import(
-        "./add-dir.js"
-      );
+      const { workspaceRootDirs, notifyMcpRootsChanged } =
+        await import("./add-dir.js");
       notifyMcpRootsChanged(
         [_adhocMcp?.mcpClient, _bundleMcpClient],
         workspaceRootDirs(process.cwd(), additionalDirectories),
@@ -4855,9 +4851,8 @@ async function startAgentReplInWorkspaceOwned(
   // --no-recall-memory is passed.
   if (!options.sessionId && options.recallMemory !== false) {
     try {
-      const { buildMemoryInjection } = await import(
-        "../lib/memory-injection.js"
-      );
+      const { buildMemoryInjection } =
+        await import("../lib/memory-injection.js");
       const injection = buildMemoryInjection({
         agentId: options.agentId || null,
         query: options.recallQuery || "",
@@ -4959,9 +4954,8 @@ async function startAgentReplInWorkspaceOwned(
     // Observe-only, best-effort — never blocks entering the REPL.
     if (_settingsHooks && _startupResumeCommitted) {
       try {
-        const { runObserveHooks } = await import(
-          "../lib/settings-hook-events.js"
-        );
+        const { runObserveHooks } =
+          await import("../lib/settings-hook-events.js");
         await runObserveHooks(
           _settingsHooks,
           "SessionResume",
@@ -4999,9 +4993,8 @@ async function startAgentReplInWorkspaceOwned(
   // transcript snapshot and ZERO tools. Compact call/outcome metadata shares
   // the session hash chain, while advice text itself is never persisted.
   try {
-    const { createConfiguredAdvisorRuntime } = await import(
-      "../lib/advisor-runtime.js"
-    );
+    const { createConfiguredAdvisorRuntime } =
+      await import("../lib/advisor-runtime.js");
     const advisorOverrides = {};
     if (options.advisorEnabled !== undefined) {
       advisorOverrides.enabled = options.advisorEnabled === true;
@@ -5370,9 +5363,8 @@ async function startAgentReplInWorkspaceOwned(
                   return;
                 }
                 try {
-                  const { defaultOpenBrowser } = await import(
-                    "../lib/mcp-oauth.js"
-                  );
+                  const { defaultOpenBrowser } =
+                    await import("../lib/mcp-oauth.js");
                   const opened = defaultOpenBrowser(request.url);
                   resolve(opened ? { action: "accept" } : { action: "cancel" });
                 } catch {
@@ -5415,9 +5407,8 @@ async function startAgentReplInWorkspaceOwned(
   let _channels = null;
   if (options.channels) {
     try {
-      const { startChannels, formatChannelEvent } = await import(
-        "../lib/channels/channel-manager.js"
-      );
+      const { startChannels, formatChannelEvent } =
+        await import("../lib/channels/channel-manager.js");
       let channelsConfig = {};
       try {
         channelsConfig =
@@ -5710,9 +5701,8 @@ async function startAgentReplInWorkspaceOwned(
   const _notifyVersionSkew = async () => {
     if (_versionSkewNotified) return;
     try {
-      const { detectVersionSkew, versionSkewMessage } = await import(
-        "../lib/version-skew.js"
-      );
+      const { detectVersionSkew, versionSkewMessage } =
+        await import("../lib/version-skew.js");
       const skew = detectVersionSkew();
       if (skew) {
         _versionSkewNotified = true;
@@ -5887,9 +5877,8 @@ async function startAgentReplInWorkspaceOwned(
     // to the model verbatim — the same fall-through an unmatched slash line
     // already takes. /exit and /quit stay live so the session can be closed.
     // Predicate + sentinel are pure (lib/slash-dispatch.js, unit-tested).
-    const { slashDispatchBypassed, slashBypassSentinel } = await import(
-      "../lib/slash-dispatch.js"
-    );
+    const { slashDispatchBypassed, slashBypassSentinel } =
+      await import("../lib/slash-dispatch.js");
     const _slashBypassed = slashDispatchBypassed(
       rawLine,
       _slashCommandsDisabled,
@@ -5918,9 +5907,8 @@ async function startAgentReplInWorkspaceOwned(
     // no LLM round-trip — and fold the output into the conversation context.
     if (trimmed.startsWith("!") && trimmed.slice(1).trim()) {
       try {
-        const { runBangCommand, shouldRespondToBashCommands } = await import(
-          "../lib/repl-bang-memorize.js"
-        );
+        const { runBangCommand, shouldRespondToBashCommands } =
+          await import("../lib/repl-bang-memorize.js");
         const res = runBangCommand(trimmed, { cwd: process.cwd() });
         logger.log(chalk.gray(`$ ${res.cmd}`));
         if (res.stdout)
@@ -5957,9 +5945,8 @@ async function startAgentReplInWorkspaceOwned(
     // cc.md (auto-loaded next session) and keep it active in this one.
     if (trimmed.startsWith("#") && trimmed.slice(1).trim()) {
       try {
-        const { appendMemoryNote } = await import(
-          "../lib/repl-bang-memorize.js"
-        );
+        const { appendMemoryNote } =
+          await import("../lib/repl-bang-memorize.js");
         const res = appendMemoryNote(trimmed, { cwd: process.cwd() });
         messages.push({
           role: "system",
@@ -6344,9 +6331,8 @@ async function startAgentReplInWorkspaceOwned(
     if (trimmed === "/init" || trimmed.startsWith("/init ")) {
       const force = /(^|\s)(--force|-f)(\s|$)/.test(trimmed);
       try {
-        const { inventoryProject, renderMemoryFile } = await import(
-          "../lib/project-inventory.js"
-        );
+        const { inventoryProject, renderMemoryFile } =
+          await import("../lib/project-inventory.js");
         const initCwd = process.cwd();
         const target = path.join(initCwd, "cc.md");
         if (fs.existsSync(target) && !force) {
@@ -6390,12 +6376,10 @@ async function startAgentReplInWorkspaceOwned(
       try {
         const { parseAgentsCommand, formatAgentsList, formatAgentDetail } =
           await import("./agents-status.js");
-        const { discoverAgents, getAgent, scaffoldAgent } = await import(
-          "../lib/agents.js"
-        );
-        const { listSubAgentProfiles } = await import(
-          "../lib/sub-agent-profiles.js"
-        );
+        const { discoverAgents, getAgent, scaffoldAgent } =
+          await import("../lib/agents.js");
+        const { listSubAgentProfiles } =
+          await import("../lib/sub-agent-profiles.js");
         const cmd = parseAgentsCommand(trimmed);
         if (cmd.action === "help") {
           logger.log(
@@ -6451,9 +6435,8 @@ async function startAgentReplInWorkspaceOwned(
 
     if (trimmed === "/sub-agents" || trimmed === "/subagents") {
       try {
-        const { SubAgentRegistry } = await import(
-          "../lib/sub-agent-registry.js"
-        );
+        const { SubAgentRegistry } =
+          await import("../lib/sub-agent-registry.js");
         const registry = SubAgentRegistry.getInstance();
         const active = registry.getActive();
         const history = registry.getHistory();
@@ -6505,9 +6488,8 @@ async function startAgentReplInWorkspaceOwned(
         // user could silently switch to a retired id and only learn of it when
         // the next turn fails with an opaque "model not found".
         try {
-          const { maybeWarnDeprecatedModel } = await import(
-            "../lib/model-deprecation.js"
-          );
+          const { maybeWarnDeprecatedModel } =
+            await import("../lib/model-deprecation.js");
           maybeWarnDeprecatedModel({ model });
         } catch {
           // deprecation notice is best-effort
@@ -6602,9 +6584,8 @@ async function startAgentReplInWorkspaceOwned(
     // One-shot advice is queued as an ephemeral prepareCall suffix, requiring
     // the main agent to validate it locally on its next model/tool turn.
     {
-      const { parseAdvisorCommand, executeAdvisorCommand } = await import(
-        "./advisor-command.js"
-      );
+      const { parseAdvisorCommand, executeAdvisorCommand } =
+        await import("./advisor-command.js");
       const advisorCommand = parseAdvisorCommand(trimmed);
       if (advisorCommand) {
         const result = await executeAdvisorCommand(advisorCommand, {
@@ -6643,9 +6624,8 @@ async function startAgentReplInWorkspaceOwned(
       // Stash the conversation first so `/rewind clear` can restore it
       // (Claude-Code 2.1.191). A no-op /clear (nothing to stash) keeps any
       // existing restorable snapshot.
-      const { snapshotClearedConversation } = await import(
-        "../lib/repl-rewind.js"
-      );
+      const { snapshotClearedConversation } =
+        await import("../lib/repl-rewind.js");
       const snap = snapshotClearedConversation(messages, _checkpointMarks);
       if (snap) _clearedConversation = snap;
       messages.length = 1; // Keep system prompt
@@ -6666,9 +6646,8 @@ async function startAgentReplInWorkspaceOwned(
     ) {
       try {
         const arg = trimmed.slice("/terminal-setup".length).trim();
-        const { runTerminalSetup } = await import(
-          "../commands/terminal-setup.js"
-        );
+        const { runTerminalSetup } =
+          await import("../commands/terminal-setup.js");
         const res = runTerminalSetup({ apply: arg === "--apply" });
         for (const l of res.lines) logger.log(l);
       } catch (err) {
@@ -6972,9 +6951,8 @@ async function startAgentReplInWorkspaceOwned(
     if (trimmed === "/output-style" || trimmed.startsWith("/output-style ")) {
       const arg = trimmed.slice("/output-style".length).trim();
       try {
-        const { discoverOutputStyles, getOutputStyle } = await import(
-          "../lib/output-styles.js"
-        );
+        const { discoverOutputStyles, getOutputStyle } =
+          await import("../lib/output-styles.js");
         if (!arg) {
           logger.log(chalk.bold("Output styles:"));
           for (const s of discoverOutputStyles(process.cwd())) {
@@ -7042,15 +7020,13 @@ async function startAgentReplInWorkspaceOwned(
           // (byte-unchanged) without a registered CwdChanged hook.
           if (_settingsHooks && oldCwd !== newCwd) {
             try {
-              const { runCwdChangedHooks, dispatchAsyncHooks } = await import(
-                "../lib/settings-hook-events.js"
-              );
+              const { runCwdChangedHooks, dispatchAsyncHooks } =
+                await import("../lib/settings-hook-events.js");
               const payload = { oldCwd, newCwd, sessionId };
               await runCwdChangedHooks(_settingsHooks, payload);
               if (!_asyncHookSupervisor) {
-                const { AsyncHookSupervisor } = await import(
-                  "../lib/async-hook-supervisor.js"
-                );
+                const { AsyncHookSupervisor } =
+                  await import("../lib/async-hook-supervisor.js");
                 _asyncHookSupervisor = new AsyncHookSupervisor({
                   persistStats: true,
                 });
@@ -7110,9 +7086,8 @@ async function startAgentReplInWorkspaceOwned(
           (parsed.command === "turn" || parsed.command === "branch")
         ) {
           try {
-            const { loadTurnBindingLog } = await import(
-              "../lib/turn-binding-store.js"
-            );
+            const { loadTurnBindingLog } =
+              await import("../lib/turn-binding-store.js");
             _persistedBinding = loadTurnBindingLog(sessionId);
           } catch {
             /* marks-only fallback */
@@ -7171,9 +7146,8 @@ async function startAgentReplInWorkspaceOwned(
               logger.error("Could not plan a branch from that turn.");
             } else {
               try {
-                const { createBranchSession } = await import(
-                  "../harness/jsonl-session-store.js"
-                );
+                const { createBranchSession } =
+                  await import("../harness/jsonl-session-store.js");
                 const res = createBranchSession({
                   branchSessionId: plan.branchSessionId,
                   parentSessionId: sessionId,
@@ -7307,9 +7281,8 @@ async function startAgentReplInWorkspaceOwned(
                 .toLowerCase();
               if (ans === "" || ans === "y" || ans === "yes") {
                 try {
-                  const { rewindTo } = await import(
-                    "../lib/checkpoint-store.js"
-                  );
+                  const { rewindTo } =
+                    await import("../lib/checkpoint-store.js");
                   const r = rewindTo(process.cwd(), cp.id, {
                     session: sessionId,
                   });
@@ -7359,9 +7332,8 @@ async function startAgentReplInWorkspaceOwned(
       // window. Reuses the same categorizer + estimator as the archived view.
       try {
         const { categorizeContext } = await import("../commands/context.js");
-        const { estimateTokens } = await import(
-          "../harness/prompt-compressor.js"
-        );
+        const { estimateTokens } =
+          await import("../harness/prompt-compressor.js");
         const { buckets, counts, total } = categorizeContext(
           messages,
           estimateTokens,
@@ -7394,9 +7366,8 @@ async function startAgentReplInWorkspaceOwned(
               : ""
           }`,
         );
-        const { default: sourceLedger } = await import(
-          "../lib/context-source-ledger.js"
-        );
+        const { default: sourceLedger } =
+          await import("../lib/context-source-ledger.js");
         const attribution = sourceLedger.getTokenReport({ sessionId });
         if (attribution.entries) {
           logger.log(
@@ -7417,9 +7388,8 @@ async function startAgentReplInWorkspaceOwned(
         // `messages`, so it's invisible to the role buckets above. Show the
         // per-server schema cost + tool-search state + optimization advice.
         if (_adhocMcp?.extraToolDefinitions?.length) {
-          const { describeMcpToolContext } = await import(
-            "../runtime/mcp-tool-search.js"
-          );
+          const { describeMcpToolContext } =
+            await import("../runtime/mcp-tool-search.js");
           const info = describeMcpToolContext(_adhocMcp, {
             estimate: estimateTokens,
             model,
@@ -7893,19 +7863,16 @@ async function startAgentReplInWorkspaceOwned(
     if (trimmed === "/reload-plugins") {
       try {
         const cwd = process.cwd();
-        const { reloadPluginRuntime } = await import(
-          "../lib/plugin-runtime/reload.js"
-        );
+        const { reloadPluginRuntime } =
+          await import("../lib/plugin-runtime/reload.js");
         const sum = reloadPluginRuntime({ cwd });
 
         // Re-merge plugin hooks onto the user's settings hooks (live session).
         try {
-          const { loadHooks, attachAuthorityErrors } = await import(
-            "../lib/settings-hooks.cjs"
-          );
-          const { mergePluginHooks } = await import(
-            "../lib/plugin-runtime/hooks.js"
-          );
+          const { loadHooks, attachAuthorityErrors } =
+            await import("../lib/settings-hooks.cjs");
+          const { mergePluginHooks } =
+            await import("../lib/plugin-runtime/hooks.js");
           const loaded = loadHooks({ cwd });
           const merged = mergePluginHooks(
             attachAuthorityErrors(loaded.hooks, loaded.authorityErrors),
@@ -7934,9 +7901,8 @@ async function startAgentReplInWorkspaceOwned(
         // react (e.g. re-audit the newly-trusted config). Best-effort.
         if (_settingsHooks) {
           try {
-            const { runObserveHooks, dispatchAsyncHooks } = await import(
-              "../lib/settings-hook-events.js"
-            );
+            const { runObserveHooks, dispatchAsyncHooks } =
+              await import("../lib/settings-hook-events.js");
             const payload = {
               session_id: sessionId || null,
               source: "reload-plugins",
@@ -7945,9 +7911,8 @@ async function startAgentReplInWorkspaceOwned(
               cwd,
             });
             if (!_asyncHookSupervisor) {
-              const { AsyncHookSupervisor } = await import(
-                "../lib/async-hook-supervisor.js"
-              );
+              const { AsyncHookSupervisor } =
+                await import("../lib/async-hook-supervisor.js");
               _asyncHookSupervisor = new AsyncHookSupervisor({
                 persistStats: true,
               });
@@ -7963,18 +7928,16 @@ async function startAgentReplInWorkspaceOwned(
 
         // Restart background monitors with the fresh, trust-gated set.
         try {
-          const { collectPluginMonitors } = await import(
-            "../lib/plugin-runtime/monitors.js"
-          );
+          const { collectPluginMonitors } =
+            await import("../lib/plugin-runtime/monitors.js");
           if (_pluginMonitors) {
             _pluginMonitors.stopAll();
             _pluginMonitors = null;
           }
           const monitors = collectPluginMonitors({ cwd });
           if (monitors.length > 0) {
-            const { PluginMonitorSupervisor } = await import(
-              "../lib/plugin-monitor-supervisor.js"
-            );
+            const { PluginMonitorSupervisor } =
+              await import("../lib/plugin-monitor-supervisor.js");
             _pluginMonitors = new PluginMonitorSupervisor();
             _pluginMonitors.start(monitors);
           }
@@ -7984,9 +7947,8 @@ async function startAgentReplInWorkspaceOwned(
 
         // Re-apply legacy plugin bin PATH; strict bins remain direct-only.
         try {
-          const { applyPluginBinPath } = await import(
-            "../lib/plugin-runtime/bin.js"
-          );
+          const { applyPluginBinPath } =
+            await import("../lib/plugin-runtime/bin.js");
           if (_pluginBinRestore) _pluginBinRestore();
           const res = applyPluginBinPath({ cwd });
           _pluginBinRestore = res.restore;
@@ -7996,9 +7958,8 @@ async function startAgentReplInWorkspaceOwned(
 
         // Re-apply plugin default env vars (a newly-trusted plugin's settings).
         try {
-          const { applyPluginSettingsEnv } = await import(
-            "../lib/plugin-runtime/settings.js"
-          );
+          const { applyPluginSettingsEnv } =
+            await import("../lib/plugin-runtime/settings.js");
           if (_pluginSettingsRestore) _pluginSettingsRestore();
           const res = applyPluginSettingsEnv({ cwd });
           _pluginSettingsRestore = res.restore;
@@ -8031,9 +7992,8 @@ async function startAgentReplInWorkspaceOwned(
     // cwd so it follows `/cd`, using this session's provider/model.
     if (trimmed === "/review" || trimmed.startsWith("/review ")) {
       const rest = trimmed.slice("/review".length).trim();
-      const { parseReviewReplArgs, describeReviewArgs } = await import(
-        "./review-args.js"
-      );
+      const { parseReviewReplArgs, describeReviewArgs } =
+        await import("./review-args.js");
       const { opts: reviewOpts, errors } = parseReviewReplArgs(rest);
       if (errors.length) {
         for (const e of errors) logger.error(chalk.red(`/review: ${e}`));
@@ -8244,9 +8204,8 @@ async function startAgentReplInWorkspaceOwned(
         logger.log("");
       } else if (subCmd === "debate" && coworkInput) {
         try {
-          const { startDebate } = await import(
-            "../lib/cowork/debate-review-cli.js"
-          );
+          const { startDebate } =
+            await import("../lib/cowork/debate-review-cli.js");
           let code = coworkInput;
           let targetLabel = coworkInput;
           const resolved = path.resolve(coworkInput);
@@ -8296,9 +8255,8 @@ async function startAgentReplInWorkspaceOwned(
         }
       } else if (subCmd === "compare" && coworkInput) {
         try {
-          const { compare } = await import(
-            "../lib/cowork/ab-comparator-cli.js"
-          );
+          const { compare } =
+            await import("../lib/cowork/ab-comparator-cli.js");
           process.stdout.write(chalk.gray("\n  Generating variants...\n"));
           const result = await compare({
             prompt: coworkInput,
@@ -8330,9 +8288,8 @@ async function startAgentReplInWorkspaceOwned(
         }
       } else if (subCmd === "graph" && coworkInput) {
         try {
-          const { buildKnowledgeGraph } = await import(
-            "../lib/cowork/code-knowledge-graph-cli.js"
-          );
+          const { buildKnowledgeGraph } =
+            await import("../lib/cowork/code-knowledge-graph-cli.js");
           process.stdout.write(chalk.gray("\n  Analyzing code graph...\n"));
           const result = await buildKnowledgeGraph({
             targetPath: path.resolve(coworkInput),
@@ -8369,9 +8326,8 @@ async function startAgentReplInWorkspaceOwned(
         }
       } else if (subCmd === "decision" && coworkInput) {
         try {
-          const { extractDecisions } = await import(
-            "../lib/cowork/decision-kb-cli.js"
-          );
+          const { extractDecisions } =
+            await import("../lib/cowork/decision-kb-cli.js");
           process.stdout.write(chalk.gray("\n  Analyzing decisions...\n"));
           const result = await extractDecisions({
             targetPath: path.resolve(coworkInput),
@@ -8637,9 +8593,8 @@ async function startAgentReplInWorkspaceOwned(
                 { messages, signal: _turnAbort?.signal || null },
               );
               if (result.ok) {
-                const { renderAdvisorAdvice } = await import(
-                  "./advisor-command.js"
-                );
+                const { renderAdvisorAdvice } =
+                  await import("./advisor-command.js");
                 logger.log(renderAdvisorAdvice(result));
               } else if (result.effect !== "disabled") {
                 logger.warn(result.error);
@@ -8741,12 +8696,10 @@ async function startAgentReplInWorkspaceOwned(
         const planRequest =
           subCmd.slice(11).trim() || "Help me with the current task";
         try {
-          const { CLIInteractivePlanner } = await import(
-            "../lib/interactive-planner.js"
-          );
-          const { TerminalInteractionAdapter } = await import(
-            "../lib/interaction-adapter.js"
-          );
+          const { CLIInteractivePlanner } =
+            await import("../lib/interactive-planner.js");
+          const { TerminalInteractionAdapter } =
+            await import("../lib/interaction-adapter.js");
           const chatFn = createChatFn({
             ...(evolutionIngress === null ? {} : { evolutionIngress }),
             provider,
@@ -8825,9 +8778,8 @@ async function startAgentReplInWorkspaceOwned(
     // a note) and `cc memory recall` (scoped store).
     if (trimmed === "/memory" || trimmed.startsWith("/memory ")) {
       try {
-        const { loadProjectInstructions } = await import(
-          "../lib/project-instructions.js"
-        );
+        const { loadProjectInstructions } =
+          await import("../lib/project-instructions.js");
         const { renderMemoryFiles } = await import("./memory-status.js");
         const loaded = loadProjectInstructions({ cwd: process.cwd() });
         logger.log(
@@ -8919,9 +8871,8 @@ async function startAgentReplInWorkspaceOwned(
       } catch (_err) {
         // config read is best-effort; checks degrade gracefully
       }
-      const { buildDoctorChecks, renderDoctor } = await import(
-        "./doctor-status.js"
-      );
+      const { buildDoctorChecks, renderDoctor } =
+        await import("./doctor-status.js");
       const { ideToolNames } = await import("./ide-status.js");
       const checks = buildDoctorChecks({
         config,
@@ -9394,9 +9345,8 @@ async function startAgentReplInWorkspaceOwned(
     // is observe-only). block → abort the turn; context → inject before the turn.
     if (_settingsHooks) {
       try {
-        const { runUserPromptSubmitHooks } = await import(
-          "../lib/settings-hook-events.js"
-        );
+        const { runUserPromptSubmitHooks } =
+          await import("../lib/settings-hook-events.js");
         const ups = await runUserPromptSubmitHooks(_settingsHooks, {
           prompt: userContent,
           cwd: process.cwd(),
@@ -9418,13 +9368,11 @@ async function startAgentReplInWorkspaceOwned(
         // long-running check (background tests, CI status) runs ALONGSIDE this
         // turn without blocking it; its result/rewake surfaces on a later turn
         // via the async-hook drain below. Lazily create the supervisor.
-        const { dispatchAsyncHooks } = await import(
-          "../lib/settings-hook-events.js"
-        );
+        const { dispatchAsyncHooks } =
+          await import("../lib/settings-hook-events.js");
         if (!_asyncHookSupervisor) {
-          const { AsyncHookSupervisor } = await import(
-            "../lib/async-hook-supervisor.js"
-          );
+          const { AsyncHookSupervisor } =
+            await import("../lib/async-hook-supervisor.js");
           _asyncHookSupervisor = new AsyncHookSupervisor({
             persistStats: true,
           });
@@ -9512,9 +9460,8 @@ async function startAgentReplInWorkspaceOwned(
     // Ephemeral: persistence stores effectivePrompt, not this snapshot.
     // Best-effort; CC_IDE_CONTEXT=0 disables.
     try {
-      const { buildIdePromptContext, expandIdeMentions } = await import(
-        "../lib/ide-context.js"
-      );
+      const { buildIdePromptContext, expandIdeMentions } =
+        await import("../lib/ide-context.js");
       const hostMcp = _getReplHostMcp();
       const ideCtx = await buildIdePromptContext(hostMcp);
       if (ideCtx) userContent += `\n\n${ideCtx}`;
@@ -9620,9 +9567,8 @@ async function startAgentReplInWorkspaceOwned(
     if (sessionId && useJsonl) {
       try {
         if (!_turnBindingProducer) {
-          const { createReplTurnBindingProducer } = await import(
-            "./repl-turn-binding.js"
-          );
+          const { createReplTurnBindingProducer } =
+            await import("./repl-turn-binding.js");
           _turnBindingProducer = createReplTurnBindingProducer({
             sessionId,
             onError: (error, phase) => {
@@ -9656,9 +9602,8 @@ async function startAgentReplInWorkspaceOwned(
         const defs = CLISlotFiller.getSlotDefinitions(intent.type);
         const missing = defs.required.filter((s) => !intent.entities[s]);
         if (missing.length > 0) {
-          const { TerminalInteractionAdapter } = await import(
-            "../lib/interaction-adapter.js"
-          );
+          const { TerminalInteractionAdapter } =
+            await import("../lib/interaction-adapter.js");
           const interaction = new TerminalInteractionAdapter();
           const filler = new CLISlotFiller({ interaction });
           const result = await filler.fillSlots(intent, {
@@ -9747,9 +9692,8 @@ async function startAgentReplInWorkspaceOwned(
         const { resolveActiveGoal } = await import("../lib/goal-store.js");
         const boundGoal = resolveActiveGoal({ sessionId });
         if (boundGoal) {
-          const { goalPrepareCall, composePrepareCall } = await import(
-            "../lib/goal-context.js"
-          );
+          const { goalPrepareCall, composePrepareCall } =
+            await import("../lib/goal-context.js");
           prepareCall = composePrepareCall([
             defaultPrepareCall,
             goalPrepareCall(boundGoal),
@@ -9775,9 +9719,8 @@ async function startAgentReplInWorkspaceOwned(
               }
               return;
             }
-            const { renderAdvisorAdvice } = await import(
-              "./advisor-command.js"
-            );
+            const { renderAdvisorAdvice } =
+              await import("./advisor-command.js");
             process.stderr.write(`\n${renderAdvisorAdvice(result)}\n`);
           },
         });
@@ -9838,9 +9781,8 @@ async function startAgentReplInWorkspaceOwned(
       // hooks (fired inside the loop, per tool call) can be dispatched
       // fire-and-forget; their results/rewakes drain into the next turn above.
       if (_settingsHooks && !_asyncHookSupervisor) {
-        const { AsyncHookSupervisor } = await import(
-          "../lib/async-hook-supervisor.js"
-        );
+        const { AsyncHookSupervisor } =
+          await import("../lib/async-hook-supervisor.js");
         _asyncHookSupervisor = new AsyncHookSupervisor({
           persistStats: true,
         });
@@ -10029,9 +9971,8 @@ async function startAgentReplInWorkspaceOwned(
           const fsMod = await import("node:fs");
           const judge = async (cond, { finalText }) => {
             const { chatWithTools } = await import("../runtime/agent-core.js");
-            const { firstBalancedJson } = await import(
-              "../lib/json-schema-output.js"
-            );
+            const { firstBalancedJson } =
+              await import("../lib/json-schema-output.js");
             const p =
               `Judge whether this coding session met a completion condition.\n` +
               `Condition: ${cond.text || cond.source}\n\n` +
@@ -10133,9 +10074,8 @@ async function startAgentReplInWorkspaceOwned(
         } else {
           // Phase G #2 — route through StreamRouter so REPL / WS / future
           // streaming providers share one StreamEvent protocol.
-          const { streamAgentResponse } = await import(
-            "../lib/agent-stream.js"
-          );
+          const { streamAgentResponse } =
+            await import("../lib/agent-stream.js");
           process.stdout.write("\n");
           const noStream = options.noStream === true;
           const streamResult = await streamAgentResponse(effectiveResponse, {
@@ -10293,9 +10233,8 @@ async function startAgentReplInWorkspaceOwned(
       // drain above). Best-effort — never break turn completion.
       if (_settingsHooks) {
         try {
-          const { runObserveHooks, dispatchAsyncHooks } = await import(
-            "../lib/settings-hook-events.js"
-          );
+          const { runObserveHooks, dispatchAsyncHooks } =
+            await import("../lib/settings-hook-events.js");
           await runObserveHooks(
             _settingsHooks,
             "Stop",
@@ -10303,9 +10242,8 @@ async function startAgentReplInWorkspaceOwned(
             { cwd: process.cwd() },
           );
           if (!_asyncHookSupervisor) {
-            const { AsyncHookSupervisor } = await import(
-              "../lib/async-hook-supervisor.js"
-            );
+            const { AsyncHookSupervisor } =
+              await import("../lib/async-hook-supervisor.js");
             _asyncHookSupervisor = new AsyncHookSupervisor({
               persistStats: true,
             });
@@ -10490,9 +10428,8 @@ async function startAgentReplInWorkspaceOwned(
     // settings.json SessionEnd hooks (observe-only) when the REPL exits.
     if (_settingsHooks) {
       try {
-        const { runObserveHooks } = await import(
-          "../lib/settings-hook-events.js"
-        );
+        const { runObserveHooks } =
+          await import("../lib/settings-hook-events.js");
         await runObserveHooks(
           _settingsHooks,
           "SessionEnd",
