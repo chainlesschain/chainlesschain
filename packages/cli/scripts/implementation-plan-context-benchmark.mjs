@@ -138,6 +138,18 @@ try {
     });
     assert.equal(selected.count, 1);
     assert.deepEqual(selected.tools[0].parameters.required, ["field_0"]);
+    const keywordSearch = executeToolSearch(registry, {
+      query: "operation_7",
+      max_results: 5,
+    });
+    const keywordNames = keywordSearch.tools.map((tool) => tool.name);
+    const expectedKeywordTool = "mcp__fixture__operation_7";
+    const syntheticRecallAt5 = keywordNames.includes(expectedKeywordTool) ? 1 : 0;
+    const syntheticNonTargetRate = keywordNames.length
+      ? keywordNames.filter((name) => name !== expectedKeywordTool).length /
+        keywordNames.length
+      : 0;
+    assert.equal(syntheticRecallAt5, 1);
     const tools = describeMcpToolContext(mcp);
     report.tiers.push({
       count,
@@ -161,6 +173,11 @@ try {
       mcpFullTokens: tools.fullTokens,
       mcpSavedTokens: tools.savedTokens,
       exactSchemaSelection: true,
+      keywordQuery: "operation_7",
+      keywordResultCount: keywordNames.length,
+      syntheticRecallAt5,
+      syntheticNonTargetRate,
+      misCallRateMeasured: false,
     });
   }
   fs.mkdirSync(path.dirname(path.resolve(values.output)), { recursive: true });

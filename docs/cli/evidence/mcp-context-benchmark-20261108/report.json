@@ -1,6 +1,6 @@
 {
   "schema": "chainlesschain.implementation-plan-context-measurement/v1",
-  "measuredAt": "2026-11-08T11:30:06.353Z",
+  "measuredAt": "2026-11-08T11:43:34.553Z",
   "scales": [
     200,
     1000,
@@ -41,7 +41,12 @@
       "mcpSentTokens": 9900,
       "mcpFullTokens": 145100,
       "mcpSavedTokens": 135200,
-      "exactSchemaSelection": true
+      "exactSchemaSelection": true,
+      "keywordQuery": "operation_7",
+      "keywordResultCount": 5,
+      "syntheticRecallAt5": 1,
+      "syntheticNonTargetRate": 0.8,
+      "misCallRateMeasured": false
     },
     {
       "count": 1000,
@@ -74,7 +79,12 @@
       "mcpSentTokens": 49100,
       "mcpFullTokens": 725100,
       "mcpSavedTokens": 676000,
-      "exactSchemaSelection": true
+      "exactSchemaSelection": true,
+      "keywordQuery": "operation_7",
+      "keywordResultCount": 5,
+      "syntheticRecallAt5": 1,
+      "syntheticNonTargetRate": 0.8,
+      "misCallRateMeasured": false
     },
     {
       "count": 5000,
@@ -107,7 +117,12 @@
       "mcpSentTokens": 245100,
       "mcpFullTokens": 3625100,
       "mcpSavedTokens": 3380000,
-      "exactSchemaSelection": true
+      "exactSchemaSelection": true,
+      "keywordQuery": "operation_7",
+      "keywordResultCount": 5,
+      "syntheticRecallAt5": 1,
+      "syntheticNonTargetRate": 0.8,
+      "misCallRateMeasured": false
     }
   ]
 }

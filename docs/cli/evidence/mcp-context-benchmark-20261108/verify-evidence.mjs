@@ -21,6 +21,7 @@ if (!Array.isArray(report.tiers) || report.tiers.length !== 3) throw new Error("
 for (const tier of report.tiers) {
   if (tier.mcpToolCount !== tier.count || tier.exactSchemaSelection !== true || tier.omittedDescriptorSearchPassed !== true) throw new Error(`MCP selection contract failed at ${tier.count}`);
   if (tier.bodiesBefore !== 0 || tier.bodiesAfter !== 1) throw new Error(`lazy body contract failed at ${tier.count}`);
+  if (tier.syntheticRecallAt5 !== 1 || tier.keywordResultCount > 5 || tier.misCallRateMeasured !== false) throw new Error(`synthetic Recall@5 contract failed at ${tier.count}`);
 }
 const large = report.tiers.find((tier) => tier.count === 5000);
 if (large.skillCount !== 1000) throw new Error("5,000 scale did not record the production skill budget boundary");
