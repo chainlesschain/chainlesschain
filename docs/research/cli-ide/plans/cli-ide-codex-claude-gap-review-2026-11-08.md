@@ -12,13 +12,13 @@
 
 | 对应项                          | 当前状态                                                                        | 剩余完成证据                                                       |
 | ------------------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| 第 2 项：实际输入诊断和任务归因 | CLI、VS Code、JetBrains 来源投影和组合回归已验证；组合用例 2/2 通过 | 真实独立任务、完整失败归因和双 IDE 真实旅程仍待完成 |
-| 第 3 项：任务生命周期恢复       | 具备 owner-only ACL 时真实 CLI/REPL SIGKILL 恢复套件 2/2 通过 | 双 IDE、压缩、并发输入、副作用和跨入口组合验收仍待完成 |
+| Item 2: actual input and attribution | CLI/VS Code/JetBrains source projections and composition regression verified; composition 2/2 | Real independent tasks, complete failure attribution, and dual-IDE journey remain open |
+| Item 3: lifecycle recovery | Owner-only ACL real CLI/REPL SIGKILL recovery suite 2/2 | Dual-IDE, compaction, concurrent input, side-effect idempotence, and cross-entry recovery remain open |
+| Item 4: MCP Tasks | Durable CLI, original-session delivery, explicit resume, Windows DPAPI recovery, lease-bound tracker, pollInterval, opt-in REPL auto-wake, and deliveryId recovery verified | Third-party service, dual IDE/desktop, multiplatform, and full provider continuation journey remain open |
+| Item 5: cost, context, and paid admission | Volcengine live probe 4/4 HTTP 200 with usage captured; finite real provider A/B receipts archived | Billing, price reconciliation, output-cap enforcement, and target-scope paid readiness remain unverified |
+| Item 6: Codex compatibility | Official `.167.0` Windows native turn/approval-cancel/transport-loss and database recovery receipts are archived; static suite 137/137; cold scan failure preserved | Three-system CI, Linux/macOS native cancellation/recovery, and model-change closure remain open |
 | Item 7: IDE / desktop journey | JetBrains scripted journey/evidence contracts 85/85 passed; live host acceptance remains open | Clean install, model switching, Stop, recovery, upgrade, and accessibility still require live host evidence |
-| Item 5: cost, context, and paid admission | Volcengine live probe 4/4 HTTP 200 with usage captured; finite real provider A/B receipts also archived | Billing, price reconciliation, output-cap enforcement, and target-scope paid readiness remain unverified |
-| 第 6 项：Codex 与模型兼容       | `.167` schema/support/turn/history 回归 137/137；`.160/.164` 冷扫描失败回执已归档 | 准确 `.167` native 协议、取消恢复、三系统 CI 和模型变化闭环仍待完成 |
-| Item 7: IDE / desktop journey | JetBrains scripted journey/evidence contracts 85/85 passed; live host acceptance remains open | Clean install, model switching, Stop, recovery, upgrade, and accessibility still require live host evidence |
-| Item 9: shared logic and guidance | call / task / generation pure projections are shared; usage attribution unit + transcript integration 19/19 passed | Cross-entry production behavior and independent failure localization still require real IDE/desktop journeys |
+| Item 9: shared logic and guidance | Shared call/task/generation projections; usage attribution unit + transcript integration 19/19 passed | Cross-entry production behavior and independent failure localization still require real IDE/desktop journeys |
 
 本批兼容实现使用独立分支 feature/cli-ide-gap-20261108，工作区位于 .worktrees/cli-ide-gap-20261108。这样可满足现有协议探针对干净准确提交的要求，并保留主工作区已有 Memory / CLI CI 改动。尚未合并、发布或宣称生产支持扩大。
 
@@ -256,9 +256,14 @@ This table is the authoritative status snapshot for this plan. A row is marked c
 | Item 3: lifecycle recovery | Owner-only ACL CLI/REPL SIGKILL recovery suite 2/2 | Partial, one real CLI/REPL path verified | Dual IDE, compaction, concurrent input, side-effect idempotence, cross-entry recovery |
 | Item 4: MCP Tasks | Durable runtime/watch/deliveryId recovery and targeted suite 118/118; scripted REPL auto-wake | Partial, local contract verified | Third-party service, model continuation, dual IDE/desktop, and multiplatform journey |
 | Item 5: cost/context/paid admission | Volcengine 4/4 HTTP 200 usage capture plus finite A/B receipts | Partial, transport/usage only | Invoice reconciliation, output-cap enforcement, and target-scope paid readiness |
-| Item 6: Codex compatibility | `.167` static/support/turn/history 137/137; 0.164 scan-repair negative receipt preserved | Partial, static and negative boundaries verified | Exact `.167` native protocol, cancellation/recovery, and three-system CI |
+| Item 6: Codex compatibility | Official `.167.0` Windows native turn/approval-cancel/transport-loss and database recovery receipts; static suite 137/137; cold scan failure preserved | Partial, exact native turn/recovery verified on Windows | Three-system CI, Linux/macOS native cancellation/recovery, and model-change closure |
 | Item 7: IDE/desktop journey | JetBrains scripted journey/evidence 85/85 | Partial, fixture/contract only | Live IntelliJ, VS Code, desktop, clean install/upgrade, accessibility, Stop/recovery |
 | Item 8: Memory quality/SLO | Semantic quality 6/6 and existing local fixtures | Partial, offline quality only | Production source wiring, cold/hot/mixed SLO, multilingual and real-user tasks |
 | Item 9: shared logic/guidance | Shared projections and usage attribution unit/transcript 19/19 | Partial, local integration verified | Production behavior consistency and independent cross-entry failure localization |
 
 The plan therefore remains open. The unresolved rows require an external provider invoice, a missing official native artifact or CI matrix, or live IDE/desktop hosts; no local fixture result is promoted to close those gates.
+
+
+### 2026-11-09 Existing Codex 0.167 native receipt promoted into the audit
+
+The repository already contains a source-bound `.167.0` Windows x64 native evidence pack at [`codex-167-20261108`](../implementation/evidence/codex-167-20261108/), commit `e55e99ca22eda1f202d516e42ef306ee9cf28af6`. `fixed-turn.json` passed real native turn, approval cancellation, interleaved threads, and post-admission transport-loss handling; `fixed-database.json` passed process-restart database/history recovery without replaying the completed request. `fixed-scan-repair.json` remains a strict failure for the first cold scan, while later repair observations are retained. The pack explicitly records `realProviderAcceptance:false` and `productionAdmission:false`, so it closes the Windows native turn/recovery sub-scope only; it does not close the three-system CI or native Linux/macOS gates.
