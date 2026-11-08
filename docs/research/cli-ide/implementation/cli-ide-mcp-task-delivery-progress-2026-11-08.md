@@ -2,6 +2,8 @@
 
 本批推进[差距复核第 4 项](../plans/cli-ide-codex-claude-gap-review-2026-11-08.md)，并补充第 3 项恢复、第 9 项共享逻辑的局部证据。分支 feature/mcp-task-delivery-20261108，基线 2ef1d48a23afa0454b86c12db5594e2fbea325c5。
 
+实现提交：525f088b5a7f20e4479cb03813cf49080f14489f。代码提交后的 Git blob 已逐项核对最终验证哈希，原始证据哈希亦一致。
+
 **实际行为**
 
 新增 mcp tasks deliver <local-id> --session <session-id>，把已经保存并结算的结果交付到原 canonical 会话。后续使用真实用户输入继续该会话，headless 与 REPL 恢复桥接都能取得同一份外部参考。

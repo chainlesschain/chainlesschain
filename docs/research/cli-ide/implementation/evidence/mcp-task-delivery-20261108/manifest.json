@@ -221,5 +221,29 @@
   "reviewFixes": [
     "Reject malformed legacy prefix before the first source hint can switch reducers.",
     "Freeze a copy of incidents so finish snapshots do not freeze reducer-private state."
-  ]
+  ],
+  "implementationCommit": "525f088b5a7f20e4479cb03813cf49080f14489f",
+  "sourceGitBlobs": {
+    "packages/cli/__tests__/fixtures/mcp-tasks/durable-child.mjs": "9e3304baea70147de592bd0f8cc37b101b462b9b",
+    "packages/cli/__tests__/unit/agent-evolution-runtime-composition.test.js": "035a79a82707af73742ab4544609e5abe362f20e",
+    "packages/cli/__tests__/unit/mcp-task-delivery-contract.test.js": "ca9d40ce4da504671463a0820e7f2a1fb3d24c0a",
+    "packages/cli/__tests__/unit/mcp-task-delivery.test.js": "ed5e218525ee17cbd1ed796af770cff838195fcf",
+    "packages/cli/__tests__/unit/mcp-task-runtime.test.js": "0820f4f1b5d497d9e30eb20fd34c1b5c306a299a",
+    "packages/cli/scripts/probe-mcp-task-durable.mjs": "a41ec80f3b8c9897e7e39c76dd34a7efd86c02b4",
+    "packages/cli/src/commands/mcp-tasks.js": "11110a4035b0bdaca4cf99f289be8bf6e2ae3344",
+    "packages/cli/src/harness/jsonl-session-store.js": "770fb10002fc3d4345386f6ee8936ae88a3ffc92",
+    "packages/cli/src/harness/session-list-index.js": "3697756ce6d09c943bc8027132add2d69e6a0702",
+    "packages/cli/src/lib/mcp-call-ledger-projection.js": "b7d5ebd616bbb56feb877fce185ab66dcc007da5",
+    "packages/cli/src/lib/mcp-call-ledger-store.js": "163ceea88d1c31beae8d28aa031131b70ea1d6be",
+    "packages/cli/src/lib/mcp-task-delivery-contract.js": "5814d563de959b5d0eed3d23b59c7721c55dc46b",
+    "packages/cli/src/lib/mcp-task-delivery.js": "4a4015d631a3f78e89834e7546c2af0efc42b756",
+    "packages/cli/src/lib/mcp-task-journal-projection.js": "0743d88d639d69983a10892e1654c6a45b0084ba",
+    "packages/cli/src/lib/mcp-task-journal.js": "e7c2f6b1683fd5074c8e7aeb1587bb306e466109",
+    "packages/cli/src/lib/mcp-task-runtime.js": "aeaf81720822a6535ce86142e45504cdd6ba46b5",
+    "packages/cli/src/lib/session-generation-authority.js": "58d2afae46f2ea2f90af31c493fdf204605d6e38",
+    "packages/cli/src/lib/session-host-snapshot.js": "067a5360356f89b7710711df1dfdc1f7294975dc",
+    "packages/cli/src/lib/session-transcript-history.js": "5e807c9d89c6f8a3ba3e31670626ac0b5ab9daf7",
+    "packages/cli/src/lib/session-transcript-page.js": "6e43a4ee35fc9db59cf3f6332b987c1bba6256a0",
+    "packages/cli/src/lib/session-transcript-structure.js": "9aa19965460064b093de0dcda19e5afcd6d1ab82"
+  }
 }
