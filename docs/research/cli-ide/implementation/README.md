@@ -40,3 +40,4 @@
 - [Terra API 能力与缓存计费修复](./cli-ide-terra-model-progress-2026-10-29.md)
 - [第四十六批：修复 .131 干净构建与产物来源审计](./cli-ide-web-panel-production131-progress-2026-10-29.md)
 - [临时 worktree 消费者生命周期修复](./cli-ide-worktree-lifetime-progress-2026-10-29.md)
+- [Codex 0.167 兼容、断流与冷历史扫描（2026-11-08）](./cli-ide-codex-167-progress-2026-11-08.md)

@@ -1,0 +1,15 @@
+{
+  "schema": "chainlesschain.codex-real-turn-probe/v1",
+  "commitSha": "d546737f3d8a6348f459425c0f1bbdbadd2be897",
+  "platform": "win32",
+  "arch": "x64",
+  "realProviderAcceptance": false,
+  "productionAdmission": false,
+  "status": "failed",
+  "notificationsSha256": "21a8cdff6ef428521bc99a5cef0813be76b083c27167b62eacde9e7c32cfd9a1",
+  "approvalsSha256": "9fc79c5fd2cfc5473b57eee3260b7e999899a3807a4e67cc61baa7ce0176fd4d",
+  "error": {
+    "name": "Error",
+    "message": "forced transport loss timed out"
+  }
+}

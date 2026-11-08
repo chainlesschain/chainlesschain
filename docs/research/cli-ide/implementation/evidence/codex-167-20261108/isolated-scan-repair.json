@@ -1,0 +1,115 @@
+{
+  "schema": "chainlesschain.codex-history-probe/v1",
+  "commitSha": "d546737f3d8a6348f459425c0f1bbdbadd2be897",
+  "platform": "win32",
+  "upstream": {
+    "version": "0.167.0",
+    "reported": "codex-cli 0.167.0",
+    "binarySha256": "edfdd48f8b458af0906e507b4cb05217b326c3d6e515e9f024e05e3b8d650f70"
+  },
+  "productionAdmission": false,
+  "realProviderAcceptance": false,
+  "status": "failed",
+  "scope": "scan-repair",
+  "requiredChecks": [
+    "database",
+    "indexed-rollout-recency",
+    "cold-asc",
+    "cold-desc",
+    "cold-direction-order"
+  ],
+  "unverifiedScopes": [
+    "raw-upstream-default-pagination",
+    "created-at-pagination",
+    "database",
+    "indexed-rollout-recency",
+    "cold-asc",
+    "cold-desc",
+    "cold-direction-order"
+  ],
+  "strictFailures": [],
+  "arch": "x64",
+  "officialSchema": {
+    "hashes": {
+      "request": "94074a415950787a25e09ae3b4d9de312cc264eb0f021633dfca921d300cd42a",
+      "notification": "6371619bc83dd2c7a3ff348704d514c5be9f0d8e992275a1fa592cf51bfd2c1f",
+      "server-request": "58df585160941977d6e7a0ce458750b0c0d37987ce326fc4c880bf1dfbd3802f",
+      "approval-response": "6d0767113e22f311381809b6b236b0dde2b99b01992879c26bf7b1ea0e003cb7"
+    },
+    "validatedMessages": {
+      "request:initialize": 1,
+      "notification:remoteControl/status/changed": 1,
+      "request:thread/start": 2,
+      "notification:thread/started": 2,
+      "request:turn/start": 2,
+      "notification:warning": 2,
+      "notification:thread/status/changed": 4,
+      "notification:turn/started": 2,
+      "notification:item/started": 4,
+      "notification:item/completed": 4,
+      "notification:thread/tokenUsage/updated": 2,
+      "notification:account/rateLimits/updated": 2,
+      "notification:turn/completed": 2
+    }
+  },
+  "threadSample": [
+    {
+      "id": "01a1b871-7275-7eb1-86c3-ffe86bc03931",
+      "createdAt": 1794095805
+    },
+    {
+      "id": "01a1b871-7275-7eb1-86c3-fffcd91f7a68",
+      "createdAt": 1794095805
+    }
+  ],
+  "historyChecks": {
+    "database": {
+      "status": "failed",
+      "verified": false
+    },
+    "rawUpstreamQueries": {
+      "status": "not-run"
+    },
+    "rolloutScanRecency": {
+      "status": "not-run",
+      "verified": false
+    },
+    "rolloutRepair": {
+      "status": "not-run",
+      "verified": false,
+      "orderComparison": {
+        "status": "not-run",
+        "verified": false
+      },
+      "cases": {
+        "asc": {
+          "status": "not-run",
+          "verified": false
+        },
+        "desc": {
+          "status": "not-run",
+          "verified": false
+        }
+      }
+    }
+  },
+  "rolloutScanRecencyPaginationVerified": false,
+  "providerRequests": [
+    {
+      "scenario": "history-main-1",
+      "authorization": false,
+      "retainedContext": false
+    },
+    {
+      "scenario": "history-other-1",
+      "authorization": false,
+      "retainedContext": false
+    }
+  ],
+  "processClosed": [],
+  "notificationsSha256": "a8e45d267e94afc2d7dbead34d7d4780cd937178a44fb283fb65f77b92c4ada8",
+  "error": {
+    "name": "Error",
+    "message": "Codex SIGKILL shutdown timed out"
+  }
+}

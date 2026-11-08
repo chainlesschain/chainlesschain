@@ -146,3 +146,6 @@ packages/cli/__tests__/fixtures/external-agent/codex-app-server-0.167.0-request.
 packages/cli/__tests__/fixtures/external-agent/codex-app-server-0.167.0-notification.schema.json
 packages/cli/__tests__/fixtures/external-agent/codex-app-server-0.167.0-server-request.schema.json
 packages/cli/__tests__/fixtures/external-agent/codex-app-server-0.167.0-approval-response.schema.json
+
+# Preserve raw Codex 0.167 probe evidence bytes.
+docs/research/cli-ide/implementation/evidence/codex-167-20261108/**/*.json
