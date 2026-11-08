@@ -1,0 +1,92 @@
+{
+  "schema": "chainlesschain.ide-journey-evidence",
+  "schemaVersion": 2,
+  "manifestVersion": "1.9.41",
+  "journeyId": "vscode-installed-vsix-multiroot-multiwindow-host-api-activation-view-relaunch",
+  "required": true,
+  "releaseCommit": "d158c2de0d3f10110dba9902b0bf11829d9b2300",
+  "host": {
+    "name": "vscode",
+    "version": "1.145.2",
+    "operatingSystem": "win32",
+    "architecture": "x64",
+    "transport": "local-ide-bridge+vscode-extension-test-api"
+  },
+  "workspace": {
+    "layout": "multi-root",
+    "rootCount": 2,
+    "orderedRootsDigest": "sha256:d32feab4edf8466e9af2ee3f0becafd86269c9ba21eac6d5d1dbd43163e4dbe0"
+  },
+  "cliVersion": "0.166.145",
+  "extensionVersion": "0.37.181",
+  "startedAt": "2026-11-08T18:35:14.825Z",
+  "finishedAt": "2026-11-08T18:35:36.783Z",
+  "result": "failed",
+  "evidenceComplete": true,
+  "artifactBundleDigest": "sha256:0042b2c02df14531ca61ee3048a8bf5c47c5cb7f24600d316947d8bd0f9fe7b7",
+  "artifacts": [
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/001-host-api-trace.jsonl",
+      "sha256": "sha256:566b95dd6da668eaaef5565e5dde93c95fef4ff6db420f7dce9d951ed7f7a36b",
+      "bytes": 449,
+      "truncated": false,
+      "redacted": false,
+      "sensitivity": "restricted-binary"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/002-initial-cdp-result.json.failure.json",
+      "sha256": "sha256:4c5d31a46bf53f18c235349310c312297cf27df97e325b527ce48b5e85b82712",
+      "bytes": 322,
+      "truncated": false,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/003-main.log",
+      "sha256": "sha256:b4222f92d0a60b1c02ac61948e792d6b88b2d4e4032bfa91b8ec25506705b63c",
+      "bytes": 1743,
+      "truncated": false,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/004-exthost.log",
+      "sha256": "sha256:52b2677d529ea44044dc13ec9af4034e88545ad5d297d9c422f2d24f3e44f91f",
+      "bytes": 2792,
+      "truncated": false,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/005-1-ChainlessChain_IDE.log",
+      "sha256": "sha256:55d3d71c61471dd0cc947da39f4bdd0d1db81292a70b65f2e4db3b00c27520ca",
+      "bytes": 420,
+      "truncated": false,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/006-renderer.log",
+      "sha256": "sha256:e8312908a033518f17d1398202dcc3e53ef446a4205a376c8010d4f562094a5c",
+      "bytes": 23533,
+      "truncated": false,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "release-artifact",
+      "name": "chainlesschain-ide-gap-a3296d55f.vsix",
+      "path": "release-artifacts/001-chainlesschain-ide-gap-a3296d55f.vsix",
+      "sha256": "sha256:75a59a257f46c5a971f9893baa4878549926a02ae2a0803ef3c2ada4d79e4af1",
+      "bytes": 768560
+    }
+  ],
+  "incidents": [],
+  "evidenceDigest": "sha256:b38d1b95fdda9c894bbf5a7526e29d498f9588635b7bd88fd1f7a40d6a283cbc"
+}

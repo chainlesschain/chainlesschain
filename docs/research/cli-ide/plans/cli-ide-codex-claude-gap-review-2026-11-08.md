@@ -17,7 +17,7 @@
 | Item 4: MCP Tasks | Durable CLI, original-session delivery, explicit resume, Windows DPAPI recovery, lease-bound tracker, pollInterval, opt-in REPL auto-wake, and deliveryId recovery verified | Third-party service, dual IDE/desktop, multiplatform, and full provider continuation journey remain open |
 | Item 5: cost, context, and paid admission | Volcengine live probe 4/4 HTTP 200 with usage captured; finite real provider A/B receipts archived | Billing, price reconciliation, output-cap enforcement, and target-scope paid readiness remain unverified |
 | Item 6: Codex compatibility | Current HEAD `.167.0` Windows native turn and database recovery passed; strict cold scan still fails first 1/2 identity; static suite 137/137 | Partial current-HEAD Windows native evidence | Three-system CI, Linux/macOS native cancellation/recovery, and model-change closure remain open |
-| Item 7: IDE / desktop journey | JetBrains scripted contracts 85/85; two current IntelliJ 2024.2 host attempts reached Gradle preparation but hit localhost daemon timeout before IDE startup | Partial, no live host acceptance; clean install, model switching, Stop, recovery, upgrade, and accessibility remain open |
+| Item 7: IDE / desktop journey | JetBrains scripted contracts 85/85; VS Code host started, installed VSIX, verified multi-root and activation, then bridge connection timed out; IntelliJ remains Gradle-blocked | Partial live-host evidence; task journey not accepted | Live IntelliJ/VS Code/desktop task, clean install/upgrade, accessibility, Stop/recovery remain open |
 | Item 9: shared logic and guidance | Shared call/task/generation projections; usage attribution unit + transcript integration 19/19 passed | Cross-entry production behavior and independent failure localization still require real IDE/desktop journeys |
 
 本批兼容实现使用独立分支 feature/cli-ide-gap-20261108，工作区位于 .worktrees/cli-ide-gap-20261108。这样可满足现有协议探针对干净准确提交的要求，并保留主工作区已有 Memory / CLI CI 改动。尚未合并、发布或宣称生产支持扩大。
@@ -257,7 +257,7 @@ This table is the authoritative status snapshot for this plan. A row is marked c
 | Item 4: MCP Tasks | Durable runtime/watch/deliveryId recovery and targeted suite 118/118; scripted REPL auto-wake | Partial, local contract verified | Third-party service, model continuation, dual IDE/desktop, and multiplatform journey |
 | Item 5: cost/context/paid admission | Volcengine 4/4 bounded diagnostic checks passed; 5 requests, usage captured, cancellation settlement preserved as unknown | Partial, transport/compaction/cancellation verified with estimated pricing only | Invoice reconciliation, formal model pricing, output-cap enforcement, and target-scope paid readiness |
 | Item 6: Codex compatibility | Partial; current HEAD `.164.0` Windows native turn/recovery passed, while `.167.0` native remains historical/source-drifted; static suite 137/137 and cold scan boundaries are preserved | Current-HEAD `.167` native rerun, three-system CI, Linux/macOS native cancellation/recovery, and model-change closure |
-| Item 7: IDE/desktop journey | JetBrains scripted contracts 85/85; two current IntelliJ 2024.2 host attempts reached Gradle preparation but both hit localhost Gradle daemon timeout before IDE startup | Partial, no live host acceptance | Live IntelliJ/VS Code/desktop journey, clean install/upgrade, accessibility, Stop/recovery |
+| Item 7: IDE/desktop journey | JetBrains scripted contracts 85/85; VS Code host started/activated the VSIX and verified multi-root, but bridge connection timed out; IntelliJ remains Gradle-blocked | Partial live-host evidence, task journey not accepted | Live IntelliJ/VS Code/desktop journey, clean install/upgrade, accessibility, Stop/recovery |
 | Item 8: Memory quality/SLO | Semantic quality 6/6 plus current local responsiveness benchmark at 1K/10K/100K for both cache modes, 18/18 Stop acknowledgements within target | Partial, fixed Windows local benchmark only | Production source wiring, cold/hot/mixed cross-platform SLO, multilingual and real-user tasks |
 | Item 9: shared logic/guidance | Shared projections and usage attribution unit/transcript 19/19 | Partial, local integration verified | Production behavior consistency and independent cross-entry failure localization |
 
@@ -305,3 +305,8 @@ A locally available official Windows x64 Codex `0.167.0` binary was rerun agains
 ### 2026-11-09 IntelliJ live-host attempts
 
 The cached IntelliJ 2024.2 distribution was supplied to the repository's live UI-host driver. The default-JDK attempt and an isolated JDK 17 plus IPv4/Gradle-home retry both failed during Gradle preparation because the single-use Gradle daemon could not accept a localhost connection. The generated receipts mark `evidenceComplete:false`; no IDE or Robot host started, so this is a current environment boundary rather than live IDE acceptance. Evidence: `../cli/evidence/jetbrains-live-host-attempt-20261109/`.
+
+
+### 2026-11-09 VS Code live Extension Host attempt
+
+The real VS Code Extension Host runner launched an isolated VS Code profile, installed the existing VSIX, opened a two-root workspace, and activated the packaged extension. The driver then timed out connecting to the extension's localhost bridge at `127.0.0.1:53123`; the task journey therefore failed even though host/activation evidence is complete. Evidence: `../cli/evidence/vscode-live-extension-host-20261109/`.
