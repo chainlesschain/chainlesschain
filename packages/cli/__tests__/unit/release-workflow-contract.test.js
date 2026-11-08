@@ -586,9 +586,12 @@ describe("CLI release workflow contracts", () => {
     expect(preflight).toContain('python-version: "3.12"');
     expect(preflight).toContain("uses: ./.github/actions/setup-node-deps");
     expect(preflight).not.toContain("continue-on-error:");
-    const commands = literalRunBlocks(preflight).filter((run) =>
-      run.trim().startsWith("node --test") &&
-      run.includes("packages/cli/test-node/verify01-native-task-campaign.node-test.mjs"),
+    const commands = literalRunBlocks(preflight).filter(
+      (run) =>
+        run.trim().startsWith("node --test") &&
+        run.includes(
+          "packages/cli/test-node/verify01-native-task-campaign.node-test.mjs",
+        ),
     );
     expect(commands).toHaveLength(1);
     expect(commands[0].trim().split(/\s+/u)).toEqual([
