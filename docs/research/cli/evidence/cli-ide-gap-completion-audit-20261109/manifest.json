@@ -12,7 +12,8 @@
         "cli/evidence/model-input-composition-20261109",
         "cli/evidence/usage-attribution-unit-20261109",
         "cli/evidence/implementation-plan-volcengine-live-20261109",
-        "cli/evidence/context-token-volcengine-live-probe-20261109"
+        "cli/evidence/context-token-volcengine-live-probe-20261109",
+        "cli/evidence/implementation-plan-volcengine-live-current-20261109"
       ],
       "remaining": [
         "independent real provider task matrix",
