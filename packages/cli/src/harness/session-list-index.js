@@ -290,6 +290,8 @@ export function applyEventToSessionMeta(meta, event, lastHash) {
     event.data?.assistant?.role === "assistant"
   ) {
     next.message_count = Math.max(0, Number(next.message_count) || 0) + 2;
+  } else if (event?.type === "session_input_settled") {
+    next.message_count = Math.max(0, Number(next.message_count) || 0) + 2;
   }
   const generation = normalizeSessionGenerationAuthority(
     event?.data?.[SESSION_GENERATION_AUTHORITY_FIELD],

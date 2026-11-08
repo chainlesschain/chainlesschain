@@ -47,6 +47,7 @@ import {
   sanitizeConversationMessage,
   SESSION_FORK_AUTHORITY_FIELD,
 } from "../lib/session-message-provenance.js";
+import { projectSessionInputMessages } from "../lib/session-input-lifecycle.js";
 import {
   assertFileLineByteLength,
   DEFAULT_MAX_FILE_LINE_BYTES,
@@ -5986,6 +5987,9 @@ function rebuildMessagesFromFile(
         // final suffix.reverse() restores user → assistant atomically.
         suffix.push(turn.assistant, turn.user);
       }
+    } else if (event?.type === "session_input_settled") {
+      const turn = projectSessionInputMessages(event);
+      if (turn) suffix.push(turn[1], turn[0]);
     }
   }
   suffix.reverse();

@@ -109,6 +109,10 @@ import {
   persistSideEffectLedger,
 } from "../lib/side-effect-ledger-store.js";
 import { operationIdempotencyKey } from "../lib/idempotency.js";
+import {
+  appendSessionInputAcceptance,
+  appendSessionInputSettlement,
+} from "../lib/session-input-receipt.js";
 import { collectToolResourceIdentifiers } from "../lib/permission-side-effect-center.js";
 import {
   preserveDurableSystemMessageProvenance,
@@ -4399,6 +4403,7 @@ async function startAgentReplInWorkspaceOwned(
   // the first prompt turn of a persistable (JSONL) session. This is Critical
   // recovery state: a failure blocks subsequent model/tool turns.
   let _turnBindingProducer = null;
+  let _sessionInputAccepted = null;
   let _turnBindingCriticalError = null;
   // Apply --output-style or the settings.json `outputStyle` default at startup.
   try {
@@ -9707,6 +9712,28 @@ async function startAgentReplInWorkspaceOwned(
     }
 
     try {
+      // Durable REPL input admission is a hard boundary: persist the exact
+      // effective prompt before any provider dispatch. The acceptance event is
+      // intentionally excluded from replay history; only a later settled event
+      // publishes the user/assistant pair. Legacy and non-JSONL sessions keep
+      // their existing best-effort behavior.
+      _sessionInputAccepted = null;
+      if (sessionId && useJsonl) {
+        try {
+          _sessionInputAccepted = appendSessionInputAcceptance(sessionId, {
+            inputId: `repl-${randomUUID()}`,
+            turnId: `${sessionId}:turn-${_turnCount + 1}`,
+            prompt: effectivePrompt,
+          });
+        } catch (error) {
+          const persistenceError = markRuntimeLedgerPersistenceError(error);
+          logger.error(
+            `[recovery] refusing provider dispatch because input acceptance was not persisted: ${persistenceError.message}`,
+          );
+          prompt();
+          return;
+        }
+      }
       process.stdout.write("\n");
       const iterationBudget = new IterationBudget({ owner: sessionId });
       // Bind a cross-session goal (cc goal) into this run, if one resolves.
@@ -10141,24 +10168,49 @@ async function startAgentReplInWorkspaceOwned(
       if (sessionId) {
         try {
           if (useJsonl) {
-            // Append incremental events (user + assistant)
-            appendUserMessage(sessionId, effectivePrompt);
+            // A settled lifecycle event is the only replayable representation
+            // of this REPL turn. The accepted prompt remains private pending
+            // evidence until this append succeeds.
+            if (_sessionInputAccepted) {
+              appendSessionInputSettlement(
+                sessionId,
+                _sessionInputAccepted,
+                effectiveResponse || "",
+              );
+            } else {
+              // This branch is retained for older injected hosts that do not
+              // use the durable input lifecycle.
+              appendUserMessage(sessionId, effectivePrompt);
+            }
             _replCompactPersistence.record({
               role: "user",
               content: effectivePrompt,
             });
-            if (effectiveResponse) {
+            if (effectiveResponse && !_sessionInputAccepted) {
               appendAssistantMessage(sessionId, effectiveResponse);
               _replCompactPersistence.record({
                 role: "assistant",
                 content: effectiveResponse,
               });
             }
+            if (_sessionInputAccepted) {
+              _replCompactPersistence.record({
+                role: "assistant",
+                content: effectiveResponse || "",
+              });
+            }
           } else if (db) {
             saveMessages(db, sessionId, messages);
           }
         } catch (_e) {
-          // Non-critical
+          if (useJsonl && _sessionInputAccepted) {
+            const terminalError = _runtimeLedgerTerminalLatch.trip(
+              markRuntimeLedgerPersistenceError(_e),
+            );
+            if (terminalError) _reportRuntimeLedgerTerminal();
+            throw _e;
+          }
+          // Legacy persistence remains best-effort.
         }
       }
       // Persist the explicit turn-binding table for this settled turn,
