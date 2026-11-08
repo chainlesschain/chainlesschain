@@ -219,3 +219,5 @@ Claude Code 的 MCP Tasks 当前处于公开测试阶段，可在服务端受理
 
 
 本次继续接入真实 REPL：新增显式 /mcp-watch [local-id]，在当前 canonical session lease 下启动 tracker，并在 REPL 关闭时停止。设置 CC_MCP_TASK_AUTOWAKE=1 后，已验证 delivery 会排入有界 continuation queue，复用普通 turn 的预算、lease、turn binding 和持久化；默认关闭，且结果仍以外部引用身份进入上下文。MCP Tasks 与 REPL 交互定向回归为 116 项通过；完整模型自动唤醒的真实 provider / 双 IDE / 桌面旅程仍待验收。
+
+补充边界：watch 现尊重服务端声明的 pollInterval，并对本地 interval/timeout 执行有限整数和上下界校验；启用 CC_MCP_TASK_AUTOWAKE=1 时，REPL 启动会在 listener 就绪后扫描 canonical journal 并恢复 pending tracker。恢复和唤醒仍是显式 opt-in，默认不会产生后台模型请求。
