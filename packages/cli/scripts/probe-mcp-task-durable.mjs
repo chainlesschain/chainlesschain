@@ -16,7 +16,8 @@ const children = new Set();
 const tasks = new Map();
 const counts = {};
 const checkpoints = [];
-const scope = Object.freeze({
+let offlineProductCliVerified = false;
+const scope = {
   osSecretStore: "windows-dpapi",
   transport: "loopback-http",
   deliveryCrashRecovery: true,
@@ -24,7 +25,7 @@ const scope = Object.freeze({
   workerConnectsForEveryAction: true,
   offlineProductCliVerified: false,
   modelContinuationVerified: false,
-});
+};
 let next = 0;
 const server = createServer(async (req, res) => {
   if (req.method === "GET") {
@@ -165,6 +166,32 @@ async function run(request) {
   checkpoints.push({ action: request.action, receipt, exit });
   return receipt;
 }
+async function runProductCli(args) {
+  const child = spawn(process.execPath, [join(cliRoot, "bin/chainlesschain.js"), ...args], {
+    cwd: cliRoot,
+    env,
+    windowsHide: true,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  let stdout = "", stderr = "";
+  child.stdout.on("data", (chunk) => (stdout += chunk.toString()));
+  child.stderr.on("data", (chunk) => (stderr += chunk.toString()));
+  const exit = await new Promise((resolveExit, rejectExit) => {
+    const timer = setTimeout(() => {
+      child.kill("SIGKILL");
+      rejectExit(new Error("Product CLI deadline"));
+    }, 60_000);
+    child.once("error", (error) => {
+      clearTimeout(timer);
+      rejectExit(error);
+    });
+    child.once("exit", (code, signal) => {
+      clearTimeout(timer);
+      resolveExit({ code, signal });
+    });
+  });
+  return { stdout, stderr, ...exit };
+}
 let report;
 try {
   const sessionId = "native-" + randomUUID();
@@ -226,8 +253,8 @@ try {
   assert.equal(repaired.result.callStatus, "completed");
 
   // Deliver the first task, then terminate the owner after its durable receipt.
-  // Every worker still initializes the loopback MCP connection: this probe does
-  // not claim to exercise the product CLI's separate offline delivery path.
+  // Every worker still initializes the loopback MCP connection; the product CLI
+  // offline list path is checked separately after the delivery replay.
   const deliveryOwner = launch({
     sessionId,
     action: "deliver",
@@ -281,6 +308,37 @@ try {
   assert.equal(replay.result.assistantReferences, 1);
   assert.equal(replay.result.userMessages, 0);
   assert.equal(replay.result.toolMessages, 0);
+  const offlineList = await runProductCli([
+    "mcp",
+    "tasks",
+    "list",
+    "--session",
+    sessionId,
+    "--json",
+  ]);
+  assert.equal(offlineList.code, 0, offlineList.stderr.slice(0, 500));
+  const offlinePayload = JSON.parse(offlineList.stdout);
+  assert.equal(offlinePayload.sessionId, sessionId);
+  assert.ok(
+    offlinePayload.records.some(
+      (record) =>
+        record.localId === localId &&
+        record.resultSaved === true &&
+        record.delivered === true,
+    ),
+  );
+  offlineProductCliVerified = true;
+  checkpoints.push({
+    action: "offline-cli-list",
+    receipt: {
+      ok: true,
+      sessionId,
+      localId,
+      resultSaved: true,
+      delivered: true,
+    },
+    exit: { code: offlineList.code, signal: offlineList.signal },
+  });
   assert.equal(counts["tools/call"], 2);
   assert.equal(counts["tasks/result"], 2);
   report = {
@@ -289,7 +347,7 @@ try {
     platform: process.platform,
     node: process.version,
     folder,
-    scope,
+    scope: { ...scope, offlineProductCliVerified },
     counts,
     checkpoints,
   };
@@ -300,7 +358,7 @@ try {
     platform: process.platform,
     node: process.version,
     folder,
-    scope,
+    scope: { ...scope, offlineProductCliVerified },
     counts,
     checkpoints,
     error: { name: error.name, message: error.message },

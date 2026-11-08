@@ -3,14 +3,14 @@
   "passed": true,
   "platform": "win32",
   "node": "v24.12.0",
-  "folder": "C:\\Users\\admin\\AppData\\Local\\Temp\\cc-mcp-task-native-Iwh5rH",
+  "folder": "C:\\Users\\admin\\AppData\\Local\\Temp\\cc-mcp-task-native-yZ8ALY",
   "scope": {
     "osSecretStore": "windows-dpapi",
     "transport": "loopback-http",
     "deliveryCrashRecovery": true,
     "canonicalHostResume": true,
     "workerConnectsForEveryAction": true,
-    "offlineProductCliVerified": false,
+    "offlineProductCliVerified": true,
     "modelContinuationVerified": false
   },
   "counts": {
@@ -29,7 +29,7 @@
       "receipt": {
         "ok": false,
         "code": "CC_SESSION_HOST_LEASE_HELD",
-        "pid": 3772
+        "pid": 31312
       },
       "exit": {
         "code": 1,
@@ -41,8 +41,8 @@
       "receipt": {
         "ok": true,
         "result": {
-          "localId": "acadc8c7-11ed-44fd-9145-d8ce52eb5042",
-          "sessionId": "native-31838400-228e-441f-addc-c999a6a9d63c",
+          "localId": "54ac925d-558e-4505-81a1-0945e5103175",
+          "sessionId": "native-52fe526c-335d-479d-a65e-c4807adcbc0f",
           "serverName": "native-fixture",
           "toolName": "export",
           "phase": "accepted",
@@ -57,7 +57,7 @@
           "outcomeUnknown": false,
           "expiresAt": null
         },
-        "pid": 37304,
+        "pid": 13580,
         "backend": "dpapi"
       },
       "exit": {
@@ -70,8 +70,8 @@
       "receipt": {
         "ok": true,
         "result": {
-          "localId": "acadc8c7-11ed-44fd-9145-d8ce52eb5042",
-          "sessionId": "native-31838400-228e-441f-addc-c999a6a9d63c",
+          "localId": "54ac925d-558e-4505-81a1-0945e5103175",
+          "sessionId": "native-52fe526c-335d-479d-a65e-c4807adcbc0f",
           "serverName": "native-fixture",
           "toolName": "export",
           "phase": "observed",
@@ -86,7 +86,7 @@
           "outcomeUnknown": false,
           "expiresAt": null
         },
-        "pid": 23836,
+        "pid": 38020,
         "backend": "dpapi"
       },
       "exit": {
@@ -99,8 +99,8 @@
       "receipt": {
         "ok": true,
         "result": {
-          "localId": "acadc8c7-11ed-44fd-9145-d8ce52eb5042",
-          "sessionId": "native-31838400-228e-441f-addc-c999a6a9d63c",
+          "localId": "54ac925d-558e-4505-81a1-0945e5103175",
+          "sessionId": "native-52fe526c-335d-479d-a65e-c4807adcbc0f",
           "serverName": "native-fixture",
           "toolName": "export",
           "phase": "result_saved",
@@ -129,7 +129,7 @@
             }
           }
         },
-        "pid": 3824,
+        "pid": 30396,
         "backend": "dpapi"
       },
       "exit": {
@@ -142,8 +142,8 @@
       "receipt": {
         "ok": true,
         "result": {
-          "localId": "acadc8c7-11ed-44fd-9145-d8ce52eb5042",
-          "sessionId": "native-31838400-228e-441f-addc-c999a6a9d63c",
+          "localId": "54ac925d-558e-4505-81a1-0945e5103175",
+          "sessionId": "native-52fe526c-335d-479d-a65e-c4807adcbc0f",
           "serverName": "native-fixture",
           "toolName": "export",
           "phase": "result_saved",
@@ -172,7 +172,7 @@
             }
           }
         },
-        "pid": 36548,
+        "pid": 2596,
         "backend": "dpapi"
       },
       "exit": {
@@ -185,8 +185,8 @@
       "receipt": {
         "ok": true,
         "result": {
-          "localId": "91ca4170-9935-4e0e-b42e-02df9465df8d",
-          "sessionId": "native-0d723981-b417-465d-82f8-00b350d2b358",
+          "localId": "142e3925-07ce-4636-9fcd-211ced1adb96",
+          "sessionId": "native-5dc30d91-fe76-4142-a99f-e80740c0a9cb",
           "serverName": "native-fixture",
           "toolName": "export",
           "phase": "accepted",
@@ -201,7 +201,7 @@
           "outcomeUnknown": false,
           "expiresAt": null
         },
-        "pid": 33408,
+        "pid": 37016,
         "backend": "dpapi"
       },
       "exit": {
@@ -214,10 +214,10 @@
       "receipt": {
         "ok": true,
         "result": {
-          "localId": "91ca4170-9935-4e0e-b42e-02df9465df8d",
+          "localId": "142e3925-07ce-4636-9fcd-211ced1adb96",
           "phase": "result_saved"
         },
-        "pid": 5196,
+        "pid": 25288,
         "backend": "dpapi"
       },
       "exit": {
@@ -230,8 +230,8 @@
       "receipt": {
         "ok": true,
         "result": {
-          "localId": "91ca4170-9935-4e0e-b42e-02df9465df8d",
-          "sessionId": "native-0d723981-b417-465d-82f8-00b350d2b358",
+          "localId": "142e3925-07ce-4636-9fcd-211ced1adb96",
+          "sessionId": "native-5dc30d91-fe76-4142-a99f-e80740c0a9cb",
           "serverName": "native-fixture",
           "toolName": "export",
           "phase": "result_saved",
@@ -260,7 +260,7 @@
             }
           }
         },
-        "pid": 34764,
+        "pid": 37808,
         "backend": "dpapi"
       },
       "exit": {
@@ -273,15 +273,15 @@
       "receipt": {
         "ok": true,
         "result": {
-          "sessionId": "native-31838400-228e-441f-addc-c999a6a9d63c",
-          "localId": "acadc8c7-11ed-44fd-9145-d8ce52eb5042",
-          "deliveryId": "mcp-task-delivery:acadc8c7-11ed-44fd-9145-d8ce52eb5042",
-          "eventHash": "6f3969b3fccccbc54d760686ab5b19625dc2a901ada045df93d16e4fd4a79403",
-          "messageDigest": "sha256:033014604883bc4fe3294bf32cf99219743dede6f27bb081b622bacbceccbe18",
+          "sessionId": "native-52fe526c-335d-479d-a65e-c4807adcbc0f",
+          "localId": "54ac925d-558e-4505-81a1-0945e5103175",
+          "deliveryId": "mcp-task-delivery:54ac925d-558e-4505-81a1-0945e5103175",
+          "eventHash": "2f959450ab129a30f799a842540d6b6462477b74fbf1024ac77bd012a57d8a96",
+          "messageDigest": "sha256:659e3ae76ebffaf88c58ad617d6629405a9f3a1d189b5014da8f25dd00785876",
           "delivered": true,
           "duplicate": false
         },
-        "pid": 38252,
+        "pid": 31392,
         "backend": "dpapi"
       },
       "exit": {
@@ -294,15 +294,15 @@
       "receipt": {
         "ok": true,
         "result": {
-          "sessionId": "native-31838400-228e-441f-addc-c999a6a9d63c",
-          "localId": "acadc8c7-11ed-44fd-9145-d8ce52eb5042",
-          "deliveryId": "mcp-task-delivery:acadc8c7-11ed-44fd-9145-d8ce52eb5042",
-          "eventHash": "6f3969b3fccccbc54d760686ab5b19625dc2a901ada045df93d16e4fd4a79403",
-          "messageDigest": "sha256:033014604883bc4fe3294bf32cf99219743dede6f27bb081b622bacbceccbe18",
+          "sessionId": "native-52fe526c-335d-479d-a65e-c4807adcbc0f",
+          "localId": "54ac925d-558e-4505-81a1-0945e5103175",
+          "deliveryId": "mcp-task-delivery:54ac925d-558e-4505-81a1-0945e5103175",
+          "eventHash": "2f959450ab129a30f799a842540d6b6462477b74fbf1024ac77bd012a57d8a96",
+          "messageDigest": "sha256:659e3ae76ebffaf88c58ad617d6629405a9f3a1d189b5014da8f25dd00785876",
           "delivered": true,
           "duplicate": true
         },
-        "pid": 34640,
+        "pid": 22740,
         "backend": "dpapi"
       },
       "exit": {
@@ -315,19 +315,33 @@
       "receipt": {
         "ok": true,
         "result": {
-          "sessionId": "native-31838400-228e-441f-addc-c999a6a9d63c",
-          "localId": "acadc8c7-11ed-44fd-9145-d8ce52eb5042",
-          "deliveryId": "mcp-task-delivery:acadc8c7-11ed-44fd-9145-d8ce52eb5042",
-          "eventHash": "6f3969b3fccccbc54d760686ab5b19625dc2a901ada045df93d16e4fd4a79403",
-          "messageDigest": "sha256:033014604883bc4fe3294bf32cf99219743dede6f27bb081b622bacbceccbe18",
-          "hostRevision": "sha256:5fb4263132c36948c48f71d3feceb6de5488cd2cdd6e1fd7670dda115b618bd6",
+          "sessionId": "native-52fe526c-335d-479d-a65e-c4807adcbc0f",
+          "localId": "54ac925d-558e-4505-81a1-0945e5103175",
+          "deliveryId": "mcp-task-delivery:54ac925d-558e-4505-81a1-0945e5103175",
+          "eventHash": "2f959450ab129a30f799a842540d6b6462477b74fbf1024ac77bd012a57d8a96",
+          "messageDigest": "sha256:659e3ae76ebffaf88c58ad617d6629405a9f3a1d189b5014da8f25dd00785876",
+          "hostRevision": "sha256:799860b30b5548a697474abddc7489399448acfe3645af219a100402dff66aad",
           "canonicalMessages": 1,
           "assistantReferences": 1,
           "userMessages": 0,
           "toolMessages": 0
         },
-        "pid": 980,
+        "pid": 16856,
         "backend": "dpapi"
+      },
+      "exit": {
+        "code": 0,
+        "signal": null
+      }
+    },
+    {
+      "action": "offline-cli-list",
+      "receipt": {
+        "ok": true,
+        "sessionId": "native-52fe526c-335d-479d-a65e-c4807adcbc0f",
+        "localId": "54ac925d-558e-4505-81a1-0945e5103175",
+        "resultSaved": true,
+        "delivered": true
       },
       "exit": {
         "code": 0,
@@ -335,6 +349,6 @@
       }
     }
   ],
-  "sourceCommit": "0ff22eb044727052b2392e48be29932f5b294368",
+  "sourceCommit": "94d7c7cb9d9101e371c9d83d36afd35785a7e9c2",
   "command": "node packages/cli/scripts/probe-mcp-task-durable.mjs"
 }
