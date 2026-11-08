@@ -2,13 +2,32 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
 
-## CLI 0.166.144 release candidate
+## CLI 0.166.144 / goal transfer and release readiness
 
-Source candidate **0.166.144** uses Session Core **0.3.27** and pairs with VS Code/Open VSX **0.37.180** and JetBrains **0.4.197**. These candidate versions are not yet published. The last verified public CLI remains **0.166.143**.
+Release pairing: Session Core **0.3.27**, CLI **0.166.144**, VS Code/Open VSX
+**0.37.180** and JetBrains **0.4.197**. Session Core must be published and
+verified before CLI; the paired IDE releases follow independent CLI registry readback.
 
-This candidate adds explicit cross-project goal transfer and signed rollback, plus the native canonical Graph host boundary. Desktop participation requires matching source, explicit opt-in and native consent; existing installed desktop clients are not upgraded by this CLI release. Windows CI enables Git long paths before checkout so archived native acceptance evidence cannot prevent the release gates from running.
+After this version is available from the public registry, install
+`npm i -g chainlesschain@0.166.144 --registry https://registry.npmjs.org`,
+restart CLI / IDE hosts, then run `cc --version` and `cc doctor`.
 
-Publication requires exact-source Linux/Windows/macOS CLI CI and CLI Strict Sandbox, Actions OIDC publication of Session Core before CLI, and independent registry readback before publishing either IDE plugin. No new live-model, installed-client or business-effect acceptance is claimed.
+This release adds explicit cross-project goal transfer, signed rollback and
+the native canonical Graph host boundary. Memory queries yield to queued Stop
+requests even with a frozen clock; compatibility checks retain the original
+pre-bundle dependency Git blobs and hashes. Windows CI enables Git long paths
+before checkout so archived native evidence cannot prevent the release gates
+from running.
+
+Desktop participation requires matching source, explicit trial opt-in and native
+consent. Public PC/mobile clients **v5.0.3.145** come from earlier independent
+sources; this CLI/IDE release does not upgrade those binaries. No additional
+live-model, installed-client or business-effect acceptance is claimed.
+
+Publication requires successful exact-source Linux/Windows/macOS CLI CI and
+CLI Strict Sandbox, GitHub Actions OIDC publishing, and independent public
+package and provenance verification. Historical verified public releases are
+documented below.
 
 ## CLI 0.166.143 / local compute and controlled task-creation drafts
 
