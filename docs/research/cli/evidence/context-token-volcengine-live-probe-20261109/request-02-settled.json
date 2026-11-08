@@ -1,0 +1,24 @@
+{
+  "ordinal": 2,
+  "category": "code",
+  "scale": 5,
+  "provider": "volcengine",
+  "model": "deepseek-v4-1-flash-economy-261017",
+  "requestPayloadSha256": "44dc1eb005fa7e04d4f5aca6fb1e68fac25e703b7fee3269ddff07a68e6637c8",
+  "startedAt": "2026-11-08T17:33:15.415Z",
+  "status": "CAPTURED",
+  "responseIdSha256": "c13d63d545f8893cc026c67ca95785b328634da2f2c9bb5b8aa63de6aff45d48",
+  "responseBodySha256": "c33266cf7a6e6b4922ef8f54e041f26a65910fc466998867044ecf87eabab7bc",
+  "requestedOutputLimit": 8,
+  "observedOutputLimitExceeded": false,
+  "usage": {
+    "prompt_tokens": 842,
+    "completion_tokens": 8,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    }
+  },
+  "estimatedCostUsd": null,
+  "httpStatus": 200,
+  "finishedAt": "2026-11-08T17:33:16.387Z"
+}
