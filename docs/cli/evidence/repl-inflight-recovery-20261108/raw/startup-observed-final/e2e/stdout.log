@@ -1,0 +1,9 @@
+
+ RUN  v4.1.10 E:/code/chainlesschain/.worktrees/repl-inflight-recovery-20261108/packages/cli
+
+
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+   Start at  15:05:13
+   Duration  7.77s (transform 100ms, setup 135ms, import 16ms, tests 7.49s, environment 0ms)
+

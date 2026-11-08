@@ -1,0 +1,22 @@
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  __tests__/e2e/repl-inflight-recovery-e2e.test.js > real interactive REPL inflight request hard-kill recovery > keeps the old request unknown and explains interrupted state when restarting with new input
+AssertionError: {"available":false,"error":{"code":null,"message":"session repl-inflight-recovery has no observabilityScope authority"}}: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ __tests__/e2e/repl-inflight-recovery-e2e.test.js:372:9
+    370|         snapshot.productUsageProjection.available,
+    371|         JSON.stringify(snapshot.productUsageProjection),
+    372|       ).toBe(true);
+       |         ^
+    373|       expect(snapshot.productUsageProjection.usage.telemetryComplete).…
+    374|         false,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+

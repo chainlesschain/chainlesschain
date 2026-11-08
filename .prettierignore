@@ -181,3 +181,6 @@ docs/research/cli-ide/implementation/evidence/mcp-tasks-20261108/**
 docs/research/cli-ide/implementation/evidence/mcp-task-durable-20261108/**
 docs/research/cli-ide/implementation/evidence/mcp-task-delivery-20261108/**
 docs/research/cli-ide/implementation/evidence/model-input-mapping-20261108/**
+
+# Preserve raw REPL crash recovery receipts and transcript evidence.
+docs/cli/evidence/repl-inflight-recovery-20261108/raw/**

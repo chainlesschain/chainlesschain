@@ -1,0 +1,14 @@
+{
+  "sources": [
+    {
+      "path": "packages/cli/__tests__/e2e/repl-inflight-recovery-e2e.test.js",
+      "bytes": 16055,
+      "sha256": "27f4ee83404e4066457a8f941282ca1c8e164fdec02c995d51f6f7f924ae13bd"
+    },
+    {
+      "path": "packages/cli/__tests__/fixtures/repl-inflight-recovery-state.mjs",
+      "bytes": 2929,
+      "sha256": "21bc00e35adc55ea59ef8a0672e6d167ee874cd4491138dfc51ee0e6b251c995"
+    }
+  ]
+}

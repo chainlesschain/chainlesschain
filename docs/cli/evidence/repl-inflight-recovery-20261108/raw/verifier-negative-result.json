@@ -1,0 +1,9 @@
+{
+  "scenario": "scratch receipt oldProviderReplays=1 with matching recomputed artifact hash",
+  "scratchRoot": "E:\\code\\chainlesschain\\.worktrees\\repl-inflight-recovery-20261108\\.tmp\\repl-verifier-negative-1794120838223",
+  "status": 1,
+  "behaviorRejected": true,
+  "stderr": "file:///E:/code/chainlesschain/.worktrees/repl-inflight-recovery-20261108/.tmp/repl-verifier-negative-1794120838223/docs/cli/evidence/repl-inflight-recovery-20261108/verify-evidence.mjs:50\r\n    throw new Error(\"REPL behavior evidence rejected: \" + message);\r\n          ^\r\n\r\nError: REPL behavior evidence rejected: old provider request replayed\r\n    at requireEvidence (file:///E:/code/chainlesschain/.worktrees/repl-inflight-recovery-20261108/.tmp/repl-verifier-negative-1794120838223/docs/cli/evidence/repl-inflight-recovery-20261108/verify-evidence.mjs:50:11)\r\n    at file:///E:/code/chainlesschain/.worktrees/repl-inflight-recovery-20261108/.tmp/repl-verifier-negative-1794120838223/docs/cli/evidence/repl-inflight-recovery-20261108/verify-evidence.mjs:102:1\r\n    at ModuleJob.run (node:internal/modules/esm/module_job:413:25)\r\n    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:660:26)\r\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)\r\n\r\nNode.js v24.12.0\r\n",
+  "stdout": "",
+  "originalEvidenceModified": false
+}

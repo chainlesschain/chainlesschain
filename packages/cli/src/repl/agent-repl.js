@@ -1,3 +1,4 @@
+import { formatSessionModelUsageRecoveryNotice } from "../lib/session-model-usage-recovery.js";
 import { createPersistedModelInputObserver } from "../lib/session-model-input-diagnostics.js";
 /**
  * Agentic REPL - Claude Code / Codex style
@@ -2300,10 +2301,20 @@ export function prepareReplJsonlResumeCandidate(sessionId, dependencies = {}) {
               "REPL session budget declaration",
             ),
           );
+    const modelUsageRecovery = snapshotReplMessageValue(
+      dataDescriptorValue(
+        stateDescriptors,
+        "modelUsageRecovery",
+        "REPL local usage recovery",
+        { required: false },
+      ) ?? null,
+      "REPL local usage recovery",
+    );
     return brandedFrozenCandidate(REPL_JSONL_RESUME_CANDIDATES, {
       ok: true,
       sessionId,
       sessionBudgetRoot,
+      modelUsageRecovery,
       rebuiltMessages,
       replayMessages: normalizedReplay.replayMessages,
       canonicalSystemMessages: normalizedReplay.canonicalSystemMessages,
@@ -4910,6 +4921,11 @@ async function startAgentReplInWorkspaceOwned(
           error.code = "CC_REPL_SESSION_RESUME_NOT_PREPARED";
           throw error;
         }
+        const usageRecoveryNotice = formatSessionModelUsageRecoveryNotice(
+          sessionId,
+          prepared.modelUsageRecovery,
+        );
+        if (usageRecoveryNotice) logger.warn(usageRecoveryNotice);
         messages.push(...prepared.canonicalSystemMessages);
         if (_startupReplSideEffects.noticeMessage) {
           messages.push(_startupReplSideEffects.noticeMessage);
