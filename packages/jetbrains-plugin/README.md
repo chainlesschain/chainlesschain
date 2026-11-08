@@ -637,7 +637,7 @@ This summary is pinned to the repository's versioned, secret-free
 [`PUBLIC_IDE_CAPABILITY_MANIFEST.generated.json`](../../docs/cli/PUBLIC_IDE_CAPABILITY_MANIFEST.generated.json).
 The base IDE/Doctor contract requires `cc >= 0.162.190`; feature-specific sections below may require a newer CLI.
 
-- JetBrains actions: **38** registered entries
+- JetBrains actions: **39** registered entries
 - Doctor entries: `chainlesschain.ide.DiagnoseBridge`
 - Bridge capability schema: **v1** (20 mapped tools)
 - Drift check: `npm run ide:capabilities:check` from the repository root
@@ -649,6 +649,7 @@ The base IDE/Doctor contract requires `cc >= 0.162.190`; feature-specific sectio
 - `chainlesschain.ide.OpenDashboard`
 - `chainlesschain.team.Monitor`
 - `chainlesschain.session.PrStatus`
+- `chainlesschain.session.ModelInputs`
 - `chainlesschain.bg.Agents`
 - `chainlesschain.remote.Control`
 - `chainlesschain.sessions.Workbench`
