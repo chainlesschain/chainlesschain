@@ -556,7 +556,10 @@ export class CliCanonicalMemoryService {
   async recallScoped(query, options = {}) {
     const scope = normalizedScope(options.scope, options.scopeId);
     const limit = Math.max(1, Math.min(1000, Number(options.limit) || 10));
-    const recalled = await this.runtime.kernel.recallMemory(
+    const recalled = await (
+      this.runtime.recallMemory ||
+      this.runtime.kernel.recallMemory.bind(this.runtime.kernel)
+    )(
       {
         query: String(query || "").trim() || "*",
         sink: options.sink || "cli.display",
@@ -579,7 +582,10 @@ export class CliCanonicalMemoryService {
   }
 
   async search(query, { limit = 20, sink = "cli.display", signal } = {}) {
-    const recalled = await this.runtime.kernel.recallMemory(
+    const recalled = await (
+      this.runtime.recallMemory ||
+      this.runtime.kernel.recallMemory.bind(this.runtime.kernel)
+    )(
       {
         query,
         sink,

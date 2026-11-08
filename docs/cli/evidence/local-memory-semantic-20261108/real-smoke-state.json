@@ -1,0 +1,143 @@
+{
+    "schema":  "chainlesschain.local-semantic-serial-smoke/v1",
+    "launcherPid":  32308,
+    "startedAt":  "2026-11-08T05:49:47.6648260Z",
+    "stage":  "real-smoke-passed-not-quality-acceptance",
+    "waitProcesses":  [
+                          {
+                              "pid":  22828,
+                              "exitCode":  1,
+                              "command":  "\"C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\" -NoProfile -ExecutionPolicy Bypass -File E:\\code\\chainlesschain\\.tmp\\memory-3116842b-validation\\continue-validation-v2.ps1",
+                              "createdMs":  1794116371932,
+                              "exitMeaning":  "measurement terminated only; no pass inference",
+                              "status":  "original-handle-terminated",
+                              "handleHeld":  true,
+                              "handle":  2860
+                          },
+                          {
+                              "pid":  23032,
+                              "exitCode":  0,
+                              "command":  "\"C:\\nvm4w\\nodejs\\node.exe\" packages/cli/scripts/memory-query-index-benchmark.mjs --counts 1000,10000,100000 --samples 100 --modes cold,hot,rebuild,corrupt --output E:/code/chainlesschain/.tmp/memory-3116842b-validation/query-recovery100.json",
+                              "createdMs":  1794115944483,
+                              "exitMeaning":  "measurement terminated only; no pass inference",
+                              "status":  "original-handle-terminated",
+                              "handleHeld":  true,
+                              "handle":  2984
+                          }
+                      ],
+    "liveBenchmarks":  [
+
+                       ],
+    "sourceBefore":  [
+                         {
+                             "path":  ".github/workflows/context-memory-kernel.yml",
+                             "sha256":  "456749edb31ef28e10d6b010659405545b5dfbdb6b692788c7423c82856fa877",
+                             "bytes":  8151
+                         },
+                         {
+                             "path":  "docs/cli/LOCAL_MEMORY_SEMANTIC.md",
+                             "sha256":  "7d336418a29735daeddd8d75792c3ce9496ee6ce734b3210802144cf543a95a7",
+                             "bytes":  8776
+                         },
+                         {
+                             "path":  "docs/cli/PROCESS_SPAWN_INVENTORY.generated.md",
+                             "sha256":  "977ba915ebbe613b6c1079ba52d03739dcb9a76a945b4a71921f758c8324f098",
+                             "bytes":  130598
+                         },
+                         {
+                             "path":  "packages/cli/src/lib/context-memory-kernel/local-semantic-source.js",
+                             "sha256":  "8351c4fae20f6dba18856290052a7e660754903f633413f8c30e6e3b7451b048",
+                             "bytes":  12702
+                         },
+                         {
+                             "path":  "packages/cli/src/lib/context-memory-kernel/local-semantic-worker.py",
+                             "sha256":  "2220631cf020a1d428bbf8d9159b1a4d9a542a8e48b3d53f55902ed90cc45ff9",
+                             "bytes":  4891
+                         },
+                         {
+                             "path":  "packages/cli/src/lib/context-memory-kernel/runtime.js",
+                             "sha256":  "1aaaaba7980ae4284371dc85cd42f8d3823ce845df63b0ee4bceaf1266bca939",
+                             "bytes":  3521
+                         },
+                         {
+                             "path":  "packages/cli/src/lib/context-memory-kernel/memory-service.js",
+                             "sha256":  "22eee2eb0cb3ef972bce135d7ffcd3bf36eb5693ef3a2c8439945810f41cfc05",
+                             "bytes":  23310
+                         },
+                         {
+                             "path":  "packages/cli/src/lib/context-memory-kernel/provider-context.js",
+                             "sha256":  "c8becb901ca6e688e589dc96d67772fc7627a13cd66eb21686a4a93a2f930383",
+                             "bytes":  19871
+                         },
+                         {
+                             "path":  "packages/cli/test-node/local-memory-semantic.node-test.mjs",
+                             "sha256":  "30ecff71a71f442e4cc1a6ea23a3d80d8458a35e69735bce850a666da4e32005",
+                             "bytes":  18842
+                         }
+                     ],
+    "sourceAfter":  [
+                        {
+                            "path":  ".github/workflows/context-memory-kernel.yml",
+                            "sha256":  "456749edb31ef28e10d6b010659405545b5dfbdb6b692788c7423c82856fa877",
+                            "bytes":  8151
+                        },
+                        {
+                            "path":  "docs/cli/LOCAL_MEMORY_SEMANTIC.md",
+                            "sha256":  "7d336418a29735daeddd8d75792c3ce9496ee6ce734b3210802144cf543a95a7",
+                            "bytes":  8776
+                        },
+                        {
+                            "path":  "docs/cli/PROCESS_SPAWN_INVENTORY.generated.md",
+                            "sha256":  "977ba915ebbe613b6c1079ba52d03739dcb9a76a945b4a71921f758c8324f098",
+                            "bytes":  130598
+                        },
+                        {
+                            "path":  "packages/cli/src/lib/context-memory-kernel/local-semantic-source.js",
+                            "sha256":  "8351c4fae20f6dba18856290052a7e660754903f633413f8c30e6e3b7451b048",
+                            "bytes":  12702
+                        },
+                        {
+                            "path":  "packages/cli/src/lib/context-memory-kernel/local-semantic-worker.py",
+                            "sha256":  "2220631cf020a1d428bbf8d9159b1a4d9a542a8e48b3d53f55902ed90cc45ff9",
+                            "bytes":  4891
+                        },
+                        {
+                            "path":  "packages/cli/src/lib/context-memory-kernel/runtime.js",
+                            "sha256":  "1aaaaba7980ae4284371dc85cd42f8d3823ce845df63b0ee4bceaf1266bca939",
+                            "bytes":  3521
+                        },
+                        {
+                            "path":  "packages/cli/src/lib/context-memory-kernel/memory-service.js",
+                            "sha256":  "22eee2eb0cb3ef972bce135d7ffcd3bf36eb5693ef3a2c8439945810f41cfc05",
+                            "bytes":  23310
+                        },
+                        {
+                            "path":  "packages/cli/src/lib/context-memory-kernel/provider-context.js",
+                            "sha256":  "c8becb901ca6e688e589dc96d67772fc7627a13cd66eb21686a4a93a2f930383",
+                            "bytes":  19871
+                        },
+                        {
+                            "path":  "packages/cli/test-node/local-memory-semantic.node-test.mjs",
+                            "sha256":  "30ecff71a71f442e4cc1a6ea23a3d80d8458a35e69735bce850a666da4e32005",
+                            "bytes":  18842
+                        }
+                    ],
+    "sourceIdentityMatch":  true,
+    "smokeStarted":  true,
+    "smokeExitCode":  0,
+    "launcherExitCode":  0,
+    "paidProviderCallsRequested":  false,
+    "fullQualityAccepted":  false,
+    "performanceAccepted":  false,
+    "wholeGapClosed":  false,
+    "updatedAt":  "2026-11-08T05:58:51.2812898Z",
+    "smokeCommand":  "node --test --test-name-pattern=\"optional real offline BGE\" packages/cli/test-node/local-memory-semantic.node-test.mjs",
+    "python":  {
+                   "path":  "C:\\Users\\admin\\AppData\\Local\\Programs\\Python\\Python313\\python.exe",
+                   "sha256":  "d932e5e2f324d57f392e8fd063dcf6d0185be8a664c57c6d24e7762ed02c28ca",
+                   "threads":  2
+               },
+    "smokePid":  22164,
+    "smokeHandle":  3060,
+    "finishedAt":  "2026-11-08T05:58:51.2807834Z"
+}

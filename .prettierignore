@@ -181,3 +181,6 @@ docs/research/cli-ide/implementation/evidence/mcp-tasks-20261108/**
 docs/research/cli-ide/implementation/evidence/mcp-task-durable-20261108/**
 docs/research/cli-ide/implementation/evidence/mcp-task-delivery-20261108/**
 docs/research/cli-ide/implementation/evidence/model-input-mapping-20261108/**
+
+# Preserve source-bound local semantic validation receipts and raw pack output.
+docs/cli/evidence/local-memory-semantic-20261108/*.json
