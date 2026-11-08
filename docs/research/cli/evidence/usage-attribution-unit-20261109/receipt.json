@@ -1,0 +1,13 @@
+{
+    "integrationTestsPassed":  2,
+    "integrationTestsBlocked":  7,
+    "crossEntryProductionVerified":  false,
+    "capturedAt":  "2026-11-09",
+    "unitTestsFailed":  0,
+    "command":  "npx vitest run __tests__/unit/agent-usage-attribution.test.js",
+    "sourceCommit":  "4fdf1fe6b",
+    "integrationBlocker":  "owner-only native ACL verification failed",
+    "integrationTestsRun":  9,
+    "schema":  "chainlesschain.usage-attribution-evidence/v1",
+    "unitTestsPassed":  12
+}
