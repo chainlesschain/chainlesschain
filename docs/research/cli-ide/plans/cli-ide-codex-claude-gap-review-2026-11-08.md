@@ -15,11 +15,10 @@
 | 第 2 项：实际输入诊断和任务归因 | CLI、VS Code、JetBrains 来源投影和组合回归已验证；组合用例 2/2 通过 | 真实独立任务、完整失败归因和双 IDE 真实旅程仍待完成 |
 | 第 3 项：任务生命周期恢复       | 具备 owner-only ACL 时真实 CLI/REPL SIGKILL 恢复套件 2/2 通过 | 双 IDE、压缩、并发输入、副作用和跨入口组合验收仍待完成 |
 | 第 4 项：MCP Tasks              | durable CLI、单次原会话交付、显式续跑、Windows DPAPI 恢复、lease-bound tracker、pollInterval、opt-in REPL auto-wake 与 deliveryId 恢复已验证 | 真实第三方服务、双 IDE / 桌面、多平台和完整 provider continuation 旅程待验收 |
-| 第 5 项：成本、上下文与付费准入 | 已有有限真实 provider 请求、usage 字段和 A/B 回执；账单仍未核验                 | 更完整真实任务 A/B、账单归因；目标生产范围另行准入                 |
+| Item 5: cost, context, and paid admission | Volcengine live probe 4/4 HTTP 200 with usage captured; finite real provider A/B receipts also archived | Billing, price reconciliation, output-cap enforcement, and target-scope paid readiness remain unverified |
 | 第 6 项：Codex 与模型兼容       | `.167` schema/support/turn/history 回归 137/137；`.160/.164` 冷扫描失败回执已归档 | 准确 `.167` native 协议、取消恢复、三系统 CI 和模型变化闭环仍待完成 |
 | 第 7 项：IDE / 桌面旅程         | 待补完整验收                                                                    | 干净安装、模型切换、Stop、恢复、升级及真人可访问性                 |
-| 第 9 项：共享逻辑与指导内容     | call / task / generation 纯投影已共用；用量归因单元回归 12/12 通过 | transcript 跨入口集成和生产行为一致性仍待推进 |
-| 第 9 项：共享逻辑与指导内容     | call / task / generation 纯投影已共用；其余待推进                               | 跨入口行为一致性、独立故障定位及有效规则保留                       |
+| Item 9: shared logic and guidance | call / task / generation pure projections are shared; usage attribution unit + transcript integration 19/19 passed | Cross-entry production behavior and independent failure localization still require real IDE/desktop journeys |
 
 本批兼容实现使用独立分支 feature/cli-ide-gap-20261108，工作区位于 .worktrees/cli-ide-gap-20261108。这样可满足现有协议探针对干净准确提交的要求，并保留主工作区已有 Memory / CLI CI 改动。尚未合并、发布或宣称生产支持扩大。
 
