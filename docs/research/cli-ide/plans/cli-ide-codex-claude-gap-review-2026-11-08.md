@@ -258,7 +258,7 @@ This table is the authoritative status snapshot for this plan. A row is marked c
 | Item 5: cost/context/paid admission | Volcengine 4/4 HTTP 200 usage capture plus finite A/B receipts | Partial, transport/usage only | Invoice reconciliation, output-cap enforcement, and target-scope paid readiness |
 | Item 6: Codex compatibility | Partial; current HEAD `.164.0` Windows native turn/recovery passed, while `.167.0` native remains historical/source-drifted; static suite 137/137 and cold scan boundaries are preserved | Current-HEAD `.167` native rerun, three-system CI, Linux/macOS native cancellation/recovery, and model-change closure |
 | Item 7: IDE/desktop journey | JetBrains scripted journey/evidence 85/85 | Partial, fixture/contract only | Live IntelliJ, VS Code, desktop, clean install/upgrade, accessibility, Stop/recovery |
-| Item 8: Memory quality/SLO | Semantic quality 6/6 and existing local fixtures | Partial, offline quality only | Production source wiring, cold/hot/mixed SLO, multilingual and real-user tasks |
+| Item 8: Memory quality/SLO | Semantic quality 6/6 plus current local responsiveness benchmark at 1K/10K/100K for both cache modes, 18/18 Stop acknowledgements within target | Partial, fixed Windows local benchmark only | Production source wiring, cold/hot/mixed cross-platform SLO, multilingual and real-user tasks |
 | Item 9: shared logic/guidance | Shared projections and usage attribution unit/transcript 19/19 | Partial, local integration verified | Production behavior consistency and independent cross-entry failure localization |
 
 The plan therefore remains open. The unresolved rows require an external provider invoice, a missing official native artifact or CI matrix, or live IDE/desktop hosts; no local fixture result is promoted to close those gates.
@@ -282,3 +282,8 @@ The historical `.167.0` Windows native pack is bound to `e55e99ca22eda1f202d516e
 ### 2026-11-09 Current HEAD native 0.164 rerun
 
 Using the local official Codex 0.164.0 Windows x64 binary, current HEAD `e1cde771c4f3c5508567a0f843184e5b38196698` passed the native turn probe (completed/failed/interrupted scenarios, approval cancellation, interleaved threads, and post-admission transport loss) and the database scope (process restart, same-second thread/turn pagination, settings restoration, and no replay). Receipts are archived in [`codex-current-head-native-0164-20261109`](../../cli/evidence/codex-current-head-native-0164-20261109/). This is current-HEAD native evidence for `.164.0`, not `.167` or production admission.
+
+
+### 2026-11-09 Current Memory responsiveness benchmark
+
+The current local disk-backed Memory service was measured at 1,000, 10,000, and 100,000 records with three samples in both `validate-disk` and `verified-memory` modes. All 18 samples acknowledged the 10 ms Stop timer, released the authority lock, and met the 500 ms delivery/acknowledgement benchmark target. The receipt is archived in [`memory-responsiveness-current-20261109`](../../cli/evidence/memory-responsiveness-current-20261109/). This is fixed Windows local evidence with warm OS caches; it does not close cross-platform, production-source, multilingual, or real-user SLOs.
