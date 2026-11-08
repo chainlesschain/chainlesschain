@@ -1,0 +1,80 @@
+{
+  "schema": "chainlesschain.context-token-volcengine-live-probe/v1",
+  "capturedAt": "2026-11-08T17:02:28.627Z",
+  "requestCount": 0,
+  "attemptedRequests": 1,
+  "plannedRequests": 4,
+  "executionStatus": "PARTIAL_FAILURE",
+  "repeats": 1,
+  "source": {
+    "commit": "7e9b7fcc8d7a71ae2600be19b938d65230222e0a",
+    "workingTreeDirty": false,
+    "scriptSha256": "dff0b4dc9d0759f022f44d4052b5da7d749378a426cbaf08ec05731c9e06a6b1",
+    "files": [
+      {
+        "path": "packages/cli/scripts/context-token-volcengine-live-probe.mjs",
+        "sha256": "dff0b4dc9d0759f022f44d4052b5da7d749378a426cbaf08ec05731c9e06a6b1"
+      },
+      {
+        "path": "packages/cli/scripts/context-token-calibration.mjs",
+        "sha256": "897bf687c65cb89f4a3b9ddb8e04c963ab04a2f7db9d9b0ba3e9a9316eb97fbc"
+      },
+      {
+        "path": "packages/cli/src/lib/context-memory-kernel/message-adapter.js",
+        "sha256": "88df13cf95044e00d46d966740e08da1dde53bf9db663b712789dd496e1a5fc3"
+      },
+      {
+        "path": "packages/cli/src/lib/context-memory-kernel/provider-context.js",
+        "sha256": "c8becb901ca6e688e589dc96d67772fc7627a13cd66eb21686a4a93a2f930383"
+      },
+      {
+        "path": "packages/cli/src/lib/llm-pricing.js",
+        "sha256": "c81141f94b62a4cdf051c3801d22493910572a91a873481303b4e515cbc244f6"
+      },
+      {
+        "path": "packages/cli/src/lib/model-context-catalog.js",
+        "sha256": "b8ac4baae6fdbbfcaffed2869ed3404d96379593f68b87168867dd05a6d66c50"
+      }
+    ]
+  },
+  "environment": {
+    "platform": "win32",
+    "arch": "x64",
+    "nodeVersion": "v24.12.0",
+    "osRelease": "10.0.26200"
+  },
+  "maxOutputTokensPerRequest": 8,
+  "requestedOutputLimit": 8,
+  "observedMaxOutputTokens": 0,
+  "observedOutputLimitExceeded": false,
+  "outputLimitExceededRequests": 0,
+  "outputLimitEnforcementVerified": false,
+  "timeoutMsPerRequest": 20000,
+  "responseIdSha256": [],
+  "outputTokens": 0,
+  "estimatedCostUsd": null,
+  "knownEstimatedCostUsd": 0,
+  "unknownCostRequests": 1,
+  "invoiceAssessed": false,
+  "attempts": [
+    {
+      "ordinal": 1,
+      "category": "chinese",
+      "scale": 5,
+      "provider": "volcengine",
+      "model": "deepseek-v4-flash-ga-260731",
+      "requestPayloadSha256": "22e9bc7d85d93981bfb1ac99943700e984ed2e0d163e3b5dfc6c1710bd28c222",
+      "startedAt": "2026-11-08T17:02:28.364Z",
+      "status": "FAILED",
+      "responseIdSha256": null,
+      "responseBodySha256": null,
+      "requestedOutputLimit": 8,
+      "observedOutputLimitExceeded": null,
+      "usage": null,
+      "estimatedCostUsd": null,
+      "failureKind": "RESPONSE_OR_TRANSPORT_FAILED",
+      "finishedAt": "2026-11-08T17:02:28.626Z"
+    }
+  ],
+  "calibration": null
+}
