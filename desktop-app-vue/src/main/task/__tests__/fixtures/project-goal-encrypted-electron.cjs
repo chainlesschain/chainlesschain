@@ -47,6 +47,10 @@ app.whenReady().then(async () => {
       native,
     );
     controller = createProjectGoalMonitoringController({
+      featurePolicy:
+        require("../../project-goal-feature-policy.js").createProjectGoalFeaturePolicy(
+          { enabled: true },
+        ),
       database: { getDatabase: () => wrapper },
       getCurrentUserDid: () => actor,
       graphMode: () => "canonical",

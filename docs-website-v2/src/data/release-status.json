@@ -292,7 +292,8 @@
     "checkedAt": "2026-11-06",
     "evidenceUrl": "https://github.com/chainlesschain/chainlesschain/blob/b56683ff17c796929236271f0ea1497609d5a339/docs/research/cli/evidence/release143-public/documentation-review.json",
     "uncommittedRetestsIncluded": false,
-    "additionalModelTaskRetestsRun": false
+    "additionalModelTaskRetestsRun": false,
+    "additionalUnreleasedSourceCommit": "a2e7f17a03df38bd8e97a8a977351f37dd5319c3"
   },
   "release129Channels": {
     "cli": {
@@ -726,5 +727,17 @@
     "priorSyntheticTokens": 1176,
     "priorSyntheticCostUsd": null,
     "additionalModelRequestsForDocumentation": 0
+  },
+  "unreleasedGoalTransfer": {
+    "sourceCommit": "a2e7f17a03df38bd8e97a8a977351f37dd5319c3",
+    "implementationCommit": "7b5376091a",
+    "pullRequest": 539,
+    "status": "unreleased-source",
+    "localReportFiles": 49,
+    "localReportPassed": 790,
+    "validationScope": "Windows local reports; Electron dialogs/login and Vue IPC are doubles; GUI/Linux/macOS/release CI and publication remain pending",
+    "includedInPublic143": false,
+    "designUrl": "https://design.chainlesschain.com/cli-goal-transfer-source-2026-11-07.html",
+    "evidenceUrl": "https://github.com/chainlesschain/chainlesschain/blob/a2e7f17a03df38bd8e97a8a977351f37dd5319c3/docs/research/agents/evidence/dmm-goal-transfer-2026-11-06/README.md"
   }
 }

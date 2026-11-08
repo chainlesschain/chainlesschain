@@ -2,6 +2,14 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
 
+## CLI 0.166.144 release candidate
+
+Source candidate **0.166.144** uses Session Core **0.3.27** and pairs with VS Code/Open VSX **0.37.180** and JetBrains **0.4.197**. These candidate versions are not yet published. The last verified public CLI remains **0.166.143**.
+
+This candidate adds explicit cross-project goal transfer and signed rollback, plus the native canonical Graph host boundary. Desktop participation requires matching source, explicit opt-in and native consent; existing installed desktop clients are not upgraded by this CLI release. Windows CI enables Git long paths before checkout so archived native acceptance evidence cannot prevent the release gates from running.
+
+Publication requires exact-source Linux/Windows/macOS CLI CI and CLI Strict Sandbox, Actions OIDC publication of Session Core before CLI, and independent registry readback before publishing either IDE plugin. No new live-model, installed-client or business-effect acceptance is claimed.
+
 ## CLI 0.166.143 / local compute and controlled task-creation drafts
 
 Session Core **0.3.26**, CLI **0.166.143**, Open VSX **0.37.179** and JetBrains
@@ -14,6 +22,11 @@ Current native clients are **v5.0.3.145** from earlier independent sources. New
 native v6 creation and model drafts require matching newer desktop builds;
 this CLI/IDE release does not upgrade those client binaries. See the
 [current design](../../docs/design/release-runtime-update-2026-11-06-143.md).
+
+Unreleased source in PR #539 adds explicit CLI-goal handoff and signed recovery.
+It requires matching branch builds of CLI, Session Core and desktop; public
+0.166.143 does not include these commands. See the
+[source-only handoff design](../../docs/design/cli-goal-transfer-source-2026-11-07.md).
 Both IDEs add a Local compute / OpenAI
 compatible option for LEXDATA, vLLM and SGLang, with explicit endpoint/model,
 optional platform key and HTTP consent. Atomic configuration and first-run setup

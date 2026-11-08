@@ -24,6 +24,9 @@ jobs:
         node-version: [22.x]
 
     steps:
+      - name: Enable Windows long paths before checkout
+        if: runner.os == 'Windows'
+        run: git config --global core.longpaths true
       - name: Checkout code
         uses: actions/checkout@v5
 

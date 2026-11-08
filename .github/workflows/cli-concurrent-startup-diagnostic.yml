@@ -21,6 +21,9 @@ jobs:
       CC_CLI_RELIABILITY_MAX_RSS_GROWTH_MB: "128"
       CC_CLI_RELIABILITY_MAX_RESOURCE_GROWTH: "8"
     steps:
+      - name: Enable Windows long paths before checkout
+        if: runner.os == 'Windows'
+        run: git config --global core.longpaths true
       - name: Checkout fixed runtime source
         uses: actions/checkout@v5
         with:

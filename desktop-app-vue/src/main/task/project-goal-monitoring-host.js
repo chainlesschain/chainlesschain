@@ -49,6 +49,8 @@ function createProjectGoalMonitoringController({
       .trim()
       .toLowerCase(),
   graphHostLoader = undefined,
+  featurePolicy = require("./project-goal-feature-policy")
+    .projectGoalFeaturePolicy,
 } = {}) {
   if (
     typeof engineFactory !== "function" ||
@@ -68,9 +70,11 @@ function createProjectGoalMonitoringController({
   const currentDb = () => currentProjectGoalDatabase(database);
   function getEngine() {
     if (closed) fail("GOAL_MONITOR_HOST_CLOSED");
+    if (!featurePolicy.isEnabled()) return Promise.resolve(null);
     if (opening) return opening;
     opening = (async () => {
       const native = currentDb();
+      featurePolicy.assertEnabled();
       if (engine && sourceDb === native) return engine;
       if (engine) {
         await engine.close();
@@ -129,6 +133,7 @@ function createProjectGoalMonitoringController({
                   protectFile,
                   ...(graphHostLoader ? { loadHost: graphHostLoader } : {}),
                   assertCurrent: () => {
+                    featurePolicy.assertEnabled();
                     if (closed) fail("GOAL_MONITOR_HOST_CLOSED");
                     if (currentDb() !== native)
                       fail("GOAL_MONITOR_DATABASE_CHANGED");
@@ -137,6 +142,7 @@ function createProjectGoalMonitoringController({
               )
             : null;
         if (closed) fail("GOAL_MONITOR_HOST_CLOSED");
+        featurePolicy.assertEnabled();
         if (currentDb() !== native) fail("GOAL_MONITOR_DATABASE_CHANGED");
         engine = engineFactory({
           db: native,
@@ -147,6 +153,7 @@ function createProjectGoalMonitoringController({
             // Connection replacement locks the old engine until the next command
             // rotates it, after draining the previous host.
             try {
+              featurePolicy.assertEnabled();
               return currentDb() === captured ? getCurrentUserDid() : null;
             } catch {
               return null;
@@ -180,6 +187,7 @@ function createProjectGoalMonitoringController({
   function close() {
     if (closing) return closing;
     closed = true;
+    unsubscribe();
     closing = (async () => {
       try {
         await opening;
@@ -188,6 +196,7 @@ function createProjectGoalMonitoringController({
     })();
     return closing;
   }
+  const unsubscribe = featurePolicy.subscribe(close);
   return Object.freeze({ initialize: getEngine, close });
 }
 

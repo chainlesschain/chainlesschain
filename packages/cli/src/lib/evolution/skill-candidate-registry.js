@@ -1484,7 +1484,9 @@ function normalizeRegistryOptions(options) {
     options,
     "rootDir",
     "candidate registry options",
-    path.join(getHomeDir(), "evolution", "registry", "candidates"),
+    Object.hasOwn(options, "rootDir")
+      ? undefined
+      : path.join(getHomeDir(), "evolution", "registry", "candidates"),
   );
   if (typeof rootDir !== "string" || rootDir.length < 1) {
     throw registryError(

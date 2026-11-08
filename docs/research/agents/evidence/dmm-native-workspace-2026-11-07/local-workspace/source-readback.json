@@ -1,0 +1,12 @@
+{
+  "sourceSha": "8ecb5bcfbc0ca4e16a9154c14121a266696781fb",
+  "sourceStatus": "M docs/research/agents/evidence/dmm-native-workspace-2026-11-07/README.md\n?? docs/research/agents/evidence/dmm-native-workspace-2026-11-07/ci-5ded/\n?? docs/research/agents/evidence/dmm-native-workspace-2026-11-07/dmm-notice-keepalive-before.json\n?? docs/research/agents/evidence/dmm-native-workspace-2026-11-07/dmm-workspace-host-native-permissions.json\n?? docs/research/agents/evidence/dmm-native-workspace-2026-11-07/dmm-workspace-renderer-keepalive.json\n?? docs/research/agents/evidence/dmm-native-workspace-2026-11-07/failures/dialog-readiness.json\n?? docs/research/agents/evidence/dmm-native-workspace-2026-11-07/failures/dialog-readiness.png\n?? docs/research/agents/evidence/dmm-native-workspace-2026-11-07/failures/drawer-mask-source.patch\n?? docs/research/agents/evidence/dmm-native-workspace-2026-11-07/failures/drawer-mask.json\n?? docs/research/agents/evidence/dmm-native-workspace-2026-11-07/failures/drawer-mask.png\n?? docs/research/agents/evidence/dmm-native-workspace-2026-11-07/failures/duplicate-cached-drawers.json\n?? docs/research/agents/evidence/dmm-native-workspace-2026-11-07/failures/duplicate-cached-drawers.png\n?? docs/research/agents/evidence/dmm-native-workspace-2026-11-07/failures/mutable-proposal-review-sources.json\n?? docs/research/agents/evidence/dmm-native-workspace-2026-11-07/failures/mutable-proposal-review.json\n?? docs/research/agents/evidence/dmm-native-workspace-2026-11-07/failures/mutable-proposal-review.png\n?? docs/research/agents/evidence/dmm-native-workspace-2026-11-07/failures/refresh-accessible-name.json\n?? docs/research/agents/evidence/dmm-native-workspace-2026-11-07/failures/refresh-accessible-name.png\n?? docs/research/agents/evidence/dmm-native-workspace-2026-11-07/failures/review-schema-assumption.json\n?? docs/research/agents/evidence/dmm-native-workspace-2026-11-07/failures/review-schema-assumption.png\n?? docs/research/agents/evidence/dmm-native-workspace-2026-11-07/manifest.json\n?? docs/research/agents/evidence/dmm-native-workspace-2026-11-07/verify-evidence.mjs",
+  "status": "passed",
+  "workspaceStatus": "passed",
+  "dialogCount": 3,
+  "initialArtifactHashesMatchCapture": true,
+  "runnerMatchesCommit": true,
+  "helperMatchesCommit": true,
+  "nativeDialogMatchesCommit": true,
+  "copiedNotificationModuleMatchesSource": true
+}

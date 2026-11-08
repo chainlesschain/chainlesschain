@@ -137,6 +137,10 @@ export default defineConfig({
             link: "/modules/110-agent-platform-release-boundaries",
           },
           {
+            text: "CLI 目标移交与签名回退（未发行）",
+            link: "/cli-goal-transfer-source-2026-11-07",
+          },
+          {
             text: "CLI .143：本地算力与待审创建",
             link: "/release-runtime-update-2026-11-06-143",
           },
@@ -1142,6 +1146,10 @@ export default defineConfig({
               text: "运行时设计记录",
               collapsed: true,
               items: [
+                {
+                  text: "CLI 目标移交与签名回退（未发行）",
+                  link: "/cli-goal-transfer-source-2026-11-07",
+                },
                 {
                   text: "CLI .143：本地算力与待审创建",
                   link: "/release-runtime-update-2026-11-06-143",

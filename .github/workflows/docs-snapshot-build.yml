@@ -79,6 +79,12 @@ jobs:
             done
           fi
           if [ "$SITE" = docs ]; then
+            test -f "$DIST/design/cli-goal-transfer-source-2026-11-07.html"
+          elif [ "$SITE" = design ]; then
+            test -f "$DIST/cli-goal-transfer-source-2026-11-07.html"
+          fi
+          grep -Fq 'transfer-to-project' "$DIST/$REQUIRED"
+          if [ "$SITE" = docs ]; then
             test "$(wc -c < "$DIST/changelog.html")" -ge 2000
           fi
           html_count=$(find "$DIST" -type f -name '*.html' | wc -l)

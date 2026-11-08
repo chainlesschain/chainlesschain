@@ -86,6 +86,9 @@ jobs:
     runs-on: "${{ matrix.runner }}"
     timeout-minutes: 15
     steps:
+      - name: Enable Windows long paths before checkout
+        if: runner.os == 'Windows'
+        run: git config --global core.longpaths true
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
         with:
           ref: "${{ env.COMPAT_SHA }}"

@@ -72,6 +72,9 @@ jobs:
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 90
     steps:
+      - name: Enable Windows long paths before checkout
+        if: runner.os == 'Windows'
+        run: git config --global core.longpaths true
       - name: Checkout exact trajectory candidate
         uses: actions/checkout@v5
         with:

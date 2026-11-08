@@ -990,6 +990,7 @@ const FIXED_RENDERER_IPC_CHANNELS = new Set([
   "project:goal-external-drafts-prepare",
   "project:goal-external-drafts-read",
   "project:goal-external-drafts-revoke",
+  "project:goal-feature-status",
   "project:goal-follow-up-end",
   "project:goal-intent-execute",
   "project:goal-intent-prepare",
@@ -2992,6 +2993,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   // 项目管理
   project: {
     createGoal: (params) => ipcRenderer.invoke("project:goal-create", params),
+    getGoalFeatureStatus: () =>
+      ipcRenderer.invoke("project:goal-feature-status"),
     exportGoalTransferTarget: (params) =>
       ipcRenderer.invoke("project:goal-transfer-target-export", params),
     importGoalTransfer: (params) =>

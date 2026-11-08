@@ -27,9 +27,12 @@ export async function loadLegacySegmentedMemoryPort() {
   );
   // Preserve the old dependency behavior as well as the old class. A future
   // dependency edit must not silently turn this evidence into a hybrid port.
+  const frozenImportUrls = new Map();
   for (const dependency of provenance.dependencies) {
     const dependencyBytes = fs.readFileSync(
-      new URL(`../../../../${dependency.path}`, import.meta.url),
+      dependency.fixture
+        ? new URL(`../fixtures/${dependency.fixture}`, import.meta.url)
+        : new URL(`../../../../${dependency.path}`, import.meta.url),
     );
     const blob = createHash("sha1")
       .update(`blob ${dependencyBytes.length}\0`)
@@ -40,6 +43,12 @@ export async function loadLegacySegmentedMemoryPort() {
       dependency.gitBlob,
       `Legacy dependency changed: ${dependency.path}`,
     );
+    if (dependency.fixture) {
+      frozenImportUrls.set(
+        dependency.path.split("/").at(-1),
+        `data:text/javascript;base64,${dependencyBytes.toString("base64")}`,
+      );
+    }
   }
   const imports = [
     [
@@ -53,8 +62,9 @@ export async function loadLegacySegmentedMemoryPort() {
       "memory-shard-snapshots.js",
     ].map((name) => [
       `./${name}`,
-      new URL(`../../src/lib/context-memory-kernel/${name}`, import.meta.url)
-        .href,
+      frozenImportUrls.get(name) ||
+        new URL(`../../src/lib/context-memory-kernel/${name}`, import.meta.url)
+          .href,
     ]),
   ];
   let source = bytes.toString("utf8");

@@ -130,6 +130,17 @@ describe("organization goals with Vue, actual native host, shared SQLite and sch
     });
     await flushPromises();
   }
+  it("does not read organization goals or expose controls when the host trial is off", async () => {
+    (window as any).electronAPI.project = {
+      getGoalFeatureStatus: vi.fn(async () => ({ enabled: false })),
+    };
+    await panel();
+    expect(
+      wrapper.find('[data-testid="organization-goal-panel"]').exists(),
+    ).toBe(false);
+    expect(api.listGoals).not.toHaveBeenCalled();
+    expect(api.createGoal).not.toHaveBeenCalled();
+  });
   async function workbench() {
     wrapper = mount(OrganizationProjectWorkbench, {
       props: { open: true, projectId: "p1", identityKey: f.getActor() },

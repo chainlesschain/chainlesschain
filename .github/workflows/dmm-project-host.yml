@@ -14,6 +14,7 @@ on:
       - "desktop-app-vue/src/renderer/components/projects/**"
       - "desktop-app-vue/vitest.business-actions*.config.mjs"
       - "desktop-app-vue/vitest.organization-authority.config.mjs"
+      - "desktop-app-vue/vitest.organization-renderer.config.mjs"
       - "packages/session-core/**"
       - "packages/cli/src/host/**"
       - "packages/cli/src/lib/graph-kernel/**"
@@ -43,6 +44,9 @@ jobs:
     env:
       DMM_EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
+      - name: Enable Windows long paths before checkout
+        if: runner.os == 'Windows'
+        run: git config --global core.longpaths true
       - name: Checkout exact candidate
         uses: actions/checkout@v5
         with:
@@ -91,6 +95,13 @@ jobs:
           npm exec --offline -- vitest run
           --config vitest.organization-authority.config.mjs
           --reporter=json --outputFile=test-results/dmm-organization-host.json
+
+      - name: Verify organization renderer and default-off controls
+        working-directory: desktop-app-vue
+        run: >-
+          npm exec --offline -- vitest run
+          --config vitest.organization-renderer.config.mjs
+          --reporter=json --outputFile=test-results/dmm-organization-renderer.json
 
       - name: Upload exact-source diagnostic reports
         if: always()
