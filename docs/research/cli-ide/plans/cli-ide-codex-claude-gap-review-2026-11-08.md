@@ -105,7 +105,7 @@ Claude Code 的 MCP Tasks 当前处于公开测试阶段，可在服务端受理
 
 建议比较 `stubs` 与 `compact` 时，同步观察工具召回、误调用、额外搜索、缓存命中、任务通过率和实际用量。核心指标应为每个通过独立验收的任务消耗的总时间、请求、token 与费用；目录估算 token 降低不能直接推导相同比例的真实费用下降。真实账单未知时继续明确标注未知。
 
-本批另完成一个有限真实 provider 宿主往返：200 工具目录下，火山模型先通过 `tool_search` 选择目标工具，生产 `executeTool` 宿主执行本地无网络 MCP fixture，再把结果回传给模型确认 marker；3 次 provider 请求、搜索结果 1 个、宿主参数和最终 marker 均核对通过。该回执证明 provider → 宿主授权 / 执行 → 结果回传链路的有限样本，不代表外部 MCP 服务、稳定成本、账单或生产准入。见[真实 MCP 宿主往返回执](../../cli/evidence/mcp-context-real-volcengine-host-roundtrip-20261108/README.md)。
+本批另完成一个有限真实 provider 宿主往返：200 工具目录下，火山模型先通过 `tool_search` 选择目标工具，生产 `executeTool` 宿主执行本地无网络 MCP fixture，再把结果回传给模型确认 marker；3 次 provider 请求、搜索结果 1 个、宿主参数和最终 marker 均核对通过。该回执证明 provider → 宿主授权 / 执行 → 结果回传链路的有限样本，不代表外部 MCP 服务、稳定成本、账单或生产准入。见[真实 MCP 宿主往返回执](../../../cli/evidence/mcp-context-real-volcengine-host-roundtrip-20261108/README.md)。
 
 正式付费准入另行处理：[预算传输代码](../../../../packages/cli/src/lib/formal-budget-transport.js)仍保持 `paidReady:false`，说明 Agent、Chat、压缩、advisor、探针、重试和子进程出口尚未全部路由到同一 authority。
 
