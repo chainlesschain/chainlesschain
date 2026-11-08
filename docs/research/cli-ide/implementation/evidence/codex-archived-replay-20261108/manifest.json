@@ -1,0 +1,62 @@
+{
+  "schema": "chainlesschain.codex-archived-replay-evidence/v1",
+  "sourceCommit": "b60efe3a7c79d91c7994bddf18631e9b9f47adef",
+  "files": [
+    {
+      "name": "codex-env-0160.json",
+      "bytes": 3412,
+      "sha256": "c7717ea78630f7bd48bc8e45d70f3a704121377809ca825fa0d26cca3890683c"
+    },
+    {
+      "name": "codex-env-0164.json",
+      "bytes": 3412,
+      "sha256": "bdbed18cb778ef15a7c5ad33766c46ee57431f26d420b4828bbf850404a847df"
+    },
+    {
+      "name": "codex-launcher-0160-registry.json",
+      "bytes": 1423,
+      "sha256": "0271911f95969c34044c25652f0bb4951db17cd05fe912ca0dece19f6561c190"
+    },
+    {
+      "name": "codex-launcher-0164-registry.json",
+      "bytes": 1423,
+      "sha256": "0d52bb0a0649edb4c0dccb72fec7290e0a2c92baa12b10c86db32c6f9067b7aa"
+    },
+    {
+      "name": "codex-native-0160-registry.json",
+      "bytes": 922,
+      "sha256": "4d0771aa50790cfa1c093a686d4f29be260ce5bfa467bbc8694101d4e48000d0"
+    },
+    {
+      "name": "codex-native-0164-registry.json",
+      "bytes": 922,
+      "sha256": "1e9d2cb4546b977eae6e4bc626194631635113cc4a4eba6d770489062c6b8e75"
+    },
+    {
+      "name": "codex-replay-0160-v1.json",
+      "bytes": 30101,
+      "sha256": "d39d58068dcf91f1d813d0bef8ece3356001ef56b19b2a965eb895bd4b383e2a"
+    },
+    {
+      "name": "codex-replay-0164-v3.json",
+      "bytes": 31591,
+      "sha256": "bb67f2184e42939ae37661078f7e515793f4dd36c7ddd73d0537644cde8247cc"
+    },
+    {
+      "name": "codex-validator-test2.json",
+      "bytes": 24297,
+      "sha256": "4750ef6c49f94e20655b4f10368a8f281babe0d8ae5ebb4b349173b4be183c1b"
+    },
+    {
+      "name": "environment-0164.json",
+      "bytes": 3412,
+      "sha256": "bdbed18cb778ef15a7c5ad33766c46ee57431f26d420b4828bbf850404a847df"
+    },
+    {
+      "name": "replay-0164-v3.json",
+      "bytes": 31591,
+      "sha256": "bb67f2184e42939ae37661078f7e515793f4dd36c7ddd73d0537644cde8247cc"
+    }
+  ],
+  "boundary": "Discovery evidence only; no provider calls, no turn/start, and no production admission claim."
+}
