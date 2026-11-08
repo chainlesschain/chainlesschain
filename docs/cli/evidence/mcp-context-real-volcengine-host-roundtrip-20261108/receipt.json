@@ -1,0 +1,54 @@
+{
+  "schema": "chainlesschain.real-volcengine-mcp-host-roundtrip/v1",
+  "sourceCommit": "9a0bfbf5b43a465d348a9c04c2ffacdf5ce9e8b2",
+  "provider": "volcengine",
+  "model": "deepseek-v4-1-flash-economy-261017",
+  "scale": 200,
+  "credentialPath": "H:\\code\\api\\deepseek.txt",
+  "requests": 3,
+  "searchCallObserved": true,
+  "searchResultCount": 1,
+  "targetCallObserved": true,
+  "hostExecutionObserved": true,
+  "hostArgumentsMatch": true,
+  "hostMarkerObserved": true,
+  "finalMarkerVerified": true,
+  "credentialExposed": false,
+  "responseContentExposed": false,
+  "billingVerified": false,
+  "usages": [
+    {
+      "input_tokens": 77,
+      "output_tokens": 101,
+      "cache_read_input_tokens": 11392,
+      "service_tier": "default"
+    },
+    {
+      "input_tokens": 236,
+      "output_tokens": 54,
+      "cache_read_input_tokens": 256,
+      "service_tier": "default"
+    },
+    {
+      "input_tokens": 558,
+      "output_tokens": 68,
+      "cache_read_input_tokens": 0,
+      "service_tier": "default"
+    }
+  ],
+  "responseDigests": [
+    "ddaf25c7ca54501b461d05b8bc317c86e48b0ceafd33deb417eba02904772d0d",
+    "cfd155298e5ae0ce9ef4d7ff78ff4ca35378dabd3d03b81e860bebf7f0aded9509",
+    "bc66ef15b9ea2ecff4d7ff78ff4ca35378dabd3d03b81e860bebf7f0aded9509"
+  ],
+  "sourceBindings": [
+    {
+      "path": "packages/cli/src/runtime/agent-core.js",
+      "sha256": "70f87daf74b35da4e7daba7c5ba582bf63d8942fb00a0986fe77cd23b2759192"
+    },
+    {
+      "path": "packages/cli/src/runtime/mcp-tool-search.js",
+      "sha256": "de63c138868a8d52fd3ef0e791e065166250240fb9df2c54611c002e22b50eca"
+    }
+  ]
+}
