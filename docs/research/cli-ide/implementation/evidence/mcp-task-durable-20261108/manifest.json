@@ -1,0 +1,51 @@
+{
+  "schema": "chainlesschain.mcp-task-durable-evidence/v1",
+  "date": "2026-11-08",
+  "branch": "feature/mcp-task-durable-runtime-20261108",
+  "baseCommit": "520508fb3ad6847955a62a8e24153fc019902e2d",
+  "platform": "Windows",
+  "node": "24.12.0",
+  "files": [
+    {
+      "file": "mcp-task-durable-initial-tests.json",
+      "bytes": 23122,
+      "sha256": "1ab9b71b4788b91e2c5747c00d97b1cfee3f9bca2e54fc25c12328232fc7951b",
+      "tests": 63,
+      "passed": 61,
+      "failed": 2
+    },
+    {
+      "file": "mcp-task-durable-final-tests.json",
+      "bytes": 101503,
+      "sha256": "c5605d679a43b27b8945ed544aa7d4ffddaf8744edf26cc5be8a271c6aa6a879",
+      "tests": 303,
+      "passed": 303,
+      "failed": 0
+    },
+    {
+      "file": "native-report.json",
+      "bytes": 6743,
+      "sha256": "5d7ef7a550c796c5ce957a1697f849c372d3cd1f245ba2232845a753883ef01d",
+      "passed": true,
+      "platform": "win32",
+      "node": "v24.12.0",
+      "counts": {
+        "initialize": 7,
+        "tools/list": 7,
+        "resources/list": 7,
+        "resources/templates/list": 7,
+        "prompts/list": 7,
+        "tools/call": 2,
+        "tasks/get": 1,
+        "tasks/result": 2
+      }
+    }
+  ],
+  "limits": [
+    "no model invocation or paid call",
+    "HTTP loopback fixture only",
+    "Windows DPAPI native probe",
+    "TLS identity assertions do not prove a TLS handshake",
+    "no automatic model-message consumption"
+  ]
+}

@@ -525,6 +525,8 @@ describe("MCP Tasks strict result and host boundary", () => {
       "listTasks",
       "cancelTask",
       "_taskRequest",
+      "getTaskRecoveryIdentity",
+      "restoreTaskBinding",
     ];
     for (const method of methods) raw[method] = vi.fn();
     const guarded = createRecoveryGuardedMcpClient({

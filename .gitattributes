@@ -234,3 +234,4 @@ docs/research/cli-ide/implementation/evidence/ide-model-input-20261108/*.log -te
 docs/research/cli-ide/implementation/evidence/jetbrains-model-input-20261108/* -text whitespace=cr-at-eol
 docs/research/cli-ide/implementation/evidence/model-input-source-20261108/* -text
 docs/research/cli-ide/implementation/evidence/mcp-tasks-20261108/* -text
+docs/research/cli-ide/implementation/evidence/mcp-task-durable-20261108/* -text

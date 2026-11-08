@@ -10,7 +10,7 @@
 
 import { executionBroker } from "../lib/process-execution-broker/index.js";
 import { AsyncLocalStorage } from "node:async_hooks";
-import { randomUUID } from "node:crypto";
+import { createHmac, randomUUID } from "node:crypto";
 import { EventEmitter } from "events";
 import { pathToFileURL } from "url";
 import { isProxy } from "node:util/types";
@@ -912,7 +912,16 @@ function pendingToolFailure(error, entry, method, dispatched) {
 
 function dispatchMcpToolRequest(options, metadata, dispatch) {
   const admission = options?.dispatchAdmission ?? null;
-  if (metadata.method !== "tools/call" || admission === null) {
+  if (
+    ![
+      "tools/call",
+      "tasks/get",
+      "tasks/result",
+      "tasks/list",
+      "tasks/cancel",
+    ].includes(metadata.method) ||
+    admission === null
+  ) {
     return dispatch();
   }
   if (typeof admission !== "function") {
@@ -3952,6 +3961,89 @@ export class MCPClient extends EventEmitter {
     } finally {
       release();
     }
+  }
+
+  /**
+   * Stable, secret-keyed identity for verified journal recovery. The MCP HTTP
+   * session is intentionally excluded here; the restored task is separately
+   * bound to the new live entry/session by restoreTaskBinding().
+   */
+  getTaskRecoveryIdentity(serverName, key) {
+    const entry = this.servers.get(serverName);
+    if (
+      !entry ||
+      entry.state !== ServerState.CONNECTED ||
+      entry._httpDiscardStopping
+    ) {
+      throw mcpTaskError(
+        "CC_MCP_TASK_CONNECTION_REQUIRED",
+        "MCP task requires its connected server",
+      );
+    }
+    requireMcpTaskCapability(entry, "get");
+    if (!entry.httpUrl || !["http", "https"].includes(entry.transportKind)) {
+      throw mcpTaskError(
+        "CC_MCP_TASK_RECOVERY_TRANSPORT_UNSUPPORTED",
+        "Durable MCP task recovery currently requires HTTP",
+      );
+    }
+    if (typeof key !== "string" || !/^[a-f0-9]{64}$/.test(key)) {
+      throw mcpTaskError(
+        "CC_MCP_TASK_RECOVERY_KEY_INVALID",
+        "MCP task recovery key is unavailable",
+      );
+    }
+    const identity = {
+      schema: "chainlesschain.mcp-task-server-identity/v1",
+      serverName,
+      transport: entry.transportKind,
+      endpoint: entry.httpUrl,
+      protocol: entry.protocolVersion,
+      headers: Object.entries(entry.httpHeaders || {})
+        .map(([name, value]) => [name.toLowerCase(), value])
+        .sort(([a], [b]) => a.localeCompare(b)),
+      tls: entry._tlsIdentityDigest ?? null,
+      tlsServerName: entry.config?.tls?.serverName ?? null,
+      tlsVerify: entry.config?.tls?.rejectUnauthorized ?? true,
+      configScope: entry.config?.configScope ?? null,
+      headersHelper: entry.config?.headersHelper ?? null,
+    };
+    return (
+      "hmac-sha256:" +
+      createHmac("sha256", Buffer.from(key, "hex"))
+        .update(JSON.stringify(identity))
+        .digest("hex")
+    );
+  }
+
+  /** Low-level host primitive; callers must obtain data from verified storage. */
+  restoreTaskBinding(serverName, task, { key, identityDigest } = {}) {
+    if (this.getTaskRecoveryIdentity(serverName, key) !== identityDigest) {
+      throw mcpTaskError(
+        "CC_MCP_TASK_RECOVERY_IDENTITY_CHANGED",
+        "MCP task server authorization identity changed",
+      );
+    }
+    const entry = this.servers.get(serverName);
+    const admitted = admitMcpTaskResponse(serverName, task, entry.config, {
+      kind: "get",
+    });
+    const identity = taskConnectionIdentity(entry);
+    const previous = taskBindings(this).get(
+      JSON.stringify([serverName, admitted.taskId]),
+    );
+    if (previous) {
+      if (previous.entry !== entry || previous.identity !== identity) {
+        throw mcpTaskError(
+          "CC_MCP_TASK_BINDING_CHANGED",
+          "MCP task requires a fresh client after reconnection",
+        );
+      }
+      // A journal snapshot must not roll back a more recent in-process status.
+      return admitted.taskId;
+    }
+    rememberTasks(this, serverName, entry, identity, [admitted]);
+    return admitted.taskId;
   }
 
   async _taskRequest(serverName, method, params, options, kind) {

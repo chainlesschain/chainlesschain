@@ -1,0 +1,257 @@
+{
+  "schema": "chainlesschain.mcp-task-native-probe/v1",
+  "passed": true,
+  "platform": "win32",
+  "node": "v24.12.0",
+  "folder": "C:\\Users\\admin\\AppData\\Local\\Temp\\cc-mcp-task-native-rmQoEE",
+  "counts": {
+    "initialize": 7,
+    "tools/list": 7,
+    "resources/list": 7,
+    "resources/templates/list": 7,
+    "prompts/list": 7,
+    "tools/call": 2,
+    "tasks/get": 1,
+    "tasks/result": 2
+  },
+  "checkpoints": [
+    {
+      "action": "poll",
+      "receipt": {
+        "ok": false,
+        "code": "CC_SESSION_HOST_LEASE_HELD",
+        "pid": 11936
+      },
+      "exit": {
+        "code": 1,
+        "signal": null
+      }
+    },
+    {
+      "action": "kill-after-accepted",
+      "receipt": {
+        "ok": true,
+        "result": {
+          "localId": "2df2fc5a-7487-4d47-b2e7-fd3f8bf15545",
+          "sessionId": "native-bd7675dc-65ee-4ae4-a63c-3e838eca1bdc",
+          "serverName": "native-fixture",
+          "toolName": "export",
+          "phase": "accepted",
+          "revision": 1,
+          "taskId": "native-task-1",
+          "remoteStatus": "working",
+          "cancelRequested": false,
+          "cancelUnknown": false,
+          "resultSaved": false,
+          "callStatus": "started",
+          "outcomeUnknown": false,
+          "expiresAt": null
+        },
+        "pid": 37348,
+        "backend": "dpapi"
+      },
+      "exit": {
+        "code": null,
+        "signal": "SIGKILL"
+      }
+    },
+    {
+      "action": "poll",
+      "receipt": {
+        "ok": true,
+        "result": {
+          "localId": "2df2fc5a-7487-4d47-b2e7-fd3f8bf15545",
+          "sessionId": "native-bd7675dc-65ee-4ae4-a63c-3e838eca1bdc",
+          "serverName": "native-fixture",
+          "toolName": "export",
+          "phase": "observed",
+          "revision": 2,
+          "taskId": "native-task-1",
+          "remoteStatus": "working",
+          "cancelRequested": false,
+          "cancelUnknown": false,
+          "resultSaved": false,
+          "callStatus": "started",
+          "outcomeUnknown": false,
+          "expiresAt": null
+        },
+        "pid": 4916,
+        "backend": "dpapi"
+      },
+      "exit": {
+        "code": 0,
+        "signal": null
+      }
+    },
+    {
+      "action": "result",
+      "receipt": {
+        "ok": true,
+        "result": {
+          "localId": "2df2fc5a-7487-4d47-b2e7-fd3f8bf15545",
+          "sessionId": "native-bd7675dc-65ee-4ae4-a63c-3e838eca1bdc",
+          "serverName": "native-fixture",
+          "toolName": "export",
+          "phase": "result_saved",
+          "revision": 3,
+          "taskId": "native-task-1",
+          "remoteStatus": "working",
+          "cancelRequested": false,
+          "cancelUnknown": false,
+          "resultSaved": true,
+          "callStatus": "completed",
+          "outcomeUnknown": false,
+          "expiresAt": null,
+          "cached": false,
+          "result": {
+            "content": [
+              {
+                "type": "text",
+                "text": "native synthetic result"
+              }
+            ],
+            "_meta": {
+              "io.modelcontextprotocol/related-task": {
+                "taskId": "native-task-1"
+              }
+            }
+          }
+        },
+        "pid": 27188,
+        "backend": "dpapi"
+      },
+      "exit": {
+        "code": 0,
+        "signal": null
+      }
+    },
+    {
+      "action": "result",
+      "receipt": {
+        "ok": true,
+        "result": {
+          "localId": "2df2fc5a-7487-4d47-b2e7-fd3f8bf15545",
+          "sessionId": "native-bd7675dc-65ee-4ae4-a63c-3e838eca1bdc",
+          "serverName": "native-fixture",
+          "toolName": "export",
+          "phase": "result_saved",
+          "revision": 3,
+          "taskId": "native-task-1",
+          "remoteStatus": "working",
+          "cancelRequested": false,
+          "cancelUnknown": false,
+          "resultSaved": true,
+          "callStatus": "completed",
+          "outcomeUnknown": false,
+          "expiresAt": null,
+          "cached": true,
+          "result": {
+            "content": [
+              {
+                "type": "text",
+                "text": "native synthetic result"
+              }
+            ],
+            "_meta": {
+              "io.modelcontextprotocol/related-task": {
+                "taskId": "native-task-1"
+              }
+            }
+          }
+        },
+        "pid": 38428,
+        "backend": "dpapi"
+      },
+      "exit": {
+        "code": 0,
+        "signal": null
+      }
+    },
+    {
+      "action": "create",
+      "receipt": {
+        "ok": true,
+        "result": {
+          "localId": "507d1266-e707-4d4a-a434-9982a4e6887c",
+          "sessionId": "native-f62a9746-e786-4583-9086-76f855d73a3d",
+          "serverName": "native-fixture",
+          "toolName": "export",
+          "phase": "accepted",
+          "revision": 1,
+          "taskId": "native-task-2",
+          "remoteStatus": "working",
+          "cancelRequested": false,
+          "cancelUnknown": false,
+          "resultSaved": false,
+          "callStatus": "started",
+          "outcomeUnknown": false,
+          "expiresAt": null
+        },
+        "pid": 33068,
+        "backend": "dpapi"
+      },
+      "exit": {
+        "code": 0,
+        "signal": null
+      }
+    },
+    {
+      "action": "kill-after-result-saved",
+      "receipt": {
+        "ok": true,
+        "result": {
+          "localId": "507d1266-e707-4d4a-a434-9982a4e6887c",
+          "phase": "result_saved"
+        },
+        "pid": 34856,
+        "backend": "dpapi"
+      },
+      "exit": {
+        "code": null,
+        "signal": "SIGKILL"
+      }
+    },
+    {
+      "action": "result",
+      "receipt": {
+        "ok": true,
+        "result": {
+          "localId": "507d1266-e707-4d4a-a434-9982a4e6887c",
+          "sessionId": "native-f62a9746-e786-4583-9086-76f855d73a3d",
+          "serverName": "native-fixture",
+          "toolName": "export",
+          "phase": "result_saved",
+          "revision": 2,
+          "taskId": "native-task-2",
+          "remoteStatus": "working",
+          "cancelRequested": false,
+          "cancelUnknown": false,
+          "resultSaved": true,
+          "callStatus": "completed",
+          "outcomeUnknown": false,
+          "expiresAt": null,
+          "cached": true,
+          "result": {
+            "content": [
+              {
+                "type": "text",
+                "text": "native synthetic result"
+              }
+            ],
+            "_meta": {
+              "io.modelcontextprotocol/related-task": {
+                "taskId": "native-task-2"
+              }
+            }
+          }
+        },
+        "pid": 8832,
+        "backend": "dpapi"
+      },
+      "exit": {
+        "code": 0,
+        "signal": null
+      }
+    }
+  ]
+}

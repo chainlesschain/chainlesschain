@@ -1004,6 +1004,8 @@ export function createRecoveryGuardedMcpClient({
           "listTasks",
           "cancelTask",
           "_taskRequest",
+          "getTaskRecoveryIdentity",
+          "restoreTaskBinding",
         ].includes(property)
       ) {
         return async () => {
