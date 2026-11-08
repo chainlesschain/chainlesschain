@@ -36,6 +36,12 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: "22.12.0"
+      # Pack generation imports the source-bound workspace kernel on the host.
+      # Candidate dependencies and acceptance still execute inside Docker.
+      - name: Install locked diagnostic host dependencies
+        run: >-
+          bash .github/scripts/ci-npm-retry.sh npm ci
+          --ignore-scripts --legacy-peer-deps --no-audit --no-fund
       - name: Pin real acceptance image outside the task deadline
         run: |
           docker pull node:22.12.0-bookworm
