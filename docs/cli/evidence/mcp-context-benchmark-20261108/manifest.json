@@ -1,7 +1,7 @@
 {
   "schema": "chainlesschain.mcp-context-benchmark-evidence/v1",
   "generatedAt": "2026-11-08T11:31:47.836Z",
-  "sourceCommit": "9c8ce41d1",
+  "sourceCommit": "f46a90a73",
   "report": "docs/cli/evidence/mcp-context-benchmark-20261108/report.json",
   "artifacts": [
     {
