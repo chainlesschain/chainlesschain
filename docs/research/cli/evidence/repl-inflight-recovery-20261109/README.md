@@ -1,0 +1,3 @@
+# REPL inflight recovery rerun boundary (2026-11-09)
+
+The real CLI/readline/Evolution/JSONL and loopback journey was rerun at source commit `7f8d33453`. The child exited before the first prompt with `owner-only native ACL verification failed`, so no provider request or recovery stage was reached. This is an environment-blocked receipt, not a passing recovery result and not a production failure classification.
