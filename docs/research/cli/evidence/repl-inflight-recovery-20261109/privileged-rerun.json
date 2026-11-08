@@ -60,5 +60,8 @@
                    "original-request-received-and-held",
                    "resumed-new-input-settled-or-explicitly-fenced",
                    "resumed-clean-exit"
-               ]
+               ],
+    "fullSuiteCommand":  "npx vitest run --config vitest.e2e.config.js __tests__/e2e/repl-inflight-recovery-e2e.test.js",
+    "fullSuiteTestsPassed":  2,
+    "fullSuiteTestsFailed":  0
 }
