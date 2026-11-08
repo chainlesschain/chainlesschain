@@ -1,0 +1,12 @@
+{
+    "realUserTaskQualityVerified":  false,
+    "capturedAt":  "2026-11-09",
+    "productionMemoryIntegrated":  false,
+    "passed":  6,
+    "command":  "node packages/cli/scripts/memory-semantic-quality.node-test.mjs",
+    "sourceCommit":  "410d1c2b1",
+    "coldHotMixedSloVerified":  false,
+    "tests":  6,
+    "schema":  "chainlesschain.memory-semantic-quality-evidence/v1",
+    "failed":  0
+}
