@@ -188,3 +188,4 @@ docs/research/cli/evidence/memory-3116842b-2026-11-08/*.json
 docs/cli/evidence/local-memory-semantic-20261108/*.json
 # Preserve raw REPL crash recovery receipts and transcript evidence.
 docs/cli/evidence/repl-inflight-recovery-20261108/raw/**
+docs/cli/evidence/repl-input-durability-post-wire-20261108/raw/**

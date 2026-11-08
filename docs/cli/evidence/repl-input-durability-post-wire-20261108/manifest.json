@@ -1,6 +1,6 @@
 {
   "schema": "chainlesschain.repl-input-durability-post-wire-evidence/v1",
-  "generatedAt": "2026-11-08T10:35:17.756Z",
+  "generatedAt": "2026-11-08T10:41:32.632Z",
   "sourceCommit": "a7a64b2eb238102a98f74513b1f7d8b4606dc32c",
   "sources": [
     {
@@ -112,8 +112,8 @@
     },
     {
       "path": "docs/cli/evidence/repl-input-durability-post-wire-20261108/raw/run-Das8Lf/receipt.json",
-      "bytes": 18896,
-      "sha256": "ba5b725d4e016be61365cf609b6386dabff74444716e3eb1817ab00901b1614d"
+      "bytes": 18800,
+      "sha256": "9cee3cdd95d2259626cd44b307e9a91ca00b67173e16535be29ae767702ae796"
     },
     {
       "path": "docs/cli/evidence/repl-input-durability-post-wire-20261108/raw/run-Das8Lf/resumed.stderr.log",
@@ -177,8 +177,8 @@
     },
     {
       "path": "docs/cli/evidence/repl-input-durability-post-wire-20261108/raw/run-KuvFGt/receipt.json",
-      "bytes": 18897,
-      "sha256": "1a8937572cd68898ea306ba7158523b782a62f16cb5aefd3cf7335607030b1c3"
+      "bytes": 18801,
+      "sha256": "c99620326ee6a6b91ed646ad4cf83cc41cd7cf86e32d5f8e196305c1fb9a2024"
     },
     {
       "path": "docs/cli/evidence/repl-input-durability-post-wire-20261108/raw/run-KuvFGt/resumed.stderr.log",
@@ -242,8 +242,8 @@
     },
     {
       "path": "docs/cli/evidence/repl-input-durability-post-wire-20261108/raw/run-RNMBGV/receipt.json",
-      "bytes": 18893,
-      "sha256": "45b6e8405f45ac088a79c41261f507a05d8b6884d1a3a6877f608538801869ed"
+      "bytes": 18797,
+      "sha256": "5768d23bc83bdaedaf10e0ff8a78a377e6639e1c47738666286858388940ab5c"
     },
     {
       "path": "docs/cli/evidence/repl-input-durability-post-wire-20261108/raw/run-RNMBGV/resumed.stderr.log",
