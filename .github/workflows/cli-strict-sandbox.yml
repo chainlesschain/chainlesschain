@@ -223,7 +223,8 @@ on:
       - ".github/actions/setup-node-deps/action.yml"
       - ".github/actions/setup-linux-bwrap/action.yml"
   pull_request:
-    branches: [main]
+    # Keep stacked DMM candidates under the complete three-platform gate.
+    branches: [main, "feature/dmm-*"]
     paths:
       - ".github/workflows/_scoped-docs-check.yml"
       - "scripts/ci/scoped-docs-check.mjs"
@@ -507,6 +508,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 25
     steps:
+      - name: Enable Windows long paths before checkout
+        if: runner.os == 'Windows'
+        run: git config --global core.longpaths true
       - uses: actions/checkout@v5
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}

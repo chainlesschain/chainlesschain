@@ -2,6 +2,33 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
 
+## CLI 0.166.144 / goal transfer and release readiness
+
+Release pairing: Session Core **0.3.27**, CLI **0.166.144**, VS Code/Open VSX
+**0.37.180** and JetBrains **0.4.197**. Session Core must be published and
+verified before CLI; the paired IDE releases follow independent CLI registry readback.
+
+After this version is available from the public registry, install
+`npm i -g chainlesschain@0.166.144 --registry https://registry.npmjs.org`,
+restart CLI / IDE hosts, then run `cc --version` and `cc doctor`.
+
+This release adds explicit cross-project goal transfer, signed rollback and
+the native canonical Graph host boundary. Memory queries yield to queued Stop
+requests even with a frozen clock; compatibility checks retain the original
+pre-bundle dependency Git blobs and hashes. Windows CI enables Git long paths
+before checkout so archived native evidence cannot prevent the release gates
+from running.
+
+Desktop participation requires matching source, explicit trial opt-in and native
+consent. Public PC/mobile clients **v5.0.3.145** come from earlier independent
+sources; this CLI/IDE release does not upgrade those binaries. No additional
+live-model, installed-client or business-effect acceptance is claimed.
+
+Publication requires successful exact-source Linux/Windows/macOS CLI CI and
+CLI Strict Sandbox, GitHub Actions OIDC publishing, and independent public
+package and provenance verification. Historical verified public releases are
+documented below.
+
 ## CLI 0.166.143 / local compute and controlled task-creation drafts
 
 Session Core **0.3.26**, CLI **0.166.143**, Open VSX **0.37.179** and JetBrains
@@ -14,6 +41,11 @@ Current native clients are **v5.0.3.145** from earlier independent sources. New
 native v6 creation and model drafts require matching newer desktop builds;
 this CLI/IDE release does not upgrade those client binaries. See the
 [current design](../../docs/design/release-runtime-update-2026-11-06-143.md).
+
+Unreleased source in PR #539 adds explicit CLI-goal handoff and signed recovery.
+It requires matching branch builds of CLI, Session Core and desktop; public
+0.166.143 does not include these commands. See the
+[source-only handoff design](../../docs/design/cli-goal-transfer-source-2026-11-07.md).
 Both IDEs add a Local compute / OpenAI
 compatible option for LEXDATA, vLLM and SGLang, with explicit endpoint/model,
 optional platform key and HTTP consent. Atomic configuration and first-run setup

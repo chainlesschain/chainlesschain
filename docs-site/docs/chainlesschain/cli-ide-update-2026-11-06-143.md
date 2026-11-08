@@ -98,3 +98,13 @@ HTTP 确认不表示访问已加密。目标创建与模型草稿仍需独立授
 - [IDE 桥接指南](./ide-bridge.md)
 - [上一版升级说明](./cli-ide-update-2026-11-05-142.md)
 - [本次发布状态](https://github.com/chainlesschain/chainlesschain/blob/d2070ce914af8d675191e3492e0ce7db650c79c3/docs/research/cli/evidence/release143-public/README.md)
+
+## 未发行源码进展：CLI 目标移交
+
+PR #539 / `a2e7f17a03` 增加 `goal transfer-to-project` 和 `goal restore-transfer`。它们要求匹配分支的 CLI、Session Core 和桌面构建，公开 CLI .143 与客户端 .145 尚不包含。
+
+在原生个人项目导出绑定项目/所有者/版本的凭据，先停止源目标运行，再以真实 revision 和显式确认冻结、备份并导出；在同一项目原生选择文件并确认导入。新目标保持暂停，监控、动作与 Memory 不继承。旧 CLI 不应继续使用已冻结目录。
+
+不确定结果沿原移交身份重查；已有输出不覆盖，原生导入不重复新建。回退要求原生持久作废和签名回执，CLI 验签后恢复原字节；已有修订或关联数据阻止移除导入目标，不能用整个数据库快照覆盖其他业务写入。
+
+现有报告记录 Windows 本地 49 文件/790 项通过；真实 GUI、Linux/macOS、新源码 CI、业务效果和发行仍待验证。本次文档任务没有执行移交或重跑该完整套件。见[移交设计](https://design.chainlesschain.com/cli-goal-transfer-source-2026-11-07.html)。

@@ -114,6 +114,9 @@ jobs:
       CUTOVER_SHA: ${{ inputs.commit_sha }}
       SOURCE_REGISTRY_DIGEST: ${{ vars.GRAPH_KERNEL_PRODUCTION_SOURCE_REGISTRY_DIGEST }}
     steps:
+      - name: Enable Windows long paths before checkout
+        if: runner.os == 'Windows'
+        run: git config --global core.longpaths true
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           ref: ${{ env.CUTOVER_SHA }}

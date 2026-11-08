@@ -257,6 +257,7 @@ type Status = {
 type Request = { id: string; expectedRevision: number; requestId: string };
 type StopRequest = Request & { occurrenceId: string; expectedFence: number };
 type GoalApi = {
+  getGoalFeatureStatus?(): Promise<{ enabled: boolean }>;
   createGoal(input: {
     projectId: string;
     objective: string;
@@ -306,7 +307,8 @@ const api = () =>
   (window as unknown as { electronAPI?: { project?: GoalApi } }).electronAPI
     ?.project;
 const focused = computed(() => props.focusGoalId !== undefined);
-const available = computed(() =>
+const featureEnabled = ref(false);
+const apiReady = computed(() =>
   [
     ...(focused.value ? [] : ["createGoal", "listGoals"]),
     "reviseGoal",
@@ -316,6 +318,7 @@ const available = computed(() =>
     "checkGoalNow",
   ].every((key) => typeof api()?.[key as keyof GoalApi] === "function"),
 );
+const available = computed(() => apiReady.value && featureEnabled.value);
 const goals = ref<Status[]>([]),
   pending = ref<Record<string, Request>>({});
 const stopPending = ref<Record<string, StopRequest>>({});
@@ -381,8 +384,9 @@ function validateGoal(goal: Goal, expectedId?: string) {
     goal.projectRef.scope?.kind !== "personal" ||
     goal.projectRef.scope.id !== goal.ownerRef ||
     (expectedId && goal.id !== expectedId)
-  )
+  ) {
     throw new Error("GOAL_NOT_FOUND_OR_DENIED");
+  }
 }
 function reset() {
   epoch++;
@@ -399,34 +403,56 @@ function authorityFailure() {
   emit("authority-error");
 }
 function failure(value: unknown, message: string) {
+  if (actionCode(value) === "GOAL_FEATURE_DISABLED") {
+    reset();
+    featureEnabled.value = false;
+    return;
+  }
   if (isAuthorityError(value)) {
     reset();
     emit("authority-error");
     error.value = "当前身份已无法访问这些目标。";
-  } else
+  } else {
     error.value =
       actionCode(value) === "GOAL_REVISION_CONFLICT"
         ? "目标已修改，请刷新后再操作。"
         : message;
+  }
 }
 async function loadGoals(more = false) {
-  if (!available.value || busy.value) return;
+  if (!apiReady.value || busy.value) {
+    return;
+  }
   const stamp = epoch;
   busy.value = true;
   error.value = "";
   try {
+    const status = await api()!.getGoalFeatureStatus?.();
+    if (!current(stamp)) {
+      return;
+    }
+    featureEnabled.value = status === undefined || status.enabled === true;
+    if (!featureEnabled.value) {
+      goals.value = [];
+      pending.value = {};
+      stopPending.value = {};
+      return;
+    }
     if (focused.value) {
       goals.value = [];
       const goalId = props.focusGoalId;
       if (
         typeof goalId !== "string" ||
         !/^[A-Za-z0-9][A-Za-z0-9._:@-]{0,255}$/u.test(goalId)
-      )
+      ) {
         throw new Error("GOAL_NOT_FOUND_OR_DENIED");
+      }
       // Route identifiers select a read; only the host-authorized status may
       // supply goal content, and its project/personal binding is checked again.
       const state = await api()!.getGoalMonitoringStatus({ id: goalId });
-      if (!current(stamp)) return;
+      if (!current(stamp)) {
+        return;
+      }
       validateGoal(state.goal, goalId);
       goals.value = [state];
       afterId.value = null;
@@ -437,22 +463,32 @@ async function loadGoals(more = false) {
       limit: 20,
       ...(more && afterId.value ? { afterId: afterId.value } : {}),
     });
-    if (!current(stamp)) return;
+    if (!current(stamp)) {
+      return;
+    }
     page.forEach((goal) => validateGoal(goal));
     const states = await Promise.all(
       page.map(async (goal) => {
         const state = await api()!.getGoalMonitoringStatus({ id: goal.id });
-        if (current(stamp)) validateGoal(state.goal, goal.id);
+        if (current(stamp)) {
+          validateGoal(state.goal, goal.id);
+        }
         return state;
       }),
     );
-    if (!current(stamp)) return;
+    if (!current(stamp)) {
+      return;
+    }
     goals.value = more ? [...goals.value, ...states] : states;
     afterId.value = page.length === 20 ? page.at(-1)!.id : null;
   } catch (value) {
-    if (current(stamp)) failure(value, "目标列表暂不可读取。");
+    if (current(stamp)) {
+      failure(value, "目标列表暂不可读取。");
+    }
   } finally {
-    if (current(stamp)) busy.value = false;
+    if (current(stamp)) {
+      busy.value = false;
+    }
   }
 }
 async function createGoal() {
@@ -462,8 +498,9 @@ async function createGoal() {
     !available.value ||
     !objective.value.trim() ||
     !validBudget.value
-  )
+  ) {
     return;
+  }
   const stamp = epoch;
   busy.value = true;
   error.value = "";
@@ -473,24 +510,34 @@ async function createGoal() {
       objective: objective.value.trim(),
       budgetPolicy: { maxRuns: maxRuns.value },
     });
-    if (!current(stamp)) return;
+    if (!current(stamp)) {
+      return;
+    }
     validateGoal(goal);
     const state = await api()!.getGoalMonitoringStatus({ id: goal.id });
-    if (!current(stamp)) return;
+    if (!current(stamp)) {
+      return;
+    }
     validateGoal(state.goal, goal.id);
     goals.value = [state, ...goals.value];
     objective.value = "";
   } catch (value) {
-    if (current(stamp)) failure(value, "保存结果待核对，请刷新目标列表。");
+    if (current(stamp)) {
+      failure(value, "保存结果待核对，请刷新目标列表。");
+    }
   } finally {
-    if (current(stamp)) busy.value = false;
+    if (current(stamp)) {
+      busy.value = false;
+    }
   }
 }
 async function control(
   item: Status,
   operation: "start" | "stop" | "resume" | "check" | "end",
 ) {
-  if (busy.value || !available.value) return;
+  if (busy.value || !available.value) {
+    return;
+  }
   const stamp = epoch,
     id = item.goal.id,
     expectedRevision = item.goal.revision;
@@ -498,26 +545,30 @@ async function control(
   error.value = "";
   try {
     let state: Status;
-    if (operation === "start")
+    if (operation === "start") {
       state = await api()!.startGoalMonitoring({
         id,
         expectedRevision,
         intervalMs: intervalMs.value,
       });
-    else if (operation === "stop") {
+    } else if (operation === "stop") {
       state = await api()!.stopGoalMonitoring({ id, expectedRevision });
-      if (current(stamp)) delete pending.value[id];
+      if (current(stamp)) {
+        delete pending.value[id];
+      }
     } else if (operation === "end") {
       state = await api()!.endGoalFollowUp!({ id, expectedRevision });
-      if (current(stamp)) delete pending.value[id];
+      if (current(stamp)) {
+        delete pending.value[id];
+      }
     } else {
-      if (operation === "resume")
+      if (operation === "resume") {
         await api()!.reviseGoal({
           id,
           expectedRevision,
           patch: { status: "active" },
         });
-      else {
+      } else {
         const request = pending.value[id] ?? {
           id,
           expectedRevision,
@@ -525,7 +576,9 @@ async function control(
         };
         pending.value[id] = request;
         const outcome = await api()!.checkGoalNow({ ...request });
-        if (!current(stamp)) return;
+        if (!current(stamp)) {
+          return;
+        }
         if (
           [
             "succeeded",
@@ -534,15 +587,21 @@ async function control(
             "stopped",
             "already-finished",
           ].includes(outcome.status)
-        )
+        ) {
           delete pending.value[id];
-        if (outcome.status === "dead_letter")
+        }
+        if (outcome.status === "dead_letter") {
           error.value = "本次检查未完成，请核对巡检状态。";
+        }
       }
-      if (!current(stamp)) return;
+      if (!current(stamp)) {
+        return;
+      }
       state = await api()!.getGoalMonitoringStatus({ id });
     }
-    if (!current(stamp)) return;
+    if (!current(stamp)) {
+      return;
+    }
     validateGoal(state.goal, id);
     goals.value = goals.value.map((old) => (old.goal.id === id ? state : old));
   } catch (value) {
@@ -552,8 +611,9 @@ async function control(
           "GOAL_REVISION_CONFLICT",
           "GOAL_MONITOR_REQUEST_VERSION_CONFLICT",
         ].includes(actionCode(value))
-      )
+      ) {
         delete pending.value[id];
+      }
       failure(
         value,
         operation === "check"
@@ -562,14 +622,18 @@ async function control(
       );
     }
   } finally {
-    if (current(stamp)) busy.value = false;
+    if (current(stamp)) {
+      busy.value = false;
+    }
   }
 }
 async function stopOccurrence(
   item: Status,
   occurrence: { id: string; fence: number },
 ) {
-  if (busy.value || !api()?.stopGoalOccurrence) return;
+  if (busy.value || !api()?.stopGoalOccurrence) {
+    return;
+  }
   const stamp = epoch;
   busy.value = true;
   error.value = "";
@@ -583,34 +647,47 @@ async function stopOccurrence(
   stopPending.value[occurrence.id] = request;
   try {
     const result = await api()!.stopGoalOccurrence!({ ...request });
-    if (!current(stamp)) return;
-    if (result.goalId !== item.goal.id || result.occurrenceId !== occurrence.id)
+    if (!current(stamp)) {
+      return;
+    }
+    if (
+      result.goalId !== item.goal.id ||
+      result.occurrenceId !== occurrence.id
+    ) {
       throw new Error("GOAL_NOT_FOUND_OR_DENIED");
-    if (["stopped", "already-finished"].includes(result.status))
+    }
+    if (["stopped", "already-finished"].includes(result.status)) {
       delete stopPending.value[occurrence.id];
+    }
     const state = await api()!.getGoalMonitoringStatus({ id: item.goal.id });
-    if (!current(stamp)) return;
+    if (!current(stamp)) {
+      return;
+    }
     validateGoal(state.goal, item.goal.id);
     goals.value = goals.value.map((old) =>
       old.goal.id === item.goal.id ? state : old,
     );
-    if (result.status === "already-finished")
+    if (result.status === "already-finished") {
       error.value = "本次执行已经结束，请核对现有检查记录。";
+    }
   } catch (value) {
     if (current(stamp)) {
       if (
         ["GOAL_REVISION_CONFLICT", "GOAL_MONITOR_FENCE_CONFLICT"].includes(
           actionCode(value),
         )
-      )
+      ) {
         delete stopPending.value[occurrence.id];
+      }
       failure(
         value,
         "停止结果待核对，可沿本次请求重试；后续巡检状态以目标卡片为准。",
       );
     }
   } finally {
-    if (current(stamp)) busy.value = false;
+    if (current(stamp)) {
+      busy.value = false;
+    }
   }
 }
 watch(

@@ -6,6 +6,7 @@ export default defineConfig({
   plugins: [vue()],
 
   test: {
+    env: { CHAINLESSCHAIN_PROJECT_GOALS: "1" },
     globals: true,
     environment: "jsdom",
     setupFiles: ["./tests/setup.ts"],

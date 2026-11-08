@@ -2,6 +2,13 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.180] - goal transfer release candidate (2026-11-08)
+
+- Recommend CLI 0.166.144 and pair with the other IDE 0.4.197 after verified Session Core 0.3.27 and CLI publication.
+- Carry explicit goal transfer, signed rollback and the native canonical Graph host boundary through the matching CLI source.
+- Enable Windows Git long paths before CI checkout so immutable native acceptance artifacts do not prevent checks from starting.
+- Candidate only: exact-source release gates and public package readback remain required; no desktop installer or new business acceptance is claimed.
+
 ## [0.37.179] - local compute and pending task creation (2026-11-06)
 
 - Recommend CLI 0.166.143; publish after verified Session Core 0.3.26 and CLI, pairing with the other IDE 0.4.196.

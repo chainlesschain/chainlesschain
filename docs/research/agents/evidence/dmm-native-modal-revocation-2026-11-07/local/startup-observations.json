@@ -1,0 +1,39 @@
+{
+    "source":  "Windows Application event log",
+    "correlation":  "Matching finish timestamps, not a WER-provided test-process PID",
+    "rootCauseResolved":  false,
+    "bootFailures":  [
+                         {
+                             "report":  "C:/Users/longfa/AppData/Local/Temp/dmm-native-modal-first/journey.json",
+                             "sourceSha":  "c869a279064ead86f3bdace8e07ce39bc9d2be70",
+                             "sourceStatus":  "M desktop-app-vue/scripts/lib/project-goal-native-dialog.cjs\n M desktop-app-vue/scripts/project-goal-native-journey.mjs\n?? .github/workflows/dmm-native-goal-modal.yml\n?? desktop-app-vue/scripts/lib/project-goal-modal-revocation-journey.cjs",
+                             "nativePid":  null,
+                             "finishedAt":  "2026-11-06T23:22:17.386Z",
+                             "error":  "electronApplication.firstWindow: Target page, context or browser has been closed"
+                         },
+                         {
+                             "report":  "C:/Users/longfa/AppData/Local/Temp/dmm-native-modal-clean/journey.json",
+                             "sourceSha":  "4eab7782216dec8356e60574492fb18a5576c676",
+                             "sourceStatus":  "",
+                             "nativePid":  27464,
+                             "finishedAt":  "2026-11-06T23:33:17.161Z",
+                             "error":  "electronApplication.firstWindow: Target page, context or browser has been closed"
+                         }
+                     ],
+    "events":  [
+                   {
+                       "timeUtc":  "2026-11-06T23:33:17.3282618Z",
+                       "recordId":  48100,
+                       "eventId":  1001,
+                       "provider":  "Windows Error Reporting",
+                       "kind":  "AppHangB1"
+                   },
+                   {
+                       "timeUtc":  "2026-11-06T23:22:17.5975368Z",
+                       "recordId":  48098,
+                       "eventId":  1001,
+                       "provider":  "Windows Error Reporting",
+                       "kind":  "AppHangB1"
+                   }
+               ]
+}

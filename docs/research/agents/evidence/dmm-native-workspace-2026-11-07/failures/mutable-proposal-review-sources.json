@@ -1,0 +1,12 @@
+{
+  "sourceSha": "5dedd6ddc3c3b65edeb0022cabbd4b7c78f484f1",
+  "sourceStatus": "M desktop-app-vue/scripts/lib/project-goal-native-dialog.cjs",
+  "sources": {
+    "desktop-app-vue/scripts/project-goal-native-journey.mjs": "6a3a59e9e4913abeb5da1dd8ca4e579004fde1978156a31b0df3aef7b338f796",
+    "desktop-app-vue/scripts/lib/project-goal-native-dialog.cjs": "31e7861a76dc5d5ac8ffe29c7f0f3982c2a9deb894f9ed30c658c40a58acb729",
+    "desktop-app-vue/scripts/lib/project-goal-native-dialog.ps1": "88039fdb743598342b339e00d7b8d00dc23e2ba16c526e21838820e3712f06d4",
+    "desktop-app-vue/scripts/lib/project-goal-workspace-journey.cjs": "bf808c78d02c7bb75006906a779b340cbdabace96797346753e093c7bcaa48dd",
+    "desktop-app-vue/src/main/notification/notification-ipc.js": "2dbda68259c7a309188d37b6083b9d63130f81f2db24a8a97b1eef1d0988ad5c",
+    "desktop-app-vue/src/renderer/components/projects/ProjectGoalMemoryPanel.vue": "e8d2498953b80551e3bb0ce3074f9add8a4552fe25fe2a9e1574a20b8fea98d5"
+  }
+}

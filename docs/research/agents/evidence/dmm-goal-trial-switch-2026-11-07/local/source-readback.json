@@ -1,0 +1,10 @@
+{
+  "sourceSha": "aa6211369ac9c808d90c968bd3d9bd42cab4a216",
+  "sourceStatus": "",
+  "runnerMatchesCandidate": true,
+  "buildArtifactReadbackMatches": true,
+  "acceptedReports": [
+    "default-off",
+    "opt-in"
+  ]
+}

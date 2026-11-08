@@ -1,5 +1,5 @@
 <template>
-  <section data-testid="organization-goal-panel">
+  <section v-if="featureEnabled" data-testid="organization-goal-panel">
     <h3>组织目标与风险巡检</h3>
     <p>
       目标由授权成员共享；手动检查与周期巡检仅使用逾期和直接依赖规则。检查或任务操作成功不代表目标通过验收。
@@ -398,6 +398,7 @@ const emit = defineEmits<{
   (event: "authority-error", value: unknown): void;
   (event: "proposal-id", id: string): void;
 }>();
+const featureEnabled = ref(false);
 const goals = ref<GoalStatus[]>([]),
   histories = ref<Record<string, any>>({}),
   drafts = ref<Record<string, string>>({});
@@ -466,8 +467,9 @@ function validate(goal: Goal, expectedId?: string) {
     goal.projectRef.scope.id !== props.orgId ||
     goal.projectRef.sourceKind !== "desktop.organization-project-goals" ||
     (expectedId && goal.id !== expectedId)
-  )
+  ) {
     throw new Error("GOAL_NOT_FOUND_OR_DENIED");
+  }
 }
 function validDraft(id: string) {
   const value = drafts.value[id] || "";
@@ -494,6 +496,11 @@ function reset() {
   error.value = "";
 }
 function failure(value: unknown) {
+  if (actionCode(value) === "GOAL_FEATURE_DISABLED") {
+    reset();
+    featureEnabled.value = false;
+    return;
+  }
   if (organizationAuthorityError(value)) {
     reset();
     emit("authority-error", value);
@@ -501,30 +508,52 @@ function failure(value: unknown) {
   error.value = organizationError(value);
 }
 async function work(fn: (token: number) => Promise<void>) {
-  if (locked.value || !props.permissions.includes("goal.read")) return;
+  if (locked.value || !props.permissions.includes("goal.read")) {
+    return;
+  }
   const token = epoch;
   busy.value = true;
   error.value = "";
   try {
     await fn(token);
   } catch (value) {
-    if (current(token)) failure(value);
+    if (current(token)) {
+      failure(value);
+    }
   } finally {
-    if (current(token)) busy.value = false;
+    if (current(token)) {
+      busy.value = false;
+    }
   }
 }
 async function fetchGoals(token: number, more = false) {
+  const status = await (
+    window as any
+  ).electronAPI?.project?.getGoalFeatureStatus?.();
+  if (!current(token)) {
+    return;
+  }
+  featureEnabled.value = status === undefined || status.enabled === true;
+  if (!featureEnabled.value) {
+    goals.value = [];
+    histories.value = {};
+    return;
+  }
   const result = await organizationApi().listGoals({
     projectId: props.projectId,
     limit: 20,
     ...(more && afterId.value ? { afterId: afterId.value } : {}),
   });
-  if (!current(token)) return;
+  if (!current(token)) {
+    return;
+  }
   result.goals.forEach((goal: Goal) => validate(goal));
   const statuses: GoalStatus[] = [];
   for (const goal of result.goals) {
     const status = await organizationApi().getGoalStatus({ id: goal.id });
-    if (!current(token)) return;
+    if (!current(token)) {
+      return;
+    }
     validate(status.goal, goal.id);
     if (
       status.monitor &&
@@ -535,8 +564,9 @@ async function fetchGoals(token: number, more = false) {
         !status.monitor.executorDid.startsWith("did:") ||
         typeof status.monitor.id !== "string" ||
         status.monitor.id !== status.monitor.monitorId)
-    )
+    ) {
       throw new Error("GOAL_NOT_FOUND_OR_DENIED");
+    }
     statuses.push(status);
   }
   goals.value = more
@@ -549,8 +579,9 @@ async function fetchGoals(token: number, more = false) {
   for (const item of goals.value) {
     intervals.value[item.goal.id] ??= 3_600_000;
     monitorHours.value[item.goal.id] ??= 24;
-    if (!pendingRevisions.value[item.goal.id])
+    if (!pendingRevisions.value[item.goal.id]) {
       drafts.value[item.goal.id] = item.goal.objective;
+    }
   }
   afterId.value = result.nextCursor;
   loaded = true;
@@ -563,14 +594,17 @@ const definite = (value: unknown) =>
     actionCode(value),
   );
 async function createGoal() {
-  if (!props.permissions.includes("goal.create")) return;
+  if (!props.permissions.includes("goal.create")) {
+    return;
+  }
   if (
     !pendingCreate.value &&
     (!objective.value.trim() ||
       objectiveBytes.value > 8192 ||
       !validBudget.value)
-  )
+  ) {
     return;
+  }
   await work(async (token) => {
     const request = pendingCreate.value
       ? toRaw(pendingCreate.value)
@@ -583,7 +617,9 @@ async function createGoal() {
     pendingCreate.value = request;
     try {
       const result = await organizationApi().createGoal(request);
-      if (!current(token)) return;
+      if (!current(token)) {
+        return;
+      }
       if (result.status === "cancelled") {
         pendingCreate.value = null;
         return;
@@ -592,18 +628,27 @@ async function createGoal() {
       pendingCreate.value = null;
       objective.value = "";
     } catch (value) {
-      if (!current(token)) return;
-      if (definite(value)) pendingCreate.value = null;
-      else pendingCreate.value = request;
+      if (!current(token)) {
+        return;
+      }
+      if (definite(value)) {
+        pendingCreate.value = null;
+      } else {
+        pendingCreate.value = request;
+      }
       throw value;
     }
     await fetchGoals(token);
   });
 }
 async function revise(item: GoalStatus, patch?: any) {
-  if (!props.permissions.includes("goal.update")) return;
+  if (!props.permissions.includes("goal.update")) {
+    return;
+  }
   const goalId = item.goal.id;
-  if (!pendingRevisions.value[goalId] && !patch) return;
+  if (!pendingRevisions.value[goalId] && !patch) {
+    return;
+  }
   await work(async (token) => {
     const request = pendingRevisions.value[goalId]
       ? toRaw(pendingRevisions.value[goalId])
@@ -616,20 +661,31 @@ async function revise(item: GoalStatus, patch?: any) {
     pendingRevisions.value[goalId] = request;
     try {
       const result = await organizationApi().reviseGoal(request);
-      if (!current(token)) return;
-      if (result.status !== "cancelled") validate(result.goal, goalId);
+      if (!current(token)) {
+        return;
+      }
+      if (result.status !== "cancelled") {
+        validate(result.goal, goalId);
+      }
       delete pendingRevisions.value[goalId];
     } catch (value) {
-      if (!current(token)) return;
-      if (definite(value)) delete pendingRevisions.value[goalId];
-      else pendingRevisions.value[goalId] = request;
+      if (!current(token)) {
+        return;
+      }
+      if (definite(value)) {
+        delete pendingRevisions.value[goalId];
+      } else {
+        pendingRevisions.value[goalId] = request;
+      }
       throw value;
     }
     await fetchGoals(token);
   });
 }
 async function check(item: GoalStatus) {
-  if (!canCheck.value) return;
+  if (!canCheck.value) {
+    return;
+  }
   const goalId = item.goal.id;
   await work(async (token) => {
     const request = pendingChecks.value[goalId]
@@ -642,19 +698,28 @@ async function check(item: GoalStatus) {
     pendingChecks.value[goalId] = request;
     try {
       const result = await organizationApi().checkGoalNow(request);
-      if (!current(token)) return;
+      if (!current(token)) {
+        return;
+      }
       if (result.status === "succeeded") {
         delete pendingChecks.value[goalId];
         await fetchGoals(token);
-        if (current(token)) await fetchHistory(token, goalId);
+        if (current(token)) {
+          await fetchHistory(token, goalId);
+        }
       } else {
-        if (["failed", "rejected", "dead_letter"].includes(result.status))
+        if (["failed", "rejected", "dead_letter"].includes(result.status)) {
           delete pendingChecks.value[goalId];
+        }
         error.value = "本次检查未完成，请核对状态或目标预算。";
       }
     } catch (value) {
-      if (!current(token)) return;
-      if (definite(value)) delete pendingChecks.value[goalId];
+      if (!current(token)) {
+        return;
+      }
+      if (definite(value)) {
+        delete pendingChecks.value[goalId];
+      }
       throw value;
     }
   });
@@ -663,15 +728,18 @@ async function monitorControl(
   item: GoalStatus,
   mode?: "start" | "periodic" | "abort",
 ) {
-  if (!props.permissions.includes("goal.monitor")) return;
+  if (!props.permissions.includes("goal.monitor")) {
+    return;
+  }
   const goalId = item.goal.id;
   const pending = pendingMonitors.value[goalId];
   if (
     !pending &&
     (!mode ||
       (mode === "start" && (!canStartMonitor.value || !validMonitor(goalId))))
-  )
+  ) {
     return;
+  }
   await work(async (token) => {
     const request = pending
       ? toRaw(pending)
@@ -698,12 +766,18 @@ async function monitorControl(
     pendingMonitors.value[goalId] = request;
     try {
       await organizationApi()[request.method](request.input);
-      if (!current(token)) return;
+      if (!current(token)) {
+        return;
+      }
       delete pendingMonitors.value[goalId];
       await fetchGoals(token);
     } catch (value) {
-      if (!current(token)) return;
-      if (definite(value)) delete pendingMonitors.value[goalId];
+      if (!current(token)) {
+        return;
+      }
+      if (definite(value)) {
+        delete pendingMonitors.value[goalId];
+      }
       throw value;
     }
   });
@@ -715,8 +789,10 @@ async function fetchHistory(token: number, id: string, more = false) {
       limit: 10,
       ...(more && old?.nextCursor ? { beforeId: old.nextCursor } : {}),
     });
-  if (!current(token)) return;
-  for (const item of result.checks)
+  if (!current(token)) {
+    return;
+  }
+  for (const item of result.checks) {
     if (
       item.goalId !== id ||
       item.result?.goalId !== id ||
@@ -726,8 +802,10 @@ async function fetchHistory(token: number, id: string, more = false) {
       item.reviewId !== item.result.reviewId ||
       typeof item.actorDid !== "string" ||
       !item.actorDid.startsWith("did:")
-    )
+    ) {
       throw new Error("GOAL_NOT_FOUND_OR_DENIED");
+    }
+  }
   histories.value[id] =
     more && old
       ? {
@@ -744,8 +822,9 @@ async function fetchHistory(token: number, id: string, more = false) {
       : result;
 }
 async function loadHistory(id: string, more = false) {
-  if (props.permissions.includes("risk.read"))
+  if (props.permissions.includes("risk.read")) {
     await work((token) => fetchHistory(token, id, more));
+  }
 }
 function stateLabel(status: string) {
   return (
@@ -775,7 +854,9 @@ watch(
 watch(
   () => props.parentBusy,
   (value, previous) => {
-    if (previous && !value && !loaded) void loadGoals();
+    if (previous && !value && !loaded) {
+      void loadGoals();
+    }
   },
 );
 watch(
@@ -790,7 +871,9 @@ watch(
     histories.value = {};
     drafts.value = {};
     error.value = "";
-    if (!props.parentBusy) void loadGoals();
+    if (!props.parentBusy) {
+      void loadGoals();
+    }
   },
 );
 onBeforeUnmount(() => {
