@@ -1,0 +1,1 @@
+{"schema":"chainlesschain.volcengine-live-output-cap/v1","sourceCommit":"e3714c33e","provider":"volcengine","model":"deepseek-v4-1-flash-economy-261017","passed":true,"checks":5,"requests":6,"requestedMaxOutputTokens":1,"observedOutputTokens":1,"billingVerified":false,"formalSample":false,"remotePushed":false}
