@@ -149,9 +149,12 @@ jobs:
         if: matrix.scenario == 'mixed'
         working-directory: packages/cli
         run: npx vitest run __tests__/integration/memory-mixed-checkpoints.test.js
-      - name: Verify independent compound oracle and failure evidence
+      - name: Verify compound oracle, failure evidence and retrieval quality metrics
         if: matrix.scenario == 'compound'
-        run: node --test packages/cli/scripts/memory-compound-query-benchmark.node-test.mjs
+        run: >-
+          node --test
+          packages/cli/scripts/memory-compound-query-benchmark.node-test.mjs
+          packages/cli/scripts/memory-semantic-quality.node-test.mjs
       - name: Measure real disk query cancellation
         if: matrix.scenario == 'stop'
         shell: bash
