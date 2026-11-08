@@ -76,11 +76,17 @@ node --test packages/cli/test-node/memory-lazy-postings.node-test.mjs desktop-ap
 
 - `727c64962`：55项Node合同、600冷/热、600重建/损坏、600取消及300轮混合/1800次变更全部通过对应正确性核对；100K冷/热p95为400.169/43.743ms，混合读p95为1880.978ms。17个关键运行时文件逐字节绑定，1946项源码/锁文件Git核对保留2个PowerShell行尾差异。不是合并后源码的整套SLO。
 - `698b87d79`：900个五条件首次冷查询/直接续页全部对照独立全量authority，三档分页、条件及最终审计通过；100K三个场景p95为484.842/516.613/499.743ms。共享开发工作站、OS缓存未清空、静态依赖扫描非完整闭包，`performanceAccepted:false`。
-- [PR #553](https://github.com/chainlesschain/chainlesschain/pull/553)为草稿；完整100次三系统矩阵`42435202150`以及CLI CI/Strict/原生GUI仍按实际云端终态核对，排队不算通过。
+- [PR #553](https://github.com/chainlesschain/chainlesschain/pull/553)已合并，派发修复`5193dcf96`另建[草稿PR #556](https://github.com/chainlesschain/chainlesschain/pull/556)；完整100次三系统矩阵`42435202150`以及CLI CI/Strict/原生GUI仍按准确提交和实际云端终态核对，排队或合并均不算通过。
 
 另在canonical已启用范围内真实复现计划后撤权：16项中14项把已删/已替换旧正文送入请求，2项对照通过。新派发约束在实际请求启动前持有短revision锁，复核继承约束、有效期、scope关闭和取消，HTTP响应期间不持锁；显式空scope拒绝，子代理`memory:false`不能被loop override恢复。保留两处微任务关闭竞态、派发后清理不重放、禁用路径兼容和预算锁等待取消的先红后绿证据。
 
 本轮最终相关回归为Node22的19文件 **402/402**及Node24/ABI137的真实SQLite预算组合 **106/106**，各无跳过；新增33项包含在402中，3项Memory预算交互包含在106中，不另行累加。锁定Web Panel生产构建、89个候选静态出口审计通过，仍保持`paidReady:false`、`runtimeCoverageVerified:false`。见[实现与剩余边界](../implementation/cli-ide-memory-admission-progress-2026-11-08.md)、[失败/成功及源码快照](../../cli/evidence/memory-admission-2026-11-08/README.md)。本轮新增派发代码不继承旧测量SHA、云端门禁或发行身份；真实语义候选质量、REPL旧注入治理、完整跨入口/安装及生产准入仍未完成。
+
+### 模型输入诊断与Memory授权整合（2026-11-08）
+
+将派发修复`5193dcf96`与主线`d23e386a6`整合，解决模型输入诊断、预算传输和adapter的三处冲突。诊断保留主线的body/signal快照与attempt关联，异步observer完成后再做最终Memory复核；governed-body observer在revision锁和markDispatched之前运行，避免回调删除Memory时自锁。新增4条logical-input/fetch-body删除/替换和2条预算诊断删除回归，分别包含在本批21文件425/425及预算108/108中，不额外叠加。Web Panel重新构建成功；89候选静态分类通过，78条调用链仍未映射。[原字节报告、8份源码快照与离线核对](../../cli/evidence/memory-diagnostics-2026-11-08/README.md)单独保存，旧24条派发归档与旧性能身份保持不变。
+
+本批不证明永不结束的诊断observer可即时取消，也不授予真实语义质量、完整REPL/IDE、OS出口、费用、性能或生产准入。准确合并提交仍须自己的云端门禁。
 
 ## 历史增量状态（2026-11-03）
 
