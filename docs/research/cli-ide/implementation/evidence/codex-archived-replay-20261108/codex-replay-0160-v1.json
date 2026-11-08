@@ -1,0 +1,805 @@
+{
+  "schema": "chainlesschain.codex-archived-replay/v1",
+  "commitSha": "b60efe3a7c79d91c7994bddf18631e9b9f47adef",
+  "status": "failed",
+  "platform": "win32",
+  "arch": "x64",
+  "upstream": {
+    "version": "0.160.0",
+    "binarySha256": "fdda5fa3cf3fb3d000b876720742857676293e4315e4b045fae6f8bd7e866d1d"
+  },
+  "archive": {
+    "manifestSha256": "fe90cd28714bcd7a502435922844956b43f720e34bf0316c0fee3eed3007ae95",
+    "sourceCommit": "92142ea61b8dbfef009e6acf68a848fcd803d1a3"
+  },
+  "cases": [
+    {
+      "sortKey": "recency_at",
+      "sortDirection": "asc",
+      "status": "failed",
+      "home": "C:\\Users\\admin\\AppData\\Local\\Temp\\cc-codex-archived-replay-UTWB2J\\recency_at-asc\\home",
+      "pid": 35196,
+      "beforeCopy": {
+        "data": [],
+        "pages": [
+          {
+            "ids": [],
+            "nextCursor": null
+          }
+        ]
+      },
+      "rollouts": [
+        {
+          "threadId": "01a1853b-b0e2-7d82-8a92-594c700a6fe6",
+          "relativePath": "sessions\\2026\\10\\29\\rollout-2026-10-29T09-17-24-01a1853b-b0e2-7d82-8a92-594c700a6fe6.jsonl",
+          "sha256": "aa779c2e2ba99a4198a66ffecbba4f598f8e6eee67781d6755016802a4621512"
+        },
+        {
+          "threadId": "01a1853b-b0e2-7d82-8a92-5957ef1a5f93",
+          "relativePath": "sessions\\2026\\10\\29\\rollout-2026-10-29T09-17-24-01a1853b-b0e2-7d82-8a92-5957ef1a5f93.jsonl",
+          "sha256": "146b8be74ca7949b6826ccd1ce406071f7f53376fbcdef9ed328fe41184b8a40"
+        }
+      ],
+      "afterCopy": {
+        "data": [],
+        "pages": [
+          {
+            "ids": [],
+            "nextCursor": null
+          }
+        ]
+      },
+      "missingIndexObserved": true,
+      "firstScan": {
+        "data": [
+          {
+            "id": "01a1853b-b0e2-7d82-8a92-594c700a6fe6",
+            "environments": null,
+            "extra": null,
+            "sessionId": "01a1853b-b0e2-7d82-8a92-594c700a6fe6",
+            "forkedFromId": null,
+            "parentThreadId": null,
+            "preview": "history-main-1: Respond with the fixture output. Do not call tools.",
+            "ephemeral": false,
+            "section": null,
+            "sectionEnteredAt": null,
+            "projectId": null,
+            "historyMode": "paginated",
+            "modelProvider": "fixture",
+            "model": "fixture-codex",
+            "reasoningEffort": null,
+            "createdAt": 1793236644,
+            "updatedAt": 1794123044,
+            "recencyAt": 1794123044,
+            "status": {
+              "type": "notLoaded"
+            },
+            "path": "C:\\Users\\admin\\AppData\\Local\\Temp\\cc-codex-archived-replay-UTWB2J\\recency_at-asc\\home\\sessions\\2026\\10\\29\\rollout-2026-10-29T09-17-24-01a1853b-b0e2-7d82-8a92-594c700a6fe6.jsonl",
+            "cwd": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-codex-history-probe-HkOXBb\\workspace",
+            "cliVersion": "0.160.0",
+            "originator": "chainlesschain_history_probe",
+            "source": "vscode",
+            "canAcceptDirectInput": null,
+            "threadSource": null,
+            "agentNickname": null,
+            "agentRole": null,
+            "gitInfo": null,
+            "name": null,
+            "daybreakEnabled": null,
+            "turns": []
+          }
+        ],
+        "pages": [
+          {
+            "ids": ["01a1853b-b0e2-7d82-8a92-594c700a6fe6"],
+            "nextCursor": null
+          }
+        ]
+      },
+      "firstScanVerified": false,
+      "laterFullScan": {
+        "data": [
+          {
+            "id": "01a1853b-b0e2-7d82-8a92-594c700a6fe6",
+            "environments": null,
+            "extra": null,
+            "sessionId": "01a1853b-b0e2-7d82-8a92-594c700a6fe6",
+            "forkedFromId": null,
+            "parentThreadId": null,
+            "preview": "history-main-1: Respond with the fixture output. Do not call tools.",
+            "ephemeral": false,
+            "section": null,
+            "sectionEnteredAt": null,
+            "projectId": null,
+            "historyMode": "paginated",
+            "modelProvider": "fixture",
+            "model": "fixture-codex",
+            "reasoningEffort": null,
+            "createdAt": 1793236644,
+            "updatedAt": 1794123044,
+            "recencyAt": 1794123044,
+            "status": {
+              "type": "notLoaded"
+            },
+            "path": "C:\\Users\\admin\\AppData\\Local\\Temp\\cc-codex-archived-replay-UTWB2J\\recency_at-asc\\home\\sessions\\2026\\10\\29\\rollout-2026-10-29T09-17-24-01a1853b-b0e2-7d82-8a92-594c700a6fe6.jsonl",
+            "cwd": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-codex-history-probe-HkOXBb\\workspace",
+            "cliVersion": "0.160.0",
+            "originator": "chainlesschain_history_probe",
+            "source": "vscode",
+            "canAcceptDirectInput": null,
+            "threadSource": null,
+            "agentNickname": null,
+            "agentRole": null,
+            "gitInfo": null,
+            "name": null,
+            "daybreakEnabled": null,
+            "turns": []
+          },
+          {
+            "id": "01a1853b-b0e2-7d82-8a92-5957ef1a5f93",
+            "environments": null,
+            "extra": null,
+            "sessionId": "01a1853b-b0e2-7d82-8a92-5957ef1a5f93",
+            "forkedFromId": null,
+            "parentThreadId": null,
+            "preview": "history-other-1: Respond with the fixture output. Do not call tools.",
+            "ephemeral": false,
+            "section": null,
+            "sectionEnteredAt": null,
+            "projectId": null,
+            "historyMode": "paginated",
+            "modelProvider": "fixture",
+            "model": "fixture-codex",
+            "reasoningEffort": null,
+            "createdAt": 1793236644,
+            "updatedAt": 1794123044,
+            "recencyAt": 1794123044,
+            "status": {
+              "type": "notLoaded"
+            },
+            "path": "C:\\Users\\admin\\AppData\\Local\\Temp\\cc-codex-archived-replay-UTWB2J\\recency_at-asc\\home\\sessions\\2026\\10\\29\\rollout-2026-10-29T09-17-24-01a1853b-b0e2-7d82-8a92-5957ef1a5f93.jsonl",
+            "cwd": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-codex-history-probe-HkOXBb\\workspace",
+            "cliVersion": "0.160.0",
+            "originator": "chainlesschain_history_probe",
+            "source": "vscode",
+            "canAcceptDirectInput": null,
+            "threadSource": null,
+            "agentNickname": null,
+            "agentRole": null,
+            "gitInfo": null,
+            "name": null,
+            "daybreakEnabled": null,
+            "turns": []
+          }
+        ],
+        "nextCursor": null,
+        "backwardsCursor": "2026-11-08T07:30:44.007Z"
+      },
+      "processClosed": {
+        "code": 0,
+        "signal": null,
+        "stdioForcedClosed": true
+      }
+    },
+    {
+      "sortKey": "recency_at",
+      "sortDirection": "desc",
+      "status": "passed",
+      "home": "C:\\Users\\admin\\AppData\\Local\\Temp\\cc-codex-archived-replay-UTWB2J\\recency_at-desc\\home",
+      "pid": 35704,
+      "beforeCopy": {
+        "data": [],
+        "pages": [
+          {
+            "ids": [],
+            "nextCursor": null
+          }
+        ]
+      },
+      "rollouts": [
+        {
+          "threadId": "01a1853b-b0e2-7d82-8a92-594c700a6fe6",
+          "relativePath": "sessions\\2026\\10\\29\\rollout-2026-10-29T09-17-24-01a1853b-b0e2-7d82-8a92-594c700a6fe6.jsonl",
+          "sha256": "aa779c2e2ba99a4198a66ffecbba4f598f8e6eee67781d6755016802a4621512"
+        },
+        {
+          "threadId": "01a1853b-b0e2-7d82-8a92-5957ef1a5f93",
+          "relativePath": "sessions\\2026\\10\\29\\rollout-2026-10-29T09-17-24-01a1853b-b0e2-7d82-8a92-5957ef1a5f93.jsonl",
+          "sha256": "146b8be74ca7949b6826ccd1ce406071f7f53376fbcdef9ed328fe41184b8a40"
+        }
+      ],
+      "afterCopy": {
+        "data": [],
+        "pages": [
+          {
+            "ids": [],
+            "nextCursor": null
+          }
+        ]
+      },
+      "missingIndexObserved": true,
+      "firstScan": {
+        "data": [
+          {
+            "id": "01a1853b-b0e2-7d82-8a92-594c700a6fe6",
+            "environments": null,
+            "extra": null,
+            "sessionId": "01a1853b-b0e2-7d82-8a92-594c700a6fe6",
+            "forkedFromId": null,
+            "parentThreadId": null,
+            "preview": "history-main-1: Respond with the fixture output. Do not call tools.",
+            "ephemeral": false,
+            "section": null,
+            "sectionEnteredAt": null,
+            "projectId": null,
+            "historyMode": "paginated",
+            "modelProvider": "fixture",
+            "model": "fixture-codex",
+            "reasoningEffort": null,
+            "createdAt": 1793236644,
+            "updatedAt": 1794123045,
+            "recencyAt": 1794123045,
+            "status": {
+              "type": "notLoaded"
+            },
+            "path": "C:\\Users\\admin\\AppData\\Local\\Temp\\cc-codex-archived-replay-UTWB2J\\recency_at-desc\\home\\sessions\\2026\\10\\29\\rollout-2026-10-29T09-17-24-01a1853b-b0e2-7d82-8a92-594c700a6fe6.jsonl",
+            "cwd": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-codex-history-probe-HkOXBb\\workspace",
+            "cliVersion": "0.160.0",
+            "originator": "chainlesschain_history_probe",
+            "source": "vscode",
+            "canAcceptDirectInput": null,
+            "threadSource": null,
+            "agentNickname": null,
+            "agentRole": null,
+            "gitInfo": null,
+            "name": null,
+            "daybreakEnabled": null,
+            "turns": []
+          },
+          {
+            "id": "01a1853b-b0e2-7d82-8a92-5957ef1a5f93",
+            "environments": null,
+            "extra": null,
+            "sessionId": "01a1853b-b0e2-7d82-8a92-5957ef1a5f93",
+            "forkedFromId": null,
+            "parentThreadId": null,
+            "preview": "history-other-1: Respond with the fixture output. Do not call tools.",
+            "ephemeral": false,
+            "section": null,
+            "sectionEnteredAt": null,
+            "projectId": null,
+            "historyMode": "paginated",
+            "modelProvider": "fixture",
+            "model": "fixture-codex",
+            "reasoningEffort": null,
+            "createdAt": 1793236644,
+            "updatedAt": 1794123045,
+            "recencyAt": 1794123045,
+            "status": {
+              "type": "notLoaded"
+            },
+            "path": "C:\\Users\\admin\\AppData\\Local\\Temp\\cc-codex-archived-replay-UTWB2J\\recency_at-desc\\home\\sessions\\2026\\10\\29\\rollout-2026-10-29T09-17-24-01a1853b-b0e2-7d82-8a92-5957ef1a5f93.jsonl",
+            "cwd": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-codex-history-probe-HkOXBb\\workspace",
+            "cliVersion": "0.160.0",
+            "originator": "chainlesschain_history_probe",
+            "source": "vscode",
+            "canAcceptDirectInput": null,
+            "threadSource": null,
+            "agentNickname": null,
+            "agentRole": null,
+            "gitInfo": null,
+            "name": null,
+            "daybreakEnabled": null,
+            "turns": []
+          }
+        ],
+        "pages": [
+          {
+            "ids": ["01a1853b-b0e2-7d82-8a92-594c700a6fe6"],
+            "nextCursor": "2026-11-08T07:30:45.182Z|01a1853b-b0e2-7d82-8a92-594c700a6fe6"
+          },
+          {
+            "ids": ["01a1853b-b0e2-7d82-8a92-5957ef1a5f93"],
+            "nextCursor": null
+          }
+        ]
+      },
+      "firstScanVerified": true,
+      "laterFullScan": {
+        "data": [
+          {
+            "id": "01a1853b-b0e2-7d82-8a92-594c700a6fe6",
+            "environments": null,
+            "extra": null,
+            "sessionId": "01a1853b-b0e2-7d82-8a92-594c700a6fe6",
+            "forkedFromId": null,
+            "parentThreadId": null,
+            "preview": "history-main-1: Respond with the fixture output. Do not call tools.",
+            "ephemeral": false,
+            "section": null,
+            "sectionEnteredAt": null,
+            "projectId": null,
+            "historyMode": "paginated",
+            "modelProvider": "fixture",
+            "model": "fixture-codex",
+            "reasoningEffort": null,
+            "createdAt": 1793236644,
+            "updatedAt": 1794123045,
+            "recencyAt": 1794123045,
+            "status": {
+              "type": "notLoaded"
+            },
+            "path": "C:\\Users\\admin\\AppData\\Local\\Temp\\cc-codex-archived-replay-UTWB2J\\recency_at-desc\\home\\sessions\\2026\\10\\29\\rollout-2026-10-29T09-17-24-01a1853b-b0e2-7d82-8a92-594c700a6fe6.jsonl",
+            "cwd": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-codex-history-probe-HkOXBb\\workspace",
+            "cliVersion": "0.160.0",
+            "originator": "chainlesschain_history_probe",
+            "source": "vscode",
+            "canAcceptDirectInput": null,
+            "threadSource": null,
+            "agentNickname": null,
+            "agentRole": null,
+            "gitInfo": null,
+            "name": null,
+            "daybreakEnabled": null,
+            "turns": []
+          },
+          {
+            "id": "01a1853b-b0e2-7d82-8a92-5957ef1a5f93",
+            "environments": null,
+            "extra": null,
+            "sessionId": "01a1853b-b0e2-7d82-8a92-5957ef1a5f93",
+            "forkedFromId": null,
+            "parentThreadId": null,
+            "preview": "history-other-1: Respond with the fixture output. Do not call tools.",
+            "ephemeral": false,
+            "section": null,
+            "sectionEnteredAt": null,
+            "projectId": null,
+            "historyMode": "paginated",
+            "modelProvider": "fixture",
+            "model": "fixture-codex",
+            "reasoningEffort": null,
+            "createdAt": 1793236644,
+            "updatedAt": 1794123045,
+            "recencyAt": 1794123045,
+            "status": {
+              "type": "notLoaded"
+            },
+            "path": "C:\\Users\\admin\\AppData\\Local\\Temp\\cc-codex-archived-replay-UTWB2J\\recency_at-desc\\home\\sessions\\2026\\10\\29\\rollout-2026-10-29T09-17-24-01a1853b-b0e2-7d82-8a92-5957ef1a5f93.jsonl",
+            "cwd": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-codex-history-probe-HkOXBb\\workspace",
+            "cliVersion": "0.160.0",
+            "originator": "chainlesschain_history_probe",
+            "source": "vscode",
+            "canAcceptDirectInput": null,
+            "threadSource": null,
+            "agentNickname": null,
+            "agentRole": null,
+            "gitInfo": null,
+            "name": null,
+            "daybreakEnabled": null,
+            "turns": []
+          }
+        ],
+        "nextCursor": null,
+        "backwardsCursor": "2026-11-08T07:30:45.181Z"
+      },
+      "processClosed": {
+        "code": 0,
+        "signal": null,
+        "stdioForcedClosed": true
+      }
+    },
+    {
+      "sortKey": "created_at",
+      "sortDirection": "asc",
+      "status": "failed",
+      "home": "C:\\Users\\admin\\AppData\\Local\\Temp\\cc-codex-archived-replay-UTWB2J\\created_at-asc\\home",
+      "pid": 852,
+      "beforeCopy": {
+        "data": [],
+        "pages": [
+          {
+            "ids": [],
+            "nextCursor": null
+          }
+        ]
+      },
+      "rollouts": [
+        {
+          "threadId": "01a1853b-b0e2-7d82-8a92-594c700a6fe6",
+          "relativePath": "sessions\\2026\\10\\29\\rollout-2026-10-29T09-17-24-01a1853b-b0e2-7d82-8a92-594c700a6fe6.jsonl",
+          "sha256": "aa779c2e2ba99a4198a66ffecbba4f598f8e6eee67781d6755016802a4621512"
+        },
+        {
+          "threadId": "01a1853b-b0e2-7d82-8a92-5957ef1a5f93",
+          "relativePath": "sessions\\2026\\10\\29\\rollout-2026-10-29T09-17-24-01a1853b-b0e2-7d82-8a92-5957ef1a5f93.jsonl",
+          "sha256": "146b8be74ca7949b6826ccd1ce406071f7f53376fbcdef9ed328fe41184b8a40"
+        }
+      ],
+      "afterCopy": {
+        "data": [],
+        "pages": [
+          {
+            "ids": [],
+            "nextCursor": null
+          }
+        ]
+      },
+      "missingIndexObserved": true,
+      "firstScan": {
+        "data": [
+          {
+            "id": "01a1853b-b0e2-7d82-8a92-594c700a6fe6",
+            "environments": null,
+            "extra": null,
+            "sessionId": "01a1853b-b0e2-7d82-8a92-594c700a6fe6",
+            "forkedFromId": null,
+            "parentThreadId": null,
+            "preview": "history-main-1: Respond with the fixture output. Do not call tools.",
+            "ephemeral": false,
+            "section": null,
+            "sectionEnteredAt": null,
+            "projectId": null,
+            "historyMode": "paginated",
+            "modelProvider": "fixture",
+            "model": "fixture-codex",
+            "reasoningEffort": null,
+            "createdAt": 1793236644,
+            "updatedAt": 1794123046,
+            "recencyAt": 1794123046,
+            "status": {
+              "type": "notLoaded"
+            },
+            "path": "C:\\Users\\admin\\AppData\\Local\\Temp\\cc-codex-archived-replay-UTWB2J\\created_at-asc\\home\\sessions\\2026\\10\\29\\rollout-2026-10-29T09-17-24-01a1853b-b0e2-7d82-8a92-594c700a6fe6.jsonl",
+            "cwd": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-codex-history-probe-HkOXBb\\workspace",
+            "cliVersion": "0.160.0",
+            "originator": "chainlesschain_history_probe",
+            "source": "vscode",
+            "canAcceptDirectInput": null,
+            "threadSource": null,
+            "agentNickname": null,
+            "agentRole": null,
+            "gitInfo": null,
+            "name": null,
+            "daybreakEnabled": null,
+            "turns": []
+          }
+        ],
+        "pages": [
+          {
+            "ids": ["01a1853b-b0e2-7d82-8a92-594c700a6fe6"],
+            "nextCursor": "2026-10-29T09:17:24Z"
+          },
+          {
+            "ids": [],
+            "nextCursor": null
+          }
+        ]
+      },
+      "firstScanVerified": false,
+      "laterFullScan": {
+        "data": [
+          {
+            "id": "01a1853b-b0e2-7d82-8a92-594c700a6fe6",
+            "environments": null,
+            "extra": null,
+            "sessionId": "01a1853b-b0e2-7d82-8a92-594c700a6fe6",
+            "forkedFromId": null,
+            "parentThreadId": null,
+            "preview": "history-main-1: Respond with the fixture output. Do not call tools.",
+            "ephemeral": false,
+            "section": null,
+            "sectionEnteredAt": null,
+            "projectId": null,
+            "historyMode": "paginated",
+            "modelProvider": "fixture",
+            "model": "fixture-codex",
+            "reasoningEffort": null,
+            "createdAt": 1793236644,
+            "updatedAt": 1794123046,
+            "recencyAt": 1794123046,
+            "status": {
+              "type": "notLoaded"
+            },
+            "path": "C:\\Users\\admin\\AppData\\Local\\Temp\\cc-codex-archived-replay-UTWB2J\\created_at-asc\\home\\sessions\\2026\\10\\29\\rollout-2026-10-29T09-17-24-01a1853b-b0e2-7d82-8a92-594c700a6fe6.jsonl",
+            "cwd": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-codex-history-probe-HkOXBb\\workspace",
+            "cliVersion": "0.160.0",
+            "originator": "chainlesschain_history_probe",
+            "source": "vscode",
+            "canAcceptDirectInput": null,
+            "threadSource": null,
+            "agentNickname": null,
+            "agentRole": null,
+            "gitInfo": null,
+            "name": null,
+            "daybreakEnabled": null,
+            "turns": []
+          },
+          {
+            "id": "01a1853b-b0e2-7d82-8a92-5957ef1a5f93",
+            "environments": null,
+            "extra": null,
+            "sessionId": "01a1853b-b0e2-7d82-8a92-5957ef1a5f93",
+            "forkedFromId": null,
+            "parentThreadId": null,
+            "preview": "history-other-1: Respond with the fixture output. Do not call tools.",
+            "ephemeral": false,
+            "section": null,
+            "sectionEnteredAt": null,
+            "projectId": null,
+            "historyMode": "paginated",
+            "modelProvider": "fixture",
+            "model": "fixture-codex",
+            "reasoningEffort": null,
+            "createdAt": 1793236644,
+            "updatedAt": 1794123046,
+            "recencyAt": 1794123046,
+            "status": {
+              "type": "notLoaded"
+            },
+            "path": "C:\\Users\\admin\\AppData\\Local\\Temp\\cc-codex-archived-replay-UTWB2J\\created_at-asc\\home\\sessions\\2026\\10\\29\\rollout-2026-10-29T09-17-24-01a1853b-b0e2-7d82-8a92-5957ef1a5f93.jsonl",
+            "cwd": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-codex-history-probe-HkOXBb\\workspace",
+            "cliVersion": "0.160.0",
+            "originator": "chainlesschain_history_probe",
+            "source": "vscode",
+            "canAcceptDirectInput": null,
+            "threadSource": null,
+            "agentNickname": null,
+            "agentRole": null,
+            "gitInfo": null,
+            "name": null,
+            "daybreakEnabled": null,
+            "turns": []
+          }
+        ],
+        "nextCursor": null,
+        "backwardsCursor": "2026-10-29T01:17:24.074Z"
+      },
+      "processClosed": {
+        "code": 0,
+        "signal": null,
+        "stdioForcedClosed": true
+      }
+    },
+    {
+      "sortKey": "created_at",
+      "sortDirection": "desc",
+      "status": "failed",
+      "home": "C:\\Users\\admin\\AppData\\Local\\Temp\\cc-codex-archived-replay-UTWB2J\\created_at-desc\\home",
+      "pid": 15188,
+      "beforeCopy": {
+        "data": [],
+        "pages": [
+          {
+            "ids": [],
+            "nextCursor": null
+          }
+        ]
+      },
+      "rollouts": [
+        {
+          "threadId": "01a1853b-b0e2-7d82-8a92-594c700a6fe6",
+          "relativePath": "sessions\\2026\\10\\29\\rollout-2026-10-29T09-17-24-01a1853b-b0e2-7d82-8a92-594c700a6fe6.jsonl",
+          "sha256": "aa779c2e2ba99a4198a66ffecbba4f598f8e6eee67781d6755016802a4621512"
+        },
+        {
+          "threadId": "01a1853b-b0e2-7d82-8a92-5957ef1a5f93",
+          "relativePath": "sessions\\2026\\10\\29\\rollout-2026-10-29T09-17-24-01a1853b-b0e2-7d82-8a92-5957ef1a5f93.jsonl",
+          "sha256": "146b8be74ca7949b6826ccd1ce406071f7f53376fbcdef9ed328fe41184b8a40"
+        }
+      ],
+      "afterCopy": {
+        "data": [],
+        "pages": [
+          {
+            "ids": [],
+            "nextCursor": null
+          }
+        ]
+      },
+      "missingIndexObserved": true,
+      "firstScan": {
+        "data": [
+          {
+            "id": "01a1853b-b0e2-7d82-8a92-5957ef1a5f93",
+            "environments": null,
+            "extra": null,
+            "sessionId": "01a1853b-b0e2-7d82-8a92-5957ef1a5f93",
+            "forkedFromId": null,
+            "parentThreadId": null,
+            "preview": "history-other-1: Respond with the fixture output. Do not call tools.",
+            "ephemeral": false,
+            "section": null,
+            "sectionEnteredAt": null,
+            "projectId": null,
+            "historyMode": "paginated",
+            "modelProvider": "fixture",
+            "model": "fixture-codex",
+            "reasoningEffort": null,
+            "createdAt": 1793236644,
+            "updatedAt": 1794123047,
+            "recencyAt": 1794123047,
+            "status": {
+              "type": "notLoaded"
+            },
+            "path": "C:\\Users\\admin\\AppData\\Local\\Temp\\cc-codex-archived-replay-UTWB2J\\created_at-desc\\home\\sessions\\2026\\10\\29\\rollout-2026-10-29T09-17-24-01a1853b-b0e2-7d82-8a92-5957ef1a5f93.jsonl",
+            "cwd": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-codex-history-probe-HkOXBb\\workspace",
+            "cliVersion": "0.160.0",
+            "originator": "chainlesschain_history_probe",
+            "source": "vscode",
+            "canAcceptDirectInput": null,
+            "threadSource": null,
+            "agentNickname": null,
+            "agentRole": null,
+            "gitInfo": null,
+            "name": null,
+            "daybreakEnabled": null,
+            "turns": []
+          }
+        ],
+        "pages": [
+          {
+            "ids": ["01a1853b-b0e2-7d82-8a92-5957ef1a5f93"],
+            "nextCursor": "2026-10-29T09:17:24Z"
+          },
+          {
+            "ids": [],
+            "nextCursor": null
+          }
+        ]
+      },
+      "firstScanVerified": false,
+      "laterFullScan": {
+        "data": [
+          {
+            "id": "01a1853b-b0e2-7d82-8a92-5957ef1a5f93",
+            "environments": null,
+            "extra": null,
+            "sessionId": "01a1853b-b0e2-7d82-8a92-5957ef1a5f93",
+            "forkedFromId": null,
+            "parentThreadId": null,
+            "preview": "history-other-1: Respond with the fixture output. Do not call tools.",
+            "ephemeral": false,
+            "section": null,
+            "sectionEnteredAt": null,
+            "projectId": null,
+            "historyMode": "paginated",
+            "modelProvider": "fixture",
+            "model": "fixture-codex",
+            "reasoningEffort": null,
+            "createdAt": 1793236644,
+            "updatedAt": 1794123047,
+            "recencyAt": 1794123047,
+            "status": {
+              "type": "notLoaded"
+            },
+            "path": "C:\\Users\\admin\\AppData\\Local\\Temp\\cc-codex-archived-replay-UTWB2J\\created_at-desc\\home\\sessions\\2026\\10\\29\\rollout-2026-10-29T09-17-24-01a1853b-b0e2-7d82-8a92-5957ef1a5f93.jsonl",
+            "cwd": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-codex-history-probe-HkOXBb\\workspace",
+            "cliVersion": "0.160.0",
+            "originator": "chainlesschain_history_probe",
+            "source": "vscode",
+            "canAcceptDirectInput": null,
+            "threadSource": null,
+            "agentNickname": null,
+            "agentRole": null,
+            "gitInfo": null,
+            "name": null,
+            "daybreakEnabled": null,
+            "turns": []
+          },
+          {
+            "id": "01a1853b-b0e2-7d82-8a92-594c700a6fe6",
+            "environments": null,
+            "extra": null,
+            "sessionId": "01a1853b-b0e2-7d82-8a92-594c700a6fe6",
+            "forkedFromId": null,
+            "parentThreadId": null,
+            "preview": "history-main-1: Respond with the fixture output. Do not call tools.",
+            "ephemeral": false,
+            "section": null,
+            "sectionEnteredAt": null,
+            "projectId": null,
+            "historyMode": "paginated",
+            "modelProvider": "fixture",
+            "model": "fixture-codex",
+            "reasoningEffort": null,
+            "createdAt": 1793236644,
+            "updatedAt": 1794123047,
+            "recencyAt": 1794123047,
+            "status": {
+              "type": "notLoaded"
+            },
+            "path": "C:\\Users\\admin\\AppData\\Local\\Temp\\cc-codex-archived-replay-UTWB2J\\created_at-desc\\home\\sessions\\2026\\10\\29\\rollout-2026-10-29T09-17-24-01a1853b-b0e2-7d82-8a92-594c700a6fe6.jsonl",
+            "cwd": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-codex-history-probe-HkOXBb\\workspace",
+            "cliVersion": "0.160.0",
+            "originator": "chainlesschain_history_probe",
+            "source": "vscode",
+            "canAcceptDirectInput": null,
+            "threadSource": null,
+            "agentNickname": null,
+            "agentRole": null,
+            "gitInfo": null,
+            "name": null,
+            "daybreakEnabled": null,
+            "turns": []
+          }
+        ],
+        "nextCursor": null,
+        "backwardsCursor": "2026-10-29T01:17:24.073Z"
+      },
+      "processClosed": {
+        "code": 0,
+        "signal": null,
+        "stdioForcedClosed": true
+      }
+    }
+  ],
+  "strictFailures": [
+    {
+      "name": "recency_at:asc:first-scan",
+      "error": {
+        "name": "AssertionError",
+        "message": "cold scan omitted archived identity\n+ actual - expected\n\n+ Set(1) {\n- Set(2) {\n    '01a1853b-b0e2-7d82-8a92-594c700a6fe6',\n-   '01a1853b-b0e2-7d82-8a92-5957ef1a5f93'\n  }\n"
+      }
+    },
+    {
+      "name": "created_at:asc:first-scan",
+      "error": {
+        "name": "AssertionError",
+        "message": "cold scan omitted archived identity\n+ actual - expected\n\n+ Set(1) {\n- Set(2) {\n    '01a1853b-b0e2-7d82-8a92-594c700a6fe6',\n-   '01a1853b-b0e2-7d82-8a92-5957ef1a5f93'\n  }\n"
+      }
+    },
+    {
+      "name": "created_at:desc:first-scan",
+      "error": {
+        "name": "AssertionError",
+        "message": "cold scan omitted archived identity\n+ actual - expected\n\n+ Set(1) {\n- Set(2) {\n-   '01a1853b-b0e2-7d82-8a92-594c700a6fe6',\n    '01a1853b-b0e2-7d82-8a92-5957ef1a5f93'\n  }\n"
+      }
+    }
+  ],
+  "providerRequests": [],
+  "turnStartRequests": 0,
+  "productionAdmission": false,
+  "realProviderAcceptance": false,
+  "boundary": "Original archived bytes, isolated homes, no cwd filter; this is discovery evidence only.",
+  "officialSchema": {
+    "hashes": {
+      "request": "1c7fec8758deb95ffe967060130e8d1ddb7a0a5a437ee9b64086dddbed8f5831",
+      "notification": "d3479ecf59ca421a8b052d3d15e8196d23d297a0bd85ae5a270a34ddd9c865c9",
+      "server-request": "f339be472737a0003efa25fba2e6e6c9237e621cd065b6d6995c51256e9dc1fb",
+      "approval-response": "6d0767113e22f311381809b6b236b0dde2b99b01992879c26bf7b1ea0e003cb7"
+    },
+    "validatedMessages": {
+      "request:initialize": 4,
+      "request:thread/list": 19,
+      "notification:remoteControl/status/changed": 4
+    }
+  },
+  "processClosed": [
+    {
+      "code": 0,
+      "signal": null,
+      "stdioForcedClosed": true
+    },
+    {
+      "code": 0,
+      "signal": null,
+      "stdioForcedClosed": true
+    },
+    {
+      "code": 0,
+      "signal": null,
+      "stdioForcedClosed": true
+    },
+    {
+      "code": 0,
+      "signal": null,
+      "stdioForcedClosed": true
+    }
+  ],
+  "cleanupErrors": [],
+  "error": {
+    "name": "AssertionError",
+    "message": "cold scan omitted archived identity\n+ actual - expected\n\n+ Set(1) {\n- Set(2) {\n    '01a1853b-b0e2-7d82-8a92-594c700a6fe6',\n-   '01a1853b-b0e2-7d82-8a92-5957ef1a5f93'\n  }\n"
+  }
+}

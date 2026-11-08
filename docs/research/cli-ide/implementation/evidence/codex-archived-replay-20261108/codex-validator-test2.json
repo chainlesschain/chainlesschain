@@ -1,0 +1,573 @@
+{
+  "numTotalTestSuites": 10,
+  "numPassedTestSuites": 10,
+  "numFailedTestSuites": 0,
+  "numPendingTestSuites": 0,
+  "numTotalTests": 52,
+  "numPassedTests": 52,
+  "numFailedTests": 0,
+  "numPendingTests": 0,
+  "numTodoTests": 0,
+  "snapshot": {
+    "added": 0,
+    "failure": false,
+    "filesAdded": 0,
+    "filesRemoved": 0,
+    "filesRemovedList": [],
+    "filesUnmatched": 0,
+    "filesUpdated": 0,
+    "matched": 0,
+    "total": 0,
+    "unchecked": 0,
+    "uncheckedKeysByFile": [],
+    "unmatched": 0,
+    "updated": 0,
+    "didUpdate": false
+  },
+  "startTime": 1794122657149,
+  "success": true,
+  "testResults": [
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": ["archived native replay preparation"],
+          "fullName": "archived native replay preparation verifies genuine archived bytes for 0.160.0 without starting native",
+          "status": "passed",
+          "title": "verifies genuine archived bytes for 0.160.0 without starting native",
+          "duration": 3.730000000000018,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["archived native replay preparation"],
+          "fullName": "archived native replay preparation verifies genuine archived bytes for 0.164.0 without starting native",
+          "status": "passed",
+          "title": "verifies genuine archived bytes for 0.164.0 without starting native",
+          "duration": 1.846900000000005,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["archived native replay preparation"],
+          "fullName": "archived native replay preparation rejects turn/start before dispatch",
+          "status": "passed",
+          "title": "rejects turn/start before dispatch",
+          "duration": 2.834699999999998,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["archived native replay preparation"],
+          "fullName": "archived native replay preparation rejects thread/start before dispatch",
+          "status": "passed",
+          "title": "rejects thread/start before dispatch",
+          "duration": 0.29000000000002046,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["archived native replay preparation"],
+          "fullName": "archived native replay preparation rejects thread/resume before dispatch",
+          "status": "passed",
+          "title": "rejects thread/resume before dispatch",
+          "duration": 0.25490000000002055,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["archived native replay preparation"],
+          "fullName": "archived native replay preparation rejects command/exec before dispatch",
+          "status": "passed",
+          "title": "rejects command/exec before dispatch",
+          "duration": 0.18919999999997117,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["archived native replay preparation"],
+          "fullName": "archived native replay preparation rejects unsupported versions before reading fixture files",
+          "status": "passed",
+          "title": "rejects unsupported versions before reading fixture files",
+          "duration": 0.2270000000000323,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["archived native replay preparation"],
+          "fullName": "archived native replay preparation compiles official int64 schemas and rejects malformed requests",
+          "status": "passed",
+          "title": "compiles official int64 schemas and rejects malformed requests",
+          "duration": 32.812599999999975,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        }
+      ],
+      "startTime": 1794122657519,
+      "endTime": 1794122657560.8125,
+      "status": "passed",
+      "message": "",
+      "name": "E:/code/chainlesschain/.worktrees/codex-cold-scan-evidence/packages/cli/__tests__/unit/codex-app-server-archived-replay.test.js"
+    },
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": ["history probe resource cleanup"],
+          "fullName": "history probe resource cleanup closes a real provider and every client after stop rejects, retaining the original failure",
+          "status": "passed",
+          "title": "closes a real provider and every client after stop rejects, retaining the original failure",
+          "duration": 18.610500000000002,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["history probe resource cleanup"],
+          "fullName": "history probe resource cleanup closes the real provider while a child shutdown is still pending",
+          "status": "passed",
+          "title": "closes the real provider while a child shutdown is still pending",
+          "duration": 2.5480999999999767,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["history probe resource cleanup"],
+          "fullName": "history probe resource cleanup fails an otherwise successful run on cleanup errors and tolerates an unstarted server",
+          "status": "passed",
+          "title": "fails an otherwise successful run on cleanup errors and tolerates an unstarted server",
+          "duration": 0.7874999999999943,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["history probe resource cleanup"],
+          "fullName": "history probe resource cleanup bounds a client whose stop never settles without delaying provider cleanup",
+          "status": "passed",
+          "title": "bounds a client whose stop never settles without delaying provider cleanup",
+          "duration": 1.7697000000000003,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["Codex history probe scope"],
+          "fullName": "Codex history probe scope defaults to the database contract and requires an explicit scan-repair scope",
+          "status": "passed",
+          "title": "defaults to the database contract and requires an explicit scan-repair scope",
+          "duration": 0.27299999999999613,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["Codex history probe scope"],
+          "fullName": "Codex history probe scope rejects unsupported scope \"all\" before inspecting source or starting a process",
+          "status": "passed",
+          "title": "rejects unsupported scope \"all\" before inspecting source or starting a process",
+          "duration": 7.88839999999999,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["Codex history probe scope"],
+          "fullName": "Codex history probe scope rejects unsupported scope \"\" before inspecting source or starting a process",
+          "status": "passed",
+          "title": "rejects unsupported scope \"\" before inspecting source or starting a process",
+          "duration": 0.5116000000000156,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["Codex history probe scope"],
+          "fullName": "Codex history probe scope rejects unsupported scope \"rollout\" before inspecting source or starting a process",
+          "status": "passed",
+          "title": "rejects unsupported scope \"rollout\" before inspecting source or starting a process",
+          "duration": 0.3474999999999966,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["Codex history probe scope"],
+          "fullName": "Codex history probe scope rejects inherited object names as CLI options",
+          "status": "passed",
+          "title": "rejects inherited object names as CLI options",
+          "duration": 0.4859000000000151,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["Codex history probe scope"],
+          "fullName": "Codex history probe scope keeps a cold first-page omission fatal after full reads and known-ID recovery succeed",
+          "status": "passed",
+          "title": "keeps a cold first-page omission fatal after full reads and known-ID recovery succeed",
+          "duration": 1.5585999999999842,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["Codex history probe scope"],
+          "fullName": "Codex history probe scope preserves the earliest failure and records an independent second cold case",
+          "status": "passed",
+          "title": "preserves the earliest failure and records an independent second cold case",
+          "duration": 0.19419999999999504,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["Codex history probe scope"],
+          "fullName": "Codex history probe scope does not count an unformed missing-index sample as a successful strict check",
+          "status": "passed",
+          "title": "does not count an unformed missing-index sample as a successful strict check",
+          "duration": 0.13949999999999818,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded Codex history pagination"],
+          "fullName": "bounded Codex history pagination passes opaque cursors back with the original filters and keeps chronological identities",
+          "status": "passed",
+          "title": "passes opaque cursors back with the original filters and keeps chronological identities",
+          "duration": 0.28589999999999804,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded Codex history pagination"],
+          "fullName": "bounded Codex history pagination accepts an empty terminal page",
+          "status": "passed",
+          "title": "accepts an empty terminal page",
+          "duration": 0.25200000000000955,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded Codex history pagination"],
+          "fullName": "bounded Codex history pagination preserves database and recency filters with an opaque identity cursor for tied threads",
+          "status": "passed",
+          "title": "preserves database and recency filters with an opaque identity cursor for tied threads",
+          "duration": 0.33389999999999986,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded Codex history pagination"],
+          "fullName": "bounded Codex history pagination rejects malformed history response {}",
+          "status": "passed",
+          "title": "rejects malformed history response {}",
+          "duration": 0.5101999999999975,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded Codex history pagination"],
+          "fullName": "bounded Codex history pagination rejects malformed history response {\"data\":null,\"nextCursor\":null}",
+          "status": "passed",
+          "title": "rejects malformed history response {\"data\":null,\"nextCursor\":null}",
+          "duration": 0.22779999999997358,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded Codex history pagination"],
+          "fullName": "bounded Codex history pagination rejects malformed history response {\"data\":[]}",
+          "status": "passed",
+          "title": "rejects malformed history response {\"data\":[]}",
+          "duration": 0.18600000000000705,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded Codex history pagination"],
+          "fullName": "bounded Codex history pagination rejects malformed history response {\"data\":[],\"nextCursor\":\"\"}",
+          "status": "passed",
+          "title": "rejects malformed history response {\"data\":[],\"nextCursor\":\"\"}",
+          "duration": 0.1641999999999939,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded Codex history pagination"],
+          "fullName": "bounded Codex history pagination rejects malformed history response {\"data\":[],\"nextCursor\":1}",
+          "status": "passed",
+          "title": "rejects malformed history response {\"data\":[],\"nextCursor\":1}",
+          "duration": 0.1384999999999934,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded Codex history pagination"],
+          "fullName": "bounded Codex history pagination rejects malformed history response {\"data\":[{}],\"nextCursor\":null}",
+          "status": "passed",
+          "title": "rejects malformed history response {\"data\":[{}],\"nextCursor\":null}",
+          "duration": 0.14799999999999613,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded Codex history pagination"],
+          "fullName": "bounded Codex history pagination refuses repeated identities even when a cursor advances",
+          "status": "passed",
+          "title": "refuses repeated identities even when a cursor advances",
+          "duration": 0.3266999999999882,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded Codex history pagination"],
+          "fullName": "bounded Codex history pagination refuses a repeated cursor and never issues a third request",
+          "status": "passed",
+          "title": "refuses a repeated cursor and never issues a third request",
+          "duration": 0.30930000000000746,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded Codex history pagination"],
+          "fullName": "bounded Codex history pagination refuses an empty page that claims more results",
+          "status": "passed",
+          "title": "refuses an empty page that claims more results",
+          "duration": 0.17370000000002506,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded Codex history pagination"],
+          "fullName": "bounded Codex history pagination bounds a server that keeps issuing fresh cursors",
+          "status": "passed",
+          "title": "bounds a server that keeps issuing fresh cursors",
+          "duration": 0.21450000000001523,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded Codex history pagination"],
+          "fullName": "bounded Codex history pagination rejects an invalid page bound 0 before an RPC",
+          "status": "passed",
+          "title": "rejects an invalid page bound 0 before an RPC",
+          "duration": 2.8950000000000102,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded Codex history pagination"],
+          "fullName": "bounded Codex history pagination rejects an invalid page bound -1 before an RPC",
+          "status": "passed",
+          "title": "rejects an invalid page bound -1 before an RPC",
+          "duration": 2.0156000000000063,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded Codex history pagination"],
+          "fullName": "bounded Codex history pagination rejects an invalid page bound 33 before an RPC",
+          "status": "passed",
+          "title": "rejects an invalid page bound 33 before an RPC",
+          "duration": 0.29239999999998645,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded Codex history pagination"],
+          "fullName": "bounded Codex history pagination rejects an invalid page bound 1.5 before an RPC",
+          "status": "passed",
+          "title": "rejects an invalid page bound 1.5 before an RPC",
+          "duration": 0.2533999999999992,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["Codex rollout scan observations"],
+          "fullName": "Codex rollout scan observations retains raw diagnostic errors and parameters while supported observations still reject",
+          "status": "passed",
+          "title": "retains raw diagnostic errors and parameters while supported observations still reject",
+          "duration": 0.7016999999999882,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["Codex rollout scan observations"],
+          "fullName": "Codex rollout scan observations records missing identities even when raw created_at pagination terminates normally",
+          "status": "passed",
+          "title": "records missing identities even when raw created_at pagination terminates normally",
+          "duration": 0.3556000000000097,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["Codex rollout scan observations"],
+          "fullName": "Codex rollout scan observations checks both scan directions with opaque cursors and unchanged scan and filter parameters",
+          "status": "passed",
+          "title": "checks both scan directions with opaque cursors and unchanged scan and filter parameters",
+          "duration": 1.655699999999996,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["Codex rollout scan observations"],
+          "fullName": "Codex rollout scan observations does not label a complete paged response as verified when the full query disagrees",
+          "status": "passed",
+          "title": "does not label a complete paged response as verified when the full query disagrees",
+          "duration": 0.14789999999999281,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["isolated generated rollout copying"],
+          "fullName": "isolated generated rollout copying accepts a namespaced generated rollout path while retaining its isolated root",
+          "status": "passed",
+          "title": "accepts a namespaced generated rollout path while retaining its isolated root",
+          "duration": 5.196499999999986,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["isolated generated rollout copying"],
+          "fullName": "isolated generated rollout copying copies only matching session evidence with identical bytes and digest, without a state DB",
+          "status": "passed",
+          "title": "copies only matching session evidence with identical bytes and digest, without a state DB",
+          "duration": 4.04310000000001,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["isolated generated rollout copying"],
+          "fullName": "isolated generated rollout copying rejects paths outside the isolated sessions tree and mismatched thread identities",
+          "status": "passed",
+          "title": "rejects paths outside the isolated sessions tree and mismatched thread identities",
+          "duration": 2.9868999999999915,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["isolated generated rollout copying"],
+          "fullName": "isolated generated rollout copying rejects hard-linked source rollouts",
+          "status": "passed",
+          "title": "rejects hard-linked source rollouts",
+          "duration": 2.544399999999996,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["isolated generated rollout copying"],
+          "fullName": "isolated generated rollout copying rejects a real source directory link before copying through it",
+          "status": "passed",
+          "title": "rejects a real source directory link before copying through it",
+          "duration": 3.02200000000002,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["isolated generated rollout copying"],
+          "fullName": "isolated generated rollout copying rejects a real destination directory link before copying through it",
+          "status": "passed",
+          "title": "rejects a real destination directory link before copying through it",
+          "duration": 3.249500000000012,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["failed history pagination evidence"],
+          "fullName": "failed history pagination evidence retains both raw pages when cursor validation fails",
+          "status": "passed",
+          "title": "retains both raw pages when cursor validation fails",
+          "duration": 0.9431000000000154,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["failed history pagination evidence"],
+          "fullName": "failed history pagination evidence retains both raw pages when identity validation fails",
+          "status": "passed",
+          "title": "retains both raw pages when identity validation fails",
+          "duration": 0.3380000000000223,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["failed history pagination evidence"],
+          "fullName": "failed history pagination evidence preserves the second-page timeout and its unanswered request",
+          "status": "passed",
+          "title": "preserves the second-page timeout and its unanswered request",
+          "duration": 12.641500000000008,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "history evidence with immutable transport errors"
+          ],
+          "fullName": "history evidence with immutable transport errors preserves immutable Error identity and code",
+          "status": "passed",
+          "title": "preserves immutable Error identity and code",
+          "duration": 0.32569999999998345,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "history evidence with immutable transport errors"
+          ],
+          "fullName": "history evidence with immutable transport errors preserves immutable Error identity and code",
+          "status": "passed",
+          "title": "preserves immutable Error identity and code",
+          "duration": 0.23140000000000782,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        }
+      ],
+      "startTime": 1794122657747,
+      "endTime": 1794122657830.3257,
+      "status": "passed",
+      "message": "",
+      "name": "E:/code/chainlesschain/.worktrees/codex-cold-scan-evidence/packages/cli/__tests__/unit/codex-app-server-history-probe.test.js"
+    }
+  ]
+}
