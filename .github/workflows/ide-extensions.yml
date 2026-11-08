@@ -405,9 +405,6 @@ jobs:
     if: ${{ !startsWith(github.ref, 'refs/tags/ide-jetbrains-v') }}
     runs-on: windows-latest
     timeout-minutes: 70
-    defaults:
-      run:
-        working-directory: packages/vscode-extension
     steps:
       - name: Enable Windows long paths before checkout
         if: runner.os == 'Windows'
@@ -426,6 +423,7 @@ jobs:
           path: packages/vscode-extension
 
       - name: Verify immutable candidate manifest
+        working-directory: packages/vscode-extension
         run: >-
           node scripts/vsix-release-artifact.mjs verify
           chainlesschain-ide.vsix manifest.json
@@ -436,12 +434,14 @@ jobs:
       # immutable candidate.
 
       - name: Install Extension Host test runtime
+        working-directory: packages/vscode-extension
         run: >-
           npm install --no-save --no-package-lock
           @vscode/test-electron@3.1.0 ws@8.21.2
 
       - name: Extension Host multi-root + multi-window journey (Windows stable)
         timeout-minutes: 25
+        working-directory: packages/vscode-extension
         run: >-
           node test/extension-host/run.cjs --vsix chainlesschain-ide.vsix
           --release-commit ${{ env.IDE_RELEASE_COMMIT }}
@@ -449,6 +449,7 @@ jobs:
 
       - name: Extension Host multi-root + multi-window journey (Windows minimum 1.85.2)
         timeout-minutes: 25
+        working-directory: packages/vscode-extension
         run: >-
           node test/extension-host/run.cjs --vsix chainlesschain-ide.vsix
           --vscode-version 1.85.2
