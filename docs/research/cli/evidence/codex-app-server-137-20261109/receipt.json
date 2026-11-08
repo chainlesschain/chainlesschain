@@ -1,0 +1,11 @@
+{
+    "testFiles":  6,
+    "exact167ReleaseMatrixVerified":  false,
+    "nativeThreeSystemVerified":  false,
+    "capturedAt":  "2026-11-09",
+    "command":  "npx vitest run __tests__/unit/codex-app-server-adapter.test.js __tests__/unit/codex-app-server-history-probe.test.js __tests__/unit/codex-app-server-archived-replay.test.js __tests__/unit/codex-app-server-official-schema.test.js __tests__/unit/codex-app-server-support.test.js __tests__/unit/codex-app-server-turn-probe.test.js",
+    "sourceCommit":  "2feec0d68",
+    "testsPassed":  137,
+    "schema":  "chainlesschain.codex-app-server-static-evidence/v1",
+    "testsFailed":  0
+}
