@@ -74,6 +74,7 @@
     ]
   },
   "dependencies": {
+    "@chainlesschain/session-core": "file:packages/session-core",
     "claude": "^0.1.1"
   },
   "overrides": {
