@@ -8,10 +8,14 @@
     "sourceCommit":  "73c564ed5",
     "schema":  "chainlesschain.model-input-composition-evidence/v1",
     "skipped":  18,
+    "testFile":  "packages/cli/__tests__/unit/model-input-diagnostics.test.js",
+    "fullFileCommand":  "npx vitest run __tests__/unit/model-input-diagnostics.test.js",
+    "fullFileTestsPassed":  20,
+    "fullFileTestsFailed":  0,
+    "aclMode":  "elevated Windows owner-only ACL and loopback available",
     "fullFileEnvironmentBoundary":  {
-                                        "failure":  "EACCES 127.0.0.1",
-                                        "codeCoverageClaimed":  false,
-                                        "existingLoopbackTests":  2
-                                    },
-    "testFile":  "packages/cli/__tests__/unit/model-input-diagnostics.test.js"
+                                        "existingLoopbackTests":  0,
+                                        "failure":  null,
+                                        "codeCoverageClaimed":  false
+                                    }
 }
