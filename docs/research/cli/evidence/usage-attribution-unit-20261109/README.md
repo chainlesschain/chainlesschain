@@ -1,3 +1,5 @@
 # Usage attribution evidence (2026-11-09)
 
-The focused `agent-usage-attribution.test.js` unit suite passed all 12 tests at source commit `4fdf1fe6b`. The related transcript integration suite was not green in this environment: 7 of 9 cases could not create the strict Windows session store because owner-only ACL verification failed; 2 parser-only cases passed. This receipt therefore supports unit attribution behavior only, not a complete cross-entry transcript journey.
+With Windows owner-only ACL available, the focused unit and transcript integration commands passed **19/19** at source commit `878b288a6` (12 unit cases and 7 transcript cases). This verifies the current local attribution and transcript projection path; it does not claim IDE/desktop production parity or provider billing acceptance.
+
+An earlier unprivileged run with 7 ACL-blocked integration cases remains part of the historical boundary and was not reclassified as a code failure.
