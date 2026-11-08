@@ -5947,7 +5947,7 @@ async function startAgentReplInWorkspaceOwned(
         ? _mcpTaskAutoWakeQueue.shift() || null
         : null;
     if (mcpAutoWakeDelivery) {
-      input = "Continue from the verified background MCP task result.";
+      input = `Continue from the verified background MCP task result (deliveryId: ${mcpAutoWakeDelivery.deliveryId}).`;
     }
     // Backslash continuation — accumulate and re-prompt without firing a turn.
     const _cont = analyzeContinuation(input);
@@ -8903,12 +8903,30 @@ async function startAgentReplInWorkspaceOwned(
         }
         const { listDurableMcpTasks, createDurableMcpTaskRuntime } =
           await import("../lib/mcp-task-runtime.js");
+        const { readMcpTaskJournal } =
+          await import("../lib/mcp-task-journal.js");
         const requested = trimmed.slice("/mcp-watch".length).trim();
-        const records = listDurableMcpTasks(sessionId).records.filter(
+        const journal = readMcpTaskJournal(sessionId);
+        const settledAutoWake = (record) => {
+          const delivery = journal.deliveries.find(
+            (item) => item.localId === record.localId,
+          );
+          if (!delivery) return false;
+          return messages.some(
+            (message) =>
+              message?.role === "user" &&
+              typeof message.content === "string" &&
+              message.content.includes(delivery.deliveryId),
+          );
+        };
+        const { records: durableRecords } = listDurableMcpTasks(sessionId);
+        const records = durableRecords.filter(
           (record) =>
             (!requested || record.localId === requested) &&
-            !record.delivered &&
-            !_mcpTaskTrackers.has(record.localId),
+            !_mcpTaskTrackers.has(record.localId) &&
+            (!record.delivered ||
+              (process.env.CC_MCP_TASK_AUTOWAKE === "1" &&
+                !settledAutoWake(record))),
         );
         if (
           requested &&
