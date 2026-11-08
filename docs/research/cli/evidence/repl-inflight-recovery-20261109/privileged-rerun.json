@@ -1,0 +1,64 @@
+{
+    "schema":  "chainlesschain.repl-inflight-recovery-privileged-rerun/v1",
+    "capturedAt":  "2026-11-09",
+    "sourceCommit":  "011b3c916",
+    "command":  "npx vitest run --config vitest.e2e.config.js __tests__/e2e/repl-inflight-recovery-e2e.test.js -t \"keeps the old request unknown\"",
+    "execution":  "passed",
+    "testsPassed":  1,
+    "testsSkipped":  1,
+    "aclMode":  "elevated Windows owner-only ACL available",
+    "sessionId":  "repl-inflight-recovery",
+    "completed":  true,
+    "killRequested":  true,
+    "originalCallIdSha256":  "c55bf4f18ac886c809437a6eaa077e44378e57c147135a36eaba5a1871f8f708",
+    "originalExit":  {
+                         "code":  null,
+                         "signal":  "SIGKILL"
+                     },
+    "resumedExit":  {
+                        "code":  0,
+                        "signal":  null
+                    },
+    "newProviderRequests":  1,
+    "oldProviderReplays":  0,
+    "resumeDisposition":  "new-request-admitted",
+    "visibleRecoveryNotice":  true,
+    "oldPromptPreservedBeforeKill":  false,
+    "oldPromptPreservedAfterResume":  false,
+    "requestRows":  [
+                        {
+                            "phase":  "warmup",
+                            "index":  1,
+                            "lastIsWarm":  true,
+                            "lastIsOld":  false,
+                            "lastIsNew":  false,
+                            "containsOld":  false,
+                            "containsNew":  false
+                        },
+                        {
+                            "phase":  "held",
+                            "index":  2,
+                            "lastIsWarm":  false,
+                            "lastIsOld":  true,
+                            "lastIsNew":  false,
+                            "containsOld":  true,
+                            "containsNew":  false
+                        },
+                        {
+                            "phase":  "resume",
+                            "index":  3,
+                            "lastIsWarm":  false,
+                            "lastIsOld":  false,
+                            "lastIsNew":  true,
+                            "containsOld":  false,
+                            "containsNew":  true
+                        }
+                    ],
+    "stages":  [
+                   "original-prompt",
+                   "warmup-settled",
+                   "original-request-received-and-held",
+                   "resumed-new-input-settled-or-explicitly-fenced",
+                   "resumed-clean-exit"
+               ]
+}
