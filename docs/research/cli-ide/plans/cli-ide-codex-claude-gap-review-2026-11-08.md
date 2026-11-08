@@ -325,3 +325,7 @@ Read-only GitHub verification of workflow run `42509137812` found successful Win
 ### 2026-11-09 IDE Extensions CI readback
 
 Read-only GitHub verification of IDE Extensions run `42505953777` found successful JetBrains real-host jobs on Linux, Windows, and macOS for IntelliJ 2024.2 and 2025.2. The jobs ran deterministic chat/control/resume plus canonical recovery/Stop journeys and uploaded host evidence; browser evidence also passed on all three systems. VS Code host gates were skipped. The run is bound to older commit `4e4b421bfb42e524f071c9ad70c2a2a2ce607374`, so it strengthens the historical cross-platform IDE baseline without closing current-HEAD or VS Code bridge acceptance. Evidence: `../cli/evidence/ide-extensions-ci-42505953777-20261109/`.
+
+### 2026-11-09 VS Code Host rerun
+
+The repository Extension Host runner was rerun on the current local `main` worktree using the packaged VSIX from the previous live attempt, VS Code 1.145.2, a fresh profile, and `--host-api-only`. The installed VSIX was discovered and activated, and the extension log recorded `bridge up on 127.0.0.1:65215`. The runner's same-host TCP probe then timed out on the advertised port. This reproducibly separates packaging/activation from the unresolved loopback bridge gate; it does not close Item 7. Evidence: `../cli/evidence/vscode-live-extension-host-rerun-20261109/`.
