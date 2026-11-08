@@ -583,6 +583,8 @@ VS Code 更新连接配置时，`_reloadLlmConfig()` 会停止各聊天中的存
 
 证据：[MCP 延迟与搜索](../../../../packages/cli/src/runtime/mcp-tool-search.js)约 286、458 行；[上下文 ledger](../../../../packages/cli/src/lib/context-source-ledger.js)约 134 行；[现有 benchmark](../../../../packages/cli/scripts/implementation-plan-context-benchmark.mjs)。对照：[Claude MCP 工具发现](https://code.claude.com/docs/en/mcp)。
 
+**合成规模补测（2026-11-08）。** 当前 benchmark 已在真实 loader / MCP deferral 代码上完成 200、1000、5000 个 MCP tool definition 的精确 schema 选择、懒加载 body 和目录 token 测量；三档均通过独立 verifier。5000 档的 skill fixture 按生产文件预算固定为 1000 个，报告不测 provider usage、Recall@5、误调用率、真实任务 A/B 或账单。原始报告与边界见[MCP context benchmark](../../cli/evidence/mcp-context-benchmark-20261108/README.md)；这些结果补齐规模证据，不替代真实 provider 费用和质量验收。
+
 ### 4.8 Memory 性能：已有索引，继续减少无关读取与同步工作
 
 **事实。** Memory 默认仍走 `validate-disk`；读取索引会读取字节并校验摘要，分页路径遍历分片，并在锁内执行部分操作。已有 `verified-memory` 显式缓存模式，不应再次立项“增加缓存”。
