@@ -1,0 +1,3 @@
+﻿# Codex 0.164 scan-repair rerun (2026-11-09)
+
+The current history probe was executed against the local official Codex 0.164.0 fixture with `--scope scan-repair` and the exact source commit recorded in `report.json`. The strict run failed as intended: the first ascending cold scan returned one of two expected thread identities, so `cold-asc:first-scan` remained failed even though later full-read and known-ID recovery observations continued. The report preserves the request boundary, pagination evidence, and failure reason; this is a negative compatibility receipt, not a native `.167` or production-admission claim.
