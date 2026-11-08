@@ -12,7 +12,7 @@
 
 | 对应项                          | 当前状态                                                                        | 剩余完成证据                                                       |
 | ------------------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| Item 2: actual input and attribution | CLI/VS Code projections, model-input composition, usage attribution, and Volcengine live evidence verified; current-main project-goal task matrix 2/2 passed | Partial | Complete failure attribution and dual-IDE journey remain open |
+| Item 2: actual input and attribution | CLI/VS Code projections, model-input composition, usage attribution, and Volcengine live evidence verified; current-main project-goal task matrix 2/2 passed with runtime boundary attribution | Partial | Dual-IDE journey remains open |
 | Item 3: lifecycle recovery | Current HEAD compaction/restart 4/4, side-effect ledger resume 12/12, and REPL in-flight recovery 2/2 | Partial | Dual-IDE recovery and complete cross-entry journey remain open |
 | Item 4: MCP Tasks | Durable runtime, original-session delivery, deliveryId recovery, lease-bound watch, and opt-in REPL auto-wake verified | Partial | Third-party service, model continuation, dual IDE/desktop, and multiplatform journey remain open |
 | Item 5: cost, context, and paid admission | Volcengine live probe, output-cap check, usage capture, official price snapshot, and unknown settlement boundary verified | Partial | Invoice reconciliation, native-currency settlement integration, and formal paid admission remain open |
