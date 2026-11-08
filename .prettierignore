@@ -184,3 +184,5 @@ docs/research/cli-ide/implementation/evidence/model-input-mapping-20261108/**
 
 # Preserve raw measured Memory evidence bytes bound by manifest.json
 docs/research/cli/evidence/memory-3116842b-2026-11-08/*.json
+# Preserve source-bound local semantic validation receipts and raw pack output.
+docs/cli/evidence/local-memory-semantic-20261108/*.json

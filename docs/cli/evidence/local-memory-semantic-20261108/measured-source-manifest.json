@@ -1,0 +1,116 @@
+{
+  "schema": "chainlesschain.local-semantic-implementation-evidence/v1",
+  "baseCommit": "3116842b0fdc5d5c6c747a404bf37b18fb8206c9",
+  "uncommitted": true,
+  "measuredAt": "2026-11-08T05:48:02.177Z",
+  "sources": [
+    {
+      "path": ".github/workflows/context-memory-kernel.yml",
+      "bytes": 8151,
+      "sha256": "456749edb31ef28e10d6b010659405545b5dfbdb6b692788c7423c82856fa877"
+    },
+    {
+      "path": "docs/cli/LOCAL_MEMORY_SEMANTIC.md",
+      "bytes": 8776,
+      "sha256": "7d336418a29735daeddd8d75792c3ce9496ee6ce734b3210802144cf543a95a7"
+    },
+    {
+      "path": "docs/cli/PROCESS_SPAWN_INVENTORY.generated.md",
+      "bytes": 130598,
+      "sha256": "977ba915ebbe613b6c1079ba52d03739dcb9a76a945b4a71921f758c8324f098"
+    },
+    {
+      "path": "packages/cli/src/lib/context-memory-kernel/local-semantic-source.js",
+      "bytes": 12702,
+      "sha256": "8351c4fae20f6dba18856290052a7e660754903f633413f8c30e6e3b7451b048"
+    },
+    {
+      "path": "packages/cli/src/lib/context-memory-kernel/local-semantic-worker.py",
+      "bytes": 4891,
+      "sha256": "2220631cf020a1d428bbf8d9159b1a4d9a542a8e48b3d53f55902ed90cc45ff9"
+    },
+    {
+      "path": "packages/cli/src/lib/context-memory-kernel/runtime.js",
+      "bytes": 3521,
+      "sha256": "1aaaaba7980ae4284371dc85cd42f8d3823ce845df63b0ee4bceaf1266bca939"
+    },
+    {
+      "path": "packages/cli/src/lib/context-memory-kernel/memory-service.js",
+      "bytes": 23310,
+      "sha256": "22eee2eb0cb3ef972bce135d7ffcd3bf36eb5693ef3a2c8439945810f41cfc05"
+    },
+    {
+      "path": "packages/cli/src/lib/context-memory-kernel/provider-context.js",
+      "bytes": 19871,
+      "sha256": "c8becb901ca6e688e589dc96d67772fc7627a13cd66eb21686a4a93a2f930383"
+    },
+    {
+      "path": "packages/cli/test-node/local-memory-semantic.node-test.mjs",
+      "bytes": 18842,
+      "sha256": "30ecff71a71f442e4cc1a6ea23a3d80d8458a35e69735bce850a666da4e32005"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": ".tmp/local-semantic-contract-tests.log",
+      "bytes": 3812,
+      "sha256": "06175cbdfd989134601864c3b34dcd11745906c1456b1f4183e554f3ac05db78"
+    },
+    {
+      "path": ".tmp/local-semantic-pack.json",
+      "bytes": 195162,
+      "sha256": "f3adbf7fdfb302c6c08a19036be928f3cb1edc7102b49d205af7ccb3fd8eadda"
+    },
+    {
+      "path": ".tmp/local-semantic-real-smoke-20261108/state.json",
+      "bytes": 8255,
+      "sha256": "112fcbef85a59ebc9e8419683774ae0042d2a907ed189b2e7da5c0f949aba8e4"
+    },
+    {
+      "path": ".tmp/local-semantic-real-smoke-20261108/smoke.stdout.log",
+      "bytes": 208,
+      "sha256": "fe66759587ba486b7998216e59b76fad87eaceae170109fd0a81aeec0dd1d5bb"
+    },
+    {
+      "path": ".tmp/local-semantic-real-smoke-20261108/smoke.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "contractTests": {
+    "command": "node --test packages/cli/test-node/local-memory-semantic.node-test.mjs",
+    "passed": 17,
+    "failed": 0,
+    "skippedRealModel": 1
+  },
+  "pack": {
+    "command": "npm pack --dry-run --ignore-scripts --json --workspace packages/cli",
+    "workerIncluded": true,
+    "published": false,
+    "refreshedAt": "2026-11-08T05:50:44.673Z",
+    "refreshReason": "Earlier pack manifest preceded the final source changes; refreshed without changing any of the nine frozen sources.",
+    "previousManifests": [
+      ".tmp/local-semantic-pack.before-refresh-20261108T055040810Z.json"
+    ],
+    "sourceAndWorkerSizesVerified": true
+  },
+  "realModelSmokeRun": true,
+  "qualityAccepted": false,
+  "performanceAccepted": false,
+  "wholeGapClosed": false,
+  "realModelSmoke": {
+    "passed": true,
+    "smokeExitCode": 0,
+    "launcherExitCode": 0,
+    "threeProductionEntries": true,
+    "model": "BAAI/bge-base-en-v1.5",
+    "modelRevision": "a5beb1e3e68b9ab74eb54cfd186867f64f240e1a",
+    "cpuThreads": 2,
+    "completedAt": "2026-11-08T05:58:51.2807834Z",
+    "sourceIdentityMatch": true,
+    "semanticOffControl": true,
+    "realWorkersAsserted": 3,
+    "semanticEvidenceAsserted": true,
+    "paidProviderCallsRequested": false
+  }
+}
