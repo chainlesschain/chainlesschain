@@ -15,7 +15,7 @@
 | 第 2 项：实际输入诊断和任务归因 | CLI、VS Code、JetBrains 已绑定白名单逐来源投影；原生入口已有                    | 完整原生旅程、真实独立任务和完整失败归因待完成                     |
 | 第 3 项：任务生命周期恢复       | 已有局部实现，完整旅程未结案                                                    | CLI / 双 IDE、压缩、崩溃窗口、并发输入及副作用核对                 |
 | 第 4 项：MCP Tasks              | durable CLI 离线列表、单次原会话交付、显式续跑及 Windows DPAPI 崩溃恢复已验证   | 模型后台跟踪 / 自动唤醒、双 IDE / 桌面、真实服务及多平台验收待完成 |
-| 第 5 项：成本、上下文与付费准入 | 现有估算和准入限制保留                                                          | 实际请求和用量归因、真实任务 A/B；目标生产范围另行准入             |
+| 第 5 项：成本、上下文与付费准入 | 已有有限真实 provider 请求、usage 字段和 A/B 回执；账单仍未核验                 | 更完整真实任务 A/B、账单归因；目标生产范围另行准入                 |
 | 第 6 项：Codex 与模型兼容       | .167 官方 schema、130 项专项及 Windows turn / 数据库恢复已验证；冷升序 1/2 失败 | 三系统准确提交 CI 排队；冷扫描支持边界及模型变化闭环待完成         |
 | 第 7 项：IDE / 桌面旅程         | 待补完整验收                                                                    | 干净安装、模型切换、Stop、恢复、升级及真人可访问性                 |
 | 第 8 项：Memory                 | 已合入离线语义质量评测和输入完整性校验；完整生产验收仍未结案                    | 新源码独立正确性、冷 / 热 / 混合 SLO、真实语义质量及跨平台证据     |
@@ -210,3 +210,5 @@ Claude Code 的 MCP Tasks 当前处于公开测试阶段，可在服务端受理
 第 2 项现已把 CLI 的逐来源规划 / 逻辑映射 / 协议正文映射投影接入 VS Code 和 JetBrains 的只读解析器：仅保留 digest、索引、状态、原因、协议路径和字节等白名单字段，拒绝任意正文、未知路径和越界数组。VS Code 回归为 **10/10 通过**；JetBrains 纯 JDK 解析源在本机 JDK 17 下 javac --release 17 通过。真实 canonical 双 IDE 任务旅程、真人可访问性和 provider 账单仍未验收。
 
 第 4 项原生 Windows 回执已更新为 native-rerun-current.json：新增真实产品 CLI `mcp tasks list --session <id> --json` 离线读取并核对已保存 / 已交付记录，offlineProductCliVerified:true，同时保留受理后、结果保存后和交付后 SIGKILL、DPAPI 恢复及重复交付去重。modelContinuationVerified:false 仍明确表示模型后台自动跟踪 / 唤醒尚未接入。
+
+第 5 项当前证据边界已细化：有限 Volcengine provider 回执包含每次请求的 input/output/cache usage 和 deferred/full A/B 结果，并核对目标工具、错误调用及响应摘要；但项目仍把 billingVerified 标为 false，因为 provider 返回的 usage 不能替代实际账单或正式付费准入。
