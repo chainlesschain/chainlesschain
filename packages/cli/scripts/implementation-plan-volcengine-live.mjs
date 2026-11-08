@@ -244,6 +244,26 @@ export async function runVolcenginePlanDiagnostic(diagnosticOptions = {}) {
       );
       report.checks.at(-1).deltas = deltas;
     });
+    await check("provider-output-cap", async () => {
+      const result = await call(
+        [
+          {
+            role: "user",
+            content:
+              "Write a long numbered list from 1 to 100. Continue until complete.",
+          },
+        ],
+        { maxOutputTokens: 1 },
+      );
+      const row = report.requests.at(-1);
+      assert.equal(row.requestedMaxOutputTokens, 1);
+      assert.ok(result.usage.output_tokens <= 1);
+      report.checks.at(-1).requestedMaxOutputTokens = 1;
+      report.checks.at(-1).observedOutputTokens = result.usage.output_tokens;
+      report.checks.at(-1).providerStopReason =
+        result.message.finish_reason || result.message.stop_reason || null;
+      report.outputUpperBoundVerified = true;
+    });
     await check("read-only-tool-roundtrip", async () => {
       const messages = [
         {
@@ -401,7 +421,7 @@ export async function runVolcenginePlanDiagnostic(diagnosticOptions = {}) {
       : estimatedSpend;
     report.finishedAt = new Date().toISOString();
     report.passed =
-      report.checks.length === 4 &&
+      report.checks.length === 5 &&
       report.checks.every((row) => row.status === "passed");
     save();
     const fixturePath = path.resolve(root);
