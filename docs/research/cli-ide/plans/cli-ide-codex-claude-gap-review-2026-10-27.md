@@ -98,6 +98,8 @@ Windows独立profile首轮已退出1：真实VSIX安装与激活成功，多窗�
 
 **完整查询批次及真实语义接线实跑（2026-11-08 05:59 UTC）。** 固定3116842查询进程退出0，1200/1200样本独立复核通过，100K冷/热/重建/损坏p95为400.745/50.711/4759.601/3950.877ms；原始报告与审计见[本批归档](../../cli/evidence/memory-3116842b-2026-11-08/README.md)。原PowerShell后续队列因File.Replace备份路径错误退出1，尚未启动下游；新Node队列74479从Stop续跑，随后mixed/compound，不重跑查询。真实离线BGE三生产入口烟测1/1通过，原等待器与smoke均退出0，九源码前后相同，完整质量与性能仍未验收。已定位REPL在usage started落盘、响应尚未返回时崩溃的缺失旅程；Astra在独立分支准备真实loopback/kill/resume测试，尚未运行。
 
+**REPL 在途请求最终实跑（2026-11-08）。** 准确提交 7f8847c6b01db0397a321ec6a853801787cb5855 的测试源在最终提交后重新执行，真实 loopback CLI/readline/Evolution/JSONL 旅程退出0；提交后111份证据及7份测量源码blob复核通过。硬杀持有中的旧请求后恢复同一session并输入新任务，旧provider重放0、新请求1，旧call保持 model-usage-unsettled，已知tokens从15增至30，提示绑定session/call并要求inspect/reconcile后显式重提；billingComplete=false，scope authority缺失时拒绝。旧prompt不进入恢复后的provider历史，因此预派发输入持久化仍明确未完成；OS PTY、双IDE和跨平台恢复也未因此完成。证据见REPL在途恢复文档及 docs/cli/evidence/repl-inflight-recovery-20261108/。
+
 **Stop独立审计（2026-11-08 06:02 UTC）。** 固定3116842的Stop进程退出0，三档×两模式各100次，共600样本全部达到原500ms投递/确认上限：580次实际取消，20次在10ms时限前完成；均无锁残留、无晚完成，authority未变。根逐样本核对并与隔离树11份源码摘要匹配；100K validate-disk投递/确认p95为0.693/1.444ms。原始报告及审计追加到[本批归档](../../cli/evidence/memory-3116842b-2026-11-08/README.md)。混合阶段仍在原句柄74479运行，尚未验收。云端旧3116842运行42451059279的12作业本次回读为cancelled；当前文档提交6f9672380的Memory42452517512及CLI CI42452517514仍queued，不作为通过证明。
 
 **混合三档完整批次（2026-11-08 06:09 UTC）。** 原进程退出0、报告complete=true；1K/10K/100K各100轮，四读、两更新、两删除/清除在IPC barrier后实际重叠。根独立审计300轮/2400 worker结果，核对13份源码摘要、逐轮6个连续提交版本、读版本范围、同轮删除可见性及worker close。基准另执行全量records/events最终参考断言；归档保留压缩原始报告及独立审计。100K读/锁等待p95为1816.706/1333ms；此为本机混合工作负载，不证明跨平台或完整Memory SLO。句柄74479继续执行组合查询，尚未完成。
