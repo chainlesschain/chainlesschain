@@ -175,6 +175,9 @@ jobs:
     steps:
       - name: Enable Windows long paths before checkout
         if: runner.os == 'Windows'
+        # Job-level defaults point at the checked-out extension directory,
+        # which does not exist until checkout has completed.
+        working-directory: .
         run: git config --global core.longpaths true
       - uses: actions/checkout@v5
         with:
