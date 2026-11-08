@@ -1,0 +1,3 @@
+﻿# Current HEAD Codex native 0.164 rerun (2026-11-09)
+
+The current `main` source commit `e1cde771c4f3c5508567a0f843184e5b38196698` was rerun with the local official Codex 0.164.0 Windows x64 binary. The real native turn probe passed completed/failed/interrupted scenarios, approval cancellation, interleaved threads, and post-admission transport loss. The database scope passed process restart, same-second thread pagination, turn pagination, settings restoration, and no replay of a completed request. Both receipts use a synthetic loopback provider and explicitly do not prove `.167`, real-provider quality, or production admission.
