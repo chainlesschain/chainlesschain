@@ -196,3 +196,5 @@ Claude Code 的 MCP Tasks 当前处于公开测试阶段，可在服务端受理
 第 2 项跨阶段来源映射实现提交 e94c1f49bb3dafc83dcb4cabd4fff48c98e776a4，见[后续实施记录](../implementation/cli-ide-model-input-mapping-progress-2026-11-08.md)：规划私有请求摘要、签名投影位置、Chat / Responses / Anthropic / Ollama 转换位置共同绑定实际准备的 HTTP 正文。17 文件最终回归 182 项通过；完整 production composition 文件在独立单实例依赖布局下 288 项通过；基线与首次失败分别保留。没有将部分来源截断报为完整覆盖，双 IDE 新明细及真实独立任务仍待完成。
 
 当前主分支随后复核了模型输入诊断、来源映射、会话查询和 Agent Evolution 组合的 4 个 CLI 测试文件，最终结果为 **331/331 通过**。组合用例运行中打印的受控拒绝（ask evidence denied、response evidence denied、Run 绑定失败）均由测试验证错误边界，最终没有转化为失败项；该结果仍不替代双 IDE 的真实独立任务、逐来源完整映射和真实账单核验。
+
+当前主分支的 VS Code 模型输入诊断单测进一步复核为 **9/9 通过**，覆盖命令注册、参数注入防护、白名单投影、会话切换和异步文档竞态。JetBrains 同名 Gradle 单测在本机无法连接 Gradle daemon（daemon 监听本机回环端口后客户端连接失败），保留为环境阻断，不把既有 JUnit/直接 SDK 回执扩大为当前主分支 Gradle 通过；双 IDE 真实 canonical 任务旅程仍未完成。
