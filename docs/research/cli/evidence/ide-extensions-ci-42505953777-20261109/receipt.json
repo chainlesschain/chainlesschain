@@ -1,0 +1,20 @@
+{
+  "schema":"chainlesschain.ide-extensions-ci-evidence/v1",
+  "runId":42505953777,
+  "headSha":"4e4b421bfb42e524f071c9ad70c2a2a2ce607374",
+  "workflow":"IDE Extensions",
+  "conclusion":"success",
+  "jetbrainsRealHosts":{
+    "ubuntu-2024.2":"success",
+    "ubuntu-2025.2":"success",
+    "windows-2024.2":"success",
+    "windows-2025.2":"success",
+    "macos-2024.2":"success",
+    "macos-2025.2":"success"
+  },
+  "jetbrainsJourneys":["deterministic chat/control/resume","canonical recovery and Stop"],
+  "browserEvidence":{"linux":"success","windows":"success","macos":"success"},
+  "vscodeHostGates":{"linux":"skipped","windows":"skipped","macos":"skipped"},
+  "currentHeadVerified":false,
+  "remoteMutation":false
+}
