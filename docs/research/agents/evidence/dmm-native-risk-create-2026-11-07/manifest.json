@@ -1,0 +1,111 @@
+{
+  "schema": "chainlesschain.dmm-native-risk-create-evidence/v1",
+  "candidateSha": "8cd5ac2040d511575b75fb3d1450a758e28cbfa9",
+  "sourceSnapshots": {
+    "8cd5ac2040d511575b75fb3d1450a758e28cbfa9": {
+      "package.json": "15d8cfea40b493cc4c888a227d6bc3a405929c2305da4a0de96fbe423483ae6d",
+      "package-lock.json": "fdc7b76a38b1bb4df29af072885997035ef399e23572fa9cbe5a64637909936a",
+      "desktop-app-vue/package.json": "8eb11bff02deecfb91ade8da5956e24dd21a7adc95d6b627b3f0307b96bdc187",
+      "desktop-app-vue/package-lock.json": "a8b73b46b0313f26a2861a3d6167424d367ea73db75de25b8457d379c346a41b",
+      ".github/workflows/dmm-native-goal-creation.yml": "46e1ba26a00cd415a963cfd154f9492dc2f607091663bbcd801022b9e68667ef",
+      ".github/workflows/dmm-native-goal-journey.yml": "2c8ce2cddbd37c5a63011a72f6aaaa3df3606c76827f62089061044737e3863c",
+      ".github/workflows/dmm-native-goal-workspace.yml": "f9cc5c07aa49d90f0250e137c7129968a912ee140cac16852b777d0d2655ec77",
+      ".github/workflows/dmm-project-host.yml": "3c9394578c8442ba9a1cb89fbb5a6e975fac64714074ae5da9fe9f428bd29664",
+      "desktop-app-vue/scripts/project-goal-native-journey.mjs": "8e8e1fdba81ecf29d463cc4e609b764e78735ee8446c79fe5f33f39eeee15e02",
+      "desktop-app-vue/scripts/lib/project-goal-risk-create-journey.cjs": "310714ad1c7d5986561394438786373abfd48b6b3921e5a7a05f8c274e28cfbd",
+      "desktop-app-vue/scripts/lib/project-goal-workspace-journey.cjs": "4a0c7923d6d808dc9bbdaa8c35054531a5ac2bb203aaf3e455305bbfbc4b6fe7",
+      "desktop-app-vue/scripts/lib/project-goal-native-dialog.cjs": "31e7861a76dc5d5ac8ffe29c7f0f3982c2a9deb894f9ed30c658c40a58acb729",
+      "desktop-app-vue/scripts/lib/project-goal-native-dialog.ps1": "c3617b8f73bf06f094d2f45454698d5aa2696cc57432256745b8af13060aac8e",
+      "desktop-app-vue/scripts/lib/project-goal-journey-observer.cjs": "f048972465bf9e6131aa9984e91f75063e07bee7268f3a26d3b4495c400513fc",
+      "desktop-app-vue/src/main/task/project-goal-ipc.js": "59f10d037d016db145a7f66be1b01ce75b70bed515d7b6c84e1693673ab4628e",
+      "desktop-app-vue/src/main/task/task-description-ipc.js": "e0c070f074fe8d6de06f0dc84046edd425fd45aa103834e9064884e9e13c8372",
+      "desktop-app-vue/src/main/task/project-goal-monitoring-host.js": "051e075d21bb6e68c75542cb776ed55c8558d7be3a02616874b7e9ac858d6eff",
+      "desktop-app-vue/src/renderer/components/projects/ProjectGoalActionsPanel.vue": "2b45315324188e1fa3db569c8bfed6abb8142e18a9c214c47be7737655f057d7",
+      "desktop-app-vue/src/renderer/components/projects/ProjectGoalMonitoringPanel.vue": "847a6e6634beb2d473658c85bfd7f6c390d65093bcd26ad4543aaa950694b99f",
+      "packages/session-core/lib/project-goal-workflow.js": "fbace8bc8c95f0067a65f21a7b783e9b554ca304b5cb1721c350b1229238004a",
+      "packages/session-core/lib/task-description-action-service.js": "7b6d7ad0f1144342273e179f98a6236b3cc393c1521e6b9e359445108444eef8",
+      "packages/session-core/lib/project-risk-review-service.js": "95b2739b2c4c411b4cec308eb884c7e3286874c8e4899fefec2d3e4e02d8e991",
+      "packages/session-core/lib/business-object-contract.js": "2ff7af4d125ab4e585277f2308e454bbfc81929cabeab07465fb23af69adf133",
+      "desktop-app-vue/src/main/task/project-goal-native-database.js": "932fc6473e599b7450fcd0cb9aebbb9eb0f13a650a79d88567984d19a3ca9338",
+      "desktop-app-vue/src/main/database/sqlcipher-wrapper.js": "5f50415f97b7080af43d0c8641fcadc50af2f651d62414ba1974ac3b4ba6fa66",
+      "desktop-app-vue/src/main/task/__tests__/fixtures/project-goal-encrypted-electron.cjs": "9697583674b62e52f24452f4fc01e7ed28e526e53790c342791240b0de352094",
+      "desktop-app-vue/scripts/project-goal-encrypted-electron-probe.mjs": "890ee4a950d33eb9678287cf8660b8a5a6e26e2e8a478c5f5be57cc5eebceb91"
+    }
+  },
+  "files": {
+    "candidate-workflows/dmm-native-goal-creation.yml": "46e1ba26a00cd415a963cfd154f9492dc2f607091663bbcd801022b9e68667ef",
+    "ci/baseline/dmm-encrypted-goal-preflight.json": "f796ac7c1172726809a282b2a81840dd4db25a11a1d955fd1a80f842abd6ccc7",
+    "ci/baseline/dmm-native-goal-journey/journey.json": "07ce9fd62acdf617f25100e16f8a911abcd6ed5409c5bd5ceb220d65c1fc5d0b",
+    "ci/baseline/dmm-native-goal-journey/stopped.png": "27272197adfb8f096d36f240730639a855285b00eebd25f34c13dd80e51f3252",
+    "ci/creation/dmm-encrypted-goal-preflight.json": "24b7566b11150a7fb6b5dd8ceaad135deced69cfcfc1b4407c30e2a31febc72e",
+    "ci/creation/dmm-native-goal-creation/journey.json": "8172af256628b376849403f8edbcb61e49708f0aa10ef25f5d18c4bc1f38179b",
+    "ci/creation/dmm-native-goal-creation/risk-created-task.png": "a0de300f1a647a057f72c9a93c8803b0a006acf9b20b9b6d93633df69092e9cd",
+    "ci/creation/dmm-native-goal-creation/stopped.png": "ee3ef784cde5e391134bb476d0e2365849f7b95cc105554e72a784fbf87e91c9",
+    "ci/creation/dmm-native-goal-creation/workspace-memory-notifications.png": "c06c2b460ee7d212ac7ced0f6c709142226ea330aefda93d35e8d728766784d4",
+    "ci/creation/dmm-native-goal-creation/workspace-notice-open.png": "1b1b336efa47399447d1f392d85ae8c6532366d866094e87e7493edc0a63a3fc",
+    "ci/host/dmm-project-host-macos-latest-8cd5ac2040d511575b75fb3d1450a758e28cbfa9-1/dmm-host.json": "6bbfbd706f454ed966a39741c860de154ce50329e6c200c5bf0d89f4529b934e",
+    "ci/host/dmm-project-host-macos-latest-8cd5ac2040d511575b75fb3d1450a758e28cbfa9-1/dmm-organization-host.json": "4563b309ff911c973abd3330e2d91664205a5ea3f6854b292c5f46c599362f2c",
+    "ci/host/dmm-project-host-macos-latest-8cd5ac2040d511575b75fb3d1450a758e28cbfa9-1/dmm-renderer.json": "cb1b55d23affe75abb1d3d7463158483061834cb950322d6bbe00e91f9901049",
+    "ci/host/dmm-project-host-ubuntu-latest-8cd5ac2040d511575b75fb3d1450a758e28cbfa9-1/dmm-host.json": "bbb7580e3f1911a5025992d1aa6e422e5b8e3152cc60bfdec24513d90b07096f",
+    "ci/host/dmm-project-host-ubuntu-latest-8cd5ac2040d511575b75fb3d1450a758e28cbfa9-1/dmm-organization-host.json": "a8a4168ddc1563899e0de03868a54a94575a0934daa31768494c17127befbaf8",
+    "ci/host/dmm-project-host-ubuntu-latest-8cd5ac2040d511575b75fb3d1450a758e28cbfa9-1/dmm-renderer.json": "95797996803e46c658e90d618aabe44d540a99da21576596a7b7290f27eba142",
+    "ci/host/dmm-project-host-windows-latest-8cd5ac2040d511575b75fb3d1450a758e28cbfa9-1/dmm-host.json": "f1ff254b298a818fc1acc89963f324e516d7b9faf1a87341b22ecfeb3609cb36",
+    "ci/host/dmm-project-host-windows-latest-8cd5ac2040d511575b75fb3d1450a758e28cbfa9-1/dmm-organization-host.json": "8c6504dc8c1b7747307a08664811785d386ee49effcb5c7354c124b5b48b483a",
+    "ci/host/dmm-project-host-windows-latest-8cd5ac2040d511575b75fb3d1450a758e28cbfa9-1/dmm-renderer.json": "e6dae8a038eb1ee538dcc7375a13185d506587d4c2cd23145483a4c13dc7c5ab",
+    "ci/runs/42303362264-artifacts.json": "97b36019b8a88c03fb97d8452fc80e6b1119809fc369bc968f51319d6c31b481",
+    "ci/runs/42303362264.json": "b3595af3f68ba495813e30cac638bb3b4cce0f8a0ae1a813bad01cf3df4b2132",
+    "ci/runs/42303362268-artifacts.json": "e6083cf3a0fed8b292fb51cc6e6c996bc6b551cd23bef349721e5ddcfc9c2848",
+    "ci/runs/42303362268.json": "ebe1f0c689c70bb0b6c60fb70b69162e0476e67118830b161e1b801ee2b29993",
+    "ci/runs/42303362279-artifacts.json": "1b3f38ea1ce16e12d3eb543608f9fd1fc9ba7902a8c250ba615651064aaf6701",
+    "ci/runs/42303362279.json": "12f6adb8e7619e50e97e127d1a5909535f087daa66ed2efdd158e42d3eed25dd",
+    "ci/runs/42303362396-artifacts.json": "974b60c8bd5c765be523f170543b47c27aa3f5d7e9566b9e782e17b9ef27fe6a",
+    "ci/runs/42303362396.json": "386509bf2910ab8793630b6a2e594796bb0e21e4c90328ca55b21e3230488339",
+    "ci/workspace/dmm-encrypted-goal-preflight.json": "c1e8bddb0235650b8622aa7b27ae0f39bbf4f7aecaf10b876a29b91577d59ff3",
+    "ci/workspace/dmm-native-goal-workspace/journey.json": "18c152001d9ad84e1a62a57cfa8c272542e088b17c50164515a3e255d3cb01b7",
+    "ci/workspace/dmm-native-goal-workspace/stopped.png": "f013f5d1282d57de628cff74f96612b43b34fb2d024b51bde1f6f2e83ac08587",
+    "ci/workspace/dmm-native-goal-workspace/workspace-memory-notifications.png": "36408d93190a101d7eb544360157d9817baf00615d7f2bfec898850d0329a051",
+    "ci/workspace/dmm-native-goal-workspace/workspace-notice-open.png": "ffd2fdf38e8b908dda1f0bdc35c330bccb43c635162d20df395436ed8678f0b0",
+    "local-candidate/journey.json": "c484243e86c764c376ae11f80ee52d721f396c1a1ab215dea157b9fae6d3f0ad",
+    "local-candidate/risk-created-task.png": "2da7ee7c2be47d94b58493bfb160a956bf7065bd67c5357780146918dfabdb9e",
+    "local-candidate/source-readback.json": "aeb0dbc160c6799b057902b92bafc418e8fa885485949d61a134b8cc9218f7c1",
+    "local-candidate/stopped.png": "30c2e698407b12330500c82ebea9c063fff160f32a8b3403362ef16039580480",
+    "local-candidate/workspace-memory-notifications.png": "8bd93ed83cb86f2d7eb89a251bc30b19d74a6cc896a28b49abeaab1a51ac1994",
+    "local-candidate/workspace-notice-open.png": "65d0a9ac5999986bce58f3318b05b9f908fa25dec50da41b06eda26b77f9c374",
+    "local-exploratory/journey.json": "684be657adfad1ab5d7790e1781090eba95208a7dd12689cfbc5878ea9696f1c",
+    "local-exploratory/risk-created-task.png": "c19a16eaf334b6461c4b6483135a02df342c19708b620e37839b2c32452a95d9",
+    "local-exploratory/stopped.png": "52e4bbd0b977cbbc6e55c286cdae062d05e20c9c5845194f6cff8c2aa333873c",
+    "local-exploratory/workspace-memory-notifications.png": "44624b27394804ebdc191dac430f2e3afd405c2cd47c90061b27d949e433f9dc",
+    "local-exploratory/workspace-notice-open.png": "54f5a4d4a8f673d177f411c702c29adca1f890174db789baece124f0bddefdbd"
+  },
+  "remoteRuns": [
+    {
+      "id": 42303362264,
+      "file": "ci/runs/42303362264.json"
+    },
+    {
+      "id": 42303362268,
+      "file": "ci/runs/42303362268.json"
+    },
+    {
+      "id": 42303362279,
+      "file": "ci/runs/42303362279.json"
+    },
+    {
+      "id": 42303362396,
+      "file": "ci/runs/42303362396.json"
+    }
+  ],
+  "hostReports": "ci/host",
+  "acceptedReports": [
+    "local-candidate/journey.json",
+    "ci/creation/dmm-native-goal-creation/journey.json"
+  ],
+  "exploratoryReports": [
+    "local-exploratory/journey.json"
+  ],
+  "synthetic": true,
+  "realBusinessAcceptance": false,
+  "installedProductAcceptance": false,
+  "liveModalPauseAcceptance": false,
+  "releaseApproval": false
+}

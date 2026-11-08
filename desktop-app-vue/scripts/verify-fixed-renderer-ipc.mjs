@@ -61,6 +61,7 @@ const retainedGovernedChannels = [
   "project:goal-cli-connection-open",
   "project:goal-cli-connection-close",
   "project:goal-cli-connection-status",
+  "project:goal-feature-status",
   "project:goal-revise",
   "project:goal-monitor-start",
   "project:goal-monitor-stop",

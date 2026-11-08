@@ -87,3 +87,7 @@ Memory 是单独选择的资料能力；确认前、输出读取和后续预览/
 - [原生产品 .145](https://github.com/chainlesschain/chainlesschain/releases/tag/v5.0.3.145)
 
 本文件为设计权威源。两个 VitePress 站点由同步脚本生成副本；三站从同一已提交文档快照构建、核对归档和页面后部署，保留旧站与回滚入口，最后核验公网源码标记及页面/资源字节。
+
+## 2026-11-07 未发行源码补充
+
+未发行源码进展：PR #539 新增 CLI 目标显式移交到原生个人项目、原字节备份/冻结及签名作废回执恢复。新目标保持暂停，不继承旧权限；需匹配分支的 CLI、Session Core 和桌面构建，公开 .143/.145 尚不包含。 `goal transfer-to-project` 与 `goal restore-transfer` 属于提交 `a2e7f17a03` 所在未发行分支，不属于本页的 .143 公开制品。见[独立设计](./cli-goal-transfer-source-2026-11-07.md)。

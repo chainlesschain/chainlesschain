@@ -27,6 +27,11 @@ for site in docs design www; do
     grep -Fq '0.166.143' "$dist/$required"
     grep -Fq '2/4' "$dist/$required"
   fi
+  case "$site" in
+    docs) test -f "$dist/design/cli-goal-transfer-source-2026-11-07.html" ;;
+    design) test -f "$dist/cli-goal-transfer-source-2026-11-07.html" ;;
+  esac
+  grep -Fq 'transfer-to-project' "$dist/$required"
   html_count="$(find "$dist" -type f -name '*.html' | wc -l | tr -d ' ')"
   file_count="$(find "$dist" -type f | wc -l | tr -d ' ')"
   test "$html_count" -ge "$minimum"
@@ -167,6 +172,7 @@ for site in docs design www; do
     grep -Fq "$version" "$prefix-origin-$site.html"
   done
   grep -Fq '2/4' "$prefix-origin-$site.html"
+  grep -Fq 'transfer-to-project' "$prefix-origin-$site.html"
 done
 grep -Fq 'v5.0.3.145' "$prefix-origin-www.html"
 grep -Fq '6 万+' "$prefix-origin-www.html"

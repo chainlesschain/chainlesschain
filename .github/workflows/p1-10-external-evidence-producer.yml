@@ -203,6 +203,9 @@ jobs:
       P1_10_PROTECTED_INPUT_MANIFEST_PATH: ${{ vars[matrix.input_manifest_path_var] }}
       P1_10_HOST_SLOT: ${{ matrix.host_slot }}
     steps:
+      - name: Enable Windows long paths before checkout
+        if: runner.os == 'Windows'
+        run: git config --global core.longpaths true
       - name: Checkout exact source and checked-in public-key registry
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:

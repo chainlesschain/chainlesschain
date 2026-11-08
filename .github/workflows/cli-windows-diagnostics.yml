@@ -42,6 +42,9 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 10
     steps:
+      - name: Enable Windows long paths before checkout
+        if: runner.os == 'Windows'
+        run: git config --global core.longpaths true
       - name: Checkout exact diagnostic commit
         uses: actions/checkout@v5
         with:
@@ -101,6 +104,9 @@ jobs:
     runs-on: windows-11-arm
     timeout-minutes: 25
     steps:
+      - name: Enable Windows long paths before checkout
+        if: runner.os == 'Windows'
+        run: git config --global core.longpaths true
       - name: Checkout diagnostic driver
         uses: actions/checkout@v5
         with:
@@ -167,6 +173,9 @@ jobs:
     env:
       CC_SECURE_FS_WINDOWS_ACL_TIMEOUT_MS: "60000"
     steps:
+      - name: Enable Windows long paths before checkout
+        if: runner.os == 'Windows'
+        run: git config --global core.longpaths true
       - uses: actions/checkout@v5
         with:
           ref: 1fe7a46c0f97b93fb5110ea3427cc8551d0dab37

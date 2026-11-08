@@ -141,6 +141,20 @@ docs/research/agents/evidence/dmm-native-workspace-2026-11-07/**/*.json
 
 docs/research/agents/evidence/dmm-native-workspace-2026-11-07/**/*.yml
 
+# Preserve native risk creation snapshots and authoritative raw CI reports.
+
+docs/research/agents/evidence/dmm-native-risk-create-2026-11-07/**/*.json
+
+docs/research/agents/evidence/dmm-native-risk-create-2026-11-07/**/*.yml
+
+# Keep raw desktop goal trial evidence byte-identical.
+docs/research/agents/evidence/dmm-goal-trial-switch-2026-11-07/**/*.json
+docs/research/agents/evidence/dmm-goal-trial-switch-2026-11-07/**/*.yml
+
+# Keep original live-modal evidence and captured exploratory source bytes.
+docs/research/agents/evidence/dmm-native-modal-revocation-2026-11-07/**/*.json
+docs/research/agents/evidence/dmm-native-modal-revocation-2026-11-07/**/*.cjs
+docs/research/agents/evidence/dmm-native-modal-revocation-2026-11-07/local/**/*.mjs
 # Preserve the unmodified official Codex 0.167.0 schema generator output.
 packages/cli/__tests__/fixtures/external-agent/codex-app-server-0.167.0-request.schema.json
 packages/cli/__tests__/fixtures/external-agent/codex-app-server-0.167.0-notification.schema.json

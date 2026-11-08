@@ -55,7 +55,9 @@ on:
       - ".github/workflows/_cli-linux-subreaper.yml"
       - ".github/actions/setup-node-deps/action.yml"
   pull_request:
-    branches: [main]
+    # DMM changes are reviewed as a stack; every candidate needs the same
+    # exact-source release gates before it is retargeted or published.
+    branches: [main, "feature/dmm-*"]
     paths:
       - ".github/workflows/_scoped-docs-check.yml"
       - "scripts/ci/scoped-docs-check.mjs"
@@ -166,6 +168,9 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
+      - name: Enable Windows long paths before checkout
+        if: runner.os == 'Windows'
+        run: git config --global core.longpaths true
       - uses: actions/checkout@v5
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -245,6 +250,9 @@ jobs:
                 : `Full code checks required at ${e.DOCS_TARGET}; original job steps follow.`
             ).write();
 
+      - name: Enable Windows long paths before checkout
+        if: runner.os == 'Windows'
+        run: git config --global core.longpaths true
       - uses: actions/checkout@v5
         if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' }}
         with:
@@ -319,6 +327,9 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
+      - name: Enable Windows long paths before checkout
+        if: runner.os == 'Windows'
+        run: git config --global core.longpaths true
       - uses: actions/checkout@v5
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}

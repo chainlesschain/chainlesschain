@@ -1837,9 +1837,21 @@ function stableBudgetEvidence(status) {
 function probeManagedProcessCapability(rootDirectory) {
   const probeRoot = path.join(rootDirectory, "platform-capability");
   const workspaceRoot = path.join(probeRoot, "workspace");
+  const probeRepository = path.join(probeRoot, "repository");
   const stateDir = path.join(probeRoot, "process-checkpoints");
-  fs.mkdirSync(workspaceRoot, { recursive: true });
-  fs.writeFileSync(path.join(workspaceRoot, "base.txt"), "before\n");
+  fs.mkdirSync(probeRepository, { recursive: true });
+  fs.writeFileSync(path.join(probeRepository, "base.txt"), "before\n");
+  git(probeRepository, "init");
+  git(probeRepository, "config", "user.name", "Agent Team Soak");
+  git(
+    probeRepository,
+    "config",
+    "user.email",
+    "agent-team-soak@example.invalid",
+  );
+  git(probeRepository, "add", "base.txt");
+  git(probeRepository, "commit", "-m", "managed worktree capability probe");
+  git(probeRepository, "worktree", "add", "--detach", workspaceRoot, "HEAD");
   const broker = new TeamProcessCheckpointBroker({
     stateDir,
     coverageTarget: "partial",
@@ -1855,7 +1867,9 @@ function probeManagedProcessCapability(rootDirectory) {
   let supported = false;
   let failure = null;
   try {
-    executionBroker.execFileSync("git", ["--version"], {
+    // A version probe cannot establish that the managed process can read a
+    // linked worktree's external Git metadata under its actual boundary.
+    executionBroker.execFileSync("git", ["status", "--porcelain"], {
       cwd: workspaceRoot,
       encoding: "utf8",
       stdio: ["ignore", "pipe", "pipe"],
@@ -1869,12 +1883,27 @@ function probeManagedProcessCapability(rootDirectory) {
     supported = true;
   } catch (error) {
     const message = String(error?.message || error);
+    const stderr = String(error?.stderr || "");
+    let metadataBoundaryRefusal = false;
+    if (
+      error?.status === 128 &&
+      stderr.includes("fatal: not a git repository:") &&
+      stderr.includes(path.join(probeRepository, ".git", "worktrees"))
+    ) {
+      // Confirm the same fixture is valid outside the managed boundary before
+      // classifying this as unsupported isolation, rather than corrupt Git.
+      git(workspaceRoot, "status", "--porcelain");
+      metadataBoundaryRefusal = true;
+    }
     failure = {
-      code: error?.code || null,
+      code: metadataBoundaryRefusal
+        ? "CC_SOAK_MANAGED_GIT_METADATA_UNAVAILABLE"
+        : error?.code || null,
       name: error?.name || "Error",
       message: message.slice(0, 500),
       messageDigest: digestText(message),
       failClosedVerified:
+        metadataBoundaryRefusal ||
         /sandbox|process.?tree|required boundar|exit 125|bwrap|seatbelt|restricted token/iu.test(
           `${error?.code || ""} ${message}`,
         ),
@@ -1899,6 +1928,9 @@ function probeManagedProcessCapability(rootDirectory) {
     !fs.existsSync(canonicalWorkspaceLockPath(workspaceRoot)),
     "managed process capability probe left its canonical workspace lock",
   );
+  git(probeRepository, "worktree", "remove", "--force", workspaceRoot);
+  fs.mkdirSync(workspaceRoot, { recursive: true });
+  fs.writeFileSync(path.join(workspaceRoot, "base.txt"), "before\n");
 
   const directStateDir = path.join(probeRoot, "direct-checkpoints");
   const directBroker = new TeamProcessCheckpointBroker({

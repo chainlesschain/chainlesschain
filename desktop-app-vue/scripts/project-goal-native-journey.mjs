@@ -16,6 +16,9 @@ const { values } = parseArgs({
     electron: { type: "string" },
     output: { type: "string" },
     workspace: { type: "boolean", default: false },
+    "risk-create": { type: "boolean", default: false },
+    "default-off": { type: "boolean", default: false },
+    "modal-revocation": { type: "boolean", default: false },
   },
 });
 if (process.platform !== "win32" || !values.electron || !values.output)
@@ -52,6 +55,7 @@ const evidence = {
   platform: process.platform,
   release: os.release(),
   synthetic: true,
+  scenario: values["default-off"] ? "default-off" : "explicit-opt-in",
   setupSeeded: true,
   realBusinessAcceptance: false,
   installedProductAcceptance: false,
@@ -62,6 +66,7 @@ const evidence = {
     [
       "dist/main/index.js",
       "dist/main/task/project-goal-auth-session.js",
+      "dist/main/task/project-goal-feature-policy.js",
       "dist/preload/index.js",
       "dist/renderer/index.html",
     ].map((relative) => [
@@ -73,6 +78,13 @@ const evidence = {
   ),
   runnerSha256: createHash("sha256")
     .update(fs.readFileSync(fileURLToPath(import.meta.url)))
+    .digest("hex"),
+  nativeDialogHelperSha256: createHash("sha256")
+    .update(
+      fs.readFileSync(
+        new URL("./lib/project-goal-native-dialog.cjs", import.meta.url),
+      ),
+    )
     .digest("hex"),
 };
 function stage(name, detail = {}) {
@@ -101,12 +113,18 @@ const env = {
   NODE_ENV: "test",
   CHAINLESSCHAIN_WEB_SHELL: "0",
   CHAINLESSCHAIN_GRAPH_PROJECT_GOALS: "canonical",
+  CHAINLESSCHAIN_PROJECT_GOALS: "1",
   CHAINLESSCHAIN_ENABLE_DB_ENCRYPTION: "1",
   PROJECTS_ROOT_PATH: path.join(profile, "projects"),
   DEFAULT_USERNAME: "dmm-journey",
   DEFAULT_PASSWORD: randomUUID(),
 };
 delete env.ELECTRON_RUN_AS_NODE;
+if (values["default-off"]) {
+  if (values.workspace || values["risk-create"] || values["modal-revocation"])
+    throw new Error("Default-off is a separate journey");
+  delete env.CHAINLESSCHAIN_PROJECT_GOALS;
+}
 let app, window, log, nativePid;
 function terminateOwnedApp() {
   // On Windows app.process() can be a cmd.exe launcher. Terminate the actual
@@ -124,7 +142,7 @@ const watchdog = setTimeout(() => {
   console.error("Native product journey exceeded 10 minutes");
   terminateOwnedApp();
 }, 600000);
-try {
+journey: try {
   app = await _electron.launch({
     executablePath: path.resolve(values.electron),
     args: [wrapper, "--no-web-shell", `--user-data-dir=${profile}`],
@@ -142,6 +160,7 @@ try {
   });
   const pid = await app.evaluate(() => process.pid); // Windows launcher PID differs.
   nativePid = pid;
+  evidence.nativePid = pid;
   window = await app.firstWindow({ timeout: 180000 });
   window.setDefaultTimeout(30000);
   evidence.versions = await app.evaluate(() => process.versions);
@@ -172,12 +191,19 @@ try {
         );
     }
   }, desktop);
-  async function choose(locator, title, button, expectedText) {
+  async function choose(
+    locator,
+    title,
+    button,
+    expectedText,
+    beforeClick = null,
+  ) {
     const [receipt] = await Promise.all([
-      clickNativeDialog({ pid, title, button, expectedText }),
+      clickNativeDialog({ pid, title, button, expectedText, beforeClick }),
       locator.click(),
     ]);
     evidence.dialogs.push(receipt);
+    return receipt;
   }
   const api = (method, input, namespace = "project") =>
     window.evaluate(
@@ -283,6 +309,24 @@ try {
   );
   stage("native-cancel-no-write-and-single-create");
 
+  if (values["default-off"]) {
+    await require("./lib/project-goal-default-off-journey.cjs").exerciseDefaultOff(
+      {
+        app,
+        window,
+        desktop,
+        profile,
+        output,
+        projectId: project.id,
+        taskId: task.id,
+        evidence,
+        stage,
+      },
+    );
+    evidence.status = "passed";
+    break journey;
+  }
+
   // Synthetic input setup only: the product exposes description/create actions,
   // not a deadline edit. Bind to the actual trusted native DB in this temp profile.
   evidence.fixture = await app.evaluate(
@@ -361,7 +405,9 @@ try {
   await panel
     .locator('[data-testid="goal-objective"]')
     .fill("DMM native risk follow-up");
-  await panel.locator('[data-testid="goal-max-runs"]').fill("20");
+  await panel
+    .locator('[data-testid="goal-max-runs"]')
+    .fill(values["modal-revocation"] ? "60" : "20");
   await panel
     .locator('form[data-testid="create-goal"] button[type="submit"]')
     .click();
@@ -488,6 +534,90 @@ try {
   const stillActive = await api("readGoal", { id: goalId });
   assert.equal(stillActive.status, "active");
   assert.equal(stillActive.completion, null);
+  if (values["risk-create"]) {
+    const helper = "./lib/project-goal-risk-create-journey.cjs";
+    evidence.riskCreateHelperSha256 = createHash("sha256")
+      .update(fs.readFileSync(new URL(helper, import.meta.url)))
+      .digest("hex");
+    evidence.riskCreate = {
+      synthetic: true,
+      realBusinessAcceptance: false,
+      status: "running",
+    };
+    await require(helper).exerciseRiskTaskCreation({
+      window,
+      article,
+      api,
+      expect,
+      choose,
+      goalId,
+      projectId: project.id,
+      sourceTaskId: task.id,
+      output,
+      stage,
+      result: evidence.riskCreate,
+    });
+  }
+  if (values["modal-revocation"]) {
+    const helper = "./lib/project-goal-modal-revocation-journey.cjs";
+    evidence.modalRevocationHelperSha256 = createHash("sha256")
+      .update(fs.readFileSync(new URL(helper, import.meta.url)))
+      .digest("hex");
+    evidence.modalRevocation = {
+      synthetic: true,
+      realBusinessAcceptance: false,
+      status: "running",
+      cases: [],
+    };
+    const authState = () =>
+      app.evaluate((_, desktop) => {
+        const require = process
+          .getBuiltinModule("module")
+          .createRequire(desktop + "/package.json");
+        const auth = require(
+          desktop + "/dist/main/task/project-goal-auth-session.js",
+        );
+        return {
+          actorDid: auth.getProjectGoalActor(),
+          generation: auth.getProjectGoalAuthGeneration(),
+        };
+      }, desktop);
+    await require(helper).exerciseModalRevocation({
+      window,
+      article,
+      api,
+      expect,
+      choose,
+      authState,
+      goalId,
+      projectId: project.id,
+      sourceTaskId: task.id,
+      output,
+      stage,
+      result: evidence.modalRevocation,
+      reauthenticate: async () => {
+        await window.evaluate(() => window.electronAPI.auth.logout());
+        const locked = await authState();
+        assert.equal(locked.actorDid, null);
+        const verified = await window.evaluate(
+          async ({ username, password }) => {
+            const result = await window.electronAPI.auth.verifyPassword(
+              username,
+              password,
+            );
+            return { success: result.success === true };
+          },
+          { username: env.DEFAULT_USERNAME, password: env.DEFAULT_PASSWORD },
+        );
+        assert.equal(verified.success, true);
+        return {
+          locked,
+          restored: await authState(),
+          via: "actual public auth.logout and auth.verifyPassword IPC",
+        };
+      },
+    });
+  }
   if (values.workspace) {
     const helper = "./lib/project-goal-workspace-journey.cjs";
     evidence.workspaceHelperSha256 = createHash("sha256")
