@@ -1,0 +1,3 @@
+# Durable MCP targeted regression (2026-11-09)
+
+With Windows owner-only ACL available, the seven current durable MCP files passed **118/118** at source commit `354235664`. This verifies the local durable ledger, delivery, polling, recovery, CLI connector, and REPL prompt interactions. It does not claim a real third-party MCP service, model continuation, dual IDE/desktop, or multiplatform acceptance.
