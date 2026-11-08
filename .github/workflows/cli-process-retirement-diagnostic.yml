@@ -26,6 +26,9 @@ jobs:
       CC_RETIREMENT_SOURCE_SHA: ${{ inputs.commit_sha || github.sha }}
       CC_SECURE_FS_WINDOWS_ACL_TIMEOUT_MS: "60000"
     steps:
+      - name: Enable Windows long paths before checkout
+        if: runner.os == 'Windows'
+        run: git config --global core.longpaths true
       - uses: actions/checkout@v5
         with:
           ref: ${{ env.CC_RETIREMENT_SOURCE_SHA }}

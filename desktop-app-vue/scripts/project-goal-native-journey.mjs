@@ -16,6 +16,9 @@ const { values } = parseArgs({
     electron: { type: "string" },
     output: { type: "string" },
     workspace: { type: "boolean", default: false },
+    "risk-create": { type: "boolean", default: false },
+    "default-off": { type: "boolean", default: false },
+    "modal-revocation": { type: "boolean", default: false },
   },
 });
 if (process.platform !== "win32" || !values.electron || !values.output)
@@ -27,6 +30,9 @@ const { _electron, expect } = require("@playwright/test");
 const { clickNativeDialog } = require("./lib/project-goal-native-dialog.cjs");
 const {
   observeGoalJourneyErrors,
+  withGoalJourneyTimeout,
+  summarizeGoalJourneyError,
+  writeGoalJourneyEvidence,
 } = require("./lib/project-goal-journey-observer.cjs");
 const desktop = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -52,6 +58,7 @@ const evidence = {
   platform: process.platform,
   release: os.release(),
   synthetic: true,
+  scenario: values["default-off"] ? "default-off" : "explicit-opt-in",
   setupSeeded: true,
   realBusinessAcceptance: false,
   installedProductAcceptance: false,
@@ -62,6 +69,8 @@ const evidence = {
     [
       "dist/main/index.js",
       "dist/main/task/project-goal-auth-session.js",
+      "dist/main/llm/permanent-memory-manager.js",
+      "dist/main/task/project-goal-feature-policy.js",
       "dist/preload/index.js",
       "dist/renderer/index.html",
     ].map((relative) => [
@@ -74,9 +83,25 @@ const evidence = {
   runnerSha256: createHash("sha256")
     .update(fs.readFileSync(fileURLToPath(import.meta.url)))
     .digest("hex"),
+  nativeDialogHelperSha256: createHash("sha256")
+    .update(
+      fs.readFileSync(
+        new URL("./lib/project-goal-native-dialog.cjs", import.meta.url),
+      ),
+    )
+    .digest("hex"),
 };
-function stage(name, detail = {}) {
+function saveEvidence(terminal = false, required = true) {
+  const saved = writeGoalJourneyEvidence(output, evidence, {
+    terminal,
+    required,
+  });
+  if (!saved) process.exitCode = 1;
+  return saved;
+}
+function stage(name, detail = {}, required = true) {
   evidence.stages.push({ name, at: new Date().toISOString(), ...detail });
+  saveEvidence(false, required);
   console.log(JSON.stringify({ stage: name, ...detail }));
 }
 fs.writeFileSync(
@@ -101,12 +126,18 @@ const env = {
   NODE_ENV: "test",
   CHAINLESSCHAIN_WEB_SHELL: "0",
   CHAINLESSCHAIN_GRAPH_PROJECT_GOALS: "canonical",
+  CHAINLESSCHAIN_PROJECT_GOALS: "1",
   CHAINLESSCHAIN_ENABLE_DB_ENCRYPTION: "1",
   PROJECTS_ROOT_PATH: path.join(profile, "projects"),
   DEFAULT_USERNAME: "dmm-journey",
   DEFAULT_PASSWORD: randomUUID(),
 };
 delete env.ELECTRON_RUN_AS_NODE;
+if (values["default-off"]) {
+  if (values.workspace || values["risk-create"] || values["modal-revocation"])
+    throw new Error("Default-off is a separate journey");
+  delete env.CHAINLESSCHAIN_PROJECT_GOALS;
+}
 let app, window, log, nativePid;
 function terminateOwnedApp() {
   // On Windows app.process() can be a cmd.exe launcher. Terminate the actual
@@ -121,17 +152,31 @@ function terminateOwnedApp() {
   }
 }
 const watchdog = setTimeout(() => {
+  evidence.status = "failed";
+  evidence.watchdogExpired = true;
+  process.exitCode = 1;
+  saveEvidence(false, false);
   console.error("Native product journey exceeded 10 minutes");
   terminateOwnedApp();
 }, 600000);
-try {
+process.on("uncaughtExceptionMonitor", (error, origin) => {
+  evidence.status = "failed";
+  evidence.unexpectedFailure = { ...summarizeGoalJourneyError(error), origin };
+  evidence.finishedAt = new Date().toISOString();
+  try {
+    saveEvidence(true, false);
+  } catch {}
+});
+journey: try {
+  stage("native-launch-requested");
   app = await _electron.launch({
     executablePath: path.resolve(values.electron),
     args: [wrapper, "--no-web-shell", `--user-data-dir=${profile}`],
-    cwd: desktop,
+    cwd: profile,
     env,
     timeout: 30000,
   });
+  stage("native-launch-resolved");
   // Raw logs and the encrypted DB stay in the owned temporary profile; never
   // publish login material, keys, or environment-bearing application logs.
   log = fs.createWriteStream(path.join(profile, "application.log"));
@@ -140,9 +185,20 @@ try {
   evidence.ipcErrors = observeGoalJourneyErrors(app.process(), {
     secrets: [env.DEFAULT_PASSWORD],
   });
+  stage("native-main-pid-requested");
   const pid = await app.evaluate(() => process.pid); // Windows launcher PID differs.
   nativePid = pid;
+  evidence.nativePid = pid;
+  stage("native-main-pid-resolved");
+  const isolatedWorkingDirectory = await app.evaluate(() => process.cwd());
+  assert.equal(
+    fs.realpathSync.native(isolatedWorkingDirectory),
+    fs.realpathSync.native(profile),
+  );
+  evidence.isolatedWorkingDirectory = true;
+  stage("native-first-window-requested");
   window = await app.firstWindow({ timeout: 180000 });
+  stage("native-first-window-resolved");
   window.setDefaultTimeout(30000);
   evidence.versions = await app.evaluate(() => process.versions);
   await app.evaluate(({ BrowserWindow }, desktop) => {
@@ -172,12 +228,19 @@ try {
         );
     }
   }, desktop);
-  async function choose(locator, title, button, expectedText) {
+  async function choose(
+    locator,
+    title,
+    button,
+    expectedText,
+    beforeClick = null,
+  ) {
     const [receipt] = await Promise.all([
-      clickNativeDialog({ pid, title, button, expectedText }),
+      clickNativeDialog({ pid, title, button, expectedText, beforeClick }),
       locator.click(),
     ]);
     evidence.dialogs.push(receipt);
+    return receipt;
   }
   const api = (method, input, namespace = "project") =>
     window.evaluate(
@@ -283,6 +346,24 @@ try {
   );
   stage("native-cancel-no-write-and-single-create");
 
+  if (values["default-off"]) {
+    await require("./lib/project-goal-default-off-journey.cjs").exerciseDefaultOff(
+      {
+        app,
+        window,
+        desktop,
+        profile,
+        output,
+        projectId: project.id,
+        taskId: task.id,
+        evidence,
+        stage,
+      },
+    );
+    evidence.status = "passed";
+    break journey;
+  }
+
   // Synthetic input setup only: the product exposes description/create actions,
   // not a deadline edit. Bind to the actual trusted native DB in this temp profile.
   evidence.fixture = await app.evaluate(
@@ -361,7 +442,9 @@ try {
   await panel
     .locator('[data-testid="goal-objective"]')
     .fill("DMM native risk follow-up");
-  await panel.locator('[data-testid="goal-max-runs"]').fill("20");
+  await panel
+    .locator('[data-testid="goal-max-runs"]')
+    .fill(values["modal-revocation"] ? "60" : "20");
   await panel
     .locator('form[data-testid="create-goal"] button[type="submit"]')
     .click();
@@ -488,6 +571,90 @@ try {
   const stillActive = await api("readGoal", { id: goalId });
   assert.equal(stillActive.status, "active");
   assert.equal(stillActive.completion, null);
+  if (values["risk-create"]) {
+    const helper = "./lib/project-goal-risk-create-journey.cjs";
+    evidence.riskCreateHelperSha256 = createHash("sha256")
+      .update(fs.readFileSync(new URL(helper, import.meta.url)))
+      .digest("hex");
+    evidence.riskCreate = {
+      synthetic: true,
+      realBusinessAcceptance: false,
+      status: "running",
+    };
+    await require(helper).exerciseRiskTaskCreation({
+      window,
+      article,
+      api,
+      expect,
+      choose,
+      goalId,
+      projectId: project.id,
+      sourceTaskId: task.id,
+      output,
+      stage,
+      result: evidence.riskCreate,
+    });
+  }
+  if (values["modal-revocation"]) {
+    const helper = "./lib/project-goal-modal-revocation-journey.cjs";
+    evidence.modalRevocationHelperSha256 = createHash("sha256")
+      .update(fs.readFileSync(new URL(helper, import.meta.url)))
+      .digest("hex");
+    evidence.modalRevocation = {
+      synthetic: true,
+      realBusinessAcceptance: false,
+      status: "running",
+      cases: [],
+    };
+    const authState = () =>
+      app.evaluate((_, desktop) => {
+        const require = process
+          .getBuiltinModule("module")
+          .createRequire(desktop + "/package.json");
+        const auth = require(
+          desktop + "/dist/main/task/project-goal-auth-session.js",
+        );
+        return {
+          actorDid: auth.getProjectGoalActor(),
+          generation: auth.getProjectGoalAuthGeneration(),
+        };
+      }, desktop);
+    await require(helper).exerciseModalRevocation({
+      window,
+      article,
+      api,
+      expect,
+      choose,
+      authState,
+      goalId,
+      projectId: project.id,
+      sourceTaskId: task.id,
+      output,
+      stage,
+      result: evidence.modalRevocation,
+      reauthenticate: async () => {
+        await window.evaluate(() => window.electronAPI.auth.logout());
+        const locked = await authState();
+        assert.equal(locked.actorDid, null);
+        const verified = await window.evaluate(
+          async ({ username, password }) => {
+            const result = await window.electronAPI.auth.verifyPassword(
+              username,
+              password,
+            );
+            return { success: result.success === true };
+          },
+          { username: env.DEFAULT_USERNAME, password: env.DEFAULT_PASSWORD },
+        );
+        assert.equal(verified.success, true);
+        return {
+          locked,
+          restored: await authState(),
+          via: "actual public auth.logout and auth.verifyPassword IPC",
+        };
+      },
+    });
+  }
   if (values.workspace) {
     const helper = "./lib/project-goal-workspace-journey.cjs";
     evidence.workspaceHelperSha256 = createHash("sha256")
@@ -574,7 +741,17 @@ try {
   stage("no-new-checks-after-real-scheduled-interval");
 } catch (error) {
   evidence.status = "failed";
-  evidence.error = { message: error.message, stack: error.stack };
+  evidence.error = summarizeGoalJourneyError(error);
+  evidence.failurePhase = evidence.stages.at(-1)?.name || "startup";
+  try {
+    fs.writeFileSync(
+      path.join(profile, "journey-error.log"),
+      String(error.stack || error),
+    );
+    evidence.privateFailureDetailsRetained = true;
+  } catch {}
+  process.exitCode = 1;
+  saveEvidence(false, false);
   if (window && evidence.projectId) {
     evidence.failureGoalReadback = await window
       .evaluate(
@@ -609,34 +786,34 @@ try {
       .screenshot({ path: path.join(output, "failure.png"), fullPage: true })
       .catch(() => {});
   process.exitCode = 1;
-  console.error(error);
+  console.error(evidence.error);
 } finally {
-  clearTimeout(watchdog);
+  saveEvidence(false, false);
   if (app)
-    evidence.diagnostics = await app
-      .evaluate(() => globalThis.__dmmJourneyDiagnostics)
-      .catch(() => null);
+    evidence.diagnostics = await withGoalJourneyTimeout(() =>
+      app.evaluate(() => globalThis.__dmmJourneyDiagnostics),
+    ).catch((error) => {
+      evidence.status = "failed";
+      evidence.diagnosticsError = { name: error.name, code: error.code };
+      process.exitCode = 1;
+      return null;
+    });
   if (app) {
-    let cleanupTimer;
     try {
-      await Promise.race([
-        app.close().catch(() => {}),
-        new Promise((resolve) => {
-          cleanupTimer = setTimeout(() => {
-            terminateOwnedApp();
-            resolve();
-          }, 15000);
-        }),
-      ]);
-    } finally {
-      clearTimeout(cleanupTimer);
+      stage("native-close-requested", {}, false);
+      await withGoalJourneyTimeout(() => app.close(), 15000);
+      stage("native-close-resolved", {}, false);
+    } catch (error) {
+      evidence.status = "failed";
+      evidence.closeError = { name: error.name, code: error.code };
+      process.exitCode = 1;
+      terminateOwnedApp();
     }
   }
+  clearTimeout(watchdog);
   log?.end();
+  if (process.exitCode) evidence.status = "failed";
   evidence.finishedAt = new Date().toISOString();
-  fs.writeFileSync(
-    path.join(output, "journey.json"),
-    JSON.stringify(evidence, null, 2) + "\n",
-  );
+  saveEvidence(true, false);
   console.log(JSON.stringify({ output, profile, status: evidence.status }));
 }

@@ -7,6 +7,7 @@ const {
   currentProjectGoalDatabase,
 } = require("./project-goal-native-database");
 const CHANNELS = Object.freeze({
+  featureStatus: "project:goal-feature-status",
   create: "project:goal-create",
   exportTransferTarget: "project:goal-transfer-target-export",
   importTransfer: "project:goal-transfer-import",
@@ -91,14 +92,24 @@ function createProjectGoalHost({
   clock = Date.now,
   getAuthenticationGeneration = () =>
     require("./project-goal-auth-session").getProjectGoalAuthGeneration(),
+  featurePolicy = require("./project-goal-feature-policy")
+    .projectGoalFeaturePolicy,
 } = {}) {
   const getElectron = () => electron || require("electron");
   const currentDatabase = () => currentProjectGoalDatabase(database);
-  function currentWindow(event) {
-    if (validateSender(event)?.trusted !== true)
+  function trustedWindow(event) {
+    if (validateSender(event)?.trusted !== true) {
       throw error("GOAL_UNTRUSTED_SENDER");
+    }
     const window = getElectron().BrowserWindow.fromWebContents(event?.sender);
-    if (!window || window.isDestroyed()) throw error("GOAL_WINDOW_UNAVAILABLE");
+    if (!window || window.isDestroyed()) {
+      throw error("GOAL_WINDOW_UNAVAILABLE");
+    }
+    return window;
+  }
+  function currentWindow(event) {
+    const window = trustedWindow(event);
+    featurePolicy.assertEnabled();
     return window;
   }
   function service(event) {
@@ -106,8 +117,9 @@ function createProjectGoalHost({
     const getActor = () => {
       currentWindow(event);
       const actor = getCurrentUserDid();
-      if (typeof actor !== "string" || !actor)
+      if (typeof actor !== "string" || !actor) {
         throw error("GOAL_IDENTITY_REQUIRED");
+      }
       return actor;
     };
     getActor();
@@ -137,30 +149,37 @@ function createProjectGoalHost({
         "did-navigate-in-page",
         "render-process-gone",
         "destroyed",
-      ])
+      ]) {
         event.sender.on?.(name, () => {
           state.generation++;
         });
+      }
     }
     const navigation = trackNavigation
         ? navigationStates.get(event.sender)
         : undefined,
       navigationGeneration = navigation?.generation;
-    if (!actorDid) throw error("GOAL_IDENTITY_REQUIRED");
+    if (!actorDid) {
+      throw error("GOAL_IDENTITY_REQUIRED");
+    }
     const getActor = () => {
       if (
         currentWindow(event) !== parent ||
         event.senderFrame !== frame ||
         frame?.url !== url ||
         navigation?.generation !== navigationGeneration
-      )
+      ) {
         throw error("GOAL_EXTENSION_WINDOW_CHANGED");
-      if (currentDatabase() !== db) throw error("GOAL_DATABASE_CHANGED");
+      }
+      if (currentDatabase() !== db) {
+        throw error("GOAL_DATABASE_CHANGED");
+      }
       if (
         getCurrentUserDid() !== actorDid ||
         getAuthenticationGeneration() !== generation
-      )
+      ) {
         throw error("GOAL_EXTENSION_AUTHENTICATION_CHANGED");
+      }
       return actorDid;
     };
     getActor();
@@ -213,8 +232,9 @@ function createProjectGoalHost({
             input.events,
             input.eventHistory,
           ].filter((value) => value === true).length > 1
-        )
+        ) {
           throw error("GOAL_INVALID_REQUEST");
+        }
         const ref =
           require("@chainlesschain/session-core/goal-extension-proposal-contract").goalExtensionRef(
             input.goalRef,
@@ -238,7 +258,9 @@ function createProjectGoalHost({
         const listeners = new Set();
         const invalidate = () => {
           invalid = true;
-          for (const fn of listeners) fn();
+          for (const fn of listeners) {
+            fn();
+          }
         };
         const events = [
           "did-start-navigation",
@@ -246,7 +268,9 @@ function createProjectGoalHost({
           "render-process-gone",
           "destroyed",
         ];
-        for (const name of events) event.sender.on?.(name, invalidate);
+        for (const name of events) {
+          event.sender.on?.(name, invalidate);
+        }
         parent.on?.("closed", invalidate);
         const context = {
           parent,
@@ -262,43 +286,55 @@ function createProjectGoalHost({
             return grantRef;
           },
           read() {
-            if (invalid) throw error("GOAL_BRIDGE_UNAVAILABLE");
+            if (invalid) {
+              throw error("GOAL_BRIDGE_UNAVAILABLE");
+            }
             getActor();
             const summary = reader.readSummary(ref);
-            if (grantRef)
+            if (grantRef) {
               native.external.assertGrant({ goalRef: ref, grantRef });
+            }
             getActor();
             return summary;
           },
           onInvalidate(fn) {
             listeners.add(fn);
-            if (invalid) fn();
+            if (invalid) {
+              fn();
+            }
             return () => listeners.delete(fn);
           },
           readEvidence() {
             const summary = this.read();
-            if (!evidence) throw error("GOAL_BRIDGE_UNAVAILABLE");
+            if (!evidence) {
+              throw error("GOAL_BRIDGE_UNAVAILABLE");
+            }
             const result = reader.read(ref);
             this.read();
             return { ...summary, ...result };
           },
           readEvents() {
             const summary = this.read();
-            if (!eventsConnection) throw error("GOAL_BRIDGE_UNAVAILABLE");
+            if (!eventsConnection) {
+              throw error("GOAL_BRIDGE_UNAVAILABLE");
+            }
             const result = reader.read(ref);
             this.read();
             return { goalRef: summary.goalRef, ...result };
           },
           readEventPage(after) {
             this.read();
-            if (!historyConnection) throw error("GOAL_BRIDGE_UNAVAILABLE");
+            if (!historyConnection) {
+              throw error("GOAL_BRIDGE_UNAVAILABLE");
+            }
             const result = reader.readEventPage(ref, after);
             this.read();
             return result;
           },
           authorizeDrafts() {
-            if (!draftsConnection || !native || !beforeGrant)
+            if (!draftsConnection || !native || !beforeGrant) {
               throw error("GOAL_BRIDGE_UNAVAILABLE");
+            }
             const grant = native.external.grant({
               goalRef: ref,
               access,
@@ -346,8 +382,9 @@ function createProjectGoalHost({
             });
           },
           dispose() {
-            for (const name of events)
+            for (const name of events) {
               event.sender.removeListener?.(name, invalidate);
+            }
             parent.removeListener?.("closed", invalidate);
             listeners.clear();
           },
@@ -363,8 +400,9 @@ function createProjectGoalHost({
               ],
             });
             context.read();
-            if (picked?.canceled || picked?.filePaths?.length !== 1)
+            if (picked?.canceled || picked?.filePaths?.length !== 1) {
               throw error("GOAL_BRIDGE_UNAVAILABLE");
+            }
             access =
               require("./project-goal-draft-request-file").readGoalDraftAccessFile(
                 picked.filePaths[0],
@@ -410,7 +448,9 @@ function createProjectGoalHost({
     const gate = new ApprovalGate({
       confirm: async ({ request, before, after, actorDid }) => {
         const parent = currentWindow(event);
-        if (getActor() !== actorDid) throw error("GOAL_IDENTITY_CHANGED");
+        if (getActor() !== actorDid) {
+          throw error("GOAL_IDENTITY_CHANGED");
+        }
         const goal = hostWorkflow.goals.get({
           id: request.input.goalIntent.goalId,
         });
@@ -486,19 +526,22 @@ function createProjectGoalHost({
           [IMPORT_PLUGIN, CREATE_IMPORT_PLUGIN].some(
             (plugin) => digest(draft.plugin) === digest(plugin),
           )
-        )
+        ) {
           return imports ? imports.verifyIntentInTransaction(context) : false;
+        }
         if (
           draft.origin === "extension-suggestion" &&
           ["user", "project", "local"].includes(draft.plugin.scope)
-        )
+        ) {
           return external ? external.verifyIntentInTransaction(context) : false;
+        }
         const { PLUGIN } = require("./project-goal-delivery-drafts");
         const { MODEL_PLUGIN } = require("./project-goal-model-drafts");
-        if (digest(draft.plugin) === digest(MODEL_PLUGIN))
+        if (digest(draft.plugin) === digest(MODEL_PLUGIN)) {
           return modelDrafts
             ? modelDrafts.queue.verifyIntentInTransaction(context)
             : false;
+        }
         return digest(draft.plugin) === digest(PLUGIN) && drafts
           ? drafts.queue.verifyIntentInTransaction(context)
           : false;
@@ -639,6 +682,7 @@ function createProjectGoalHost({
         database,
         electron: getElectron(),
         getCurrentUserDid,
+        featurePolicy,
         clock,
         onError: (error) =>
           require("../utils/logger.js").logger.error(
@@ -652,9 +696,13 @@ function createProjectGoalHost({
     const db = currentDatabase();
     const getActor = () => {
       currentWindow(event);
-      if (currentDatabase() !== db) throw error("GOAL_DATABASE_CHANGED");
+      if (currentDatabase() !== db) {
+        throw error("GOAL_DATABASE_CHANGED");
+      }
       const actor = getCurrentUserDid();
-      if (!actor) throw error("GOAL_IDENTITY_REQUIRED");
+      if (!actor) {
+        throw error("GOAL_IDENTITY_REQUIRED");
+      }
       return actor;
     };
     getActor();
@@ -673,8 +721,9 @@ function createProjectGoalHost({
           current?.revision !== goal.revision ||
           current.controlGeneration !== goal.controlGeneration ||
           current.status !== "active"
-        )
+        ) {
           throw error("GOAL_COMPLETION_ACK_STALE");
+        }
         const result = await getElectron().dialog.showMessageBox(parent, {
           type: "question",
           title: "记录目标人工验收",
@@ -714,30 +763,42 @@ function createProjectGoalHost({
       url = frame?.url;
     const db = currentDatabase();
     const actorDid = getCurrentUserDid();
-    if (!actorDid) throw error("GOAL_IDENTITY_REQUIRED");
+    if (!actorDid) {
+      throw error("GOAL_IDENTITY_REQUIRED");
+    }
     const generation = getAuthenticationGeneration();
     const getActor = () => {
       if (
         currentWindow(event) !== parent ||
         event.senderFrame !== frame ||
         frame?.url !== url
-      )
+      ) {
         throw error("GOAL_MEMORY_WINDOW_CHANGED");
-      if (currentDatabase() !== db) throw error("GOAL_DATABASE_CHANGED");
+      }
+      if (currentDatabase() !== db) {
+        throw error("GOAL_DATABASE_CHANGED");
+      }
       const current = getCurrentUserDid();
-      if (!current) throw error("GOAL_IDENTITY_REQUIRED");
-      if (current !== actorDid || getAuthenticationGeneration() !== generation)
+      if (!current) {
+        throw error("GOAL_IDENTITY_REQUIRED");
+      }
+      if (
+        current !== actorDid ||
+        getAuthenticationGeneration() !== generation
+      ) {
         throw error("GOAL_MEMORY_AUTHENTICATION_CHANGED");
+      }
       return current;
     };
     getActor();
     const service = createMemoryService({ db, getActor, parent });
     const result = service[method](params);
-    if (result?.then)
+    if (result?.then) {
       return result.then((value) => {
         getActor();
         return value;
       });
+    }
     getActor();
     return result;
   }
@@ -763,8 +824,9 @@ function createProjectGoalHost({
             !window.isDestroyed() &&
             webContents &&
             !webContents.isDestroyed()
-          )
+          ) {
             webContents.send("project:goal-memory-invalidated", {});
+          }
         }
       },
       memoryHostFactory: ({ scope, authorize }) => {
@@ -783,31 +845,37 @@ function createProjectGoalHost({
   }
   async function monitor(event) {
     currentWindow(event);
-    if (!getCurrentUserDid()) throw error("GOAL_IDENTITY_REQUIRED");
+    if (!getCurrentUserDid()) {
+      throw error("GOAL_IDENTITY_REQUIRED");
+    }
     const engine = await controller.initialize();
     currentWindow(event);
-    if (!getCurrentUserDid()) throw error("GOAL_IDENTITY_REQUIRED");
+    if (!getCurrentUserDid()) {
+      throw error("GOAL_IDENTITY_REQUIRED");
+    }
     return engine;
   }
   function deliveryCall(event, method, params) {
     const context = workflowContext(event);
     const result = context.drafts[method](params);
-    if (result && typeof result.then === "function")
+    if (result && typeof result.then === "function") {
       return result.then((value) => {
         context.getActor();
         return value;
       });
+    }
     context.getActor();
     return result;
   }
   function importCall(event, method, params) {
     const context = workflowContext(event),
       result = context.imports[method](params);
-    if (result && typeof result.then === "function")
+    if (result && typeof result.then === "function") {
       return result.then((value) => {
         context.getActor();
         return value;
       });
+    }
     context.getActor();
     return result;
   }
@@ -820,15 +888,23 @@ function createProjectGoalHost({
   function modelCall(event, method, params) {
     const context = workflowContext(event);
     const result = context.modelDrafts[method](params);
-    if (result?.then)
+    if (result?.then) {
       return result.then((value) => {
         context.getActor();
         return value;
       });
+    }
     context.getActor();
     return result;
   }
-  return Object.freeze({
+  const unsubscribeFeature = featurePolicy.subscribe(() => {
+    return Promise.all([cliBridge.close(), controller.close()]);
+  });
+  const handlers = {
+    featureStatus: (event) => {
+      trustedWindow(event);
+      return featurePolicy.status();
+    },
     create: (event, params) => service(event).create(params),
     exportTransferTarget: (event, params) =>
       transferHost.exportTarget(event, params),
@@ -839,12 +915,12 @@ function createProjectGoalHost({
     read: (event, params) => service(event).get(params),
     openCliConnection: (event, params) => cliBridge.open(event, params),
     closeCliConnection: (event) => {
-      currentWindow(event);
+      trustedWindow(event);
       cliBridge.close();
       return cliBridge.status();
     },
     cliConnectionStatus: (event) => {
-      currentWindow(event);
+      trustedWindow(event);
       return cliBridge.status();
     },
     list: (event, params) => service(event).list(params),
@@ -876,8 +952,9 @@ function createProjectGoalHost({
         !params ||
         Object.keys(params).length !== 1 ||
         !Object.hasOwn(params, "goalRef")
-      )
+      ) {
         throw error("GOAL_INVALID_REQUEST");
+      }
       const context = workflowContext(event),
         goalRef =
           require("@chainlesschain/session-core/goal-extension-proposal-contract").goalExtensionRef(
@@ -892,8 +969,9 @@ function createProjectGoalHost({
         },
       );
       context.getActor();
-      if (chosen?.canceled || chosen?.filePaths?.length !== 1)
+      if (chosen?.canceled || chosen?.filePaths?.length !== 1) {
         return { state: "cancelled" };
+      }
       const envelope =
         require("./project-goal-draft-request-file").readGoalDraftRequestFile(
           chosen.filePaths[0],
@@ -920,8 +998,9 @@ function createProjectGoalHost({
     prepareExternalDraft: (event, params) =>
       externalCall(event, "prepareDraft", params),
     prepareIntent: (event, params) => {
-      if (Object.hasOwn(params || {}, "extensionRef"))
+      if (Object.hasOwn(params || {}, "extensionRef")) {
         throw error("GOAL_EXTENSION_USE_DRAFT_ID");
+      }
       return workflow(event).prepare(params);
     },
     executeIntent: (event, params) => workflow(event).execute(params),
@@ -945,20 +1024,40 @@ function createProjectGoalHost({
       memoryCall(event, "operations", params),
     memoryRecover: (event, params) => memoryCall(event, "recover", params),
     memoryDiscard: (event, params) => memoryCall(event, "discard", params),
-    initializeMonitoring: () => controller.initialize(),
+    initializeMonitoring: () =>
+      featurePolicy.isEnabled()
+        ? controller.initialize()
+        : Promise.resolve(null),
+    disableFeature: () => featurePolicy.disable(),
     close: () => {
-      cliBridge.close();
-      return controller.close();
+      unsubscribeFeature();
+      return Promise.all([cliBridge.close(), controller.close()]);
     },
-  });
+  };
+  for (const method of Object.keys(CHANNELS)) {
+    if (
+      ["featureStatus", "closeCliConnection", "cliConnectionStatus"].includes(
+        method,
+      )
+    ) {
+      continue;
+    }
+    const execute = handlers[method];
+    handlers[method] = (...args) => {
+      featurePolicy.assertEnabled();
+      return execute(...args);
+    };
+  }
+  return Object.freeze(handlers);
 }
 function registerProjectGoalIPC(database, dependencies = {}) {
   const electron = dependencies.electron || require("electron");
   const host = createProjectGoalHost({ ...dependencies, database, electron });
-  for (const [method, channel] of Object.entries(CHANNELS))
+  for (const [method, channel] of Object.entries(CHANNELS)) {
     electron.ipcMain.handle(channel, (event, params) =>
       host[method](event, params),
     );
+  }
   return host;
 }
 module.exports = { CHANNELS, createProjectGoalHost, registerProjectGoalIPC };

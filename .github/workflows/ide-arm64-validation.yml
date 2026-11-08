@@ -116,6 +116,9 @@ jobs:
             platform: darwin
             slug: macos
     steps:
+      - name: Enable Windows long paths before checkout
+        if: runner.os == 'Windows'
+        run: git config --global core.longpaths true
       - uses: actions/checkout@v5
         with:
           ref: ${{ env.IDE_ARM64_RELEASE_COMMIT }}
@@ -236,6 +239,9 @@ jobs:
             slug: macos
             ide_version: "2025.2"
     steps:
+      - name: Enable Windows long paths before checkout
+        if: runner.os == 'Windows'
+        run: git config --global core.longpaths true
       - uses: actions/checkout@v5
         with:
           ref: ${{ env.IDE_ARM64_RELEASE_COMMIT }}

@@ -5,7 +5,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fork } from "node:child_process";
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { performance } from "node:perf_hooks";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
@@ -15,10 +15,6 @@ import {
 } from "@chainlesschain/context-memory-kernel";
 import { SegmentedMemoryPort } from "../src/lib/context-memory-kernel/segmented-memory-port.js";
 import { compareMemoryRows } from "../src/lib/context-memory-kernel/memory-query-index.js";
-import {
-  createDurableMemoryFixture,
-  summarizeDurations,
-} from "./persistent-capacity-benchmark.mjs";
 
 const script = fileURLToPath(import.meta.url);
 const at = "2026-10-29T00:00:00.000Z";
@@ -90,10 +86,12 @@ async function worker({ filePath, role, id }) {
 }
 
 function startWorker() {
+  const lifecycle = { spawnedAt: Date.now(), phase: "spawned" };
   const child = fork(script, ["--worker"], {
     windowsHide: true,
     stdio: ["ignore", "ignore", "pipe", "ipc"],
   });
+  lifecycle.pid = child.pid;
   let readyResolve, readyReject, resultResolve, resultReject, result;
   const ready = new Promise((resolve, reject) => {
     readyResolve = resolve;
@@ -110,6 +108,7 @@ function startWorker() {
     stderr = "";
   const fail = (error) => {
     failure ||= error;
+    failure.worker = { ...lifecycle, pid: child.pid };
     readyReject(error);
     child.kill();
   };
@@ -124,11 +123,18 @@ function startWorker() {
   });
   child.on("error", fail);
   child.on("message", (message) => {
-    if (message?.type === "ready") readyResolve();
-    else if (message?.type === "result") result = message.result;
-    else if (message?.type === "failure") fail(new Error(message.message));
+    if (message?.type === "ready") {
+      lifecycle.readyAt = Date.now();
+      lifecycle.phase = "ready";
+      readyResolve();
+    } else if (message?.type === "result") {
+      result = message.result;
+      lifecycle.resultAt = Date.now();
+      lifecycle.phase = "result";
+    } else if (message?.type === "failure") fail(new Error(message.message));
   });
   child.on("close", (code) => {
+    lifecycle.closedAt = Date.now();
     clearTimeout(timeout);
     if (failure || code !== 0 || !result) {
       const error =
@@ -136,14 +142,24 @@ function startWorker() {
         new Error(
           `mixed Memory worker failed (${code}): ${stderr.slice(0, 1000)}`,
         );
+      error.worker ||= { ...lifecycle, pid: child.pid };
       readyReject(error);
       resultReject(error);
-    } else resultResolve(result);
+    } else
+      resultResolve({
+        ...result,
+        lifecycle: { ...lifecycle, phase: "closed" },
+      });
   });
   return {
     ready,
     done,
-    start: (input) => child.send(input),
+    start: (input) => {
+      lifecycle.startedAt = Date.now();
+      lifecycle.phase = "running";
+      lifecycle.role = input.role;
+      child.send(input);
+    },
     stop: () => child.kill(),
   };
 }
@@ -179,9 +195,12 @@ async function runRound(filePath, ids) {
   }
 }
 
+// onProgress is synchronous and observational; copy the report to retain a
+// historical snapshot, and do not mutate the live measurement state.
 export async function runMemoryMixedBenchmark({
   counts = [1000, 10000, 100000],
   rounds = 11,
+  onProgress = () => {},
 } = {}) {
   assert.ok(Number.isSafeInteger(rounds) && rounds > 0 && rounds <= 100);
   assert.ok(
@@ -190,6 +209,10 @@ export async function runMemoryMixedBenchmark({
         (n) => Number.isSafeInteger(n) && n >= rounds * 4 && n <= 100000,
       ),
   );
+  // Workers only need the authority port. Keep the fixture generator's broad
+  // background/runtime module graph in the parent process.
+  const { createDurableMemoryFixture, summarizeDurations } =
+    await import("./persistent-capacity-benchmark.mjs");
   const parent = fs.realpathSync.native(os.tmpdir());
   const root = fs.mkdtempSync(path.join(parent, "cc-memory-mixed-"));
   const sourcePaths = [
@@ -228,6 +251,7 @@ export async function runMemoryMixedBenchmark({
     providerCalls: 0,
     concurrency: 8,
     roundsPerTier: rounds,
+    complete: false,
     scope:
       "Four readers, two updates, and two delete/purge operations released together from an IPC barrier; disjoint mutation IDs, one strict disk authority.",
     limitations: [
@@ -237,8 +261,30 @@ export async function runMemoryMixedBenchmark({
     ],
     tiers: [],
   };
+  const checkpoint = () => {
+    try {
+      onProgress(report);
+    } catch (error) {
+      error.benchmarkStage = "checkpoint";
+      throw error;
+    }
+  };
+  const cleanup = () => {
+    if (
+      path.dirname(path.resolve(root)) !== parent ||
+      !path.basename(root).startsWith("cc-memory-mixed-")
+    )
+      throw new Error("unsafe mixed benchmark cleanup target");
+    fs.rmSync(root, { recursive: true, force: true });
+  };
+  let cleanupAttempted = false;
+  let primaryFailure;
   try {
+    report.stage = "checkpoint";
+    checkpoint();
     for (const count of counts) {
+      report.stage = "fixture";
+      report.activeRound = { count, round: null };
       const filePath = path.join(root, `authority-${count}.json`);
       const port = new SegmentedMemoryPort({ filePath });
       const state = createDurableMemoryFixture(count);
@@ -249,6 +295,15 @@ export async function runMemoryMixedBenchmark({
         .slice(0, rounds * 4)
         .map((row) => row.memoryId);
       const values = [];
+      const tier = {
+        count,
+        fixtureDigest: originalDigest,
+        complete: false,
+        finalAuditVerified: false,
+        rounds: values,
+      };
+      report.tiers.push(tier);
+      checkpoint();
       const expectedPage = () =>
         projection(
           Object.values(state.records)
@@ -257,10 +312,14 @@ export async function runMemoryMixedBenchmark({
             .slice(0, 20),
         );
       for (let index = 0; index < rounds; index++) {
+        report.activeRound = { count, round: index + 1 };
+        report.stage = "worker";
+        checkpoint();
         const round = await runRound(
           filePath,
           ids.slice(index * 4, index * 4 + 4),
         );
+        report.stage = "round-validation";
         const generations = new Map([[state.storeRevision, expectedPage()]]);
         const mutations = round.results
           .flatMap((entry) => entry.mutations || [])
@@ -297,11 +356,14 @@ export async function runMemoryMixedBenchmark({
               state: mutation.record.state,
             }));
         values.push(round);
+        checkpoint();
         if ((index + 1) % 10 === 0 || index + 1 === rounds)
           process.stderr.write(
             `Mixed Memory ${count}: ${index + 1}/${rounds} rounds\n`,
           );
       }
+      report.stage = "final-audit";
+      report.activeRound = { count, round: null };
       const snapshot = await port.exportSnapshot();
       assert.equal(snapshot.storeRevision, state.storeRevision);
       assert.deepEqual(snapshot.records, state.records);
@@ -321,7 +383,7 @@ export async function runMemoryMixedBenchmark({
       );
       assert.equal(active.length, count - rounds * 2);
       assert.equal(fs.existsSync(`${filePath}.lock`), false);
-      const tier = {
+      Object.assign(tier, {
         count,
         fixtureDigest: originalDigest,
         finalRevision: snapshot.storeRevision,
@@ -350,25 +412,65 @@ export async function runMemoryMixedBenchmark({
         operationsPerSecond:
           (8000 * rounds) /
           values.reduce((sum, entry) => sum + entry.durationMs, 0),
-      };
-      report.tiers.push(tier);
+        complete: true,
+      });
+      delete report.activeRound;
+      checkpoint();
       process.stderr.write(
         `Mixed Memory ${count}: ${JSON.stringify({ rounds, readP95: tier.read.p95Ms, lockWaitP95: tier.lockWait.p95Ms, operationsPerSecond: tier.operationsPerSecond })}\n`,
       );
     }
+    report.stage = "source-stability";
     assert.deepEqual(
       sources(),
       report.sourceDigests,
       "implementation changed during measurement",
     );
+    report.stage = "cleanup";
+    cleanupAttempted = true;
+    cleanup();
+    report.stage = "complete";
+    report.complete = true;
+    checkpoint();
     return report;
+  } catch (error) {
+    primaryFailure = error;
+    report.complete = false;
+    report.failure = {
+      message: error.message,
+      stage: error.benchmarkStage || report.stage,
+      ...(error.code ? { code: error.code } : {}),
+      ...(report.activeRound || {}),
+      ...(error.worker ? { worker: error.worker } : {}),
+    };
+    try {
+      onProgress(report);
+    } catch (checkpointError) {
+      primaryFailure = new AggregateError(
+        [error, checkpointError],
+        "Memory benchmark failed and its evidence checkpoint could not be saved",
+        { cause: error },
+      );
+    }
+    throw primaryFailure;
   } finally {
-    if (
-      path.dirname(path.resolve(root)) !== parent ||
-      !path.basename(root).startsWith("cc-memory-mixed-")
-    )
-      throw new Error("unsafe mixed benchmark cleanup target");
-    fs.rmSync(root, { recursive: true, force: true });
+    if (!cleanupAttempted) {
+      try {
+        cleanup();
+      } catch (cleanupError) {
+        report.complete = false;
+        report.cleanupFailure = { message: cleanupError.message };
+        const failures = [primaryFailure, cleanupError].filter(Boolean);
+        try {
+          onProgress(report);
+        } catch (checkpointError) {
+          failures.push(checkpointError);
+        }
+        throw new AggregateError(failures, "Memory benchmark cleanup failed", {
+          cause: primaryFailure || cleanupError,
+        });
+      }
+    }
   }
 }
 
@@ -392,11 +494,20 @@ if (process.argv.includes("--worker")) {
       output: { type: "string" },
     },
   });
+  if (values.output) fs.writeFileSync(values.output, "{}\n", { flag: "wx" });
+  const save = (report) => {
+    if (!values.output) return;
+    const temporary = `${values.output}.${randomUUID()}.tmp`;
+    fs.writeFileSync(temporary, `${JSON.stringify(report, null, 2)}\n`, {
+      flag: "wx",
+    });
+    fs.renameSync(temporary, values.output);
+  };
   const report = await runMemoryMixedBenchmark({
     counts: values.counts.split(",").map(Number),
     rounds: Number(values.rounds),
+    onProgress: save,
   });
-  const raw = JSON.stringify(report, null, 2) + "\n";
-  if (values.output) fs.writeFileSync(values.output, raw, { flag: "wx" });
-  else process.stdout.write(raw);
+  if (!values.output)
+    process.stdout.write(JSON.stringify(report, null, 2) + "\n");
 }

@@ -1,5 +1,9 @@
 # CLI Runtime 当前架构与实现
 
+## 2026-11-07 未发行源码进展
+
+未发行源码进展：PR #539 新增 CLI 目标显式移交到原生个人项目、原字节备份/冻结及签名作废回执恢复。新目标保持暂停，不继承旧权限；需匹配分支的 CLI、Session Core 和桌面构建，公开 .143/.145 尚不包含。 [移交与签名回退设计](./cli-goal-transfer-source-2026-11-07.md)。
+
 ## 2026-11-06 当前 .143 公开范围
 
 CLI **0.166.143** / Session Core **0.3.26** / Open VSX **0.37.179** / JetBrains **0.4.196** 已完成准确提交三平台门禁、正式发布与公开制品核验，两个 IDE 均推荐 CLI .143。新增本地算力配置、端点凭据隔离、创建请求文件、独立 v6 待审授权和 `project-delivery-assistant` 0.3.0。新原生创建与模型草稿仍需匹配的新桌面实现、当前预览与独立原生确认；公开产品 **v5.0.3.145** 来自较早独立源码。详见[本轮设计](./release-runtime-update-2026-11-06-143.md)与[发行证据](https://github.com/chainlesschain/chainlesschain/blob/d2070ce914af8d675191e3492e0ce7db650c79c3/docs/research/cli/evidence/release143-public/README.md)。后文保留历史版本范围。

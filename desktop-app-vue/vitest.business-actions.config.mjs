@@ -3,6 +3,7 @@ import { defineConfig } from "vitest/config";
 // Narrow main-process regression: actual SQLite, injected Electron UI boundary.
 export default defineConfig({
   test: {
+    env: { CHAINLESSCHAIN_PROJECT_GOALS: "1" },
     environment: "node",
     pool: "forks",
     maxWorkers: 1,
@@ -10,6 +11,7 @@ export default defineConfig({
     testTimeout: 30_000,
     hookTimeout: 30_000,
     include: [
+      "src/main/task/__tests__/project-goal-feature-policy.test.js",
       "src/main/notification/__tests__/*.test.js",
       "src/main/task/__tests__/task-description-ipc.test.js",
       "src/main/task/__tests__/project-goal-ipc.test.js",

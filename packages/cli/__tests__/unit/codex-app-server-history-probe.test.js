@@ -555,6 +555,19 @@ describe("isolated generated rollout copying", () => {
     };
   }
 
+  it("accepts a namespaced generated rollout path while retaining its isolated root", () => {
+    const f = fixture();
+    const copied = copyHistoryRollouts(
+      [{ ...f.thread, path: path.toNamespacedPath(f.source) }],
+      f.sourceHome,
+      f.targetHome,
+    );
+    expect(copied).toHaveLength(1);
+    expect(
+      fs.readFileSync(path.join(f.targetHome, copied[0].relativePath)),
+    ).toEqual(f.bytes);
+  });
+
   it("copies only matching session evidence with identical bytes and digest, without a state DB", () => {
     const f = fixture();
     fs.writeFileSync(path.join(f.sourceHome, "state_5.sqlite"), "not copied");

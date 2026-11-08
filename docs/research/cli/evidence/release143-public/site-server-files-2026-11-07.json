@@ -1,0 +1,26 @@
+{
+  "schema": "chainlesschain.server-build-files/v1",
+  "verifiedAt": "2026-11-06T16:15:54.3526028Z",
+  "sourceCommit": "52767eb79affa892d88ab1f551fc3164092a73bf",
+  "stamp": "20261106-161259-52767eb79a-docs",
+  "sites": [
+    {
+      "site": "docs",
+      "files": 2061,
+      "allBuildFilesVerified": true,
+      "backupRetained": true
+    },
+    {
+      "site": "design",
+      "files": 917,
+      "allBuildFilesVerified": true,
+      "backupRetained": true
+    },
+    {
+      "site": "www",
+      "files": 45,
+      "allBuildFilesVerified": true,
+      "backupRetained": true
+    }
+  ]
+}

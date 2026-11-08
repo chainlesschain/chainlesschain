@@ -56,18 +56,21 @@ async function clickNativeDialog({
   button,
   expectedText = null,
   timeoutMs = 30000,
+  beforeClick = null,
 }) {
   if (
     !Number.isSafeInteger(pid) ||
     pid < 1 ||
     typeof title !== "string" ||
     !title ||
-    !["取消", "确认创建", "确认修改"].includes(button)
+    !["取消", "确认创建", "确认修改"].includes(button) ||
+    (beforeClick !== null && typeof beforeClick !== "function")
   )
     throw new Error(
       "Exact test-owned native PID, title and permitted button required",
     );
   const deadline = Date.now() + timeoutMs;
+  let concurrentObservation = null;
   while (Date.now() < deadline) {
     const candidates = [];
     enumerate(enumerateWindows, null, (hwnd) => {
@@ -155,6 +158,18 @@ async function clickNativeDialog({
             "Native dialog accessibility receipt does not bind this test dialog",
           );
       }
+      if (beforeClick && !concurrentObservation) {
+        concurrentObservation = {
+          pid,
+          title,
+          button,
+          hwnd: String(koffi.address(candidates[0])),
+          windowClass: "#32770",
+          expectedTextVerified: expectedText !== null,
+          observedAt: new Date().toISOString(),
+        };
+        await beforeClick(concurrentObservation);
+      }
       if (
         ownerOf(candidates[0]) !== pid ||
         textOf(windowClass, candidates[0]) !== "#32770" ||
@@ -165,9 +180,19 @@ async function clickNativeDialog({
         !enabled(choices[0].hwnd) ||
         !visible(choices[0].hwnd)
       ) {
+        if (concurrentObservation)
+          throw new Error(
+            "Observed native dialog changed during concurrent operation",
+          );
         await new Promise((resolve) => setTimeout(resolve, 100));
         continue;
       }
+      const afterConcurrentOperation = concurrentObservation
+        ? {
+            ...concurrentObservation,
+            observedAt: new Date().toISOString(),
+          }
+        : null;
       if (!post(choices[0].hwnd, 0x00f5, 0, 0))
         throw new Error("Native BM_CLICK post failed");
       // Do not let the next same-title confirmation attach to this closing
@@ -189,6 +214,12 @@ async function clickNativeDialog({
         method: "Win32 BM_CLICK",
         at: new Date().toISOString(),
         expectedTextVerified: expectedText !== null,
+        ...(concurrentObservation
+          ? {
+              beforeConcurrentOperation: concurrentObservation,
+              afterConcurrentOperation,
+            }
+          : {}),
       };
     }
     await new Promise((resolve) => setTimeout(resolve, 100));

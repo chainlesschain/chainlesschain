@@ -1,0 +1,38 @@
+{
+  "schema": "chainlesschain.memory-compound-preflight-evidence/v1",
+  "archivedAt": "2026-11-08T01:37:14.559Z",
+  "measurementHead": "06a5facd2eb8a2c4f028f70b91cedd77e0f16518",
+  "dirtyPreflight": true,
+  "performanceAccepted": false,
+  "sampleMatrixComplete": false,
+  "files": {
+    "preflight": {
+      "artifact": "raw/preflight-merged.json.gz",
+      "bytes": 70305,
+      "sha256": "d75d41e2e3a21f22e8cf39af3479a5d0d876b5a629e2bca2efc92f595fed306b",
+      "compressedBytes": 11538,
+      "compressedSha256": "46252f4debc6510d87ea268eb9a2da1f69f682d55f8d02db1f350cdf2fe5e35f"
+    },
+    "packages/cli/scripts/memory-compound-query-benchmark.mjs": {
+      "artifact": "raw/memory-compound-query-benchmark.mjs.gz",
+      "bytes": 35025,
+      "sha256": "ab3412fdad0e48f703e6bbc33ae0ff6eacf7dc629e0aa85388951c2d90cec7e7",
+      "compressedBytes": 9852,
+      "compressedSha256": "491dd3cb65593fec40db39cb4b620ef5712c5e62e09df3ded62015bd84b0be09"
+    },
+    "packages/cli/scripts/memory-compound-query-fixture.mjs": {
+      "artifact": "raw/memory-compound-query-fixture.mjs.gz",
+      "bytes": 10828,
+      "sha256": "17fdafb8b7e624f1d19d54965d0d276e8b0246a270d66cb2c0438125730b5fdd",
+      "compressedBytes": 3450,
+      "compressedSha256": "a06ba3aff6e3edb07b394a5dd90ebf5c075301e7b601acda524047d0c5e8a426"
+    },
+    "packages/cli/scripts/memory-compound-query-benchmark.node-test.mjs": {
+      "artifact": "raw/memory-compound-query-benchmark.node-test.mjs.gz",
+      "bytes": 10154,
+      "sha256": "aa422360902b325d14ff08e27348da8c763abd075776af7f3f4558ee64912e05",
+      "compressedBytes": 2820,
+      "compressedSha256": "5f6268736f7dcaeafbb9bbf5a2590f6b16b1c2f8b5537416b2b42c926922d2b7"
+    }
+  }
+}

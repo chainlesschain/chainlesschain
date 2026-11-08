@@ -12,7 +12,14 @@ import {
 } from "node:fs";
 import http from "node:http";
 import { tmpdir } from "node:os";
-import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
+import {
+  dirname,
+  isAbsolute,
+  relative,
+  resolve,
+  sep,
+  toNamespacedPath,
+} from "node:path";
 import { fileURLToPath } from "node:url";
 import { CodexAppServerAdapter } from "../src/lib/codex-app-server-adapter.js";
 import {
@@ -238,8 +245,8 @@ export function assertCompleteScanHistory(observed) {
 // Only genuine rollouts from this probe's stopped process may enter the new
 // home. Never copy a state DB or follow links out of the isolated fixture.
 export function copyHistoryRollouts(threads, sourceHome, targetHome) {
-  const sourceRoot = resolve(sourceHome);
-  const destinationRoot = resolve(targetHome);
+  const sourceRoot = toNamespacedPath(resolve(sourceHome));
+  const destinationRoot = toNamespacedPath(resolve(targetHome));
   assert.notEqual(sourceRoot, destinationRoot, "rollout homes must differ");
   for (const directory of [sourceRoot, destinationRoot]) {
     const stat = lstatSync(directory);
@@ -255,7 +262,7 @@ export function copyHistoryRollouts(threads, sourceHome, targetHome) {
       "string",
       "missing generated rollout path",
     );
-    const source = resolve(thread.path);
+    const source = toNamespacedPath(resolve(thread.path));
     const local = relative(sourceRoot, source);
     const parts = local.split(sep);
     assert.ok(

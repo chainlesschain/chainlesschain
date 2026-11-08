@@ -214,6 +214,9 @@ jobs:
     env:
       CC_SESSION_HOST_CONSISTENCY_EXPECTED_SHA: ${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
     steps:
+      - name: Enable Windows long paths before checkout
+        if: runner.os == 'Windows'
+        run: git config --global core.longpaths true
       - name: Checkout exact session-host commit
         uses: actions/checkout@v5
         with:

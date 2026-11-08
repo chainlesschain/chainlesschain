@@ -49,6 +49,8 @@ function createProjectGoalMonitoringController({
       .trim()
       .toLowerCase(),
   graphHostLoader = undefined,
+  featurePolicy = require("./project-goal-feature-policy")
+    .projectGoalFeaturePolicy,
 } = {}) {
   if (
     typeof engineFactory !== "function" ||
@@ -58,8 +60,9 @@ function createProjectGoalMonitoringController({
     !["goal-monitoring", "organization-goal-monitoring"].includes(
       storageDirectory,
     )
-  )
+  ) {
     fail("GOAL_MONITOR_INVALID_HOST");
+  }
   let engine = null,
     sourceDb = null,
     opening = null,
@@ -67,32 +70,49 @@ function createProjectGoalMonitoringController({
     closing = null;
   const currentDb = () => currentProjectGoalDatabase(database);
   function getEngine() {
-    if (closed) fail("GOAL_MONITOR_HOST_CLOSED");
-    if (opening) return opening;
+    if (closed) {
+      fail("GOAL_MONITOR_HOST_CLOSED");
+    }
+    if (!featurePolicy.isEnabled()) {
+      return Promise.resolve(null);
+    }
+    if (opening) {
+      return opening;
+    }
     opening = (async () => {
       const native = currentDb();
-      if (engine && sourceDb === native) return engine;
+      featurePolicy.assertEnabled();
+      if (engine && sourceDb === native) {
+        return engine;
+      }
       if (engine) {
         await engine.close();
         engine = null;
         sourceDb = null;
       }
-      if (closed) fail("GOAL_MONITOR_HOST_CLOSED");
-      if (currentDb() !== native) fail("GOAL_MONITOR_DATABASE_CHANGED");
+      if (closed) {
+        fail("GOAL_MONITOR_HOST_CLOSED");
+      }
+      if (currentDb() !== native) {
+        fail("GOAL_MONITOR_DATABASE_CHANGED");
+      }
       if (
         !native ||
         typeof native.transaction !== "function" ||
         typeof native.inTransaction !== "boolean" ||
         typeof native.transaction(() => {}).immediate !== "function" ||
         typeof native.constructor !== "function"
-      )
+      ) {
         fail("GOAL_NATIVE_DATABASE_REQUIRED");
-      if (typeof native.name !== "string" || !isAbsolute(native.name))
+      }
+      if (typeof native.name !== "string" || !isAbsolute(native.name)) {
         fail("GOAL_MONITOR_DATABASE_PATH_REQUIRED");
+      }
       const app = (electron || require("electron")).app;
       const userData = app?.getPath("userData");
-      if (typeof userData !== "string" || !isAbsolute(userData))
+      if (typeof userData !== "string" || !isAbsolute(userData)) {
         fail("GOAL_MONITOR_STORAGE_PATH_REQUIRED");
+      }
       const namespace = createHash("sha256")
         .update(realpathSync(native.name))
         .digest("hex");
@@ -107,12 +127,15 @@ function createProjectGoalMonitoringController({
             if (
               protectDirectory(root) !== root ||
               protectDirectory(dirname(file)) !== dirname(file)
-            )
+            ) {
               fail("GOAL_MONITOR_STORAGE_PROTECTION_FAILED");
+            }
           }
-          for (const candidate of files)
-            if (existsSync(candidate) && protectFile(candidate) !== candidate)
+          for (const candidate of files) {
+            if (existsSync(candidate) && protectFile(candidate) !== candidate) {
               fail("GOAL_MONITOR_STORAGE_PROTECTION_FAILED");
+            }
+          }
           return true;
         },
       });
@@ -129,15 +152,24 @@ function createProjectGoalMonitoringController({
                   protectFile,
                   ...(graphHostLoader ? { loadHost: graphHostLoader } : {}),
                   assertCurrent: () => {
-                    if (closed) fail("GOAL_MONITOR_HOST_CLOSED");
-                    if (currentDb() !== native)
+                    featurePolicy.assertEnabled();
+                    if (closed) {
+                      fail("GOAL_MONITOR_HOST_CLOSED");
+                    }
+                    if (currentDb() !== native) {
                       fail("GOAL_MONITOR_DATABASE_CHANGED");
+                    }
                   },
                 },
               )
             : null;
-        if (closed) fail("GOAL_MONITOR_HOST_CLOSED");
-        if (currentDb() !== native) fail("GOAL_MONITOR_DATABASE_CHANGED");
+        if (closed) {
+          fail("GOAL_MONITOR_HOST_CLOSED");
+        }
+        featurePolicy.assertEnabled();
+        if (currentDb() !== native) {
+          fail("GOAL_MONITOR_DATABASE_CHANGED");
+        }
         engine = engineFactory({
           db: native,
           store,
@@ -147,6 +179,7 @@ function createProjectGoalMonitoringController({
             // Connection replacement locks the old engine until the next command
             // rotates it, after draining the previous host.
             try {
+              featurePolicy.assertEnabled();
               return currentDb() === captured ? getCurrentUserDid() : null;
             } catch {
               return null;
@@ -154,12 +187,13 @@ function createProjectGoalMonitoringController({
           },
         });
         sourceDb = native;
-        if (autoStart)
+        if (autoStart) {
           engine.startBackground().catch((error) => {
             try {
               onError(error);
             } catch {}
           });
+        }
         return engine;
       } catch (error) {
         store.close();
@@ -178,16 +212,22 @@ function createProjectGoalMonitoringController({
     return result;
   }
   function close() {
-    if (closing) return closing;
+    if (closing) {
+      return closing;
+    }
     closed = true;
+    unsubscribe();
     closing = (async () => {
       try {
         await opening;
       } catch {}
-      if (engine) await engine.close();
+      if (engine) {
+        await engine.close();
+      }
     })();
     return closing;
   }
+  const unsubscribe = featurePolicy.subscribe(close);
   return Object.freeze({ initialize: getEngine, close });
 }
 

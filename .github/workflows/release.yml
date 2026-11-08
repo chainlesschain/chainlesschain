@@ -79,6 +79,9 @@ jobs:
     needs: [publish-deps]
     runs-on: windows-latest
     steps:
+      - name: Enable Windows long paths before checkout
+        if: runner.os == 'Windows'
+        run: git config --global core.longpaths true
       - name: Checkout code
         uses: actions/checkout@v5
 

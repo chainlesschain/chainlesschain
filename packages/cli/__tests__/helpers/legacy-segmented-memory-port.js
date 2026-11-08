@@ -27,9 +27,15 @@ export async function loadLegacySegmentedMemoryPort() {
   );
   // Preserve the old dependency behavior as well as the old class. A future
   // dependency edit must not silently turn this evidence into a hybrid port.
+  const dependencies = new Map();
   for (const dependency of provenance.dependencies) {
+    if (dependency.fixture !== undefined)
+      assert.match(dependency.fixture, /^[a-z0-9.-]+\.mjs\.txt$/u);
+    const liveURL = new URL(`../../../../${dependency.path}`, import.meta.url);
     const dependencyBytes = fs.readFileSync(
-      new URL(`../../../../${dependency.path}`, import.meta.url),
+      dependency.fixture
+        ? new URL(`../fixtures/${dependency.fixture}`, import.meta.url)
+        : liveURL,
     );
     const blob = createHash("sha1")
       .update(`blob ${dependencyBytes.length}\0`)
@@ -40,6 +46,33 @@ export async function loadLegacySegmentedMemoryPort() {
       dependency.gitBlob,
       `Legacy dependency changed: ${dependency.path}`,
     );
+    assert.equal(dependencies.has(liveURL.href), false);
+    dependencies.set(liveURL.href, dependencyBytes);
+  }
+  const moduleURLs = new Map();
+  const resolving = new Set();
+  function dependencyURL(url) {
+    if (!dependencies.has(url)) return url;
+    if (moduleURLs.has(url)) return moduleURLs.get(url);
+    assert.equal(resolving.has(url), false, "Legacy dependency cycle");
+    resolving.add(url);
+    // Bind imports inside the old dependencies too. Otherwise the frozen
+    // DurableMemoryPort would still resolve the changed live query control.
+    const source = dependencies
+      .get(url)
+      .toString("utf8")
+      .replace(/\bfrom ("[^"\r\n]+")/gu, (token, quotedSpecifier) => {
+        const specifier = JSON.parse(quotedSpecifier);
+        if (specifier.startsWith("node:")) return token;
+        const importedURL = specifier.startsWith(".")
+          ? new URL(specifier, url).href
+          : import.meta.resolve(specifier);
+        return `from ${JSON.stringify(dependencyURL(importedURL))}`;
+      });
+    const resolved = `data:text/javascript;base64,${Buffer.from(source).toString("base64")}`;
+    resolving.delete(url);
+    moduleURLs.set(url, resolved);
+    return resolved;
   }
   const imports = [
     [
@@ -53,8 +86,10 @@ export async function loadLegacySegmentedMemoryPort() {
       "memory-shard-snapshots.js",
     ].map((name) => [
       `./${name}`,
-      new URL(`../../src/lib/context-memory-kernel/${name}`, import.meta.url)
-        .href,
+      dependencyURL(
+        new URL(`../../src/lib/context-memory-kernel/${name}`, import.meta.url)
+          .href,
+      ),
     ]),
   ];
   let source = bytes.toString("utf8");

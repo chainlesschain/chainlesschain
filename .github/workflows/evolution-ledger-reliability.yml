@@ -48,6 +48,9 @@ jobs:
     env:
       CC_EVOLUTION_LEDGER_EXPECTED_SHA: ${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
     steps:
+      - name: Enable Windows long paths before checkout
+        if: runner.os == 'Windows'
+        run: git config --global core.longpaths true
       - name: Checkout exact ledger reliability commit
         uses: actions/checkout@v5
         with:

@@ -19,7 +19,6 @@ const fs = require("fs").promises;
 const path = require("path");
 const crypto = require("crypto");
 const { EventEmitter } = require("events");
-const { HybridSearchEngine } = require("../rag/hybrid-search-engine");
 const { MemoryFileWatcher } = require("./memory-file-watcher");
 const { EmbeddingCache } = require("../rag/embedding-cache");
 const {
@@ -77,6 +76,9 @@ class PermanentMemoryManager extends EventEmitter {
     // 混合搜索引擎 (Phase 2)
     this.hybridSearchEngine = null;
     if (this.ragManager) {
+      // Bootstrap creates Memory before RAG. Avoid loading the full NLP tree
+      // for a feature this instance cannot use; keep load failures visible.
+      const { HybridSearchEngine } = require("../rag/hybrid-search-engine");
       try {
         this.hybridSearchEngine = new HybridSearchEngine({
           ragManager: this.ragManager,

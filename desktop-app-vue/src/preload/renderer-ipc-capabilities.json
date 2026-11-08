@@ -986,6 +986,7 @@
     "project:goal-external-drafts-prepare",
     "project:goal-external-drafts-read",
     "project:goal-external-drafts-revoke",
+    "project:goal-feature-status",
     "project:goal-follow-up-end",
     "project:goal-intent-execute",
     "project:goal-intent-prepare",

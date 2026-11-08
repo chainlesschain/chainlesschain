@@ -58,6 +58,9 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-15-intel]
         host: [vscode, jetbrains]
     steps:
+      - name: Enable Windows long paths before checkout
+        if: runner.os == 'Windows'
+        run: git config --global core.longpaths true
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:

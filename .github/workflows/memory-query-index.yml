@@ -14,23 +14,43 @@ on:
     paths:
       - ".github/actions/setup-node-deps/action.yml"
       - "packages/cli/src/lib/context-memory-kernel/**"
+      - "packages/cli/__tests__/helpers/legacy-segmented-memory-port.js"
+      - "packages/cli/__tests__/fixtures/segmented-memory-port-e7.*"
+      - "packages/cli/__tests__/fixtures/memory-query-control-e7.mjs.txt"
       - "packages/cli/src/lib/secure-file-identity.js"
       - "packages/context-memory-kernel/lib/**"
       - "packages/cli/scripts/memory-query-index-benchmark.mjs"
+      - "packages/cli/scripts/memory-query-responsiveness-benchmark.mjs"
+      - "packages/cli/scripts/memory-mixed-concurrency-benchmark.mjs"
+      - "packages/cli/scripts/memory-compound-query-*.mjs"
+      - "packages/cli/__tests__/integration/memory-mixed-checkpoints.test.js"
+      - "packages/cli/test-node/memory-lazy-postings.node-test.mjs"
       - "packages/cli/scripts/memory-file-identity-diagnostic.mjs"
       - ".github/workflows/memory-query-index.yml"
   pull_request:
     paths:
       - ".github/actions/setup-node-deps/action.yml"
       - "packages/cli/src/lib/context-memory-kernel/**"
+      - "packages/cli/__tests__/helpers/legacy-segmented-memory-port.js"
+      - "packages/cli/__tests__/fixtures/segmented-memory-port-e7.*"
+      - "packages/cli/__tests__/fixtures/memory-query-control-e7.mjs.txt"
       - "packages/cli/src/lib/secure-file-identity.js"
       - "packages/context-memory-kernel/lib/**"
       - "packages/cli/scripts/memory-query-index-benchmark.mjs"
+      - "packages/cli/scripts/memory-query-responsiveness-benchmark.mjs"
+      - "packages/cli/scripts/memory-mixed-concurrency-benchmark.mjs"
+      - "packages/cli/scripts/memory-compound-query-*.mjs"
+      - "packages/cli/__tests__/integration/memory-mixed-checkpoints.test.js"
+      - "packages/cli/test-node/memory-lazy-postings.node-test.mjs"
       - "packages/cli/scripts/memory-file-identity-diagnostic.mjs"
       - ".github/workflows/memory-query-index.yml"
 
 permissions:
   contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'workflow_dispatch' && format('run-{0}', github.run_id) || github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || format('branch-{0}', github.ref) }}
+  cancel-in-progress: true
 
 jobs:
   measurement:
@@ -41,6 +61,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: ${{ github.event_name == 'workflow_dispatch' && inputs.samples == '100' && 120 || 45 }}
     steps:
+      - name: Enable Windows long paths before checkout
+        if: runner.os == 'Windows'
+        run: git config --global core.longpaths true
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -48,6 +71,8 @@ jobs:
         with:
           node-version: "22.12.0"
       - uses: ./.github/actions/setup-node-deps
+      - name: Verify lazy postings retain eager rejection
+        run: node --test packages/cli/test-node/memory-lazy-postings.node-test.mjs
       - name: Diagnose Windows path and handle file identities
         if: runner.os == 'Windows'
         continue-on-error: true
@@ -58,7 +83,8 @@ jobs:
       - name: Query, cursor, corruption and concurrency contracts
         working-directory: packages/cli
         run: >-
-          npx vitest run __tests__/unit/memory-query-index.test.js
+          npx vitest run __tests__/unit/memory-query-control.test.js
+          __tests__/unit/memory-query-index.test.js
           __tests__/unit/segmented-memory-port.test.js
           __tests__/unit/memory-shard-snapshots.test.js
           __tests__/unit/memory-query-cancellation.test.js
@@ -85,7 +111,78 @@ jobs:
       # A performance measurement is not a passed latency SLO. The script
       # gates row equivalence and integrity; no unapproved timing threshold.
       - uses: actions/upload-artifact@v6
+        if: always()
         with:
           name: memory-query-index-${{ matrix.os }}-${{ github.event.pull_request.head.sha || github.sha }}
           path: ${{ runner.temp }}/memory-query-index.json
-          if-no-files-found: error
+          if-no-files-found: warn
+
+  extended-measurement:
+    name: "Memory ${{ matrix.scenario }} (${{ matrix.os }})"
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        scenario: [stop, mixed, compound]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: ${{ github.event_name == 'workflow_dispatch' && inputs.samples == '100' && 120 || 45 }}
+    env:
+      MEMORY_EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      MEMORY_SAMPLES: ${{ github.event_name == 'workflow_dispatch' && inputs.samples || '11' }}
+    steps:
+      - name: Enable Windows long paths before checkout
+        if: runner.os == 'Windows'
+        run: git config --global core.longpaths true
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ env.MEMORY_EXPECTED_SHA }}
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22.12.0"
+      - uses: ./.github/actions/setup-node-deps
+      - name: Verify exact source before measurement
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "$MEMORY_EXPECTED_SHA"
+          git diff --exit-code
+      - name: Verify mixed checkpoint failure handling
+        if: matrix.scenario == 'mixed'
+        working-directory: packages/cli
+        run: npx vitest run __tests__/integration/memory-mixed-checkpoints.test.js
+      - name: Verify independent compound oracle and failure evidence
+        if: matrix.scenario == 'compound'
+        run: node --test packages/cli/scripts/memory-compound-query-benchmark.node-test.mjs
+      - name: Measure real disk query cancellation
+        if: matrix.scenario == 'stop'
+        shell: bash
+        run: >-
+          node packages/cli/scripts/memory-query-responsiveness-benchmark.mjs
+          --counts 1000,10000,100000 --samples "$MEMORY_SAMPLES"
+          --require-cancellation --output "$RUNNER_TEMP/memory-stop.json"
+      - name: Measure eight-process read, write and deletion overlap
+        if: matrix.scenario == 'mixed'
+        shell: bash
+        run: >-
+          node packages/cli/scripts/memory-mixed-concurrency-benchmark.mjs
+          --counts 1000,10000,100000 --rounds "$MEMORY_SAMPLES"
+          --output "$RUNNER_TEMP/memory-mixed.json"
+      - name: Measure first cold compound queries and continuation
+        if: matrix.scenario == 'compound'
+        shell: bash
+        run: >-
+          node packages/cli/scripts/memory-compound-query-benchmark.mjs
+          --counts 1000,10000,100000 --samples "$MEMORY_SAMPLES"
+          --load-context isolated-measurement
+          --output "$RUNNER_TEMP/memory-compound.json"
+      - name: Verify source remains unchanged
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "$MEMORY_EXPECTED_SHA"
+          git diff --exit-code
+      - name: Preserve complete or partial measurement evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: memory-${{ matrix.scenario }}-${{ matrix.os }}-${{ env.MEMORY_EXPECTED_SHA }}
+          path: ${{ runner.temp }}/memory-${{ matrix.scenario }}.json
+          if-no-files-found: warn

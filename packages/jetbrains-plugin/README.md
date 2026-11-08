@@ -301,7 +301,9 @@ See the [verified publication evidence](https://github.com/chainlesschain/chainl
 
 ## Release compatibility
 
-Plugin **0.4.196** recommends `chainlesschain@0.166.143`. Publish only after the required exact-source matrices, Session Core and CLI public readback. Once verified, install `npm i -g chainlesschain@0.166.143 --registry https://registry.npmjs.org`, restart the chat host, and run `cc --version` and `cc doctor`. The candidate adds local OpenAI-compatible compute configuration and pending task-creation controls; matching desktop support and native consent remain required. LEXDATA real inference and real IDE GUI acceptance are not established by package publication.
+Plugin **0.4.197** recommends `chainlesschain@0.166.144`. Publish only after the required exact-source matrices, Session Core and CLI public readback. Once verified, install `npm i -g chainlesschain@0.166.144 --registry https://registry.npmjs.org`, restart the chat host, and run `cc --version` and `cc doctor`. The candidate adds local OpenAI-compatible compute configuration and pending task-creation controls; matching desktop support and native consent remain required. LEXDATA real inference and real IDE GUI acceptance are not established by package publication.
+
+This source candidate is not published. It pairs with VS Code/Open VSX 0.37.180 and carries the CLI goal-transfer and native Graph host changes. Matching desktop source and explicit native authorization remain required.
 
 ## Previous candidates and development notes
 

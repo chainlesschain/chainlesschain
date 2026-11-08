@@ -139,7 +139,10 @@ function validateGoalTransfer(input) {
     input.schema !== TRANSFER_SCHEMA ||
     typeof input.backup !== "string" ||
     Buffer.byteLength(input.backup, "utf8") > MAX_GOAL_RECORD_BYTES ||
-    Buffer.byteLength(JSON.stringify(input), "utf8") > MAX_TRANSFER_BYTES
+    typeof input.backupDigest !== "string" ||
+    !HASH.test(input.backupDigest) ||
+    typeof input.digest !== "string" ||
+    !HASH.test(input.digest)
   )
     fail();
   const target = validateGoalImportTarget(input.target),
@@ -185,6 +188,9 @@ function validateGoalTransfer(input) {
     digest: input.digest,
   };
   if (
+    // Serialize only validated data: raw nested getters, proxy traps and
+    // toJSON hooks must never execute during an envelope-size check.
+    Buffer.byteLength(JSON.stringify(result), "utf8") > MAX_TRANSFER_BYTES ||
     result.backupDigest !== rawDigest(result.backup) ||
     result.digest !== digestBusinessObjectContent(transferMetadata(result))
   )
