@@ -332,7 +332,11 @@ async function startBridge(context) {
     // every integrated terminal. Keep this bounded and fail closed.
     let bridgeReady = "unknown";
     for (let attempt = 0; attempt < 5; attempt += 1) {
-      bridgeReady = await _probePort(_port, 500);
+      bridgeReady = await _probePort(_port, 500, (error) =>
+        log(
+          `IDE bridge self-probe error: ${error?.code || error?.message || error}`,
+        ),
+      );
       if (bridgeReady === "listening") break;
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
@@ -1696,7 +1700,7 @@ function deactivate() {
 }
 
 /** Quick loopback probe: does something accept a TCP connection on `port`? */
-function _probePort(port, timeoutMs = 600) {
+function _probePort(port, timeoutMs = 600, onError) {
   return new Promise((resolve) => {
     if (!port) return resolve("stopped");
     const net = require("net");
@@ -1715,7 +1719,14 @@ function _probePort(port, timeoutMs = 600) {
     sock.setTimeout(timeoutMs);
     sock.once("connect", () => finish("listening"));
     sock.once("timeout", () => finish("unknown"));
-    sock.once("error", () => finish("unknown"));
+    sock.once("error", (error) => {
+      try {
+        onError?.(error);
+      } catch {
+        /* diagnostics must not affect the probe */
+      }
+      finish("unknown");
+    });
     try {
       sock.connect(port, "127.0.0.1");
     } catch {

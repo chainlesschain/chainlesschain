@@ -82,7 +82,8 @@
         "cli/evidence/vscode-live-extension-host-rerun-20261109",
         "cli/evidence/vscode-bridge-server-direct-20261109",
         "cli/evidence/vscode-live-extension-host-lockfix-20261109",
-        "cli/evidence/vscode-live-extension-host-selfprobe-20261109"
+        "cli/evidence/vscode-live-extension-host-selfprobe-20261109",
+        "cli/evidence/vscode-live-extension-host-diagnostic-20261109"
       ],
       "remaining": [
         "VS Code bridge loopback",
