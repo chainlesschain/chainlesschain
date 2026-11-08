@@ -22,13 +22,13 @@
     "3": {
       "status": "partial",
       "evidence": [
-        "cli/evidence/repl-inflight-recovery-20261109"
+        "cli/evidence/repl-inflight-recovery-20261109",
+        "cli/evidence/lifecycle-recovery-current-20261109"
       ],
       "remaining": [
         "dual IDE recovery",
-        "concurrent input",
-        "side-effect idempotence",
-        "cross-entry journey"
+        "concurrent input during restart",
+        "complete cross-entry journey"
       ]
     },
     "4": {
