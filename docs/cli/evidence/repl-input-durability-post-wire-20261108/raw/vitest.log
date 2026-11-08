@@ -1,0 +1,9 @@
+
+ RUN  v4.1.10 E:/code/chainlesschain/packages/cli
+
+
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+   Start at  18:21:53
+   Duration  6.91s (transform 100ms, setup 133ms, import 17ms, tests 6.61s, environment 0ms)
+

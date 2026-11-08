@@ -263,3 +263,5 @@ packages/cli/src/lib/context-memory-kernel/local-semantic-worker.py -text
 docs/cli/evidence/local-memory-semantic-20261108/* -text
 # Keep original REPL crash recovery evidence bytes.
 docs/cli/evidence/repl-inflight-recovery-20261108/raw/** -text
+# Keep current accepted/settled post-wire crash evidence bytes.
+docs/cli/evidence/repl-input-durability-post-wire-20261108/raw/** -text !eol -whitespace

@@ -1,0 +1,10 @@
+{"fixture":"repl-inflight-bootstrap","stage":"fixture-entered","pid":32636,"at":"2026-11-08T10:20:16.001Z","uptimeMs":16}
+{"fixture":"repl-inflight-bootstrap","stage":"argv-ready-before-cli-import","pid":32636,"at":"2026-11-08T10:20:16.003Z","uptimeMs":17}
+{"fixture":"repl-inflight-bootstrap","stage":"cli-module-imported","pid":32636,"at":"2026-11-08T10:20:16.010Z","uptimeMs":24}
+[AppConfig] No config file, using defaults
+[AppConfig] Configuration saved
+[DatabaseManager] better-sqlite3-multiple-ciphers unusable: The module '\\?\E:\code\chainlesschain\node_modules\better-sqlite3-multiple-ciphers\build\Release\better_sqlite3.node'
+[DatabaseManager] Using better-sqlite3 (no encryption)
+[DatabaseManager] Database initialized: C:\Users\admin\AppData\Local\Temp\cc-repl-inflight-0eYyQQ\config\data\chainlesschain.db
+Warning: sandbox mode is explicitly off; shell commands use policy checks without OS isolation.
+⚠ ⚠ MCP ledger recovery failed closed; inspect the transcript before using MCP tools.
