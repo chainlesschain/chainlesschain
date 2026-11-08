@@ -10588,6 +10588,14 @@ async function startAgentReplInWorkspaceOwned(
     }
   });
 
+  // Opt-in restart recovery: with auto-wake enabled, scan the canonical
+  // journal after the line listener is live and resume pending task trackers.
+  if (process.env.CC_MCP_TASK_AUTOWAKE === "1") {
+    setImmediate(() => {
+      if (!_replClosing) rl.emit("line", "/mcp-watch");
+    });
+  }
+
   rl.on("close", async () => {
     if (_replCleanupStarted) return;
     _replCleanupStarted = true;
