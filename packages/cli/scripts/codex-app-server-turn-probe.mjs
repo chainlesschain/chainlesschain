@@ -131,10 +131,11 @@ export function officialValidators(version = PROBE_VERSION) {
   // disabled; the official app-server schemas use int64 for JSON-RPC IDs.
   // Register the format locally so schema preflight remains strict and does
   // not depend on the caller's global Ajv version or configuration.
-  ajv.addFormat("int64", {
-    type: "integer",
-    validate: Number.isSafeInteger,
-  });
+  for (const format of ["int32", "int64", "uint", "uint16", "uint32", "uint64"])
+    ajv.addFormat(format, {
+      type: "integer",
+      validate: Number.isSafeInteger,
+    });
   const compiled = new Map(),
     counts = {},
     schemas = {},
