@@ -801,7 +801,7 @@ export class SegmentedMemoryPort extends DurableJsonMemoryPort {
       return cached.index;
     let index;
     try {
-      index = compileQueryIndex(bytes, descriptor);
+      index = compileQueryIndex(bytes, descriptor, { lazyPostings: true });
     } catch (cause) {
       throw corruptStore(
         this.filePath,

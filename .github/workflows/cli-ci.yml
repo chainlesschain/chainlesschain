@@ -10,6 +10,9 @@ on:
       - "packages/web-panel/**"
       - "packages/locales/seed/**"
       - "package.json"
+      - "desktop-app-vue/package.json"
+      - "desktop-app-vue/scripts/install-electron.cjs"
+      - "desktop-app-vue/scripts/__tests__/install-electron.test.mjs"
       - "packages/core-db/**"
       - "packages/session-core/**"
       - "packages/personal-data-hub/**"
@@ -63,6 +66,9 @@ on:
       - "packages/web-panel/**"
       - "packages/locales/seed/**"
       - "package.json"
+      - "desktop-app-vue/package.json"
+      - "desktop-app-vue/scripts/install-electron.cjs"
+      - "desktop-app-vue/scripts/__tests__/install-electron.test.mjs"
       - "packages/core-db/**"
       - "packages/session-core/**"
       - "packages/personal-data-hub/**"
@@ -186,6 +192,8 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
+      - name: Verify portable desktop lifecycle before installing dependencies
+        run: node --test desktop-app-vue/scripts/__tests__/install-electron.test.mjs
       - uses: ./.github/actions/setup-node-deps
       - name: Verify native campaign dispatch and acceptance preflight without provider execution
         run: >-
@@ -351,6 +359,8 @@ jobs:
           __tests__/verify-10.test.js
           __tests__/verify-13.test.js
           __tests__/verify-36.test.js
+      - name: Verify Memory lazy postings retain eager validation and query results
+        run: node --test packages/cli/test-node/memory-lazy-postings.node-test.mjs
       - name: Verify calibration capture accounting and public install identity
         run: >-
           node --test

@@ -47,7 +47,11 @@ function scopeKey(scope, scopeId) {
   return JSON.stringify([scope, scopeId ?? null]);
 }
 
-export function compileQueryIndex(bytes, descriptor) {
+export function compileQueryIndex(
+  bytes,
+  descriptor,
+  { lazyPostings = false } = {},
+) {
   const value = JSON.parse(bytes.toString("utf8"));
   if (
     value.schema !== MEMORY_QUERY_INDEX_SCHEMA ||
@@ -62,6 +66,7 @@ export function compileQueryIndex(bytes, descriptor) {
     fields.map((field) => [field, new Map()]),
   );
   const add = (field, key, index) => {
+    if (lazyPostings) return;
     const map = postings[field];
     if (!map.has(key)) map.set(key, []);
     map.get(key).push(index);
@@ -73,6 +78,37 @@ export function compileQueryIndex(bytes, descriptor) {
     for (const tag of row.tags) add("tag", tag, index);
     for (const sink of row.allowedSinks) add("sink", sink, index);
   });
+  if (lazyPostings) {
+    for (const field of fields) {
+      Object.defineProperty(postings, field, {
+        configurable: true,
+        enumerable: true,
+        get() {
+          const posting = new Map();
+          const append = (key, index) => {
+            if (!posting.has(key)) posting.set(key, []);
+            posting.get(key).push(index);
+          };
+          value.rows.forEach((row, index) => {
+            if (field === "scope")
+              append(scopeKey(row.scope, row.scopeId), index);
+            else if (field === "tag") {
+              for (const tag of row.tags) append(tag, index);
+            } else if (field === "sink") {
+              for (const sink of row.allowedSinks) append(sink, index);
+            } else append(row[field], index);
+          });
+          Object.defineProperty(postings, field, {
+            value: posting,
+            configurable: true,
+            enumerable: true,
+            writable: true,
+          });
+          return posting;
+        },
+      });
+    }
+  }
   return { rows: value.rows, postings };
 }
 
