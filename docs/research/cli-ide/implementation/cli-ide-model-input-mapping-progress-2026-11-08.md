@@ -2,6 +2,8 @@
 
 本批继续[差距复核第 2 项](../plans/cli-ide-codex-claude-gap-review-2026-11-08.md)，并减少第 9 项的重复转换接线。分支 feature/model-input-source-mapping-20261108，基线 3591769ba40190c1017b4556ef3e5320258ed6ef。本批尚未发行，完整计划仍未完成。
 
+实现提交：e94c1f49bb3dafc83dcb4cabd4fff48c98e776a4。提交后的 11 个代码 / 测试 blob 及 15 份归档证据已逐项核对最终哈希。
+
 **实现范围**
 
 实际 bundle 排序及展开循环记录 item 到消息位置的关系；工具按具体 definition 和原 registry 顺序绑定。provider-context 的模块私有 WeakMap 仅保存完整请求的 canonical 摘要及冻结位置关系，不导出 mint API，不长期保留图片或正文副本。未知 plan 或请求变化不能取得映射。

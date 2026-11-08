@@ -171,5 +171,19 @@
     "19 baseline controls are separate from current-source test totals",
     "Targeted 11 wire/host cases are contained within the full 288 suite; do not add totals",
     "No release or expansion of production admission"
-  ]
+  ],
+  "implementationCommit": "e94c1f49bb3dafc83dcb4cabd4fff48c98e776a4",
+  "sourceGitBlobs": {
+    "packages/cli/__tests__/unit/agent-evolution-runtime-composition.test.js": "6977421de16535dc145e0f875b7db14136c33b02",
+    "packages/cli/__tests__/unit/context-memory-provider-source-mapping.test.js": "a468eb9a9e4d6b57a1cfa6ccebb4e672520d0665",
+    "packages/cli/__tests__/unit/model-input-source-mapping.test.js": "45b781b4c96ca30b139a25be5c484c30cecb0035",
+    "packages/cli/src/lib/context-memory-kernel/message-adapter.js": "c288b323ce98065ef5a8830bc190427397c6e7b7",
+    "packages/cli/src/lib/context-memory-kernel/provider-context.js": "cd913b6c612fbcb7a76b3f25b97caf754f0363cd",
+    "packages/cli/src/lib/evolution/agent-evolution-ingress.js": "df07762770a06d9c47e4ec9a905ccc3e57939b13",
+    "packages/cli/src/lib/model-input-diagnostics.js": "e283cb4b30c6cfd88e996e3211e7032ae039cc10",
+    "packages/cli/src/lib/model-input-source-mapping.js": "21f924e785a85c72d34b62113e9548d3a601e39a",
+    "packages/cli/src/lib/openai-responses.js": "b9a4120b14b6d06897cde6263a84d1e1e2c2dc45",
+    "packages/cli/src/lib/session-model-input-diagnostics.js": "1120a66145d358a4552bd73fd45abdac2b7f5a4b",
+    "packages/cli/src/runtime/agent-core.js": "ab03a33300a3ddac1fa30b5d32025bdef775c271"
+  }
 }
