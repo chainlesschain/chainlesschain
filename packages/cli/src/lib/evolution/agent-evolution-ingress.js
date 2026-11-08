@@ -1,3 +1,7 @@
+import {
+  modelInputNodeDigest,
+  freezeModelInputMapping,
+} from "../model-input-source-mapping.js";
 import crypto from "node:crypto";
 import { types } from "node:util";
 import evolutionRun from "@chainlesschain/session-core/evolution-run";
@@ -491,6 +495,31 @@ export function createAgentEvolutionIngress({
             manifestDigest: persisted.manifest.digest,
             projectionDigest: resolved.bundle.modelProjection.projectionDigest,
             rulesetDigest: resolved.bundle.modelProjection.rulesetDigest,
+            sourceMapping: freezeModelInputMapping({
+              inputDigest: modelInputNodeDigest(modelRequest),
+              outputDigest: modelInputNodeDigest(request),
+              slots: ["message", "tool"].flatMap((kind) => {
+                const key = kind === "message" ? "messages" : "tools";
+                return modelRequest[key].map((_, index) => {
+                  const prefix = "$." + key + "." + index;
+                  const belongs = (path) =>
+                    path === prefix || path.startsWith(prefix + ".");
+                  return {
+                    kind,
+                    index,
+                    logicalIndex: index + (kind === "message" ? 1 : 0),
+                    redactionTouched:
+                      resolved.bundle.modelProjection.redactionSummary.paths.some(
+                        belongs,
+                      ),
+                    injectionTouched:
+                      resolved.bundle.modelProjection.injectionFindings.some(
+                        (finding) => belongs(finding.path),
+                      ),
+                  };
+                });
+              }),
+            }),
             redactionCount:
               resolved.bundle.modelProjection.redactionSummary.total,
             injectionCount:

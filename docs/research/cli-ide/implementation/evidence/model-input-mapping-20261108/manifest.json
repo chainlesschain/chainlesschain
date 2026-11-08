@@ -1,0 +1,175 @@
+{
+  "schema": "chainlesschain.model-input-source-mapping-evidence/v1",
+  "date": "2026-11-08",
+  "branch": "feature/model-input-source-mapping-20261108",
+  "baseCommit": "3591769ba40190c1017b4556ef3e5320258ed6ef",
+  "environment": {
+    "platform": "Windows",
+    "node": "24.12.0",
+    "vitest": "4.1.10",
+    "bashPathPrefix": "C:/Program Files/Git/bin",
+    "modelEndpoints": "synthetic loopback HTTP",
+    "responsesTransport": "official protocol URL asserted; test fetch shim routes to loopback",
+    "pdhLayout": "isolated CLI overlay resolves package and relative imports to same worktree instance; shared dependencies untouched",
+    "regression17Layout": "initial shared dependency layout; no PDH-stage tests selected",
+    "compositionLayout": "isolated single-instance PDH overlay"
+  },
+  "finalReports": {
+    "regression": "model-input-mapping-audited-regression-tests.json",
+    "composition": "model-input-mapping-audited-composition-tests.json",
+    "baselineOriginalLayout": "model-input-mapping-baseline-pdh-tests.json",
+    "baselineSingleInstanceLayout": "model-input-mapping-baseline-isolated-pdh-tests.json",
+    "dependencyLayout": "model-input-mapping-pdh-layout.json",
+    "static": "model-input-mapping-static-checks.json"
+  },
+  "testedSourceSha256": {
+    "packages/cli/__tests__/unit/agent-evolution-runtime-composition.test.js": "9a1a0c8ae00094a1dd148430141ed2954b8d825720afaae9db6303063e7236d4",
+    "packages/cli/__tests__/unit/context-memory-provider-source-mapping.test.js": "31d04953404b58621b717ce2f7ebd0cb14ca5bc5c03c0fc095a855f42e64081e",
+    "packages/cli/__tests__/unit/model-input-source-mapping.test.js": "cab59af042aada335f90ce66a03d2049da3bc841d35bae281069971caf934329",
+    "packages/cli/src/lib/context-memory-kernel/message-adapter.js": "88df13cf95044e00d46d966740e08da1dde53bf9db663b712789dd496e1a5fc3",
+    "packages/cli/src/lib/context-memory-kernel/provider-context.js": "3beefa3da8966acff65d14f203aababeb8082780b62b36d671e987bc6fc1c1dd",
+    "packages/cli/src/lib/evolution/agent-evolution-ingress.js": "c90dff253b239830179d2900a391f51fc7e5ef385582cded295c47ac397ffcf3",
+    "packages/cli/src/lib/model-input-diagnostics.js": "1fc417f5e789c9de13f3891620033071b1f5a8323a954de05e53e3c9c6e7439e",
+    "packages/cli/src/lib/model-input-source-mapping.js": "4dab3515af9f7c1b083dd6c1bbbefdd25fea344c60f59101dce903f4c6c80cb1",
+    "packages/cli/src/lib/openai-responses.js": "ee8b02f74642a51d65f2f66a8ad38ae425c3b8058da31e0926aa5362d22b9d7e",
+    "packages/cli/src/lib/session-model-input-diagnostics.js": "d0619cce147b1eaae01b6e6c45efe0ee737e7ccc3ae481e4b0299c3eedca78ca",
+    "packages/cli/src/runtime/agent-core.js": "04b1eb1d77197b8e47641d113696804adfd3b51bd41d19bc75c01f8355708775"
+  },
+  "files": [
+    {
+      "file": "model-input-mapping-audited-composition-tests.json",
+      "bytes": 107209,
+      "sha256": "a65e9efb7592c87ed04237a78937f9286d268466a0ddbb1cce0a7b07fe755b03",
+      "tests": 288,
+      "passed": 288,
+      "failed": 0,
+      "skippedOrUnselected": 0
+    },
+    {
+      "file": "model-input-mapping-audited-regression-tests.json",
+      "bytes": 63916,
+      "sha256": "cba4d7a2297bf929a1d392abde270befdce4d4913c2ac1f097e2e0fd9cbd8168",
+      "tests": 182,
+      "passed": 182,
+      "failed": 0,
+      "skippedOrUnselected": 0
+    },
+    {
+      "file": "model-input-mapping-baseline-isolated-pdh-tests.json",
+      "bytes": 97889,
+      "sha256": "8ac1b36829cc36d243f00572e61a62a783f10fbd7cdda802c019289024493481",
+      "tests": 284,
+      "passed": 19,
+      "failed": 0,
+      "skippedOrUnselected": 265
+    },
+    {
+      "file": "model-input-mapping-baseline-pdh-tests.json",
+      "bytes": 106892,
+      "sha256": "b6eef0996c2457015f63542a989aa3cff291c9aaf7c449a0e065d5d01619a42f",
+      "tests": 284,
+      "passed": 5,
+      "failed": 14,
+      "skippedOrUnselected": 265
+    },
+    {
+      "file": "model-input-mapping-before-host-fix-source-sha256.json",
+      "bytes": 1447,
+      "sha256": "e447c664a32444b5c47e700806f3dddc56cc83e552e7ae8eff2d443b35c85158"
+    },
+    {
+      "file": "model-input-mapping-contract-tests.json",
+      "bytes": 35214,
+      "sha256": "8328a6889c7dc340e485eb9d617b30236ff1d85a554f6108481b879f6565dd29",
+      "tests": 99,
+      "passed": 99,
+      "failed": 0,
+      "skippedOrUnselected": 0
+    },
+    {
+      "file": "model-input-mapping-final-composition-tests.json",
+      "bytes": 117516,
+      "sha256": "ff747430feaf07328b7fac45b88957866b31430c182a0d5298cb34288deed440",
+      "tests": 288,
+      "passed": 271,
+      "failed": 17,
+      "skippedOrUnselected": 0
+    },
+    {
+      "file": "model-input-mapping-final-regression-tests.json",
+      "bytes": 63589,
+      "sha256": "ebe62da4d7e70efd3230d55806e7bc49381768832e7d28cb875d965fc573090e",
+      "tests": 181,
+      "passed": 181,
+      "failed": 0,
+      "skippedOrUnselected": 0
+    },
+    {
+      "file": "model-input-mapping-fixed-host-receipt-tests.json",
+      "bytes": 99179,
+      "sha256": "1aecb1b1393ffa5eff82858430e8f52320a487de3dfc4877963c9175013807e4",
+      "tests": 288,
+      "passed": 5,
+      "failed": 0,
+      "skippedOrUnselected": 283
+    },
+    {
+      "file": "model-input-mapping-fixed-wire-tests.json",
+      "bytes": 99372,
+      "sha256": "a49a6edbdff14236bd02b1bfa8bea86f60097ae9d2fde093d7a07dace475ae5e",
+      "tests": 288,
+      "passed": 11,
+      "failed": 0,
+      "skippedOrUnselected": 277
+    },
+    {
+      "file": "model-input-mapping-initial-tests.json",
+      "bytes": 10250,
+      "sha256": "19f2d4efddd69c8ebea839119de610f4a08ffde8d673130f9386a382b7d4d324",
+      "tests": 26,
+      "passed": 25,
+      "failed": 1,
+      "skippedOrUnselected": 0
+    },
+    {
+      "file": "model-input-mapping-null-prototype-repro.json",
+      "bytes": 6242,
+      "sha256": "fc8d9806c61cb05d0de42b5da6acabb47acff3fb06a76660a4355d9c11097d5e",
+      "tests": 16,
+      "passed": 1,
+      "failed": 1,
+      "skippedOrUnselected": 14
+    },
+    {
+      "file": "model-input-mapping-pdh-layout.json",
+      "bytes": 3034,
+      "sha256": "31175aed649cafd3433d69aa0347eed35875e37bf2b3ff323c35ed802f812815"
+    },
+    {
+      "file": "model-input-mapping-real-wire-tests.json",
+      "bytes": 100814,
+      "sha256": "f6e50635323f82872510b71fe2ba33dcb0137f51aa067fe26cf8c9b3e40cd554",
+      "tests": 288,
+      "passed": 9,
+      "failed": 2,
+      "skippedOrUnselected": 277
+    },
+    {
+      "file": "model-input-mapping-static-checks.json",
+      "bytes": 2015,
+      "sha256": "cc748413c7e7297eebddaffa28ce3df06eec69fb94681e6a0ec7aa598851308e",
+      "eslintErrors": 0,
+      "eslintWarnings": 23,
+      "prettierPassed": true
+    }
+  ],
+  "limits": [
+    "No real model or paid call",
+    "No provider acceptance, consumption or billing verification",
+    "No complete native IDE/desktop or cross-platform CI acceptance",
+    "IDE source-detail fields are not exposed yet",
+    "19 baseline controls are separate from current-source test totals",
+    "Targeted 11 wire/host cases are contained within the full 288 suite; do not add totals",
+    "No release or expansion of production admission"
+  ]
+}

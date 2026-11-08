@@ -1280,6 +1280,8 @@ chainlesschain mcp call <tool> --server <name> # Call a tool
 
 Development branch: `chainlesschain mcp tasks` provides experimental, session-bound HTTP(S) server tasks with durable acceptance, saved results, and one-time result delivery for explicit user continuations. See the [task workflow and recovery guide](../../docs/cli/mcp-tasks.md). This does not change the public release limits.
 
+Development branch: canonical model-input diagnostics now connect each source to its signed projection and protocol positions. See the [read-only query and coverage guide](../../docs/cli/model-input-diagnostics.md). Prepared input mapping does not verify model consumption or billing.
+
 ### `chainlesschain browse <action>`
 
 Browser automation (headless fetch-based).

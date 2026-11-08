@@ -618,8 +618,10 @@ describe("Agent evolution runtime production composition", () => {
       const envNames = [
         "CHAINLESSCHAIN_HOME",
         "CHAINLESSCHAIN_SECURITY_ANCHOR_HOME",
+        "CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_STAGE",
       ];
       const previous = envNames.map((name) => process.env[name]);
+      process.env.CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_STAGE = "canonical_default";
       process.env.CHAINLESSCHAIN_HOME = path.join(f.root, "task-session-home");
       process.env.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME = path.join(
         f.root,
@@ -745,6 +747,7 @@ describe("Agent evolution runtime production composition", () => {
                   },
           };
         });
+        const sourceDiagnostics = [];
         const callOptions = {
           ...f.callOptions,
           provider,
@@ -757,6 +760,7 @@ describe("Agent evolution runtime production composition", () => {
             CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_STAGE: "canonical_default",
           },
           contextMemoryFilePath: path.join(f.root, "delivery-memory.json"),
+          onModelInputDiagnostic: (event) => sourceDiagnostics.push(event),
           contextMemorySelectedToolNames: [],
         };
         if (host === "headless") {
@@ -803,6 +807,22 @@ describe("Agent evolution runtime production composition", () => {
             await f.composition.evolutionIngress.ingestAgentEvent(event);
           }
           await f.composition.evolutionIngress.complete();
+        }
+        expect(
+          sourceDiagnostics.find((event) => event.phase === "logical-input")
+            .sourceMapping.covered,
+        ).toBe(true);
+        expect(
+          sourceDiagnostics.find((event) => event.stage === "fetch-body")
+            .sourceMapping.covered,
+        ).toBe(true);
+        if (host === "headless") {
+          const { readSessionModelInputDiagnostics } =
+            await import("../../src/lib/session-model-input-diagnostics.js");
+          const persisted = readSessionModelInputDiagnostics(sessionId);
+          expect(
+            persisted.records.map((record) => record.diagnostic.sourceMapping),
+          ).toEqual(sourceDiagnostics.map((event) => event.sourceMapping));
         }
         expect(bodies).toHaveLength(1);
         const messages = bodies[0].messages;
@@ -1542,6 +1562,247 @@ describe("Agent evolution runtime production composition", () => {
   );
 
   it.each([
+    ["openai", "unit-model", "openai-chat"],
+    ["openai", "gpt-6.1-sol", "openai-responses"],
+    ["anthropic", "claude-sonnet-4-6", "anthropic-messages"],
+    ["ollama", "test-model", "ollama-chat"],
+  ])(
+    "maps exact source relations through signed projection and real %s/%s HTTP bytes (%s)",
+    async (provider, model, protocol) => {
+      const nativeFetch = globalThis.fetch;
+      const f = modelFixture();
+      vi.stubGlobal("fetch", nativeFetch);
+      const planning = vi.spyOn(
+        canonicalProviderContext,
+        "prepareCanonicalProviderContext",
+      );
+      const diagnostics = [],
+        bodies = [];
+      const image =
+        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jM1sAAAAASUVORK5CYII=";
+      try {
+        const baseUrl = await localToolEndpoint(async (_url, request) => {
+          bodies.push(request.body);
+          return {
+            json: async () =>
+              provider === "anthropic"
+                ? {
+                    content: [{ type: "text", text: "done" }],
+                    stop_reason: "end_turn",
+                  }
+                : provider === "ollama"
+                  ? { message: { role: "assistant", content: "done" } }
+                  : protocol === "openai-responses"
+                    ? {
+                        status: "completed",
+                        output: [
+                          {
+                            type: "message",
+                            role: "assistant",
+                            content: [{ type: "output_text", text: "done" }],
+                          },
+                        ],
+                      }
+                    : {
+                        choices: [
+                          { message: { role: "assistant", content: "done" } },
+                        ],
+                      },
+          };
+        });
+        if (protocol === "openai-responses") {
+          // Preserve the official-endpoint protocol gate; route the test transport
+          // to the real loopback receiver without making an external request.
+          vi.stubGlobal("fetch", (input, init) => {
+            expect(String(input)).toBe("https://api.openai.com/v1/responses");
+            return nativeFetch(baseUrl + "/v1/responses", init);
+          });
+        }
+        const result = await chatWithTools(
+          [
+            { role: "system", content: "duplicate system reference" },
+            { role: "system", content: "duplicate system reference" },
+            {
+              role: "user",
+              content: [
+                { type: "text", text: "image evidence" },
+                { type: "image_url", image_url: { url: image } },
+              ],
+            },
+            { role: "assistant", content: "duplicate reference" },
+            { role: "assistant", content: "duplicate reference" },
+            {
+              role: "assistant",
+              content: "historical tool step",
+              tool_calls: [
+                {
+                  id: "history_a",
+                  type: "function",
+                  function: {
+                    name: "read_file",
+                    arguments: '{"path":"a.txt"}',
+                  },
+                },
+                {
+                  id: "history_b",
+                  type: "function",
+                  function: {
+                    name: "search_files",
+                    arguments: '{"pattern":"b"}',
+                  },
+                },
+              ],
+            },
+            {
+              role: "tool",
+              tool_call_id: "history_a",
+              content: "sk-abcdefghijklmnopqrstuvwxyz1234567890",
+            },
+            {
+              role: "tool",
+              tool_call_id: "history_b",
+              content: "clean tool evidence",
+            },
+            { role: "user", content: "Continue using the references." },
+          ],
+          {
+            ...f.callOptions,
+            provider,
+            model,
+            baseUrl:
+              protocol === "openai-responses"
+                ? "https://api.openai.com/v1"
+                : baseUrl + "/v1",
+            apiKey: "fixture-only",
+            cwd: f.root,
+            contextMemorySkipPlanning: false,
+            contextMemoryTrustedSystemIndexes: [0, 1],
+            contextMemoryEnv: {
+              CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_STAGE: "canonical_default",
+            },
+            contextMemoryFilePath: path.join(f.root, "mapped-memory.json"),
+            contextMemoryModelWindowTokens: 32768,
+            maxOutputTokens: 512,
+            enabledToolNames: ["read_file", "search_files"],
+            onModelInputDiagnostic: (event) => diagnostics.push(event),
+          },
+        );
+        expect(result.message.content).toBe("done");
+        expect(result.usage).toBeUndefined();
+        expect(bodies).toHaveLength(1);
+        expect(
+          f.config.authorities.attestationVerifier.verify,
+        ).toHaveBeenCalled();
+        const logical = diagnostics.find(
+          (event) => event.phase === "logical-input",
+        );
+        const wire = diagnostics.find((event) => event.stage === "fetch-body");
+        expect(logical.projection.covered).toBe(true);
+        expect(logical.sourceMapping.covered).toBe(true);
+        expect(wire.sourceMapping).toMatchObject({ covered: true, protocol });
+        expect(wire.requestId).toBe(logical.requestId);
+        expect(wire.bodyDigest).toBe(
+          crypto.createHash("sha256").update(bodies[0]).digest("hex"),
+        );
+        const prepared = await planning.mock.results[0].value;
+        const mapped = logical.sourceMapping.sources;
+        const bundle = mapped.find((source) => source.input.length === 3);
+        expect(bundle).toBeDefined();
+        expect(bundle).toMatchObject({ changed: true, redactionTouched: true });
+        for (let index = 0; index < bundle.input.length; index++)
+          expect(bundle.logical[index].index).toBe(
+            bundle.input[index].index + 1,
+          );
+        const duplicates = mapped.filter(
+          (source) =>
+            source.input.length === 1 &&
+            source.input[0].kind === "message" &&
+            prepared.messages[source.input[0].index].content ===
+              "duplicate reference",
+        );
+        expect(duplicates).toHaveLength(2);
+        expect(duplicates[0].input[0].index).not.toBe(
+          duplicates[1].input[0].index,
+        );
+        expect(
+          duplicates.every(
+            (source) =>
+              source.changed === false && source.redactionTouched === false,
+          ),
+        ).toBe(true);
+        const toolRows = mapped.filter(
+          (source) => source.input[0]?.kind === "tool",
+        );
+        expect(toolRows).toHaveLength(2);
+        expect(
+          toolRows
+            .map(
+              (source) =>
+                wire.sourceMapping.sources[source.ordinal].fragments[0].path,
+            )
+            .sort(),
+        ).toEqual(["/tools/0", "/tools/1"]);
+        if (provider === "anthropic") {
+          const fragments =
+            wire.sourceMapping.sources[bundle.ordinal].fragments;
+          expect(
+            fragments.filter((fragment) =>
+              /\/content\/\d+$/u.test(fragment.path),
+            ),
+          ).toHaveLength(2);
+          const systemRows = mapped.filter(
+            (source) =>
+              source.input.length === 1 &&
+              source.input[0].kind === "message" &&
+              prepared.messages[source.input[0].index].role === "system",
+          );
+          expect(systemRows).toHaveLength(2);
+          const first =
+            wire.sourceMapping.sources[systemRows[0].ordinal].fragments[0];
+          const second =
+            wire.sourceMapping.sources[systemRows[1].ordinal].fragments[0];
+          expect(first.path).toBe(second.path);
+          expect(first.end <= second.start || second.end <= first.start).toBe(
+            true,
+          );
+        }
+        const received = JSON.parse(bodies[0]);
+        const { modelInputNodeDigest } =
+          await import("../../src/lib/model-input-source-mapping.js");
+        const { projectStoredModelInputDiagnostic } =
+          await import("../../src/lib/session-model-input-diagnostics.js");
+        for (const event of diagnostics)
+          expect(
+            projectStoredModelInputDiagnostic(event).sourceMapping,
+          ).toEqual(event.sourceMapping);
+        for (const source of wire.sourceMapping.sources) {
+          for (const fragment of source.fragments) {
+            let value = fragment.path
+              .slice(1)
+              .split("/")
+              .reduce((current, key) => current[key], received);
+            if (fragment.start !== null)
+              value = value.slice(fragment.start, fragment.end);
+            expect(fragment.digest).toBe(modelInputNodeDigest(value));
+            expect(fragment.bytes).toBe(
+              Buffer.byteLength(JSON.stringify(value), "utf8"),
+            );
+          }
+        }
+        expect(bodies[0]).not.toContain(
+          "sk-abcdefghijklmnopqrstuvwxyz1234567890",
+        );
+        expect(JSON.stringify(diagnostics)).not.toMatch(
+          /duplicate reference|image evidence|history_a|a\.txt|fixture-only|abcdefghijklmnopqrstuvwxyz/,
+        );
+      } finally {
+        planning.mockRestore();
+      }
+    },
+    60_000,
+  );
+
+  it.each([
     ["openai", false],
     ["anthropic", false],
     ["openai", true],
@@ -1640,6 +1901,32 @@ describe("Agent evolution runtime production composition", () => {
           digest: prepared.plan.digest,
           selectedCount: prepared.plan.selectedItemIds.length,
         });
+        expect(logical.sourceMapping.covered).toBe(true);
+        expect(wire.sourceMapping.covered).toBe(true);
+        expect(logical.sourceMapping.sources).toHaveLength(
+          logical.planning.sources.length,
+        );
+        const received = JSON.parse(bodies[0]);
+        const { modelInputNodeDigest } =
+          await import("../../src/lib/model-input-source-mapping.js");
+        for (const source of wire.sourceMapping.sources) {
+          for (const fragment of source.fragments) {
+            let value = fragment.path
+              .slice(1)
+              .split("/")
+              .reduce((current, key) => current[key], received);
+            if (fragment.start !== null)
+              value = value.slice(fragment.start, fragment.end);
+            expect(fragment.digest).toBe(modelInputNodeDigest(value));
+            expect(fragment.bytes).toBe(
+              Buffer.byteLength(JSON.stringify(value), "utf8"),
+            );
+          }
+          if (
+            logical.planning.sources[source.ordinal].disposition === "excluded"
+          )
+            expect(source).toMatchObject({ status: "excluded", fragments: [] });
+        }
         expect(logical.planning.sourceDetailsCovered).toBe(true);
         expect(logical.planning.sourcesTruncated).toBe(false);
         expect(
@@ -4289,7 +4576,22 @@ describe("Agent evolution runtime production composition", () => {
     const event = f.composition
       .loadRun()
       .events.find((entry) => entry.data.evidenceKind === "model-input");
+    const { modelInputNodeDigest } =
+      await import("../../src/lib/model-input-source-mapping.js");
     expect(receipt).toEqual({
+      sourceMapping: {
+        inputDigest: modelInputNodeDigest(input),
+        outputDigest: modelInputNodeDigest(request),
+        slots: [
+          {
+            kind: "message",
+            index: 0,
+            logicalIndex: 1,
+            redactionTouched: true,
+            injectionTouched: false,
+          },
+        ],
+      },
       tenantId: f.config.tenantId,
       runId: f.config.runId,
       eventId: event.eventId,
@@ -4302,6 +4604,8 @@ describe("Agent evolution runtime production composition", () => {
     });
     expect(f.config.authorities.attestationVerifier.verify).toHaveBeenCalled();
     expect(receipt.redactionCount).toBeGreaterThan(0);
+    expect(Object.isFrozen(receipt.sourceMapping)).toBe(true);
+    expect(Object.isFrozen(receipt.sourceMapping.slots[0])).toBe(true);
     expect(JSON.stringify(request)).not.toContain(
       "sk-abcdefghijklmnopqrstuvwxyz1234567890",
     );
