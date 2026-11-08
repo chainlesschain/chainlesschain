@@ -29,6 +29,15 @@ import {
   isMcpToolMetadataError,
 } from "../lib/mcp-tool-metadata.js";
 import { admitMcpToolResult } from "../lib/mcp-tool-result.js";
+import {
+  mcpTaskError,
+  mcpTaskId,
+  mcpTaskParameters,
+  requireMcpTaskCapability,
+  requireMcpToolTaskMode,
+  admitMcpTaskResponse,
+} from "../lib/mcp-tasks.js";
+
 import { terminateOwnedProcessTree } from "../lib/process-tree-termination.js";
 import {
   mergeMcpHeaders,
@@ -57,6 +66,118 @@ import {
   MCP_LIFECYCLE_PHASES,
   McpLifecycleAuthority,
 } from "../lib/mcp-lifecycle-authority.js";
+
+const MCP_TASK_REQUEST = Symbol("mcp.task.request");
+const MCP_TASK_BINDINGS = new WeakMap();
+const MCP_TASK_RESERVATIONS = new WeakMap();
+
+function reserveTaskBinding(client) {
+  const pending = MCP_TASK_RESERVATIONS.get(client) || 0;
+  if (taskBindings(client).size + pending >= 1024) {
+    throw mcpTaskError(
+      "CC_MCP_TASK_BINDING_LIMIT",
+      "MCP task binding limit reached",
+    );
+  }
+  MCP_TASK_RESERVATIONS.set(client, pending + 1);
+  return () =>
+    MCP_TASK_RESERVATIONS.set(
+      client,
+      (MCP_TASK_RESERVATIONS.get(client) || 1) - 1,
+    );
+}
+
+function taskConnectionIdentity(entry) {
+  return JSON.stringify([
+    entry.httpUrl ?? null,
+    entry.httpSessionId ?? null,
+    entry.protocolVersion ?? null,
+    Object.entries(entry.httpHeaders || {}).sort(([a], [b]) =>
+      a.localeCompare(b),
+    ),
+  ]);
+}
+
+function taskBindings(client) {
+  let bindings = MCP_TASK_BINDINGS.get(client);
+  if (!bindings) {
+    bindings = new Map();
+    MCP_TASK_BINDINGS.set(client, bindings);
+  }
+  return bindings;
+}
+
+function rememberTasks(
+  client,
+  serverName,
+  entry,
+  identity,
+  tasks,
+  reservation = 0,
+) {
+  const bindings = taskBindings(client);
+  const additions = tasks.filter(
+    (task) => !bindings.has(JSON.stringify([serverName, task.taskId])),
+  );
+  if (
+    bindings.size +
+      additions.length +
+      (MCP_TASK_RESERVATIONS.get(client) || 0) -
+      reservation >
+    1024
+  ) {
+    throw mcpTaskError(
+      "CC_MCP_TASK_BINDING_LIMIT",
+      "MCP task binding limit reached",
+      true,
+    );
+  }
+  for (const task of tasks) {
+    const previous = bindings.get(JSON.stringify([serverName, task.taskId]));
+    if (
+      previous &&
+      (previous.entry !== entry || previous.identity !== identity)
+    ) {
+      throw mcpTaskError(
+        "CC_MCP_TASK_BINDING_CHANGED",
+        "MCP task belongs to a different connection",
+        true,
+      );
+    }
+    if (
+      previous?.terminalObserved &&
+      ["working", "input_required"].includes(task.status)
+    ) {
+      throw mcpTaskError(
+        "CC_MCP_TASK_STATUS_REGRESSION",
+        "MCP task returned to a nonterminal status",
+        true,
+      );
+    }
+    if (
+      previous &&
+      ["completed", "failed", "cancelled"].includes(previous.status) &&
+      previous.status !== task.status
+    ) {
+      throw mcpTaskError(
+        "CC_MCP_TASK_STATUS_REGRESSION",
+        "MCP task terminal status changed",
+        true,
+      );
+    }
+  }
+  for (const task of tasks) {
+    bindings.set(JSON.stringify([serverName, task.taskId]), {
+      entry,
+      identity,
+      status: task.status,
+      terminalObserved:
+        ["completed", "failed", "cancelled"].includes(task.status) ||
+        bindings.get(JSON.stringify([serverName, task.taskId]))
+          ?.terminalObserved === true,
+    });
+  }
+}
 
 /**
  * Injectable dependencies — overridable from tests.
@@ -961,8 +1082,8 @@ function mcpInboundBudgetError(serverName, entry, budget) {
 function mcpJsonBudgetError(serverName, entry, budget) {
   const dispatched = Boolean(
     (entry?._pending instanceof Map && entry._pending.size > 0) ||
-      (entry?._httpRequestControllers instanceof Set &&
-        entry._httpRequestControllers.size > 0),
+    (entry?._httpRequestControllers instanceof Set &&
+      entry._httpRequestControllers.size > 0),
   );
   if (budget === "depth") {
     const limitDepth = mcpJsonDepthLimit(entry?.config?.maxJsonDepth);
@@ -3786,6 +3907,180 @@ export class MCPClient extends EventEmitter {
     return completed.every(Boolean);
   }
 
+  /**
+   * Low-level experimental Tasks requester. No automatic replay, durable
+   * recovery, polling scheduler or task receiver capabilities are implied.
+   * Recovery-guarded host facades deliberately deny this surface for now.
+   */
+  async callToolTask(serverName, toolName, args = {}, options = {}) {
+    const task = mcpTaskParameters(options.ttl);
+    const release = reserveTaskBinding(this);
+    try {
+      const entry = this.servers.get(serverName);
+      const identity = taskConnectionIdentity(entry || {});
+      let result;
+      try {
+        result = await this._callToolOnce(serverName, toolName, args, {
+          ...options,
+          [MCP_TASK_REQUEST]: task,
+        });
+      } catch (error) {
+        if (
+          safeRpcProperty(error, "code") === "CC_MCP_HTTP_STATUS" &&
+          safeRpcProperty(error, "status") === 404
+        ) {
+          throw mcpTaskError(
+            "CC_MCP_HTTP_TOOL_OUTCOME_UNKNOWN",
+            "MCP task acceptance is unknown after HTTP 404; the tool was not replayed",
+            true,
+          );
+        }
+        throw error;
+      }
+      if (
+        this.servers.get(serverName) !== entry ||
+        taskConnectionIdentity(entry) !== identity
+      ) {
+        throw mcpTaskError(
+          "CC_MCP_TASK_BINDING_CHANGED",
+          "MCP task connection identity changed",
+          true,
+        );
+      }
+      rememberTasks(this, serverName, entry, identity, [result.task], 1);
+      return result;
+    } finally {
+      release();
+    }
+  }
+
+  async _taskRequest(serverName, method, params, options, kind) {
+    const entry = this.servers.get(serverName);
+    if (
+      !entry ||
+      entry.state !== ServerState.CONNECTED ||
+      entry._httpDiscardStopping
+    ) {
+      throw mcpTaskError(
+        "CC_MCP_TASK_CONNECTION_REQUIRED",
+        "MCP task requires its connected server",
+      );
+    }
+    requireMcpTaskCapability(entry, kind);
+    const identity = taskConnectionIdentity(entry);
+    if (kind !== "list") {
+      const binding = taskBindings(this).get(
+        JSON.stringify([serverName, params.taskId]),
+      );
+      if (
+        !binding ||
+        binding.entry !== entry ||
+        binding.identity !== identity
+      ) {
+        throw mcpTaskError(
+          "CC_MCP_TASK_BINDING_REQUIRED",
+          "MCP task requires its original connection binding",
+        );
+      }
+    }
+    let value;
+    try {
+      value = await this._sendRequest(serverName, method, params, options);
+    } catch (error) {
+      if (
+        kind === "cancel" &&
+        !isMcpRpcError(error) &&
+        safeRpcProperty(error, "dispatched") !== false
+      ) {
+        throw mcpTaskError(
+          "CC_MCP_TASK_CANCEL_OUTCOME_UNKNOWN",
+          "MCP task cancellation outcome is unknown",
+          true,
+        );
+      }
+      throw error;
+    }
+    if (
+      this.servers.get(serverName) !== entry ||
+      entry.state !== ServerState.CONNECTED ||
+      taskConnectionIdentity(entry) !== identity
+    ) {
+      throw mcpTaskError(
+        "CC_MCP_TASK_CONNECTION_CHANGED",
+        "MCP task connection changed during request",
+        true,
+      );
+    }
+    const admitted = admitMcpTaskResponse(serverName, value, entry.config, {
+      kind,
+      taskId: params.taskId,
+    });
+    if (kind === "result") {
+      taskBindings(this).get(
+        JSON.stringify([serverName, params.taskId]),
+      ).terminalObserved = true;
+    } else {
+      rememberTasks(
+        this,
+        serverName,
+        entry,
+        identity,
+        kind === "list" ? admitted.tasks : [admitted],
+      );
+    }
+    return admitted;
+  }
+
+  async getTask(serverName, taskId, options = {}) {
+    return this._taskRequest(
+      serverName,
+      "tasks/get",
+      { taskId: mcpTaskId(taskId) },
+      options,
+      "get",
+    );
+  }
+
+  async getTaskResult(serverName, taskId, options = {}) {
+    return this._taskRequest(
+      serverName,
+      "tasks/result",
+      { taskId: mcpTaskId(taskId) },
+      options,
+      "result",
+    );
+  }
+
+  async cancelTask(serverName, taskId, options = {}) {
+    // A cancellation acknowledgement never proves remote side effects stopped.
+    return this._taskRequest(
+      serverName,
+      "tasks/cancel",
+      { taskId: mcpTaskId(taskId) },
+      options,
+      "cancel",
+    );
+  }
+
+  async listTasks(serverName, cursor, options = {}) {
+    if (
+      cursor !== undefined &&
+      (typeof cursor !== "string" || cursor.length > 65536)
+    ) {
+      throw mcpTaskError(
+        "CC_MCP_TASK_CURSOR_INVALID",
+        "MCP task cursor must be a bounded opaque string",
+      );
+    }
+    return this._taskRequest(
+      serverName,
+      "tasks/list",
+      cursor === undefined ? {} : { cursor },
+      options,
+      "list",
+    );
+  }
+
   async _callToolOnce(serverName, toolName, args, options = {}) {
     const entry = this.servers.get(serverName);
     if (!entry) throw new Error(`Server "${serverName}" not found`);
@@ -3812,6 +4107,9 @@ export class MCPClient extends EventEmitter {
         { transport: entry.transportKind, dispatched: false },
       );
     }
+
+    const task = options[MCP_TASK_REQUEST];
+    requireMcpToolTaskMode(entry, toolName, task !== undefined);
 
     const timeoutMs = mcpToolIdleTimeoutMs(entry.config, options);
     const progressToken = `cc:${randomUUID()}`;
@@ -3846,6 +4144,7 @@ export class MCPClient extends EventEmitter {
         {
           name: toolName,
           arguments: args,
+          ...(task === undefined ? {} : { task }),
           _meta: { progressToken },
         },
         { ...options, signal: controller.signal },
@@ -3854,7 +4153,14 @@ export class MCPClient extends EventEmitter {
       // The inner transport supplies cancellation and JSON-RPC
       // notifications/cancelled. Preserve the idle classification at the host
       // boundary instead of leaking its generic AbortError/cancelled detail.
-      if (idleError) throw idleError;
+      if (idleError) {
+        if (task !== undefined) {
+          idleError.dispatched = safeRpcProperty(error, "dispatched") !== false;
+          idleError.outcomeUnknown = idleError.dispatched;
+          idleError.retryable = false;
+        }
+        throw idleError;
+      }
       throw error;
     } finally {
       if (idleTimer) clearTimeout(idleTimer);
@@ -3866,7 +4172,34 @@ export class MCPClient extends EventEmitter {
       this._toolProgress.delete(progressToken);
     }
 
-    return admitMcpToolResult(serverName, result, entry.config).result;
+    if (task !== undefined) {
+      if (
+        this.servers.get(serverName) !== entry ||
+        entry.state !== ServerState.CONNECTED
+      ) {
+        throw mcpTaskError(
+          "CC_MCP_TASK_CONNECTION_CHANGED",
+          "MCP task connection changed during request",
+          true,
+        );
+      }
+      return admitMcpTaskResponse(serverName, result, entry.config, {
+        kind: "create",
+      });
+    }
+    const admitted = admitMcpToolResult(
+      serverName,
+      result,
+      entry.config,
+    ).result;
+    if (Object.hasOwn(admitted, "task")) {
+      throw mcpTaskError(
+        "CC_MCP_TASK_UNEXPECTED",
+        "MCP task acceptance cannot settle an ordinary tool call",
+        true,
+      );
+    }
+    return admitted;
   }
 
   /**
