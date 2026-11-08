@@ -1,0 +1,48 @@
+{
+  "schema": "chainlesschain.model-input-pdh-layout/v1",
+  "node": "v24.12.0",
+  "layouts": [
+    {
+      "kind": "baseline",
+      "root": "E:/code/chainlesschain/.worktrees/model-input-baseline-3591769",
+      "before": {
+        "packaged": "E:\\code\\chainlesschain\\packages\\personal-data-hub\\lib\\model-egress-guard.js",
+        "relative": "E:\\code\\chainlesschain\\.worktrees\\model-input-baseline-3591769\\packages\\personal-data-hub\\lib\\model-egress-guard.js",
+        "sameModule": false,
+        "packagedSha256": "40578d83dbb82410415caed7252c12b7693aa672daa35ff7df7e8e032906426f",
+        "relativeSha256": "40578d83dbb82410415caed7252c12b7693aa672daa35ff7df7e8e032906426f"
+      },
+      "overlay": "C:\\Users\\admin\\AppData\\Local\\Temp\\cc-codex167-20261108\\source-mapping-baseline-deps\\node_modules",
+      "preservedJunction": "E:\\code\\chainlesschain\\.worktrees\\model-input-baseline-3591769\\packages\\cli\\node_modules.before-source-mapping",
+      "after": {
+        "packaged": "E:\\code\\chainlesschain\\.worktrees\\model-input-baseline-3591769\\packages\\personal-data-hub\\lib\\model-egress-guard.js",
+        "relative": "E:\\code\\chainlesschain\\.worktrees\\model-input-baseline-3591769\\packages\\personal-data-hub\\lib\\model-egress-guard.js",
+        "sameModule": true,
+        "sha256": "40578d83dbb82410415caed7252c12b7693aa672daa35ff7df7e8e032906426f"
+      },
+      "unusedBackupJunctionUnlinked": true,
+      "originalTargetForRollback": "C:\\Users\\admin\\AppData\\Local\\Temp\\cc-codex167-20261108\\probe-deps\\node_modules"
+    },
+    {
+      "kind": "current",
+      "root": "E:/code/chainlesschain/.worktrees/cli-ide-gap-20261108",
+      "before": {
+        "packaged": "E:\\code\\chainlesschain\\packages\\personal-data-hub\\lib\\model-egress-guard.js",
+        "relative": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-gap-20261108\\packages\\personal-data-hub\\lib\\model-egress-guard.js",
+        "sameModule": false,
+        "packagedSha256": "40578d83dbb82410415caed7252c12b7693aa672daa35ff7df7e8e032906426f",
+        "relativeSha256": "40578d83dbb82410415caed7252c12b7693aa672daa35ff7df7e8e032906426f"
+      },
+      "overlay": "C:\\Users\\admin\\AppData\\Local\\Temp\\cc-codex167-20261108\\source-mapping-current-deps\\node_modules",
+      "preservedJunction": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-gap-20261108\\packages\\cli\\node_modules.before-source-mapping",
+      "after": {
+        "packaged": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-gap-20261108\\packages\\personal-data-hub\\lib\\model-egress-guard.js",
+        "relative": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-gap-20261108\\packages\\personal-data-hub\\lib\\model-egress-guard.js",
+        "sameModule": true,
+        "sha256": "40578d83dbb82410415caed7252c12b7693aa672daa35ff7df7e8e032906426f"
+      },
+      "unusedBackupJunctionUnlinked": true,
+      "originalTargetForRollback": "C:\\Users\\admin\\AppData\\Local\\Temp\\cc-codex167-20261108\\probe-deps\\node_modules"
+    }
+  ]
+}

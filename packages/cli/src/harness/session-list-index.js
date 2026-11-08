@@ -1,3 +1,7 @@
+import {
+  SESSION_GENERATION_AUTHORITY_FIELD,
+  normalizeSessionGenerationAuthority,
+} from "../lib/session-generation-authority.js";
 /**
  * Rebuildable metadata index for append-only JSONL sessions.
  *
@@ -32,9 +36,11 @@ export const SESSION_INDEX_FILE = ".sessions-index-v2.ndjson";
 export const SESSION_TOMBSTONE_MARKER_SUFFIX = ".tombstone";
 export const SESSION_TOMBSTONE_MARKER_SCHEMA =
   "chainlesschain.session-tombstone/v1";
-export const SESSION_GENERATION_AUTHORITY_FIELD = "_sessionGeneration";
-export const SESSION_GENERATION_AUTHORITY_SCHEMA =
-  "chainlesschain.session-generation-authority/v1";
+export {
+  SESSION_GENERATION_AUTHORITY_FIELD,
+  SESSION_GENERATION_AUTHORITY_SCHEMA,
+  normalizeSessionGenerationAuthority,
+} from "../lib/session-generation-authority.js";
 
 // Used only by an opted-in child in the independent session-scale crash gate.
 // Keeping the injection immediately around the production sidecar/journal
@@ -239,60 +245,6 @@ export function emptySessionMeta(sessionId) {
   };
 }
 
-export function normalizeSessionGenerationAuthority(value) {
-  if (
-    !value ||
-    typeof value !== "object" ||
-    Array.isArray(value) ||
-    value.schema !== SESSION_GENERATION_AUTHORITY_SCHEMA ||
-    typeof value.sessionId !== "string" ||
-    value.sessionId.length === 0 ||
-    typeof value.generationId !== "string" ||
-    !/^generation-[0-9a-f-]{32,36}$/.test(value.generationId) ||
-    !Number.isSafeInteger(value.ordinal) ||
-    value.ordinal < 1
-  ) {
-    return null;
-  }
-  let predecessor = null;
-  if (value.predecessor !== null) {
-    const previous = value.predecessor;
-    if (
-      !previous ||
-      typeof previous !== "object" ||
-      Array.isArray(previous) ||
-      !["tombstone", "legacy-tombstone"].includes(previous.kind) ||
-      (previous.generationId !== null &&
-        (typeof previous.generationId !== "string" ||
-          !/^generation-[0-9a-f-]{32,36}$/.test(previous.generationId))) ||
-      (previous.headHash !== null &&
-        (typeof previous.headHash !== "string" ||
-          !/^[0-9a-f]{64}$/.test(previous.headHash))) ||
-      !Number.isSafeInteger(previous.eventCount) ||
-      previous.eventCount < 0 ||
-      (previous.tombstonedAtMs !== null &&
-        (!Number.isSafeInteger(previous.tombstonedAtMs) ||
-          previous.tombstonedAtMs < 0))
-    ) {
-      return null;
-    }
-    predecessor = {
-      kind: previous.kind,
-      generationId: previous.generationId,
-      headHash: previous.headHash,
-      eventCount: previous.eventCount,
-      tombstonedAtMs: previous.tombstonedAtMs,
-    };
-  }
-  return {
-    schema: SESSION_GENERATION_AUTHORITY_SCHEMA,
-    sessionId: value.sessionId,
-    generationId: value.generationId,
-    ordinal: value.ordinal,
-    predecessor,
-  };
-}
-
 export function readSessionMeta(dir, sessionId) {
   const filePath = sessionMetaPath(dir, sessionId);
   if (!existsSync(filePath)) return null;
@@ -326,7 +278,8 @@ export function applyEventToSessionMeta(meta, event, lastHash) {
     next.title = String(event.data.title);
   } else if (
     event?.type === "user_message" ||
-    event?.type === "assistant_message"
+    event?.type === "assistant_message" ||
+    event?.type === "mcp_task_delivery"
   ) {
     next.message_count = Math.max(0, Number(next.message_count) || 0) + 1;
   } else if (

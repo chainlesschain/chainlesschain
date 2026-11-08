@@ -1,0 +1,338 @@
+{
+  "schema": "chainlesschain.mcp-task-native-probe/v1",
+  "passed": true,
+  "platform": "win32",
+  "node": "v24.12.0",
+  "folder": "C:\\Users\\admin\\AppData\\Local\\Temp\\cc-mcp-task-native-Iqm8cp",
+  "scope": {
+    "osSecretStore": "windows-dpapi",
+    "transport": "loopback-http",
+    "deliveryCrashRecovery": true,
+    "canonicalHostResume": true,
+    "workerConnectsForEveryAction": true,
+    "offlineProductCliVerified": false,
+    "modelContinuationVerified": false
+  },
+  "counts": {
+    "initialize": 10,
+    "tools/list": 10,
+    "resources/list": 10,
+    "resources/templates/list": 10,
+    "prompts/list": 10,
+    "tools/call": 2,
+    "tasks/get": 1,
+    "tasks/result": 2
+  },
+  "checkpoints": [
+    {
+      "action": "poll",
+      "receipt": {
+        "ok": false,
+        "code": "CC_SESSION_HOST_LEASE_HELD",
+        "pid": 18768
+      },
+      "exit": {
+        "code": 1,
+        "signal": null
+      }
+    },
+    {
+      "action": "kill-after-accepted",
+      "receipt": {
+        "ok": true,
+        "result": {
+          "localId": "ad5d054b-13e8-4c28-86db-6a5d95f5f1e3",
+          "sessionId": "native-6cf9a1b0-b05f-49d6-8444-bbf3e2783d3f",
+          "serverName": "native-fixture",
+          "toolName": "export",
+          "phase": "accepted",
+          "revision": 1,
+          "taskId": "native-task-1",
+          "remoteStatus": "working",
+          "cancelRequested": false,
+          "cancelUnknown": false,
+          "resultSaved": false,
+          "delivered": false,
+          "callStatus": "started",
+          "outcomeUnknown": false,
+          "expiresAt": null
+        },
+        "pid": 18676,
+        "backend": "dpapi"
+      },
+      "exit": {
+        "code": null,
+        "signal": "SIGKILL"
+      }
+    },
+    {
+      "action": "poll",
+      "receipt": {
+        "ok": true,
+        "result": {
+          "localId": "ad5d054b-13e8-4c28-86db-6a5d95f5f1e3",
+          "sessionId": "native-6cf9a1b0-b05f-49d6-8444-bbf3e2783d3f",
+          "serverName": "native-fixture",
+          "toolName": "export",
+          "phase": "observed",
+          "revision": 2,
+          "taskId": "native-task-1",
+          "remoteStatus": "working",
+          "cancelRequested": false,
+          "cancelUnknown": false,
+          "resultSaved": false,
+          "delivered": false,
+          "callStatus": "started",
+          "outcomeUnknown": false,
+          "expiresAt": null
+        },
+        "pid": 39016,
+        "backend": "dpapi"
+      },
+      "exit": {
+        "code": 0,
+        "signal": null
+      }
+    },
+    {
+      "action": "result",
+      "receipt": {
+        "ok": true,
+        "result": {
+          "localId": "ad5d054b-13e8-4c28-86db-6a5d95f5f1e3",
+          "sessionId": "native-6cf9a1b0-b05f-49d6-8444-bbf3e2783d3f",
+          "serverName": "native-fixture",
+          "toolName": "export",
+          "phase": "result_saved",
+          "revision": 3,
+          "taskId": "native-task-1",
+          "remoteStatus": "working",
+          "cancelRequested": false,
+          "cancelUnknown": false,
+          "resultSaved": true,
+          "delivered": false,
+          "callStatus": "completed",
+          "outcomeUnknown": false,
+          "expiresAt": null,
+          "cached": false,
+          "result": {
+            "content": [
+              {
+                "type": "text",
+                "text": "native synthetic result"
+              }
+            ],
+            "_meta": {
+              "io.modelcontextprotocol/related-task": {
+                "taskId": "native-task-1"
+              }
+            }
+          }
+        },
+        "pid": 40220,
+        "backend": "dpapi"
+      },
+      "exit": {
+        "code": 0,
+        "signal": null
+      }
+    },
+    {
+      "action": "result",
+      "receipt": {
+        "ok": true,
+        "result": {
+          "localId": "ad5d054b-13e8-4c28-86db-6a5d95f5f1e3",
+          "sessionId": "native-6cf9a1b0-b05f-49d6-8444-bbf3e2783d3f",
+          "serverName": "native-fixture",
+          "toolName": "export",
+          "phase": "result_saved",
+          "revision": 3,
+          "taskId": "native-task-1",
+          "remoteStatus": "working",
+          "cancelRequested": false,
+          "cancelUnknown": false,
+          "resultSaved": true,
+          "delivered": false,
+          "callStatus": "completed",
+          "outcomeUnknown": false,
+          "expiresAt": null,
+          "cached": true,
+          "result": {
+            "content": [
+              {
+                "type": "text",
+                "text": "native synthetic result"
+              }
+            ],
+            "_meta": {
+              "io.modelcontextprotocol/related-task": {
+                "taskId": "native-task-1"
+              }
+            }
+          }
+        },
+        "pid": 11664,
+        "backend": "dpapi"
+      },
+      "exit": {
+        "code": 0,
+        "signal": null
+      }
+    },
+    {
+      "action": "create",
+      "receipt": {
+        "ok": true,
+        "result": {
+          "localId": "cb290ae2-39f2-40e7-8eaa-534ce16a578a",
+          "sessionId": "native-d97b5144-e2cc-44b7-bdcf-04a3b70cbb35",
+          "serverName": "native-fixture",
+          "toolName": "export",
+          "phase": "accepted",
+          "revision": 1,
+          "taskId": "native-task-2",
+          "remoteStatus": "working",
+          "cancelRequested": false,
+          "cancelUnknown": false,
+          "resultSaved": false,
+          "delivered": false,
+          "callStatus": "started",
+          "outcomeUnknown": false,
+          "expiresAt": null
+        },
+        "pid": 39008,
+        "backend": "dpapi"
+      },
+      "exit": {
+        "code": 0,
+        "signal": null
+      }
+    },
+    {
+      "action": "kill-after-result-saved",
+      "receipt": {
+        "ok": true,
+        "result": {
+          "localId": "cb290ae2-39f2-40e7-8eaa-534ce16a578a",
+          "phase": "result_saved"
+        },
+        "pid": 33140,
+        "backend": "dpapi"
+      },
+      "exit": {
+        "code": null,
+        "signal": "SIGKILL"
+      }
+    },
+    {
+      "action": "result",
+      "receipt": {
+        "ok": true,
+        "result": {
+          "localId": "cb290ae2-39f2-40e7-8eaa-534ce16a578a",
+          "sessionId": "native-d97b5144-e2cc-44b7-bdcf-04a3b70cbb35",
+          "serverName": "native-fixture",
+          "toolName": "export",
+          "phase": "result_saved",
+          "revision": 2,
+          "taskId": "native-task-2",
+          "remoteStatus": "working",
+          "cancelRequested": false,
+          "cancelUnknown": false,
+          "resultSaved": true,
+          "delivered": false,
+          "callStatus": "completed",
+          "outcomeUnknown": false,
+          "expiresAt": null,
+          "cached": true,
+          "result": {
+            "content": [
+              {
+                "type": "text",
+                "text": "native synthetic result"
+              }
+            ],
+            "_meta": {
+              "io.modelcontextprotocol/related-task": {
+                "taskId": "native-task-2"
+              }
+            }
+          }
+        },
+        "pid": 7936,
+        "backend": "dpapi"
+      },
+      "exit": {
+        "code": 0,
+        "signal": null
+      }
+    },
+    {
+      "action": "kill-after-delivered",
+      "receipt": {
+        "ok": true,
+        "result": {
+          "sessionId": "native-6cf9a1b0-b05f-49d6-8444-bbf3e2783d3f",
+          "localId": "ad5d054b-13e8-4c28-86db-6a5d95f5f1e3",
+          "deliveryId": "mcp-task-delivery:ad5d054b-13e8-4c28-86db-6a5d95f5f1e3",
+          "eventHash": "b895fb1091a5ce859ffcf40d0b00c89fe2cdd9b0d0b41c1e1952a175e8247384",
+          "messageDigest": "sha256:2f717ff52a91d67a2b94e9cda0e877e59631103352b3ca9d1067a03220b5752a",
+          "delivered": true,
+          "duplicate": false
+        },
+        "pid": 2664,
+        "backend": "dpapi"
+      },
+      "exit": {
+        "code": null,
+        "signal": "SIGKILL"
+      }
+    },
+    {
+      "action": "deliver",
+      "receipt": {
+        "ok": true,
+        "result": {
+          "sessionId": "native-6cf9a1b0-b05f-49d6-8444-bbf3e2783d3f",
+          "localId": "ad5d054b-13e8-4c28-86db-6a5d95f5f1e3",
+          "deliveryId": "mcp-task-delivery:ad5d054b-13e8-4c28-86db-6a5d95f5f1e3",
+          "eventHash": "b895fb1091a5ce859ffcf40d0b00c89fe2cdd9b0d0b41c1e1952a175e8247384",
+          "messageDigest": "sha256:2f717ff52a91d67a2b94e9cda0e877e59631103352b3ca9d1067a03220b5752a",
+          "delivered": true,
+          "duplicate": true
+        },
+        "pid": 36884,
+        "backend": "dpapi"
+      },
+      "exit": {
+        "code": 0,
+        "signal": null
+      }
+    },
+    {
+      "action": "verify-delivery",
+      "receipt": {
+        "ok": true,
+        "result": {
+          "sessionId": "native-6cf9a1b0-b05f-49d6-8444-bbf3e2783d3f",
+          "localId": "ad5d054b-13e8-4c28-86db-6a5d95f5f1e3",
+          "deliveryId": "mcp-task-delivery:ad5d054b-13e8-4c28-86db-6a5d95f5f1e3",
+          "eventHash": "b895fb1091a5ce859ffcf40d0b00c89fe2cdd9b0d0b41c1e1952a175e8247384",
+          "messageDigest": "sha256:2f717ff52a91d67a2b94e9cda0e877e59631103352b3ca9d1067a03220b5752a",
+          "hostRevision": "sha256:0dd1c4ba970f85f68daab4e2553c87cbf61ccca15fa955361e5a59591c64dda3",
+          "canonicalMessages": 1,
+          "assistantReferences": 1,
+          "userMessages": 0,
+          "toolMessages": 0
+        },
+        "pid": 39536,
+        "backend": "dpapi"
+      },
+      "exit": {
+        "code": 0,
+        "signal": null
+      }
+    }
+  ]
+}

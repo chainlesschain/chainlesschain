@@ -112,16 +112,27 @@ function sanitizeReasoningItems(items) {
 }
 
 /** Convert the internal Chat-Completions-shaped history into Responses items. */
-export function toOpenAIResponsesInput(messages) {
+export function toOpenAIResponsesInput(messages, onMapping = null) {
   const input = [];
-  for (const message of messages || []) {
+  for (const [sourceIndex, message] of (messages || []).entries()) {
     if (!message || typeof message !== "object") continue;
+    const start = input.length;
+    const publish = () =>
+      onMapping?.(
+        sourceIndex,
+        Array.from({ length: input.length - start }, (_, offset) => ({
+          path: "/input/" + (start + offset),
+          start: null,
+          end: null,
+        })),
+      );
     if (message.role === "tool") {
       input.push({
         type: "function_call_output",
         call_id: printableString(message.tool_call_id),
         output: jsonText(message.content),
       });
+      publish();
       continue;
     }
     if (message.role === "assistant") {
@@ -154,15 +165,23 @@ export function toOpenAIResponsesInput(messages) {
         });
       }
     }
+    publish();
   }
   return input;
 }
 
 /** Flatten Chat Completions function descriptors into Responses tools. */
-export function toOpenAIResponsesTools(tools) {
-  return (tools || [])
-    .filter((tool) => tool?.type === "function" && tool.function?.name)
-    .map((tool) => ({
+export function toOpenAIResponsesTools(tools, onMapping = null) {
+  const output = [];
+  (tools || []).forEach((tool, sourceIndex) => {
+    if (tool?.type !== "function" || !tool.function?.name) {
+      onMapping?.(sourceIndex, []);
+      return;
+    }
+    onMapping?.(sourceIndex, [
+      { path: "/tools/" + output.length, start: null, end: null },
+    ]);
+    output.push({
       type: "function",
       name: tool.function.name,
       description: printableString(tool.function.description),
@@ -170,7 +189,9 @@ export function toOpenAIResponsesTools(tools) {
       ...(typeof tool.function.strict === "boolean"
         ? { strict: tool.function.strict }
         : {}),
-    }));
+    });
+  });
+  return output;
 }
 
 export function createOpenAIResponsesBody({
@@ -182,6 +203,8 @@ export function createOpenAIResponsesBody({
   stream = false,
   modelProfile = null,
   serviceTier = null,
+  onMessageMapping = null,
+  onToolMapping = null,
 }) {
   const tier =
     serviceTier == null
@@ -197,8 +220,8 @@ export function createOpenAIResponsesBody({
   }
   return {
     model,
-    input: toOpenAIResponsesInput(messages),
-    tools: toOpenAIResponsesTools(tools),
+    input: toOpenAIResponsesInput(messages, onMessageMapping),
+    tools: toOpenAIResponsesTools(tools, onToolMapping),
     store: false,
     include: ["reasoning.encrypted_content"],
     ...(maxOutputTokens ? { max_output_tokens: maxOutputTokens } : {}),

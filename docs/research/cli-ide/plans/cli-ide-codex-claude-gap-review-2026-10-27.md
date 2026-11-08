@@ -82,6 +82,12 @@ node --test packages/cli/test-node/memory-lazy-postings.node-test.mjs desktop-ap
 
 本轮最终相关回归为Node22的19文件 **402/402**及Node24/ABI137的真实SQLite预算组合 **106/106**，各无跳过；新增33项包含在402中，3项Memory预算交互包含在106中，不另行累加。锁定Web Panel生产构建、89个候选静态出口审计通过，仍保持`paidReady:false`、`runtimeCoverageVerified:false`。见[实现与剩余边界](../implementation/cli-ide-memory-admission-progress-2026-11-08.md)、[失败/成功及源码快照](../../cli/evidence/memory-admission-2026-11-08/README.md)。本轮新增派发代码不继承旧测量SHA、云端门禁或发行身份；真实语义候选质量、REPL旧注入治理、完整跨入口/安装及生产准入仍未完成。
 
+### 模型输入诊断与Memory授权整合（2026-11-08）
+
+将派发修复`5193dcf96`与主线`d23e386a6`整合，解决模型输入诊断、预算传输和adapter的三处冲突。诊断保留主线的body/signal快照与attempt关联，异步observer完成后再做最终Memory复核；governed-body observer在revision锁和markDispatched之前运行，避免回调删除Memory时自锁。新增4条logical-input/fetch-body删除/替换和2条预算诊断删除回归，分别包含在本批21文件425/425及预算108/108中，不额外叠加。Web Panel重新构建成功；89候选静态分类通过，78条调用链仍未映射。[原字节报告、8份源码快照与离线核对](../../cli/evidence/memory-diagnostics-2026-11-08/README.md)单独保存，旧24条派发归档与旧性能身份保持不变。
+
+本批不证明永不结束的诊断observer可即时取消，也不授予真实语义质量、完整REPL/IDE、OS出口、费用、性能或生产准入。准确合并提交仍须自己的云端门禁。
+
 ### 交互召回开关与诊断Stop续作（2026-11-08）
 
 在`main@7c5d55925`真实复现`--no-recall-memory`未约束canonical规划：初次、外部替换后及恢复后的3次请求仍带Memory。修复传递本次召回选择到每请求规划、context engine和child contract，并覆盖直接judge/压缩；恢复时显式重复flag，不宣称偏好持久化。默认召回对照的旧→新→恢复后新正确，没有把此前legacy正文绕过的静态怀疑当作实际缺陷。另以3条先红回归修复诊断observer等待期间取消，保留快照、迟到结果观察、禁用路径与unknown预算责任。

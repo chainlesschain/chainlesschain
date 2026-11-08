@@ -1,4 +1,6 @@
 import { projectToolRoundMessages } from "./session-tool-round.js";
+import { createMcpTaskJournalProjection } from "./mcp-task-journal-projection.js";
+import { MCP_TASK_DELIVERY_EVENT } from "./mcp-task-delivery-contract.js";
 /**
  * Streaming structural authority for canonical session transcripts.
  *
@@ -44,6 +46,15 @@ export function createSessionTranscriptStructureProjection(
   sessionId,
   { failFast = false } = {},
 ) {
+  const taskJournal =
+    typeof sessionId === "string" && sessionId
+      ? createMcpTaskJournalProjection(sessionId, {
+          retainResults: false,
+        })
+      : null;
+  let taskJournalError = null;
+  let hasDelivery = false;
+  let headHash = null;
   let eventCount = 0;
   let sessionStartCount = 0;
   let sessionStartIndex = null;
@@ -73,6 +84,25 @@ export function createSessionTranscriptStructureProjection(
 
   return Object.freeze({
     accept(event) {
+      headHash = event?.hash || null;
+      hasDelivery ||= event?.type === MCP_TASK_DELIVERY_EVENT;
+      if (!taskJournalError && taskJournal) {
+        try {
+          taskJournal.accept(event);
+        } catch (error) {
+          taskJournalError = error;
+        }
+      }
+      if (hasDelivery && (taskJournalError || !taskJournal)) {
+        throw (
+          taskJournalError ||
+          structureError(
+            sessionId,
+            "delivery requires its owning session",
+            snapshot(),
+          )
+        );
+      }
       // Unknown versions and malformed/orphan results fail closed at every
       // verified projection, even if that projection does not display tools.
       if (event?.type === "tool_round") projectToolRoundMessages(event);
@@ -93,6 +123,14 @@ export function createSessionTranscriptStructureProjection(
       return projection;
     },
     finish({ assertValid = failFast } = {}) {
+      // Preserve legacy MCP inspection when no model-visible delivery exists.
+      // Once a delivery participates in replay, its entire source prefix and
+      // original call settlement must validate through the shared reducer.
+      if (hasDelivery) {
+        if (taskJournalError || !taskJournal)
+          throw taskJournalError || new Error("Invalid MCP delivery authority");
+        taskJournal.finish({ headHash, eventCount });
+      }
       const projection = snapshot();
       return assertValid ? assertProjection(projection) : projection;
     },

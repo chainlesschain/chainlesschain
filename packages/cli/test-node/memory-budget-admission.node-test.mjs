@@ -191,6 +191,55 @@ function assertUnknown(f, error, expectedExposure) {
   assert.equal(f.counts().physical, 0);
 }
 
+for (const stage of ["adapter-body", "governed-fetch-body"]) {
+  test(`Memory deletion during ${stage} diagnostic blocks dispatch without observer lock deadlock`, async (t) => {
+    const f = await fixture(t);
+    const diagnostics = [];
+    await assert.rejects(
+      deadline(
+        withModelInputDiagnostics(
+          {
+            onModelInputDiagnostic: async (event) => {
+              diagnostics.push(event);
+              if (event.stage === stage) {
+                assert.equal(
+                  (await f.service.delete("budget-memory-original")).status,
+                  "purged",
+                );
+              }
+            },
+          },
+          () => f.run(() => providerFetch(endpoint, f.post())),
+        ),
+        "Diagnostic observer must complete outside the Memory lock",
+      ),
+      (error) =>
+        error.code ===
+        (stage === "adapter-body"
+          ? "revision_conflict"
+          : "CC_BUDGET_TRANSPORT_UNKNOWN"),
+    );
+    assert.equal(f.counts().physical, 0);
+    assert.equal(f.counts().credentials, stage === "adapter-body" ? 0 : 1);
+    assert.equal(
+      diagnostics.filter((event) => event.stage === stage).length,
+      1,
+    );
+    assert.equal(
+      diagnostics.every((event) => event.attempt === 1),
+      true,
+    );
+    assert.equal(JSON.stringify(diagnostics).includes(marker), false);
+    if (stage === "adapter-body") {
+      assert.equal(f.authority.status().pending.length, 0);
+      assert.equal(f.authority.status().exposureUsdMicros, 0);
+    } else {
+      assert.equal(f.authority.status().pending[0].state, "unknown");
+      assert(f.authority.status().exposureUsdMicros > 0);
+    }
+  });
+}
+
 test("credential-await Memory deletion blocks physical dispatch and retains unknown budget liability", async (t) => {
   let f, reservedExposure;
   f = await fixture(t, {

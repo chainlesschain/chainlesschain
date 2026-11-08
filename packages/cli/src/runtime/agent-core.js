@@ -2,6 +2,8 @@ import {
   withModelInputDiagnostics,
   recordLogicalModelInput,
   MODEL_INPUT_PLAN,
+  MODEL_INPUT_TOOLS,
+  registerModelInputProtocol,
   MODEL_INPUT_USAGE_CALL,
 } from "../lib/model-input-diagnostics.js";
 import {
@@ -12311,7 +12313,22 @@ async function chatWithToolsAdmitted(rawMessages, options, captureAdmission) {
   );
 
   let tools = getProviderToolDefinitions(options);
-  if (Array.isArray(options.contextMemorySelectedToolNames)) {
+  const selectExactTools = async (definitions, selectedDefinitions) => {
+    const { canonicalDigest } =
+      await import("@chainlesschain/context-memory-kernel");
+    const schemaDigest = (definition) =>
+      canonicalDigest(definition, "chainlesschain.cli-tool-schema/v1");
+    const remaining = selectedDefinitions.map(schemaDigest);
+    return definitions.filter((definition) => {
+      const index = remaining.indexOf(schemaDigest(definition));
+      if (index < 0) return false;
+      remaining.splice(index, 1);
+      return true;
+    });
+  };
+  if (Array.isArray(options[MODEL_INPUT_TOOLS])) {
+    tools = await selectExactTools(tools, options[MODEL_INPUT_TOOLS]);
+  } else if (Array.isArray(options.contextMemorySelectedToolNames)) {
     const selected = new Set(options.contextMemorySelectedToolNames);
     tools = tools.filter((tool) => selected.has(tool?.function?.name));
   }
@@ -12335,8 +12352,7 @@ async function chatWithToolsAdmitted(rawMessages, options, captureAdmission) {
     providerMessages = prepared.messages;
     canonicalPlan = prepared.plan;
     if (canonicalPlan) {
-      const selected = new Set(prepared.selectedToolNames);
-      tools = tools.filter((tool) => selected.has(tool?.function?.name));
+      tools = await selectExactTools(tools, prepared.selectedToolDefinitions);
     }
   }
   const lastUserMsg = [...providerMessages]
@@ -12349,6 +12365,18 @@ async function chatWithToolsAdmitted(rawMessages, options, captureAdmission) {
         })
       : providerMessages;
 
+  const diagnosticPlan = canonicalPlan || options[MODEL_INPUT_PLAN];
+  let sourceRows = null;
+  let preProjection = null;
+  if (typeof options.onModelInputDiagnostic === "function") {
+    const { getCanonicalProviderSourceMapping } =
+      await import("../lib/context-memory-kernel/provider-context.js");
+    preProjection = JSON.parse(JSON.stringify({ messages, tools }));
+    sourceRows = getCanonicalProviderSourceMapping(
+      diagnosticPlan,
+      preProjection,
+    );
+  }
   let modelInputReceipt = null;
   if (evolutionIngress !== null) {
     const projected = await evolutionIngress.prepareModelRequest({
@@ -12363,8 +12391,11 @@ async function chatWithToolsAdmitted(rawMessages, options, captureAdmission) {
   ({ messages, tools } = await recordLogicalModelInput({
     messages,
     tools,
-    plan: canonicalPlan || options[MODEL_INPUT_PLAN],
+    plan: diagnosticPlan,
     receipt: modelInputReceipt,
+    sourceRows,
+    preProjection,
+    projectionExpected: evolutionIngress !== null,
   }));
 
   if (options[READ_FILE_REQUEST_CONTEXT]) {
@@ -12386,6 +12417,15 @@ async function chatWithToolsAdmitted(rawMessages, options, captureAdmission) {
     const ollamaMessages = hasImageContent(messages)
       ? toOllamaMessages(messages)
       : messages;
+    registerModelInputProtocol(
+      "ollama-chat",
+      {
+        messages: ollamaMessages,
+        tools,
+      },
+      {},
+      { messages, tools },
+    );
     // Real-time token deltas (Claude-Code `--include-partial-messages`): when
     // the caller supplies an onToken hook, stream the response and forward each
     // content chunk as it arrives. Tool calls + usage are accumulated and the
@@ -12504,6 +12544,10 @@ async function chatWithToolsAdmitted(rawMessages, options, captureAdmission) {
       model: effModel,
       maxOutputTokens: options.maxOutputTokens,
     });
+    const otherIndexes = messages.flatMap((message, index) =>
+      message.role !== "system" ? [index] : [],
+    );
+    const anthropicMessagePaths = messages.map(() => []);
     const body = {
       model: effModel,
       max_tokens: anthropicOutputBudget.requestMaxOutputTokens,
@@ -12511,7 +12555,9 @@ async function chatWithToolsAdmitted(rawMessages, options, captureAdmission) {
       // assistant tool_calls[]) into Anthropic content blocks. Without this,
       // multi-turn tool use 400s on turn 2 (Anthropic rejects role:"tool" and
       // assistant `tool_calls`). Also replays preserved thinking blocks.
-      messages: _toAnthropicMessages(otherMsgs),
+      messages: _toAnthropicMessages(otherMsgs, (index, paths) => {
+        anthropicMessagePaths[otherIndexes[index]] = paths;
+      }),
       tools: anthropicTools,
     };
     if (
@@ -12545,6 +12591,28 @@ async function chatWithToolsAdmitted(rawMessages, options, captureAdmission) {
           ]
         : systemText;
     }
+
+    let systemOffset = 0;
+    for (let index = 0; index < messages.length; index++) {
+      if (messages[index].role !== "system") continue;
+      const text = String(messages[index].content ?? "");
+      anthropicMessagePaths[index] = [
+        {
+          path: cacheEnabled ? "/system/0/text" : "/system",
+          start: systemOffset,
+          end: systemOffset + text.length,
+        },
+      ];
+      systemOffset += text.length + 1;
+    }
+    registerModelInputProtocol(
+      "anthropic-messages",
+      body,
+      {
+        messages: anthropicMessagePaths,
+      },
+      { messages, tools },
+    );
 
     const url = normalizeProviderBaseUrl(baseUrl);
 
@@ -12669,6 +12737,8 @@ async function chatWithToolsAdmitted(rawMessages, options, captureAdmission) {
     modelProfile.runtimeProtocol === "openai-responses";
 
   if (useOpenAIResponses) {
+    const responseMessagePaths = messages.map(() => []);
+    const responseToolPaths = tools.map(() => []);
     const responseBody = createOpenAIResponsesBody({
       model: effectiveModel,
       messages,
@@ -12678,7 +12748,22 @@ async function chatWithToolsAdmitted(rawMessages, options, captureAdmission) {
       stream: typeof options.onToken === "function",
       modelProfile,
       serviceTier: options.serviceTier,
+      onMessageMapping: (index, paths) => {
+        responseMessagePaths[index] = paths;
+      },
+      onToolMapping: (index, paths) => {
+        responseToolPaths[index] = paths;
+      },
     });
+    registerModelInputProtocol(
+      "openai-responses",
+      responseBody,
+      {
+        messages: responseMessagePaths,
+        tools: responseToolPaths,
+      },
+      { messages, tools },
+    );
     if (typeof options.onToken === "function") {
       return await _retryStreamingChat(
         (attempt = 0) =>
@@ -12784,6 +12869,13 @@ async function chatWithToolsAdmitted(rawMessages, options, captureAdmission) {
       },
     );
   }
+
+  registerModelInputProtocol(
+    "openai-chat",
+    { messages, tools },
+    {},
+    { messages, tools },
+  );
 
   // Real token streaming (--include-partial-messages) for every OpenAI-compatible
   // provider (openai / deepseek / dashscope / mistral / gemini / volcengine):
@@ -13695,18 +13787,27 @@ async function _chatOpenAIResponsesStreaming(
  * are replayed FIRST in the assistant turn (the API requires them ahead of
  * tool_use when continuing a thinking+tool turn). Exported for tests.
  */
-export function _toAnthropicMessages(msgs) {
+export function _toAnthropicMessages(msgs, onMapping = null) {
   const out = [];
   let pendingResults = [];
+  let pendingIndexes = [];
+  const point = (path) => ({ path, start: null, end: null });
   const flush = () => {
     if (pendingResults.length) {
+      pendingIndexes.forEach((index, position) =>
+        onMapping?.(index, [
+          point("/messages/" + out.length + "/content/" + position),
+        ]),
+      );
       out.push({ role: "user", content: pendingResults });
       pendingResults = [];
+      pendingIndexes = [];
     }
   };
-  for (const m of msgs || []) {
+  for (const [sourceIndex, m] of (msgs || []).entries()) {
     if (!m) continue;
     if (m.role === "tool") {
+      pendingIndexes.push(sourceIndex);
       pendingResults.push({
         type: "tool_result",
         tool_use_id: m.tool_call_id,
@@ -13718,6 +13819,7 @@ export function _toAnthropicMessages(msgs) {
       continue;
     }
     flush();
+    onMapping?.(sourceIndex, [point("/messages/" + out.length)]);
     if (m.role === "assistant") {
       const blocks = [];
       if (Array.isArray(m._thinkingBlocks)) {
@@ -16930,6 +17032,8 @@ export async function* agentLoop(messages, options) {
     const readFileRequestContext = { messages: callMessages };
     const providerCallOptions = {
       [MODEL_INPUT_PLAN]: canonicalProviderContext?.plan || null,
+      [MODEL_INPUT_TOOLS]:
+        canonicalProviderContext?.selectedToolDefinitions || null,
       [READ_FILE_REQUEST_CONTEXT]: readFileRequestContext,
       ...(evolutionIngress !== null
         ? { ...requestOptions, evolutionIngress }

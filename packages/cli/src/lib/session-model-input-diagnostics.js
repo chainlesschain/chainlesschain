@@ -1,3 +1,4 @@
+import { projectSourceMapping } from "./model-input-source-mapping.js";
 import { isProxy } from "node:util/types";
 import { markRuntimeLedgerPersistenceError } from "./runtime-usage-ledger.js";
 import { readVerifiedProjection } from "../harness/jsonl-session-store.js";
@@ -42,7 +43,7 @@ function digest(value) {
 export function projectStoredModelInputDiagnostic(event) {
   let nodes = 0;
   const plain = (value, depth = 0) => {
-    requireValue(++nodes <= 32768 && depth <= 8);
+    requireValue(++nodes <= 262144 && depth <= 8);
     if (
       value === null ||
       typeof value === "string" ||
@@ -99,6 +100,14 @@ export function projectStoredModelInputDiagnostic(event) {
       bodyDigest: digest(event.bodyDigest),
       bytes: count(event.bytes, true),
       providerAcceptanceVerified: false,
+      ...(event.sourceMapping === undefined
+        ? {}
+        : {
+            sourceMapping: projectSourceMapping(
+              event.sourceMapping,
+              "body-prepared",
+            ),
+          }),
     };
   }
   requireValue(
@@ -115,6 +124,14 @@ export function projectStoredModelInputDiagnostic(event) {
   return {
     ...base,
     logicalDigest: digest(event.logicalDigest),
+    ...(event.sourceMapping === undefined
+      ? {}
+      : {
+          sourceMapping: projectSourceMapping(
+            event.sourceMapping,
+            "logical-input",
+          ),
+        }),
     bytes: count(event.bytes),
     messageCount: count(event.messageCount),
     toolCount: count(event.toolCount),

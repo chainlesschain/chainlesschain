@@ -435,20 +435,42 @@ function decodeBundle(item, expectedSessionId) {
   });
 }
 
-/** Restore replay messages in transcript order, independent of planner rank. */
-export function contextItemsToMessages(itemsInput, options = {}) {
+/** Restore replay messages and record provenance at the actual bundle expansion. */
+export function contextItemsToMessagesWithSources(itemsInput, options = {}) {
   if (!Array.isArray(itemsInput)) throw new TypeError("items must be an array");
   const expectedSessionId =
     options.sessionId == null ? undefined : String(options.sessionId);
-  return [...itemsInput]
+  const ordered = [...itemsInput]
     .map(normalizeContextItem)
     .sort(
       (left, right) =>
         (left.sourceRef.eventSequence ?? Number.MAX_SAFE_INTEGER) -
           (right.sourceRef.eventSequence ?? Number.MAX_SAFE_INTEGER) ||
         left.itemId.localeCompare(right.itemId, "en"),
-    )
-    .flatMap((item) => decodeBundle(item, expectedSessionId));
+    );
+  const messages = [];
+  const sources = [];
+  for (const item of ordered) {
+    const bundle = decodeBundle(item, expectedSessionId);
+    const start = messages.length;
+    messages.push(...bundle);
+    sources.push(
+      Object.freeze({
+        digest: item.digest,
+        kind: item.kind,
+        messageIndexes: Object.freeze(bundle.map((_, index) => start + index)),
+        derived:
+          Array.isArray(item.provenance?.parentDigests) &&
+          item.provenance.parentDigests.length > 0,
+      }),
+    );
+  }
+  return { messages, sources: Object.freeze(sources) };
+}
+
+/** Restore replay messages in transcript order, independent of planner rank. */
+export function contextItemsToMessages(itemsInput, options = {}) {
+  return contextItemsToMessagesWithSources(itemsInput, options).messages;
 }
 
 function intersectAllowedSinks(items) {
