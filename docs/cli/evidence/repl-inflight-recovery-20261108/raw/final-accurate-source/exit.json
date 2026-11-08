@@ -1,0 +1,15 @@
+{
+  "command": [
+    "C:\\nvm4w\\nodejs\\node.exe",
+    "E:/code/chainlesschain/node_modules/vitest/vitest.mjs",
+    "run",
+    "--config",
+    "vitest.e2e.config.js",
+    "__tests__/e2e/repl-inflight-recovery-e2e.test.js"
+  ],
+  "code": 0,
+  "signal": null,
+  "error": null,
+  "sourceIdentityMatch": true,
+  "finishedAt": "2026-11-08T07:10:34.638Z"
+}

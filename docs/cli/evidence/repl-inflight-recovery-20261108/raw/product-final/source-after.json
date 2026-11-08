@@ -21,13 +21,13 @@
   },
   {
     "path": "packages/cli/__tests__/e2e/repl-inflight-recovery-e2e.test.js",
-    "bytes": 16055,
-    "sha256": "27f4ee83404e4066457a8f941282ca1c8e164fdec02c995d51f6f7f924ae13bd"
+    "bytes": 16655,
+    "sha256": "5ddbdef9dcd3ed572f701e255ce77b2bff6ecb57392aab44fe73517490b8b999"
   },
   {
     "path": "packages/cli/__tests__/fixtures/repl-inflight-recovery-state.mjs",
-    "bytes": 3455,
-    "sha256": "fab15b2bf14adfed338b07deb8eb151edbf8da34f6320aef67d4cade463bf7c6"
+    "bytes": 3889,
+    "sha256": "eb260ddd41628352d99aabc06da7c5402532516070ea3f33cebe871276b36971"
   },
   {
     "path": "packages/cli/test-node/session-model-usage-recovery.node-test.mjs",
