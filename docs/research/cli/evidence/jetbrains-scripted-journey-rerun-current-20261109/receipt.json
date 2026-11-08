@@ -1,0 +1,20 @@
+{
+  "schema": "chainlesschain.jetbrains-scripted-journey-rerun/v1",
+  "head": "aedbe082a4d2cec56713036d59c92e1b02b73cef",
+  "branch": "main",
+  "remotePushed": false,
+  "command": "node --test packages/jetbrains-plugin/scripts/conversation-recovery-evidence.test.mjs packages/jetbrains-plugin/scripts/native-transcript-evidence.test.mjs packages/jetbrains-plugin/scripts/verify01-native-task-adapter.test.mjs packages/jetbrains-plugin/scripts/run-ui-host-journey.test.mjs",
+  "tests": {
+    "passed": 85,
+    "failed": 0,
+    "cancelled": 0
+  },
+  "realIdeHostVerified": false,
+  "limitations": [
+    "no live IntelliJ host",
+    "no Gradle UI test",
+    "no dual-IDE journey",
+    "no screen-reader acceptance",
+    "no upgrade/rollback"
+  ]
+}

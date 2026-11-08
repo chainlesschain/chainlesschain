@@ -89,7 +89,8 @@
         "cli/evidence/vscode-live-extension-host-diagnostic-20261109",
         "cli/evidence/accessibility-performance-contract-current-20261109",
         "cli/evidence/ide-extensions-ci-42518446281-20261109",
-        "cli/evidence/vscode-live-extension-host-rerun-current-20261109"
+        "cli/evidence/vscode-live-extension-host-rerun-current-20261109",
+        "cli/evidence/jetbrains-scripted-journey-rerun-current-20261109"
       ],
       "remaining": [
         "VS Code bridge loopback",
