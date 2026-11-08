@@ -1646,6 +1646,30 @@ describe("agent-repl thin wrapper contracts", () => {
 });
 
 describe("agent-repl MCP host runtime manager", () => {
+  it("recognizes a settled auto-wake continuation by delivery id", async () => {
+    const { hasSettledMcpTaskAutoWake } = await import(
+      "../../src/repl/agent-repl.js"
+    );
+    const deliveryId = "mcp-task-delivery:task-1";
+    expect(
+      hasSettledMcpTaskAutoWake(
+        [{ role: "assistant", content: "result" }],
+        deliveryId,
+      ),
+    ).toBe(false);
+    expect(
+      hasSettledMcpTaskAutoWake(
+        [
+          {
+            role: "user",
+            content: `Continue from the verified background MCP task result (deliveryId: ${deliveryId}).`,
+          },
+        ],
+        deliveryId,
+      ),
+    ).toBe(true);
+  });
+
   it("reuses one controller and ledger so a settlement latch survives turns", async () => {
     const { createReplMcpHostRuntimeManager } = await import(
       "../../src/repl/agent-repl.js"

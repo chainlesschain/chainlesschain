@@ -2721,6 +2721,17 @@ export function createReplMcpHostRuntimeManager(dependencies = {}) {
   });
 }
 
+/** Canonical-message check used to avoid replaying a settled auto-wake turn. */
+export function hasSettledMcpTaskAutoWake(messages, deliveryId) {
+  if (!Array.isArray(messages) || typeof deliveryId !== "string") return false;
+  return messages.some(
+    (message) =>
+      message?.role === "user" &&
+      typeof message.content === "string" &&
+      message.content.includes(deliveryId),
+  );
+}
+
 /**
  * Execute the startup boundary with explicit host-owned dependencies. Exported
  * for behavior tests; callers cannot obtain the private workspace starter, and
@@ -8912,12 +8923,7 @@ async function startAgentReplInWorkspaceOwned(
             (item) => item.localId === record.localId,
           );
           if (!delivery) return false;
-          return messages.some(
-            (message) =>
-              message?.role === "user" &&
-              typeof message.content === "string" &&
-              message.content.includes(delivery.deliveryId),
-          );
+          return hasSettledMcpTaskAutoWake(messages, delivery.deliveryId);
         };
         const { records: durableRecords } = listDurableMcpTasks(sessionId);
         const records = durableRecords.filter(
