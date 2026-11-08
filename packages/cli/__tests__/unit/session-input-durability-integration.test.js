@@ -13,6 +13,8 @@ vi.mock("../../src/lib/paths.js", () => ({
 }));
 const { startSession, rebuildMessages, readEvents } =
   await import("../../src/harness/jsonl-session-store.js");
+const { projectVerifiedSessionHostSnapshot } =
+  await import("../../src/lib/session-host-snapshot.js");
 const { appendSessionInputAcceptance, appendSessionInputSettlement } =
   await import("../../src/lib/session-input-receipt.js");
 
@@ -56,5 +58,36 @@ describe("REPL accepted/settled integration contract", () => {
       }),
     ).toThrow();
     expect(dispatch).not.toHaveBeenCalled();
+  });
+
+  it("keeps pending prompt text out of the public host snapshot", () => {
+    const sessionId = "repl-private-pending";
+    startSession(sessionId, { provider: "test", model: "test" });
+    appendSessionInputAcceptance(sessionId, {
+      inputId: "repl-input-private",
+      turnId: "repl-private-pending:turn-1",
+      prompt: "private pending prompt",
+    });
+    const projected = projectVerifiedSessionHostSnapshot(
+      sessionId,
+      readEvents(sessionId),
+    );
+    expect(JSON.stringify(projected.snapshot)).not.toContain(
+      "private pending prompt",
+    );
+    expect(projected.inputRecovery.pendingInputs).toHaveLength(1);
+    expect(projected.inputRecovery.pendingInputs[0].prompt).toBe(
+      "private pending prompt",
+    );
+    expect(projected.inputRecovery.summary).toEqual({
+      pendingCount: 1,
+      inputs: [
+        {
+          inputId: "repl-input-private",
+          turnId: "repl-private-pending:turn-1",
+          inputDigest: expect.any(String),
+        },
+      ],
+    });
   });
 });
