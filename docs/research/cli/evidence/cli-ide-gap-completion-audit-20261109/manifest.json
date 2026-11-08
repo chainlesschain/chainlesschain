@@ -1,0 +1,19 @@
+{
+  "schema": "chainlesschain.cli-ide-gap-completion-audit/v1",
+  "auditDate": "2026-11-09",
+  "branch": "main",
+  "remotePushed": false,
+  "plan": "docs/research/cli-ide/plans/cli-ide-codex-claude-gap-review-2026-11-08.md",
+  "overall": "open",
+  "items": {
+    "2": {"status":"partial","evidence":["cli/evidence/model-input-composition-20261109","cli/evidence/usage-attribution-unit-20261109","cli/evidence/implementation-plan-volcengine-live-20261109"],"remaining":["independent real provider task matrix","complete failure attribution","dual IDE journey"]},
+    "3": {"status":"partial","evidence":["cli/evidence/repl-inflight-recovery-20261109"],"remaining":["dual IDE recovery","concurrent input","side-effect idempotence","cross-entry journey"]},
+    "4": {"status":"partial","evidence":["cli/evidence/mcp-task-targeted-20261109","cli/evidence/repl-inflight-recovery-20261109"],"remaining":["third-party service","model continuation","dual IDE/desktop","multiplatform"]},
+    "5": {"status":"partial","evidence":["cli/evidence/context-token-volcengine-live-probe-20261109","cli/evidence/implementation-plan-volcengine-live-20261109"],"remaining":["invoice reconciliation","formal model price","output-cap enforcement","paid admission"]},
+    "6": {"status":"partial","evidence":["cli/evidence/codex-current-head-native-0167-20261109","cli/evidence/codex-app-server-137-20261109","cli/evidence/codex-ci-0167-cancelled-20261109"],"remaining":["strict cold scan repair","three-system CI","Linux/macOS native cancellation/recovery","model-change closure"]},
+    "7": {"status":"partial","evidence":["cli/evidence/vscode-live-extension-host-20261109","cli/evidence/jetbrains-live-host-attempt-20261109","cli/evidence/jetbrains-scripted-journey-20261109"],"remaining":["VS Code bridge loopback","IntelliJ Gradle loopback","full IDE/desktop task journey","accessibility and upgrade"]},
+    "8": {"status":"partial","evidence":["cli/evidence/memory-semantic-quality-20261109","cli/evidence/memory-responsiveness-current-20261109"],"remaining":["production source wiring","cross-platform cold/hot/mixed SLO","multilingual real-user tasks"]},
+    "9": {"status":"partial","evidence":["cli/evidence/usage-attribution-unit-20261109","cli/evidence/model-input-composition-20261109"],"remaining":["production cross-entry consistency","independent IDE/desktop failure localization"]}
+  },
+  "completionRule": "Do not promote overall to complete until every item has scope-matching evidence and every remaining gate is closed."
+}
