@@ -244,3 +244,21 @@ Using the exact current source commit `72fe88974308bad8f9fea6acc078a3ec811f39e5`
 ### 2026-11-09 JetBrains scripted journey rerun
 
 Four repository-hosted JetBrains journey/evidence suites passed **85/85** with Node's test runner. The receipt is archived in [`jetbrains-scripted-journey-20261109`](../../cli/evidence/jetbrains-scripted-journey-20261109/), with `realIdeHostVerified:false` and `gradleUiHostVerified:false`; this improves scripted contract coverage without claiming a live IntelliJ, dual-IDE, desktop, or accessibility journey.
+
+
+## Current completion audit (2026-11-09)
+
+This table is the authoritative status snapshot for this plan. A row is marked complete only when the evidence matches the stated scope; fixture or static evidence does not satisfy a live-host, paid, native, or cross-platform gate.
+
+| Scope | Current evidence | Audit result | Remaining gate |
+| --- | --- | --- | --- |
+| Item 2: actual model input and attribution | CLI/VS Code/JetBrains projections plus canonical planning ? signed readback ? governed fetch composition; targeted diagnostics and attribution suites pass | Partial, locally verified | Independent real provider tasks, complete failure attribution, and dual-IDE journey |
+| Item 3: lifecycle recovery | Owner-only ACL CLI/REPL SIGKILL recovery suite 2/2 | Partial, one real CLI/REPL path verified | Dual IDE, compaction, concurrent input, side-effect idempotence, cross-entry recovery |
+| Item 4: MCP Tasks | Durable runtime/watch/deliveryId recovery and targeted suite 118/118; scripted REPL auto-wake | Partial, local contract verified | Third-party service, model continuation, dual IDE/desktop, and multiplatform journey |
+| Item 5: cost/context/paid admission | Volcengine 4/4 HTTP 200 usage capture plus finite A/B receipts | Partial, transport/usage only | Invoice reconciliation, output-cap enforcement, and target-scope paid readiness |
+| Item 6: Codex compatibility | `.167` static/support/turn/history 137/137; 0.164 scan-repair negative receipt preserved | Partial, static and negative boundaries verified | Exact `.167` native protocol, cancellation/recovery, and three-system CI |
+| Item 7: IDE/desktop journey | JetBrains scripted journey/evidence 85/85 | Partial, fixture/contract only | Live IntelliJ, VS Code, desktop, clean install/upgrade, accessibility, Stop/recovery |
+| Item 8: Memory quality/SLO | Semantic quality 6/6 and existing local fixtures | Partial, offline quality only | Production source wiring, cold/hot/mixed SLO, multilingual and real-user tasks |
+| Item 9: shared logic/guidance | Shared projections and usage attribution unit/transcript 19/19 | Partial, local integration verified | Production behavior consistency and independent cross-entry failure localization |
+
+The plan therefore remains open. The unresolved rows require an external provider invoice, a missing official native artifact or CI matrix, or live IDE/desktop hosts; no local fixture result is promoted to close those gates.
