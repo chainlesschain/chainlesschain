@@ -49,7 +49,7 @@ class SessionModelInputsTest {
             event.put("providerAcceptanceVerified", false);
             event.put("sourceMapping", Map.of("covered", true, "reason", "complete", "sourceCount", 1L,
                     "sourcesTruncated", false, "protocol", "openai-chat", "sources", List.of(Map.of("ordinal", 0L,
-                            "status", "mapped", "fragments", List.of(fragment))))));
+                            "status", "mapped", "fragments", List.of(fragment)))));
         }
         return event;
     }
