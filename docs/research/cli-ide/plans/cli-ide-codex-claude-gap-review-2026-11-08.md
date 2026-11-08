@@ -322,7 +322,11 @@ The current Item 2?9 status is also recorded in the machine-readable [`cli-ide-g
 Read-only GitHub verification of workflow run `42509137812` found successful Windows, Ubuntu, and macOS Electron/Playwright E2E jobs for PR commit `5d62ee9533e3f2f903d55930ca3c0f72a682c642`. Each built the desktop main/renderer and completed the E2E smoke step. This is cross-platform desktop smoke evidence for an older commit; it does not close current-HEAD, full IDE task/recovery, Codex native CI, or paid-provider gates. Evidence: `../cli/evidence/desktop-e2e-ci-42509137812-20261109/`.
 
 
-### 2026-11-09 latest IDE Extensions CI readback\n\nRead-only GitHub verification of IDE Extensions run 42518446281 passed VS Code host gates on Windows, macOS, Linux, and scoped Remote-SSH, plus browser evidence on all three systems. The JetBrains real-host matrix was skipped and the run is bound to remote commit cdc8f4590a5bc70bf8e2f38ede6127bf40ee621a, so it strengthens the latest remote VS Code/browser baseline without closing current-HEAD, JetBrains real-host, bridge-loopback, or full accessibility/upgrade gates. Evidence: ../cli/evidence/ide-extensions-ci-42518446281-20261109/.\n\n### 2026-11-09 IDE Extensions CI readback
+### 2026-11-09 latest IDE Extensions CI readback
+
+Read-only GitHub verification of IDE Extensions run 42518446281 passed VS Code host gates on Windows, macOS, Linux, and scoped Remote-SSH, plus browser evidence on all three systems. The JetBrains real-host matrix was skipped and the run is bound to remote commit cdc8f4590a5bc70bf8e2f38ede6127bf40ee621a, so it strengthens the latest remote VS Code/browser baseline without closing current-HEAD, JetBrains real-host, bridge-loopback, or full accessibility/upgrade gates. Evidence: ../cli/evidence/ide-extensions-ci-42518446281-20261109/.
+
+### 2026-11-09 IDE Extensions CI readback
 
 Read-only GitHub verification of IDE Extensions run `42505953777` found successful JetBrains real-host jobs on Linux, Windows, and macOS for IntelliJ 2024.2 and 2025.2. The jobs ran deterministic chat/control/resume plus canonical recovery/Stop journeys and uploaded host evidence; browser evidence also passed on all three systems. VS Code host gates were skipped. The run is bound to older commit `4e4b421bfb42e524f071c9ad70c2a2a2ce607374`, so it strengthens the historical cross-platform IDE baseline without closing current-HEAD or VS Code bridge acceptance. Evidence: `../cli/evidence/ide-extensions-ci-42505953777-20261109/`.
 
@@ -384,11 +388,12 @@ The current `main` commit `99c8a598a0c6553f1273e365d90b557943c7a82f` passed the 
 ### 2026-11-09 Current HEAD accessibility/performance contract checks
 
 The current `main` commit `c98efe3f78c3c6a359375a4d1f101576070a24ee` passed the deterministic accessibility/performance validator suite **30/30**. It covers accessibility tree/transcript, focus, performance evidence, diagnostics scale and provenance contracts. The receipt is archived in [`accessibility-performance-contract-current-20261109`](../../cli/evidence/accessibility-performance-contract-current-20261109/). This strengthens the non-host contract layer but does not replace real IDE accessibility, screen-reader, upgrade/rollback, bridge or current-HEAD desktop acceptance.
-\n### Current evidence index (2026-11-09)
+
+### Current evidence index (2026-11-09)
 
 The completion manifest is [cli-ide-gap-completion-audit-20261109](../../cli/evidence/cli-ide-gap-completion-audit-20261109/manifest.json). Recent evidence bound to the local audit includes:
 
-- Memory responsiveness rerun: [memory-responsiveness-rerun-20261109](../../cli/evidence/memory-responsiveness-rerun-20261109/) — 66/66 local Windows samples met the 500 ms cancellation acknowledgement target; cross-platform and multilingual admission remain open.
-- VS Code real host rerun: [scode-live-extension-host-rerun-current-20261109](../../cli/evidence/vscode-live-extension-host-rerun-current-20261109/) — fresh VSIX install, activation, two-root workspace, and 19 commands passed; bridge self-probe timed out and lockfile was withheld.
-- JetBrains scripted rerun: [jetbrains-scripted-journey-rerun-current-20261109](../../cli/evidence/jetbrains-scripted-journey-rerun-current-20261109/) — 85/85 scripted checks passed; live IntelliJ host remains unverified.
-- CI Tests readback: [ci-tests-42516074674-20261109](../../cli/evidence/ci-tests-42516074674-20261109/) — Windows/Ubuntu jobs passed while macOS unit tests were cancelled; this does not close the three-system gate.
+- Memory responsiveness rerun: [memory-responsiveness-rerun-20261109](../../cli/evidence/memory-responsiveness-rerun-20261109/) - 66/66 local Windows samples met the 500 ms cancellation acknowledgement target; cross-platform and multilingual admission remain open.
+- VS Code real host rerun: [vscode-live-extension-host-rerun-current-20261109](../../cli/evidence/vscode-live-extension-host-rerun-current-20261109/) - fresh VSIX install, activation, two-root workspace, and 19 commands passed; bridge self-probe timed out and lockfile was withheld.
+- JetBrains scripted rerun: [jetbrains-scripted-journey-rerun-current-20261109](../../cli/evidence/jetbrains-scripted-journey-rerun-current-20261109/) - 85/85 scripted checks passed; live IntelliJ host remains unverified.
+- CI Tests readback: [ci-tests-42516074674-20261109](../../cli/evidence/ci-tests-42516074674-20261109/) - Windows/Ubuntu jobs passed while macOS unit tests were cancelled; this does not close the three-system gate.
