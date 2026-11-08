@@ -13,6 +13,7 @@ import {
   requireUnscopedToolExecution,
 } from "../lib/formal-budget-provider-scope.js";
 import { isFormalBudgetError } from "../lib/formal-budget-errors.js";
+import { withProviderRequestAdmission } from "../lib/provider-request-admission.js";
 import {
   FORMAL_QUALITY_ALLOWED_FILES_ENV,
   FORMAL_QUALITY_FILE_TOOLS,
@@ -12255,6 +12256,27 @@ export async function chatWithTools(rawMessages, options) {
 }
 
 async function chatWithToolsDiagnosed(rawMessages, options) {
+  let prepared = null;
+  let destination = { provider: options.provider || "ollama" };
+  return withProviderRequestAdmission(
+    {
+      validate: (target, controls) =>
+        prepared?.assertCurrent?.(target, controls),
+      enabled: () => prepared?.admissionEnabled === true,
+      check: (target, controls) =>
+        prepared?.assertDispatchOpen?.(target, controls),
+      resource: () => prepared?.dispatchResource,
+      target: () => destination,
+    },
+    () =>
+      chatWithToolsAdmitted(rawMessages, options, (context, provider) => {
+        if (context) prepared = context;
+        if (provider) destination = { provider };
+      }),
+  );
+}
+
+async function chatWithToolsAdmitted(rawMessages, options, captureAdmission) {
   rawMessages = projectRejectedToolArguments(rawMessages);
   if (options.serviceTier != null) {
     resolveModelServiceTier(
@@ -12282,6 +12304,7 @@ async function chatWithToolsDiagnosed(rawMessages, options) {
     contextEngine: ce,
     signal,
   } = { ...options, ...connection };
+  captureAdmission(null, provider);
 
   const providerRequestId = _normalizeProviderRequestId(
     options.providerRequestId,
@@ -12303,8 +12326,12 @@ async function chatWithToolsDiagnosed(rawMessages, options) {
       await import("../lib/context-memory-kernel/provider-context.js");
     const prepared = await prepareCanonicalProviderContext(rawMessages, {
       ...options,
+      provider,
+      model,
+      baseUrl,
       contextMemoryToolDefinitions: tools,
     });
+    captureAdmission(prepared, provider);
     providerMessages = prepared.messages;
     canonicalPlan = prepared.plan;
     if (canonicalPlan) {
@@ -16825,6 +16852,7 @@ export async function* agentLoop(messages, options) {
         callMessages,
         {
           ...options,
+          provider: options.provider || "ollama",
           ...(independentReviewContext?.active
             ? { contextMemoryRecall: false }
             : {}),
@@ -16985,7 +17013,18 @@ export async function* agentLoop(messages, options) {
           "agent.iteration": budget.consumed,
           ...(modelIdAttrs || {}),
         },
-        () => llmCall(callMessages, providerCallOptions),
+        () =>
+          canonicalProviderContext?.admissionEnabled === true
+            ? withProviderRequestAdmission(
+                {
+                  validate: canonicalProviderContext.assertCurrent,
+                  check: canonicalProviderContext.assertDispatchOpen,
+                  resource: canonicalProviderContext.dispatchResource,
+                  target: { provider: options.provider || "ollama" },
+                },
+                () => llmCall(callMessages, providerCallOptions),
+              )
+            : llmCall(callMessages, providerCallOptions),
         (span, r) => {
           const t = _usageTokens(r?.usage);
           if (t) {

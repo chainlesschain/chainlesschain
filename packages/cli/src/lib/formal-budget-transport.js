@@ -2,6 +2,11 @@ import { recordModelInputBody } from "./model-input-diagnostics.js";
 import { randomUUID } from "node:crypto";
 import { raceWithAbort } from "./abort-utils.js";
 import {
+  hasProviderRequestAdmission,
+  assertProviderRequestAdmission,
+  dispatchProviderRequest,
+} from "./provider-request-admission.js";
+import {
   budgetError,
   canonical,
   label,
@@ -263,6 +268,8 @@ export function createFormalBudgetTransport({
   );
   async function open({ runId, callId, body, endpoint, signal, traceId }) {
     signal?.throwIfAborted();
+    if (hasProviderRequestAdmission())
+      await assertProviderRequestAdmission(undefined, { signal });
     // Snapshot before await so caller mutation cannot alter the reserved body.
     const request = JSON.parse(canonical(body));
     authority.reserve({ runId, callId, body: request, endpoint });
@@ -351,11 +358,30 @@ export function createFormalBudgetTransport({
       };
       await recordModelInputBody(options.body, "governed-fetch-body");
       combined.throwIfAborted();
-      // No await between durable admission and physical fetch.
-      const contract = authority.markDispatched(callId, request);
-      const pendingResponse = Promise.resolve(
-        fetchImpl(contract.endpoint, options),
-      );
+      if (hasProviderRequestAdmission()) {
+        await assertProviderRequestAdmission(
+          { provider: reserved.provider },
+          { signal: combined },
+        );
+        combined.throwIfAborted();
+      }
+      const startRequest = () => {
+        combined.throwIfAborted();
+        // No await between durable admission and physical fetch.
+        const contract = authority.markDispatched(callId, request);
+        return fetchImpl(contract.endpoint, options);
+      };
+      const pendingResponse = hasProviderRequestAdmission()
+        ? (
+            await dispatchProviderRequest(
+              startRequest,
+              {
+                provider: reserved.provider,
+              },
+              { signal: combined },
+            )
+          ).value
+        : Promise.resolve(startRequest());
       // Dispose a late response even when the peer ignores AbortSignal.
       void pendingResponse
         .then((response) => {

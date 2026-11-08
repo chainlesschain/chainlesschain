@@ -397,6 +397,7 @@ jobs:
           packages/cli/test-node/formal-budget-authority.test.mjs
           packages/cli/test-node/formal-budget-frozen-plan.node-test.mjs
           packages/cli/test-node/formal-budget-provider-scope.node-test.mjs
+          packages/cli/test-node/memory-budget-admission.node-test.mjs
           packages/cli/test-node/budget-egress-inventory.node-test.mjs
           packages/cli/test-node/budget-diagnostic-boundaries.node-test.mjs
           packages/cli/test-node/formal-budget-lineage.node-test.mjs

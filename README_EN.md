@@ -1,6 +1,6 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
-> Release candidate: CLI **0.166.144**, Session Core **0.3.27**, VS Code **0.37.180** and JetBrains **0.4.197** are under validation and are not published. Installation instructions below retain the verified public release. The candidate adds goal transfer/signed rollback and repairs Windows CI long paths and isolated Web panel cache handling.
+> Release candidate: CLI **0.166.145**, Session Core **0.3.27**, VS Code **0.37.180** and JetBrains **0.4.197** are under validation and are not published. Installation instructions below retain the verified public release. The candidate adds goal transfer/signed rollback and repairs Windows CI long paths and isolated Web panel cache handling.
 
 CLI **0.166.143** and Session Core **0.3.26** are verified public after exact-source three-OS gates, Actions OIDC publication and independent public byte/provenance verification. Open VSX **0.37.179** is public and its VSIX matches the official artifact; JetBrains **0.4.196** is approved, listed and downloadable; all 627 original payload files match the official build. Both recommend CLI **0.166.143**; see the [release record](docs/research/cli/evidence/release143-public/README.md). Immutable release source: `3fa3a4b258bbcb60b23b4298cec375661ad6f410`.
 

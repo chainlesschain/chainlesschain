@@ -1112,6 +1112,31 @@ export class SegmentedMemoryPort extends DurableJsonMemoryPort {
   async getRevision({ signal } = {}) {
     return this._locked(() => this._loadManifest().storeRevision, { signal });
   }
+  async withRevisionGuard(expectedRevision, operation, { signal } = {}) {
+    if (
+      !Number.isSafeInteger(expectedRevision) ||
+      expectedRevision < 0 ||
+      typeof operation !== "function"
+    ) {
+      throw new TypeError("Memory dispatch requires a revision and operation");
+    }
+    return this._locked(
+      () => {
+        const currentRevision = this._loadManifest().storeRevision;
+        if (currentRevision !== expectedRevision) {
+          const error = new Error("Memory changed before provider dispatch");
+          error.code = "revision_conflict";
+          error.details = { expectedRevision, currentRevision };
+          error.noReplay = true;
+          throw error;
+        }
+        // The host operation returns a plain box containing the pending HTTP
+        // Promise. Await lock acquisition/cleanup, never the network response.
+        return operation();
+      },
+      { signal },
+    );
+  }
   async exportSnapshot() {
     return this._locked(() => {
       const manifest = this._loadManifest();

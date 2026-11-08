@@ -1,6 +1,11 @@
 import { withModelInputAttempt } from "./model-input-diagnostics.js";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { budgetError, label, requireBudget } from "./formal-budget-errors.js";
+import {
+  hasProviderRequestAdmission,
+  assertProviderRequestAdmission,
+  dispatchProviderRequest,
+} from "./provider-request-admission.js";
 
 const providerScope = new AsyncLocalStorage();
 
@@ -130,20 +135,26 @@ export async function withFormalBudgetProviderScope(
 export async function providerFetch(input, init, fetchImpl = globalThis.fetch) {
   const scope = providerScope.getStore();
   if (!scope)
-    return withModelInputAttempt(init, false, (snapshot) =>
-      fetchImpl(input, snapshot),
-    );
+    return withModelInputAttempt(init, false, async (snapshot) => {
+      if (!hasProviderRequestAdmission()) return fetchImpl(input, snapshot);
+      const dispatched = await dispatchProviderRequest(
+        () => fetchImpl(input, snapshot),
+        undefined,
+        { signal: snapshot?.signal },
+      );
+      return dispatched.value;
+    });
   requireBudget(
     !scope.closed,
     "Provider budget scope closed",
     "CC_BUDGET_SCOPE_CLOSED",
   );
-  return withModelInputAttempt(init, true, (snapshot) =>
-    scope.fetch(input, {
-      ...snapshot,
-      signal: snapshot?.signal
-        ? AbortSignal.any([scope.signal, snapshot.signal])
-        : scope.signal,
-    }),
-  );
+  return withModelInputAttempt(init, true, async (snapshot) => {
+    const signal = snapshot?.signal
+      ? AbortSignal.any([scope.signal, snapshot.signal])
+      : scope.signal;
+    if (hasProviderRequestAdmission())
+      await assertProviderRequestAdmission(undefined, { signal });
+    return scope.fetch(input, { ...snapshot, signal });
+  });
 }
