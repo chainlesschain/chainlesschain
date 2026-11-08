@@ -7,7 +7,10 @@ import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 import { withFormalBudgetProviderScope } from "../src/lib/formal-budget-provider-scope.js";
 import { runContextTokenLiveProbe } from "../scripts/context-token-volcengine-live-probe.mjs";
-import { runVolcenginePlanDiagnostic } from "../scripts/implementation-plan-volcengine-live.mjs";
+import {
+  classifyDiagnosticFailure,
+  runVolcenginePlanDiagnostic,
+} from "../scripts/implementation-plan-volcengine-live.mjs";
 import { runPmExplorationLiveProbe } from "../scripts/pm-exploration-volcengine-live-probe.mjs";
 import { createVolcengineDiagnosticBroker } from "../scripts/verify01-volcengine-diagnostic-broker.mjs";
 import { runNativeCampaign } from "../scripts/verify01-native-task-campaign.mjs";
@@ -15,6 +18,25 @@ import { runPublicVSCode } from "../scripts/verify01-public-vscode-matrix-diagno
 import { runTaskDiagnostic } from "../scripts/verify01-volcengine-task-diagnostic.mjs";
 
 const repository = fileURLToPath(new URL("../../../", import.meta.url));
+
+test("diagnostic failure attribution is content-free and detects a provider output cap", () => {
+  const failure = classifyDiagnosticFailure(
+    Object.assign(new Error("provider response contained private text"), {
+      code: "ERR_ASSERTION",
+    }),
+    { requestedMaxOutputTokens: 1024, usage: { output_tokens: 1024 } },
+  );
+  assert.deepEqual(Object.keys(failure).sort(), [
+    "boundary",
+    "code",
+    "messageDigest",
+    "messageLength",
+  ]);
+  assert.equal(failure.code, "ERR_ASSERTION");
+  assert.equal(failure.boundary, "provider-output-cap-reached");
+  assert.equal(failure.messageLength, 40);
+  assert.match(failure.messageDigest, /^sha256:[0-9a-f]{64}$/u);
+});
 const inScope = (operation) =>
   withFormalBudgetProviderScope(
     {

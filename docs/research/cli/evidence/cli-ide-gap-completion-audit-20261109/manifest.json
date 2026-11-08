@@ -13,7 +13,8 @@
         "cli/evidence/usage-attribution-unit-20261109",
         "cli/evidence/implementation-plan-volcengine-live-20261109",
         "cli/evidence/context-token-volcengine-live-probe-20261109",
-        "cli/evidence/implementation-plan-volcengine-live-current-20261109"
+        "cli/evidence/implementation-plan-volcengine-live-current-20261109",
+        "cli/evidence/implementation-plan-volcengine-live-current2-20261109"
       ],
       "remaining": [
         "independent real provider task matrix",
@@ -52,7 +53,8 @@
         "cli/evidence/context-token-volcengine-live-probe-20261109",
         "cli/evidence/implementation-plan-volcengine-live-20261109",
         "cli/evidence/implementation-plan-volcengine-cap-live-20261109",
-        "cli/evidence/volcengine-model-price-20261109"
+        "cli/evidence/volcengine-model-price-20261109",
+        "cli/evidence/implementation-plan-volcengine-live-current2-20261109"
       ],
       "remaining": [
         "invoice reconciliation",

@@ -18,6 +18,25 @@ const ENDPOINT = "https://ark.cn-beijing.volces.com/api/v3";
 const hash = (value) =>
   "sha256:" + createHash("sha256").update(value).digest("hex");
 
+/**
+ * Project diagnostic failures into content-free, stable evidence. Provider
+ * assertion messages may contain model output, so never persist their text.
+ */
+export function classifyDiagnosticFailure(error, request = null) {
+  const message = String(error?.message || "");
+  const outputCapReached =
+    Number.isSafeInteger(request?.requestedMaxOutputTokens) &&
+    request.requestedMaxOutputTokens > 1 &&
+    Number.isSafeInteger(request?.usage?.output_tokens) &&
+    request.usage.output_tokens >= request.requestedMaxOutputTokens;
+  return {
+    code: error?.code || error?.name || "Error",
+    boundary: outputCapReached ? "provider-output-cap-reached" : "assertion",
+    messageDigest: hash(message),
+    messageLength: message.length,
+  };
+}
+
 /** Bounded diagnostic on the production transport; never imports formal observations. */
 export async function runVolcenginePlanDiagnostic(diagnosticOptions = {}) {
   requireUnscopedModelTransport();
@@ -220,7 +239,11 @@ export async function runVolcenginePlanDiagnostic(diagnosticOptions = {}) {
       row.status = "passed";
     } catch (error) {
       row.status = "failed";
-      row.errorCode = error.code || error.name;
+      const failure = classifyDiagnosticFailure(error, report.requests.at(-1));
+      row.errorCode = failure.code;
+      row.failureBoundary = failure.boundary;
+      row.failureMessageDigest = failure.messageDigest;
+      row.failureMessageLength = failure.messageLength;
       throw error;
     } finally {
       save();
@@ -407,7 +430,11 @@ export async function runVolcenginePlanDiagnostic(diagnosticOptions = {}) {
         report.requests.at(-1).accounting === "estimated";
     });
   } catch (error) {
-    report.errorCode = error.code || error.name;
+    const failure = classifyDiagnosticFailure(error, report.requests.at(-1));
+    report.errorCode = failure.code;
+    report.failureBoundary = failure.boundary;
+    report.failureMessageDigest = failure.messageDigest;
+    report.failureMessageLength = failure.messageLength;
     process.exitCode = 1;
   } finally {
     globalThis.fetch = originalFetch;
