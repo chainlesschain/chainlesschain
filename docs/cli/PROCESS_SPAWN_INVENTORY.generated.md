@@ -3,7 +3,7 @@
 > Generated from child process call-site scan. Do not edit by hand.
 > Regenerate with `npm run docs:spawn-inventory --workspace=packages/cli`.
 
-Total matches: 775 (runtime: 315, tooling: 425, test: 35).
+Total matches: 854 (runtime: 315, tooling: 502, test: 37).
 Runtime audit: brokered: 219, audited-exemption: 47, non-executable: 49, unreviewed: 0.
 
 ## Policy
@@ -46,7 +46,7 @@ Runtime audit: brokered: 219, audited-exemption: 47, non-executable: 49, unrevie
 | `packages/cli/src/commands/eval.js` | 69 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `_deps.spawnSync("taskkill", ["/PID", String(child.pid), "/T", "/F"], {` |
 | `packages/cli/src/commands/eval.js` | 196 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `const child = _deps.spawn(process.execPath, args, {` |
 | `packages/cli/src/commands/loop.js` | 87 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `const child = _deps.spawn(cmd, args, {` |
-| `packages/cli/src/commands/mcp.js` | 1031 | `brokered` | call targets ProcessExecutionBroker | `executionBroker.spawnSync(command, args, {` |
+| `packages/cli/src/commands/mcp.js` | 1063 | `brokered` | call targets ProcessExecutionBroker | `executionBroker.spawnSync(command, args, {` |
 | `packages/cli/src/commands/memory.js` | 57 | `brokered` | call targets ProcessExecutionBroker | `execFileSync: (...args) => executionBroker.execFileSync(...args),` |
 | `packages/cli/src/commands/memory.js` | 63 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `return deps.execFileSync(file, [...editorArgs, filePath], {` |
 | `packages/cli/src/commands/review.js` | 45 | `brokered` | call targets ProcessExecutionBroker | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |
@@ -73,7 +73,7 @@ Runtime audit: brokered: 219, audited-exemption: 47, non-executable: 49, unrevie
 | `packages/cli/src/harness/background-task-command-runner.js` | 221 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `_backgroundTaskCommandDeps.execFile(` |
 | `packages/cli/src/harness/background-task-manager.js` | 31 | `brokered` | call targets ProcessExecutionBroker | `const result = executionBroker.spawnSync(` |
 | `packages/cli/src/harness/background-task-manager.js` | 366 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `child = _deps.spawn(` |
-| `packages/cli/src/harness/mcp-client.js` | 2936 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `const proc = _deps.spawn(config.command, config.args \|\| [], {` |
+| `packages/cli/src/harness/mcp-client.js` | 3066 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `const proc = _deps.spawn(config.command, config.args \|\| [], {` |
 | `packages/cli/src/lazy-dispatch.js` | 830 | `non-executable` | declaration/comment/type/regex lexical match | `// The broker must patch child_process before a command graph can cache a` |
 | `packages/cli/src/lib/agent-ipc-bus.js` | 316 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `const child = _deps.spawn(command, args, {` |
 | `packages/cli/src/lib/agent-sandbox.js` | 20 | `brokered` | call targets ProcessExecutionBroker | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |
@@ -317,17 +317,17 @@ Runtime audit: brokered: 219, audited-exemption: 47, non-executable: 49, unrevie
 | `packages/cli/src/repl/pr-comments.js` | 21 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `deps.execFile(` |
 | `packages/cli/src/repl/prompt-editor.js` | 104 | `brokered` | call targets ProcessExecutionBroker | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |
 | `packages/cli/src/repl/prompt-editor.js` | 151 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `result = deps.spawnSync(executable, [...editorArgs, filePath], {` |
-| `packages/cli/src/runtime/agent-core.js` | 519 | `brokered` | call targets ProcessExecutionBroker | `broker.execFile(file, args, options, (error, stdout, stderr) => {` |
-| `packages/cli/src/runtime/agent-core.js` | 6980 | `non-executable` | declaration/comment/type/regex lexical match | `// is the historical spawn(command, {shell:true}) byte-for-byte.` |
-| `packages/cli/src/runtime/agent-core.js` | 7002 | `brokered` | call targets ProcessExecutionBroker | `child = broker.spawn(` |
-| `packages/cli/src/runtime/agent-core.js` | 7018 | `brokered` | call targets ProcessExecutionBroker | `? broker.spawn(args.command, [], brokerOpts)` |
-| `packages/cli/src/runtime/agent-core.js` | 7019 | `brokered` | call targets ProcessExecutionBroker | `: broker.spawn(shellInv.file, shellInv.argv, brokerOpts);` |
-| `packages/cli/src/runtime/agent-core.js` | 7507 | `brokered` | call targets ProcessExecutionBroker | `const res = broker.spawnSync(` |
-| `packages/cli/src/runtime/agent-core.js` | 7540 | `brokered` | call targets ProcessExecutionBroker | `output = broker.execSync(args.command, brokerExecOpts);` |
-| `packages/cli/src/runtime/agent-core.js` | 7556 | `brokered` | call targets ProcessExecutionBroker | `const res = broker.spawnSync(shellInv.file, shellInv.argv, {` |
-| `packages/cli/src/runtime/agent-core.js` | 7702 | `non-executable` | declaration/comment/type/regex lexical match | `// cannot inject a second command. Previously execSync(`git ${cmd}`) ran` |
-| `packages/cli/src/runtime/agent-core.js` | 11338 | `non-executable` | declaration/comment/type/regex lexical match | `// fully-defaulted spawn (→ "default") touches neither tools nor confirmer nor gate.` |
-| `packages/cli/src/runtime/agent-core.js` | 11415 | `non-executable` | declaration/comment/type/regex lexical match | `// sub-agent runs, so a policy hook can VETO the spawn (`block`) or INJECT` |
+| `packages/cli/src/runtime/agent-core.js` | 555 | `brokered` | call targets ProcessExecutionBroker | `broker.execFile(file, args, options, (error, stdout, stderr) => {` |
+| `packages/cli/src/runtime/agent-core.js` | 7004 | `non-executable` | declaration/comment/type/regex lexical match | `// is the historical spawn(command, {shell:true}) byte-for-byte.` |
+| `packages/cli/src/runtime/agent-core.js` | 7026 | `brokered` | call targets ProcessExecutionBroker | `child = broker.spawn(` |
+| `packages/cli/src/runtime/agent-core.js` | 7042 | `brokered` | call targets ProcessExecutionBroker | `? broker.spawn(args.command, [], brokerOpts)` |
+| `packages/cli/src/runtime/agent-core.js` | 7043 | `brokered` | call targets ProcessExecutionBroker | `: broker.spawn(shellInv.file, shellInv.argv, brokerOpts);` |
+| `packages/cli/src/runtime/agent-core.js` | 7529 | `brokered` | call targets ProcessExecutionBroker | `const res = broker.spawnSync(` |
+| `packages/cli/src/runtime/agent-core.js` | 7562 | `brokered` | call targets ProcessExecutionBroker | `output = broker.execSync(args.command, brokerExecOpts);` |
+| `packages/cli/src/runtime/agent-core.js` | 7578 | `brokered` | call targets ProcessExecutionBroker | `const res = broker.spawnSync(shellInv.file, shellInv.argv, {` |
+| `packages/cli/src/runtime/agent-core.js` | 7724 | `non-executable` | declaration/comment/type/regex lexical match | `// cannot inject a second command. Previously execSync(`git ${cmd}`) ran` |
+| `packages/cli/src/runtime/agent-core.js` | 11374 | `non-executable` | declaration/comment/type/regex lexical match | `// fully-defaulted spawn (→ "default") touches neither tools nor confirmer nor gate.` |
+| `packages/cli/src/runtime/agent-core.js` | 11449 | `non-executable` | declaration/comment/type/regex lexical match | `// sub-agent runs, so a policy hook can VETO the spawn (`block`) or INJECT` |
 | `packages/cli/src/runtime/diagnostics.js` | 84 | `brokered` | call targets ProcessExecutionBroker | `execFileSync: (...args) => executionBroker.execFileSync(...args),` |
 | `packages/cli/src/runtime/diagnostics.js` | 90 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `deps.execFileSync(file, args, {` |
 | `packages/cli/src/skills/video-editing/media-process.js` | 4 | `brokered` | call targets ProcessExecutionBroker | `spawn: (...args) => executionBroker.spawn(...args),` |
@@ -370,14 +370,31 @@ Runtime audit: brokered: 219, audited-exemption: 47, non-executable: 49, unrevie
 | `desktop-app-vue/scripts/graph-packaged-electron-journey.mjs` | 357 | `const verified = spawnSync(` |
 | `desktop-app-vue/scripts/graph-packaged-electron-journey.mjs` | 378 | `const child = spawn(` |
 | `desktop-app-vue/scripts/graph-packaged-electron-journey.mjs` | 522 | `const result = spawnSync("git", ["rev-parse", "HEAD"], {` |
+| `desktop-app-vue/scripts/install-electron.cjs` | 3 | `const { spawnSync } = require("node:child_process");` |
+| `desktop-app-vue/scripts/install-electron.cjs` | 15 | `const result = spawnSync(process.execPath, [installer], { stdio: "inherit" });` |
 | `desktop-app-vue/scripts/install-native-messaging.js` | 10 | `const { exec } = require('child_process');` |
+| `desktop-app-vue/scripts/lib/project-goal-native-dialog.cjs` | 6 | `const { execFile } = require("node:child_process");` |
+| `desktop-app-vue/scripts/lib/project-goal-native-dialog.cjs` | 117 | `execFile(` |
+| `desktop-app-vue/scripts/lib/project-goal-transfer-native.cjs` | 8 | `const { execFile } = require("node:child_process");` |
+| `desktop-app-vue/scripts/lib/project-goal-transfer-native.cjs` | 118 | `execFile(` |
 | `desktop-app-vue/scripts/pre-release-check.js` | 10 | `const { execSync } = require("child_process");` |
 | `desktop-app-vue/scripts/pre-release-check.js` | 33 | `return execSync(command, {` |
+| `desktop-app-vue/scripts/project-goal-encrypted-electron-probe.mjs` | 7 | `import { spawn } from "node:child_process";` |
+| `desktop-app-vue/scripts/project-goal-encrypted-electron-probe.mjs` | 36 | `const child = spawn(executable, [fixture], {` |
+| `desktop-app-vue/scripts/project-goal-native-journey.mjs` | 12 | `import { execFileSync } from "node:child_process";` |
+| `desktop-app-vue/scripts/project-goal-native-journey.mjs` | 50 | `sourceSha: execFileSync("git", ["rev-parse", "HEAD"], {` |
+| `desktop-app-vue/scripts/project-goal-native-journey.mjs` | 54 | `sourceStatus: execFileSync("git", ["status", "--short"], {` |
+| `desktop-app-vue/scripts/project-goal-transfer-native-journey.mjs` | 11 | `import { execFileSync, spawnSync } from "node:child_process";` |
+| `desktop-app-vue/scripts/project-goal-transfer-native-journey.mjs` | 41 | `sourceSha: execFileSync("git", ["rev-parse", "HEAD"], {` |
+| `desktop-app-vue/scripts/project-goal-transfer-native-journey.mjs` | 45 | `sourceStatus: execFileSync("git", ["status", "--short"], {` |
+| `desktop-app-vue/scripts/project-goal-transfer-native-journey.mjs` | 87 | `const result = spawnSync(` |
 | `desktop-app-vue/scripts/release.js` | 30 | `const { execSync } = require("child_process");` |
 | `desktop-app-vue/scripts/release.js` | 76 | `return execSync(command, {` |
 | `desktop-app-vue/scripts/rules-validator.js` | 22 | `const { execSync } = require("child_process");` |
 | `desktop-app-vue/scripts/rules-validator.js` | 590 | `pattern: /child_process\.exec\s*\(/,` |
 | `desktop-app-vue/scripts/rules-validator.js` | 911 | `const auditResult = execSync("npm audit --json", {` |
+| `desktop-app-vue/scripts/stage-macos-sqlite.js` | 4 | `const { execFileSync } = require("node:child_process");` |
+| `desktop-app-vue/scripts/stage-macos-sqlite.js` | 14 | `execFileSync("lipo", [file, "-verify_arch", "x86_64", "arm64"]),` |
 | `desktop-app-vue/scripts/sync-bundled-skill-capabilities.mjs` | 280 | `case "child_process":` |
 | `desktop-app-vue/scripts/test-remote-e2e.js` | 7 | `const { spawn } = require('child_process');` |
 | `desktop-app-vue/scripts/test-remote-e2e.js` | 34 | `const vitest = spawn('npx', ['vitest', 'run', testFile], {` |
@@ -387,6 +404,9 @@ Runtime audit: brokered: 219, audited-exemption: 47, non-executable: 49, unrevie
 | `desktop-app-vue/scripts/test-workflow-e2e.js` | 50 | `const testProcess = spawn(` |
 | `desktop-app-vue/scripts/verify-coding-agent-parity.js` | 1 | `const { spawnSync } = require("child_process");` |
 | `desktop-app-vue/scripts/verify-coding-agent-parity.js` | 247 | `const result = spawnSync(step.command, step.args, {` |
+| `desktop-app-vue/scripts/verify-macos-sqlite.js` | 5 | `const { execFileSync } = require("node:child_process");` |
+| `desktop-app-vue/scripts/verify-macos-sqlite.js` | 22 | `return execFileSync("lipo", [path.join(binDir, binaries[0].name), "-archs"], {` |
+| `desktop-app-vue/scripts/verify-macos-sqlite.js` | 44 | `execFileSync("lipo", [file, "-verify_arch", ...expected]);` |
 | `packages/cli/scripts/app-server-overload-soak.mjs` | 1 | `import { execFileSync } from "node:child_process";` |
 | `packages/cli/scripts/app-server-overload-soak.mjs` | 39 | `return execFileSync("git", args, {` |
 | `packages/cli/scripts/ax-transcript-audit-fragment.mjs` | 5 | `import { execFileSync } from "node:child_process";` |
@@ -399,9 +419,9 @@ Runtime audit: brokered: 219, audited-exemption: 47, non-executable: 49, unrevie
 | `packages/cli/scripts/build-linux-subreaper.mjs` | 6 | `import { spawnSync } from "node:child_process";` |
 | `packages/cli/scripts/build-linux-subreaper.mjs` | 44 | `const build = spawnSync(` |
 | `packages/cli/scripts/build-web-panel.mjs` | 15 | `import { execFileSync, execSync } from "node:child_process";` |
-| `packages/cli/scripts/build-web-panel.mjs` | 200 | `execSync("npm ci --include=dev --include=optional --legacy-peer-deps", {` |
-| `packages/cli/scripts/build-web-panel.mjs` | 211 | `execFileSync(` |
-| `packages/cli/scripts/build-web-panel.mjs` | 227 | `execSync("npm run build:no-sync", {` |
+| `packages/cli/scripts/build-web-panel.mjs` | 207 | `execSync("npm ci --include=dev --include=optional --legacy-peer-deps", {` |
+| `packages/cli/scripts/build-web-panel.mjs` | 218 | `execFileSync(` |
+| `packages/cli/scripts/build-web-panel.mjs` | 234 | `execSync("npm run build:no-sync", {` |
 | `packages/cli/scripts/build-windows-node-null-v3.mjs` | 5 | `import { spawnSync } from "node:child_process";` |
 | `packages/cli/scripts/build-windows-node-null-v3.mjs` | 66 | `const result = spawnSync(executable, args, {` |
 | `packages/cli/scripts/build-windows-node-runtime-adapter.mjs` | 5 | `import { spawnSync } from "node:child_process";` |
@@ -439,12 +459,12 @@ Runtime audit: brokered: 219, audited-exemption: 47, non-executable: 49, unrevie
 | `packages/cli/scripts/codex-app-server-compatibility.mjs` | 137 | `execFile(` |
 | `packages/cli/scripts/codex-app-server-compatibility.mjs` | 230 | `const child = spawn(` |
 | `packages/cli/scripts/codex-app-server-history-probe.mjs` | 4 | `import { execFileSync, spawn } from "node:child_process";` |
-| `packages/cli/scripts/codex-app-server-history-probe.mjs` | 395 | `const reported = execFileSync(upstream.binary, ["--version"], {` |
-| `packages/cli/scripts/codex-app-server-history-probe.mjs` | 429 | `const child = spawn(` |
+| `packages/cli/scripts/codex-app-server-history-probe.mjs` | 448 | `const reported = execFileSync(upstream.binary, ["--version"], {` |
+| `packages/cli/scripts/codex-app-server-history-probe.mjs` | 483 | `const child = spawn(` |
 | `packages/cli/scripts/codex-app-server-turn-probe.mjs` | 5 | `import { execFileSync, spawn } from "node:child_process";` |
-| `packages/cli/scripts/codex-app-server-turn-probe.mjs` | 528 | `execFileSync("git", args, {` |
-| `packages/cli/scripts/codex-app-server-turn-probe.mjs` | 566 | `const reported = execFileSync(upstream.binary, ["--version"], {` |
-| `packages/cli/scripts/codex-app-server-turn-probe.mjs` | 603 | `const child = spawn(` |
+| `packages/cli/scripts/codex-app-server-turn-probe.mjs` | 576 | `execFileSync("git", args, {` |
+| `packages/cli/scripts/codex-app-server-turn-probe.mjs` | 614 | `const reported = execFileSync(upstream.binary, ["--version"], {` |
+| `packages/cli/scripts/codex-app-server-turn-probe.mjs` | 651 | `const child = spawn(` |
 | `packages/cli/scripts/context-token-volcengine-live-probe.mjs` | 9 | `import { execFileSync } from "node:child_process";` |
 | `packages/cli/scripts/context-token-volcengine-live-probe.mjs` | 163 | `execFileSync("git", ["-C", repository, ...args], {` |
 | `packages/cli/scripts/diagnostics/windows-node-null-v3-fixtures.mjs` | 3 | `const fs=require('node:fs'),path=require('node:path'),cp=require('node:child_process');` |
@@ -509,8 +529,8 @@ Runtime audit: brokered: 219, audited-exemption: 47, non-executable: 49, unrevie
 | `packages/cli/scripts/ide-roadmap-execution-location-matrix.mjs` | 203 | `const head = execFileSync("git", ["rev-parse", "HEAD"], {` |
 | `packages/cli/scripts/ide-roadmap-execution-location-matrix.mjs` | 208 | `const status = execFileSync(` |
 | `packages/cli/scripts/ide-roadmap-live-provider-trajectory.mjs` | 1 | `import { execFileSync, fork } from "node:child_process";` |
-| `packages/cli/scripts/ide-roadmap-live-provider-trajectory.mjs` | 619 | `head = execFileSync("git", ["rev-parse", "HEAD"], {` |
-| `packages/cli/scripts/ide-roadmap-live-provider-trajectory.mjs` | 705 | `const child = fork(LOOPBACK_CHILD, [fixtureFile], {` |
+| `packages/cli/scripts/ide-roadmap-live-provider-trajectory.mjs` | 650 | `head = execFileSync("git", ["rev-parse", "HEAD"], {` |
+| `packages/cli/scripts/ide-roadmap-live-provider-trajectory.mjs` | 736 | `const child = fork(LOOPBACK_CHILD, [fixtureFile], {` |
 | `packages/cli/scripts/ide-roadmap-marketplace-supply-chain.mjs` | 4 | `import { execFileSync, spawn } from "node:child_process";` |
 | `packages/cli/scripts/ide-roadmap-marketplace-supply-chain.mjs` | 203 | `const head = execFileSync("git", ["rev-parse", "HEAD"], {` |
 | `packages/cli/scripts/ide-roadmap-marketplace-supply-chain.mjs` | 208 | `const status = execFileSync(` |
@@ -557,18 +577,23 @@ Runtime audit: brokered: 219, audited-exemption: 47, non-executable: 49, unrevie
 | `packages/cli/scripts/mcp-reference-interop.mjs` | 107 | `const child = fork(` |
 | `packages/cli/scripts/mcp-reference-interop.mjs` | 516 | `commit: execFileSync("git", ["rev-parse", "HEAD"], {` |
 | `packages/cli/scripts/mcp-reference-interop.mjs` | 521 | `clean: !execFileSync(` |
+| `packages/cli/scripts/memory-compound-query-benchmark.mjs` | 7 | `import { spawnSync, execFileSync } from "node:child_process";` |
+| `packages/cli/scripts/memory-compound-query-benchmark.mjs` | 229 | `execFileSync("git", args, {` |
+| `packages/cli/scripts/memory-compound-query-benchmark.mjs` | 750 | `child = spawnSync(` |
 | `packages/cli/scripts/memory-mixed-concurrency-benchmark.mjs` | 7 | `import { fork } from "node:child_process";` |
-| `packages/cli/scripts/memory-mixed-concurrency-benchmark.mjs` | 93 | `const child = fork(script, ["--worker"], {` |
+| `packages/cli/scripts/memory-mixed-concurrency-benchmark.mjs` | 90 | `const child = fork(script, ["--worker"], {` |
 | `packages/cli/scripts/memory-query-index-benchmark.mjs` | 3 | `import { spawnSync, execFileSync } from "node:child_process";` |
-| `packages/cli/scripts/memory-query-index-benchmark.mjs` | 160 | `sourceHead: execFileSync("git", ["rev-parse", "HEAD"], {` |
-| `packages/cli/scripts/memory-query-index-benchmark.mjs` | 163 | `workingTree: execFileSync(` |
-| `packages/cli/scripts/memory-query-index-benchmark.mjs` | 230 | `const child = spawnSync(` |
+| `packages/cli/scripts/memory-query-index-benchmark.mjs` | 201 | `sourceHead: execFileSync("git", ["rev-parse", "HEAD"], {` |
+| `packages/cli/scripts/memory-query-index-benchmark.mjs` | 204 | `workingTree: execFileSync(` |
+| `packages/cli/scripts/memory-query-index-benchmark.mjs` | 273 | `const child = spawnSync(` |
 | `packages/cli/scripts/native-signed-install-gate.mjs` | 18 | `import { spawnSync } from "node:child_process";` |
 | `packages/cli/scripts/native-signed-install-gate.mjs` | 227 | `const result = spawnSync(command, args, {` |
 | `packages/cli/scripts/persistent-capacity-benchmark.mjs` | 12 | `import { execFileSync, spawn } from "node:child_process";` |
 | `packages/cli/scripts/persistent-capacity-benchmark.mjs` | 419 | `const child = spawn(process.execPath, args, {` |
 | `packages/cli/scripts/persistent-capacity-benchmark.mjs` | 767 | `const head = execFileSync("git", ["rev-parse", "HEAD"], {` |
 | `packages/cli/scripts/persistent-capacity-benchmark.mjs` | 779 | `const dirtyLines = execFileSync(` |
+| `packages/cli/scripts/probe-mcp-task-durable.mjs` | 2 | `import { spawn } from "node:child_process";` |
+| `packages/cli/scripts/probe-mcp-task-durable.mjs` | 95 | `const child = spawn(process.execPath, [worker], {` |
 | `packages/cli/scripts/record-replay-ui-journey.mjs` | 4 | `import { execFileSync } from "node:child_process";` |
 | `packages/cli/scripts/record-replay-ui-journey.mjs` | 77 | `return execFileSync("git", ["rev-parse", "HEAD"], {` |
 | `packages/cli/scripts/review-model-catalog.mjs` | 5 | `import { execFileSync } from "node:child_process";` |
@@ -598,9 +623,9 @@ Runtime audit: brokered: 219, audited-exemption: 47, non-executable: 49, unrevie
 | `packages/cli/scripts/session-message-reliability-soak.mjs` | 99 | `execFileSync("git", args, {` |
 | `packages/cli/scripts/session-message-reliability-soak.mjs` | 346 | `return spawnSync(` |
 | `packages/cli/scripts/session-scale-gate.mjs` | 17 | `import { spawn, execFileSync } from "node:child_process";` |
-| `packages/cli/scripts/session-scale-gate.mjs` | 265 | `return execFileSync("git", args, {` |
-| `packages/cli/scripts/session-scale-gate.mjs` | 275 | `execFileSync("git", args, {` |
-| `packages/cli/scripts/session-scale-gate.mjs` | 308 | `const child = spawn(command, args, {` |
+| `packages/cli/scripts/session-scale-gate.mjs` | 268 | `return execFileSync("git", args, {` |
+| `packages/cli/scripts/session-scale-gate.mjs` | 278 | `execFileSync("git", args, {` |
+| `packages/cli/scripts/session-scale-gate.mjs` | 311 | `const child = spawn(command, args, {` |
 | `packages/cli/scripts/session-ux-audit-fragment.mjs` | 5 | `import { execFileSync } from "node:child_process";` |
 | `packages/cli/scripts/session-ux-audit-fragment.mjs` | 257 | `return execFileSync("git", ["rev-parse", "HEAD"], {` |
 | `packages/cli/scripts/session-ux-audit-fragment.mjs` | 288 | `return execFileSync(` |
@@ -616,7 +641,7 @@ Runtime audit: brokered: 219, audited-exemption: 47, non-executable: 49, unrevie
 | `packages/cli/scripts/team-distributed-soak.mjs` | 1132 | `const result = spawnSync(` |
 | `packages/cli/scripts/team-distributed-soak.mjs` | 1430 | `return execFileSync("git", safeGitArguments(repo, args), {` |
 | `packages/cli/scripts/team-distributed-soak.mjs` | 1618 | `const child = spawn(` |
-| `packages/cli/scripts/team-distributed-soak.mjs` | 1858 | `executionBroker.execFileSync("git", ["--version"], {` |
+| `packages/cli/scripts/team-distributed-soak.mjs` | 1872 | `executionBroker.execFileSync("git", ["status", "--porcelain"], {` |
 | `packages/cli/scripts/team-fairness-soak.mjs` | 4 | `import { execFileSync } from "node:child_process";` |
 | `packages/cli/scripts/team-fairness-soak.mjs` | 106 | `execFileSync("git", args, {` |
 | `packages/cli/scripts/test-coding-agent-parity.mjs` | 34 | `import { spawnSync } from "node:child_process";` |
@@ -683,39 +708,91 @@ Runtime audit: brokered: 219, audited-exemption: 47, non-executable: 49, unrevie
 | `packages/cli/scripts/verify01-first-run-cli-diagnostic.mjs` | 401 | `return spawnSync(command, args, options);` |
 | `packages/cli/scripts/verify01-native-capsule.mjs` | 6 | `import { execFileSync } from "node:child_process";` |
 | `packages/cli/scripts/verify01-native-capsule.mjs` | 130 | `: execFileSync(` |
+| `packages/cli/scripts/verify01-native-plugin-artifact.mjs` | 7 | `import { execFile } from "node:child_process";` |
+| `packages/cli/scripts/verify01-native-plugin-artifact.mjs` | 97 | `execFile("gh", args, options, (error, stdout) => {` |
 | `packages/cli/scripts/verify01-native-preflight.mjs` | 6 | `import { execFileSync } from "node:child_process";` |
 | `packages/cli/scripts/verify01-native-preflight.mjs` | 169 | `execFileSync("git", ["-C", repository, "show", `${commit}:${file}`], {` |
 | `packages/cli/scripts/verify01-native-review-admission.mjs` | 6 | `import { execFileSync } from "node:child_process";` |
 | `packages/cli/scripts/verify01-native-review-admission.mjs` | 159 | `execFileSync("git", ["-C", repository, "show", `${commit}:${file}`], {` |
 | `packages/cli/scripts/verify01-native-task-campaign.mjs` | 10 | `import { execFileSync } from "node:child_process";` |
-| `packages/cli/scripts/verify01-native-task-campaign.mjs` | 114 | `execFileSync(` |
-| `packages/cli/scripts/verify01-native-task-campaign.mjs` | 128 | `execFileSync(archiveExtractor(), ["-xf", archive, "-C", workspace], {` |
-| `packages/cli/scripts/verify01-native-task-campaign.mjs` | 353 | `return `const {spawn}=require('node:child_process');const a=process.argv.slice(2);if(a[0]==='agent')a.push(...${JSON.stringify(flags)});const c=spawn(${JSON.stringify(process.execPath)},[${JSON.stringify(cliPath)},...a],{stdio:'inherit',env:{...process.env,CC_TASK_WORKLOG:'0'}});c.on('error',e=>{console.error(e.message);process.exitCode=1});c.on('exit',code=>{process.exitCode=code??1});`;` |
-| `packages/cli/scripts/verify01-native-task-campaign.mjs` | 571 | `execFileSync("git", args, {` |
-| `packages/cli/scripts/verify01-native-task-campaign.mjs` | 617 | `const committed = execFileSync("git", ["show", `${sourceSha}:${file}`], {` |
-| `packages/cli/scripts/verify01-native-task-checker.mjs` | 10 | `import { execFileSync } from "node:child_process";` |
-| `packages/cli/scripts/verify01-native-task-checker.mjs` | 258 | `execFileSync("git", ["rev-parse", "HEAD"], {` |
-| `packages/cli/scripts/verify01-native-task-checker.mjs` | 279 | `execFileSync("docker", ["image", "inspect", imageId], { encoding: "utf8" }),` |
-| `packages/cli/scripts/verify01-native-task-checker.mjs` | 296 | `execFileSync(` |
-| `packages/cli/scripts/verify01-native-task-checker.mjs` | 382 | `execFileSync("tar", ["-xf", archive, "-C", workspace], {` |
+| `packages/cli/scripts/verify01-native-task-campaign.mjs` | 176 | `execFileSync(` |
+| `packages/cli/scripts/verify01-native-task-campaign.mjs` | 190 | `execFileSync(archiveExtractor(), ["-xf", archive, "-C", workspace], {` |
+| `packages/cli/scripts/verify01-native-task-campaign.mjs` | 427 | `return `const {spawn}=require('node:child_process');const a=process.argv.slice(2);if(a[0]==='agent')a.push(...${JSON.stringify(flags)});const c=spawn(${JSON.stringify(process.execPath)},[${JSON.stringify(cliPath)},...a],{stdio:'inherit',env:{...process.env,CC_TASK_WORKLOG:'0'}});c.on('error',e=>{console.error(e.message);process.exitCode=1});c.on('exit',code=>{process.exitCode=code??1});`;` |
+| `packages/cli/scripts/verify01-native-task-campaign.mjs` | 675 | `execFileSync("git", args, {` |
+| `packages/cli/scripts/verify01-native-task-campaign.mjs` | 733 | `const committed = execFileSync("git", ["show", `${sourceSha}:${file}`], {` |
+| `packages/cli/scripts/verify01-native-task-checker.mjs` | 14 | `import { execFileSync } from "node:child_process";` |
+| `packages/cli/scripts/verify01-native-task-checker.mjs` | 287 | `execFileSync("git", ["rev-parse", "HEAD"], {` |
+| `packages/cli/scripts/verify01-native-task-checker.mjs` | 353 | `execFileSync("docker", ["image", "inspect", imageId], { encoding: "utf8" }),` |
+| `packages/cli/scripts/verify01-native-task-checker.mjs` | 375 | `execFileSync(` |
+| `packages/cli/scripts/verify01-native-task-checker.mjs` | 472 | `execFileSync("tar", ["-xf", archive, "-C", workspace], {` |
 | `packages/cli/scripts/verify01-native-toolchain-prepare.mjs` | 6 | `import { execFileSync } from "node:child_process";` |
 | `packages/cli/scripts/verify01-native-toolchain-prepare.mjs` | 229 | `execFileSync("git", ["-C", repository, ...args], {` |
 | `packages/cli/scripts/verify01-native-toolchain.mjs` | 7 | `import { execFileSync } from "node:child_process";` |
 | `packages/cli/scripts/verify01-native-toolchain.mjs` | 125 | `execFileSync("git", ["-C", repository, "show", `${commit}:${file}`], {` |
+| `packages/cli/scripts/verify01-openai-transport-preload.mjs` | 58 | `return `const {spawn}=require('node:child_process');const args=process.argv.slice(2);${context}const prefix=args[0]==='agent'?['--import',${JSON.stringify(preload)}]:[];const child=spawn(process.execPath,[...prefix,${JSON.stringify(cliPath)},...args],{stdio:'inherit',env:process.env,windowsHide:true});child.on('error',e=>{console.error(e.message);process.exitCode=1});child.on('exit',code=>{process.exitCode=code??1});`;` |
+| `packages/cli/scripts/verify01-prerelease-package-set.mjs` | 7 | `import { execFile } from "node:child_process";` |
 | `packages/cli/scripts/verify01-public-install-diagnostic.mjs` | 11 | `import { execFileSync } from "node:child_process";` |
 | `packages/cli/scripts/verify01-public-install-diagnostic.mjs` | 305 | `execFileSync("git", ["-C", REPOSITORY, ...args], {` |
 | `packages/cli/scripts/verify01-public-vscode-matrix-diagnostic.mjs` | 39 | `return `const {spawn}=require('node:child_process');const args=process.argv.slice(2);if(args[0]==='agent')args.push(...${JSON.stringify(flags)});const child=spawn(${JSON.stringify(node)},[${JSON.stringify(cli)},...args],{stdio:'inherit',env:process.env});child.on('error',e=>{console.error(e.message);process.exitCode=1});child.on('exit',(code)=>{process.exitCode=code??1});`;` |
+| `packages/cli/scripts/verify01-public138-collect.mjs` | 6 | `import { execFileSync } from "node:child_process";` |
+| `packages/cli/scripts/verify01-public138-collect.mjs` | 28 | `execFileSync("gh", ["api", `repos/${repo}${route}`], {` |
+| `packages/cli/scripts/verify01-public138-collect.mjs` | 106 | `execFileSync("python3", [` |
+| `packages/cli/scripts/verify01-public138-dispatch.mjs` | 6 | `import { execFileSync } from "node:child_process";` |
+| `packages/cli/scripts/verify01-public138-dispatch.mjs` | 85 | `execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();` |
+| `packages/cli/scripts/verify01-public138-dispatch.mjs` | 152 | `const raw = execFileSync("gh", args, {` |
+| `packages/cli/scripts/verify01-public138-package-snapshot.mjs` | 6 | `import { execFileSync } from "node:child_process";` |
+| `packages/cli/scripts/verify01-public138-package-snapshot.mjs` | 25 | `execFileSync(file, args, {` |
+| `packages/cli/scripts/verify01-public139-assisted-check.mjs` | 8 | `import { execFileSync, spawnSync } from "node:child_process";` |
+| `packages/cli/scripts/verify01-public139-assisted-check.mjs` | 33 | `execFileSync("docker", ["image", "inspect", manifest.imageId]),` |
+| `packages/cli/scripts/verify01-public139-assisted-check.mjs` | 47 | `execFileSync(` |
+| `packages/cli/scripts/verify01-public139-assisted-check.mjs` | 61 | `execFileSync("tar", ["-xf", archive, "-C", workspace], { timeout: 120000 });` |
+| `packages/cli/scripts/verify01-public139-assisted-check.mjs` | 78 | `executionSource: execFileSync("git", ["rev-parse", "HEAD"], {` |
+| `packages/cli/scripts/verify01-public139-assisted-check.mjs` | 107 | `const execution = spawnSync(` |
+| `packages/cli/scripts/verify01-public139-collect.mjs` | 6 | `import { execFileSync } from "node:child_process";` |
+| `packages/cli/scripts/verify01-public139-collect.mjs` | 66 | `execFileSync("gh", ["api", `repos/${repo}${route}`], {` |
+| `packages/cli/scripts/verify01-public139-collect.mjs` | 93 | `execFileSync("git", ["show", `${source}:${dispatch.packageSetPath}`]),` |
+| `packages/cli/scripts/verify01-public139-collect.mjs` | 144 | `execFileSync("python3", [` |
+| `packages/cli/scripts/verify01-public139-collect.mjs` | 250 | `collectorSource: execFileSync("git", ["rev-parse", "HEAD"], {` |
+| `packages/cli/scripts/verify01-public139-dispatch.mjs` | 6 | `import { execFileSync } from "node:child_process";` |
+| `packages/cli/scripts/verify01-public139-dispatch.mjs` | 123 | `execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();` |
+| `packages/cli/scripts/verify01-public139-dispatch.mjs` | 185 | `const proof = execFileSync("git", [` |
+| `packages/cli/scripts/verify01-public139-dispatch.mjs` | 221 | `const raw = execFileSync("gh", args, {` |
+| `packages/cli/scripts/verify01-public139-package-snapshot.mjs` | 6 | `import { execFileSync } from "node:child_process";` |
+| `packages/cli/scripts/verify01-public139-package-snapshot.mjs` | 26 | `execFileSync(file, args, {` |
+| `packages/cli/scripts/verify01-public139-r2-package-snapshot.mjs` | 6 | `import { execFileSync } from "node:child_process";` |
+| `packages/cli/scripts/verify01-public139-r2-package-snapshot.mjs` | 25 | `execFileSync(file, args, {` |
+| `packages/cli/scripts/verify01-public140-collect.mjs` | 6 | `import { execFileSync } from "node:child_process";` |
+| `packages/cli/scripts/verify01-public140-collect.mjs` | 21 | `execFileSync("gh", ["auth", "token"], {` |
+| `packages/cli/scripts/verify01-public140-collect.mjs` | 53 | `return execFileSync("gh", ["api", `repos/${repo}${route}`], {` |
+| `packages/cli/scripts/verify01-public140-collect.mjs` | 106 | `execFileSync("git", ["show", `${source}:${dispatch.packageSetPath}`]),` |
+| `packages/cli/scripts/verify01-public140-collect.mjs` | 277 | `collectorSource: execFileSync("git", ["rev-parse", "HEAD"], {` |
+| `packages/cli/scripts/verify01-public140-dispatch.mjs` | 6 | `import { execFileSync } from "node:child_process";` |
+| `packages/cli/scripts/verify01-public140-dispatch.mjs` | 95 | `execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();` |
+| `packages/cli/scripts/verify01-public140-dispatch.mjs` | 181 | `const raw = execFileSync("gh", args, {` |
+| `packages/cli/scripts/verify01-public140-package-snapshot.mjs` | 12 | `import { execFileSync } from "node:child_process";` |
+| `packages/cli/scripts/verify01-public140-package-snapshot.mjs` | 32 | `execFileSync(file, args, {` |
+| `packages/cli/scripts/verify01-public140-package-snapshot.mjs` | 91 | `const zip = execFileSync(` |
+| `packages/cli/scripts/verify01-public140-preflight.mjs` | 5 | `import { execFileSync } from "node:child_process";` |
+| `packages/cli/scripts/verify01-public140-preflight.mjs` | 66 | `execFileSync("gh", ["auth", "token"], {` |
+| `packages/cli/scripts/verify01-public140-preflight.mjs` | 70 | `const official = execFileSync(` |
+| `packages/cli/scripts/verify01-read-harness-audit.mjs` | 6 | `import { execFileSync } from "node:child_process";` |
+| `packages/cli/scripts/verify01-read-harness-audit.mjs` | 21 | `const bytes = execFileSync("git", ["show", `${frozenCommit}:${relative}`], {` |
+| `packages/cli/scripts/verify01-release-candidate-replay.mjs` | 8 | `import { execFile } from "node:child_process";` |
 | `packages/cli/scripts/verify01-review-pack-diagnostic.mjs` | 10 | `import { execFileSync, spawnSync } from "node:child_process";` |
 | `packages/cli/scripts/verify01-review-pack-diagnostic.mjs` | 27 | `execFileSync(name, args, {` |
 | `packages/cli/scripts/verify01-review-pack-diagnostic.mjs` | 469 | `const result = spawnSync(` |
 | `packages/cli/scripts/verify01-review-pack.mjs` | 9 | `import { execFileSync } from "node:child_process";` |
-| `packages/cli/scripts/verify01-review-pack.mjs` | 82 | `execFileSync(` |
+| `packages/cli/scripts/verify01-review-pack.mjs` | 103 | `execFileSync(` |
 | `packages/cli/scripts/verify01-review-pricing-diagnostic.mjs` | 11 | `import { execFileSync } from "node:child_process";` |
 | `packages/cli/scripts/verify01-review-pricing-diagnostic.mjs` | 132 | `execFileSync(name, args, {` |
 | `packages/cli/scripts/verify01-review-runtime.mjs` | 7 | `import { spawnSync } from "node:child_process";` |
+| `packages/cli/scripts/verify01-volcengine-fresh-collect.mjs` | 6 | `import { execFileSync } from "node:child_process";` |
+| `packages/cli/scripts/verify01-volcengine-fresh-collect.mjs` | 48 | `execFileSync("gh", ["api", `repos/${repository}${route}`], {` |
+| `packages/cli/scripts/verify01-volcengine-fresh-collect.mjs` | 70 | `hash(execFileSync("git", ["show", `${values.source}:${packageFile}`])),` |
+| `packages/cli/scripts/verify01-volcengine-fresh-collect.mjs` | 271 | `collectionSource: execFileSync("git", ["rev-parse", "HEAD"], {` |
 | `packages/cli/scripts/verify01-volcengine-task-diagnostic.mjs` | 11 | `import { execFileSync, spawn } from "node:child_process";` |
 | `packages/cli/scripts/verify01-volcengine-task-diagnostic.mjs` | 77 | `execFileSync(name, args, {` |
-| `packages/cli/scripts/verify01-volcengine-task-diagnostic.mjs` | 561 | `const child = spawn(executable, args, {` |
+| `packages/cli/scripts/verify01-volcengine-task-diagnostic.mjs` | 563 | `const child = spawn(executable, args, {` |
 | `packages/cli/scripts/vitest-parent-diagnostic.cjs` | 12 | `const cp = require("node:child_process");` |
 | `packages/cli/scripts/vitest-worker-diagnostic.cjs` | 6 | `const childProcess = require("node:child_process");` |
 | `packages/cli/scripts/windows-acl-progress-probe.mjs` | 8 | `import { spawnSync } from "node:child_process";` |
@@ -768,6 +845,8 @@ Runtime audit: brokered: 219, audited-exemption: 47, non-executable: 49, unrevie
 
 | File | Line | Match |
 | --- | ---: | --- |
+| `desktop-app-vue/scripts/__tests__/install-electron.test.mjs` | 2 | `import { spawnSync } from "node:child_process";` |
+| `desktop-app-vue/scripts/__tests__/install-electron.test.mjs` | 32 | `return spawnSync(process.execPath, [script], {` |
 | `desktop-app-vue/src/main/ai-engine/code-agent/__tests__/app-server-pilot.test.js` | 570 | `FakePilotClient.options.spawn("node", ["cli.js"], {` |
 | `desktop-app-vue/src/main/ai-engine/code-agent/__tests__/coding-agent-bridge.test.js` | 75 | `_deps.spawn = vi.fn(() => mockProcess);` |
 | `desktop-app-vue/src/main/ai-engine/code-agent/__tests__/coding-agent-bridge.test.js` | 99 | `expect(_deps.spawn).toHaveBeenCalledTimes(1);` |
