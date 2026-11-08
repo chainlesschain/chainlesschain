@@ -329,3 +329,62 @@ it("does not attribute a nested call that disabled diagnostics to its parent's r
   expect(events[0].attempt).toBe(1);
   expect(events[0].bodyDigest).toBe(sha("parent"));
 });
+
+it("bounds source details and keeps original identifiers and content out of the report", async () => {
+  const events = [];
+  const selected = Array.from({ length: 600 }, () => ({
+    kind: "message",
+    digest: "sha256:" + "a".repeat(64),
+    itemId: "private/source",
+  }));
+  await withModelInputDiagnostics(
+    { onModelInputDiagnostic: (e) => events.push(e) },
+    () =>
+      recordLogicalModelInput({
+        messages: [{ role: "user", content: "private-content" }],
+        tools: [],
+        plan: {
+          digest: "sha256:" + "b".repeat(64),
+          selected,
+          selectedItemIds: [],
+          dropped: [],
+        },
+      }),
+  );
+  expect(events[0].planning).toMatchObject({
+    sourceDetailsCovered: true,
+    sourceCount: 600,
+    sourcesTruncated: true,
+  });
+  expect(events[0].planning.sources).toHaveLength(512);
+  expect(events[0].projection.redactionCount).toBeNull();
+  expect(JSON.stringify(events)).not.toMatch(/private|itemId/);
+});
+
+it("retains an excluded source when selected entries exceed the detail limit", async () => {
+  const events = [];
+  await withModelInputDiagnostics(
+    { onModelInputDiagnostic: (e) => events.push(e) },
+    () =>
+      recordLogicalModelInput({
+        messages: [{ role: "user", content: "hello" }],
+        tools: [],
+        plan: {
+          selected: Array.from({ length: 512 }, () => ({
+            kind: "message",
+            digest: "a".repeat(64),
+          })),
+          selectedItemIds: [],
+          dropped: [{ digest: "b".repeat(64), reason: "input_budget" }],
+        },
+      }),
+  );
+  expect(events[0].planning.sources[0]).toMatchObject({
+    disposition: "excluded",
+    digest: "b".repeat(64),
+    reason: "input_budget",
+  });
+  expect(events[0].planning.sources).toHaveLength(512);
+  expect(events[0].planning.sourceCount).toBe(513);
+  expect(events[0].planning.sourcesTruncated).toBe(true);
+});

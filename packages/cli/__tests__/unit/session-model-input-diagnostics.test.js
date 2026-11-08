@@ -213,3 +213,56 @@ it("rejects accessor, proxy and coercible identities before persisting any callb
   );
   expect(append).not.toHaveBeenCalled();
 });
+
+it("persists source exclusions and projection counters while old records stay readable", async () => {
+  const { withModelInputDiagnostics, recordLogicalModelInput } =
+    await import("../../src/lib/model-input-diagnostics.js");
+  const id = "source-attribution-session";
+  startSession(id, { provider: "test", model: "test" });
+  await withModelInputDiagnostics(
+    {
+      onModelInputDiagnostic: createPersistedModelInputObserver({
+        append: (type, data) => appendEvent(id, type, data),
+      }),
+    },
+    () =>
+      recordLogicalModelInput({
+        messages: [{ role: "user", content: "private-source" }],
+        tools: [],
+        plan: {
+          digest: "a".repeat(64),
+          selected: [],
+          selectedItemIds: [],
+          dropped: [
+            {
+              digest: "b".repeat(64),
+              itemId: "private/path",
+              reason: "scope_denied",
+            },
+          ],
+        },
+        receipt: {
+          manifestDigest: "c".repeat(64),
+          projectionDigest: "d".repeat(64),
+          rulesetDigest: "e".repeat(64),
+          redactionCount: 2,
+          injectionCount: 1,
+        },
+      }),
+  );
+  const summary = readSessionModelInputDiagnostics(id).records[0].diagnostic;
+  expect(summary.planning.sources).toEqual([
+    {
+      ordinal: 0,
+      digest: "b".repeat(64),
+      kind: "unknown",
+      disposition: "excluded",
+      reason: "scope_denied",
+    },
+  ]);
+  expect(summary.projection).toMatchObject({
+    redactionCount: 2,
+    injectionCount: 1,
+  });
+  expect(JSON.stringify(summary)).not.toMatch(/private|itemId/);
+});

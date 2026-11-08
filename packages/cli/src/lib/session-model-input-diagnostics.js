@@ -135,13 +135,68 @@ export function projectStoredModelInputDiagnostic(event) {
           .filter((key) => Object.hasOwn(planning.dropped || {}, key))
           .map((key) => [key, count(planning.dropped[key])]),
       ),
+      ...(planning.sources === undefined ? {} : projectSources(planning)),
     },
     projection: {
       covered: projection.covered,
       manifestDigest: digest(projection.manifestDigest),
       projectionDigest: digest(projection.projectionDigest),
       rulesetDigest: digest(projection.rulesetDigest),
+      ...(projection.redactionCount === undefined
+        ? {}
+        : { redactionCount: count(projection.redactionCount, true) }),
+      ...(projection.injectionCount === undefined
+        ? {}
+        : { injectionCount: count(projection.injectionCount, true) }),
     },
+  };
+}
+
+function projectSources(planning) {
+  requireValue(typeof planning.sourceDetailsCovered === "boolean");
+  requireValue(
+    Array.isArray(planning.sources) && planning.sources.length <= 512,
+  );
+  const total = count(planning.sourceCount);
+  requireValue(
+    total >= planning.sources.length &&
+      planning.sourcesTruncated === total > planning.sources.length,
+  );
+  const kinds = new Set([
+    "system-policy",
+    "tool-schema",
+    "skill",
+    "task-state",
+    "message",
+    "tool-evidence",
+    "memory",
+    "project-rule",
+    "artifact-ref",
+    "unknown",
+  ]);
+  const sources = planning.sources.map((source, index) => {
+    requireValue(source.ordinal === index && kinds.has(source.kind));
+    requireValue(
+      source.disposition === "selected" || source.disposition === "excluded",
+    );
+    requireValue(
+      source.disposition === "selected"
+        ? source.reason === null
+        : reasons.includes(source.reason),
+    );
+    return {
+      ordinal: index,
+      digest: digest(source.digest),
+      kind: source.kind,
+      disposition: source.disposition,
+      reason: source.reason,
+    };
+  });
+  return {
+    sourceDetailsCovered: planning.sourceDetailsCovered,
+    sourceCount: total,
+    sourcesTruncated: planning.sourcesTruncated,
+    sources,
   };
 }
 

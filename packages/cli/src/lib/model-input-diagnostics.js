@@ -4,6 +4,8 @@ import { createHash, randomUUID } from "node:crypto";
 const storage = new AsyncLocalStorage();
 export const MODEL_INPUT_PLAN = Symbol("modelInputPlan");
 export const MODEL_INPUT_USAGE_CALL = Symbol("modelInputUsageCall");
+const safeCount = (value) =>
+  Number.isSafeInteger(value) && value >= 0 ? value : null;
 const hash = (text) => createHash("sha256").update(text).digest("hex");
 const digest = (value) =>
   typeof value === "string" && /^(?:sha256:)?[a-f0-9]{64}$/u.test(value)
@@ -18,6 +20,51 @@ const reasons = new Set([
   "partition_ceiling",
 ]);
 const roles = new Set(["system", "developer", "user", "assistant", "tool"]);
+const sourceKinds = new Set([
+  "system-policy",
+  "tool-schema",
+  "skill",
+  "task-state",
+  "message",
+  "tool-evidence",
+  "memory",
+  "project-rule",
+  "artifact-ref",
+]);
+function sourceDiagnostics(plan) {
+  const selected = Array.isArray(plan?.selected) ? plan.selected : [];
+  const excluded = Array.isArray(plan?.dropped) ? plan.dropped : [];
+  const sourceCount = selected.length + excluded.length;
+  const sources = [];
+  const add = (item, disposition) => {
+    const kind = item?.kind;
+    const reason = item?.reason;
+    sources.push(
+      Object.freeze({
+        ordinal: sources.length,
+        digest: digest(item?.digest),
+        kind: sourceKinds.has(kind) ? kind : "unknown",
+        disposition,
+        reason:
+          disposition === "selected"
+            ? null
+            : reasons.has(reason)
+              ? reason
+              : "unknown",
+      }),
+    );
+  };
+  for (const item of excluded.slice(0, 512)) add(item, "excluded");
+  for (const item of selected.slice(0, 512 - sources.length))
+    add(item, "selected");
+  return {
+    sourceDetailsCovered:
+      !!plan && Array.isArray(plan.selected) && Array.isArray(plan.dropped),
+    sourceCount,
+    sourcesTruncated: sourceCount > sources.length,
+    sources: Object.freeze(sources),
+  };
+}
 
 async function emit(fields) {
   const state = storage.getStore();
@@ -85,12 +132,15 @@ export async function recordLogicalModelInput({
       digest: digest(plan?.digest),
       selectedCount: plan?.selectedItemIds?.length ?? null,
       dropped: Object.freeze(dropped),
+      ...sourceDiagnostics(plan),
     }),
     projection: Object.freeze({
       covered: !!receipt,
       manifestDigest: digest(receipt?.manifestDigest),
       projectionDigest: digest(receipt?.projectionDigest),
       rulesetDigest: digest(receipt?.rulesetDigest),
+      redactionCount: safeCount(receipt?.redactionCount),
+      injectionCount: safeCount(receipt?.injectionCount),
     }),
   });
   return snapshot;

@@ -491,6 +491,10 @@ export function createAgentEvolutionIngress({
             manifestDigest: persisted.manifest.digest,
             projectionDigest: resolved.bundle.modelProjection.projectionDigest,
             rulesetDigest: resolved.bundle.modelProjection.rulesetDigest,
+            redactionCount:
+              resolved.bundle.modelProjection.redactionSummary.total,
+            injectionCount:
+              resolved.bundle.modelProjection.injectionFindings.length,
           }),
         );
         return request;

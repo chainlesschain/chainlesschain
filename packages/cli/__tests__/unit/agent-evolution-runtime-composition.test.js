@@ -1388,10 +1388,24 @@ describe("Agent evolution runtime production composition", () => {
           digest: prepared.plan.digest,
           selectedCount: prepared.plan.selectedItemIds.length,
         });
+        expect(logical.planning.sourceDetailsCovered).toBe(true);
+        expect(logical.planning.sourcesTruncated).toBe(false);
+        expect(
+          logical.planning.sources
+            .filter((source) => source.disposition === "selected")
+            .map((source) => source.digest),
+        ).toEqual(prepared.plan.selected.map((item) => item.digest));
         if (smallBudget) {
           expect(prepared.plan.dropped).toHaveLength(1);
           expect(prepared.plan.dropped[0].reason).toBe("input_budget");
           expect(logical.planning.dropped).toEqual({ input_budget: 1 });
+          expect(
+            logical.planning.sources.filter(
+              (source) => source.disposition === "excluded",
+            ),
+          ).toMatchObject([
+            { digest: prepared.plan.dropped[0].digest, reason: "input_budget" },
+          ]);
           expect(bodies[0]).not.toContain("omitted-source-PRIVATE");
           expect(bodies[0]).toContain("source-PRIVATE");
         } else {
@@ -1402,6 +1416,8 @@ describe("Agent evolution runtime production composition", () => {
           manifestDigest: receipt.manifestDigest,
           projectionDigest: receipt.projectionDigest,
           rulesetDigest: receipt.rulesetDigest,
+          redactionCount: receipt.redactionCount,
+          injectionCount: receipt.injectionCount,
         });
         expect(logical.requestId).toBe(wire.requestId);
         expect(wire.bodyDigest).toBe(
@@ -4007,7 +4023,13 @@ describe("Agent evolution runtime production composition", () => {
       f.composition.evolutionIngress,
     );
     const input = {
-      messages: [{ role: "user", content: "private-source-receipt-canary" }],
+      messages: [
+        {
+          role: "user",
+          content:
+            "private-source-receipt-canary sk-abcdefghijklmnopqrstuvwxyz1234567890",
+        },
+      ],
       tools: [],
     };
     const request = await ingress.prepareModelRequest(input);
@@ -4023,8 +4045,14 @@ describe("Agent evolution runtime production composition", () => {
       manifestDigest: event.payloadDigest,
       projectionDigest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/u),
       rulesetDigest: EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_DIGEST,
+      redactionCount: expect.any(Number),
+      injectionCount: expect.any(Number),
     });
     expect(f.config.authorities.attestationVerifier.verify).toHaveBeenCalled();
+    expect(receipt.redactionCount).toBeGreaterThan(0);
+    expect(JSON.stringify(request)).not.toContain(
+      "sk-abcdefghijklmnopqrstuvwxyz1234567890",
+    );
     expect(Object.isFrozen(receipt)).toBe(true);
     expect(() => {
       receipt.runId = "another-run";
