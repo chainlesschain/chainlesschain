@@ -1,6 +1,6 @@
 # REPL accepted/settled post-wire crash evidence
 
-This archive records the current `main` source at commit `a7a64b2eb238102a98f74513b1f7d8b4606dc32c` after JSONL REPL accepted/settled input wiring.
+This archive records the local `main` source at commit `969392df9c` after JSONL REPL accepted/settled input wiring and pre-append turn-binding validation.
 
 The run uses the real CLI, readline path, Evolution loop, JSONL session store, and a loopback HTTP transport. It hard-kills the original process while a request is held, resumes the same session, and submits a new prompt. No paid provider is used and the test terminal is an emulated `stdin.isTTY`, not an OS PTY.
 
@@ -19,7 +19,7 @@ Run from `packages/cli`:
 npx vitest run --config vitest.e2e.config.js __tests__/e2e/repl-inflight-recovery-e2e.test.js
 ```
 
-The archived receipt and raw logs are covered by `verify-evidence.mjs`:
+The archived receipts and raw logs (53 byte-bound artifacts across the captured runs) are covered by `verify-evidence.mjs`:
 
 ```text
 node docs/cli/evidence/repl-input-durability-post-wire-20261108/verify-evidence.mjs
