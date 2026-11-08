@@ -200,3 +200,5 @@ Claude Code 的 MCP Tasks 当前处于公开测试阶段，可在服务端受理
 当前主分支的 VS Code 模型输入诊断单测进一步复核为 **9/9 通过**，覆盖命令注册、参数注入防护、白名单投影、会话切换和异步文档竞态。JetBrains 同名 Gradle 单测在本机无法连接 Gradle daemon（daemon 监听本机回环端口后客户端连接失败），保留为环境阻断，不把既有 JUnit/直接 SDK 回执扩大为当前主分支 Gradle 通过；双 IDE 真实 canonical 任务旅程仍未完成。
 
 随后使用本机 VS Code 1.96.2 的真实 `Code.exe` 运行原生 Extension Host 模型输入诊断脚本，结果 `status: passed`、退出码 0，验证命令注册、编辑器快照和 CLI 进程夹具；回执明确 `realCanonicalSessionJourney:false`，因此仍不宣称真实 canonical 会话或双 IDE 组合旅程完成。
+
+当前主分支还复跑了真实 CLI REPL 进程的硬杀恢复旅程：`repl-inflight-recovery-e2e.test.js` **2/2 通过**。测试覆盖原请求在 SIGKILL 后保持未知、恢复同一会话并提交一个新的独立请求，未把它扩展为双 IDE、OS PTY、预派发输入持久化或完整费用闭环的通过证明。
