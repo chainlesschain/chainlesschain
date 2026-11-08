@@ -95,6 +95,13 @@ export default defineConfig({
       "@main": resolve(__dirname, "src/main"),
       "@shared": resolve(__dirname, "src/shared"),
       "@preload": resolve(__dirname, "src/preload"),
+      // CLI source is imported directly by these Vitest suites. Resolve the
+      // workspace package's built lib tree explicitly so tests remain stable
+      // when npm ci omits a workspace link in a clean PR runner.
+      "@chainlesschain/session-core": resolve(
+        __dirname,
+        "../packages/session-core/lib",
+      ),
       electron: resolve(__dirname, "tests/__mocks__/electron.ts"),
       usb: resolve(__dirname, "tests/__mocks__/usb.ts"),
     },

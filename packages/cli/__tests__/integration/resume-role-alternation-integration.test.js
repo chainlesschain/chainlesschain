@@ -27,6 +27,7 @@ const TEST_EVOLUTION_INGRESS = vi.hoisted(() =>
 );
 
 vi.mock("../../src/lib/evolution/agent-evolution-ingress.js", () => ({
+  getAgentModelRequestReceipt: () => null,
   captureAgentEvolutionIngress: (value) => {
     if (value !== TEST_EVOLUTION_INGRESS) {
       throw new TypeError("a branded Agent evolution ingress is required");

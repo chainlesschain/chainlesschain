@@ -30,7 +30,26 @@ jobs:
             desktop-app-vue/package-lock.json
 
       - name: Install dependencies
-        run: npm ci --legacy-peer-deps
+        # The Ubuntu runner currently cannot build the optional
+        # @ipshipyard/node-datachannel prebuild under Node 22. The quick
+        # suites do not exercise that native transport, so keep installation
+        # deterministic while skipping package install hooks.
+        run: npm ci --legacy-peer-deps --ignore-scripts
+
+      - name: Verify CLI workspace dependency links
+        run: |
+          # The desktop Vitest suites import CLI source directly. Reconcile the
+          # CLI workspace after npm ci so local workspace packages are visible
+          # from packages/cli even when npm omitted a workspace link.
+          node -e "console.log(require.resolve('@chainlesschain/session-core', { paths: ['packages/cli'] }))"
+
+      - name: Build CLI SQLite native drivers
+        # The full install skips third-party hooks to avoid the unrelated
+        # node-datachannel prebuild failure. CLI tests exercise real SQLite,
+        # so rebuild only the native drivers the CLI suite requires.
+        run: |
+          npm rebuild better-sqlite3 better-sqlite3-multiple-ciphers node-pty --no-audit --no-fund
+          node -e "for (const name of ['better-sqlite3', 'better-sqlite3-multiple-ciphers', 'node-pty']) { require(name); console.log(name + ' native driver loaded') }"
 
       - name: Run CLI tests
         id: cli
@@ -46,6 +65,7 @@ jobs:
       - name: Run Vitest tests (no coverage)
         id: vitest
         if: ${{ !cancelled() }}
+        working-directory: desktop-app-vue
         run: npx vitest run tests/unit/ai/ai-engine-workflow.test.js tests/unit/ai/ai-skill-scheduler.test.js
 
       - name: Comment PR
@@ -92,7 +112,7 @@ jobs:
             desktop-app-vue/package-lock.json
 
       - name: Install dependencies
-        run: npm ci --legacy-peer-deps
+        run: npm ci --legacy-peer-deps --ignore-scripts
 
       - name: Run ESLint
         run: npm run lint
