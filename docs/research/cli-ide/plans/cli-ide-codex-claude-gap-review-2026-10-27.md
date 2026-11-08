@@ -591,6 +591,8 @@ VS Code 更新连接配置时，`_reloadLlmConfig()` 会停止各聊天中的存
 
 **真实 provider Recall@5 小批次（2026-11-08）。** 在同一 200 工具规模下对 5 个固定目标各执行“搜索→目标调用”两轮真实请求，5/5 目标调用命中，受限样本 Recall@5 为 **1.0**，共 10 次请求。该批次仍未执行外部 MCP、未测误调用率或 A/B，也没有账单回执；它只补强 provider 检索命中证据，不改变 4.7 的完整验收边界。见[真实 Recall@5 回执](../../cli/evidence/mcp-context-real-volcengine-recall5-20261108/README.md)。
 
+**真实 provider 延迟目录 A/B 小批次（2026-11-08）。** 对 3 个固定目标分别运行按需搜索路径和完整 200 工具目录路径；两组均为 3/3 目标调用命中、错误工具调用为 0。完整目录首个请求出现 13,271 input tokens，后续请求命中 provider cache，说明该小样本受缓存状态影响，不能直接外推稳定费用节省。未执行外部 MCP，`billingVerified:false`；回执只用于补齐真实 usage / 命中对照，不代表完整质量或生产成本 A/B。见[真实 MCP A/B 回执](../../cli/evidence/mcp-context-real-volcengine-ab3-20261108/README.md)。
+
 ### 4.8 Memory 性能：已有索引，继续减少无关读取与同步工作
 
 **事实。** Memory 默认仍走 `validate-disk`；读取索引会读取字节并校验摘要，分页路径遍历分片，并在锁内执行部分操作。已有 `verified-memory` 显式缓存模式，不应再次立项“增加缓存”。

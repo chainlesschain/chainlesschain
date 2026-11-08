@@ -1,0 +1,132 @@
+{
+  "schema": "chainlesschain.real-volcengine-mcp-ab3/v1",
+  "sourceCommit": "c2f8647f0ebab31462a29293ba4607ca7ca7f890",
+  "provider": "volcengine",
+  "model": "deepseek-v4-1-flash-economy-261017",
+  "scale": 200,
+  "credentialPath": "H:\\code\\api\\deepseek.txt",
+  "credentialExposed": false,
+  "responseContentExposed": false,
+  "billingVerified": false,
+  "queryCount": 3,
+  "sourceBindings": [
+    {
+      "path": "packages/cli/src/runtime/agent-core.js",
+      "sha256": "70f87daf74b35da4e7daba7c5ba582bf63d8942fb00a0986fe77cd23b2759192"
+    },
+    {
+      "path": "packages/cli/src/runtime/mcp-tool-search.js",
+      "sha256": "de63c138868a8d52fd3ef0e791e065166250240fb9df2c54611c002e22b50eca"
+    }
+  ],
+  "rows": [
+    {
+      "target": 7,
+      "targetTool": "mcp__fixture__operation_7",
+      "deferred": {
+        "requests": 2,
+        "searchCallObserved": true,
+        "searchResultCount": 1,
+        "targetCallObserved": true,
+        "wrongToolCalls": [],
+        "firstUsage": {
+          "input_tokens": 77,
+          "output_tokens": 54,
+          "cache_read_input_tokens": 11392,
+          "service_tier": "default"
+        },
+        "secondUsage": {
+          "input_tokens": 513,
+          "output_tokens": 50,
+          "cache_read_input_tokens": 0,
+          "service_tier": "default"
+        },
+        "responseDigest": "ebeb700665753bd351a450e83f4f5b38086d63bfeb921d1145cf91d596bf279c"
+      },
+      "full": {
+        "requests": 1,
+        "targetCallObserved": true,
+        "wrongToolCalls": [],
+        "usage": {
+          "input_tokens": 13271,
+          "output_tokens": 73,
+          "cache_read_input_tokens": 0,
+          "service_tier": "default"
+        },
+        "responseDigest": "dab387c2390a26edc93a5e8e984eebdd465e8972e8be19388a4819417d01fa9a"
+      }
+    },
+    {
+      "target": 42,
+      "targetTool": "mcp__fixture__operation_42",
+      "deferred": {
+        "requests": 2,
+        "searchCallObserved": true,
+        "searchResultCount": 1,
+        "targetCallObserved": true,
+        "wrongToolCalls": [],
+        "firstUsage": {
+          "input_tokens": 77,
+          "output_tokens": 54,
+          "cache_read_input_tokens": 11392,
+          "service_tier": "default"
+        },
+        "secondUsage": {
+          "input_tokens": 513,
+          "output_tokens": 175,
+          "cache_read_input_tokens": 0,
+          "service_tier": "default"
+        },
+        "responseDigest": "0cf58171e5a35a39a9d4d3dcd9c0c9aabb006de434a8a330c0fb1327d128a26c"
+      },
+      "full": {
+        "requests": 1,
+        "targetCallObserved": true,
+        "wrongToolCalls": [],
+        "usage": {
+          "input_tokens": 87,
+          "output_tokens": 56,
+          "cache_read_input_tokens": 13184,
+          "service_tier": "default"
+        },
+        "responseDigest": "62a221c83c71a5835cb3d0d1c239a6a16ddb730aed3601ebce0512149db59b1b"
+      }
+    },
+    {
+      "target": 188,
+      "targetTool": "mcp__fixture__operation_188",
+      "deferred": {
+        "requests": 2,
+        "searchCallObserved": true,
+        "searchResultCount": 1,
+        "targetCallObserved": true,
+        "wrongToolCalls": [],
+        "firstUsage": {
+          "input_tokens": 77,
+          "output_tokens": 104,
+          "cache_read_input_tokens": 11392,
+          "service_tier": "default"
+        },
+        "secondUsage": {
+          "input_tokens": 122,
+          "output_tokens": 50,
+          "cache_read_input_tokens": 384,
+          "service_tier": "default"
+        },
+        "responseDigest": "2621fa5dfa3d1dd7583c475aaf3966dc5b99be2dfe082b72b964b41180703118"
+      },
+      "full": {
+        "requests": 1,
+        "targetCallObserved": true,
+        "wrongToolCalls": [],
+        "usage": {
+          "input_tokens": 87,
+          "output_tokens": 69,
+          "cache_read_input_tokens": 13184,
+          "service_tier": "default"
+        },
+        "responseDigest": "369075d96b371e8108b609c483fe3b52416b858f16759a4db70b44d9160ec842"
+      }
+    }
+  ]
+}

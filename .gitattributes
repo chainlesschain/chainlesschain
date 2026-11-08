@@ -271,3 +271,5 @@ docs/research/cli/evidence/real-volcengine-live-20261108/agent-read-file/receipt
 docs/cli/evidence/mcp-context-real-volcengine-20261108/receipt.json -text !eol -whitespace
 # Preserve the bounded real MCP Recall@5 receipt byte-for-byte.
 docs/cli/evidence/mcp-context-real-volcengine-recall5-20261108/receipt.json -text !eol -whitespace
+# Preserve the bounded real MCP deferred/full A/B receipt byte-for-byte.
+docs/cli/evidence/mcp-context-real-volcengine-ab3-20261108/receipt.json -text !eol -whitespace
