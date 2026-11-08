@@ -315,3 +315,8 @@ The real VS Code Extension Host runner launched an isolated VS Code profile, ins
 ### 2026-11-09 Requirement-by-requirement completion audit
 
 The current Item 2?9 status is also recorded in the machine-readable [`cli-ide-gap-completion-audit-20261109`](../../cli/evidence/cli-ide-gap-completion-audit-20261109/README.md) manifest. Every row remains explicitly `partial`, with committed evidence paths and scope-matching remaining gates. The manifest is an audit aid, not a completion claim; the plan stays open until the external provider, native cross-platform, and live IDE/desktop gates are closed.
+
+
+### 2026-11-09 Three-system desktop E2E CI readback
+
+Read-only GitHub verification of workflow run `42509137812` found successful Windows, Ubuntu, and macOS Electron/Playwright E2E jobs for PR commit `5d62ee9533e3f2f903d55930ca3c0f72a682c642`. Each built the desktop main/renderer and completed the E2E smoke step. This is cross-platform desktop smoke evidence for an older commit; it does not close current-HEAD, full IDE task/recovery, Codex native CI, or paid-provider gates. Evidence: `../cli/evidence/desktop-e2e-ci-42509137812-20261109/`.
