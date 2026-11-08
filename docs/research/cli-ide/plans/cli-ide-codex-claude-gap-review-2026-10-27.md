@@ -587,6 +587,8 @@ VS Code 更新连接配置时，`_reloadLlmConfig()` 会停止各聊天中的存
 
 **合成规模补测（2026-11-08）。** 当前 benchmark 已在真实 loader / MCP deferral 代码上完成 200、1000、5000 个 MCP tool definition 的精确 schema 选择、懒加载 body、目录 token 和确定性合成 Recall@5 测量；三档均通过独立 verifier。5000 档的 skill fixture 按生产文件预算固定为 1000 个，报告不测 provider usage、真实误调用率、真实任务 A/B 或账单。原始报告与边界见[MCP context benchmark](../../cli/evidence/mcp-context-benchmark-20261108/README.md)；这些结果补齐合成规模证据，不替代真实 provider 费用和质量验收。
 
+**真实 provider 检索烟测（2026-11-08）。** 在 200 个工具定义的真实火山请求中，第一轮通过 `tool_search` 精确检索 `mcp__fixture__operation_7`，宿主返回 1 个匹配 schema；第二轮模型发出该工具调用，2 次请求的 usage 均被记录。该回执没有执行外部 MCP 服务，`billingVerified:false`，因此只证明真实 provider 的发现和调用选择，不证明真实 Recall@5、误调用率、A/B、费用收益或完整 MCP 任务验收。见[真实 MCP provider 回执](../../cli/evidence/mcp-context-real-volcengine-20261108/README.md)。
+
 ### 4.8 Memory 性能：已有索引，继续减少无关读取与同步工作
 
 **事实。** Memory 默认仍走 `validate-disk`；读取索引会读取字节并校验摘要，分页路径遍历分片，并在锁内执行部分操作。已有 `verified-memory` 显式缓存模式，不应再次立项“增加缓存”。

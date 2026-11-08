@@ -267,3 +267,5 @@ docs/cli/evidence/repl-inflight-recovery-20261108/raw/** -text
 docs/cli/evidence/repl-input-durability-post-wire-20261108/raw/** -text !eol -whitespace
 # Preserve the real provider receipt byte-for-byte; it contains only digests and usage.
 docs/research/cli/evidence/real-volcengine-live-20261108/agent-read-file/receipt.json -text !eol -whitespace
+# Preserve the bounded real MCP provider receipt byte-for-byte.
+docs/cli/evidence/mcp-context-real-volcengine-20261108/receipt.json -text !eol -whitespace
