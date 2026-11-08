@@ -1,0 +1,17 @@
+{
+    "failed":  0,
+    "realProviderVerified":  false,
+    "realIdeJourneyVerified":  false,
+    "capturedAt":  "2026-11-09",
+    "passed":  2,
+    "command":  "npx vitest run __tests__/unit/model-input-diagnostics.test.js -t \"binds canonical planning|blocks governed dispatch\"",
+    "sourceCommit":  "73c564ed5",
+    "schema":  "chainlesschain.model-input-composition-evidence/v1",
+    "skipped":  18,
+    "fullFileEnvironmentBoundary":  {
+                                        "failure":  "EACCES 127.0.0.1",
+                                        "codeCoverageClaimed":  false,
+                                        "existingLoopbackTests":  2
+                                    },
+    "testFile":  "packages/cli/__tests__/unit/model-input-diagnostics.test.js"
+}
