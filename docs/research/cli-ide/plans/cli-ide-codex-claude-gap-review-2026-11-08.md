@@ -259,7 +259,7 @@ This table is the authoritative status snapshot for this plan. A row is marked c
 | Item 6: Codex compatibility | Current HEAD `.167.0` Windows native turn and database recovery passed; strict cold scan fails first 1/2 identity; static suite 137/137 | Partial current-HEAD Windows native evidence | Three-system CI, Linux/macOS native cancellation/recovery, and model-change closure |
 | Item 7: IDE/desktop journey | JetBrains scripted 85/85 plus historical CI real hosts passed on Linux/Windows/macOS; current VS Code host activated but bridge timed out, current IntelliJ is Gradle-blocked | Partial; historical host journeys pass, current-HEAD task acceptance remains open | Current-HEAD IDE/desktop matrix, VS Code bridge, full task/recovery, clean install/upgrade, accessibility |
 | Item 8: Memory quality/SLO | Semantic quality 6/6, current local responsiveness benchmark at 1K/10K/100K for both cache modes, 18/18 Stop acknowledgements, and current-source-verified real BGE smoke across CLI search, scoped recall, and provider planning | Partial, production source wiring verified on the current source hashes; quality/SLO scope remains incomplete | Cold/hot/mixed cross-platform SLO, multilingual and real-user tasks |
-| Item 9: shared logic/guidance | Shared projections and usage attribution unit/transcript 19/19 | Partial, local integration verified | Production behavior consistency and independent cross-entry failure localization |
+| Item 9: shared logic/guidance | Shared projections and usage attribution unit/transcript 19/19 plus current-HEAD CLI projection 52/52 and VS Code projection 10/10 | Partial, CLI/VS Code bounded projection consistency verified | JetBrains live runtime and independent IDE/desktop failure localization |
 
 The plan therefore remains open. The unresolved rows require an external provider invoice, a missing official native artifact or CI matrix, or live IDE/desktop hosts; no local fixture result is promoted to close those gates.
 
@@ -374,3 +374,8 @@ Current `main` commit `eb3579908173f2f8f5da8075048c3c12b72282c0` passed the inde
 ### 2026-11-09 Current HEAD concurrent-input recovery
 
 The real CLI/readline/Evolution/JSONL and loopback REPL recovery suite passed **2/2** on current `main` commit `fb1cfe3a4352867ea99a9918d6a8271b729e98cf`. The journey killed an unsettled request, supplied new input immediately while restart/recovery overlapped, admitted exactly one new request, replayed the old request zero times, preserved unknown settlement, and emitted a visible recovery notice. The sanitized receipt is archived in [`repl-inflight-recovery-current-20261109`](../../cli/evidence/repl-inflight-recovery-current-20261109/). The test uses emulated stdin and a loopback fixture; dual-IDE and complete cross-entry recovery remain open.
+
+
+### 2026-11-09 Current HEAD CLI/VS Code projection checks
+
+The current `main` commit `99c8a598a0c6553f1273e365d90b557943c7a82f` passed the four CLI model-input/source-mapping suites **52/52** and the VS Code model-input diagnostics suite **10/10**. These checks cover bounded allowlisted projections, source mappings, session ownership, stale-result rejection, and command argument safety. The receipt is archived in [`cross-entry-projection-current-20261109`](../../cli/evidence/cross-entry-projection-current-20261109/). This narrows Item 9's remaining scope, but JetBrains live runtime and independent IDE/desktop failure localization remain unverified.
