@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "pureImportsBlocked": [
+    "jsonl-session-store.js",
+    "mcp-call-ledger-store.js",
+    "/mcp-task-journal.js"
+  ],
+  "classIdentityPreserved": true,
+  "exports": {
+    "callReducer": "function",
+    "taskReducer": "function",
+    "generationNormalizer": "function"
+  }
+}

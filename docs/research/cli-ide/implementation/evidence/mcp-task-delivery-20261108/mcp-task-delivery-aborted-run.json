@@ -1,0 +1,7 @@
+{
+  "status": "aborted",
+  "runnerPid": 14996,
+  "reason": "Confirmed non-reentrant lease lock: delivery callback re-entered assertSessionHostWriteAuthority while canonical writer held the same lease lock",
+  "scope": "initial 4-file combination run; not a passing result",
+  "fix": "retain lease check before transaction; rely on canonical transaction's existing lease lock inside callback"
+}

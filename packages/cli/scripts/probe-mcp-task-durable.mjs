@@ -16,6 +16,15 @@ const children = new Set();
 const tasks = new Map();
 const counts = {};
 const checkpoints = [];
+const scope = Object.freeze({
+  osSecretStore: "windows-dpapi",
+  transport: "loopback-http",
+  deliveryCrashRecovery: true,
+  canonicalHostResume: true,
+  workerConnectsForEveryAction: true,
+  offlineProductCliVerified: false,
+  modelContinuationVerified: false,
+});
 let next = 0;
 const server = createServer(async (req, res) => {
   if (req.method === "GET") {
@@ -215,6 +224,63 @@ try {
   assert.equal(repaired.ok, true);
   assert.equal(repaired.result.cached, true);
   assert.equal(repaired.result.callStatus, "completed");
+
+  // Deliver the first task, then terminate the owner after its durable receipt.
+  // Every worker still initializes the loopback MCP connection: this probe does
+  // not claim to exercise the product CLI's separate offline delivery path.
+  const deliveryOwner = launch({
+    sessionId,
+    action: "deliver",
+    localId,
+    hold: true,
+  });
+  const deliveryReceipt = await deliveryOwner.first;
+  assert.equal(deliveryReceipt.ok, true);
+  assert.equal(deliveryReceipt.backend, "dpapi");
+  assert.equal(deliveryReceipt.result.delivered, true);
+  assert.equal(deliveryReceipt.result.duplicate, false);
+  assert.match(deliveryReceipt.result.eventHash, /^[a-f0-9]{64}$/u);
+  assert.match(deliveryReceipt.result.messageDigest, /^sha256:[a-f0-9]{64}$/u);
+  deliveryOwner.child.kill("SIGKILL");
+  const deliveryExit = await deliveryOwner.exited;
+  assert.equal(deliveryExit.signal, "SIGKILL");
+  checkpoints.push({
+    action: "kill-after-delivered",
+    receipt: deliveryReceipt,
+    exit: deliveryExit,
+  });
+  const duplicateDelivery = await run({
+    sessionId,
+    action: "deliver",
+    localId,
+  });
+  assert.equal(duplicateDelivery.ok, true);
+  assert.equal(duplicateDelivery.result.delivered, true);
+  assert.equal(duplicateDelivery.result.duplicate, true);
+  assert.equal(
+    duplicateDelivery.result.deliveryId,
+    deliveryReceipt.result.deliveryId,
+  );
+  assert.equal(
+    duplicateDelivery.result.eventHash,
+    deliveryReceipt.result.eventHash,
+  );
+  assert.equal(
+    duplicateDelivery.result.messageDigest,
+    deliveryReceipt.result.messageDigest,
+  );
+
+  const replay = await run({ sessionId, action: "verify-delivery", localId });
+  assert.equal(replay.ok, true);
+  assert.equal(replay.result.eventHash, deliveryReceipt.result.eventHash);
+  assert.equal(
+    replay.result.messageDigest,
+    deliveryReceipt.result.messageDigest,
+  );
+  assert.equal(replay.result.canonicalMessages, 1);
+  assert.equal(replay.result.assistantReferences, 1);
+  assert.equal(replay.result.userMessages, 0);
+  assert.equal(replay.result.toolMessages, 0);
   assert.equal(counts["tools/call"], 2);
   assert.equal(counts["tasks/result"], 2);
   report = {
@@ -223,6 +289,7 @@ try {
     platform: process.platform,
     node: process.version,
     folder,
+    scope,
     counts,
     checkpoints,
   };
@@ -233,6 +300,7 @@ try {
     platform: process.platform,
     node: process.version,
     folder,
+    scope,
     counts,
     checkpoints,
     error: { name: error.name, message: error.message },

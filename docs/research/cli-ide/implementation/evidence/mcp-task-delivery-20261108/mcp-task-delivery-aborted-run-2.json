@@ -1,0 +1,7 @@
+{
+  "status": "aborted",
+  "runnerPid": 33068,
+  "reason": "The first text replacement did not match formatted indentation, leaving the confirmed nested lease lock in place",
+  "resolution": "Removed the exact nested call with a count assertion; the subsequent delivery test completed successfully",
+  "scope": "No passing result is claimed for this stopped process"
+}

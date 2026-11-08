@@ -1,3 +1,7 @@
+import {
+  MCP_TASK_DELIVERY_EVENT,
+  projectMcpTaskDeliveryMessage,
+} from "./mcp-task-delivery-contract.js";
 import { canonicalDigest } from "@chainlesschain/context-memory-kernel";
 import {
   readVerifiedProjection,
@@ -30,6 +34,8 @@ const MAX_HISTORY_RANGES = 16384;
 // Enumerate all possible display sources, including replacement snapshots.
 // Their physical sequence never changes when the selected history rewinds.
 function eventMessages(event, imported = null) {
+  if (event.type === MCP_TASK_DELIVERY_EVENT)
+    return [projectMcpTaskDeliveryMessage(event)];
   if (event.type === "tool_round") return projectToolRoundMessages(event);
   if (event.type === BRANCH_HISTORY_MESSAGE)
     return imported?.kind === "archive" ? [imported.message] : [];

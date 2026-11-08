@@ -1,0 +1,225 @@
+{
+  "schema": "chainlesschain.mcp-task-delivery-evidence/v1",
+  "date": "2026-11-08",
+  "branch": "feature/mcp-task-delivery-20261108",
+  "baseCommit": "2ef1d48a23afa0454b86c12db5594e2fbea325c5",
+  "environment": {
+    "platform": "Windows",
+    "node": "24.12.0",
+    "vitest": "4.1.10",
+    "finalRegressionPathPrefix": "C:/Program Files/Git/bin",
+    "modelEndpoints": "synthetic loopback HTTP",
+    "nativeVault": "isolated Windows DPAPI"
+  },
+  "files": [
+    {
+      "file": "mcp-task-delivery-contract-tests.json",
+      "bytes": 7047,
+      "sha256": "2571d7f7d0627284b698e0d42b6effd1db944f1539759f82d19dfab89dfff166",
+      "tests": 16,
+      "passed": 15,
+      "failed": 1,
+      "skippedOrUnselected": 0
+    },
+    {
+      "file": "mcp-task-delivery-aborted-run.json",
+      "bytes": 394,
+      "sha256": "0e5d3d12ecf9940f979592d6e4b1938b9e92df4186c5a14d531e261164a19e63",
+      "status": "aborted"
+    },
+    {
+      "file": "mcp-task-delivery-aborted-run-2.json",
+      "bytes": 369,
+      "sha256": "650bdf9ed937225ceb99456fb53f0d4fcc7234caac7d7549424508f9ea16dcf5",
+      "status": "aborted"
+    },
+    {
+      "file": "mcp-task-delivery-combination-tests.json",
+      "bytes": 41210,
+      "sha256": "8945317513365fe3d5f5948e57de1a4f4af025d9b1d414053b85a14aabe13cde",
+      "tests": 114,
+      "passed": 113,
+      "failed": 1,
+      "skippedOrUnselected": 0
+    },
+    {
+      "file": "mcp-task-delivery-wire-tests.json",
+      "bytes": 98362,
+      "sha256": "39d34dd976f4d8e36850b37d34908f127491086a3ce143e00a9962d4224c57a3",
+      "tests": 284,
+      "passed": 2,
+      "failed": 2,
+      "skippedOrUnselected": 280
+    },
+    {
+      "file": "mcp-task-delivery-final-regression-tests.json",
+      "bytes": 228155,
+      "sha256": "e99a77d03c6f5927e68a0523123082a557394fca325be4b38848e1c0945c03f1",
+      "tests": 666,
+      "passed": 660,
+      "failed": 2,
+      "skippedOrUnselected": 4
+    },
+    {
+      "file": "mcp-task-delivery-final-git-bash-regression-tests.json",
+      "bytes": 225926,
+      "sha256": "7dda2608a41ef933e908b7684d7507c0cb16bacf302cd7185668f2d35a4f6f5b",
+      "tests": 666,
+      "passed": 662,
+      "failed": 0,
+      "skippedOrUnselected": 4
+    },
+    {
+      "file": "mcp-task-delivery-final-source-wire-tests.json",
+      "bytes": 97465,
+      "sha256": "b0d08c930720b74c40dee42c61a8e8b4b2b3d6c0b170c09d9c97dc1c5a58ecaa",
+      "tests": 284,
+      "passed": 4,
+      "failed": 0,
+      "skippedOrUnselected": 280
+    },
+    {
+      "file": "mcp-task-delivery-pure-import.json",
+      "bytes": 296,
+      "sha256": "efb3f771cd0978f708cc15e9dab611ba51ca2f888500cba448dfd96a837ea60d",
+      "passed": true
+    },
+    {
+      "file": "native-report.json",
+      "bytes": 9499,
+      "sha256": "94fa5bee4f23bff440bed9fecf89cd0b951b1f631f0dc5c9786fc637291e7635",
+      "passed": true,
+      "counts": {
+        "initialize": 10,
+        "tools/list": 10,
+        "resources/list": 10,
+        "resources/templates/list": 10,
+        "prompts/list": 10,
+        "tools/call": 2,
+        "tasks/get": 1,
+        "tasks/result": 2
+      },
+      "scope": {
+        "osSecretStore": "windows-dpapi",
+        "transport": "loopback-http",
+        "deliveryCrashRecovery": true,
+        "canonicalHostResume": true,
+        "workerConnectsForEveryAction": true,
+        "offlineProductCliVerified": false,
+        "modelContinuationVerified": false
+      }
+    },
+    {
+      "file": "mcp-task-delivery-legacy-prefix-repro-fail.json",
+      "bytes": 10856,
+      "sha256": "e27d0a4e4a0b868d332a094ee6f71dbf642f5cdbc28207351ecb179ee854fd3a",
+      "tests": 25,
+      "passed": 0,
+      "failed": 1,
+      "skippedOrUnselected": 24
+    },
+    {
+      "file": "mcp-task-delivery-legacy-prefix-fixed-tests.json",
+      "bytes": 10994,
+      "sha256": "f86234dea802ebb2103450edc7eef3e051a36e51c828701f661230cb6409820a",
+      "tests": 25,
+      "passed": 0,
+      "failed": 1,
+      "skippedOrUnselected": 24
+    },
+    {
+      "file": "mcp-task-delivery-audited-prefix-tests.json",
+      "bytes": 10270,
+      "sha256": "d07070b17cc6caa777399ae27fd2bcd45864f60c52a327b4f4b4c4cc641beb9f",
+      "tests": 26,
+      "passed": 2,
+      "failed": 0,
+      "skippedOrUnselected": 24
+    },
+    {
+      "file": "mcp-task-delivery-audited-regression-tests.json",
+      "bytes": 226574,
+      "sha256": "1d7b44a16b997b3706f38a348b64b5d9c7defb3f22745b32fde28645f677ddfc",
+      "tests": 668,
+      "passed": 664,
+      "failed": 0,
+      "skippedOrUnselected": 4
+    },
+    {
+      "file": "mcp-task-delivery-audited-wire-tests.json",
+      "bytes": 97464,
+      "sha256": "f786a777f88780da9957e6bae1c7cc6eccd0c7f57c6d17577e999a9f687e4d06",
+      "tests": 284,
+      "passed": 4,
+      "failed": 0,
+      "skippedOrUnselected": 280
+    },
+    {
+      "file": "audited-native-report.json",
+      "bytes": 9500,
+      "sha256": "bede74d6f5af58a2e1b7061540c33d351e6034d8c231202ec9d76cd76abe529e",
+      "passed": true,
+      "counts": {
+        "initialize": 10,
+        "tools/list": 10,
+        "resources/list": 10,
+        "resources/templates/list": 10,
+        "prompts/list": 10,
+        "tools/call": 2,
+        "tasks/get": 1,
+        "tasks/result": 2
+      },
+      "scope": {
+        "osSecretStore": "windows-dpapi",
+        "transport": "loopback-http",
+        "deliveryCrashRecovery": true,
+        "canonicalHostResume": true,
+        "workerConnectsForEveryAction": true,
+        "offlineProductCliVerified": false,
+        "modelContinuationVerified": false
+      }
+    }
+  ],
+  "limits": [
+    "4 directory-fsync platform skips in final regression",
+    "280 unselected cases in final wire suite",
+    "no real model invocation or paid call",
+    "no automatic background model wake",
+    "REPL bridge is not a full native interactive terminal journey",
+    "native worker connects each time; product offline CLI covered separately",
+    "no production admission or release"
+  ],
+  "finalReports": {
+    "regression": "mcp-task-delivery-audited-regression-tests.json",
+    "wire": "mcp-task-delivery-audited-wire-tests.json",
+    "native": "audited-native-report.json",
+    "targetedPrefixAndSnapshot": "mcp-task-delivery-audited-prefix-tests.json"
+  },
+  "testedSourceSha256": {
+    "packages/cli/__tests__/fixtures/mcp-tasks/durable-child.mjs": "660b5b6f7003931e0694291f640f14207a1aec4489651b408622b7694a0bf387",
+    "packages/cli/__tests__/unit/agent-evolution-runtime-composition.test.js": "09c84fb75e1fa338f04cab687fb932719771bf84885c59165c6b99586ea9bc91",
+    "packages/cli/__tests__/unit/mcp-task-delivery-contract.test.js": "83349784130131b2d5d26e0c3bd9eb8ba96e6d889ffdfae510af8c206ac7ecf3",
+    "packages/cli/__tests__/unit/mcp-task-delivery.test.js": "833342bac8fa6a6b417abc4fa2cc0e5927b07e4831d4b974297bcfd4bfe30021",
+    "packages/cli/__tests__/unit/mcp-task-runtime.test.js": "abfc2d087a81239bb82fc598196d4efd1ecc7c452ae378e3d40ef7a3a123bc6d",
+    "packages/cli/scripts/probe-mcp-task-durable.mjs": "58b5775c61a6c2b2a672017f1e9699a542de1ba1c6a33ba50499f45859a350e1",
+    "packages/cli/src/commands/mcp-tasks.js": "82d173f915a193354dce67472b1567236284ea79f89a3283a56828480e41fd85",
+    "packages/cli/src/harness/jsonl-session-store.js": "32b7ee7f993f24552597e6e04a869212b33a649173e75c5753d3b92d03d2f3d7",
+    "packages/cli/src/harness/session-list-index.js": "132793ce9aa1d3f2e430b04364368791a5b943b94ddfd4cbfd30e9fd4c7b73ad",
+    "packages/cli/src/lib/mcp-call-ledger-projection.js": "4e18998a194688b562b4c96cadb80b3871b76ae2e9a3a61dd79ad7105c0d8ac9",
+    "packages/cli/src/lib/mcp-call-ledger-store.js": "52a3c0d83596ec5123152b88ee4663ef0879a3c0985cfd6f2a929e0e9551e874",
+    "packages/cli/src/lib/mcp-task-delivery-contract.js": "3f6b865de48d3ef4a04f45e32058cca57d9f071d4e79cdd4c330f68a2938ddb2",
+    "packages/cli/src/lib/mcp-task-delivery.js": "dcae70a6bf7e594f419c49c7b240547769fb60dd9fe1c767bf32b9f7bd2be538",
+    "packages/cli/src/lib/mcp-task-journal-projection.js": "0874b15aba2fd8f2642ef05953a2b46a014041eb161618e64f08d1b68ddba4c0",
+    "packages/cli/src/lib/mcp-task-journal.js": "49b6bf276c5b3635c785af52b5f389783234fa2cab0811d143c3cdee222991fd",
+    "packages/cli/src/lib/mcp-task-runtime.js": "dc1ec3e0af5318e9f9f22549fa04912c6094aa92bf074859380f88e00d9bd43b",
+    "packages/cli/src/lib/session-generation-authority.js": "d02ca4deb97cea4c3e6d9eca8dd6b660de27804c0b8503c1a2914b1b2a671794",
+    "packages/cli/src/lib/session-host-snapshot.js": "8cc88fb990e137e02a835a7f531166611ea89b13ecc81560d637cadd95950f94",
+    "packages/cli/src/lib/session-transcript-history.js": "62e42b02215c78f83fcf0004f114b0a24b0c25320a6f8cb109881801f9eb83b0",
+    "packages/cli/src/lib/session-transcript-page.js": "15ffb5006787a2c6d6bfdbe29d84a8d3e2b5c2d331878da7395685b8552c1170",
+    "packages/cli/src/lib/session-transcript-structure.js": "9602251325f22addb37e8843be7c255e2ceb553a23c2b26e6abe7fe776087323"
+  },
+  "reviewFixes": [
+    "Reject malformed legacy prefix before the first source hint can switch reducers.",
+    "Freeze a copy of incidents so finish snapshots do not freeze reducer-private state."
+  ]
+}

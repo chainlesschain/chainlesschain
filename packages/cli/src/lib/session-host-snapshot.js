@@ -1,3 +1,7 @@
+import {
+  MCP_TASK_DELIVERY_EVENT,
+  projectMcpTaskDeliveryMessage,
+} from "./mcp-task-delivery-contract.js";
 /**
  * Canonical cross-host view of one JSONL agent session.
  *
@@ -87,6 +91,8 @@ function replayMessagesFromVerifiedEvents(events) {
       isReplayableMessage(event.data)
     ) {
       suffix.push(event.data);
+    } else if (event?.type === MCP_TASK_DELIVERY_EVENT) {
+      suffix.push(projectMcpTaskDeliveryMessage(event));
     } else if (event?.type === "tool_round") {
       suffix.push(...projectToolRoundMessages(event).toReversed());
     } else if (event?.type === "ws_turn") {

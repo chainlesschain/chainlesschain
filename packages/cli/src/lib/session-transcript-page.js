@@ -1,3 +1,7 @@
+import {
+  MCP_TASK_DELIVERY_EVENT,
+  projectMcpTaskDeliveryMessage,
+} from "./mcp-task-delivery-contract.js";
 import { projectToolRoundMessages } from "./session-tool-round.js";
 import { createHash } from "node:crypto";
 import {
@@ -121,7 +125,9 @@ export function createSessionTranscriptPageProjection(
         ["user_message", "assistant_message", "system"].includes(event.type)
       )
         append(event.data);
-      else if (event.type === "tool_round") {
+      else if (event.type === MCP_TASK_DELIVERY_EVENT) {
+        append(projectMcpTaskDeliveryMessage(event));
+      } else if (event.type === "tool_round") {
         for (const message of projectToolRoundMessages(event)) append(message);
       } else if (event.type === "ws_turn") {
         const pair = projectWsTurnMessages(event);
