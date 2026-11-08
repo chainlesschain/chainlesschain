@@ -228,3 +228,6 @@ docs/research/agents/evidence/dmm-native-strict-ci-2026-11-07/verify-evidence.mj
 docs/research/agents/evidence/dmm-native-workspace-2026-11-07/** -text !eol -whitespace
 docs/research/agents/evidence/dmm-native-workspace-2026-11-07/README.md text eol=lf
 docs/research/agents/evidence/dmm-native-workspace-2026-11-07/verify-evidence.mjs text eol=lf
+
+# Keep archived native-host log hashes stable across checkouts.
+docs/research/cli-ide/implementation/evidence/ide-model-input-20261108/*.log -text
