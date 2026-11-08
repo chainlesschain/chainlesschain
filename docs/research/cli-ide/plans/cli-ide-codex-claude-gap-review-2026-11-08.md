@@ -267,3 +267,8 @@ The plan therefore remains open. The unresolved rows require an external provide
 ### 2026-11-09 Existing Codex 0.167 native receipt promoted into the audit
 
 The repository already contains a source-bound `.167.0` Windows x64 native evidence pack at [`codex-167-20261108`](../implementation/evidence/codex-167-20261108/), commit `e55e99ca22eda1f202d516e42ef306ee9cf28af6`. `fixed-turn.json` passed real native turn, approval cancellation, interleaved threads, and post-admission transport-loss handling; `fixed-database.json` passed process-restart database/history recovery without replaying the completed request. `fixed-scan-repair.json` remains a strict failure for the first cold scan, while later repair observations are retained. The pack explicitly records `realProviderAcceptance:false` and `productionAdmission:false`, so it closes the Windows native turn/recovery sub-scope only; it does not close the three-system CI or native Linux/macOS gates.
+
+
+### 2026-11-09 Codex `.167` CI status readback
+
+Read-only GitHub verification for `e55e99ca22eda1f202d516e42ef306ee9cf28af6` found the compatibility workflow's `.167` Ubuntu, Windows, and macOS jobs cancelled; the separate cold-scan matrix was also cancelled. Shared manifest/adapter jobs and the `.164` Ubuntu job succeeded. The sanitized status receipt is archived in [`codex-ci-0167-cancelled-20261109`](../../cli/evidence/codex-ci-0167-cancelled-20261109/). This confirms that the Windows `.167` native receipt cannot be promoted to three-system CI acceptance, and no remote workflow was rerun.
