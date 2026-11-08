@@ -1,0 +1,32 @@
+{
+  "auditedAt": "2026-11-08T06:09:07.181Z",
+  "sourceHead": "3116842b0fdc5d5c6c747a404bf37b18fb8206c9",
+  "reportSha256": "a5bf60f6a3dc6b7fe44f4e10f6a4e86d2848e6585bbf9a9eb102cf3a62ebc73c",
+  "rounds": 300,
+  "workerResults": 2400,
+  "sourceDigestsMatched": true,
+  "tiers": [
+    {
+      "count": 1000,
+      "rounds": 100,
+      "readP95": 777.99,
+      "lockWaitP95": 637,
+      "operationsPerSecond": 11.981399679750966
+    },
+    {
+      "count": 10000,
+      "rounds": 100,
+      "readP95": 857.405,
+      "lockWaitP95": 684,
+      "operationsPerSecond": 10.385541685058818
+    },
+    {
+      "count": 100000,
+      "rounds": 100,
+      "readP95": 1816.706,
+      "lockWaitP95": 1333,
+      "operationsPerSecond": 4.768057855423293
+    }
+  ],
+  "boundary": "Independent audit of raw generation ranges, same-round delete visibility, worker closure and source binding. Full snapshot/record/event oracle assertions execute inside the benchmark; no new cross-platform or native IDE claim."
+}

@@ -1,0 +1,96 @@
+{
+  "auditedAt": "2026-11-08T05:58:55.736Z",
+  "reportSha256": "a791963427bb4a2a335a6c6f8dc88d31b7dcb1aa4ca39b0599ccb0005cff8482",
+  "sourceHead": "3116842b0fdc5d5c6c747a404bf37b18fb8206c9",
+  "reportComplete": true,
+  "sampleCorrectnessVerified": true,
+  "samples": 1200,
+  "groups": [
+    {
+      "count": 1000,
+      "mode": "cold",
+      "samples": 100,
+      "complete": true,
+      "p95Ms": 38.741
+    },
+    {
+      "count": 1000,
+      "mode": "hot",
+      "samples": 100,
+      "complete": true,
+      "p95Ms": 30.405
+    },
+    {
+      "count": 1000,
+      "mode": "rebuild",
+      "samples": 100,
+      "complete": true,
+      "p95Ms": 542.935
+    },
+    {
+      "count": 1000,
+      "mode": "corrupt",
+      "samples": 100,
+      "complete": true,
+      "p95Ms": 542.271
+    },
+    {
+      "count": 10000,
+      "mode": "cold",
+      "samples": 100,
+      "complete": true,
+      "p95Ms": 73.29
+    },
+    {
+      "count": 10000,
+      "mode": "hot",
+      "samples": 100,
+      "complete": true,
+      "p95Ms": 39.489
+    },
+    {
+      "count": 10000,
+      "mode": "rebuild",
+      "samples": 100,
+      "complete": true,
+      "p95Ms": 894.298
+    },
+    {
+      "count": 10000,
+      "mode": "corrupt",
+      "samples": 100,
+      "complete": true,
+      "p95Ms": 925.713
+    },
+    {
+      "count": 100000,
+      "mode": "cold",
+      "samples": 100,
+      "complete": true,
+      "p95Ms": 400.745
+    },
+    {
+      "count": 100000,
+      "mode": "hot",
+      "samples": 100,
+      "complete": true,
+      "p95Ms": 50.711
+    },
+    {
+      "count": 100000,
+      "mode": "rebuild",
+      "samples": 100,
+      "complete": true,
+      "p95Ms": 4759.601
+    },
+    {
+      "count": 100000,
+      "mode": "corrupt",
+      "samples": 100,
+      "complete": true,
+      "p95Ms": 3950.877
+    }
+  ],
+  "fullMeasurementAccepted": false,
+  "boundary": "Live snapshot only. Process exit, cleanup, Stop, mixed, compound and cross-platform gates remain separately audited."
+}
