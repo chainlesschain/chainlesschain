@@ -16,6 +16,11 @@ Candidate .144 was blocked by its exact-source gate; its immutable tag is retain
 This candidate revalidates Memory authority at physical provider dispatch,
 including after asynchronous diagnostics, and synchronizes generated release artifacts.
 
+For an interactive session, `cc agent --no-recall-memory` disables automatic
+startup and per-request Memory recall, including inherited sub-agent recall.
+Repeat the flag with `cc agent --resume <session-id> --no-recall-memory` when
+restoring a session; it is an invocation option.
+
 This release adds explicit cross-project goal transfer, signed rollback and
 the native canonical Graph host boundary. Memory queries yield to queued Stop
 requests even with a frozen clock; compatibility checks retain the original

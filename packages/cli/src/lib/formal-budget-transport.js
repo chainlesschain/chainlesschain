@@ -356,7 +356,9 @@ export function createFormalBudgetTransport({
         body: JSON.stringify(request),
         signal: combined,
       };
-      await recordModelInputBody(options.body, "governed-fetch-body");
+      await recordModelInputBody(options.body, "governed-fetch-body", {
+        signal: combined,
+      });
       combined.throwIfAborted();
       if (hasProviderRequestAdmission()) {
         await assertProviderRequestAdmission(

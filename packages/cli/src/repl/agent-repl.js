@@ -3148,6 +3148,9 @@ async function startAgentReplInWorkspaceOwned(
   startupAdmission,
   outputScope,
 ) {
+  // Keep the user's session-wide recall choice across model switches, direct
+  // judges and resumed turns; canonical per-request planning also needs it.
+  const recallMemory = options.recallMemory !== false;
   // The compressor captures this session's ingress and metering callbacks.
   // A later REPL instance must not replace another session's authority.
   let _compressor = null;
@@ -3569,6 +3572,7 @@ async function startAgentReplInWorkspaceOwned(
           includeLedgerMetadata: true,
           call: ({ signal }) =>
             chatWithTools([{ role: "user", content: prompt }], {
+              contextMemoryRecall: recallMemory,
               ...(evolutionIngress === null ? {} : { evolutionIngress }),
               provider,
               model,
@@ -3654,7 +3658,11 @@ async function startAgentReplInWorkspaceOwned(
     // Non-critical
   }
 
-  contextEngine = new CLIContextEngineering({ db, permanentMemory });
+  contextEngine = new CLIContextEngineering({
+    db,
+    permanentMemory,
+    memoryEnabled: recallMemory,
+  });
 
   // Initialize autonomous agent
   const autonomousAgent = new CLIAutonomousAgent();
@@ -4849,7 +4857,7 @@ async function startAgentReplInWorkspaceOwned(
   // Phase G #5 — inject top-K memory recall into system prompt for new sessions
   // Skip on resume (existing context already reflects prior work) and when
   // --no-recall-memory is passed.
-  if (!options.sessionId && options.recallMemory !== false) {
+  if (!options.sessionId && recallMemory && !contextMemoryCutover.canonical) {
     try {
       const { buildMemoryInjection } =
         await import("../lib/memory-injection.js");
@@ -9795,6 +9803,7 @@ async function startAgentReplInWorkspaceOwned(
         usageEvents,
         thinking: reasoning,
       } = await agentLoop(messages, {
+        contextMemoryRecall: recallMemory,
         contextMemoryModelWindowTokens: options.contextMemoryModelWindowTokens,
         ...captureSkillRuntimeDependencies(options),
         ...liveOpts,
@@ -9896,6 +9905,7 @@ async function startAgentReplInWorkspaceOwned(
         // previous absent ceiling also yielded "default").
         subAgentContract: {
           permissionMode: permissionModeForTier(_sessionTier),
+          ...(recallMemory ? {} : { memory: false }),
         },
         prepareCall,
         approvalGate: _approvalGate,
@@ -9984,6 +9994,7 @@ async function startAgentReplInWorkspaceOwned(
               source: "model",
               call: ({ signal }) =>
                 chatWithTools([{ role: "user", content: p }], {
+                  contextMemoryRecall: recallMemory,
                   ...(evolutionIngress === null ? {} : { evolutionIngress }),
                   model: activeModel,
                   provider,
