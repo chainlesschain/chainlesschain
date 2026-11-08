@@ -5900,10 +5900,32 @@ async function startAgentReplInWorkspaceOwned(
       return;
     }
     _mcpTaskAutoWakeRunning = true;
-    void handleLine(_mcpTaskAutoWakeSentinel).finally(() => {
-      _mcpTaskAutoWakeRunning = false;
-      kickMcpTaskAutoWake();
+    _processingLine = true;
+    let settleLine;
+    _lineSettled = new Promise((resolve) => {
+      settleLine = resolve;
     });
+    void (async () => {
+      try {
+        await handleLine(_mcpTaskAutoWakeSentinel);
+        if (!(await _waitForReplOutput())) return;
+        while (
+          _pendingLines.length &&
+          !_replClosing &&
+          !_runtimeLedgerTerminalLatch.isTripped()
+        ) {
+          const next = _pendingLines.shift();
+          await handleLine(next);
+          if (!(await _waitForReplOutput())) return;
+        }
+      } finally {
+        _processingLine = false;
+        settleLine();
+        _lineSettled = null;
+        _mcpTaskAutoWakeRunning = false;
+        kickMcpTaskAutoWake();
+      }
+    })();
   };
   const scheduleMcpTaskAutoWake = (delivery) => {
     if (process.env.CC_MCP_TASK_AUTOWAKE !== "1" || !delivery?.message) {
