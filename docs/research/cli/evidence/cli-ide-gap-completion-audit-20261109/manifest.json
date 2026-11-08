@@ -15,10 +15,10 @@
         "cli/evidence/context-token-volcengine-live-probe-20261109",
         "cli/evidence/implementation-plan-volcengine-live-current-20261109",
         "cli/evidence/implementation-plan-volcengine-live-current2-20261109",
-        "cli/evidence/project-goal-volcengine-live-current-20261109"
+        "cli/evidence/project-goal-volcengine-live-current-20261109",
+        "cli/evidence/project-goal-volcengine-live-current24-20261109"
       ],
       "remaining": [
-        "independent real provider task matrix",
         "complete failure attribution",
         "dual IDE journey"
       ]
