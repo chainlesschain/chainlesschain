@@ -1,7 +1,7 @@
 {
   "schema": "chainlesschain.repl-input-durability-post-wire-evidence/v1",
-  "generatedAt": "2026-11-08T10:48:48.663Z",
-  "sourceCommit": "a7a64b2eb238102a98f74513b1f7d8b4606dc32c",
+  "generatedAt": "2026-11-08T11:07:45.408Z",
+  "sourceCommit": "969392df9",
   "sources": [
     {
       "path": "packages/cli/src/lib/session-input-lifecycle.js",
@@ -10,8 +10,8 @@
     },
     {
       "path": "packages/cli/src/lib/session-input-receipt.js",
-      "bytes": 4687,
-      "sha256": "b9984910ef338394866f1bf96aee66228f66e84cdac2068cd1ade20d64aff017"
+      "bytes": 5025,
+      "sha256": "352e93a48557ddb4e56ec284f41b812441a0cb8d01aaa65f717d6aeff2b05ee4"
     },
     {
       "path": "packages/cli/src/lib/session-host-snapshot.js",
@@ -50,8 +50,8 @@
     },
     {
       "path": "packages/cli/__tests__/unit/session-input-durability-integration.test.js",
-      "bytes": 3378,
-      "sha256": "146485012f0c0b62ba3f9fa95522293432980d94c07b0d5a62820bac6bce3441"
+      "bytes": 5457,
+      "sha256": "37b8090f757dce70c519041378ffc2ef7404e53427a0c758d4b14a14c689bbe4"
     },
     {
       "path": "packages/cli/__tests__/e2e/repl-inflight-recovery-e2e.test.js",
@@ -60,6 +60,71 @@
     }
   ],
   "artifacts": [
+    {
+      "path": "docs/cli/evidence/repl-input-durability-post-wire-20261108/raw/run-9giLyf/inspect-after-kill.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/cli/evidence/repl-input-durability-post-wire-20261108/raw/run-9giLyf/inspect-after-kill.stdout.log",
+      "bytes": 2009,
+      "sha256": "4a8391e209640a265aa535c3cfbc180f0491883c5042d72a159105d2ad961f8a"
+    },
+    {
+      "path": "docs/cli/evidence/repl-input-durability-post-wire-20261108/raw/run-9giLyf/inspect-after-resume.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/cli/evidence/repl-input-durability-post-wire-20261108/raw/run-9giLyf/inspect-after-resume.stdout.log",
+      "bytes": 2628,
+      "sha256": "05f812d16a40f437fd34dd1538fef095c91b47f8c223a5981cd4edb6fceb6909"
+    },
+    {
+      "path": "docs/cli/evidence/repl-input-durability-post-wire-20261108/raw/run-9giLyf/inspect-before-held.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/cli/evidence/repl-input-durability-post-wire-20261108/raw/run-9giLyf/inspect-before-held.stdout.log",
+      "bytes": 1680,
+      "sha256": "e83992344c0d59e752c5ce2f3d4fce919fec341ce14b56aa73ef82bff31d07d7"
+    },
+    {
+      "path": "docs/cli/evidence/repl-input-durability-post-wire-20261108/raw/run-9giLyf/inspect-before-kill.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/cli/evidence/repl-input-durability-post-wire-20261108/raw/run-9giLyf/inspect-before-kill.stdout.log",
+      "bytes": 2009,
+      "sha256": "4a8391e209640a265aa535c3cfbc180f0491883c5042d72a159105d2ad961f8a"
+    },
+    {
+      "path": "docs/cli/evidence/repl-input-durability-post-wire-20261108/raw/run-9giLyf/original.stderr.log",
+      "bytes": 1006,
+      "sha256": "f017d761edb8b0cade0a50f65d16a5a9d3c0b0924fb7f4b8ad7b2351916a11e8"
+    },
+    {
+      "path": "docs/cli/evidence/repl-input-durability-post-wire-20261108/raw/run-9giLyf/original.stdout.log",
+      "bytes": 746,
+      "sha256": "6080afbc42a9a039af090505a23c1087a9a745abcb0ceffcc3607976a5fa6f19"
+    },
+    {
+      "path": "docs/cli/evidence/repl-input-durability-post-wire-20261108/raw/run-9giLyf/receipt.json",
+      "bytes": 18897,
+      "sha256": "865f22a4f5e81a9919b2c36afe7c4b83c117d47800b1e43c591e67b8fe8ccb3d"
+    },
+    {
+      "path": "docs/cli/evidence/repl-input-durability-post-wire-20261108/raw/run-9giLyf/resumed.stderr.log",
+      "bytes": 982,
+      "sha256": "0bcd2a08c51acfef36f8f3311062597ddb741ed0b879321c41a8c28cc41b3f42"
+    },
+    {
+      "path": "docs/cli/evidence/repl-input-durability-post-wire-20261108/raw/run-9giLyf/resumed.stdout.log",
+      "bytes": 1249,
+      "sha256": "56e47da9ca2b9b057cc8f90a60232570bce1b5b11841f87bd7cffcfa345fa7d2"
+    },
     {
       "path": "docs/cli/evidence/repl-input-durability-post-wire-20261108/raw/run-Das8Lf/inspect-after-kill.stderr.log",
       "bytes": 0,
@@ -257,10 +322,10 @@
     },
     {
       "path": "docs/cli/evidence/repl-input-durability-post-wire-20261108/raw/vitest.log",
-      "bytes": 221,
-      "sha256": "aad77564d5e0343ea65c0d729214031ed194f688c851bd147345a6a349581d76"
+      "bytes": 220,
+      "sha256": "bb56b14bcfe85ee681132d833b33844c2ca9d73c69cbf70f9a849c3d053a0e4b"
     }
   ],
-  "latestReceipt": "docs/cli/evidence/repl-input-durability-post-wire-20261108/raw/run-KuvFGt/receipt.json",
+  "latestReceipt": "docs/cli/evidence/repl-input-durability-post-wire-20261108/raw/run-9giLyf/receipt.json",
   "testReport": "docs/cli/evidence/repl-input-durability-post-wire-20261108/raw/vitest.log"
 }
