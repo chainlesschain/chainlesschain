@@ -455,6 +455,25 @@ export function createDurableMcpTaskRuntime({
       return Object.freeze({ ...receipt, watched: true });
     },
 
+    /** Start an opt-in timer without detaching it from the session lease. */
+    startTracking(localId, options = {}) {
+      const stopController = new AbortController();
+      const signal = options.signal
+        ? AbortSignal.any([options.signal, stopController.signal])
+        : stopController.signal;
+      const promise = this.watch(localId, { ...options, signal });
+      return Object.freeze({
+        promise,
+        stop() {
+          stopController.abort(
+            Object.assign(new Error("MCP task tracking stopped"), {
+              code: "CC_MCP_TASK_TRACKING_STOPPED",
+            }),
+          );
+        },
+      });
+    },
+
     result(localId, { signal } = {}) {
       return enqueue(async () => {
         const projection = read();
