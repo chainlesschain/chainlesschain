@@ -1,0 +1,113 @@
+{
+  "schema": "chainlesschain.implementation-plan-context-measurement/v1",
+  "measuredAt": "2026-11-08T11:30:06.353Z",
+  "scales": [
+    200,
+    1000,
+    5000
+  ],
+  "costBasis": "estimated",
+  "providerUsageMeasured": false,
+  "qualityEvaluationCompleted": false,
+  "tiers": [
+    {
+      "count": 200,
+      "skillCount": 200,
+      "mcpToolCount": 200,
+      "skillDescriptors": 200,
+      "skillDescriptorEstimatedTokens": 4490,
+      "fullMetadataTokens": 7818,
+      "pagedMetadataTokens": 786,
+      "metadataTokenEstimator": "utf8-bytes/4",
+      "directoryReductionPct": 89.94627782041444,
+      "omittedDescriptorSearchPassed": true,
+      "bodiesBefore": 0,
+      "bodiesAfter": 1,
+      "lazyEstimatedTokensAvoided": 2,
+      "recordedSourceTokens": {
+        "total": 1235,
+        "bySource": {
+          "skill_descriptor": 416,
+          "skill": 819
+        },
+        "byBasis": {
+          "estimated": 1235,
+          "observed": 0
+        },
+        "entries": 22,
+        "currentRequestVerified": false,
+        "billingVerified": false
+      },
+      "mcpSentTokens": 9900,
+      "mcpFullTokens": 145100,
+      "mcpSavedTokens": 135200,
+      "exactSchemaSelection": true
+    },
+    {
+      "count": 1000,
+      "skillCount": 1000,
+      "mcpToolCount": 1000,
+      "skillDescriptors": 1000,
+      "skillDescriptorEstimatedTokens": 22890,
+      "fullMetadataTokens": 39418,
+      "pagedMetadataTokens": 786,
+      "metadataTokenEstimator": "utf8-bytes/4",
+      "directoryReductionPct": 98.00598711248668,
+      "omittedDescriptorSearchPassed": true,
+      "bodiesBefore": 0,
+      "bodiesAfter": 1,
+      "lazyEstimatedTokensAvoided": 2,
+      "recordedSourceTokens": {
+        "total": 1235,
+        "bySource": {
+          "skill_descriptor": 416,
+          "skill": 819
+        },
+        "byBasis": {
+          "estimated": 1235,
+          "observed": 0
+        },
+        "entries": 22,
+        "currentRequestVerified": false,
+        "billingVerified": false
+      },
+      "mcpSentTokens": 49100,
+      "mcpFullTokens": 725100,
+      "mcpSavedTokens": 676000,
+      "exactSchemaSelection": true
+    },
+    {
+      "count": 5000,
+      "skillCount": 1000,
+      "mcpToolCount": 5000,
+      "skillDescriptors": 1000,
+      "skillDescriptorEstimatedTokens": 22890,
+      "fullMetadataTokens": 39418,
+      "pagedMetadataTokens": 786,
+      "metadataTokenEstimator": "utf8-bytes/4",
+      "directoryReductionPct": 98.00598711248668,
+      "omittedDescriptorSearchPassed": true,
+      "bodiesBefore": 0,
+      "bodiesAfter": 1,
+      "lazyEstimatedTokensAvoided": 2,
+      "recordedSourceTokens": {
+        "total": 1235,
+        "bySource": {
+          "skill_descriptor": 416,
+          "skill": 819
+        },
+        "byBasis": {
+          "estimated": 1235,
+          "observed": 0
+        },
+        "entries": 22,
+        "currentRequestVerified": false,
+        "billingVerified": false
+      },
+      "mcpSentTokens": 245100,
+      "mcpFullTokens": 3625100,
+      "mcpSavedTokens": 3380000,
+      "exactSchemaSelection": true
+    }
+  ]
+}
