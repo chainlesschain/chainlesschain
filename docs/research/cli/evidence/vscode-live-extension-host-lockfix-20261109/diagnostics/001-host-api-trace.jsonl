@@ -1,0 +1,4 @@
+{"phase":"initial","stage":"installed-vsix-discovered","at":"2026-11-08T18:57:23.615Z","extensionVersion":"0.37.181"}
+{"phase":"initial","stage":"vsix-activated","at":"2026-11-08T18:57:24.587Z"}
+{"phase":"initial","stage":"automatic-completion-contract-verified","at":"2026-11-08T18:57:24.587Z","defaultEnabled":false,"p50SloMs":2000,"p95SloMs":5000}
+{"phase":"initial","stage":"commands-verified","at":"2026-11-08T18:57:24.590Z","commandCount":19}

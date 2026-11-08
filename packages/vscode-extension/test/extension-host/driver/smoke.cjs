@@ -258,6 +258,7 @@ async function waitForBridgeLock(
       const files = fs
         .readdirSync(lockDir)
         .filter((name) => name.endsWith(".json"));
+      const candidates = [];
       for (const name of files) {
         const lock = JSON.parse(
           fs.readFileSync(path.join(lockDir, name), "utf8"),
@@ -276,8 +277,17 @@ async function waitForBridgeLock(
             (workspaceFolder, index) => workspaceFolder === expected[index],
           )
         ) {
-          return lock;
+          candidates.push(lock);
         }
+      }
+      if (candidates.length > 0) {
+        candidates.sort((left, right) => {
+          const leftCurrent = left.pid === process.pid ? 1 : 0;
+          const rightCurrent = right.pid === process.pid ? 1 : 0;
+          if (leftCurrent !== rightCurrent) return rightCurrent - leftCurrent;
+          return Number(right.started_at || 0) - Number(left.started_at || 0);
+        });
+        return candidates[0];
       }
     } catch (error) {
       lastError = error;

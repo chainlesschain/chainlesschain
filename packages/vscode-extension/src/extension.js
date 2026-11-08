@@ -325,6 +325,21 @@ async function startBridge(context) {
   try {
     _port = await _server.start({ host: "127.0.0.1", port: 0 });
 
+    // Do not publish a discovery lock until the Extension Host itself can
+    // reach the newly bound listener. On Windows an Extension Host can report
+    // a successful listen while a just-created localhost socket is still not
+    // accepting connections; advertising that port creates a dead bridge for
+    // every integrated terminal. Keep this bounded and fail closed.
+    let bridgeReady = "unknown";
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      bridgeReady = await _probePort(_port, 500);
+      if (bridgeReady === "listening") break;
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    if (bridgeReady !== "listening") {
+      throw new Error(`IDE bridge listener was not reachable on 127.0.0.1:${_port}`);
+    }
+
     _workspaceFolders = (vscode.workspace.workspaceFolders || []).map(
       (f) => f.uri.fsPath,
     );
