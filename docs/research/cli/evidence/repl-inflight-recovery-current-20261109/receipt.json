@@ -1,0 +1,19 @@
+{
+  "schema": "chainlesschain.repl-inflight-recovery-current-head/v1",
+  "sourceCommit": "fb1cfe3a4352867ea99a9918d6a8271b729e98cf",
+  "platform": "win32",
+  "command": "npx vitest run --config vitest.e2e.config.js __tests__/e2e/repl-inflight-recovery-e2e.test.js --reporter=dot",
+  "passed": 2,
+  "failed": 0,
+  "transport": "real CLI/readline/Evolution/JSONL and loopback HTTP; no paid provider",
+  "inputArrivedDuringRecovery": true,
+  "originalRequestUnsettledAtKill": true,
+  "newProviderRequests": 1,
+  "oldProviderReplays": 0,
+  "unknownSettlementPreserved": true,
+  "visibleRecoveryNotice": true,
+  "terminal": "emulated stdin isTTY, not an OS PTY",
+  "formalSample": false,
+  "remotePushed": false,
+  "remaining": ["dual IDE recovery", "complete cross-entry journey"]
+}
