@@ -1,0 +1,1011 @@
+{
+  "schema": "chainlesschain.codex-history-probe/v1",
+  "status": "failed",
+  "commitSha": "8c4ae22975c661813120fb728404145e848fad16",
+  "platform": "win32",
+  "arch": "x64",
+  "upstream": {
+    "version": "0.167.0",
+    "reported": "codex-cli 0.167.0",
+    "binarySha256": "edfdd48f8b458af0906e507b4cb05217b326c3d6e515e9f024e05e3b8d650f70"
+  },
+  "provider": "synthetic-loopback-responses",
+  "realProviderAcceptance": false,
+  "productionAdmission": false,
+  "processRestarted": true,
+  "threadSource": "vscode",
+  "threadListMode": "state-db-only",
+  "threadListSortKey": "recency_at",
+  "threadCreationTimes": [
+    1794162477,
+    1794162477
+  ],
+  "sameCreatedAtSecond": true,
+  "rolloutScanPaginationVerified": false,
+  "settingsRestored": true,
+  "completedRequestReplayed": false,
+  "threadPages": [
+    {
+      "ids": [
+        "01a1bc6a-c7eb-7520-91fb-3f41abd9ef93"
+      ],
+      "nextCursor": "2026-11-08T18:27:57.138Z|01a1bc6a-c7eb-7520-91fb-3f41abd9ef93"
+    },
+    {
+      "ids": [
+        "01a1bc6a-c7eb-7520-91fb-3f5a3cf5b489"
+      ],
+      "nextCursor": null
+    }
+  ],
+  "turnPagesBeforeResume": [
+    {
+      "ids": [
+        "01a1bc6a-c83d-7412-b73e-ed392599be04"
+      ],
+      "nextCursor": null
+    }
+  ],
+  "turnPagesAfterResume": [
+    {
+      "ids": [
+        "01a1bc6a-c83d-7412-b73e-ed392599be04"
+      ],
+      "nextCursor": "{\"requestedThreadId\":\"01a1bc6a-c7eb-7520-91fb-3f41abd9ef93\",\"rolloutOrdinal\":1,\"includeAnchor\":false,\"scope\":{\"kind\":\"turns\"}}"
+    },
+    {
+      "ids": [
+        "01a1bc6a-cdf6-7e12-8e8f-c0e2f022629a"
+      ],
+      "nextCursor": null
+    }
+  ],
+  "results": [
+    {
+      "threadId": "01a1bc6a-c7eb-7520-91fb-3f41abd9ef93",
+      "turnId": "01a1bc6a-c83d-7412-b73e-ed392599be04",
+      "output": "history-main-1-result"
+    },
+    {
+      "threadId": "01a1bc6a-c7eb-7520-91fb-3f5a3cf5b489",
+      "turnId": "01a1bc6a-c8da-7001-950b-e8bfc7a63cd2",
+      "output": "history-other-1-result"
+    },
+    {
+      "threadId": "01a1bc6a-c7eb-7520-91fb-3f41abd9ef93",
+      "turnId": "01a1bc6a-cdf6-7e12-8e8f-c0e2f022629a",
+      "output": "history-main-2-result"
+    }
+  ],
+  "providerRequests": [
+    {
+      "scenario": "history-main-1",
+      "authorization": false,
+      "retainedContext": false
+    },
+    {
+      "scenario": "history-other-1",
+      "authorization": false,
+      "retainedContext": false
+    },
+    {
+      "scenario": "history-main-2",
+      "authorization": false,
+      "retainedContext": true
+    }
+  ],
+  "officialSchema": {
+    "hashes": {
+      "request": "94074a415950787a25e09ae3b4d9de312cc264eb0f021633dfca921d300cd42a",
+      "notification": "6371619bc83dd2c7a3ff348704d514c5be9f0d8e992275a1fa592cf51bfd2c1f",
+      "server-request": "58df585160941977d6e7a0ce458750b0c0d37987ce326fc4c880bf1dfbd3802f",
+      "approval-response": "6d0767113e22f311381809b6b236b0dde2b99b01992879c26bf7b1ea0e003cb7"
+    },
+    "validatedMessages": {
+      "request:initialize": 4,
+      "notification:remoteControl/status/changed": 4,
+      "request:thread/start": 2,
+      "notification:thread/started": 2,
+      "request:turn/start": 3,
+      "notification:warning": 3,
+      "notification:thread/status/changed": 11,
+      "notification:turn/started": 3,
+      "notification:item/started": 6,
+      "notification:item/completed": 6,
+      "notification:thread/tokenUsage/updated": 8,
+      "notification:account/rateLimits/updated": 3,
+      "notification:turn/completed": 3,
+      "request:thread/list": 32,
+      "request:thread/read": 1,
+      "request:thread/resume": 5,
+      "request:thread/turns/list": 9,
+      "notification:thread/goal/cleared": 5
+    }
+  },
+  "scope": "scan-repair",
+  "requiredChecks": [
+    "database",
+    "indexed-rollout-recency",
+    "cold-asc",
+    "cold-desc",
+    "cold-direction-order"
+  ],
+  "unverifiedScopes": [
+    "raw-upstream-default-pagination",
+    "created-at-pagination",
+    "cold-asc",
+    "cold-direction-order"
+  ],
+  "strictFailures": [
+    {
+      "name": "cold-asc:first-scan",
+      "error": {
+        "name": "AssertionError",
+        "message": "cold rollout scan asc omitted known identities\n+ actual - expected\n\n+ Set(1) {\n- Set(2) {\n    '01a1bc6a-c7eb-7520-91fb-3f41abd9ef93',\n-   '01a1bc6a-c7eb-7520-91fb-3f5a3cf5b489'\n  }\n"
+      }
+    }
+  ],
+  "threadSample": [
+    {
+      "id": "01a1bc6a-c7eb-7520-91fb-3f41abd9ef93",
+      "createdAt": 1794162477
+    },
+    {
+      "id": "01a1bc6a-c7eb-7520-91fb-3f5a3cf5b489",
+      "createdAt": 1794162477
+    }
+  ],
+  "historyChecks": {
+    "database": {
+      "status": "verified",
+      "verified": true,
+      "settingsRestored": true,
+      "completedRequestReplayed": false,
+      "threadPages": [
+        {
+          "ids": [
+            "01a1bc6a-c7eb-7520-91fb-3f41abd9ef93"
+          ],
+          "nextCursor": "2026-11-08T18:27:57.138Z|01a1bc6a-c7eb-7520-91fb-3f41abd9ef93"
+        },
+        {
+          "ids": [
+            "01a1bc6a-c7eb-7520-91fb-3f5a3cf5b489"
+          ],
+          "nextCursor": null
+        }
+      ],
+      "turnPagesBeforeResume": [
+        {
+          "ids": [
+            "01a1bc6a-c83d-7412-b73e-ed392599be04"
+          ],
+          "nextCursor": null
+        }
+      ],
+      "turnPagesAfterResume": [
+        {
+          "ids": [
+            "01a1bc6a-c83d-7412-b73e-ed392599be04"
+          ],
+          "nextCursor": "{\"requestedThreadId\":\"01a1bc6a-c7eb-7520-91fb-3f41abd9ef93\",\"rolloutOrdinal\":1,\"includeAnchor\":false,\"scope\":{\"kind\":\"turns\"}}"
+        },
+        {
+          "ids": [
+            "01a1bc6a-cdf6-7e12-8e8f-c0e2f022629a"
+          ],
+          "nextCursor": null
+        }
+      ]
+    },
+    "rawUpstreamQueries": {
+      "status": "observed",
+      "defaults": {
+        "params": {
+          "limit": 1,
+          "cwd": "C:\\Users\\admin\\AppData\\Local\\Temp\\cc-codex-history-probe-lvgLec\\workspace",
+          "modelProviders": [
+            "fixture"
+          ],
+          "sourceKinds": [
+            "vscode"
+          ],
+          "sortDirection": "asc"
+        },
+        "pages": [
+          {
+            "ids": [
+              "01a1bc6a-c7eb-7520-91fb-3f41abd9ef93"
+            ],
+            "nextCursor": "2026-11-09T02:27:57Z"
+          },
+          {
+            "ids": [],
+            "nextCursor": null
+          }
+        ],
+        "ids": [
+          "01a1bc6a-c7eb-7520-91fb-3f41abd9ef93"
+        ],
+        "allIds": [
+          "01a1bc6a-c7eb-7520-91fb-3f41abd9ef93",
+          "01a1bc6a-c7eb-7520-91fb-3f5a3cf5b489"
+        ],
+        "missingIds": [
+          "01a1bc6a-c7eb-7520-91fb-3f5a3cf5b489"
+        ],
+        "unexpectedIds": [],
+        "complete": false
+      },
+      "createdAt": {
+        "params": {
+          "limit": 1,
+          "cwd": "C:\\Users\\admin\\AppData\\Local\\Temp\\cc-codex-history-probe-lvgLec\\workspace",
+          "modelProviders": [
+            "fixture"
+          ],
+          "sourceKinds": [
+            "vscode"
+          ],
+          "sortDirection": "asc",
+          "sortKey": "created_at"
+        },
+        "pages": [
+          {
+            "ids": [
+              "01a1bc6a-c7eb-7520-91fb-3f41abd9ef93"
+            ],
+            "nextCursor": "2026-11-09T02:27:57Z"
+          },
+          {
+            "ids": [],
+            "nextCursor": null
+          }
+        ],
+        "ids": [
+          "01a1bc6a-c7eb-7520-91fb-3f41abd9ef93"
+        ],
+        "allIds": [
+          "01a1bc6a-c7eb-7520-91fb-3f41abd9ef93",
+          "01a1bc6a-c7eb-7520-91fb-3f5a3cf5b489"
+        ],
+        "missingIds": [
+          "01a1bc6a-c7eb-7520-91fb-3f5a3cf5b489"
+        ],
+        "unexpectedIds": [],
+        "complete": false
+      },
+      "databaseCreatedAt": {
+        "params": {
+          "limit": 1,
+          "cwd": "C:\\Users\\admin\\AppData\\Local\\Temp\\cc-codex-history-probe-lvgLec\\workspace",
+          "modelProviders": [
+            "fixture"
+          ],
+          "sourceKinds": [
+            "vscode"
+          ],
+          "sortDirection": "asc",
+          "sortKey": "created_at",
+          "useStateDbOnly": true
+        },
+        "pages": [
+          {
+            "ids": [
+              "01a1bc6a-c7eb-7520-91fb-3f41abd9ef93"
+            ],
+            "nextCursor": "2026-11-08T18:27:57.038Z|01a1bc6a-c7eb-7520-91fb-3f41abd9ef93"
+          },
+          {
+            "ids": [
+              "01a1bc6a-c7eb-7520-91fb-3f5a3cf5b489"
+            ],
+            "nextCursor": null
+          }
+        ],
+        "ids": [
+          "01a1bc6a-c7eb-7520-91fb-3f41abd9ef93",
+          "01a1bc6a-c7eb-7520-91fb-3f5a3cf5b489"
+        ],
+        "allIds": [
+          "01a1bc6a-c7eb-7520-91fb-3f41abd9ef93",
+          "01a1bc6a-c7eb-7520-91fb-3f5a3cf5b489"
+        ],
+        "missingIds": [],
+        "unexpectedIds": [],
+        "complete": true
+      }
+    },
+    "rolloutScanRecency": {
+      "status": "verified",
+      "verified": true,
+      "asc": {
+        "params": {
+          "limit": 1,
+          "cwd": "C:\\Users\\admin\\AppData\\Local\\Temp\\cc-codex-history-probe-lvgLec\\workspace",
+          "modelProviders": [
+            "fixture"
+          ],
+          "sourceKinds": [
+            "vscode"
+          ],
+          "sortDirection": "asc",
+          "sortKey": "recency_at",
+          "useStateDbOnly": false
+        },
+        "pages": [
+          {
+            "ids": [
+              "01a1bc6a-c7eb-7520-91fb-3f41abd9ef93"
+            ],
+            "nextCursor": "2026-11-08T18:27:57.138Z|01a1bc6a-c7eb-7520-91fb-3f41abd9ef93"
+          },
+          {
+            "ids": [
+              "01a1bc6a-c7eb-7520-91fb-3f5a3cf5b489"
+            ],
+            "nextCursor": null
+          }
+        ],
+        "ids": [
+          "01a1bc6a-c7eb-7520-91fb-3f41abd9ef93",
+          "01a1bc6a-c7eb-7520-91fb-3f5a3cf5b489"
+        ],
+        "allIds": [
+          "01a1bc6a-c7eb-7520-91fb-3f41abd9ef93",
+          "01a1bc6a-c7eb-7520-91fb-3f5a3cf5b489"
+        ],
+        "missingIds": [],
+        "unexpectedIds": [],
+        "complete": true
+      },
+      "desc": {
+        "params": {
+          "limit": 1,
+          "cwd": "C:\\Users\\admin\\AppData\\Local\\Temp\\cc-codex-history-probe-lvgLec\\workspace",
+          "modelProviders": [
+            "fixture"
+          ],
+          "sourceKinds": [
+            "vscode"
+          ],
+          "sortDirection": "desc",
+          "sortKey": "recency_at",
+          "useStateDbOnly": false
+        },
+        "pages": [
+          {
+            "ids": [
+              "01a1bc6a-c7eb-7520-91fb-3f5a3cf5b489"
+            ],
+            "nextCursor": "2026-11-08T18:27:57.278Z|01a1bc6a-c7eb-7520-91fb-3f5a3cf5b489"
+          },
+          {
+            "ids": [
+              "01a1bc6a-c7eb-7520-91fb-3f41abd9ef93"
+            ],
+            "nextCursor": null
+          }
+        ],
+        "ids": [
+          "01a1bc6a-c7eb-7520-91fb-3f5a3cf5b489",
+          "01a1bc6a-c7eb-7520-91fb-3f41abd9ef93"
+        ],
+        "allIds": [
+          "01a1bc6a-c7eb-7520-91fb-3f5a3cf5b489",
+          "01a1bc6a-c7eb-7520-91fb-3f41abd9ef93"
+        ],
+        "missingIds": [],
+        "unexpectedIds": [],
+        "complete": true
+      }
+    },
+    "rolloutRepair": {
+      "status": "failed",
+      "verified": false,
+      "orderComparison": {
+        "status": "not-run",
+        "verified": false
+      },
+      "cases": {
+        "asc": {
+          "status": "failed",
+          "verified": false,
+          "home": "C:\\Users\\admin\\AppData\\Local\\Temp\\cc-codex-history-probe-lvgLec\\rollout-repair-asc\\home",
+          "beforeCopy": {
+            "data": [],
+            "pages": [
+              {
+                "ids": [],
+                "nextCursor": null
+              }
+            ]
+          },
+          "rollouts": [
+            {
+              "threadId": "01a1bc6a-c7eb-7520-91fb-3f41abd9ef93",
+              "relativePath": "sessions\\2026\\11\\09\\rollout-2026-11-09T02-27-57-01a1bc6a-c7eb-7520-91fb-3f41abd9ef93.jsonl",
+              "bytes": 41647,
+              "sha256": "d1140140a1650ee3e7c0c642df54b3b478aa6fef0beabf9e48d66712cb5c23d4"
+            },
+            {
+              "threadId": "01a1bc6a-c7eb-7520-91fb-3f5a3cf5b489",
+              "relativePath": "sessions\\2026\\11\\09\\rollout-2026-11-09T02-27-57-01a1bc6a-c7eb-7520-91fb-3f5a3cf5b489.jsonl",
+              "bytes": 36154,
+              "sha256": "0cefdd2fafababb38b5c087985e08d56c1752e1bad15933fe5c413fe9a4d9a91"
+            }
+          ],
+          "afterCopy": {
+            "data": [],
+            "pages": [
+              {
+                "ids": [],
+                "nextCursor": null
+              }
+            ]
+          },
+          "indexAbsenceEvidence": "fresh-home-without-copied-state-db-and-state-db-only-list",
+          "missingIndexObserved": true,
+          "firstScan": {
+            "params": {
+              "limit": 1,
+              "cwd": "C:\\Users\\admin\\AppData\\Local\\Temp\\cc-codex-history-probe-lvgLec\\workspace",
+              "modelProviders": [
+                "fixture"
+              ],
+              "sourceKinds": [
+                "vscode"
+              ],
+              "sortDirection": "asc",
+              "sortKey": "recency_at",
+              "useStateDbOnly": false
+            },
+            "data": [
+              {
+                "id": "01a1bc6a-c7eb-7520-91fb-3f41abd9ef93",
+                "environments": null,
+                "extra": null,
+                "sessionId": "01a1bc6a-c7eb-7520-91fb-3f41abd9ef93",
+                "forkedFromId": null,
+                "parentThreadId": null,
+                "preview": "history-main-1: Respond with the fixture output. Do not call tools.",
+                "ephemeral": false,
+                "section": null,
+                "sectionEnteredAt": null,
+                "projectId": null,
+                "historyMode": "paginated",
+                "modelProvider": "fixture",
+                "model": "fixture-codex",
+                "reasoningEffort": null,
+                "createdAt": 1794162477,
+                "updatedAt": 1794162479,
+                "recencyAt": 1794162479,
+                "status": {
+                  "type": "notLoaded"
+                },
+                "path": "C:\\Users\\admin\\AppData\\Local\\Temp\\cc-codex-history-probe-lvgLec\\rollout-repair-asc\\home\\sessions\\2026\\11\\09\\rollout-2026-11-09T02-27-57-01a1bc6a-c7eb-7520-91fb-3f41abd9ef93.jsonl",
+                "cwd": "C:\\Users\\admin\\AppData\\Local\\Temp\\cc-codex-history-probe-lvgLec\\workspace",
+                "cliVersion": "0.167.0",
+                "originator": "chainlesschain_history_probe",
+                "source": "vscode",
+                "canAcceptDirectInput": null,
+                "threadSource": null,
+                "agentNickname": null,
+                "agentRole": null,
+                "gitInfo": null,
+                "name": null,
+                "daybreakEnabled": null,
+                "turns": []
+              }
+            ],
+            "pages": [
+              {
+                "ids": [
+                  "01a1bc6a-c7eb-7520-91fb-3f41abd9ef93"
+                ],
+                "nextCursor": null
+              }
+            ]
+          },
+          "firstScanVerified": false,
+          "fullScan": {
+            "data": [
+              {
+                "id": "01a1bc6a-c7eb-7520-91fb-3f41abd9ef93",
+                "environments": null,
+                "extra": null,
+                "sessionId": "01a1bc6a-c7eb-7520-91fb-3f41abd9ef93",
+                "forkedFromId": null,
+                "parentThreadId": null,
+                "preview": "history-main-1: Respond with the fixture output. Do not call tools.",
+                "ephemeral": false,
+                "section": null,
+                "sectionEnteredAt": null,
+                "projectId": null,
+                "historyMode": "paginated",
+                "modelProvider": "fixture",
+                "model": "fixture-codex",
+                "reasoningEffort": null,
+                "createdAt": 1794162477,
+                "updatedAt": 1794162479,
+                "recencyAt": 1794162479,
+                "status": {
+                  "type": "notLoaded"
+                },
+                "path": "C:\\Users\\admin\\AppData\\Local\\Temp\\cc-codex-history-probe-lvgLec\\rollout-repair-asc\\home\\sessions\\2026\\11\\09\\rollout-2026-11-09T02-27-57-01a1bc6a-c7eb-7520-91fb-3f41abd9ef93.jsonl",
+                "cwd": "C:\\Users\\admin\\AppData\\Local\\Temp\\cc-codex-history-probe-lvgLec\\workspace",
+                "cliVersion": "0.167.0",
+                "originator": "chainlesschain_history_probe",
+                "source": "vscode",
+                "canAcceptDirectInput": null,
+                "threadSource": null,
+                "agentNickname": null,
+                "agentRole": null,
+                "gitInfo": null,
+                "name": null,
+                "daybreakEnabled": null,
+                "turns": []
+              },
+              {
+                "id": "01a1bc6a-c7eb-7520-91fb-3f5a3cf5b489",
+                "environments": null,
+                "extra": null,
+                "sessionId": "01a1bc6a-c7eb-7520-91fb-3f5a3cf5b489",
+                "forkedFromId": null,
+                "parentThreadId": null,
+                "preview": "history-other-1: Respond with the fixture output. Do not call tools.",
+                "ephemeral": false,
+                "section": null,
+                "sectionEnteredAt": null,
+                "projectId": null,
+                "historyMode": "paginated",
+                "modelProvider": "fixture",
+                "model": "fixture-codex",
+                "reasoningEffort": null,
+                "createdAt": 1794162477,
+                "updatedAt": 1794162479,
+                "recencyAt": 1794162479,
+                "status": {
+                  "type": "notLoaded"
+                },
+                "path": "C:\\Users\\admin\\AppData\\Local\\Temp\\cc-codex-history-probe-lvgLec\\rollout-repair-asc\\home\\sessions\\2026\\11\\09\\rollout-2026-11-09T02-27-57-01a1bc6a-c7eb-7520-91fb-3f5a3cf5b489.jsonl",
+                "cwd": "C:\\Users\\admin\\AppData\\Local\\Temp\\cc-codex-history-probe-lvgLec\\workspace",
+                "cliVersion": "0.167.0",
+                "originator": "chainlesschain_history_probe",
+                "source": "vscode",
+                "canAcceptDirectInput": null,
+                "threadSource": null,
+                "agentNickname": null,
+                "agentRole": null,
+                "gitInfo": null,
+                "name": null,
+                "daybreakEnabled": null,
+                "turns": []
+              }
+            ],
+            "readStates": {
+              "01a1bc6a-c7eb-7520-91fb-3f5a3cf5b489": {
+                "firstUnread": null,
+                "revision": "initial:01a1bc6a-c7eb-7520-91fb-3f5a3cf5b489"
+              },
+              "01a1bc6a-c7eb-7520-91fb-3f41abd9ef93": {
+                "firstUnread": null,
+                "revision": "initial:01a1bc6a-c7eb-7520-91fb-3f41abd9ef93"
+              }
+            },
+            "nextCursor": null,
+            "backwardsCursor": "2026-11-08T18:27:59.771Z"
+          },
+          "afterFullScan": {
+            "params": {
+              "limit": 1,
+              "cwd": "C:\\Users\\admin\\AppData\\Local\\Temp\\cc-codex-history-probe-lvgLec\\workspace",
+              "modelProviders": [
+                "fixture"
+              ],
+              "sourceKinds": [
+                "vscode"
+              ],
+              "sortDirection": "asc",
+              "sortKey": "recency_at",
+              "useStateDbOnly": true
+            },
+            "pages": [
+              {
+                "ids": [
+                  "01a1bc6a-c7eb-7520-91fb-3f41abd9ef93"
+                ],
+                "nextCursor": "2026-11-08T18:27:59.77Z|01a1bc6a-c7eb-7520-91fb-3f41abd9ef93"
+              },
+              {
+                "ids": [
+                  "01a1bc6a-c7eb-7520-91fb-3f5a3cf5b489"
+                ],
+                "nextCursor": null
+              }
+            ],
+            "ids": [
+              "01a1bc6a-c7eb-7520-91fb-3f41abd9ef93",
+              "01a1bc6a-c7eb-7520-91fb-3f5a3cf5b489"
+            ],
+            "allIds": [
+              "01a1bc6a-c7eb-7520-91fb-3f41abd9ef93",
+              "01a1bc6a-c7eb-7520-91fb-3f5a3cf5b489"
+            ],
+            "missingIds": [],
+            "unexpectedIds": [],
+            "complete": true
+          },
+          "knownIdRecovery": {
+            "01a1bc6a-c7eb-7520-91fb-3f41abd9ef93": {
+              "status": "verified",
+              "verified": true,
+              "settingsRestored": true,
+              "turnPages": [
+                {
+                  "ids": [
+                    "01a1bc6a-c83d-7412-b73e-ed392599be04"
+                  ],
+                  "nextCursor": "{\"requestedThreadId\":\"01a1bc6a-c7eb-7520-91fb-3f41abd9ef93\",\"rolloutOrdinal\":1,\"includeAnchor\":false,\"scope\":{\"kind\":\"turns\"}}"
+                },
+                {
+                  "ids": [
+                    "01a1bc6a-cdf6-7e12-8e8f-c0e2f022629a"
+                  ],
+                  "nextCursor": null
+                }
+              ]
+            },
+            "01a1bc6a-c7eb-7520-91fb-3f5a3cf5b489": {
+              "status": "verified",
+              "verified": true,
+              "settingsRestored": true,
+              "turnPages": [
+                {
+                  "ids": [
+                    "01a1bc6a-c8da-7001-950b-e8bfc7a63cd2"
+                  ],
+                  "nextCursor": null
+                }
+              ]
+            }
+          }
+        },
+        "desc": {
+          "status": "verified",
+          "verified": true,
+          "home": "C:\\Users\\admin\\AppData\\Local\\Temp\\cc-codex-history-probe-lvgLec\\rollout-repair-desc\\home",
+          "beforeCopy": {
+            "data": [],
+            "pages": [
+              {
+                "ids": [],
+                "nextCursor": null
+              }
+            ]
+          },
+          "rollouts": [
+            {
+              "threadId": "01a1bc6a-c7eb-7520-91fb-3f41abd9ef93",
+              "relativePath": "sessions\\2026\\11\\09\\rollout-2026-11-09T02-27-57-01a1bc6a-c7eb-7520-91fb-3f41abd9ef93.jsonl",
+              "bytes": 41647,
+              "sha256": "d1140140a1650ee3e7c0c642df54b3b478aa6fef0beabf9e48d66712cb5c23d4"
+            },
+            {
+              "threadId": "01a1bc6a-c7eb-7520-91fb-3f5a3cf5b489",
+              "relativePath": "sessions\\2026\\11\\09\\rollout-2026-11-09T02-27-57-01a1bc6a-c7eb-7520-91fb-3f5a3cf5b489.jsonl",
+              "bytes": 36154,
+              "sha256": "0cefdd2fafababb38b5c087985e08d56c1752e1bad15933fe5c413fe9a4d9a91"
+            }
+          ],
+          "afterCopy": {
+            "data": [],
+            "pages": [
+              {
+                "ids": [],
+                "nextCursor": null
+              }
+            ]
+          },
+          "indexAbsenceEvidence": "fresh-home-without-copied-state-db-and-state-db-only-list",
+          "missingIndexObserved": true,
+          "firstScan": {
+            "params": {
+              "limit": 1,
+              "cwd": "C:\\Users\\admin\\AppData\\Local\\Temp\\cc-codex-history-probe-lvgLec\\workspace",
+              "modelProviders": [
+                "fixture"
+              ],
+              "sourceKinds": [
+                "vscode"
+              ],
+              "sortDirection": "desc",
+              "sortKey": "recency_at",
+              "useStateDbOnly": false
+            },
+            "data": [
+              {
+                "id": "01a1bc6a-c7eb-7520-91fb-3f41abd9ef93",
+                "environments": null,
+                "extra": null,
+                "sessionId": "01a1bc6a-c7eb-7520-91fb-3f41abd9ef93",
+                "forkedFromId": null,
+                "parentThreadId": null,
+                "preview": "history-main-1: Respond with the fixture output. Do not call tools.",
+                "ephemeral": false,
+                "section": null,
+                "sectionEnteredAt": null,
+                "projectId": null,
+                "historyMode": "paginated",
+                "modelProvider": "fixture",
+                "model": "fixture-codex",
+                "reasoningEffort": null,
+                "createdAt": 1794162477,
+                "updatedAt": 1794162481,
+                "recencyAt": 1794162481,
+                "status": {
+                  "type": "notLoaded"
+                },
+                "path": "C:\\Users\\admin\\AppData\\Local\\Temp\\cc-codex-history-probe-lvgLec\\rollout-repair-desc\\home\\sessions\\2026\\11\\09\\rollout-2026-11-09T02-27-57-01a1bc6a-c7eb-7520-91fb-3f41abd9ef93.jsonl",
+                "cwd": "C:\\Users\\admin\\AppData\\Local\\Temp\\cc-codex-history-probe-lvgLec\\workspace",
+                "cliVersion": "0.167.0",
+                "originator": "chainlesschain_history_probe",
+                "source": "vscode",
+                "canAcceptDirectInput": null,
+                "threadSource": null,
+                "agentNickname": null,
+                "agentRole": null,
+                "gitInfo": null,
+                "name": null,
+                "daybreakEnabled": null,
+                "turns": []
+              },
+              {
+                "id": "01a1bc6a-c7eb-7520-91fb-3f5a3cf5b489",
+                "environments": null,
+                "extra": null,
+                "sessionId": "01a1bc6a-c7eb-7520-91fb-3f5a3cf5b489",
+                "forkedFromId": null,
+                "parentThreadId": null,
+                "preview": "history-other-1: Respond with the fixture output. Do not call tools.",
+                "ephemeral": false,
+                "section": null,
+                "sectionEnteredAt": null,
+                "projectId": null,
+                "historyMode": "paginated",
+                "modelProvider": "fixture",
+                "model": "fixture-codex",
+                "reasoningEffort": null,
+                "createdAt": 1794162477,
+                "updatedAt": 1794162481,
+                "recencyAt": 1794162481,
+                "status": {
+                  "type": "notLoaded"
+                },
+                "path": "C:\\Users\\admin\\AppData\\Local\\Temp\\cc-codex-history-probe-lvgLec\\rollout-repair-desc\\home\\sessions\\2026\\11\\09\\rollout-2026-11-09T02-27-57-01a1bc6a-c7eb-7520-91fb-3f5a3cf5b489.jsonl",
+                "cwd": "C:\\Users\\admin\\AppData\\Local\\Temp\\cc-codex-history-probe-lvgLec\\workspace",
+                "cliVersion": "0.167.0",
+                "originator": "chainlesschain_history_probe",
+                "source": "vscode",
+                "canAcceptDirectInput": null,
+                "threadSource": null,
+                "agentNickname": null,
+                "agentRole": null,
+                "gitInfo": null,
+                "name": null,
+                "daybreakEnabled": null,
+                "turns": []
+              }
+            ],
+            "pages": [
+              {
+                "ids": [
+                  "01a1bc6a-c7eb-7520-91fb-3f41abd9ef93"
+                ],
+                "nextCursor": "2026-11-08T18:28:01.076Z|01a1bc6a-c7eb-7520-91fb-3f41abd9ef93"
+              },
+              {
+                "ids": [
+                  "01a1bc6a-c7eb-7520-91fb-3f5a3cf5b489"
+                ],
+                "nextCursor": null
+              }
+            ]
+          },
+          "firstScanVerified": true,
+          "fullScan": {
+            "data": [
+              {
+                "id": "01a1bc6a-c7eb-7520-91fb-3f41abd9ef93",
+                "environments": null,
+                "extra": null,
+                "sessionId": "01a1bc6a-c7eb-7520-91fb-3f41abd9ef93",
+                "forkedFromId": null,
+                "parentThreadId": null,
+                "preview": "history-main-1: Respond with the fixture output. Do not call tools.",
+                "ephemeral": false,
+                "section": null,
+                "sectionEnteredAt": null,
+                "projectId": null,
+                "historyMode": "paginated",
+                "modelProvider": "fixture",
+                "model": "fixture-codex",
+                "reasoningEffort": null,
+                "createdAt": 1794162477,
+                "updatedAt": 1794162481,
+                "recencyAt": 1794162481,
+                "status": {
+                  "type": "notLoaded"
+                },
+                "path": "C:\\Users\\admin\\AppData\\Local\\Temp\\cc-codex-history-probe-lvgLec\\rollout-repair-desc\\home\\sessions\\2026\\11\\09\\rollout-2026-11-09T02-27-57-01a1bc6a-c7eb-7520-91fb-3f41abd9ef93.jsonl",
+                "cwd": "C:\\Users\\admin\\AppData\\Local\\Temp\\cc-codex-history-probe-lvgLec\\workspace",
+                "cliVersion": "0.167.0",
+                "originator": "chainlesschain_history_probe",
+                "source": "vscode",
+                "canAcceptDirectInput": null,
+                "threadSource": null,
+                "agentNickname": null,
+                "agentRole": null,
+                "gitInfo": null,
+                "name": null,
+                "daybreakEnabled": null,
+                "turns": []
+              },
+              {
+                "id": "01a1bc6a-c7eb-7520-91fb-3f5a3cf5b489",
+                "environments": null,
+                "extra": null,
+                "sessionId": "01a1bc6a-c7eb-7520-91fb-3f5a3cf5b489",
+                "forkedFromId": null,
+                "parentThreadId": null,
+                "preview": "history-other-1: Respond with the fixture output. Do not call tools.",
+                "ephemeral": false,
+                "section": null,
+                "sectionEnteredAt": null,
+                "projectId": null,
+                "historyMode": "paginated",
+                "modelProvider": "fixture",
+                "model": "fixture-codex",
+                "reasoningEffort": null,
+                "createdAt": 1794162477,
+                "updatedAt": 1794162481,
+                "recencyAt": 1794162481,
+                "status": {
+                  "type": "notLoaded"
+                },
+                "path": "C:\\Users\\admin\\AppData\\Local\\Temp\\cc-codex-history-probe-lvgLec\\rollout-repair-desc\\home\\sessions\\2026\\11\\09\\rollout-2026-11-09T02-27-57-01a1bc6a-c7eb-7520-91fb-3f5a3cf5b489.jsonl",
+                "cwd": "C:\\Users\\admin\\AppData\\Local\\Temp\\cc-codex-history-probe-lvgLec\\workspace",
+                "cliVersion": "0.167.0",
+                "originator": "chainlesschain_history_probe",
+                "source": "vscode",
+                "canAcceptDirectInput": null,
+                "threadSource": null,
+                "agentNickname": null,
+                "agentRole": null,
+                "gitInfo": null,
+                "name": null,
+                "daybreakEnabled": null,
+                "turns": []
+              }
+            ],
+            "readStates": {
+              "01a1bc6a-c7eb-7520-91fb-3f41abd9ef93": {
+                "firstUnread": null,
+                "revision": "initial:01a1bc6a-c7eb-7520-91fb-3f41abd9ef93"
+              },
+              "01a1bc6a-c7eb-7520-91fb-3f5a3cf5b489": {
+                "firstUnread": null,
+                "revision": "initial:01a1bc6a-c7eb-7520-91fb-3f5a3cf5b489"
+              }
+            },
+            "nextCursor": null,
+            "backwardsCursor": "2026-11-08T18:28:01.075Z"
+          },
+          "afterFullScan": {
+            "params": {
+              "limit": 1,
+              "cwd": "C:\\Users\\admin\\AppData\\Local\\Temp\\cc-codex-history-probe-lvgLec\\workspace",
+              "modelProviders": [
+                "fixture"
+              ],
+              "sourceKinds": [
+                "vscode"
+              ],
+              "sortDirection": "desc",
+              "sortKey": "recency_at",
+              "useStateDbOnly": true
+            },
+            "pages": [
+              {
+                "ids": [
+                  "01a1bc6a-c7eb-7520-91fb-3f41abd9ef93"
+                ],
+                "nextCursor": "2026-11-08T18:28:01.076Z|01a1bc6a-c7eb-7520-91fb-3f41abd9ef93"
+              },
+              {
+                "ids": [
+                  "01a1bc6a-c7eb-7520-91fb-3f5a3cf5b489"
+                ],
+                "nextCursor": null
+              }
+            ],
+            "ids": [
+              "01a1bc6a-c7eb-7520-91fb-3f41abd9ef93",
+              "01a1bc6a-c7eb-7520-91fb-3f5a3cf5b489"
+            ],
+            "allIds": [
+              "01a1bc6a-c7eb-7520-91fb-3f41abd9ef93",
+              "01a1bc6a-c7eb-7520-91fb-3f5a3cf5b489"
+            ],
+            "missingIds": [],
+            "unexpectedIds": [],
+            "complete": true
+          },
+          "knownIdRecovery": {
+            "01a1bc6a-c7eb-7520-91fb-3f41abd9ef93": {
+              "status": "verified",
+              "verified": true,
+              "settingsRestored": true,
+              "turnPages": [
+                {
+                  "ids": [
+                    "01a1bc6a-c83d-7412-b73e-ed392599be04"
+                  ],
+                  "nextCursor": "{\"requestedThreadId\":\"01a1bc6a-c7eb-7520-91fb-3f41abd9ef93\",\"rolloutOrdinal\":1,\"includeAnchor\":false,\"scope\":{\"kind\":\"turns\"}}"
+                },
+                {
+                  "ids": [
+                    "01a1bc6a-cdf6-7e12-8e8f-c0e2f022629a"
+                  ],
+                  "nextCursor": null
+                }
+              ]
+            },
+            "01a1bc6a-c7eb-7520-91fb-3f5a3cf5b489": {
+              "status": "verified",
+              "verified": true,
+              "settingsRestored": true,
+              "turnPages": [
+                {
+                  "ids": [
+                    "01a1bc6a-c8da-7001-950b-e8bfc7a63cd2"
+                  ],
+                  "nextCursor": null
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  },
+  "rolloutScanRecencyPaginationVerified": true,
+  "processClosed": [
+    {
+      "code": 0,
+      "signal": null,
+      "stdioForcedClosed": true
+    },
+    {
+      "code": 0,
+      "signal": null,
+      "stdioForcedClosed": true
+    },
+    {
+      "code": 0,
+      "signal": null,
+      "stdioForcedClosed": true
+    },
+    {
+      "code": 0,
+      "signal": null,
+      "stdioForcedClosed": true
+    }
+  ],
+  "cleanupErrors": [],
+  "notificationsSha256": "85e4ac3b6bbc2bda1f1b0bba376f1c8f3fa5e4e4a2bc191a57ea59310d742792",
+  "error": {
+    "name": "AssertionError",
+    "message": "cold rollout scan asc omitted known identities\n+ actual - expected\n\n+ Set(1) {\n- Set(2) {\n    '01a1bc6a-c7eb-7520-91fb-3f41abd9ef93',\n-   '01a1bc6a-c7eb-7520-91fb-3f5a3cf5b489'\n  }\n"
+  }
+}
