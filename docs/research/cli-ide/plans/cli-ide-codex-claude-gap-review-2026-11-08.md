@@ -202,3 +202,5 @@ Claude Code 的 MCP Tasks 当前处于公开测试阶段，可在服务端受理
 随后使用本机 VS Code 1.96.2 的真实 `Code.exe` 运行原生 Extension Host 模型输入诊断脚本，结果 `status: passed`、退出码 0，验证命令注册、编辑器快照和 CLI 进程夹具；回执明确 `realCanonicalSessionJourney:false`，因此仍不宣称真实 canonical 会话或双 IDE 组合旅程完成。
 
 当前主分支还复跑了真实 CLI REPL 进程的硬杀恢复旅程：`repl-inflight-recovery-e2e.test.js` **2/2 通过**。测试覆盖原请求在 SIGKILL 后保持未知、恢复同一会话并提交一个新的独立请求，未把它扩展为双 IDE、OS PTY、预派发输入持久化或完整费用闭环的通过证明。
+
+本次 durable MCP Task 原生探针完整回执已归档于 `../implementation/evidence/mcp-task-durable-20261108/native-rerun-current.json`，并绑定运行时 `sourceCommit`。回执确认 Windows DPAPI、loopback HTTP、受理后 / 结果保存后 / 交付后 SIGKILL、跨进程恢复和一次性重复交付；`modelContinuationVerified:false`、`offlineProductCliVerified:false` 保持未完成边界。
