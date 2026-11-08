@@ -1,0 +1,27 @@
+{
+  "date": "2026-11-08",
+  "codeCommit": "677b9c35e968426fefdcf3697cac5769428f4229",
+  "platform": "Windows",
+  "node": "24.12.0",
+  "scope": "experimental requester API; no durable host admission",
+  "files": [
+    {
+      "file": "mcp-tasks-tests.json",
+      "sha256": "9e8085f1c87d34eb8d5cad2f8e8326feebfb1867f63802f404376c9b5f42287c",
+      "bytes": 14693,
+      "tests": 38,
+      "passed": 35,
+      "failed": 3,
+      "role": "initial-test-method-name-error"
+    },
+    {
+      "file": "mcp-tasks-final-regression-tests.json",
+      "sha256": "01f8f73fb0c060fb3d2f593b65b75a1c6c17af8e7c57b93e3170168e3ea19542",
+      "bytes": 77726,
+      "tests": 236,
+      "passed": 236,
+      "failed": 0,
+      "role": "final-code-regression"
+    }
+  ]
+}

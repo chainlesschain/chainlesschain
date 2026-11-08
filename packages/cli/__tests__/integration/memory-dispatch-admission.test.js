@@ -200,6 +200,37 @@ function assertRejectedBeforeDispatch(captures, outcome, details) {
 }
 
 describe("canonical Memory final dispatch admission on real disk", () => {
+  for (const stage of ["logical-input", "fetch-body"]) {
+    it.each(["delete", "supersede"])(
+      `rejects %s while awaiting model input diagnostic ${stage}`,
+      async (change) => {
+        const settings = options();
+        const memory = await fixture(settings);
+        const captures = captureProvider("fetch", settings);
+        const diagnostics = [];
+        let committedRevision;
+        settings.onModelInputDiagnostic = async (event) => {
+          diagnostics.push(event);
+          if ((event.stage || event.phase) === stage) {
+            await new Promise((resolve) => setImmediate(resolve));
+            committedRevision = await memory.mutate(change);
+          }
+        };
+        const outcome = await settle(() => chatWithTools(request(), settings));
+        expect(committedRevision).toBeGreaterThan(1);
+        expect(
+          diagnostics.some((event) => (event.stage || event.phase) === stage),
+        ).toBe(true);
+        expect(JSON.stringify(diagnostics)).not.toContain(OLD);
+        assertRejectedBeforeDispatch(captures, outcome, {
+          stage,
+          change,
+          committedRevision,
+        });
+      },
+    );
+  }
+
   for (const boundary of ["context.plan.created", "model-usage-started"]) {
     for (const egress of ["chatFn", "fetch"]) {
       it.each(["delete", "supersede"])(

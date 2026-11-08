@@ -1,0 +1,18 @@
+﻿{
+    "task":  "test --tests com.chainlesschain.ide.SessionModelInputsTest",
+    "gradle":  "8.7",
+    "sdk":  "IntelliJ IDEA Community 2024.2 (IC-242.20224.300)",
+    "buildJdk":  "Temurin 21.0.13+9",
+    "testJbr":  "21.0.3+13-b509.4",
+    "completedTasks":  [
+                           "compileKotlin",
+                           "compileJava",
+                           "compileTestJava",
+                           "jar",
+                           "prepareTestSandbox"
+                       ],
+    "status":  "failed-before-test-execution",
+    "cause":  "Gradle Test Executor 1 could not connect to server 127.0.0.1:61354; java.net.ConnectException: Connection timed out: getsockopt",
+    "exitCode":  1,
+    "nativeUiJourneyRun":  false
+}

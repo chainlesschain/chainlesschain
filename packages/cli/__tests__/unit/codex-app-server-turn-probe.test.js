@@ -8,6 +8,7 @@ import {
   officialValidators,
   ProbeClient,
 } from "../../scripts/codex-app-server-turn-probe.mjs";
+import { CodexAppServerAdapter } from "../../src/lib/codex-app-server-adapter.js";
 import { CODEX_APP_SERVER_SCHEMA_PROBE_VERSIONS } from "../../src/lib/codex-app-server-support.js";
 
 afterEach(() => vi.useRealTimers());
@@ -244,6 +245,76 @@ describe("pinned Codex real-turn probe boundaries", () => {
     await expect(bounded(Promise.resolve("done"), 1000, "probe")).resolves.toBe(
       "done",
     );
+    expect(vi.getTimerCount()).toBe(0);
+  });
+});
+
+describe("real-process exit and stdio are separate observations", () => {
+  it("rejects an admitted adapter on exit before its deadline and bounds inherited-pipe cleanup", async () => {
+    vi.useFakeTimers();
+    const child = childProcess();
+    const client = new ProbeClient(child, officialValidators());
+    const fallback = vi.fn();
+    const adapter = new CodexAppServerAdapter({
+      client,
+      fallback,
+      enabled: true,
+      upstreamVersion: "0.154.0",
+      timeoutMs: 30_000,
+    });
+    const pending = adapter.execute({ threadId: "A" });
+    const rejected = expect(pending).rejects.toMatchObject({
+      code: "CC_CODEX_APP_SERVER_FAILED_AFTER_ADMISSION",
+      cause: { code: "CC_CODEX_APP_SERVER_TRANSPORT_CLOSED" },
+    });
+    child.stdout.write(
+      JSON.stringify({
+        id: 1,
+        result: {
+          turn: { id: "a", status: "inProgress" },
+        },
+      }) + "\n",
+    );
+    await vi.advanceTimersByTimeAsync(0);
+    child.emit("exit", null, "SIGKILL");
+    await rejected;
+    expect(client.closeObserved).toBe(false);
+    expect(client.processExit).toEqual({ code: null, signal: "SIGKILL" });
+    expect(fallback).not.toHaveBeenCalled();
+    expect(client.listenerCount("transportFailure")).toBe(0);
+    child.stderr.once("close", () => child.emit("close", null, "SIGKILL"));
+    const stopped = client.stop();
+    expect(client.stop()).toBe(stopped);
+    await vi.advanceTimersByTimeAsync(1000);
+    await expect(stopped).resolves.toEqual({
+      code: null,
+      signal: "SIGKILL",
+      stdioForcedClosed: true,
+    });
+    expect(child.kill).not.toHaveBeenCalled();
+    expect(child.stdout.destroyed).toBe(true);
+    expect(child.stderr.destroyed).toBe(true);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("latches the first protocol failure and still stops a process that has not exited", async () => {
+    vi.useFakeTimers();
+    const child = childProcess();
+    const client = new ProbeClient(child, officialValidators());
+    const observer = vi.fn();
+    client.on("transportFailure", observer);
+    child.stdout.write("not-json\n");
+    const first = client.transportFailure;
+    expect(first).toBeInstanceOf(SyntaxError);
+    expect(client.running).toBe(true);
+    await expect(client.request("thread/list", { limit: 1 })).rejects.toBe(
+      first,
+    );
+    const stopped = client.stop();
+    await vi.advanceTimersByTimeAsync(3000);
+    await expect(stopped).resolves.toEqual({ code: null, signal: "SIGTERM" });
+    expect(observer).toHaveBeenCalledExactlyOnceWith(first);
+    expect(client.transportFailure).toBe(first);
     expect(vi.getTimerCount()).toBe(0);
   });
 });

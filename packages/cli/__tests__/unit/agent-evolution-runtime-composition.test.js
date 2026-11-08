@@ -27,6 +27,12 @@ import {
   evidenceStorageLayoutForRun,
 } from "../../src/lib/evolution/evolution-evidence-storage-layout.js";
 import { AGENT_MODEL_REQUEST_LIMITS } from "../../src/lib/evolution/agent-model-projection.js";
+import * as agentEvolutionIngress from "../../src/lib/evolution/agent-evolution-ingress.js";
+import * as canonicalProviderContext from "../../src/lib/context-memory-kernel/provider-context.js";
+import {
+  captureAgentEvolutionIngress,
+  getAgentModelRequestReceipt,
+} from "../../src/lib/evolution/agent-evolution-ingress.js";
 import {
   EVOLUTION_KEYED_COMMITMENT_SCHEMA,
   EVOLUTION_PROJECTION_ATTESTATION_SCHEMA,
@@ -1283,6 +1289,173 @@ describe("Agent evolution runtime production composition", () => {
     60_000,
   );
 
+  it.each([
+    ["openai", false],
+    ["anthropic", false],
+    ["openai", true],
+  ])(
+    "binds the %s model input diagnostic to canonical planning, a trusted receipt and real wire bytes (small budget=%s)",
+    async (provider, smallBudget) => {
+      const nativeFetch = globalThis.fetch;
+      const f = modelFixture();
+      vi.stubGlobal("fetch", nativeFetch);
+      const receiptLookup = vi.spyOn(
+        agentEvolutionIngress,
+        "getAgentModelRequestReceipt",
+      );
+      const planning = vi.spyOn(
+        canonicalProviderContext,
+        "prepareCanonicalProviderContext",
+      );
+      const diagnostics = [];
+      const bodies = [];
+      try {
+        const baseUrl = await localToolEndpoint(async (_url, request) => {
+          bodies.push(request.body);
+          return {
+            json: async () =>
+              provider === "anthropic"
+                ? {
+                    content: [{ type: "text", text: "done" }],
+                    stop_reason: "end_turn",
+                  }
+                : {
+                    choices: [
+                      { message: { role: "assistant", content: "done" } },
+                    ],
+                  },
+          };
+        });
+        const result = await chatWithTools(
+          [
+            { role: "system", content: "project-rule-PRIVATE" },
+            ...(smallBudget
+              ? [
+                  {
+                    role: "assistant",
+                    content: "omitted-source-PRIVATE ".repeat(2000),
+                  },
+                ]
+              : []),
+            { role: "user", content: "source-PRIVATE 多字节" },
+          ],
+          {
+            ...f.callOptions,
+            provider,
+            model:
+              provider === "anthropic" ? "claude-sonnet-4-6" : "unit-model",
+            baseUrl: `${baseUrl}/v1`,
+            apiKey: "credential-PRIVATE",
+            cwd: f.root,
+            contextMemorySkipPlanning: false,
+            contextMemoryEnv: {
+              CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_STAGE: "canonical_default",
+            },
+            contextMemoryFilePath: path.join(f.root, "diagnostic-memory.json"),
+            contextMemorySelectedToolNames: [],
+            ...(smallBudget
+              ? { contextMemoryModelWindowTokens: 1024, maxOutputTokens: 256 }
+              : {}),
+            onModelInputDiagnostic: async (event) => {
+              diagnostics.push(event);
+            },
+          },
+        );
+        expect(result.message.content).toBe("done");
+        expect(result.usage).toBeUndefined();
+        expect(bodies).toHaveLength(1);
+        expect(receiptLookup).toHaveBeenCalledTimes(1);
+        const receipt = receiptLookup.mock.results[0].value;
+        expect(receipt).not.toBeNull();
+        expect(Object.isFrozen(receipt)).toBe(true);
+        const event = f.composition
+          .loadRun()
+          .events.find((entry) => entry.data.evidenceKind === "model-input");
+        expect(receipt.manifestDigest).toBe(event.payloadDigest);
+        expect(receipt.eventId).toBe(event.eventId);
+        expect(
+          f.config.authorities.attestationVerifier.verify,
+        ).toHaveBeenCalled();
+        const logical = diagnostics.find(
+          (entry) => entry.phase === "logical-input",
+        );
+        const wire = diagnostics.find((entry) => entry.stage === "fetch-body");
+        expect(planning).toHaveBeenCalledTimes(1);
+        const prepared = await planning.mock.results[0].value;
+        expect(prepared.plan.digest).toMatch(/^sha256:[a-f0-9]{64}$/u);
+        expect(logical.planning).toMatchObject({
+          covered: true,
+          digest: prepared.plan.digest,
+          selectedCount: prepared.plan.selectedItemIds.length,
+        });
+        expect(logical.planning.sourceDetailsCovered).toBe(true);
+        expect(logical.planning.sourcesTruncated).toBe(false);
+        expect(
+          logical.planning.sources
+            .filter((source) => source.disposition === "selected")
+            .map((source) => source.digest),
+        ).toEqual(prepared.plan.selected.map((item) => item.digest));
+        if (smallBudget) {
+          expect(prepared.plan.dropped).toHaveLength(1);
+          expect(prepared.plan.dropped[0].reason).toBe("input_budget");
+          expect(logical.planning.dropped).toEqual({ input_budget: 1 });
+          expect(
+            logical.planning.sources.filter(
+              (source) => source.disposition === "excluded",
+            ),
+          ).toMatchObject([
+            { digest: prepared.plan.dropped[0].digest, reason: "input_budget" },
+          ]);
+          expect(bodies[0]).not.toContain("omitted-source-PRIVATE");
+          expect(bodies[0]).toContain("source-PRIVATE");
+        } else {
+          expect(logical.planning.dropped).toEqual({});
+        }
+        expect(logical.projection).toEqual({
+          covered: true,
+          manifestDigest: receipt.manifestDigest,
+          projectionDigest: receipt.projectionDigest,
+          rulesetDigest: receipt.rulesetDigest,
+          redactionCount: receipt.redactionCount,
+          injectionCount: receipt.injectionCount,
+        });
+        expect(logical.requestId).toBe(wire.requestId);
+        expect(wire.bodyDigest).toBe(
+          crypto.createHash("sha256").update(bodies[0], "utf8").digest("hex"),
+        );
+        expect(wire.bytes).toBe(Buffer.byteLength(bodies[0], "utf8"));
+        expect(wire.providerAcceptanceVerified).toBe(false);
+        expect(
+          diagnostics.every((entry) => entry.billingVerified === false),
+        ).toBe(true);
+        const report = JSON.stringify(diagnostics);
+        for (const secret of [
+          "PRIVATE",
+          "多字节",
+          "credential",
+          baseUrl,
+          f.root,
+          receipt.tenantId,
+          receipt.runId,
+          receipt.eventId,
+          receipt.evidenceId,
+        ])
+          expect(report).not.toContain(secret);
+        const body = JSON.parse(bodies[0]);
+        if (provider === "anthropic") {
+          expect(
+            body.messages.every((message) => message.role !== "system"),
+          ).toBe(true);
+          expect(body.system).toBeTruthy();
+        }
+      } finally {
+        receiptLookup.mockRestore();
+        planning.mockRestore();
+      }
+    },
+    60_000,
+  );
+
   it.each([false, true])(
     "owns a durable EvolutionRun for a real WebSocket manual compaction (denied=%s)",
     async (denied) => {
@@ -1441,9 +1614,8 @@ describe("Agent evolution runtime production composition", () => {
   ])(
     "governs actual resolver stages and queue outcomes (%s)",
     async (mode) => {
-      const { createGovernedHubResolver } = await import(
-        "../../src/lib/evolution/governed-hub-resolver.js"
-      );
+      const { createGovernedHubResolver } =
+        await import("../../src/lib/evolution/governed-hub-resolver.js");
       const sdk = createRequire(import.meta.url)(
         "../../../personal-data-hub/lib/entity-resolver/index.js",
       );
@@ -1549,9 +1721,8 @@ describe("Agent evolution runtime production composition", () => {
   );
 
   it("governs the actual interests skill prompt through strict projection", async () => {
-    const { runGovernedHubSkill } = await import(
-      "../../src/lib/evolution/governed-hub-skill.js"
-    );
+    const { runGovernedHubSkill } =
+      await import("../../src/lib/evolution/governed-hub-skill.js");
     const { InterestsSkill } = createRequire(import.meta.url)(
       "../../../personal-data-hub/lib/analysis-skills/interests.js",
     );
@@ -1672,9 +1843,8 @@ describe("Agent evolution runtime production composition", () => {
       const engine = new AnalysisEngine({ vault, llm: wrapped });
       let operation;
       if (entry === "skill") {
-        const { runGovernedHubSkill } = await import(
-          "../../src/lib/evolution/governed-hub-skill.js"
-        );
+        const { runGovernedHubSkill } =
+          await import("../../src/lib/evolution/governed-hub-skill.js");
         const { AnalysisSkill } = createRequire(import.meta.url)(
           "../../../personal-data-hub/lib/analysis-skills/base.js",
         );
@@ -3847,6 +4017,117 @@ describe("Agent evolution runtime production composition", () => {
     };
   }
 
+  it("binds an immutable model request receipt only to verified ingress output", async () => {
+    const f = modelFixture();
+    const ingress = captureAgentEvolutionIngress(
+      f.composition.evolutionIngress,
+    );
+    const input = {
+      messages: [
+        {
+          role: "user",
+          content:
+            "private-source-receipt-canary sk-abcdefghijklmnopqrstuvwxyz1234567890",
+        },
+      ],
+      tools: [],
+    };
+    const request = await ingress.prepareModelRequest(input);
+    const receipt = getAgentModelRequestReceipt(request);
+    const event = f.composition
+      .loadRun()
+      .events.find((entry) => entry.data.evidenceKind === "model-input");
+    expect(receipt).toEqual({
+      tenantId: f.config.tenantId,
+      runId: f.config.runId,
+      eventId: event.eventId,
+      evidenceId: event.subjectId,
+      manifestDigest: event.payloadDigest,
+      projectionDigest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/u),
+      rulesetDigest: EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_DIGEST,
+      redactionCount: expect.any(Number),
+      injectionCount: expect.any(Number),
+    });
+    expect(f.config.authorities.attestationVerifier.verify).toHaveBeenCalled();
+    expect(receipt.redactionCount).toBeGreaterThan(0);
+    expect(JSON.stringify(request)).not.toContain(
+      "sk-abcdefghijklmnopqrstuvwxyz1234567890",
+    );
+    expect(Object.isFrozen(receipt)).toBe(true);
+    expect(() => {
+      receipt.runId = "another-run";
+    }).toThrow(TypeError);
+    expect(Object.keys(request).sort()).toEqual(["messages", "tools"]);
+    expect(Object.getOwnPropertySymbols(request)).toEqual([]);
+    expect(Object.isFrozen(request)).toBe(true);
+    expect(JSON.stringify(receipt)).not.toContain(
+      "private-source-receipt-canary",
+    );
+    for (const other of [
+      input,
+      { ...request },
+      structuredClone(request),
+      new Proxy(request, {}),
+      null,
+      undefined,
+      "request",
+    ])
+      expect(getAgentModelRequestReceipt(other)).toBeNull();
+    const getter = vi.fn(() => receipt);
+    expect(
+      getAgentModelRequestReceipt({
+        get receipt() {
+          return getter();
+        },
+      }),
+    ).toBeNull();
+    expect(getter).not.toHaveBeenCalled();
+    const next = await ingress.prepareModelRequest(input);
+    const nextReceipt = getAgentModelRequestReceipt(next);
+    expect(nextReceipt.eventId).not.toBe(receipt.eventId);
+    expect(nextReceipt.evidenceId).not.toBe(receipt.evidenceId);
+    expect(getAgentModelRequestReceipt(request)).toBe(receipt);
+    expect(f.transport).not.toHaveBeenCalled();
+  }, 60_000);
+
+  it.each(["opaque", "readback-denied"])(
+    "never releases a model request receipt after %s admission",
+    async (mode) => {
+      const f = modelFixture(mode === "opaque" ? "restricted" : "internal");
+      const ingress = captureAgentEvolutionIngress(
+        f.composition.evolutionIngress,
+      );
+      if (mode === "readback-denied") {
+        const verifier = f.config.authorities.attestationVerifier.verify;
+        const verify = verifier.getMockImplementation();
+        verifier.mockImplementation(async (...args) => {
+          if (
+            f.composition.loadRun().events.at(-1)?.data.evidenceKind ===
+            "model-input"
+          )
+            throw new Error("readback authority revoked");
+          return verify(...args);
+        });
+      }
+      const input = {
+        messages: [{ role: "user", content: "private" }],
+        tools: [],
+      };
+      let released;
+      await expect(
+        ingress.prepareModelRequest(input).then((request) => {
+          released = request;
+        }),
+      ).rejects.toMatchObject({
+        code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+      });
+      expect(released).toBeUndefined();
+      expect(getAgentModelRequestReceipt(input)).toBeNull();
+      expect(f.transport).not.toHaveBeenCalled();
+    },
+    60_000,
+  );
+
   it.each([false, true])(
     "preserves real source reads on the OpenAI wire after canonical planning (compact=%s)",
     async (compact) => {
@@ -5342,9 +5623,8 @@ describe("Agent evolution runtime production composition", () => {
   it.each([false, true])(
     "governs actual Cowork debate admission and completion (denied=%s)",
     async (denied) => {
-      const { runCoworkDebate } = await import(
-        "../../src/lib/cowork-task-runner.js"
-      );
+      const { runCoworkDebate } =
+        await import("../../src/lib/cowork-task-runner.js");
       const f = modelFixture();
       if (denied)
         f.config.authorities.sourceEnvelope.issue.mockRejectedValue(
@@ -5383,9 +5663,8 @@ describe("Agent evolution runtime production composition", () => {
   it.each([false, true])(
     "governs actual sequential Cowork admission and completion (denied=%s)",
     async (denied) => {
-      const { runCoworkTask } = await import(
-        "../../src/lib/cowork-task-runner.js"
-      );
+      const { runCoworkTask } =
+        await import("../../src/lib/cowork-task-runner.js");
       const f = modelFixture();
       if (denied)
         f.config.authorities.sourceEnvelope.issue.mockRejectedValue(
@@ -5417,9 +5696,8 @@ describe("Agent evolution runtime production composition", () => {
   it.each(["cancelled", "no-response", "budget-exhausted"])(
     "does not complete sequential Cowork after %s",
     async (reason) => {
-      const { runCoworkTask } = await import(
-        "../../src/lib/cowork-task-runner.js"
-      );
+      const { runCoworkTask } =
+        await import("../../src/lib/cowork-task-runner.js");
       const f = modelFixture();
       const controller = new AbortController();
       if (reason === "cancelled") controller.abort();
@@ -5465,9 +5743,8 @@ describe("Agent evolution runtime production composition", () => {
   );
 
   it("completes real sequential Cowork with missing IDs and numeric tool telemetry", async () => {
-    const { runCoworkTask } = await import(
-      "../../src/lib/cowork-task-runner.js"
-    );
+    const { runCoworkTask } =
+      await import("../../src/lib/cowork-task-runner.js");
     const f = modelFixture();
     fs.writeFileSync(
       path.join(f.root, "input.txt"),
@@ -5548,9 +5825,8 @@ describe("Agent evolution runtime production composition", () => {
     "governs the real standalone compact command before persisting its session revision (%s, responseDenied=%s)",
     async (stage, denied) => {
       const { Command } = await import("commander");
-      const { registerCompactCommand } = await import(
-        "../../src/commands/compact.js"
-      );
+      const { registerCompactCommand } =
+        await import("../../src/commands/compact.js");
       const sessions = await import("../../src/harness/jsonl-session-store.js");
       const f = modelFixture();
       if (denied) {
@@ -5674,9 +5950,8 @@ describe("Agent evolution runtime production composition", () => {
         expect(events.indexOf(settled[0])).toBeLessThan(
           events.indexOf(commits[1]),
         );
-        const { encodePersistedMessage } = await import(
-          "../../src/lib/session-message-provenance.js"
-        );
+        const { encodePersistedMessage } =
+          await import("../../src/lib/session-message-provenance.js");
         expect(
           sessions.readVerifiedMessages(sessionId).map(encodePersistedMessage),
         ).toEqual(commits[1].data.messages);

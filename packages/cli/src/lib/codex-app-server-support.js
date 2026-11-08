@@ -5,7 +5,7 @@ export const CODEX_APP_SERVER_FEATURE_FLAG = "CC_EXPERIMENTAL_CODEX_APP_SERVER";
 export const CODEX_APP_SERVER_FALLBACK_PROTOCOL = "codex-exec-jsonl-v1";
 
 export const CODEX_APP_SERVER_SUPPORT = Object.freeze({
-  revision: "2026-10-28",
+  revision: "2026-11-08",
   defaultEnabled: false,
   productionAdmitted: false,
   platforms: Object.freeze([
@@ -22,7 +22,7 @@ export const CODEX_APP_SERVER_SUPPORT = Object.freeze({
         schemaAndTurnProbeConfigured: false,
       }),
     ),
-    ...["0.160.0", "0.164.0"].map((version) =>
+    ...["0.160.0", "0.164.0", "0.167.0"].map((version) =>
       Object.freeze({
         version,
         experimentalAllowed: false,

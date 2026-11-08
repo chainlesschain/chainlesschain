@@ -1,3 +1,4 @@
+import { createPersistedModelInputObserver } from "../lib/session-model-input-diagnostics.js";
 /**
  * Headless agent runner — Claude-Code `claude -p` parity for `cc agent`.
  *
@@ -1267,9 +1268,8 @@ async function runAgentHeadlessInWorkspace(
       const loaded = loadHooks({ cwd, settingsFile: options.settingsFile });
       // Fold in installed plugins' hooks/hooks.json (Phase 3.3c) — plugins ADD
       // to the user's settings hooks, never replace them.
-      const { mergePluginHooks } = await import(
-        "../lib/plugin-runtime/hooks.js"
-      );
+      const { mergePluginHooks } =
+        await import("../lib/plugin-runtime/hooks.js");
       const effectiveHooks = mergePluginHooks(
         attachAuthorityErrors(loaded.hooks, loaded.authorityErrors),
         { cwd },
@@ -1310,9 +1310,8 @@ async function runAgentHeadlessInWorkspace(
   // the run, so no explicit restore is needed.
   if (!hermeticExecution) {
     try {
-      const { applyPluginBinPath } = await import(
-        "../lib/plugin-runtime/bin.js"
-      );
+      const { applyPluginBinPath } =
+        await import("../lib/plugin-runtime/bin.js");
       applyPluginBinPath({ cwd });
     } catch {
       /* best-effort — plugin bin PATH never blocks a headless run */
@@ -1323,9 +1322,8 @@ async function runAgentHeadlessInWorkspace(
   // keys not already set; the process exits at the end so no restore is needed.
   if (!hermeticExecution) {
     try {
-      const { applyPluginSettingsEnv } = await import(
-        "../lib/plugin-runtime/settings.js"
-      );
+      const { applyPluginSettingsEnv } =
+        await import("../lib/plugin-runtime/settings.js");
       applyPluginSettingsEnv({ cwd });
     } catch {
       /* best-effort — plugin settings never block a headless run */
@@ -1474,9 +1472,8 @@ async function runAgentHeadlessInWorkspace(
   if (isHeadlessConfigCommand(prompt)) {
     const cm = await import("../lib/config-manager.js");
     const { getConfigPath } = await import("../lib/paths.js");
-    const { runConfigDirective } = await import(
-      "../lib/headless-config-command.js"
-    );
+    const { runConfigDirective } =
+      await import("../lib/headless-config-command.js");
     const { text, isError } = runConfigDirective(prompt, {
       configManager: cm,
       getConfigPath,
@@ -1552,9 +1549,8 @@ async function runAgentHeadlessInWorkspace(
           model = macro.model;
           writeErr(`  command: model → ${model}\n`);
           try {
-            const { maybeWarnDeprecatedModel } = await import(
-              "../lib/model-deprecation.js"
-            );
+            const { maybeWarnDeprecatedModel } =
+              await import("../lib/model-deprecation.js");
             maybeWarnDeprecatedModel({ model });
           } catch {
             // deprecation notice is best-effort
@@ -1591,9 +1587,8 @@ async function runAgentHeadlessInWorkspace(
 
   // ── Permission + tool resolution ──────────────────────────────────────
   if (managedSettings) {
-    const { assertManagedPermissionMode } = await import(
-      "../lib/settings-loader.cjs"
-    );
+    const { assertManagedPermissionMode } =
+      await import("../lib/settings-loader.cjs");
     assertManagedPermissionMode(options.permissionMode, managedSettings);
   }
   const perm = resolvePermissionMode(options.permissionMode);
@@ -2053,9 +2048,8 @@ async function runAgentHeadlessInWorkspace(
       : null;
   if (!hermeticExecution && !instructionExcludes) {
     try {
-      const { readStringArraySetting } = await import(
-        "../lib/settings-loader.cjs"
-      );
+      const { readStringArraySetting } =
+        await import("../lib/settings-loader.cjs");
       const fromSettings = readStringArraySetting("instructionExcludes", {
         cwd,
         settingsFile: options.settingsFile,
@@ -2114,9 +2108,8 @@ async function runAgentHeadlessInWorkspace(
   // settings.json UserPromptSubmit hooks. block → abort the run; context → inject.
   if (settingsHooks) {
     try {
-      const { runUserPromptSubmitHooks } = await import(
-        "../lib/settings-hook-events.js"
-      );
+      const { runUserPromptSubmitHooks } =
+        await import("../lib/settings-hook-events.js");
       const ups = await runUserPromptSubmitHooks(settingsHooks, {
         prompt: userContent,
         cwd,
@@ -2146,9 +2139,8 @@ async function runAgentHeadlessInWorkspace(
   let instructionsLoadedContext = null;
   if (settingsHooks && _loadedInstructions) {
     try {
-      const { runInstructionsLoadedHooks } = await import(
-        "../lib/settings-hook-events.js"
-      );
+      const { runInstructionsLoadedHooks } =
+        await import("../lib/settings-hook-events.js");
       instructionsLoadedContext = (
         await runInstructionsLoadedHooks(settingsHooks, {
           files: _loadedInstructions.files,
@@ -2165,9 +2157,8 @@ async function runAgentHeadlessInWorkspace(
   let sessionStartContext = null;
   if (settingsHooks) {
     try {
-      const { runSessionStartHooks } = await import(
-        "../lib/settings-hook-events.js"
-      );
+      const { runSessionStartHooks } =
+        await import("../lib/settings-hook-events.js");
       sessionStartContext = (
         await runSessionStartHooks(settingsHooks, {
           source: resumeId ? "resume" : "startup",
@@ -2187,9 +2178,8 @@ async function runAgentHeadlessInWorkspace(
   // back up" — e.g. re-run a workspace sanity check. Observe-only, best-effort.
   if (settingsHooks && resumeId && history.length > 0) {
     try {
-      const { runObserveHooks } = await import(
-        "../lib/settings-hook-events.js"
-      );
+      const { runObserveHooks } =
+        await import("../lib/settings-hook-events.js");
       await runObserveHooks(
         settingsHooks,
         "SessionResume",
@@ -2443,9 +2433,8 @@ async function runAgentHeadlessInWorkspace(
   // --add-dir → workspaceRootDirs = [cwd] and this is a no-op. Best-effort.
   if (hostMcp?.mcpClient && additionalDirectories.length > 0) {
     try {
-      const { notifyMcpRootsChanged, workspaceRootDirs } = await import(
-        "../repl/add-dir.js"
-      );
+      const { notifyMcpRootsChanged, workspaceRootDirs } =
+        await import("../repl/add-dir.js");
       notifyMcpRootsChanged(
         [hostMcp.mcpClient],
         workspaceRootDirs(options.cwd || process.cwd(), additionalDirectories),
@@ -2462,9 +2451,8 @@ async function runAgentHeadlessInWorkspace(
   // a short timeout; CC_IDE_CONTEXT=0 disables.
   if (!hermeticExecution) {
     try {
-      const { buildIdePromptContext, expandIdeMentions } = await import(
-        "../lib/ide-context.js"
-      );
+      const { buildIdePromptContext, expandIdeMentions } =
+        await import("../lib/ide-context.js");
       const ideBlocks = [];
       const ideCtx = await (
         deps.buildIdePromptContext || buildIdePromptContext
@@ -2562,9 +2550,8 @@ async function runAgentHeadlessInWorkspace(
         error.code = "CC_REMOTE_APPROVAL_GATE_UNAVAILABLE";
         throw error;
       }
-      const { startHeadlessRemoteApproval } = await import(
-        "../lib/remote-approval-bridge.js"
-      );
+      const { startHeadlessRemoteApproval } =
+        await import("../lib/remote-approval-bridge.js");
       _remoteApproval = await (
         deps.startHeadlessRemoteApproval || startHeadlessRemoteApproval
       )({
@@ -2595,9 +2582,8 @@ async function runAgentHeadlessInWorkspace(
   let _collectorEnabled = false;
   if (!hermeticExecution) {
     try {
-      const { isOtlpCollectorEnabled } = await import(
-        "../lib/observability/index.js"
-      );
+      const { isOtlpCollectorEnabled } =
+        await import("../lib/observability/index.js");
       _collectorEnabled = isOtlpCollectorEnabled();
     } catch {
       _collectorEnabled = false;
@@ -2605,9 +2591,8 @@ async function runAgentHeadlessInWorkspace(
   }
   if (!hermeticExecution && (options.otlp || _collectorEnabled)) {
     try {
-      const { TelemetryRecorder } = await import(
-        "../lib/telemetry/span-recorder.js"
-      );
+      const { TelemetryRecorder } =
+        await import("../lib/telemetry/span-recorder.js");
       _otlpRecorder = new TelemetryRecorder({ serviceName: "cc-agent" });
     } catch {
       _otlpRecorder = null; // telemetry is best-effort, never blocks the run
@@ -2621,9 +2606,8 @@ async function runAgentHeadlessInWorkspace(
   let _hookSupervisor = null;
   if (settingsHooks) {
     try {
-      const { AsyncHookSupervisor } = await import(
-        "../lib/async-hook-supervisor.js"
-      );
+      const { AsyncHookSupervisor } =
+        await import("../lib/async-hook-supervisor.js");
       _hookSupervisor = new AsyncHookSupervisor({
         persistStats: true,
         // Durably park failed-rewake signals keyed by session so a crash before
@@ -2941,7 +2925,17 @@ async function runAgentHeadlessInWorkspace(
       return appended;
     });
   };
+  const onModelInputDiagnostic = persist
+    ? createPersistedModelInputObserver({
+        append: (type, data) =>
+          persistRuntimeLedgerWrite(() =>
+            store.appendEvent(sessionId, type, data),
+          ),
+        observe: options.onModelInputDiagnostic,
+      })
+    : options.onModelInputDiagnostic;
   const loopOptions = {
+    onModelInputDiagnostic,
     contextMemoryModelWindowTokens: options.contextMemoryModelWindowTokens,
     ...(evolutionIngress === null ? {} : { evolutionIngress }),
     model,
@@ -3207,9 +3201,8 @@ async function runAgentHeadlessInWorkspace(
   if (options.goal !== undefined && options.goal !== false) {
     try {
       const explicitId = typeof options.goal === "string" ? options.goal : null;
-      const { resolveActiveGoal, linkSession } = await import(
-        "../lib/goal-store.js"
-      );
+      const { resolveActiveGoal, linkSession } =
+        await import("../lib/goal-store.js");
       const goal = (deps.resolveActiveGoal || resolveActiveGoal)({
         explicitId,
         sessionId,
@@ -3660,9 +3653,8 @@ async function runAgentHeadlessInWorkspace(
         });
       }
       if (goalEngine.condition.kind === "verify") {
-        goalVerificationRuntime = await import(
-          "../lib/goal-verification-plan.js"
-        );
+        goalVerificationRuntime =
+          await import("../lib/goal-verification-plan.js");
         goalEngine.condition =
           await goalVerificationRuntime.prepareGoalVerification(
             goalEngine.condition,
@@ -3707,9 +3699,8 @@ async function runAgentHeadlessInWorkspace(
       } else {
         // A requested acceptance condition must never disappear and turn an
         // otherwise unverified author response into an ordinary successful run.
-        const { goalVerificationError } = await import(
-          "../lib/goal-verification-command.js"
-        );
+        const { goalVerificationError } =
+          await import("../lib/goal-verification-command.js");
         goalSetupFailure = err.goalVerificationFailure
           ? err
           : goalVerificationError(
@@ -4511,9 +4502,8 @@ async function runAgentHeadlessInWorkspace(
     await cleanupDeadline.run("settings-hooks", async () => {
       if (settingsHooks) {
         try {
-          const { runObserveHooks } = await import(
-            "../lib/settings-hook-events.js"
-          );
+          const { runObserveHooks } =
+            await import("../lib/settings-hook-events.js");
           const stopPayload = {
             reason: pipeState.closed ? "pipe_closed" : endReason,
             cwd,
@@ -4808,9 +4798,8 @@ async function runAgentHeadlessInWorkspace(
       emitStream({ type: "denials_summary", count: denials.length, denials });
     }
     try {
-      const { appendRecentDenials } = await import(
-        "../lib/permission-denial-store.js"
-      );
+      const { appendRecentDenials } =
+        await import("../lib/permission-denial-store.js");
       appendRecentDenials(denials, {
         sessionId,
         permissionMode: options.permissionMode || "default",
@@ -4885,9 +4874,8 @@ async function runAgentHeadlessInWorkspace(
     }
     if (_collectorEnabled) {
       try {
-        const { exportTelemetryRecorder } = await import(
-          "../lib/observability/index.js"
-        );
+        const { exportTelemetryRecorder } =
+          await import("../lib/observability/index.js");
         exportTelemetryRecorder(_otlpRecorder);
       } catch {
         // Telemetry is observational only and never changes the agent result.

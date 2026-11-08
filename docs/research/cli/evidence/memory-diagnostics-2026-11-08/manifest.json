@@ -1,0 +1,252 @@
+{
+  "schema": "chainlesschain.memory-diagnostics-merge-evidence/v1",
+  "archivedAt": "2026-11-08T02:57:29.426Z",
+  "merge": {
+    "head": "5193dcf960a361a1178a7fbcd08736da1bc23c77",
+    "mergeHead": "d23e386a6ddd48087d769d5fd369c065024fec6d",
+    "implementation": "Uncommitted merge worktree; source snapshots bind this evidence, neither parent commit is the merged implementation SHA."
+  },
+  "claims": {
+    "providerCallsToRealModels": 0,
+    "paidReady": false,
+    "productionAdmission": false,
+    "osIsolationVerified": false,
+    "performanceAdmission": false,
+    "crossPlatformVerified": false,
+    "diagnosticObserverForcedCancellationVerified": false,
+    "replLegacyHistoryResolved": false,
+    "runtimeCoverageVerified": false
+  },
+  "previousArchive": {
+    "path": "../memory-admission-2026-11-08",
+    "records": 24,
+    "manifestSha256": "da7d70b127986fe4de15a57702fc9ac8501cb479eb4914ae967c671a58654349",
+    "unchangedDuringArchival": true
+  },
+  "results": {
+    "related": {
+      "files": 21,
+      "passed": 425,
+      "failed": 0,
+      "skipped": 0
+    },
+    "subset": {
+      "files": 3,
+      "passed": 42,
+      "includedInRelated": true
+    },
+    "budget": {
+      "passed": 108,
+      "failed": 0,
+      "skipped": 0,
+      "newStageCases": 2,
+      "includedIn108": true,
+      "format": "node-test-spec",
+      "originalExtension": ".tap"
+    },
+    "egress": {
+      "candidates": 89,
+      "reviewed": 89,
+      "unclassified": 0,
+      "callChainUnmapped": 78
+    },
+    "webPanel": {
+      "buildCompletionMarkerVerified": true,
+      "standaloneExitCodeRecorded": false,
+      "installedProductVerified": false
+    }
+  },
+  "files": {
+    "related425.json": {
+      "artifact": "raw/938d262a22a6a854d3ade1bf98083e6592d7a51ba59a14c119c779c63b0e2537.gz",
+      "kind": "original-report",
+      "originalFile": "E:/code/chainlesschain/.tmp/memory-diagnostics-merge-all-20261108.json",
+      "encoding": "utf-8",
+      "bytes": 146188,
+      "sha256": "938d262a22a6a854d3ade1bf98083e6592d7a51ba59a14c119c779c63b0e2537",
+      "compressedBytes": 16927,
+      "compressedSha256": "5d2563a9be75df605451c91ee290f4bc4c28dccee32e2c70fe103647a99635cb"
+    },
+    "subset42.json": {
+      "artifact": "raw/461c3e1dce3a48e84e554359ae6d0ecea2293c4509f381ac2c929b48a6826b90.gz",
+      "kind": "original-report",
+      "originalFile": "E:/code/chainlesschain/.tmp/memory-diagnostics-merge-vitest-20261108.json",
+      "encoding": "utf-8",
+      "bytes": 15768,
+      "sha256": "461c3e1dce3a48e84e554359ae6d0ecea2293c4509f381ac2c929b48a6826b90",
+      "compressedBytes": 2344,
+      "compressedSha256": "8635efcb674f6a683c2801e35eca525b3abd2484506af3cd7cbd639d2a42f8a1"
+    },
+    "budget108.tap": {
+      "artifact": "raw/bb55cb2d89643c427f8b10e338075e8889a8f889e38f8ef714a6f9ab1173d19e.gz",
+      "kind": "original-report",
+      "originalFile": "E:/code/chainlesschain/.tmp/memory-diagnostics-merge-budget-20261108.tap",
+      "encoding": "utf-16le-bom",
+      "bytes": 16954,
+      "sha256": "bb55cb2d89643c427f8b10e338075e8889a8f889e38f8ef714a6f9ab1173d19e",
+      "compressedBytes": 3883,
+      "compressedSha256": "d4becf6d19d05cc009cafe5ae1836e26f3762806dc344eca4734dfd0bb59b93d"
+    },
+    "egress89.json": {
+      "artifact": "raw/f9952e80c285ede4ed3448bc5565d473ac6181c67c1c9be933e647dc53abdb50.gz",
+      "kind": "original-report",
+      "originalFile": "E:/code/chainlesschain/.tmp/memory-diagnostics-merge-egress-final-20261108.json",
+      "encoding": "utf-8",
+      "bytes": 127208,
+      "sha256": "f9952e80c285ede4ed3448bc5565d473ac6181c67c1c9be933e647dc53abdb50",
+      "compressedBytes": 30383,
+      "compressedSha256": "c3f0701edf39e1a3e56e6e680f2a0a446655c6b0cd0d51067b889e5cc3abd01e"
+    },
+    "web-panel.log": {
+      "artifact": "raw/45e4c497c89790e2841c20bcf09d780017d39fb0ca57d49352c9d7b130690c36.gz",
+      "kind": "original-report",
+      "originalFile": "E:/code/chainlesschain/.tmp/memory-diagnostics-merge-web-panel-20261108.log",
+      "encoding": "utf-16le-bom",
+      "bytes": 46324,
+      "sha256": "45e4c497c89790e2841c20bcf09d780017d39fb0ca57d49352c9d7b130690c36",
+      "compressedBytes": 8112,
+      "compressedSha256": "aa48f4f029c3693e8aaa19ef37888155924c3d3ad59a5c604d6b00a2e0ba9574"
+    },
+    "source:packages/cli/src/lib/model-input-diagnostics.js": {
+      "artifact": "raw/995050d189a732b5db82b4e2c891cdaaa0eae5c5dfdbebea1fb31e489b23d2cd.gz",
+      "kind": "implementation-source",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-repl-20261108\\packages\\cli\\src\\lib\\model-input-diagnostics.js",
+      "encoding": "utf-8",
+      "bytes": 5554,
+      "sha256": "995050d189a732b5db82b4e2c891cdaaa0eae5c5dfdbebea1fb31e489b23d2cd",
+      "compressedBytes": 1930,
+      "compressedSha256": "bb0083de432625624bdde4cbc6b99f252d1fb705afb592cfa746df89522b14a8"
+    },
+    "source:packages/cli/src/lib/provider-request-admission.js": {
+      "artifact": "raw/553104439f8a5941ed2c4ac725e8dc37000c9b874e84d6c57986db8f2223e336.gz",
+      "kind": "implementation-source",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-repl-20261108\\packages\\cli\\src\\lib\\provider-request-admission.js",
+      "encoding": "utf-8",
+      "bytes": 5881,
+      "sha256": "553104439f8a5941ed2c4ac725e8dc37000c9b874e84d6c57986db8f2223e336",
+      "compressedBytes": 1921,
+      "compressedSha256": "088e4298bd5eb64a7966ff3f9c5eef2f9487f9b3178e7973a428400133ab6082"
+    },
+    "source:packages/cli/src/lib/formal-budget-provider-scope.js": {
+      "artifact": "raw/f9065c32fed7bdf103821907bc97adb9eabe9eb54082654c17aaec2b230d8b30.gz",
+      "kind": "implementation-source",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-repl-20261108\\packages\\cli\\src\\lib\\formal-budget-provider-scope.js",
+      "encoding": "utf-8",
+      "bytes": 5289,
+      "sha256": "f9065c32fed7bdf103821907bc97adb9eabe9eb54082654c17aaec2b230d8b30",
+      "compressedBytes": 1655,
+      "compressedSha256": "e0c03bf29e4806a187c6039f4c98a9153b34b1e39c393816a1e654291723a13f"
+    },
+    "source:packages/cli/src/lib/formal-budget-transport.js": {
+      "artifact": "raw/a03e494792890bb16659f6cb92c8b30ad08005716f06170efe8ab65220490b5e.gz",
+      "kind": "implementation-source",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-repl-20261108\\packages\\cli\\src\\lib\\formal-budget-transport.js",
+      "encoding": "utf-8",
+      "bytes": 16058,
+      "sha256": "a03e494792890bb16659f6cb92c8b30ad08005716f06170efe8ab65220490b5e",
+      "compressedBytes": 5004,
+      "compressedSha256": "33a2fc514f592bc3568ce53f99a55b9c79186bc0093352f3f3ff285c96a7a7ed"
+    },
+    "source:packages/cli/src/runtime/agent-core.js": {
+      "artifact": "raw/c4122648804e74503520f0a3c4fd2a493a10d1749c3e0b4ec23057619e832a9b.gz",
+      "kind": "implementation-source",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-repl-20261108\\packages\\cli\\src\\runtime\\agent-core.js",
+      "encoding": "utf-8",
+      "bytes": 693170,
+      "sha256": "c4122648804e74503520f0a3c4fd2a493a10d1749c3e0b4ec23057619e832a9b",
+      "compressedBytes": 174684,
+      "compressedSha256": "6dc652cc2efe12803e112f975bfb190d101c07accfaa8e65329fdb246437bd6d"
+    },
+    "source:packages/cli/__tests__/integration/memory-dispatch-admission.test.js": {
+      "artifact": "raw/cfc063204be4d1a16ae3bb202a4519ed06e7a50051c50b4ac07c8390f10d3064.gz",
+      "kind": "implementation-source",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-repl-20261108\\packages\\cli\\__tests__\\integration\\memory-dispatch-admission.test.js",
+      "encoding": "utf-8",
+      "bytes": 19856,
+      "sha256": "cfc063204be4d1a16ae3bb202a4519ed06e7a50051c50b4ac07c8390f10d3064",
+      "compressedBytes": 5505,
+      "compressedSha256": "d3386dbb5705847d3737daec83590fa9dad4b123938eadf0bde22c8ae0c6f2e8"
+    },
+    "source:packages/cli/test-node/memory-budget-admission.node-test.mjs": {
+      "artifact": "raw/e6429d7289cbd48ce0220c6d415e5e78149bc3405102f8a1be914dee67ecf30f.gz",
+      "kind": "implementation-source",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-repl-20261108\\packages\\cli\\test-node\\memory-budget-admission.node-test.mjs",
+      "encoding": "utf-8",
+      "bytes": 12781,
+      "sha256": "e6429d7289cbd48ce0220c6d415e5e78149bc3405102f8a1be914dee67ecf30f",
+      "compressedBytes": 3834,
+      "compressedSha256": "1867e29390922505822978d4ddb0c662c235855d407e2d126c1f75d81c8480c1"
+    },
+    "source:packages/cli/scripts/budget-egress-reviewed-sources.json": {
+      "artifact": "raw/9cda7451c73bd4b40a9d9a4e0f60bf0c0e69332bd65ac37a97cbc1b877b30141.gz",
+      "kind": "implementation-source",
+      "originalFile": "E:\\code\\chainlesschain\\.worktrees\\cli-ide-memory-repl-20261108\\packages\\cli\\scripts\\budget-egress-reviewed-sources.json",
+      "encoding": "utf-8",
+      "bytes": 67665,
+      "sha256": "9cda7451c73bd4b40a9d9a4e0f60bf0c0e69332bd65ac37a97cbc1b877b30141",
+      "compressedBytes": 20698,
+      "compressedSha256": "412e08d10e1a70099752d46b8ae961ee4b7de887e2e09bfa8f86d8ec7fe27806"
+    }
+  },
+  "sources": {
+    "packages/cli/src/lib/model-input-diagnostics.js": {
+      "artifact": "raw/995050d189a732b5db82b4e2c891cdaaa0eae5c5dfdbebea1fb31e489b23d2cd.gz",
+      "sha256": "995050d189a732b5db82b4e2c891cdaaa0eae5c5dfdbebea1fb31e489b23d2cd"
+    },
+    "packages/cli/src/lib/provider-request-admission.js": {
+      "artifact": "raw/553104439f8a5941ed2c4ac725e8dc37000c9b874e84d6c57986db8f2223e336.gz",
+      "sha256": "553104439f8a5941ed2c4ac725e8dc37000c9b874e84d6c57986db8f2223e336"
+    },
+    "packages/cli/src/lib/formal-budget-provider-scope.js": {
+      "artifact": "raw/f9065c32fed7bdf103821907bc97adb9eabe9eb54082654c17aaec2b230d8b30.gz",
+      "sha256": "f9065c32fed7bdf103821907bc97adb9eabe9eb54082654c17aaec2b230d8b30"
+    },
+    "packages/cli/src/lib/formal-budget-transport.js": {
+      "artifact": "raw/a03e494792890bb16659f6cb92c8b30ad08005716f06170efe8ab65220490b5e.gz",
+      "sha256": "a03e494792890bb16659f6cb92c8b30ad08005716f06170efe8ab65220490b5e"
+    },
+    "packages/cli/src/runtime/agent-core.js": {
+      "artifact": "raw/c4122648804e74503520f0a3c4fd2a493a10d1749c3e0b4ec23057619e832a9b.gz",
+      "sha256": "c4122648804e74503520f0a3c4fd2a493a10d1749c3e0b4ec23057619e832a9b"
+    },
+    "packages/cli/__tests__/integration/memory-dispatch-admission.test.js": {
+      "artifact": "raw/cfc063204be4d1a16ae3bb202a4519ed06e7a50051c50b4ac07c8390f10d3064.gz",
+      "sha256": "cfc063204be4d1a16ae3bb202a4519ed06e7a50051c50b4ac07c8390f10d3064"
+    },
+    "packages/cli/test-node/memory-budget-admission.node-test.mjs": {
+      "artifact": "raw/e6429d7289cbd48ce0220c6d415e5e78149bc3405102f8a1be914dee67ecf30f.gz",
+      "sha256": "e6429d7289cbd48ce0220c6d415e5e78149bc3405102f8a1be914dee67ecf30f"
+    },
+    "packages/cli/scripts/budget-egress-reviewed-sources.json": {
+      "artifact": "raw/9cda7451c73bd4b40a9d9a4e0f60bf0c0e69332bd65ac37a97cbc1b877b30141.gz",
+      "sha256": "9cda7451c73bd4b40a9d9a4e0f60bf0c0e69332bd65ac37a97cbc1b877b30141"
+    }
+  },
+  "testCounts": {
+    "packages/cli/__tests__/integration/memory-dispatch-admission.test.js": 23,
+    "packages/cli/__tests__/integration/semantic-memory-cancellation.test.js": 6,
+    "packages/cli/__tests__/unit/agent-context-window-transport.test.js": 7,
+    "packages/cli/__tests__/unit/agent-context-window.test.js": 9,
+    "packages/cli/__tests__/unit/agent-core-stream-resilience.test.js": 29,
+    "packages/cli/__tests__/unit/agent-core-stream-stall.test.js": 16,
+    "packages/cli/__tests__/unit/agent-core-streaming.test.js": 13,
+    "packages/cli/__tests__/unit/canonical-compaction-task-binding.test.js": 16,
+    "packages/cli/__tests__/unit/canonical-compaction-usage.test.js": 23,
+    "packages/cli/__tests__/unit/canonical-compaction-workflow.test.js": 11,
+    "packages/cli/__tests__/unit/canonical-live-host-context.test.js": 9,
+    "packages/cli/__tests__/unit/fallback-model.test.js": 46,
+    "packages/cli/__tests__/unit/model-input-diagnostics.test.js": 12,
+    "packages/cli/__tests__/unit/provider-context-image-transport.test.js": 5,
+    "packages/cli/__tests__/unit/provider-request-admission.test.js": 14,
+    "packages/cli/__tests__/unit/session-model-input-diagnostics.test.js": 7,
+    "packages/cli/__tests__/unit/stream-retry-after.test.js": 59,
+    "packages/cli/__tests__/unit/stream-retry-provider-verdict.test.js": 29,
+    "packages/cli/__tests__/unit/stream-retry-transport-boundaries.test.js": 34,
+    "packages/cli/__tests__/unit/stream-retry.test.js": 9,
+    "packages/cli/__tests__/unit/sub-agent-context.test.js": 48
+  },
+  "archiveFilesSha256": {
+    "README.md": "48183dff4cd89e037b132f7cec51284e388bb069e877174637da907dae918428",
+    "verify-evidence.mjs": "9e3e4be733bec904be3bd9a970e7de2599d51dd1af9553e2421273d5d1a326a2"
+  }
+}

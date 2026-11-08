@@ -10,7 +10,8 @@
     },
     {
       "path": "packages/cli/src/lib/context-memory-kernel/memory-query-index.js",
-      "gitBlob": "9e7c10beb6dc23be1a3bf9639a1879c7c2af7833"
+      "gitBlob": "9e7c10beb6dc23be1a3bf9639a1879c7c2af7833",
+      "fixture": "memory-query-index-e7.mjs.txt"
     },
     {
       "path": "packages/cli/src/lib/context-memory-kernel/memory-query-control.js",

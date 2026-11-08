@@ -1307,8 +1307,10 @@ chainlesschain mcp remove <name>        # Remove a server
 chainlesschain mcp connect <name>       # Connect to server
 chainlesschain mcp disconnect <name>    # Disconnect
 chainlesschain mcp tools                # List available tools
-chainlesschain mcp call <server> <tool> # Call a tool
+chainlesschain mcp call <tool> --server <name> # Call a tool
 ```
+
+Development branch: `chainlesschain mcp tasks` provides experimental, session-bound HTTP(S) server tasks with durable acceptance and saved results. See the [task workflow and recovery guide](../../docs/cli/mcp-tasks.md). This does not change the public release limits.
 
 ### `chainlesschain browse <action>`
 

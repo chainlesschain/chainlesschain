@@ -996,6 +996,31 @@ export function createRecoveryGuardedMcpClient({
   wrappedClient = new Proxy(facade, {
     get(_facade, property) {
       if (property === "callTool") return callTool;
+      if (
+        [
+          "callToolTask",
+          "getTask",
+          "getTaskResult",
+          "listTasks",
+          "cancelTask",
+          "_taskRequest",
+          "getTaskRecoveryIdentity",
+          "restoreTaskBinding",
+        ].includes(property)
+      ) {
+        return async () => {
+          throw Object.assign(
+            new Error(
+              "MCP Tasks require durable task ledger admission before host use",
+            ),
+            {
+              code: "CC_MCP_TASK_DURABLE_ADMISSION_REQUIRED",
+              dispatched: false,
+              outcomeUnknown: false,
+            },
+          );
+        };
+      }
       const value = Reflect.get(client, property, client);
       if (value === client) return wrappedClient;
       if (typeof value !== "function") return value;

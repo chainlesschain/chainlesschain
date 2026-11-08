@@ -1,0 +1,102 @@
+{
+  "schema": "chainlesschain.mcp-task-durable-evidence/v1",
+  "date": "2026-11-08",
+  "branch": "feature/mcp-task-durable-runtime-20261108",
+  "baseCommit": "520508fb3ad6847955a62a8e24153fc019902e2d",
+  "platform": "Windows",
+  "node": "24.12.0",
+  "files": [
+    {
+      "file": "mcp-task-durable-initial-tests.json",
+      "bytes": 23122,
+      "sha256": "1ab9b71b4788b91e2c5747c00d97b1cfee3f9bca2e54fc25c12328232fc7951b",
+      "tests": 63,
+      "passed": 61,
+      "failed": 2
+    },
+    {
+      "file": "mcp-task-durable-final-tests.json",
+      "bytes": 101503,
+      "sha256": "c5605d679a43b27b8945ed544aa7d4ffddaf8744edf26cc5be8a271c6aa6a879",
+      "tests": 303,
+      "passed": 303,
+      "failed": 0
+    },
+    {
+      "file": "native-report.json",
+      "bytes": 6743,
+      "sha256": "5d7ef7a550c796c5ce957a1697f849c372d3cd1f245ba2232845a753883ef01d",
+      "passed": true,
+      "platform": "win32",
+      "node": "v24.12.0",
+      "counts": {
+        "initialize": 7,
+        "tools/list": 7,
+        "resources/list": 7,
+        "resources/templates/list": 7,
+        "prompts/list": 7,
+        "tools/call": 2,
+        "tasks/get": 1,
+        "tasks/result": 2
+      }
+    }
+  ],
+  "limits": [
+    "no model invocation or paid call",
+    "HTTP loopback fixture only",
+    "Windows DPAPI native probe",
+    "TLS identity assertions do not prove a TLS handshake",
+    "no automatic model-message consumption"
+  ],
+  "codeCommit": "2cde23e9f7e950992692b52192cd38b7be5cd6f8",
+  "sourceBlobs": [
+    {
+      "file": "packages/cli/__tests__/fixtures/mcp-tasks/durable-child.mjs",
+      "sha256": "207ac008ac01cdf7ad90f4780f190b61e8562917cbf47d34d4425672fb2b30f0"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/mcp-client-tasks.test.js",
+      "sha256": "b161e433062638ccf53c39a58c3bb756a77f317e548072ced255761722163243"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/mcp-task-cli-connector.test.js",
+      "sha256": "d45ed36e8f87d7855dc1ac1cc97cf92a7c8a54b3c30646c1d5a0d4ccf136b522"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/mcp-task-journal.test.js",
+      "sha256": "97cbfc32b3a79d58db41894f299bbe1b9d6272ecab8b44a7b43f85c2a3f95267"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/mcp-task-runtime.test.js",
+      "sha256": "77e72aaae97d483bc56640260b201404c023d95d243ceee1f8aa406ab73c5675"
+    },
+    {
+      "file": "packages/cli/scripts/probe-mcp-task-durable.mjs",
+      "sha256": "8b8407bba0fadeb2d8ff40f06d2e76d48fbabb19681b1e19495c00317f83ee49"
+    },
+    {
+      "file": "packages/cli/src/commands/mcp-tasks.js",
+      "sha256": "e101a627912c94d6f916cef66910bd143289b168e576296781d0021605d0742e"
+    },
+    {
+      "file": "packages/cli/src/commands/mcp.js",
+      "sha256": "e87d0f2e9828c3da3f7766d5b61b326b4b323c58a4842886ac87844ab7865188"
+    },
+    {
+      "file": "packages/cli/src/harness/mcp-client.js",
+      "sha256": "a2d57a0aeef46613ae7b05113cc02f3936f453400c88936edba99e3f1f876afc"
+    },
+    {
+      "file": "packages/cli/src/lib/mcp-ledger-recovery-admission.js",
+      "sha256": "e37ccd964d29d0de6e551860ac58ab0078fa490cc0e31cc061b0052b387b1ba3"
+    },
+    {
+      "file": "packages/cli/src/lib/mcp-task-journal.js",
+      "sha256": "f1789f2e66121d577d3a5087c9f8587b6e9b46ecb62d40ed2211b78a4dba7a2b"
+    },
+    {
+      "file": "packages/cli/src/lib/mcp-task-runtime.js",
+      "sha256": "b3ac7abafb1c41af64e3cde16993edc565fef2857c9775f9c39627e29f124f2c"
+    }
+  ]
+}

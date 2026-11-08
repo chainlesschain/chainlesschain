@@ -1,4 +1,10 @@
 import {
+  withModelInputDiagnostics,
+  recordLogicalModelInput,
+  MODEL_INPUT_PLAN,
+  MODEL_INPUT_USAGE_CALL,
+} from "../lib/model-input-diagnostics.js";
+import {
   projectMessagesWithTaskBinding,
   getTaskCompactionBindings,
 } from "./message-roles.js";
@@ -122,7 +128,10 @@ import os from "os";
 import { createHash, randomUUID } from "node:crypto";
 import skillInvocationReceipt from "@chainlesschain/session-core/skill-invocation-receipt";
 import { isProxy } from "node:util/types";
-import { captureAgentEvolutionIngress } from "../lib/evolution/agent-evolution-ingress.js";
+import {
+  captureAgentEvolutionIngress,
+  getAgentModelRequestReceipt,
+} from "../lib/evolution/agent-evolution-ingress.js";
 import {
   assertSkillRuntimeAdmission,
   captureSkillRuntimeDependencies,
@@ -12241,6 +12250,12 @@ function _openAIProviderRequestReceipt(response, data, clientRequestId) {
  * @returns {Promise<object>} response with .message
  */
 export async function chatWithTools(rawMessages, options) {
+  return withModelInputDiagnostics(options, () =>
+    chatWithToolsGuarded(rawMessages, options),
+  );
+}
+
+async function chatWithToolsGuarded(rawMessages, options) {
   let prepared = null;
   let destination = { provider: options.provider || "ollama" };
   return withProviderRequestAdmission(
@@ -12334,14 +12349,23 @@ async function chatWithToolsAdmitted(rawMessages, options, captureAdmission) {
         })
       : providerMessages;
 
+  let modelInputReceipt = null;
   if (evolutionIngress !== null) {
     const projected = await evolutionIngress.prepareModelRequest({
       messages,
       tools,
     });
+    modelInputReceipt = getAgentModelRequestReceipt(projected);
     messages = projected.messages;
     tools = projected.tools;
   }
+
+  ({ messages, tools } = await recordLogicalModelInput({
+    messages,
+    tools,
+    plan: canonicalPlan || options[MODEL_INPUT_PLAN],
+    receipt: modelInputReceipt,
+  }));
 
   if (options[READ_FILE_REQUEST_CONTEXT]) {
     options[READ_FILE_REQUEST_CONTEXT].messages = messages;
@@ -16905,6 +16929,7 @@ export async function* agentLoop(messages, options) {
     // projection. Commit visibility only after a successful model response.
     const readFileRequestContext = { messages: callMessages };
     const providerCallOptions = {
+      [MODEL_INPUT_PLAN]: canonicalProviderContext?.plan || null,
       [READ_FILE_REQUEST_CONTEXT]: readFileRequestContext,
       ...(evolutionIngress !== null
         ? { ...requestOptions, evolutionIngress }
@@ -16942,6 +16967,7 @@ export async function* agentLoop(messages, options) {
           }
         : {}),
     };
+    providerCallOptions[MODEL_INPUT_USAGE_CALL] = modelUsageCall.callId;
     // Resolve before dispatch, including compatibility/skip-planning runs.
     // The panel and persisted transcript use this same request configuration.
     const requestContextWindow =

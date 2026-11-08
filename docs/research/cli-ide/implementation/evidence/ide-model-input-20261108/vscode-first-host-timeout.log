@@ -1,0 +1,13 @@
+
+[main 2026-11-08T00:48:23.683Z] update#setState disabled
+[main 2026-11-08T00:48:23.685Z] update#ctor - updates are disabled due to running as Admin in user setup
+(node:2648) [DEP0168] DeprecationWarning: Uncaught N-API callback exception detected, please run node with option --force-node-api-uncaught-exceptions-policy=true to handle those exceptions properly.
+(Use `Code --trace-deprecation ...` to show where the warning was created)
+Via 'product.json#extensionEnabledApiProposals' extension 'ms-vscode.vscode-selfhost-test-provider' wants API proposal 'attributableCoverage' but that proposal DOES NOT EXIST. Likely, the proposal has been finalized (check 'vscode.d.ts') or was abandoned.
+Via 'product.json#extensionEnabledApiProposals' extension 'ms-python.python' wants API proposal 'contribIssueReporter' but that proposal DOES NOT EXIST. Likely, the proposal has been finalized (check 'vscode.d.ts') or was abandoned.
+Via 'product.json#extensionEnabledApiProposals' extension 'ms-python.debugpy' wants API proposal 'contribIssueReporter' but that proposal DOES NOT EXIST. Likely, the proposal has been finalized (check 'vscode.d.ts') or was abandoned.
+Started initializing default profile extensions in extensions installation folder. file:///c%3A/Users/admin/AppData/Local/Temp/cc-model-input-vscode-host-cPTN01/extensions
+Started local extension host with pid 9492.
+Completed initializing default profile extensions in extensions installation folder. file:///c%3A/Users/admin/AppData/Local/Temp/cc-model-input-vscode-host-cPTN01/extensions
+Loading development extension at e:\code\chainlesschain\.worktrees\cli-ide-gap-20261108\packages\vscode-extension
+Settings Sync: Account status changed from uninitialized to unavailable

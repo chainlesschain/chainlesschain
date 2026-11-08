@@ -1,3 +1,4 @@
+import { recordModelInputBody } from "./model-input-diagnostics.js";
 import { randomUUID } from "node:crypto";
 import { raceWithAbort } from "./abort-utils.js";
 import {
@@ -355,6 +356,8 @@ export function createFormalBudgetTransport({
         body: JSON.stringify(request),
         signal: combined,
       };
+      await recordModelInputBody(options.body, "governed-fetch-body");
+      combined.throwIfAborted();
       if (hasProviderRequestAdmission()) {
         await assertProviderRequestAdmission(
           { provider: reserved.provider },

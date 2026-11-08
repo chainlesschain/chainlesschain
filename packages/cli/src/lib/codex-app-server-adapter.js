@@ -300,7 +300,23 @@ export class CodexAppServerAdapter extends EventEmitter {
         terminalResolve(projected);
       }
     };
+    // A shared transport failure applies to every unfinished turn. Preserve a
+    // terminal already observed, and never start a duplicate execution path.
+    const onTransportFailure = (error) => {
+      if (observedTerminal || eventFailure) return;
+      eventFailure =
+        error instanceof Error
+          ? error
+          : adapterError(
+              "CC_CODEX_APP_SERVER_TRANSPORT_FAILED",
+              "Codex App Server transport failed",
+            );
+      deadlineReject(eventFailure);
+    };
     this.client.on?.("notification", onNotification);
+    this.client.on?.("transportFailure", onTransportFailure);
+    if (this.client.transportFailure)
+      onTransportFailure(this.client.transportFailure);
     const buildResult = (terminalEvent) =>
       Object.freeze({
         protocol: CODEX_APP_SERVER_PROTOCOL,
@@ -317,9 +333,11 @@ export class CodexAppServerAdapter extends EventEmitter {
         authoritative: false,
       });
     try {
+      if (eventFailure) throw eventFailure;
       if (!this.client.running && typeof this.client.start === "function") {
         await withinDeadline(this.client.start());
       }
+      if (eventFailure) throw eventFailure;
       if (!activeThreadId) {
         const started = await withinDeadline(
           this.client.request("thread/start", {
@@ -328,6 +346,7 @@ export class CodexAppServerAdapter extends EventEmitter {
         );
         activeThreadId = started?.thread?.id;
       }
+      if (eventFailure) throw eventFailure;
       if (!activeThreadId) {
         throw adapterError(
           "CC_CODEX_APP_SERVER_PROTOCOL_FAILED",
@@ -412,6 +431,7 @@ export class CodexAppServerAdapter extends EventEmitter {
     } finally {
       clearTimeout(timer);
       this.client.off?.("notification", onNotification);
+      this.client.off?.("transportFailure", onTransportFailure);
     }
   }
 

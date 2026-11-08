@@ -72,7 +72,7 @@ describe("shared external Codex support boundary", () => {
         CODEX_APP_SERVER_SUPPORT.versions.filter(
           (entry) => entry.schemaAndTurnProbeConfigured,
         ),
-      ).toHaveLength(2);
+      ).toHaveLength(3);
     },
   );
 
@@ -106,7 +106,7 @@ describe("shared external Codex support boundary", () => {
   it("derives all CI cells from the manifest without silently losing an allowed version", () => {
     const matrices = codexAppServerCiMatrices();
     expect(matrices.compatibility.include).toHaveLength(12);
-    expect(matrices.schema.include).toHaveLength(6);
+    expect(matrices.schema.include).toHaveLength(9);
     for (const entry of CODEX_APP_SERVER_COMPATIBILITY_MATRIX) {
       const cells = matrices.compatibility.include.filter(
         (cell) => cell.codex_version === entry.version,

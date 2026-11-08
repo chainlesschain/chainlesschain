@@ -3,6 +3,7 @@
  * chainlesschain mcp servers|connect|disconnect|tools|call
  */
 
+import { registerMcpTaskCommands } from "./mcp-tasks.js";
 import fs from "fs";
 import path from "path";
 import { isProxy } from "node:util/types";
@@ -192,9 +193,19 @@ async function resolveAuthTargetUrl(program, target) {
  * Returns `{ client, connected }`; the caller must disconnect the client and
  * `await shutdown()`.
  */
-async function connectForQuery(program, serverName) {
-  const ctx = await bootstrap({ verbose: program.opts().verbose });
+export async function connectForQuery(
+  program,
+  serverName,
+  { strict = false } = {},
+) {
+  const ctx = await bootstrap({
+    verbose: strict ? false : program.opts().verbose,
+  });
   if (!ctx.db) {
+    if (strict)
+      throw Object.assign(new Error("MCP configuration is unavailable"), {
+        code: "CC_MCP_TASK_CONFIG_UNAVAILABLE",
+      });
     logger.error("Database not available");
     process.exit(1);
   }
@@ -209,6 +220,10 @@ async function connectForQuery(program, serverName) {
   if (serverName) {
     const row = visible.find((entry) => entry.name === serverName);
     if (!row) {
+      if (strict)
+        throw Object.assign(new Error("MCP task server is not configured"), {
+          code: "CC_MCP_TASK_SERVER_NOT_CONFIGURED",
+        });
       const names = visible.map((s) => s.name);
       logger.error(
         `${notFoundWithSuggestion(serverName, names, { noun: "Server" })}. Use 'mcp add' first.`,
@@ -228,6 +243,17 @@ async function connectForQuery(program, serverName) {
       await client.connect(row.name, authorizeMcpRowForConnect(row));
       connected.push(row.name);
     } catch (err) {
+      if (strict) {
+        try {
+          await client.disconnectAll();
+        } catch {
+          /* Preserve fixed command error. */
+        }
+        throw Object.assign(
+          new Error("MCP task server could not be connected"),
+          { code: "CC_MCP_TASK_CONNECTION_REQUIRED" },
+        );
+      }
       logger.log(
         chalk.yellow(`  Failed to connect "${row.name}": ${err.message}`),
       );
@@ -626,6 +652,12 @@ export function registerMcpCommand(program) {
     .description("MCP server management and tool execution");
 
   // mcp login — OAuth 2.0 (Auth Code + PKCE) for a remote MCP server.
+  registerMcpTaskCommands(mcp, {
+    connect: (serverName) =>
+      connectForQuery(program, serverName, { strict: true }),
+    shutdown,
+  });
+
   mcp
     .command("login <target>")
     .description(

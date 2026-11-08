@@ -1,3 +1,4 @@
+import { readSessionModelInputDiagnostics } from "../lib/session-model-input-diagnostics.js";
 import chalk from "chalk";
 import { numericOption } from "../lib/cli-numeric.js";
 import { logger } from "../lib/logger.js";
@@ -17,6 +18,10 @@ export function registerSessionShowSubcommand(session, program) {
     .argument("<id>", "Session ID (or prefix)")
     .option("-n, --limit <n>", "Max messages to show")
     .option("--json", "Output as JSON")
+    .option(
+      "--model-inputs",
+      "Show verified model-input diagnostic summaries (requires --json)",
+    )
     .option(
       "--history",
       "Page verified display history across canonical compaction (requires --json)",
@@ -65,6 +70,35 @@ export function registerSessionShowSubcommand(session, program) {
           return;
         }
         if (jsonlId) {
+          if (options.modelInputs) {
+            if (
+              !options.json ||
+              options.history ||
+              options.before ||
+              options.after !== undefined ||
+              options.pageSize ||
+              options.inputReceipt !== undefined
+            )
+              throw new Error(
+                "Model input diagnostics require --json without other views",
+              );
+            console.log(
+              JSON.stringify(
+                readSessionModelInputDiagnostics(jsonlId, {
+                  limit:
+                    options.limit == null
+                      ? 50
+                      : numericOption(options.limit, {
+                          name: "--limit",
+                          integer: true,
+                          min: 1,
+                          max: 200,
+                        }),
+                }),
+              ),
+            );
+            return;
+          }
           if (
             options.after !== undefined &&
             (!options.json || !options.history || options.before)
@@ -141,7 +175,8 @@ export function registerSessionShowSubcommand(session, program) {
             options.before ||
             options.after !== undefined ||
             options.history ||
-            options.inputReceipt !== undefined
+            options.inputReceipt !== undefined ||
+            options.modelInputs
           )
             throw new Error(
               "Verified transcript pages and input receipts require a canonical JSONL session",
