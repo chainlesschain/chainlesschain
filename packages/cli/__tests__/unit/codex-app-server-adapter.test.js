@@ -508,3 +508,147 @@ describe("optional Codex App Server adapter", () => {
     expect(fallback).not.toHaveBeenCalled();
   });
 });
+
+describe("Codex transport failure after RPC admission", () => {
+  function setup() {
+    const client = new EventEmitter();
+    client.running = true;
+    client.request = vi.fn(async (_, { threadId }) => ({
+      turn: { id: "turn-" + threadId, status: "inProgress" },
+    }));
+    const fallback = vi.fn(async () => ({ output: "fallback" }));
+    const adapter = new CodexAppServerAdapter({
+      client,
+      fallback,
+      enabled: true,
+      upstreamVersion: "0.154.0",
+      timeoutMs: 30_000,
+    });
+    const closed = Object.assign(new Error("transport exited"), {
+      code: "CC_CODEX_APP_SERVER_TRANSPORT_CLOSED",
+    });
+    return { client, fallback, adapter, closed };
+  }
+
+  it("fails every admitted turn immediately without clearing another consumer's listener", async () => {
+    vi.useFakeTimers();
+    try {
+      const { client, fallback, adapter, closed } = setup();
+      const observer = vi.fn();
+      client.on("transportFailure", observer);
+      const a = adapter.execute({ threadId: "A" });
+      const b = adapter.execute({ threadId: "B" });
+      const assertions = [a, b].map((pending) =>
+        expect(pending).rejects.toMatchObject({
+          code: "CC_CODEX_APP_SERVER_FAILED_AFTER_ADMISSION",
+          cause: { code: closed.code },
+          fallbackSuppressed: true,
+        }),
+      );
+      await vi.advanceTimersByTimeAsync(0);
+      client.emit("transportFailure", closed);
+      await Promise.all(assertions);
+      expect(fallback).not.toHaveBeenCalled();
+      expect(observer).toHaveBeenCalledExactlyOnceWith(closed);
+      expect(client.listenerCount("notification")).toBe(0);
+      expect(client.listeners("transportFailure")).toEqual([observer]);
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("preserves a terminal observed just before connection loss while failing another turn", async () => {
+    const { client, fallback, adapter, closed } = setup();
+    const a = adapter.execute({ threadId: "A" });
+    const b = adapter.execute({ threadId: "B" });
+    const rejected = expect(b).rejects.toMatchObject({
+      cause: { code: closed.code },
+    });
+    await new Promise((resolve) => setImmediate(resolve));
+    client.emit("notification", {
+      method: "turn/completed",
+      params: {
+        threadId: "A",
+        turn: { id: "turn-A", status: "completed" },
+      },
+    });
+    client.emit("transportFailure", closed);
+    await expect(a).resolves.toMatchObject({
+      terminal: "completed",
+      fallback: false,
+    });
+    await rejected;
+    expect(fallback).not.toHaveBeenCalled();
+    expect(client.listenerCount("transportFailure")).toBe(0);
+  });
+
+  it("does not submit a new turn on a transport that failed before subscription", async () => {
+    const { client, fallback, adapter, closed } = setup();
+    client.transportFailure = closed;
+    await expect(adapter.execute({ threadId: "A" })).resolves.toMatchObject({
+      fallback: true,
+      fallbackReason: closed.code,
+    });
+    expect(client.request).not.toHaveBeenCalled();
+    expect(fallback).toHaveBeenCalledTimes(1);
+    expect(client.listenerCount("transportFailure")).toBe(0);
+  });
+
+  it("keeps a submission without a receipt unknown when transport fails", async () => {
+    const { client, fallback, adapter, closed } = setup();
+    client.request = vi.fn(() => new Promise(() => {}));
+    const pending = adapter.execute({ threadId: "A" });
+    const rejected = expect(pending).rejects.toMatchObject({
+      code: "CC_CODEX_APP_SERVER_SUBMISSION_UNKNOWN",
+      cause: { code: closed.code },
+      fallbackSuppressed: true,
+    });
+    client.emit("transportFailure", closed);
+    await rejected;
+    expect(fallback).not.toHaveBeenCalled();
+    expect(client.listenerCount("transportFailure")).toBe(0);
+  });
+});
+
+it("does not project turn admission until its RPC receipt binds the early event", async () => {
+  const client = new EventEmitter();
+  client.running = true;
+  let acknowledge;
+  client.request = vi.fn(
+    () =>
+      new Promise((resolve) => {
+        acknowledge = resolve;
+      }),
+  );
+  const adapter = new CodexAppServerAdapter({
+    client,
+    enabled: true,
+    upstreamVersion: "0.154.0",
+    fallback: vi.fn(),
+  });
+  const observer = vi.fn();
+  adapter.on("notification", observer);
+  const pending = adapter.execute({ threadId: "A" });
+  client.emit("notification", {
+    method: "turn/started",
+    params: { threadId: "A", turn: { id: "a", status: "inProgress" } },
+  });
+  expect(observer).not.toHaveBeenCalled();
+  acknowledge({ turn: { id: "a", status: "inProgress" } });
+  await new Promise((resolve) => setImmediate(resolve));
+  expect(observer).toHaveBeenCalledWith(
+    expect.objectContaining({
+      method: "turn/started",
+      params: expect.objectContaining({ threadId: "A", turnId: "a" }),
+    }),
+  );
+  client.emit("notification", {
+    method: "turn/completed",
+    params: { threadId: "A", turn: { id: "a", status: "completed" } },
+  });
+  await expect(pending).resolves.toMatchObject({
+    terminal: "completed",
+    fallback: false,
+  });
+});

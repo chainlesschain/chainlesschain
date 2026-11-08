@@ -2,9 +2,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import http from "node:http";
+import { once } from "node:events";
 import { createHash } from "node:crypto";
 import {
   assertCompleteScanHistory,
+  cleanupHistoryResources,
   collectHistoryPages,
   createHistoryCheckRecorder,
   copyHistoryRollouts,
@@ -13,6 +16,132 @@ import {
   parseHistoryProbeOptions,
   runHistoryProbe,
 } from "../../scripts/codex-app-server-history-probe.mjs";
+import { bounded } from "../../scripts/codex-app-server-turn-probe.mjs";
+
+describe("history probe resource cleanup", () => {
+  const servers = [];
+  afterEach(async () => {
+    vi.useRealTimers();
+    await Promise.all(
+      servers.splice(0).map(
+        (server) =>
+          new Promise((resolve) => {
+            server.close(resolve);
+            server.closeAllConnections();
+          }),
+      ),
+    );
+  });
+
+  async function listen() {
+    const server = http.createServer();
+    servers.push(server);
+    const listening = once(server, "listening");
+    server.listen(0, "127.0.0.1");
+    await listening;
+    return server;
+  }
+
+  it("closes a real provider and every client after stop rejects, retaining the original failure", async () => {
+    const server = await listen();
+    const original = new Error("schema compilation failed");
+    const shutdown = Object.assign(new Error("child close timed out"), {
+      code: "CHILD_SHUTDOWN_TIMEOUT",
+    });
+    const failed = {
+      running: false,
+      stop: vi.fn(() => {
+        throw shutdown;
+      }),
+    };
+    const stopped = {
+      running: false,
+      stop: vi.fn(async () => ({ code: 0, signal: null })),
+    };
+    const result = await cleanupHistoryResources({
+      clients: [failed, stopped, stopped],
+      server,
+      failure: original,
+    });
+    expect(server.listening).toBe(false);
+    expect(failed.stop).toHaveBeenCalledOnce();
+    expect(stopped.stop).toHaveBeenCalledOnce();
+    expect(result.failure).toBe(original);
+    expect(result.closures).toEqual([{ code: 0, signal: null }]);
+    expect(result.cleanupErrors).toEqual([
+      {
+        resource: "client:0",
+        error: {
+          name: "Error",
+          message: "child close timed out",
+          code: "CHILD_SHUTDOWN_TIMEOUT",
+        },
+      },
+    ]);
+  });
+
+  it("closes the real provider while a child shutdown is still pending", async () => {
+    const server = await listen();
+    let release;
+    const childClosed = new Promise((resolve) => {
+      release = resolve;
+    });
+    const closed = once(server, "close");
+    let settled = false;
+    const cleanup = cleanupHistoryResources({
+      clients: [{ stop: () => childClosed }],
+      server,
+    }).then((result) => {
+      settled = true;
+      return result;
+    });
+    try {
+      await bounded(closed, 1000, "independent provider close");
+      expect(server.listening).toBe(false);
+      expect(settled).toBe(false);
+    } finally {
+      release({ code: 0, signal: null });
+      await cleanup;
+    }
+    expect((await cleanup).cleanupErrors).toEqual([]);
+  });
+
+  it("fails an otherwise successful run on cleanup errors and tolerates an unstarted server", async () => {
+    const shutdown = new Error("shutdown failed");
+    const result = await cleanupHistoryResources({
+      clients: [
+        {
+          stop: async () => {
+            throw shutdown;
+          },
+        },
+      ],
+      server: http.createServer(),
+    });
+    expect(result.failure).toBe(shutdown);
+    expect(result.cleanupErrors).toHaveLength(1);
+    expect(result.cleanupErrors[0].resource).toBe("client:0");
+  });
+
+  it("bounds a client whose stop never settles without delaying provider cleanup", async () => {
+    vi.useFakeTimers();
+    const server = {
+      close: vi.fn((done) => done()),
+      closeAllConnections: vi.fn(),
+    };
+    const cleanup = cleanupHistoryResources({
+      clients: [{ running: false, stop: () => new Promise(() => {}) }],
+      server,
+    });
+    await vi.advanceTimersByTimeAsync(12_000);
+    const result = await cleanup;
+    expect(server.close).toHaveBeenCalledOnce();
+    expect(server.closeAllConnections).toHaveBeenCalledOnce();
+    expect(result.failure.message).toBe("history client 0 shutdown timed out");
+    expect(result.cleanupErrors).toHaveLength(1);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+});
 
 describe("Codex history probe scope", () => {
   it("defaults to the database contract and requires an explicit scan-repair scope", () => {

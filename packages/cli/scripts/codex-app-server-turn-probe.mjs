@@ -199,7 +199,13 @@ export class ProbeClient extends EventEmitter {
     this.stderrBytes = 0;
     this.buffer = "";
     this.failure = deferred();
+    this.transportFailure = null;
+    this.processExit = null;
+    this.exited = deferred();
     this.closed = deferred();
+    this.closeObserved = false;
+    this.stdioForcedClosed = false;
+    this.stopping = null;
     const decoder = new StringDecoder("utf8");
     child.stdout.on("data", (chunk) => {
       try {
@@ -221,16 +227,36 @@ export class ProbeClient extends EventEmitter {
     });
     child.stdin.on("error", (error) => this.fail(error));
     child.on("error", (error) => this.fail(error));
-    child.once("close", (code, signal) => {
+    const observeExit = (code, signal) => {
+      if (this.processExit) return;
       this.running = false;
-      this.fail(new Error("Codex process closed"));
-      this.closed.resolve({ code, signal });
+      this.processExit = { code, signal };
+      this.exited.resolve(this.processExit);
+      this.fail(
+        Object.assign(new Error("Codex process closed"), {
+          code: "CC_CODEX_APP_SERVER_TRANSPORT_CLOSED",
+          processExit: this.processExit,
+        }),
+      );
+    };
+    child.once("exit", observeExit);
+    child.once("close", (code, signal) => {
+      observeExit(code, signal);
+      this.closeObserved = true;
+      this.closed.resolve({
+        code,
+        signal,
+        ...(this.stdioForcedClosed ? { stdioForcedClosed: true } : {}),
+      });
     });
   }
   fail(error) {
+    if (this.transportFailure) return;
+    this.transportFailure = error;
     for (const call of this.pending.values()) call.reject(error);
     this.pending.clear();
     this.failure.reject(error);
+    this.emit("transportFailure", error);
   }
   receive(message) {
     assert.equal(Object.hasOwn(message, "jsonrpc"), false);
@@ -287,6 +313,7 @@ export class ProbeClient extends EventEmitter {
     }
   }
   async request(method, params) {
+    if (this.transportFailure) throw this.transportFailure;
     assert.ok(this.running, "Codex is not running");
     const message = { id: ++this.sequence, method, params };
     this.validators.check("request", message);
@@ -306,20 +333,41 @@ export class ProbeClient extends EventEmitter {
       label,
     );
   }
-  async stop() {
-    if (!this.running) return this.closed.promise;
-    this.child.stdin.end();
-    try {
-      return await bounded(this.closed.promise, 3000, "Codex stdin shutdown");
-    } catch {
-      this.child.kill("SIGTERM");
+  stop() {
+    this.stopping ||= this.stopProcess();
+    return this.stopping;
+  }
+  async stopProcess() {
+    if (this.closeObserved) return this.closed.promise;
+    if (!this.processExit) {
+      this.child.stdin.end();
+      try {
+        await bounded(this.exited.promise, 3000, "Codex stdin shutdown");
+      } catch {
+        this.child.kill("SIGTERM");
+        try {
+          await bounded(this.exited.promise, 3000, "Codex SIGTERM shutdown");
+        } catch {
+          this.child.kill("SIGKILL");
+          await bounded(this.exited.promise, 3000, "Codex SIGKILL shutdown");
+        }
+      }
     }
+    // On Windows the process can exit while inherited output handles remain
+    // open. Record real exit first, allow bounded draining, then close our
+    // streams. This never substitutes pipe destruction for process termination.
     try {
-      return await bounded(this.closed.promise, 3000, "Codex SIGTERM shutdown");
+      return await bounded(this.closed.promise, 1000, "Codex stdio drain");
     } catch {
-      this.child.kill("SIGKILL");
+      this.stdioForcedClosed = true;
+      for (const stream of [
+        this.child.stdin,
+        this.child.stdout,
+        this.child.stderr,
+      ])
+        stream.destroy();
     }
-    return bounded(this.closed.promise, 3000, "Codex SIGKILL shutdown");
+    return bounded(this.closed.promise, 1000, "Codex stdio cleanup");
   }
 }
 
@@ -647,12 +695,23 @@ export async function runTurnProbe({
         enabled: true,
         upstreamVersion: version,
         compatibilityMatrix: [{ version }],
-        timeoutMs: scenario === "transport-loss" ? 5000 : 30_000,
+        timeoutMs: 30_000,
         fallback: () => {
           fallbackCalls.push(scenario);
           throw new Error("unexpected fallback");
         },
       });
+      const admitted = deferred();
+      const onAdmission = (event) => {
+        if (
+          event.method === "turn/started" &&
+          event.params.threadId === started.thread.id
+        ) {
+          admitted.resolve(event.params.turnId);
+          adapter.off("notification", onAdmission);
+        }
+      };
+      adapter.on("notification", onAdmission);
       const result = adapter.execute({
         threadId: started.thread.id,
         prompt:
@@ -660,8 +719,18 @@ export async function runTurnProbe({
             ? "fixture-approval-cancel: Request the deterministic test command; cancel its approval."
             : `fixture-${scenario}: Say probe-ok. Do not call any tools.`,
       });
-      result.catch(() => {});
-      return { threadId: started.thread.id, result };
+      result.then(
+        () => adapter.off("notification", onAdmission),
+        (error) => {
+          adapter.off("notification", onAdmission);
+          admitted.reject(error);
+        },
+      );
+      return {
+        threadId: started.thread.id,
+        result,
+        admitted: admitted.promise,
+      };
     }
     const completed = await start("completed");
     let settledEarly = false;
@@ -739,18 +808,36 @@ export async function runTurnProbe({
 
     const lost = await start("transport-loss");
     await guard(provider.wait("transport-loss"), "loss provider request");
-    child.kill("SIGKILL");
-    shutdown = await bounded(
-      client.closed.promise,
-      5000,
-      "forced transport loss",
-    );
+    // Provider receipt alone does not prove the client saw turn/start's RPC
+    // response. The adapter projects this event only after binding that receipt.
+    const lostTurnId = await guard(lost.admitted, "loss admission receipt");
+    assert.ok(lostTurnId);
+    const lossStartedAt = performance.now();
+    assert.equal(child.kill("SIGKILL"), true, "transport loss signal failed");
+    await bounded(client.exited.promise, 5000, "forced transport exit");
+    const lossExitObservedAt = performance.now();
+    let transportLoss;
     await assert.rejects(
-      bounded(lost.result, 10_000, "admitted transport loss"),
-      {
-        code: "CC_CODEX_APP_SERVER_FAILED_AFTER_ADMISSION",
+      bounded(lost.result, 1000, "admitted transport loss"),
+      (error) => {
+        assert.equal(error.code, "CC_CODEX_APP_SERVER_FAILED_AFTER_ADMISSION");
+        assert.equal(error.cause?.code, "CC_CODEX_APP_SERVER_TRANSPORT_CLOSED");
+        transportLoss = {
+          code: error.code,
+          causeCode: error.cause.code,
+          processExit: client.processExit,
+          threadId: lost.threadId,
+          turnId: lostTurnId,
+          admissionReceiptObserved: true,
+          signalToRejectionMs: performance.now() - lossStartedAt,
+          exitToRejectionMs: performance.now() - lossExitObservedAt,
+          fallbackSuppressed: error.fallbackSuppressed === true,
+        };
+        return true;
       },
     );
+    shutdown = await client.stop();
+    assert.equal(client.listenerCount("transportFailure"), 0);
     assert.equal(client.listenerCount("notification"), 0);
     assert.equal(client.pending.size, 0);
     assert.deepEqual(fallbackCalls, []);
@@ -808,6 +895,7 @@ export async function runTurnProbe({
         }),
       ),
       transportLoss: {
+        ...transportLoss,
         errorCode: "CC_CODEX_APP_SERVER_FAILED_AFTER_ADMISSION",
         fallbackCalls: fallbackCalls.length,
       },
