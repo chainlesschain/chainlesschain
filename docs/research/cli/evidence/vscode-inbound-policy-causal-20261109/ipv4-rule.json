@@ -1,0 +1,17 @@
+{
+  "schema": "chainlesschain.temporary-loopback-rule/v1",
+  "name": "ChainlessChain-Diagnostic-5f3d2d76041e471c8c0b30a46a3f2c9a",
+  "created": true,
+  "removed": true,
+  "policyStore": "ActiveStore",
+  "publicOnly": true,
+  "tcpOnly": true,
+  "localAddress": "127.0.0.1",
+  "remoteAddress": "127.0.0.1",
+  "localPort": 50434,
+  "exeSha256": "51dfee70fd38d8cc3e204f9a304f6fb6700dfa5147223c59d8c37e8176fb9b64",
+  "effectiveAction": "Allow",
+  "effectiveProfile": "Public",
+  "persisted": false,
+  "finishedAt": "2026-11-09T03:11:47.7315434Z"
+}

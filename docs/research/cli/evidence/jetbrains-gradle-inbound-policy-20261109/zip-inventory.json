@@ -1,0 +1,3161 @@
+[
+  {
+    "name": "chainlesschain-ide-bridge/lib/chainlesschain-ide-bridge-0.4.198.jar",
+    "bytes": 1696238,
+    "sha256": "2b61bdc4a29ab45a819ae49827177a8573917ebba15f1d9d7c9e14d1cbd7fa68",
+    "jarEntries": [
+      {
+        "name": "META-INF/MANIFEST.MF",
+        "bytes": 383,
+        "sha256": "6b969f207f9e85befdaecac6bccf4b8baf329254f090c4881126cac037dfd4d9"
+      },
+      {
+        "name": "META-INF/chainlesschain-ide-bridge.kotlin_module",
+        "bytes": 90,
+        "sha256": "c80f8943315693884fae125f303c61799706c862740e0bc68c1dc2f9e70be7fc"
+      },
+      {
+        "name": "META-INF/chainlesschain-plugin.properties",
+        "bytes": 16,
+        "sha256": "859993a1652de346baf73f01c5705c68d2f8bb89e6d6a6ac82a9d06fe5a58598"
+      },
+      {
+        "name": "META-INF/plugin.xml",
+        "bytes": 20448,
+        "sha256": "c2305c497272f8d3118d64436ff525990f70264098120e6c4f85c3cd0057270a"
+      },
+      {
+        "name": "META-INF/pluginIcon.svg",
+        "bytes": 17363,
+        "sha256": "01270ee5fd21408d77907a734facd50566af444403628ff49411b07c19d41d56"
+      },
+      {
+        "name": "META-INF/pluginIcon_dark.svg",
+        "bytes": 17363,
+        "sha256": "01270ee5fd21408d77907a734facd50566af444403628ff49411b07c19d41d56"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/AgentApprovalRequestStreamEvent.class",
+        "bytes": 9045,
+        "sha256": "e5e40c5d492807b830ead090a0dc3850e6eee8600b5c37de7330d59ecab3a931"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/AgentApprovalResolvedStreamEvent.class",
+        "bytes": 5888,
+        "sha256": "48a8e3e09fe42b7498bc076e8fcb16db5f7580f6b83c4e98adadc6829f89abe8"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/AgentCheckpointStreamEvent.class",
+        "bytes": 4350,
+        "sha256": "0c83161efc44f46af81551f4b0627b8e2bfad6e2c97f8c311a827fa04301ec62"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/AgentCompactionDegradedStreamEvent.class",
+        "bytes": 5982,
+        "sha256": "5e3a5d58a4635a1162c07376b644f1d76dcf2aa94075ca211f84dc88c718bd68"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/AgentCompactionStreamEvent.class",
+        "bytes": 3967,
+        "sha256": "2377aac0523bcb71991e380aba04ea38d2dd4a8886070ea38565fd3be248f32f"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/AgentCompactionUsageUnknownStreamEvent.class",
+        "bytes": 6036,
+        "sha256": "c9c2fba42f75fba595472cdbb3ee0a7ed03ce5f126df2e19417b707d63ed9f29"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/AgentContentStreamEvent.class",
+        "bytes": 3728,
+        "sha256": "edbf8de2f02023cabcbc57db177df937e2e85973523ccc721a071098ca69e290"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/AgentContextCompactionAbortedStreamEvent.class",
+        "bytes": 7130,
+        "sha256": "dd9258432b38fcfcec92eed01ac94489d8a7209b33eab314bb20fa59ba3ddaaf"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/AgentContextCompactionCommittedStreamEvent.class",
+        "bytes": 8159,
+        "sha256": "c460b4a39307e0891d28d768191180807e1dd0d7aac061065e5b2ea28f505184"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/AgentContextCompactionReconciliationRequiredStreamEvent.class",
+        "bytes": 8237,
+        "sha256": "e2ac364762f7353bfc92c12945f96c1edf39b88876ca5d5746a3347332e5bff6"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/AgentContextCompactionStartedStreamEvent.class",
+        "bytes": 7170,
+        "sha256": "1fd037a006e45859dd8df7c641564f662971a4fbf032714e076e40b09a80a602"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/AgentContextPlanCreatedStreamEvent.class",
+        "bytes": 8037,
+        "sha256": "21120fb6bc14bd3842c68ba1dd066b4161cc5aa186c92ef9029d5b9776371179"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/AgentContextPlanRejectedStreamEvent.class",
+        "bytes": 7139,
+        "sha256": "f38dc360de2fe71599f75799d6d4fd1b6dce3ce50a68bfe0abebdb8a5a00a8ed"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/AgentCostBudgetExhaustedStreamEvent.class",
+        "bytes": 5649,
+        "sha256": "c83fee9fbf06bd9a22da7b0914cf13e51c928fa3a5b357e6aeb798834cf066d7"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/AgentElicitationCompleteStreamEvent.class",
+        "bytes": 4969,
+        "sha256": "cddfdef96459a87cc4b974d6c012dcc684f852efb8e098d01919d77d1795ae4b"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/AgentElicitationDeferredStreamEvent.class",
+        "bytes": 9152,
+        "sha256": "a066cfbed4805a537c38d4d9b625b2c959abd40bf73c364292b3cea79e58d239"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/AgentFeedbackAckStreamEvent.class",
+        "bytes": 4933,
+        "sha256": "9ed9d41f47f6d153da0af3cd39bc33b068a112d2a0917f3d4608ec59cdc582ac"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/AgentHookProgressStreamEvent.class",
+        "bytes": 8518,
+        "sha256": "6d70ab108b3c854f06fe9967a9e753c4d45958d814bdd74c0fed1665cfc5be0f"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/AgentHookResponseStreamEvent.class",
+        "bytes": 9138,
+        "sha256": "f9d0a623d8e6bd09ae66d4a1bdf040a9951452a448fc96a1d10fbde2103a9b10"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/AgentHookStartedStreamEvent.class",
+        "bytes": 6375,
+        "sha256": "63482c87530a6a6ea0c87bb75b0cc2cab35ac4b2b60f381add6783d4c4ac0035"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/AgentIterationBudgetExhaustedStreamEvent.class",
+        "bytes": 4000,
+        "sha256": "bb00a2dd51906a02581b5d5b9ddac480a73d2156d07b4736f0c7cd2e4cefa0f3"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/AgentIterationWarningStreamEvent.class",
+        "bytes": 3940,
+        "sha256": "75968a26613d9b8788edf849316e7a95622a23468ee9a2577420028ae39368a4"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/AgentMemoryActivatedStreamEvent.class",
+        "bytes": 7801,
+        "sha256": "d16e39867e9317750d51e8a59325a01438aaf8b422f0224a713dc589239e9204"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/AgentMemoryCandidateCreatedStreamEvent.class",
+        "bytes": 7843,
+        "sha256": "5282b43eb3bf75855d32c9c6416113aab931f50b06123c4f34a31055fbc440aa"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/AgentMemoryDeletedStreamEvent.class",
+        "bytes": 7789,
+        "sha256": "0ba9691a51aa3d3cf3a3bb53a0740cb2d51163afd0363cf63fa32b6e471e7392"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/AgentMemoryExpiredStreamEvent.class",
+        "bytes": 7789,
+        "sha256": "eac0daf3300f4fdd5104dbaf5ce52aaa1e47adcb8cd2a72db8b148eb4f108fd9"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/AgentMemoryPurgedStreamEvent.class",
+        "bytes": 7858,
+        "sha256": "1579f027fe441f75575299736a257758172ffaeb3aa28674d8901c7053f2bac1"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/AgentMemoryRecalledStreamEvent.class",
+        "bytes": 8066,
+        "sha256": "81ff28895bd627020c04ce95357324169ebb1638a2be54876ad1656e95c24e4e"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/AgentMemoryReinforcedStreamEvent.class",
+        "bytes": 7807,
+        "sha256": "f807e9c60336c79f2e8bc5d1276912ddbe839b6c99c51ae9b31891cdad6c3c1b"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/AgentMemorySupersededStreamEvent.class",
+        "bytes": 7807,
+        "sha256": "f83b4c91308bac0ffc05eb7445af5c3a20ee1bbcff7321ce80d4d258d0c06468"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/AgentPlanUpdateStreamEvent.class",
+        "bytes": 9137,
+        "sha256": "63c77872607f13f69e42cb604b1c21c6bdf3d86f904484e6f5a3a849daea20b1"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/AgentPolicyDecisionStreamEvent.class",
+        "bytes": 11417,
+        "sha256": "5c2e0fd3c5b1914ebe2ed0c9129bb3b1f27060c42b71250999919967683520af"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/AgentQuestionRequestStreamEvent.class",
+        "bytes": 7901,
+        "sha256": "c42590e1bff2215dcecf269b31330202dcd98cf02e7c60d41c29c286eac0a307"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/AgentQuestionResolvedStreamEvent.class",
+        "bytes": 5538,
+        "sha256": "6702524f82f7467cf2b46dac6b8f25075c66cebd5298dc0157c77a0dc777127c"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/AgentQuestionResponseRejectedStreamEvent.class",
+        "bytes": 4924,
+        "sha256": "d943e0e96d6cda1f1da72a5092b03ad7b6f78db4ff955131840de027ee197bba"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/AgentRawStreamEvent.class",
+        "bytes": 4362,
+        "sha256": "3f262ad617648bb0bf11e58ae5f0d0215eb63018ef07c9f8e78eff66a283c5f2"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/AgentRecoveryDegradedStreamEvent.class",
+        "bytes": 4894,
+        "sha256": "bfa491e6bd406904c7efffe740c4e5492a68eddfb40c70af649a5b2f2e69a472"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/AgentRemoteControlStreamEvent.class",
+        "bytes": 6101,
+        "sha256": "1ebe4f90b8102807e3068f5e45bb94a6caca10c7632aa822f98610f1b1206de4"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/AgentResultStreamEvent.class",
+        "bytes": 11665,
+        "sha256": "fee18962757c8d20e4a62f76a4e8f3296aeb75d7445a1ac1c0f61b70efc8a614"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/AgentResumeAckStreamEvent.class",
+        "bytes": 4921,
+        "sha256": "6cda0c8a56a516bc327597b461e74f304b27a5e5c78096086156d1949f8e954c"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/AgentSessionErrorStreamEvent.class",
+        "bytes": 4419,
+        "sha256": "b588c0c4661b7c22685cf00e022ff98026915e814738005cad7cab0b8e03962e"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/AgentSlashCommandResultStreamEvent.class",
+        "bytes": 6414,
+        "sha256": "606e0b610d6a39a4fe17e2de668cc35d2e2435465af3ecece960ab16372e164f"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/AgentStreamEventEnvelope.class",
+        "bytes": 4303,
+        "sha256": "11767614a95b8a97799ef001489d9ad4ac283cfc35b3123ef7ecfd1cf4abf2fe"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/AgentStreamEventPayload.class",
+        "bytes": 9373,
+        "sha256": "c894c15669d93023326606a5b4ec28931d4a1891cb19aaa111cf1dc00368fdd3"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/AgentStreamEventType$Companion.class",
+        "bytes": 3037,
+        "sha256": "b6740d7d4dd6149221a6f3db7a37516ce3b37e2d9fc0b7a7a17e87b8bffaaf07"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/AgentStreamEventType.class",
+        "bytes": 7573,
+        "sha256": "f40eddec70b86be602d3974ba93d1030c08c9d908ac651dbbdd01e211a1b7838"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/AgentStreamRetryStreamEvent.class",
+        "bytes": 4486,
+        "sha256": "48ac791d7b0c2defbef1b52433099b0ad674f01264d104c0e35c354125a9e8dc"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/AgentStructuredResultStreamEvent.class",
+        "bytes": 5990,
+        "sha256": "79247d1e203446fdc0cd7f5ad17fc4cb4ecedd01eaf10829d444967c215f6b04"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/AgentSubagentCompletedStreamEvent.class",
+        "bytes": 6775,
+        "sha256": "002c27385940dd135dad9ef7c5a4e6380187703c338493b7b1522c2bf3450cf0"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/AgentSubagentProgressStreamEvent.class",
+        "bytes": 7422,
+        "sha256": "3fb760bd41a666baf151377d1416872d8e3e8bf547d47f657b7206ed3ccf799c"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/AgentSubagentStartedStreamEvent.class",
+        "bytes": 6286,
+        "sha256": "eb7a3aa9c97f65b00312e71ff3f3b482984193db34cb29bb36ebec3bce9d0a9f"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/AgentSystemStreamEvent.class",
+        "bytes": 14480,
+        "sha256": "2cf3f37fd9864fdca36423974d73e3461cf6d7db3db7e2daafd0987e0e8d6449"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/AgentTokenUsageStreamEvent.class",
+        "bytes": 3967,
+        "sha256": "fbadde7a0f09603f8505d42291af3f0a0136cfd1bc07c55d03ec8b0258b40605"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/AgentToolResultStreamEvent.class",
+        "bytes": 8287,
+        "sha256": "e0b4574bdbdc06a58e7695f70b3f02478ecc546bef65b72ab14a86e20f6cdc83"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/AgentToolUseStreamEvent.class",
+        "bytes": 6056,
+        "sha256": "7d3f9358d8e33be8625ae394024cc0a62a80e9b4f14f16b264ed61d542e00343"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/AgentTranscriptReferences.class",
+        "bytes": 4811,
+        "sha256": "90fb650e71440fc29f57688a70e12ac2351ab49f8ef3d9b70128eefce3cf20d3"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/AgentUserStreamEvent.class",
+        "bytes": 4507,
+        "sha256": "629141bf229d01cded7836a6ab9a727381bf887faee7c8ef7ae147931b09b969"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/ApprovalBinding.class",
+        "bytes": 7306,
+        "sha256": "6c33b6e48e3228c1e7069d4ad72b40e0200b98a3eced66a8aa6597b97d6ae9b5"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/ApprovalDecision$AcceptForSession.class",
+        "bytes": 3531,
+        "sha256": "8aa4ee6737d931beee4ac66baef25efde57045d86fd84982a801304981701003"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/ApprovalDecision$AcceptForTurn.class",
+        "bytes": 3507,
+        "sha256": "ccd26ebc9dda8de4d9a004bf25adf240c176058a3b5a69abef97a5d93da2fa1b"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/ApprovalDecision$AcceptOnce.class",
+        "bytes": 1466,
+        "sha256": "816543a38f0030f59b2cbbf90495cbc2ee640fadde8e254b0b3dc68d929835ba"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/ApprovalDecision$Cancel.class",
+        "bytes": 2889,
+        "sha256": "e97bf57d86521a38879d8ceff19655b268a77085457301db888a3bd2831ac9b9"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/ApprovalDecision$Decline.class",
+        "bytes": 2896,
+        "sha256": "a1d4b07b865183602f9cb4b231bc95b4f61a29132f53697958cdb36cfcac53a9"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/ApprovalDecision.class",
+        "bytes": 1440,
+        "sha256": "35713a016904308cff6fab772aa0d5030effd63822e0a6288f30aba1cdf982f2"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/ApprovalRequest.class",
+        "bytes": 6554,
+        "sha256": "9dad6f61df7d18b1c9dd8dd12cc2ddb32cbf9823fad6fc705d0608df71674763"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/ArtifactRef.class",
+        "bytes": 8536,
+        "sha256": "30becd2fe694309fd520896681dbd34d59d1af292456f3aa1724ac6edb97bde7"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/AssignmentAttempt.class",
+        "bytes": 6921,
+        "sha256": "2eb5392746934c94b6891ac4044006bf67c3ce00365b5213ea64cd5659c8d676"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/Budget.class",
+        "bytes": 4798,
+        "sha256": "13db70141f57ab15e3b57858a4e0dae7b5a6e9d1955de68274cd2fd2a5baf9dd"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/CcAgentProtocolKt.class",
+        "bytes": 13876,
+        "sha256": "b3a68a8f6efd831b9bb41b4a99fbd23ab73c66427f58d78addbd63510141b6dd"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/ContextCompactRequest.class",
+        "bytes": 12478,
+        "sha256": "de233a2bd22204c37f21c018f34804bc8141e7256b1b2cd421da64659aa89e50"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/ContextCompactionReceipt.class",
+        "bytes": 11554,
+        "sha256": "df4d2d0b9376c6100f6104ef4c298281df0a7e82660a51ff3db4e6a47b16182b"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/ContextItem.class",
+        "bytes": 15952,
+        "sha256": "daaab9707775780f26997a04fb594a26dba1a7c87347c159e4b3e3d9a9f92fae"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/ContextMemoryBinding.class",
+        "bytes": 8770,
+        "sha256": "00b7193fd6fae4e6ac0cf73149ae960faa4e25e47b58795d770e16cb932c62fe"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/ContextMemoryContentRef.class",
+        "bytes": 6010,
+        "sha256": "aca1f44148c9c71b75600b9c4771f24f320a20d20309ab07457e95c57d4a95ee"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/ContextMemoryProvenance.class",
+        "bytes": 5368,
+        "sha256": "20ec14d5a3f40cb246c9ce63451f4d3d6a3afbd99767c9fd6d43948975594e29"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/ContextMemoryRetentionPolicy.class",
+        "bytes": 4413,
+        "sha256": "cc72d486a759c6b2c7df6e3e5ff96671c24237de108d0375cc11dc94d63747ed"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/ContextMemoryScope$Companion.class",
+        "bytes": 3017,
+        "sha256": "51137ae58bdd8ff1b7bb2b9f35a73baa742d3c5237ca55da77a58632f11ebbb3"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/ContextMemoryScope.class",
+        "bytes": 2917,
+        "sha256": "58fd153dba6dadb6f31270beaae0b7493a91c8f86ab6efe26f2ac29838bb03dd"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/ContextMemorySensitivity$Companion.class",
+        "bytes": 3079,
+        "sha256": "0d941ca9f7e45f0d81922e7cd4d38ce25cec8bb33c22259bd80bd5db25b1af66"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/ContextMemorySensitivity.class",
+        "bytes": 2918,
+        "sha256": "2f23b17d2d634a2325aaca0b22934dbc9954918de6f828a82c49dd5bd4d3c93c"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/ContextMemorySourceRef.class",
+        "bytes": 5330,
+        "sha256": "cd2d3fa6a2c2136cc8dcf3916c0342b0626c025190f7564f99f60ca2a40bfe3d"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/ContextMemoryTrust$Companion.class",
+        "bytes": 3017,
+        "sha256": "8330a45b7566d12b540e53a6b3b0fd591533645f1ef11164352aae7cbce6e822"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/ContextMemoryTrust.class",
+        "bytes": 2854,
+        "sha256": "335dffda26f3b57c9f417a45f62e3bbb36dd5a44b95d79102d711a7b35227d97"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/ContextPartitionMap.class",
+        "bytes": 5446,
+        "sha256": "c6dd481f80f7acce8cad0d58eb22f31be70c319260e7f7086318c9bcf42fb2a2"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/ContextPlan.class",
+        "bytes": 11343,
+        "sha256": "5035416a02b45714c28583662b46fa5251b9bcc740261e4fb3228db0dab28fc0"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/ContextPlanRequest.class",
+        "bytes": 11304,
+        "sha256": "04516cf19228210e8c337db36f9bf92d7d560fe7b4f5a8afb1b943a510ec84af"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/ContextScopeAdmission.class",
+        "bytes": 3705,
+        "sha256": "7726f0c693c372b0c85494eba3d81583025fddf53147a914654766b2e57fbd92"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/DataPolicy.class",
+        "bytes": 5179,
+        "sha256": "f336eaabf1847f05ff0ad8f8490e731a56a610a470ac4774778119b24813a620"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/Edge.class",
+        "bytes": 5512,
+        "sha256": "9cc42662a274b447a4ef9a66a6a6c32155c0f8fd6cb5e5fc109c158f198119da"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/Effect.class",
+        "bytes": 9605,
+        "sha256": "981172031e0e5c1c4b624d124ad3b05dc8acf76e0b2388dca0c7e445bef0a6bd"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/EffectReceipt.class",
+        "bytes": 4361,
+        "sha256": "acf83bfddf49c945a2e13763d14244c617b9af55c78853ab47435197c0ddbf49"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/GraphDefinition.class",
+        "bytes": 11359,
+        "sha256": "b336a68bccaa37c2b50bff0490f3b2f75874783a2f86d7e1e86a14af92334574"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/GraphRevision.class",
+        "bytes": 5670,
+        "sha256": "e235b5eaeb3ffe00cc897bf23ede0993d98fac1bb87fb06a1bfde754a8e3434d"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/GraphRun.class",
+        "bytes": 7006,
+        "sha256": "865cbe7c3add805ab9f1105b4aa5c3d87191c497c1613e130e42801d9d1ef7c3"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/Handoff.class",
+        "bytes": 7703,
+        "sha256": "88bd7e237c30277ff4914a7dc84145be8318773fcd86c8b567eb46f7d9237151"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/HumanTask.class",
+        "bytes": 14507,
+        "sha256": "df1a78dfbe3792f89b8c2682ca458877b23bbebebdd05225f849cc159ffc99a6"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/HumanTaskDecision.class",
+        "bytes": 3647,
+        "sha256": "a099c007dc38e2b70d44f917b63bd46646e1782bf0ba8ed9e62865e9e8634992"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/InitializeParams.class",
+        "bytes": 4408,
+        "sha256": "76069817ccd8ef656ac418a77520a213e11462c7cd9b0cd944ac5a0abb551efe"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/Item.class",
+        "bytes": 7644,
+        "sha256": "f4bf517129ee825c7c624fb2c4d9d3580aebc1433ca85c5a203e8197c9935c7f"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/IterationFrame.class",
+        "bytes": 6919,
+        "sha256": "b033a5e049d97d3e7fc39e7bcf40c2b226a891e6a67c6003941f214b26e2df0e"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/JsonRpcRequestBase.class",
+        "bytes": 4292,
+        "sha256": "a703311c9dfecd2ec5683d1430d99c8f01183f2ec314e9774474d6d5f6b62687"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/LoopRegion.class",
+        "bytes": 6495,
+        "sha256": "b5ae9ae554f154135fcadf4ce35b0a6c92781b096d7cf432c0d52a732996f290"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/MemoryDecisionRequest.class",
+        "bytes": 9561,
+        "sha256": "20c854e8382ddc298516fa894850f798051be3c706c7ab9ef919da749dbe23bb"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/MemoryDeletionReceipt.class",
+        "bytes": 12258,
+        "sha256": "d4d7050f61dddd4f8a810164b41712a8325760cf7ef58a86d73a1d1309f4e0be"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/MemoryDeletionRequest.class",
+        "bytes": 7496,
+        "sha256": "7643103fd91dd15a8007231c44702e9ace2b44b65656638e7d81401267f48aa7"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/MemoryMutationReceipt.class",
+        "bytes": 4000,
+        "sha256": "1fe18bf3152686da671821fe30af148a50b3e3498be22a43a82a8447f3643a6b"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/MemoryProposalRequest.class",
+        "bytes": 15596,
+        "sha256": "13c2155ff519b2612afff9932b6b8596ba212c166a79168e211f49d889a77ca2"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/MemoryRecallRequest.class",
+        "bytes": 7106,
+        "sha256": "195825e8e9dcd450672a8da5ea8e0a8d292beb9a4c04973653b7b01d6487eae7"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/MemoryRecallResult.class",
+        "bytes": 7342,
+        "sha256": "4835d306edf64b2bb1a62db584e110d056929735697629fe09b446c2368cf3a9"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/MemoryReconcileRequest.class",
+        "bytes": 2606,
+        "sha256": "acd2c6474f141fe46655c39bcfa937861ccb64acfd8cc13255e5a124fc40847e"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/MemoryRecord.class",
+        "bytes": 18601,
+        "sha256": "a0667a15de7df323797428deec70859177a5a302c05cb329f2dd110771c69bd7"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/MemorySemanticCandidate.class",
+        "bytes": 3891,
+        "sha256": "f77e4ed2ae61ca7cd2b8979c2ea5bbca90fdbe6ca06dd2747dc26fb44c52381b"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/Message.class",
+        "bytes": 9121,
+        "sha256": "f70519bfe7f91c0e46f9211bb7808e04feb13db8d4eec0550b4d142fbe81bbdd"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/NodeAttempt.class",
+        "bytes": 7882,
+        "sha256": "0ca3777e5128cc4ffddfc9d2ee1b99909243a6506d17184c4cd2e891de8ebc20"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/PermissionGrant.class",
+        "bytes": 3829,
+        "sha256": "f25adc9c4185cd1113001b95686926425a38bbd97f797a182c44a96ab0a81af4"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/Region.class",
+        "bytes": 5801,
+        "sha256": "f4e4d6e6ebb6ac8d434e5aa0d23ed2747993bda5539bc201103e27e197d0bfc1"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/ServerNotification.class",
+        "bytes": 3639,
+        "sha256": "0d38087cc36507cf03eb05c0040e1e5fab97a008a37ae243eb0200e0e9df9531"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/ServerRequest.class",
+        "bytes": 4047,
+        "sha256": "f3143d53d873c1b7a39b839119ceaa4e195f33659bcc81db976b7cdc31b79dd8"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/SubgraphCall.class",
+        "bytes": 7024,
+        "sha256": "2f7c5702cd03c8d74b4620b5a13051072f5c11e904edfd3247472fd8aefe4572"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/SubgraphPortBinding.class",
+        "bytes": 3525,
+        "sha256": "a8e2c5a9c4a2c02da2984852fa980634f6f6634351236da5b0a2d809bbd80cad"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/TaskCheckpoint.class",
+        "bytes": 5356,
+        "sha256": "1e538d628736d396754de4eb9433e660f82bcdec7f42e8dd69af7bd5b8dd3013"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/TaskNode.class",
+        "bytes": 14266,
+        "sha256": "0fd8a6a5bca62a1e86e94ac6dd64728bdea51d75c035498e2fbf2c9d5db965e8"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/TerminalEvidence.class",
+        "bytes": 6020,
+        "sha256": "233d940ce95ff7bf7d9029452b75aba82912327ccac648b644dcd4f21b750366"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/Thread.class",
+        "bytes": 6173,
+        "sha256": "1ebd9fb23d11966b9e79a3898deebf924a9503a5685579bb92fe26aaa58caade"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/TriggerBinding.class",
+        "bytes": 5573,
+        "sha256": "700f0ea6e7a39428dc8c0d2d2bc2c59830ee15aed3af7d923180840d8689c756"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/Turn.class",
+        "bytes": 5662,
+        "sha256": "183e8a354bbba19d684332a83984fcbfc78daa6d4f0b4039e79bf28bf70c99eb"
+      },
+      {
+        "name": "com/chainlesschain/agent/protocol/generated/TypedPort.class",
+        "bytes": 4768,
+        "sha256": "990205d13c92b13e6b004cee8c1dcfc62dd085fceaa00886a0d2dd3c4fec78bd"
+      },
+      {
+        "name": "com/chainlesschain/ide/ActivityLog$Counts.class",
+        "bytes": 570,
+        "sha256": "af2291291ff1f5085eefcbadc29dae582a06a9e83a32faa758be202fcace6b28"
+      },
+      {
+        "name": "com/chainlesschain/ide/ActivityLog$Entry.class",
+        "bytes": 731,
+        "sha256": "72f19e47cb34d05ca2513d91621a27955c41ece60614f3aee1107025518658ef"
+      },
+      {
+        "name": "com/chainlesschain/ide/ActivityLog$TimeFmt.class",
+        "bytes": 275,
+        "sha256": "f687ada48e519583cbfec8d7770f485ba271c4bc2976fa52f8bb656684dd71b6"
+      },
+      {
+        "name": "com/chainlesschain/ide/ActivityLog.class",
+        "bytes": 6027,
+        "sha256": "d9e8e868dfcd53a98083a520ff4352b859b1c1885b019a3e27a68fc6a220c70a"
+      },
+      {
+        "name": "com/chainlesschain/ide/AgentChatSession$1.class",
+        "bytes": 969,
+        "sha256": "08ead6e10e431659c254d487bec89f62fd072ca0a261178fab74191a5cbc96b2"
+      },
+      {
+        "name": "com/chainlesschain/ide/AgentChatSession$2.class",
+        "bytes": 1190,
+        "sha256": "ce6ee77c479b52fbd26408f6e24fdf496605294e165ec39009a04c208101066d"
+      },
+      {
+        "name": "com/chainlesschain/ide/AgentChatSession$3.class",
+        "bytes": 2413,
+        "sha256": "55fd43c92593f4af03faaa7caa725c6cb98eab11f16a7218290a69f14fb80938"
+      },
+      {
+        "name": "com/chainlesschain/ide/AgentChatSession$4.class",
+        "bytes": 1521,
+        "sha256": "9501dd28ca4ddf216d9cb6011d180dabeeb0e2ce1fe519382b40b4ed6f210b44"
+      },
+      {
+        "name": "com/chainlesschain/ide/AgentChatSession$CliIdentity.class",
+        "bytes": 1050,
+        "sha256": "cb0b44e342dfb6b76b09c0be7e640fd077d4d74cc0d7e07bf572bacaad3c716e"
+      },
+      {
+        "name": "com/chainlesschain/ide/AgentChatSession$EventListener.class",
+        "bytes": 379,
+        "sha256": "c758b3ad10ec3ee5697c8d2006522e5793db597e7bf614bd514f5d67589dea35"
+      },
+      {
+        "name": "com/chainlesschain/ide/AgentChatSession$ExitListener.class",
+        "bytes": 283,
+        "sha256": "53720d383b429cab37e2286093958b8ac03f92f964290cf056df095b0a731490"
+      },
+      {
+        "name": "com/chainlesschain/ide/AgentChatSession$LineListener.class",
+        "bytes": 300,
+        "sha256": "eeb3d0f9627e3fa75c61d54ed318a0cc22cc36f93edd495023f529d9299868cb"
+      },
+      {
+        "name": "com/chainlesschain/ide/AgentChatSession$Options.class",
+        "bytes": 2186,
+        "sha256": "879d177895549717005331db1b55dce523fa81206b7eed1320933a9109620e02"
+      },
+      {
+        "name": "com/chainlesschain/ide/AgentChatSession.class",
+        "bytes": 23482,
+        "sha256": "007f9199e331791753829594a12cfda4ed11972ec38e644325301c7bd97cc6cd"
+      },
+      {
+        "name": "com/chainlesschain/ide/AgentInitFailure.class",
+        "bytes": 2668,
+        "sha256": "adaea280753649b426536f1b059a07bdcf7a7ad21cd2f8b2a0eae4754e962b84"
+      },
+      {
+        "name": "com/chainlesschain/ide/ApprovalGrants$Grant.class",
+        "bytes": 1720,
+        "sha256": "0513e37d02f17df95dbb40e317a6198e8b11bc69944466c46677433a4dede39c"
+      },
+      {
+        "name": "com/chainlesschain/ide/ApprovalGrants$Projection.class",
+        "bytes": 1187,
+        "sha256": "e15cf2e3fa24fb6faca9dd1adbccdd047975e8237c5b8a747165a23bd1fc87a5"
+      },
+      {
+        "name": "com/chainlesschain/ide/ApprovalGrants.class",
+        "bytes": 5823,
+        "sha256": "dcbfd2f3b20dc9a6253723d5919d3929fec450ecbfa6e4c5bce7503e1fa5985e"
+      },
+      {
+        "name": "com/chainlesschain/ide/ApprovalResponses.class",
+        "bytes": 6146,
+        "sha256": "67030e6e667f3425655d33b335839ccc38702e8a9ec72361358e9b111b9fa153"
+      },
+      {
+        "name": "com/chainlesschain/ide/ApprovalSettlementRegistry$Status.class",
+        "bytes": 1454,
+        "sha256": "80fab9116c9e0c02f1849135fdfeed851b08345de2ff1a3ba2585ab0c9481923"
+      },
+      {
+        "name": "com/chainlesschain/ide/ApprovalSettlementRegistry.class",
+        "bytes": 3672,
+        "sha256": "33a890819bce871fa7c2afd4b76425ed64774eeb3950f656197ee2f0b4de0990"
+      },
+      {
+        "name": "com/chainlesschain/ide/Artifacts$1.class",
+        "bytes": 1229,
+        "sha256": "455952e4fb3614a38431630601dbd8cfcae54ad6b33bc7edc9cf1fdf159b67e0"
+      },
+      {
+        "name": "com/chainlesschain/ide/Artifacts$RecoveryItem.class",
+        "bytes": 850,
+        "sha256": "78ae5c67f8f904a9c32bf8562d7fe6f38417f6f4740ead42d815685deda97ec0"
+      },
+      {
+        "name": "com/chainlesschain/ide/Artifacts$Row.class",
+        "bytes": 2018,
+        "sha256": "d0b62bcda40707cd227f3de83e8430b78d2de14c900be798ca769f4125fa9a8f"
+      },
+      {
+        "name": "com/chainlesschain/ide/Artifacts$Workbench.class",
+        "bytes": 1816,
+        "sha256": "79648eed6f19756fd92f0e70243bbc6dfe07b0e9f6171667146c89ccc8d97f0b"
+      },
+      {
+        "name": "com/chainlesschain/ide/Artifacts.class",
+        "bytes": 15543,
+        "sha256": "081cbaaeb94be8ef3ec3518ebb5f11a254f29c463cf3f368c6dd5b8df5841af0"
+      },
+      {
+        "name": "com/chainlesschain/ide/AutoExecGuard$Finding.class",
+        "bytes": 704,
+        "sha256": "0e06b388715709f0ed7379989d17de750b2f841a713104e86182ef268b38781f"
+      },
+      {
+        "name": "com/chainlesschain/ide/AutoExecGuard.class",
+        "bytes": 6755,
+        "sha256": "9f2f8699a6f7e212b03aebfc8864989e5cc5695c45f404b01c2baebfe3145ddd"
+      },
+      {
+        "name": "com/chainlesschain/ide/AutomationCenter$Action.class",
+        "bytes": 933,
+        "sha256": "857502d2214f63d45dac36afb6740f200c1942183959d325f7c75d795e5dfe68"
+      },
+      {
+        "name": "com/chainlesschain/ide/AutomationCenter$ActionPreview.class",
+        "bytes": 920,
+        "sha256": "f97f8978599ed09a525f36f9995f18c33ad992ea2c46f7f52bf06f6303f155e6"
+      },
+      {
+        "name": "com/chainlesschain/ide/AutomationCenter$Flow.class",
+        "bytes": 431,
+        "sha256": "58a9205776d2c4b374f4f727016796fec4cc1c6e643216fc45da52d710e66d09"
+      },
+      {
+        "name": "com/chainlesschain/ide/AutomationCenter$Incident.class",
+        "bytes": 1785,
+        "sha256": "9416faab6752e90c590a80ad426a87ed7ff805731b19b4d217c2120aea8f3441"
+      },
+      {
+        "name": "com/chainlesschain/ide/AutomationCenter$Item.class",
+        "bytes": 3255,
+        "sha256": "04c3ae70a7078137856e7a91a5c1948cdbefdea18cd6401ec06786b2594c304c"
+      },
+      {
+        "name": "com/chainlesschain/ide/AutomationCenter$RuntimeItem.class",
+        "bytes": 2148,
+        "sha256": "001158efc2047814196322612e01f5a8f0e587852e207df833b291459e91d5df"
+      },
+      {
+        "name": "com/chainlesschain/ide/AutomationCenter$Snapshot.class",
+        "bytes": 2814,
+        "sha256": "db245f1e50b3421ba86f9f3eefee339e8802fa5e7d52887bbafea044499ac6a7"
+      },
+      {
+        "name": "com/chainlesschain/ide/AutomationCenter.class",
+        "bytes": 35374,
+        "sha256": "b32d905da747fd77731699782f5c930b5db755d3813780ea6857022588d7db70"
+      },
+      {
+        "name": "com/chainlesschain/ide/BackgroundAgents$PidInfo.class",
+        "bytes": 582,
+        "sha256": "6aef88bd8c2d4a32115e32b79390b501247d28fb88099dcae3aba2cbe78aef36"
+      },
+      {
+        "name": "com/chainlesschain/ide/BackgroundAgents$PidProbe.class",
+        "bytes": 393,
+        "sha256": "8d173b35ef8363f5282333c977fce165e11a1ead6575e09dcc2721e8e3696200"
+      },
+      {
+        "name": "com/chainlesschain/ide/BackgroundAgents$Session.class",
+        "bytes": 3598,
+        "sha256": "616f68842731f2e9cdbaa00128605d1789daa58319e743a7fe8ea1bcd62241e5"
+      },
+      {
+        "name": "com/chainlesschain/ide/BackgroundAgents.class",
+        "bytes": 17560,
+        "sha256": "d0c18bca0f3747bb83466a6d813c2b637c6aa0206a571990798b8b0f63293ae6"
+      },
+      {
+        "name": "com/chainlesschain/ide/BackgroundSessionPipeClient$1.class",
+        "bytes": 1002,
+        "sha256": "a95235d7d2680f959c64a82cd5672436decf192c0d9b68a7cf763bee5f84e30a"
+      },
+      {
+        "name": "com/chainlesschain/ide/BackgroundSessionPipeClient$2.class",
+        "bytes": 1851,
+        "sha256": "cb53e517b01e0b34323dd2c7d310b09d02af7c6736989f3b3181cda223ff4bc4"
+      },
+      {
+        "name": "com/chainlesschain/ide/BackgroundSessionPipeClient$3.class",
+        "bytes": 2106,
+        "sha256": "f65aea16aa8d8d93c493f79144602363a34f60a2425040f4eead43eb4503a750"
+      },
+      {
+        "name": "com/chainlesschain/ide/BackgroundSessionPipeClient$LineReader.class",
+        "bytes": 1484,
+        "sha256": "3aa14b378e6ae00f06c0f453740095d2b8413217034764e9af6de99e6d406c37"
+      },
+      {
+        "name": "com/chainlesschain/ide/BackgroundSessionPipeClient$Transport.class",
+        "bytes": 443,
+        "sha256": "1fdb0306aed48a3f617a2c240b77c5a0a24ec8f85ee81c7c592a63eb14a86d3d"
+      },
+      {
+        "name": "com/chainlesschain/ide/BackgroundSessionPipeClient.class",
+        "bytes": 6033,
+        "sha256": "2c499d0866ea540723e2aaf9190e2cf20917d2643c2c5de3a63742d375e3dd04"
+      },
+      {
+        "name": "com/chainlesschain/ide/BridgeSecurityPolicy.class",
+        "bytes": 3378,
+        "sha256": "0fe6fe7beac8263caafeffd18737c0eff255dcb71fa2de36dbff5cb14ca2f41c"
+      },
+      {
+        "name": "com/chainlesschain/ide/CapabilityNegotiation$Result.class",
+        "bytes": 1201,
+        "sha256": "a482c0534219556cdde3fa7e16b4a05d30afec89d966e6a87e0b4c5ca5528830"
+      },
+      {
+        "name": "com/chainlesschain/ide/CapabilityNegotiation.class",
+        "bytes": 5998,
+        "sha256": "fce33151c5335180ec9f9073b7c04dfa147fb76640b4f53cff27d9a8bec71e49"
+      },
+      {
+        "name": "com/chainlesschain/ide/CcAutomaticCompletionPolicy$CacheEntry.class",
+        "bytes": 641,
+        "sha256": "76f3faede01e5096aff63e55759071893ec246f9e8459d8bf35c254a94a4c0a2"
+      },
+      {
+        "name": "com/chainlesschain/ide/CcAutomaticCompletionPolicy$Metrics.class",
+        "bytes": 1794,
+        "sha256": "3ddd1072e261d98284b15c4fa3786c07511b8e9f943f0090d40611c223dfe2f8"
+      },
+      {
+        "name": "com/chainlesschain/ide/CcAutomaticCompletionPolicy$Options.class",
+        "bytes": 1440,
+        "sha256": "cc28ba0143c4cb6b1a598cdeacb78faefb55267cf9e269617000720a8f3e6906"
+      },
+      {
+        "name": "com/chainlesschain/ide/CcAutomaticCompletionPolicy$Usage.class",
+        "bytes": 585,
+        "sha256": "720dd8e02d98eb3079b6307d1c9b9259cd22232ce8592f6f8f80fb14e50df78b"
+      },
+      {
+        "name": "com/chainlesschain/ide/CcAutomaticCompletionPolicy.class",
+        "bytes": 9186,
+        "sha256": "f4e66468e7c305b19b763e150d0d9eae6f22874ab0fff9cd8c3558f629b68afe"
+      },
+      {
+        "name": "com/chainlesschain/ide/CcCompletion.class",
+        "bytes": 7437,
+        "sha256": "8981477c3d418369b84bbf275de5b8619ec9bf645787088cc5b396fc3cdbb792"
+      },
+      {
+        "name": "com/chainlesschain/ide/ChatDraftStore$Attachment.class",
+        "bytes": 1848,
+        "sha256": "4bc4f16903522f18fcb3db35c52a2ccc2d8e873dab4f0625581be79383940d15"
+      },
+      {
+        "name": "com/chainlesschain/ide/ChatDraftStore$Content.class",
+        "bytes": 2134,
+        "sha256": "1cde6f1f9c051d0a17ecec5a989f1a5440703a9a924df5d9b14225adffb14de5"
+      },
+      {
+        "name": "com/chainlesschain/ide/ChatDraftStore$Draft.class",
+        "bytes": 3154,
+        "sha256": "cb96a31725f145b4a51aa587da15dea2166ce0ce89b6a27fee4e7d057a90147e"
+      },
+      {
+        "name": "com/chainlesschain/ide/ChatDraftStore$Prepared.class",
+        "bytes": 2205,
+        "sha256": "e4c13513bc403f53c7f7a332ef69832c4de749d44f35e62db3aeba9b75630333"
+      },
+      {
+        "name": "com/chainlesschain/ide/ChatDraftStore$Question.class",
+        "bytes": 2996,
+        "sha256": "2a1137f7da295bca6d858b9ec17a8af2c7ae66c6154182c0fdfd08a55310840c"
+      },
+      {
+        "name": "com/chainlesschain/ide/ChatDraftStore$Submission.class",
+        "bytes": 2680,
+        "sha256": "abf37a3543bc2ed3478708a29a3a9edd3933408153eca6ab625a6a9e7d1a15ab"
+      },
+      {
+        "name": "com/chainlesschain/ide/ChatDraftStore.class",
+        "bytes": 31178,
+        "sha256": "04976593c52203032fc8c0790c2ea7b6efb26d24253c9c4031971268ddb6e5d6"
+      },
+      {
+        "name": "com/chainlesschain/ide/ChatDraftTasks.class",
+        "bytes": 3178,
+        "sha256": "b4781738b0bfaea150dd600112715b1c1ceae36443dcbe1579cd309118877b30"
+      },
+      {
+        "name": "com/chainlesschain/ide/ChatEvents$TokenTally.class",
+        "bytes": 2915,
+        "sha256": "49fa07a3d01ab29a0c4730d7df2ee8defbd63dfdc7e320cbce16a1d69d7b619b"
+      },
+      {
+        "name": "com/chainlesschain/ide/ChatEvents$TurnState.class",
+        "bytes": 445,
+        "sha256": "49560b6bf72c177eb01bc8c82a32c1e60a19a52ec589e446372cbd075e3c256e"
+      },
+      {
+        "name": "com/chainlesschain/ide/ChatEvents.class",
+        "bytes": 19122,
+        "sha256": "41ad5b3e04e57b711a79707ff9de91488f914c70f924063360d53e1a663b5471"
+      },
+      {
+        "name": "com/chainlesschain/ide/ChromeConnector.class",
+        "bytes": 5537,
+        "sha256": "6433550e0c8d7d318e2932c1d1b4f7ab5204648dec545ff41ed71312f0575c3b"
+      },
+      {
+        "name": "com/chainlesschain/ide/CliLauncher.class",
+        "bytes": 5721,
+        "sha256": "b3f11b293c33eae21d48670a0195941f2c7e4952cb5238ef307c5693792adecc"
+      },
+      {
+        "name": "com/chainlesschain/ide/CliVersionCheck.class",
+        "bytes": 3569,
+        "sha256": "4e72655a169f1c334015ecbca9ffa2d234fe395116ec55a2ee9f8c11c380a327"
+      },
+      {
+        "name": "com/chainlesschain/ide/ContextCenter$Candidate.class",
+        "bytes": 1581,
+        "sha256": "e34e13fb1d26e38d04a24ccb5ffd1549d565758f4a24e03d9e01cdaeaf8e13dd"
+      },
+      {
+        "name": "com/chainlesschain/ide/ContextCenter.class",
+        "bytes": 16449,
+        "sha256": "50edea57cef98f9123ccc1d1fa8cf3444acb4abf5296f9ba7941da21713168f4"
+      },
+      {
+        "name": "com/chainlesschain/ide/ContextExternalSources.class",
+        "bytes": 5180,
+        "sha256": "d5e30d2143750c077de33be8662be6f39b21f5905b5c85b20122adca8db2e48e"
+      },
+      {
+        "name": "com/chainlesschain/ide/ContextMemoryAuthority.class",
+        "bytes": 3134,
+        "sha256": "1c4a8fc4ff4067c69c85ed47ebd420ff6a1d1fd0db2350386c5e6031920a208b"
+      },
+      {
+        "name": "com/chainlesschain/ide/ContextMemoryProjection.class",
+        "bytes": 4841,
+        "sha256": "5b2e480a4affbf71230d71c4bc3fd18f0565227485dff5dcfa3a8cb51557dff4"
+      },
+      {
+        "name": "com/chainlesschain/ide/ContextStatus.class",
+        "bytes": 1576,
+        "sha256": "2ac4291933490551f56d875030975170e3483386bc5c274ad1d675b538f038ad"
+      },
+      {
+        "name": "com/chainlesschain/ide/ConversationManager$1.class",
+        "bytes": 890,
+        "sha256": "4c58bba7086cff2edfdfd97e8024e98a2d8f80967bbf9de9e0df21e460b5ed67"
+      },
+      {
+        "name": "com/chainlesschain/ide/ConversationManager$CloseResult.class",
+        "bytes": 873,
+        "sha256": "94dd7ebae5c6219ff6a693f1eeb52ff413ffb86d21e02f859e47466b49c75bc5"
+      },
+      {
+        "name": "com/chainlesschain/ide/ConversationManager$Conversation.class",
+        "bytes": 1255,
+        "sha256": "406e63be036bb897ca5a102004c4e378f4ebde358e966860589c92447bd08cea"
+      },
+      {
+        "name": "com/chainlesschain/ide/ConversationManager$TabInfo.class",
+        "bytes": 777,
+        "sha256": "19e2cb47faab59ebda4f48e1675aa41dd10492b80756475ba40e9ad2f6b782e5"
+      },
+      {
+        "name": "com/chainlesschain/ide/ConversationManager.class",
+        "bytes": 7298,
+        "sha256": "9ad88a97679d01b6cacc52f4597dee065ef2ccfc86ff5b3462e2ffe14161b7a4"
+      },
+      {
+        "name": "com/chainlesschain/ide/DashboardHtml$TimeFmt.class",
+        "bytes": 281,
+        "sha256": "026bae0c5cccb8732cea5c6a502b8bba3bb3ad8676d59186f57fa9843ac69854"
+      },
+      {
+        "name": "com/chainlesschain/ide/DashboardHtml.class",
+        "bytes": 7281,
+        "sha256": "4e004058c3b2692b34cec51e0860d91ab79e9e6a480173424db55776c6da2588"
+      },
+      {
+        "name": "com/chainlesschain/ide/DeepLink$Action.class",
+        "bytes": 873,
+        "sha256": "20b0b90f91e7293edd45e1ec79812e0c4f402b0cf91d7ea9ecf133d4004832c4"
+      },
+      {
+        "name": "com/chainlesschain/ide/DeepLink.class",
+        "bytes": 3687,
+        "sha256": "7ace08c5423c8f3922d4658d335cde1a8c5edaaa7eb4e7cede85543f774815d4"
+      },
+      {
+        "name": "com/chainlesschain/ide/DeliveryWorkflow.class",
+        "bytes": 15877,
+        "sha256": "23f3f8b8a64a4ea6165489e3959b5ca8076f389b4a6c34b505d13011b5f42130"
+      },
+      {
+        "name": "com/chainlesschain/ide/DeliveryWorkflowController$CliAdapter.class",
+        "bytes": 539,
+        "sha256": "a8a94132a19dcd6e009e39564e03bdf9de415c6292d0292e75930e117650c91a"
+      },
+      {
+        "name": "com/chainlesschain/ide/DeliveryWorkflowController$Confirmation.class",
+        "bytes": 1284,
+        "sha256": "7b0361f6c1da23281d52c5ec95a1850cdae0ce4a1ca10f54ed411499fd9a3cdf"
+      },
+      {
+        "name": "com/chainlesschain/ide/DeliveryWorkflowController$ResultReader.class",
+        "bytes": 467,
+        "sha256": "021ed5a8abf689574aacd644e37b915d0875d21febb83fd07a3637732ca551d0"
+      },
+      {
+        "name": "com/chainlesschain/ide/DeliveryWorkflowController.class",
+        "bytes": 9633,
+        "sha256": "5ea2083a5c690db79b34bfe45fb652f8f22b584b66cdd1fd718f39ded57f2aae"
+      },
+      {
+        "name": "com/chainlesschain/ide/DiagnosticBundleExport.class",
+        "bytes": 1969,
+        "sha256": "6ba717935c67e1f63a20dbb5485ca433c2778e3ae01d8ec5e399f42c2bdd6bac"
+      },
+      {
+        "name": "com/chainlesschain/ide/DiagnosticsSnapshotScheduler$DocumentState.class",
+        "bytes": 922,
+        "sha256": "87c0d52425ec823b3807abc780e6e422cef95a4a27c5a3a7900b8d3235e18f46"
+      },
+      {
+        "name": "com/chainlesschain/ide/DiagnosticsSnapshotScheduler$FileSeparator.class",
+        "bytes": 679,
+        "sha256": "a7d08652d382de433ca6b817f19dcee97dcbd1416e7e4dbb8c17b8da6d3f8535"
+      },
+      {
+        "name": "com/chainlesschain/ide/DiagnosticsSnapshotScheduler$PendingUpdate.class",
+        "bytes": 821,
+        "sha256": "4f16954bc8758935a559d8926047d506ed3ac900faf0675095e5a4319be81fcc"
+      },
+      {
+        "name": "com/chainlesschain/ide/DiagnosticsSnapshotScheduler$Reader.class",
+        "bytes": 537,
+        "sha256": "b38f5d919a8923eb241a368bc5ed5578aa0369e421ee87eb48c4f91b4afbc01e"
+      },
+      {
+        "name": "com/chainlesschain/ide/DiagnosticsSnapshotScheduler$Snapshot.class",
+        "bytes": 1744,
+        "sha256": "067ac8f12bc9728d7ea9b47ec10c25c519048bf6b4d5f446b18877a70e23b42b"
+      },
+      {
+        "name": "com/chainlesschain/ide/DiagnosticsSnapshotScheduler$Update.class",
+        "bytes": 1139,
+        "sha256": "30859186c4e2868c3c662bc2a6d57c58269bd741cbe418a9cdd93449166e0adc"
+      },
+      {
+        "name": "com/chainlesschain/ide/DiagnosticsSnapshotScheduler.class",
+        "bytes": 23279,
+        "sha256": "9f68a60d15407d42ebfb0abd64c478cffc0404428b8a1cfd8e93e116ed7942b9"
+      },
+      {
+        "name": "com/chainlesschain/ide/DiffApplyGuard$ReviewPayload.class",
+        "bytes": 765,
+        "sha256": "642b87480087bb6937d4e72b3100d61fd3f9577009067873b8104d067673c569"
+      },
+      {
+        "name": "com/chainlesschain/ide/DiffApplyGuard.class",
+        "bytes": 3085,
+        "sha256": "9a27d2e718ece54dda63afcf746d20b05aa90d4994964976315ecd7d804d82fb"
+      },
+      {
+        "name": "com/chainlesschain/ide/DiffHunks$Hunk.class",
+        "bytes": 2151,
+        "sha256": "e00eb55c80737190dd9b627f734ca7940e46493a4f55377bcecdfe37ccdb3a31"
+      },
+      {
+        "name": "com/chainlesschain/ide/DiffHunks.class",
+        "bytes": 5700,
+        "sha256": "afe3ffc067fd46a337f2eb4f29f422bea063e632a9d3a94a591c500bc7b2279b"
+      },
+      {
+        "name": "com/chainlesschain/ide/DiffReviewAudit.class",
+        "bytes": 9574,
+        "sha256": "a7e0235a3f0b8353b1bec4fc60be2155388628afc1dfb1691586e6c81693540a"
+      },
+      {
+        "name": "com/chainlesschain/ide/EditorFacade.class",
+        "bytes": 5673,
+        "sha256": "bf936417d39921f3c42d2fb3185400a9403fff6ff314fec9f9246c29dce3aadc"
+      },
+      {
+        "name": "com/chainlesschain/ide/ElicitationSchema$Field.class",
+        "bytes": 2534,
+        "sha256": "b0cfcc7d87b6dbf3bccf54b130ec4b7a32aea84bf2a7fa0af7ec9e6aaffd4517"
+      },
+      {
+        "name": "com/chainlesschain/ide/ElicitationSchema$Issue.class",
+        "bytes": 658,
+        "sha256": "fe7de38e4ecd286e8c0d56c1766b04ea9830d0dd443328fd1dcc7637d1e7283f"
+      },
+      {
+        "name": "com/chainlesschain/ide/ElicitationSchema$Kind.class",
+        "bytes": 1755,
+        "sha256": "1c035f3fe7172b39c2579d49c3f70c6b3118a9cac75eb92550e37f275bf89f2e"
+      },
+      {
+        "name": "com/chainlesschain/ide/ElicitationSchema$Model.class",
+        "bytes": 1578,
+        "sha256": "4ab6fc500673a6076ef8f35c7741f8c8c3d094df8b5d7123bce437852c9afa45"
+      },
+      {
+        "name": "com/chainlesschain/ide/ElicitationSchema$Option.class",
+        "bytes": 693,
+        "sha256": "afb56044663f1eb0395797e69068b4da7d63700e56f923330b41b218bb1fd3e2"
+      },
+      {
+        "name": "com/chainlesschain/ide/ElicitationSchema$Submission.class",
+        "bytes": 1640,
+        "sha256": "2df95314859a6173cdcde8defb57d1bfc9ba632126c0cae60a3394a877a9a3de"
+      },
+      {
+        "name": "com/chainlesschain/ide/ElicitationSchema$Validation.class",
+        "bytes": 1041,
+        "sha256": "73b7f4562c92b15a27062af7982a111862ad444a4eda22e9211015171a633143"
+      },
+      {
+        "name": "com/chainlesschain/ide/ElicitationSchema.class",
+        "bytes": 21116,
+        "sha256": "a9b56dbd72c80775e68d76f5e72c124c9169b4ce4b179f244b622a484bf9d110"
+      },
+      {
+        "name": "com/chainlesschain/ide/EvolutionDeploymentConfig$Admission.class",
+        "bytes": 2183,
+        "sha256": "9c23f285b4236d602a13c337402cba50d9a1a2f600447089600ab3679da8701d"
+      },
+      {
+        "name": "com/chainlesschain/ide/EvolutionDeploymentConfig$Status.class",
+        "bytes": 4115,
+        "sha256": "ed1d341622888a925775eb91b8e58ada8acf26b6e31fdd5d5dd0483c45794efb"
+      },
+      {
+        "name": "com/chainlesschain/ide/EvolutionDeploymentConfig.class",
+        "bytes": 6714,
+        "sha256": "6f08f4ae10e82354ed83e263d97be17c6b66c8db074a97daa9b3639723634d8d"
+      },
+      {
+        "name": "com/chainlesschain/ide/EvolutionWorkbench$Candidate.class",
+        "bytes": 1863,
+        "sha256": "605697598d92b20b206d0533e726a6054fde86c703252e1411950b4ddbe7df68"
+      },
+      {
+        "name": "com/chainlesschain/ide/EvolutionWorkbench$Governance.class",
+        "bytes": 1045,
+        "sha256": "e7a63e85118c30147427bd62b9c6781cfd68c9b124323944902b9b76c763e8b8"
+      },
+      {
+        "name": "com/chainlesschain/ide/EvolutionWorkbench$Projection.class",
+        "bytes": 2379,
+        "sha256": "ee23bb5c93085e4dd4f2214fee1bddd527fcd584c48e84d559be085b612aa83a"
+      },
+      {
+        "name": "com/chainlesschain/ide/EvolutionWorkbench.class",
+        "bytes": 20662,
+        "sha256": "bb56767581f30c6825d8fdfca518cfdbbfd91c1c1acd9f40be966303e2bb71c9"
+      },
+      {
+        "name": "com/chainlesschain/ide/EvolutionWorkbenchSession.class",
+        "bytes": 1052,
+        "sha256": "0d4a7efae9818ff90940c4b66745e16541de62356a718b06da627d0396e94d63"
+      },
+      {
+        "name": "com/chainlesschain/ide/FixWithCc$Diag.class",
+        "bytes": 913,
+        "sha256": "4c620e396895b05413ac338a103b07e3cb3304fe516827fca3399019135e0738"
+      },
+      {
+        "name": "com/chainlesschain/ide/FixWithCc.class",
+        "bytes": 3806,
+        "sha256": "202414cd8b306162cecf1773daaff518d32e99fcfd4e5ad6b9104187fe983c4d"
+      },
+      {
+        "name": "com/chainlesschain/ide/GoalEventObserver$Decoder.class",
+        "bytes": 5676,
+        "sha256": "6290bc02b5445ce70d16e25658fc9c5ddd8f9f159ebf30996dfeca623bd4c36e"
+      },
+      {
+        "name": "com/chainlesschain/ide/GoalEventObserver.class",
+        "bytes": 11003,
+        "sha256": "4efdac857662a03a493e756f19d572c77650fef3b7879f1da31aa48566b32c38"
+      },
+      {
+        "name": "com/chainlesschain/ide/GoalHistoryReplay$Binding.class",
+        "bytes": 2421,
+        "sha256": "ab80e3e746d826b1be4847b4d9d3bf0d720b0aa1a9128b9178275e421c54b840"
+      },
+      {
+        "name": "com/chainlesschain/ide/GoalHistoryReplay$Outcome.class",
+        "bytes": 1918,
+        "sha256": "b3abca64cae34db3eff1a04f46d8b85c1524c5f3e57a5214a8dfa3db05c8ce5a"
+      },
+      {
+        "name": "com/chainlesschain/ide/GoalHistoryReplay$Page.class",
+        "bytes": 2054,
+        "sha256": "f12a430790d3064820857a14f45667c33809b773f8304e15c9c1f74d8f6ac231"
+      },
+      {
+        "name": "com/chainlesschain/ide/GoalHistoryReplay$Selection.class",
+        "bytes": 2477,
+        "sha256": "881fa4c79c1f4734d8954a56392807b70cbe235e63709aa1be3caf74aa17a575"
+      },
+      {
+        "name": "com/chainlesschain/ide/GoalHistoryReplay.class",
+        "bytes": 17690,
+        "sha256": "62f7d1fa50f3a495e254b9b161eb12a717ba58174ff44df4270f8f22e23c8f50"
+      },
+      {
+        "name": "com/chainlesschain/ide/GoalTaskCreateExport.class",
+        "bytes": 7344,
+        "sha256": "19f83040b1d5aae1e1e02da80a74637edd1d3b196e6ffbdf56001d8a0a2d4dba"
+      },
+      {
+        "name": "com/chainlesschain/ide/IdeCapabilities.class",
+        "bytes": 3552,
+        "sha256": "e1b70253cb51b97440d1ffdcf250c25fc4b6c36fd6f290ee69a443b192185357"
+      },
+      {
+        "name": "com/chainlesschain/ide/IdeContextV2.class",
+        "bytes": 5671,
+        "sha256": "70da179762d71d75981136e4401777e11824bf83a5ff17f7bddd494bd4d44918"
+      },
+      {
+        "name": "com/chainlesschain/ide/IdeDoctor.class",
+        "bytes": 5724,
+        "sha256": "2d4c85fcb117ac92f7b52de49645efbd594b200c904640313c56a7afab522c7d"
+      },
+      {
+        "name": "com/chainlesschain/ide/IdePathGuard$Result.class",
+        "bytes": 854,
+        "sha256": "fdd050013640227dd7ab7646e14ab4911be42115060989e73ded152fb4cb7d66"
+      },
+      {
+        "name": "com/chainlesschain/ide/IdePathGuard.class",
+        "bytes": 4281,
+        "sha256": "3096234d3a14a9c661dbe6c0c6cd846a1e927cf8dfffa5eae6c4ba461bb6b6ee"
+      },
+      {
+        "name": "com/chainlesschain/ide/IdeSessionIndex$1.class",
+        "bytes": 1459,
+        "sha256": "55439fff436889df4a5dffadf38f1c4f5ce632326e3f2e5cc6cb465e1069c5bf"
+      },
+      {
+        "name": "com/chainlesschain/ide/IdeSessionIndex$IoMutation.class",
+        "bytes": 320,
+        "sha256": "66511d66091a1710ca064e23263e9786c45c0d606896dabc8d0403b93b0cbdd6"
+      },
+      {
+        "name": "com/chainlesschain/ide/IdeSessionIndex.class",
+        "bytes": 16605,
+        "sha256": "4a836acb23b0e744b7c20a286b0a2763287b45cbec0829facb14689fe03a76b7"
+      },
+      {
+        "name": "com/chainlesschain/ide/IdeToolAdmission.class",
+        "bytes": 643,
+        "sha256": "83684a2216ae5d1f6a297cde4675e72e940af04693329d2dae15fc4df14e9a14"
+      },
+      {
+        "name": "com/chainlesschain/ide/IdeTools$1.class",
+        "bytes": 1882,
+        "sha256": "c3477cce0d78f5bfd5e7411e791a7b518940b86129f425812e009b0e914f68a8"
+      },
+      {
+        "name": "com/chainlesschain/ide/IdeTools$10.class",
+        "bytes": 2421,
+        "sha256": "87ff856574aca0994ceef185a2c447fa04623f6aa803ea95cea18cfd4cccdc55"
+      },
+      {
+        "name": "com/chainlesschain/ide/IdeTools$11.class",
+        "bytes": 3360,
+        "sha256": "5af7ddb11ef735914e6b32a4cc43aa99f5d95a9f90402d08fad44290d975c02d"
+      },
+      {
+        "name": "com/chainlesschain/ide/IdeTools$12.class",
+        "bytes": 2112,
+        "sha256": "f30e2d41c45775187855dfb353004cfdd23d4c746589ad7a0bf838bd1de13eb0"
+      },
+      {
+        "name": "com/chainlesschain/ide/IdeTools$2.class",
+        "bytes": 1886,
+        "sha256": "5b0233524a5588e318c6c890a22cdbaa1d1ff97aa8390c14d95756436a9f2fb0"
+      },
+      {
+        "name": "com/chainlesschain/ide/IdeTools$3.class",
+        "bytes": 3320,
+        "sha256": "f3aef13d024928598aa9031c02986797c5a33a0b88c77ca643f8b198385175d9"
+      },
+      {
+        "name": "com/chainlesschain/ide/IdeTools$4.class",
+        "bytes": 2134,
+        "sha256": "ffa35449df611141f6b1f65e21d7f547b8fb29264861f50739d4938192eb6731"
+      },
+      {
+        "name": "com/chainlesschain/ide/IdeTools$5.class",
+        "bytes": 5407,
+        "sha256": "f1335024778bdbf73ca6c00d1124284e43084b18b6a61b7d8dea8870288b3b73"
+      },
+      {
+        "name": "com/chainlesschain/ide/IdeTools$6.class",
+        "bytes": 5392,
+        "sha256": "6915e4a9a0b91a5b9d32d0ae510da84271be98cb2fb8b65f759eafa39c895050"
+      },
+      {
+        "name": "com/chainlesschain/ide/IdeTools$7.class",
+        "bytes": 3579,
+        "sha256": "93f9eefd57f02a9eb74e6983fb56d1d87f736e499e78845ff15b6c1e7d451839"
+      },
+      {
+        "name": "com/chainlesschain/ide/IdeTools$8.class",
+        "bytes": 2100,
+        "sha256": "1f16452134e4bc65f5d268cde0f20776b24697a73150e5e301f20c828f09d992"
+      },
+      {
+        "name": "com/chainlesschain/ide/IdeTools$9.class",
+        "bytes": 1928,
+        "sha256": "971341782b5b469b7674a8e244694dec290d6ef5ff445eef5a0d387370528a2a"
+      },
+      {
+        "name": "com/chainlesschain/ide/IdeTools$BaseTool.class",
+        "bytes": 1215,
+        "sha256": "c45a95f9e1827bcc7d2ff95cbdad31e6d2a2a251bce5fea9f94792169a37b18b"
+      },
+      {
+        "name": "com/chainlesschain/ide/IdeTools.class",
+        "bytes": 15550,
+        "sha256": "b877ac87f2a87a4abc3676a49dd6eee84306a6199d37360f78fcf846305c3b1c"
+      },
+      {
+        "name": "com/chainlesschain/ide/ImageAttachments.class",
+        "bytes": 5926,
+        "sha256": "4c188ab15676fd951198910a8a47656528d27e12dfbddb71e8159789e917fedf"
+      },
+      {
+        "name": "com/chainlesschain/ide/ImageFileSnapshot.class",
+        "bytes": 4712,
+        "sha256": "85c42f431a3607f8acde21af01da8fd7c3657ecce8fb8880438dc59dfd659961"
+      },
+      {
+        "name": "com/chainlesschain/ide/InputDispatch$InitializationTimeoutException.class",
+        "bytes": 645,
+        "sha256": "246fc613cb7b1f32430bc1afb7221a0323f22174d6ebd6fd41e923e7f7edae71"
+      },
+      {
+        "name": "com/chainlesschain/ide/InputDispatch.class",
+        "bytes": 2623,
+        "sha256": "76cde6672545fc48aa4a57ea0414018cd680dd78dde50869567092f9b16f2be9"
+      },
+      {
+        "name": "com/chainlesschain/ide/IntrospectArgs$ContextStatus.class",
+        "bytes": 660,
+        "sha256": "ea926614698140ff5423f150e7a11b70e148d7ad36b4243ec710e0827add2f0b"
+      },
+      {
+        "name": "com/chainlesschain/ide/IntrospectArgs.class",
+        "bytes": 3077,
+        "sha256": "17843c9ba9028e112de762a8dcd96cd9f9e24ddaa0799d602c3257594b6234b5"
+      },
+      {
+        "name": "com/chainlesschain/ide/JetbrainsMcpLocator.class",
+        "bytes": 5607,
+        "sha256": "32bd52bd4d224a160cc3bfd9a94bf75c19282b160374b1ef0f46d593fe6a4554"
+      },
+      {
+        "name": "com/chainlesschain/ide/JetbrainsMcpProbe$Prober.class",
+        "bytes": 291,
+        "sha256": "88a6517ddf26a28d4f546c570fe1dde8fe6a7df434388387517622b35af06cc9"
+      },
+      {
+        "name": "com/chainlesschain/ide/JetbrainsMcpProbe.class",
+        "bytes": 3431,
+        "sha256": "55e3eb56b49f116d54850b23e17afdc6b8557756c4d95b22487efcaf5473184a"
+      },
+      {
+        "name": "com/chainlesschain/ide/LlmConfig$1.class",
+        "bytes": 1140,
+        "sha256": "dec4c97db884ee130ff7d3964188504f3b8e7b8a5b2fefddca8e283df27fe6d8"
+      },
+      {
+        "name": "com/chainlesschain/ide/LlmConfig$CliResult.class",
+        "bytes": 864,
+        "sha256": "b6a9becf74ab31ab7fa0be3f42b8c9642f4125437e5bd468ce911bc92a989a20"
+      },
+      {
+        "name": "com/chainlesschain/ide/LlmConfig$CliRunner.class",
+        "bytes": 520,
+        "sha256": "5fa1c5f99610275114d243280af7e551a5a05b50c8e9603d6d8c44ff64da0ef6"
+      },
+      {
+        "name": "com/chainlesschain/ide/LlmConfig$ConfigReader.class",
+        "bytes": 324,
+        "sha256": "0fcb341a16bd688757d400dd45d33168ed4288e545c0b7048c5cb25c75255873"
+      },
+      {
+        "name": "com/chainlesschain/ide/LlmConfig$ConfigurationState.class",
+        "bytes": 851,
+        "sha256": "eb938e7f71dd93683fdcc2e4ec6648cf696b58a48c794b8744eedf3d827a7a30"
+      },
+      {
+        "name": "com/chainlesschain/ide/LlmConfig$ConfigurationStatus.class",
+        "bytes": 1401,
+        "sha256": "34e2e48c137b2122527f48f6d7b2dfc9b6c3288451ec07b7698cbb27675d684c"
+      },
+      {
+        "name": "com/chainlesschain/ide/LlmConfig$Connection.class",
+        "bytes": 1011,
+        "sha256": "ebcb9d178a1900649260b0f3e9796012cfa88403cebccd98add68acb1128c8ec"
+      },
+      {
+        "name": "com/chainlesschain/ide/LlmConfig$Preset.class",
+        "bytes": 1042,
+        "sha256": "09fbe6f23dff40b5e517170319735666a4c3d30e6bf9bc1ae3a7234ff4c9e8e3"
+      },
+      {
+        "name": "com/chainlesschain/ide/LlmConfig.class",
+        "bytes": 28954,
+        "sha256": "eadababaa098b61a8c286db3116d0dc22a624cc52d4a17755a185f8cfaabc274"
+      },
+      {
+        "name": "com/chainlesschain/ide/LlmConnectionPanel$1.class",
+        "bytes": 1070,
+        "sha256": "2396b483c94dff6de22bb7d05a2f366b684f885ce223cd37ea1c8c2f84e59859"
+      },
+      {
+        "name": "com/chainlesschain/ide/LlmConnectionPanel.class",
+        "bytes": 12765,
+        "sha256": "f1d14786200194c2091adc6923bd410455bddbf41da2971266838d4e35e7a1f4"
+      },
+      {
+        "name": "com/chainlesschain/ide/LockfileWriter$PermissionEnforcer.class",
+        "bytes": 554,
+        "sha256": "a7fabe700f91ddbdad90e4b321ff0811284881c3e5e5cdea14bc974e4450c8e5"
+      },
+      {
+        "name": "com/chainlesschain/ide/LockfileWriter$SecurityPolicy.class",
+        "bytes": 420,
+        "sha256": "c9e4882f290316e93708baf9fbaa25a3246032cf7a89f911c80881211d10b795"
+      },
+      {
+        "name": "com/chainlesschain/ide/LockfileWriter.class",
+        "bytes": 16849,
+        "sha256": "283fe799c604aea703a0b758c8a5440489632c7f81271dcbef1716182456468a"
+      },
+      {
+        "name": "com/chainlesschain/ide/ManagedCli$Extraction.class",
+        "bytes": 1184,
+        "sha256": "3607fe82891b47fb16a9426978c86fd6698c8aeae09258457e0c52fe5dbc8588"
+      },
+      {
+        "name": "com/chainlesschain/ide/ManagedCli$FileItem.class",
+        "bytes": 612,
+        "sha256": "2513db8b4b2d12ad997fcff1c7cd369f3a6325c61f27566ebaf355aa8b679ec2"
+      },
+      {
+        "name": "com/chainlesschain/ide/ManagedCli$ResolveIo.class",
+        "bytes": 745,
+        "sha256": "1da428871c987d66b7370034a393fee7df04b02d4b2d1eb4eba85caa5f8afe2d"
+      },
+      {
+        "name": "com/chainlesschain/ide/ManagedCli$TarEntry.class",
+        "bytes": 675,
+        "sha256": "7dfeddaf28996a2151c7c9073a819e918adcb97bb29fe6adc94d3b8229488d29"
+      },
+      {
+        "name": "com/chainlesschain/ide/ManagedCli$TarParse.class",
+        "bytes": 884,
+        "sha256": "c6924b1390bf30256371445544a2e23cf1dcf3de54fefe523449daa4dc8d5f03"
+      },
+      {
+        "name": "com/chainlesschain/ide/ManagedCli.class",
+        "bytes": 25680,
+        "sha256": "ad7b3f4e4cd2ce1032c704c8146da9d64a3589a7e4014ab93ad034bd9d52b81f"
+      },
+      {
+        "name": "com/chainlesschain/ide/ManagedCliRuntime$1.class",
+        "bytes": 3989,
+        "sha256": "f16aeee431ed9d03df7467c5f4117cf51d6171cf94cce53385983ef5c183836a"
+      },
+      {
+        "name": "com/chainlesschain/ide/ManagedCliRuntime$2.class",
+        "bytes": 2027,
+        "sha256": "f4c23dc8fa88dc06913b1d62235f0a7e8bf26d3a0b4a9256eb911197f944b390"
+      },
+      {
+        "name": "com/chainlesschain/ide/ManagedCliRuntime$FileOps.class",
+        "bytes": 827,
+        "sha256": "178e493d22f73dee2e326f4ad5a514b4bc13893f76f9bd9bfdcdd665749c7bcf"
+      },
+      {
+        "name": "com/chainlesschain/ide/ManagedCliRuntime$Io.class",
+        "bytes": 1984,
+        "sha256": "1b8f1b7c0ac09d6c3231b2e1fb3fe21b6c81cf31c8dc34ecffd4ecab9559e171"
+      },
+      {
+        "name": "com/chainlesschain/ide/ManagedCliRuntime.class",
+        "bytes": 19572,
+        "sha256": "1cde0bb1ef44fb664dcfa9eefb9532c1c719ebd5432dac800f212f39c93ba241"
+      },
+      {
+        "name": "com/chainlesschain/ide/MarkdownLite$Kind.class",
+        "bytes": 1299,
+        "sha256": "36234f2ebcc6a2284407e1ff4ab2bf39e02d5cbc513bd82ec4dc5eef81861e55"
+      },
+      {
+        "name": "com/chainlesschain/ide/MarkdownLite$Span.class",
+        "bytes": 1740,
+        "sha256": "9f18ee9583b20dd5678f12cb8041709db7f0e6a174c3bcf38d4cebaf99b73cf2"
+      },
+      {
+        "name": "com/chainlesschain/ide/MarkdownLite.class",
+        "bytes": 2724,
+        "sha256": "4e2a034f92f350fd4f010cc4a3f4656e2caf9a6dad98169093b393795a0a1433"
+      },
+      {
+        "name": "com/chainlesschain/ide/McpServer$ActivityListener.class",
+        "bytes": 405,
+        "sha256": "04f7316766b978aa98b1a8774e06c7bfe2f9231315e07540adb020bd2feca204"
+      },
+      {
+        "name": "com/chainlesschain/ide/McpServer$PayloadTooLargeException.class",
+        "bytes": 519,
+        "sha256": "79b2044772654a459ad31e55aa0d93e9ac1b9d1691fb2d13b77baa4f084103d8"
+      },
+      {
+        "name": "com/chainlesschain/ide/McpServer$RpcException.class",
+        "bytes": 567,
+        "sha256": "f01c6845c5806fd123d053fb106f360db861587eadec08660fa090c48639cf9b"
+      },
+      {
+        "name": "com/chainlesschain/ide/McpServer.class",
+        "bytes": 14544,
+        "sha256": "6f71d4410b9e753a7d958c117a85e90a1a1ffd80337623f3be8bc159c5ab2c96"
+      },
+      {
+        "name": "com/chainlesschain/ide/Mentions$ApplyResult.class",
+        "bytes": 563,
+        "sha256": "4f8eb6e2cac1ce3e5c8d97c0f9d83bc87d89c153bd911eb06b72b1535aa192cd"
+      },
+      {
+        "name": "com/chainlesschain/ide/Mentions$AtToken.class",
+        "bytes": 553,
+        "sha256": "3cda1ce758f3d10c61fe7c464239c8f5cee4a8563455b246089582ca2c2c5a18"
+      },
+      {
+        "name": "com/chainlesschain/ide/Mentions$MentionItem.class",
+        "bytes": 903,
+        "sha256": "35fd8ae4d9da25632672e4b960ca3a874dc91cab22bb1ce4e497176d88192d37"
+      },
+      {
+        "name": "com/chainlesschain/ide/Mentions$Symbol.class",
+        "bytes": 611,
+        "sha256": "c411eb7d255690e64825aaea6f9c7f504023c8dcf4753be508c6b458fc852816"
+      },
+      {
+        "name": "com/chainlesschain/ide/Mentions.class",
+        "bytes": 9135,
+        "sha256": "211f20189889c3745f97f3da3aad41b77c89a51f9d6a61bf253bb09e3a2172be"
+      },
+      {
+        "name": "com/chainlesschain/ide/MiniJson$Parser.class",
+        "bytes": 5652,
+        "sha256": "814f4e5c1ee030c010473427cbf904171ec5bccb464010a4b9818d8d8baccaed"
+      },
+      {
+        "name": "com/chainlesschain/ide/MiniJson.class",
+        "bytes": 4450,
+        "sha256": "647df395d71506ad2628cd72f06b2f0d060d9d9835848fa22da3ec5c70a2b202"
+      },
+      {
+        "name": "com/chainlesschain/ide/MultiDiff$FileChange.class",
+        "bytes": 1256,
+        "sha256": "80677f278ecbff296533f4898233436af0775df2c4759df4a59afeb0db9328d4"
+      },
+      {
+        "name": "com/chainlesschain/ide/MultiDiff$FileStat.class",
+        "bytes": 1175,
+        "sha256": "df439331bedb91ce2682b73b0e38d9398209701ffe021e0b68e8c45307e92d85"
+      },
+      {
+        "name": "com/chainlesschain/ide/MultiDiff$ReviewPlan.class",
+        "bytes": 1452,
+        "sha256": "cd136dd3ba8ac922cc07274481c4e7c2a2914b510f27efbc569c66201fe1a016"
+      },
+      {
+        "name": "com/chainlesschain/ide/MultiDiff$ReviewSkip.class",
+        "bytes": 811,
+        "sha256": "0c8713ad9996c251fb4a7a0c304c80a447496eb65c6664ce42b3352832f7d5d1"
+      },
+      {
+        "name": "com/chainlesschain/ide/MultiDiff$Summary.class",
+        "bytes": 928,
+        "sha256": "5d2fc3d49d50ba13af254cb510bde738bad68e7651c15989edf27a8b121b999f"
+      },
+      {
+        "name": "com/chainlesschain/ide/MultiDiff.class",
+        "bytes": 12690,
+        "sha256": "c5228cc3ab204e8047941b553ce690e86b92dcc378628a50849a5b917a68ab89"
+      },
+      {
+        "name": "com/chainlesschain/ide/NdjsonLineBuffer.class",
+        "bytes": 1555,
+        "sha256": "0729d212358e08cf739b00647a4ed9b17bcd6396fb64f2aebb028f97b410aec3"
+      },
+      {
+        "name": "com/chainlesschain/ide/PermissionModeState$Snapshot.class",
+        "bytes": 2347,
+        "sha256": "264b1d5975a9ef970e74645e3bdd4d3e66f12e1731fdec2403b0f95ef3e82647"
+      },
+      {
+        "name": "com/chainlesschain/ide/PermissionModeState.class",
+        "bytes": 5278,
+        "sha256": "362b17662014a49bcc55b631a4c5255c0d8a78ca3a86cbc1077629c031c57b3c"
+      },
+      {
+        "name": "com/chainlesschain/ide/PlanReview.class",
+        "bytes": 32768,
+        "sha256": "3ddbeae51ecef72e95716995c53347158e56a0bc1991657ac20f76378e574469"
+      },
+      {
+        "name": "com/chainlesschain/ide/PluginManager.class",
+        "bytes": 46767,
+        "sha256": "db2344de7612c0935d49534a6987a17f19cf9ecc96b317c97952fb96edbc556b"
+      },
+      {
+        "name": "com/chainlesschain/ide/PluginQuality$LspEntry.class",
+        "bytes": 652,
+        "sha256": "a0923e9cc3ce94ec2f091effd8ed556ef8bdaa8c44d5d9961241853f69251275"
+      },
+      {
+        "name": "com/chainlesschain/ide/PluginQuality$Row.class",
+        "bytes": 1978,
+        "sha256": "e493ff3220568748c07bba3dbd15e0111aa6f40322a472b218c6cc28d95c2992"
+      },
+      {
+        "name": "com/chainlesschain/ide/PluginQuality$StatusServer.class",
+        "bytes": 718,
+        "sha256": "c725bbd088f8520de0f82248854ec8b0b491bc2d8b44cddfae27ddee6a6444ce"
+      },
+      {
+        "name": "com/chainlesschain/ide/PluginQuality$Validation.class",
+        "bytes": 2003,
+        "sha256": "623be5168ad740ca596c643608ae9915c028291e23f634cf46d146c43e06b7cd"
+      },
+      {
+        "name": "com/chainlesschain/ide/PluginQuality.class",
+        "bytes": 12832,
+        "sha256": "e0002a35abba45a9762ece72aaaef2c88f4ad6c674ad7b16a9189effc8443798"
+      },
+      {
+        "name": "com/chainlesschain/ide/PolicyViewer$AutoModeSection.class",
+        "bytes": 1896,
+        "sha256": "22c3ca18586926a5ebd86fd07bed5a1dcb58b2a0b152fc6b610ea53a8e7b9884"
+      },
+      {
+        "name": "com/chainlesschain/ide/PolicyViewer$Decision.class",
+        "bytes": 717,
+        "sha256": "8a81e41c4a7ffe451aaa9d8cacf9d4244093c27c7aae7f24b21b768b36ad0378"
+      },
+      {
+        "name": "com/chainlesschain/ide/PolicyViewer$Denial.class",
+        "bytes": 1059,
+        "sha256": "5772a5a00dd9cebcd720da993b3d74dc2dc0a6e3c0c4e3366c73fa164594b676"
+      },
+      {
+        "name": "com/chainlesschain/ide/PolicyViewer$FineRule.class",
+        "bytes": 716,
+        "sha256": "6d03a1290d4925adfc66102317497efd848467989397b2bc1183377f11653f73"
+      },
+      {
+        "name": "com/chainlesschain/ide/PolicyViewer$PermissionsSection.class",
+        "bytes": 2476,
+        "sha256": "995715813d201ace6f704c24e50df47c6f30f6920393f471200059bdee9603e1"
+      },
+      {
+        "name": "com/chainlesschain/ide/PolicyViewer$RuleEntry.class",
+        "bytes": 714,
+        "sha256": "5ae56535714095d2cf9e916fe75c2c130596f1dce30c954a0c30be07cc2a5d71"
+      },
+      {
+        "name": "com/chainlesschain/ide/PolicyViewer$ScopedRule.class",
+        "bytes": 1146,
+        "sha256": "164aa607dd9bc88b85767c2088b1cf315a74e2fd01765f470123fc982b8b30a2"
+      },
+      {
+        "name": "com/chainlesschain/ide/PolicyViewer$SideEffectEntry.class",
+        "bytes": 3549,
+        "sha256": "3b746f667f17662a5600fab5957edaa045b329fec1b6264e0a59f5a5e7de8c8f"
+      },
+      {
+        "name": "com/chainlesschain/ide/PolicyViewer$SideEffectSection.class",
+        "bytes": 1182,
+        "sha256": "e4eb67068aac84753fbb925a4bceb2f031f4c204eb56b7145b705401a09d7eca"
+      },
+      {
+        "name": "com/chainlesschain/ide/PolicyViewer.class",
+        "bytes": 30077,
+        "sha256": "b28069102beb997d5242c789f42d4f1d6cf0754da92d90dae954ba62ca4579d7"
+      },
+      {
+        "name": "com/chainlesschain/ide/PrStatus.class",
+        "bytes": 2538,
+        "sha256": "b98d2212ecb8d7172659c531b7ddcbffad57ceb07acfee91185f847d9873728f"
+      },
+      {
+        "name": "com/chainlesschain/ide/PreviewDetect$DevScript.class",
+        "bytes": 594,
+        "sha256": "b1ea84d65ac69740a9affa19168524a62357e95092d51e51c6f4bda5877e23c8"
+      },
+      {
+        "name": "com/chainlesschain/ide/PreviewDetect.class",
+        "bytes": 3733,
+        "sha256": "c34a506185e3d41391bd59e9e66f0a7a043813de9087b52e8011269d80e844ac"
+      },
+      {
+        "name": "com/chainlesschain/ide/ProcessTreeTermination$Handle.class",
+        "bytes": 3556,
+        "sha256": "78874e2656b7602d58c67e5601b012af98e967fdc48b00190e1aa0669aff9eb7"
+      },
+      {
+        "name": "com/chainlesschain/ide/ProcessTreeTermination$Target.class",
+        "bytes": 473,
+        "sha256": "3862ff6b34bc766bb48c1708069bd777a196ba07afd5fa93754dac9aa73a2f38"
+      },
+      {
+        "name": "com/chainlesschain/ide/ProcessTreeTermination.class",
+        "bytes": 4283,
+        "sha256": "a1de89baaeccfd819827e5bcc58cf837f3b1786ab975916838a4cc335d333cf5"
+      },
+      {
+        "name": "com/chainlesschain/ide/ProjectMemory.class",
+        "bytes": 1706,
+        "sha256": "8e8262f1c4d1fdad81e904d7424506b7460e114ed34b6483fbf104298fbaa84b"
+      },
+      {
+        "name": "com/chainlesschain/ide/QrCode.class",
+        "bytes": 13241,
+        "sha256": "acb314c05e86af27aeb2b47ef59c484952382c85166e3ed9abd4e0c1be1b0394"
+      },
+      {
+        "name": "com/chainlesschain/ide/QuestionDraftContract$Field.class",
+        "bytes": 2458,
+        "sha256": "276bb5f31d99b6905009c9d38f0c9d029c579d7aa1b160d6e8a0908bb9705deb"
+      },
+      {
+        "name": "com/chainlesschain/ide/QuestionDraftContract.class",
+        "bytes": 13106,
+        "sha256": "7ae64c53bafef66cef22cfde41a7c0e53079b7d193ad5061efc221238b9a0dbf"
+      },
+      {
+        "name": "com/chainlesschain/ide/QuestionDraftRegistry$Entry.class",
+        "bytes": 3062,
+        "sha256": "00ff3520c0ee913b1e8db8ca1614d1cdc306a23b81ef4f572505634a11e1a776"
+      },
+      {
+        "name": "com/chainlesschain/ide/QuestionDraftRegistry$State.class",
+        "bytes": 1538,
+        "sha256": "f6f3168189700ef18edc99cc1a85d55f37df8fb7073ae3156a22c96fe29bea7b"
+      },
+      {
+        "name": "com/chainlesschain/ide/QuestionDraftRegistry$View.class",
+        "bytes": 2726,
+        "sha256": "c281e8e9e99415fab4248800d957c62967ccadf916f1699289321162bc5d9410"
+      },
+      {
+        "name": "com/chainlesschain/ide/QuestionDraftRegistry.class",
+        "bytes": 15958,
+        "sha256": "97b7fcefc15cc9034718703213cffb4dcfb7655c1f40c9fd5d5296f78d97b4e2"
+      },
+      {
+        "name": "com/chainlesschain/ide/RemoteDoctor$Check.class",
+        "bytes": 762,
+        "sha256": "e1afd62ad2021f59b50e4ecc469154e10e6e7a1986d6252fdb61ea5dd715910f"
+      },
+      {
+        "name": "com/chainlesschain/ide/RemoteDoctor$Result.class",
+        "bytes": 962,
+        "sha256": "90621ff50d0e1cdee00cbb3ca558cfd79c2dba9f6c1acdf76b7e65b4a8c14e73"
+      },
+      {
+        "name": "com/chainlesschain/ide/RemoteDoctor$Signals.class",
+        "bytes": 665,
+        "sha256": "bffb1cbf5fc8dc4011392ba35a7420b919ed1d87581dd92242130231bd17c3d0"
+      },
+      {
+        "name": "com/chainlesschain/ide/RemoteDoctor.class",
+        "bytes": 7562,
+        "sha256": "b1c39c9e4753db1454294f3183c76b22b99c4a3551b030b95b955a593dded11c"
+      },
+      {
+        "name": "com/chainlesschain/ide/RemoteDoctorFixes$Fix.class",
+        "bytes": 968,
+        "sha256": "0c021e68ebc42b141c0d68acb34ad139f2b245d356d1076437e1308be2a3346f"
+      },
+      {
+        "name": "com/chainlesschain/ide/RemoteDoctorFixes$WslConfigPatch.class",
+        "bytes": 758,
+        "sha256": "6767af46130f98440891af1af1862ec645a99609f81c31ae28b9a3b2918af963"
+      },
+      {
+        "name": "com/chainlesschain/ide/RemoteDoctorFixes.class",
+        "bytes": 7806,
+        "sha256": "9bc53042850076fb488d60a992f20bedf5c8e5fa93719d8bc9623060f07e2262"
+      },
+      {
+        "name": "com/chainlesschain/ide/RemoteHandoff.class",
+        "bytes": 8100,
+        "sha256": "8713108baac159ded27f4dd160aa8df180e1e96824c430e33fbea19bc34e8d6a"
+      },
+      {
+        "name": "com/chainlesschain/ide/ReviewNote.class",
+        "bytes": 2400,
+        "sha256": "4e82a85f9fab8dfb7d354f41eac5bed3c83452cb9fd2031d95a9108bef6ea833"
+      },
+      {
+        "name": "com/chainlesschain/ide/RewindCommands$Checkpoint.class",
+        "bytes": 747,
+        "sha256": "f21c42f9d01472932f1e11446b261dfbda9f1b998246a769e99b43e70b11e825"
+      },
+      {
+        "name": "com/chainlesschain/ide/RewindCommands$TimelineEntry.class",
+        "bytes": 1914,
+        "sha256": "5fea8d118e2987dcaae0dc682f50809054f149f1f62bc8ac0c0feea1528c956a"
+      },
+      {
+        "name": "com/chainlesschain/ide/RewindCommands$TimelineProjection.class",
+        "bytes": 2823,
+        "sha256": "aca0a522d841cefba3ab96484dd483b4375216e69195e186623d84c2ffaff3b8"
+      },
+      {
+        "name": "com/chainlesschain/ide/RewindCommands.class",
+        "bytes": 19195,
+        "sha256": "0125556fcdd96cccc6af345bc45d44ba8713827bb32074c53adba7cfd4e97cb8"
+      },
+      {
+        "name": "com/chainlesschain/ide/RuntimeCompatibility$AgentRuntime.class",
+        "bytes": 2303,
+        "sha256": "0814f1a0b097e166ba227b8d31b82cbb22ef835854deb3dfb47a5067dd610af2"
+      },
+      {
+        "name": "com/chainlesschain/ide/RuntimeCompatibility$Result.class",
+        "bytes": 1757,
+        "sha256": "858ed9bf3abba3b441d0e5f2a34a9fbbb004c9983713d9ada8bae144928e4563"
+      },
+      {
+        "name": "com/chainlesschain/ide/RuntimeCompatibility.class",
+        "bytes": 4339,
+        "sha256": "0e2140f9054436f46759c4f1b82bfbc50ae03c7188ea493275c3278733669a4d"
+      },
+      {
+        "name": "com/chainlesschain/ide/RuntimeEnvironment$Result.class",
+        "bytes": 1272,
+        "sha256": "75580988712d62427c378c483a962332c945c776e3e16d76e56e6774467828ec"
+      },
+      {
+        "name": "com/chainlesschain/ide/RuntimeEnvironment.class",
+        "bytes": 11865,
+        "sha256": "cd75dc1ea5f453382879cd814cd5544a802fd9d9c5ac5e3eb07ff2f74ad7fa68"
+      },
+      {
+        "name": "com/chainlesschain/ide/SemanticTools$1.class",
+        "bytes": 2128,
+        "sha256": "2eed5c9eaa90441d372397111718316bffe0b64b846cf6474ebf7c23fd99c0be"
+      },
+      {
+        "name": "com/chainlesschain/ide/SemanticTools$2.class",
+        "bytes": 2148,
+        "sha256": "48f49fa3a34ecec04a3dc4ef6eab1e3faeda047382b4259e94475b6c9a044264"
+      },
+      {
+        "name": "com/chainlesschain/ide/SemanticTools$3.class",
+        "bytes": 2319,
+        "sha256": "950de210333562e5091ac3c153cfe4fdf8d32bf742ee8c7189bf43e9a3edaef3"
+      },
+      {
+        "name": "com/chainlesschain/ide/SemanticTools$4.class",
+        "bytes": 2414,
+        "sha256": "085af9631dbd37c611bd6caf2dbab8597238a53f4153ff1db05302655c5c8111"
+      },
+      {
+        "name": "com/chainlesschain/ide/SemanticTools$5.class",
+        "bytes": 2324,
+        "sha256": "7486af7ee8f6ad9828be60be55e7608540271b3fbc13f69073044d09521f7171"
+      },
+      {
+        "name": "com/chainlesschain/ide/SemanticTools$6.class",
+        "bytes": 2143,
+        "sha256": "423c6d2cc9893bb9410b1b040ec7ff08d735a6f7eb7a27948db66b80c4e2729c"
+      },
+      {
+        "name": "com/chainlesschain/ide/SemanticTools$7.class",
+        "bytes": 1819,
+        "sha256": "20f525cca489317605b6a8c61b6739395fd5a993e2bd9ee31ac4f4dc02aaee4b"
+      },
+      {
+        "name": "com/chainlesschain/ide/SemanticTools$Position.class",
+        "bytes": 620,
+        "sha256": "311618ce5d731d0fc93fddc7c2da066617aa9c9729b47c1f2df38e3634849fbc"
+      },
+      {
+        "name": "com/chainlesschain/ide/SemanticTools$SemanticFacade.class",
+        "bytes": 1033,
+        "sha256": "240926bf45d4586956613d0dd93eb201002dc56991952a695ef0f77a8fe21912"
+      },
+      {
+        "name": "com/chainlesschain/ide/SemanticTools.class",
+        "bytes": 19182,
+        "sha256": "47a66599bd08a5e2d5cd2ae89ea21b74889dcf99b0832acccd249c8081c70933"
+      },
+      {
+        "name": "com/chainlesschain/ide/SessionArgs.class",
+        "bytes": 4552,
+        "sha256": "65a671c686a5ff08df8ddc500d09722801d8d03e93a868946af149eb4c5f562c"
+      },
+      {
+        "name": "com/chainlesschain/ide/SessionHistoryReader$CaptureFailure.class",
+        "bytes": 1276,
+        "sha256": "8afeafc4b8d7bf6f2b7c460b7f7ca51117acd42303203c0d138c304811c8d933"
+      },
+      {
+        "name": "com/chainlesschain/ide/SessionHistoryReader$CursorExpired.class",
+        "bytes": 554,
+        "sha256": "bddb64e1c7aad577a57cc34929369a747f80375ca35ac2a6a1640c77e7d16853"
+      },
+      {
+        "name": "com/chainlesschain/ide/SessionHistoryReader.class",
+        "bytes": 10281,
+        "sha256": "6616ebb490424fd6eaa6f4b0f11aa845ec98481fefe04d682e242968d80341d2"
+      },
+      {
+        "name": "com/chainlesschain/ide/SessionList$SessionItem.class",
+        "bytes": 1227,
+        "sha256": "c016b678e6a02d2a021102b45cd5c55bb4b5a57cc0d604b281cfa2c391852c9e"
+      },
+      {
+        "name": "com/chainlesschain/ide/SessionList.class",
+        "bytes": 6057,
+        "sha256": "1e79ad6077ebe18d91fcc825c8e34170b402f27a43e2f33ce437edf85df2c159"
+      },
+      {
+        "name": "com/chainlesschain/ide/SessionModel.class",
+        "bytes": 1731,
+        "sha256": "5005e9116651884df868edd77a9d2bea8526fbc8364d68827d4744e6d35a236f"
+      },
+      {
+        "name": "com/chainlesschain/ide/SessionModelInputs.class",
+        "bytes": 16769,
+        "sha256": "70cbabddf2b6753e5ca6e4fc593d76450192726d880b87186106a4d757af33de"
+      },
+      {
+        "name": "com/chainlesschain/ide/SessionProjection$ActionPreview.class",
+        "bytes": 2051,
+        "sha256": "b7150c4b2923bb84f2c24d7082841a667f1167763d077c779ab3d0b8cf595f34"
+      },
+      {
+        "name": "com/chainlesschain/ide/SessionProjection$AttentionSummary.class",
+        "bytes": 651,
+        "sha256": "5f57215f01ce014129f2c4409d7cc8643c82adaf7f1a5c9c6a396f871c2b6bac"
+      },
+      {
+        "name": "com/chainlesschain/ide/SessionProjection$FocusSummary.class",
+        "bytes": 894,
+        "sha256": "1bfa61908c4df07f44a56e64ccde47ca62da7594a0976a54f296cf271aea66a9"
+      },
+      {
+        "name": "com/chainlesschain/ide/SessionProjection$Group.class",
+        "bytes": 641,
+        "sha256": "9cd47394c7a58575cafe62c2f5240a48c8a884dcdaf0f027d383a4c727ce23ce"
+      },
+      {
+        "name": "com/chainlesschain/ide/SessionProjection$GroupProjection.class",
+        "bytes": 1122,
+        "sha256": "c43f497f120f2c238fa287dc0b95545cd0d4877714d5f54e8033fc39ad060f73"
+      },
+      {
+        "name": "com/chainlesschain/ide/SessionProjection$Item.class",
+        "bytes": 4124,
+        "sha256": "05df34852ee1a2ee869de93cc3a405e074df0b0445168d1d17d1128f2efc4ef3"
+      },
+      {
+        "name": "com/chainlesschain/ide/SessionProjection$LocationSummary.class",
+        "bytes": 625,
+        "sha256": "bec83bdefb1b14f5ba6d8a95991fe133ed722024b5dd7ac6d000887cd7937f0e"
+      },
+      {
+        "name": "com/chainlesschain/ide/SessionProjection$MessagingEndpoint.class",
+        "bytes": 892,
+        "sha256": "04333a04007df94be4e8dad4e90908414366edd52e59208e205a774e022f9d4d"
+      },
+      {
+        "name": "com/chainlesschain/ide/SessionProjection$MessagingSummary.class",
+        "bytes": 1266,
+        "sha256": "7229f9fcb3996cde93ffaba602b43689b28a11da37fe31369f8b82f4ffc50e68"
+      },
+      {
+        "name": "com/chainlesschain/ide/SessionProjection$Snapshot.class",
+        "bytes": 2726,
+        "sha256": "e1c45609c23ca7e368414615fc05faa0d1d49b7a1229002b0cd1878002632162"
+      },
+      {
+        "name": "com/chainlesschain/ide/SessionProjection.class",
+        "bytes": 23089,
+        "sha256": "5db9c10df22ff41a947949aebac9a1b982858c769307d43b82c3b9913a726811"
+      },
+      {
+        "name": "com/chainlesschain/ide/SessionTranscriptChanges$Cursor.class",
+        "bytes": 2202,
+        "sha256": "233bbde29816077d4d82a1df2e4720b75698b45b5b1ae27cc4871e26257051fb"
+      },
+      {
+        "name": "com/chainlesschain/ide/SessionTranscriptChanges.class",
+        "bytes": 6700,
+        "sha256": "ef086fb37f7364f87dc939b653fdcfcd9a15f24a7ea08e97d51be62b39f758d4"
+      },
+      {
+        "name": "com/chainlesschain/ide/SessionTranscriptPage$Row.class",
+        "bytes": 2420,
+        "sha256": "13dbe9b6b3fda82af8ab0f9141c0ec0e2eacc028eff0c7fcb6636307c362713f"
+      },
+      {
+        "name": "com/chainlesschain/ide/SessionTranscriptPage.class",
+        "bytes": 14099,
+        "sha256": "bf1cbcc10edacbc137f1cc63705f85a194ddbcaad0ae93af755866c2cecc5035"
+      },
+      {
+        "name": "com/chainlesschain/ide/SessionsWorkbench$1.class",
+        "bytes": 1648,
+        "sha256": "eb6a05691b21a577a88e6eb6bf4329c4499a47d6fa2d18108ad3ebb23370c09f"
+      },
+      {
+        "name": "com/chainlesschain/ide/SessionsWorkbench$Row.class",
+        "bytes": 6459,
+        "sha256": "24f00e84bd067d23fcd1080603caf01541a9ec3c68312eb2e774f7a90244da1d"
+      },
+      {
+        "name": "com/chainlesschain/ide/SessionsWorkbench.class",
+        "bytes": 19564,
+        "sha256": "4c3b1d9868b5dfd568299ac26de683f224f6a0eb3be0a68bc6332c9852248dda"
+      },
+      {
+        "name": "com/chainlesschain/ide/SkillRetrieval$Candidate.class",
+        "bytes": 1042,
+        "sha256": "d81b6ae31384ea07f929e2fc61efb575021c141861de6d667dece54cc15c29d1"
+      },
+      {
+        "name": "com/chainlesschain/ide/SkillRetrieval$OutcomeAuthority.class",
+        "bytes": 624,
+        "sha256": "04a89cc4bdc99f264f627d0b6a5eafa8b45e4dfbc35708da1b452e097aaa79cb"
+      },
+      {
+        "name": "com/chainlesschain/ide/SkillRetrieval$Result.class",
+        "bytes": 1862,
+        "sha256": "92463195df3d5a2e7d1a8e30f0905881d49d13a36b7068b5daf41d2619125b4c"
+      },
+      {
+        "name": "com/chainlesschain/ide/SkillRetrieval$VectorAuthority.class",
+        "bytes": 683,
+        "sha256": "79a591885b49c87a52ea8c1d6b9f85bfb2019172912a97480fd8c4f376960eb7"
+      },
+      {
+        "name": "com/chainlesschain/ide/SkillRetrieval.class",
+        "bytes": 17438,
+        "sha256": "eac9da3dfae1067453f49ed04f4423b750577b0c00296fd7c4ad861b445e00a8"
+      },
+      {
+        "name": "com/chainlesschain/ide/SlashCommands$Definition.class",
+        "bytes": 1211,
+        "sha256": "8bbf3b7de9752fbee6c6ead1ff94c74b0df2ba5d518b6ea829c2fda82e12adce"
+      },
+      {
+        "name": "com/chainlesschain/ide/SlashCommands$Route.class",
+        "bytes": 1380,
+        "sha256": "beac488ce37e2445326bf6620d6af98ce8a9f8217b7f111eae3a68be415679b3"
+      },
+      {
+        "name": "com/chainlesschain/ide/SlashCommands.class",
+        "bytes": 14397,
+        "sha256": "905ca8e210190a42c4ddabe47ca54ef4b5b4c164931d3aa160636f2158bff471"
+      },
+      {
+        "name": "com/chainlesschain/ide/StatusBarText.class",
+        "bytes": 4019,
+        "sha256": "40862403f7cda758eb07fdd4348ec92d16bb4cfee4097c51bbb3b85204906c60"
+      },
+      {
+        "name": "com/chainlesschain/ide/TeamControl$Action.class",
+        "bytes": 1331,
+        "sha256": "4f0b2868d69fb82e094be8fdc82ef21569da0289c4cc7ce716b9f11be1f60ac7"
+      },
+      {
+        "name": "com/chainlesschain/ide/TeamControl$CliResult.class",
+        "bytes": 970,
+        "sha256": "b46c4d4ae442126aeaf3e673a084ce7a8006fd2c54752e868ae4628558232d3b"
+      },
+      {
+        "name": "com/chainlesschain/ide/TeamControl$CliRunner.class",
+        "bytes": 620,
+        "sha256": "0a268fb8460a3ce411028d71e1f8b42e7db2e35902d77cbb19e830e3073187db"
+      },
+      {
+        "name": "com/chainlesschain/ide/TeamControl$Intent.class",
+        "bytes": 1744,
+        "sha256": "c319d73457b9a5ee99a395aed4d09eda500c51ff3c01bf7214109d8ea1402183"
+      },
+      {
+        "name": "com/chainlesschain/ide/TeamControl$Result.class",
+        "bytes": 1325,
+        "sha256": "785291b747e1b0d87d76e54e0335b297d2b0da22ed831182fcd77a30fba5a8ca"
+      },
+      {
+        "name": "com/chainlesschain/ide/TeamControl$StateReader.class",
+        "bytes": 546,
+        "sha256": "b81b13d6f65a4083eba956f90f267718e32379e55a6a9c3c51f6d8ec244a5e0a"
+      },
+      {
+        "name": "com/chainlesschain/ide/TeamControl$Target.class",
+        "bytes": 1361,
+        "sha256": "0b616ae84f14a14e7dfd66013658db2decc8471ceaf71ceaf3af278767f0a64e"
+      },
+      {
+        "name": "com/chainlesschain/ide/TeamControl.class",
+        "bytes": 19242,
+        "sha256": "a4e0cc2c20d78f0890ab1766352afd7a0b0d88fb8ca82c6a48f91b2b88a47ad4"
+      },
+      {
+        "name": "com/chainlesschain/ide/TeamControlCommandRunner$BoundedText.class",
+        "bytes": 1671,
+        "sha256": "7a70f9515df121c9b02f4507d01c43adf06df3ac29bd7ba8d99ffedac5b3f449"
+      },
+      {
+        "name": "com/chainlesschain/ide/TeamControlCommandRunner.class",
+        "bytes": 12155,
+        "sha256": "66911d9cc3aabc607e5954676c64bba97b1f91eff7c7e39e49e80abf2dcfc6ed"
+      },
+      {
+        "name": "com/chainlesschain/ide/TeamMonitor$Adjudication.class",
+        "bytes": 858,
+        "sha256": "f6ef5141d7a6df6a1e8f4d70722b36be726bea33ca3ed51600c919a1dcce05d9"
+      },
+      {
+        "name": "com/chainlesschain/ide/TeamMonitor$Interruption.class",
+        "bytes": 733,
+        "sha256": "125f970f06be65bf6f3caa8c0e940dcf99d86bda03a1bfd3abc3f3dc9de5faf5"
+      },
+      {
+        "name": "com/chainlesschain/ide/TeamMonitor$Mailbox.class",
+        "bytes": 1376,
+        "sha256": "d7267baa0635711159ce83184804943749bdc18376b8d79cef914931fbf627d0"
+      },
+      {
+        "name": "com/chainlesschain/ide/TeamMonitor$State.class",
+        "bytes": 2548,
+        "sha256": "ecad960b8088bb3fb9cdc2d0f19b7ccf815f8863363acb9e2cd6d3b851c2083d"
+      },
+      {
+        "name": "com/chainlesschain/ide/TeamMonitor$Summary.class",
+        "bytes": 957,
+        "sha256": "55cffd409f1278289cbb111c21d42d66c4fd70a3324b50d63b5edc5ad982c88b"
+      },
+      {
+        "name": "com/chainlesschain/ide/TeamMonitor$Task.class",
+        "bytes": 2898,
+        "sha256": "dbe568f1a9536990b0b9365dd355eca311e30e05175202ea7919241b209e989d"
+      },
+      {
+        "name": "com/chainlesschain/ide/TeamMonitor$WorkspaceExecution.class",
+        "bytes": 820,
+        "sha256": "4fa100f7be3035059949afa1fc53e48faf9833b0b4824a149ac499147cdd3f29"
+      },
+      {
+        "name": "com/chainlesschain/ide/TeamMonitor.class",
+        "bytes": 31729,
+        "sha256": "a3e70b762f3f387a8eb82e7c2125564a2cdbabbc954cd8b4f4226459d57dc8e5"
+      },
+      {
+        "name": "com/chainlesschain/ide/Tool.class",
+        "bytes": 477,
+        "sha256": "5c2a391a9a6fcf97fd1026aed23426cffdbdfe459ee0f4ac9f762af54ed688db"
+      },
+      {
+        "name": "com/chainlesschain/ide/TranscriptCap$BoundedEntry.class",
+        "bytes": 2988,
+        "sha256": "b47de4b68f7bb2e476ca656a2d2e885c1a41321d6dca943620c7f971cdcb3cbf"
+      },
+      {
+        "name": "com/chainlesschain/ide/TranscriptCap.class",
+        "bytes": 1225,
+        "sha256": "1b60038d9ad630c28a47c43ad2fc0d85d8f86332709eff11d78d21459cb1f49f"
+      },
+      {
+        "name": "com/chainlesschain/ide/TranscriptReferences.class",
+        "bytes": 4372,
+        "sha256": "d9bdb57c21442c85125eabe2d0d02d0a82bd3068a5f644fb8a4d52bfad746482"
+      },
+      {
+        "name": "com/chainlesschain/ide/UiEventDiagnostics$Stage.class",
+        "bytes": 2628,
+        "sha256": "7a961e56ead9ea0749e36429552fbde3b692dc0c7cb63adb68fe9635e49f0d8d"
+      },
+      {
+        "name": "com/chainlesschain/ide/UiEventDiagnostics.class",
+        "bytes": 6931,
+        "sha256": "37a3e8f6e752aeb55ea3ecce72247f3b93dcd715e247c06e8dedc12e057c7a01"
+      },
+      {
+        "name": "com/chainlesschain/ide/UsageReport.class",
+        "bytes": 22670,
+        "sha256": "66e35bd5aac5aadce231671a4c93099f013af8760109cb99817fb0a03e7ed87f"
+      },
+      {
+        "name": "com/chainlesschain/ide/Verify01ProtocolCapture.class",
+        "bytes": 6131,
+        "sha256": "50d5b8cc9d02673b7273503e5ba018cb9fe1c6edf7c208d213604e319ccced22"
+      },
+      {
+        "name": "com/chainlesschain/ide/WhatsNew$Release.class",
+        "bytes": 1015,
+        "sha256": "f65a62aa8732a56249449621f5e17849c58ff8b9a5200cdcf80e6da25c04c771"
+      },
+      {
+        "name": "com/chainlesschain/ide/WhatsNew.class",
+        "bytes": 5644,
+        "sha256": "56278133bad9a3d0d5d91e1e8337b09783add0e8be564d2aa9626449997c8ae2"
+      },
+      {
+        "name": "com/chainlesschain/ide/WindowsOwnerOnlyAcl$Result.class",
+        "bytes": 695,
+        "sha256": "41a49a44c97640088d61fb9db9f33d3ea2bda7e502e2d7d122208724e5d0451c"
+      },
+      {
+        "name": "com/chainlesschain/ide/WindowsOwnerOnlyAcl$Runner.class",
+        "bytes": 650,
+        "sha256": "51953fc502e1bf2d906fe548b6c72b97ec9a08bdc6ec65f79ab9974e6365c023"
+      },
+      {
+        "name": "com/chainlesschain/ide/WindowsOwnerOnlyAcl.class",
+        "bytes": 14988,
+        "sha256": "77412bf700cd3e764f66b68191334a2561a44411c8056ecfd022ab7d78dead4e"
+      },
+      {
+        "name": "com/chainlesschain/ide/WorkspaceMentionIndex$Entry.class",
+        "bytes": 794,
+        "sha256": "2f931fccb029fd4239d7ec89f6fc962c54bfe5d20b2f4d4fc173517921b62f6e"
+      },
+      {
+        "name": "com/chainlesschain/ide/WorkspaceMentionIndex$QueryResult.class",
+        "bytes": 1048,
+        "sha256": "6ec644d4d6455e7e62fc1f7c5b17ef8f9d2fa341e6dcaf3ade494e7463232a10"
+      },
+      {
+        "name": "com/chainlesschain/ide/WorkspaceMentionIndex$QueryTicket.class",
+        "bytes": 730,
+        "sha256": "9ac033a3a40528d097efdde3042fa89d7e1ac1106b9425a3fdfddd7051ea16b6"
+      },
+      {
+        "name": "com/chainlesschain/ide/WorkspaceMentionIndex$Snapshot.class",
+        "bytes": 1030,
+        "sha256": "ec4c6e5d309763f5eca92ac443217a15c3d8001caf15040650eef76e3ed9cf0d"
+      },
+      {
+        "name": "com/chainlesschain/ide/WorkspaceMentionIndex.class",
+        "bytes": 14739,
+        "sha256": "d0cdada3d629ba2769e90cf0babd186a600af87650e3aa4fe4ced61e6827f7b0"
+      },
+      {
+        "name": "com/chainlesschain/ide/WorktreeTasks$MergeReview.class",
+        "bytes": 2900,
+        "sha256": "6360b4cf4198e9b40c5eaf2ce21844adc1fffab14ebedd46f1074ed3ea909fd6"
+      },
+      {
+        "name": "com/chainlesschain/ide/WorktreeTasks$MergeReviewEnvelope.class",
+        "bytes": 1329,
+        "sha256": "adb69e318d65b0977c33f5348e155476879a57797386c3bc511c71ee1c3b8c8d"
+      },
+      {
+        "name": "com/chainlesschain/ide/WorktreeTasks$ReviewAction.class",
+        "bytes": 1015,
+        "sha256": "3a81f97af34ef34b8c4e7195a31d25159c28a37a5becada24ebd281be88380f1"
+      },
+      {
+        "name": "com/chainlesschain/ide/WorktreeTasks$ReviewCandidate.class",
+        "bytes": 669,
+        "sha256": "9d656a91a798c47ebbf66306b15f1e1de4a8da91ce6e2ad468dd7a13b4cd3fd2"
+      },
+      {
+        "name": "com/chainlesschain/ide/WorktreeTasks$ReviewConflict.class",
+        "bytes": 1234,
+        "sha256": "f660054f1c8ed62a51978be27c59723964c16e3ac6d4c758ece46d032bf6c139"
+      },
+      {
+        "name": "com/chainlesschain/ide/WorktreeTasks$ReviewDecision.class",
+        "bytes": 737,
+        "sha256": "755b8f33e099a9134866b95a99a4af0b5efc7aafa54d4052608262c18f661d09"
+      },
+      {
+        "name": "com/chainlesschain/ide/WorktreeTasks$ReviewFile.class",
+        "bytes": 1366,
+        "sha256": "e314b845c2a3a4ac0395b594849209ea4dfa5cbf1563f3e201a9288f2210554b"
+      },
+      {
+        "name": "com/chainlesschain/ide/WorktreeTasks$ReviewHunk.class",
+        "bytes": 849,
+        "sha256": "2496b3513f62b183c7a99894dc3022c2e19d8db8c484756448cc7bb3a13e1b36"
+      },
+      {
+        "name": "com/chainlesschain/ide/WorktreeTasks.class",
+        "bytes": 40307,
+        "sha256": "98d635b99b850304f7fdf263c9829a952a16d412962390e3ab29e89e611c7265"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/ArtifactsAction$1.class",
+        "bytes": 1247,
+        "sha256": "4a83e80016e223ad2adc7fe7843c167d5c16680a7ac5551bff15afc029afdcf3"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/ArtifactsAction$Model.class",
+        "bytes": 2389,
+        "sha256": "046a305dd0a44711dfb44cbe00e53e31c3352fc67cda2e8de7b0f2795a5afece"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/ArtifactsAction.class",
+        "bytes": 24203,
+        "sha256": "fb58c464cf5132973cd17d73365ac70bd1538fc0dc7361a65f3b7c1a7f10fa31"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/AutoExecScanAction.class",
+        "bytes": 4914,
+        "sha256": "9c312ec0ed0549d87b403c5f12f3f175f7db468ef0c8b748e6470f4e97f51676"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/AutomationCenterAction.class",
+        "bytes": 1533,
+        "sha256": "1d1ec95b0c76cc076a99bb4fee2093857ad42bbe40592603e30a3065a6461613"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/AutomationCenterToolWindowFactory$Panel$1.class",
+        "bytes": 1311,
+        "sha256": "90e2f487317f70d928fee7dac6bb21c0fbd1ee3dedf53672259c5657eed3fba7"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/AutomationCenterToolWindowFactory$Panel.class",
+        "bytes": 31878,
+        "sha256": "b649c4cad28dffb073e8d2f9372f49b5fc5c96c344cb401e7c94fe1f83b6f3db"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/AutomationCenterToolWindowFactory.class",
+        "bytes": 2071,
+        "sha256": "a7ce5beca6b731c84d3b52fcb5c40b42f528ffc600378c9481ebce29d6c3a982"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/BackgroundAgentsAction.class",
+        "bytes": 20652,
+        "sha256": "8aac64239fe0fee3a4bb6487b521fc2ce635a870d182fd6ba22d4fe6a88708e2"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/BridgeStatusBarWidgetFactory$Widget.class",
+        "bytes": 4870,
+        "sha256": "950dfe425872c533ce18ada22e394d7058f8969dc9fb16550987d31c1cfedda2"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/BridgeStatusBarWidgetFactory.class",
+        "bytes": 3438,
+        "sha256": "4822ba777e73629907a3221de76343c3a06208bd971c10c6359fd2a53427caeb"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/CcBundle.class",
+        "bytes": 1059,
+        "sha256": "4118c1bafa34795be58b7dcbf327243689eafd4302b203324cad4ac4aa909879"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/CcConfigurable.class",
+        "bytes": 8218,
+        "sha256": "d0988cffa10a93dda73a803876029c86770b264e573fca3780ab4914da339c52"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/CcInlineCompletionProvider$Companion.class",
+        "bytes": 1617,
+        "sha256": "b3ad603a56b2c08520ed7f4e2d57760c17febc545d2eeeb3af87090fa6708fc5"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/CcInlineCompletionProvider$Ctx.class",
+        "bytes": 3970,
+        "sha256": "d89e0099830a0f55fb85e92b1895250f3dc1309618694d6b33e18473fa7d75df"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/CcInlineCompletionProvider$automaticSuggestion$1.class",
+        "bytes": 2610,
+        "sha256": "c6734d4790040d46a2cd7768ad3fd265be77898c1930c34ab335937c7945d720"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/CcInlineCompletionProvider$automaticSuggestion$completion$1.class",
+        "bytes": 3269,
+        "sha256": "60374e39051510231f34988a8a9362432599995299cdb24a359f866d2445d9a3"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/CcInlineCompletionProvider$getSuggestion$1.class",
+        "bytes": 1996,
+        "sha256": "3b0dbd77d0988b58660d1db022dd5c3daab2b7dbd31d7542b65b1ef6780ac456"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/CcInlineCompletionProvider$getSuggestion$completion$1.class",
+        "bytes": 2784,
+        "sha256": "f14a24b3adac42f8fc111bf3a191ce4cdd3559dfe7e5c4d63cd9bac0cb877f56"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/CcInlineCompletionProvider$getSuggestion$ctx$1.class",
+        "bytes": 3138,
+        "sha256": "a847e2e0054db5f82340b5bac71670bf316a4fd1a70706d625e4110c57f9a87c"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/CcInlineCompletionProvider$suggestion$1.class",
+        "bytes": 4102,
+        "sha256": "103cae461d415e47755c0d11896800ab18f66a171eaf1cc2dd1e74c38a5da4f8"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/CcInlineCompletionProvider.class",
+        "bytes": 15440,
+        "sha256": "d5e7556af2fde08f19bc5d0c67d8b888532166e9ceb6ed2f666858c8fc1e21fd"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/CcProtocolCommand.class",
+        "bytes": 5091,
+        "sha256": "4aa5ec9c10b6c863a537d2a2684e9b108d8cd6f5dbfe8e7c711e6dc6db8e3bd2"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/CcSettings$CcState.class",
+        "bytes": 1089,
+        "sha256": "7bdd031f67c580b6c44eb51251563b4f1f70b042c448fb83d7d74401a198d47d"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/CcSettings.class",
+        "bytes": 5295,
+        "sha256": "712fee6fe66e50743efd9bbb962cb3d150e4f236c35f22f6caac0f326c20b0d5"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/ChatCardsLayout.class",
+        "bytes": 918,
+        "sha256": "3145b1cba66aae0955ff3a079d4b6dbd71df4822991b0be799afb074475c99cd"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/ChatComposerDrafts$1.class",
+        "bytes": 1521,
+        "sha256": "127043153725543e67e2f685d72476fae414d76b46b7b5edad542b5339219a28"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/ChatComposerDrafts.class",
+        "bytes": 30617,
+        "sha256": "72b5164b0bac0ab3828f626b4239922728a57da9c1a1441faeb58ee953514f3b"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/ChatComposerImages$1.class",
+        "bytes": 1859,
+        "sha256": "bb5a27faa58d08436c2876c0415e5c4cd56b34af9bdcfd9f17bd2ec56042d8eb"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/ChatComposerImages$2.class",
+        "bytes": 1317,
+        "sha256": "91e35fa52d02a5c249a4f14be821a43dd8c4ce5f6d36b5166e10ad8d03f1d4ce"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/ChatComposerImages.class",
+        "bytes": 13653,
+        "sha256": "edd36d9b3a19f30fc38c5e579731393aa8f8f8ecd9bacad94d356bed8e729149"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/ChatHistoryView$Loader.class",
+        "bytes": 1003,
+        "sha256": "2afe56df68ae2388e3bafc05af70f49d4689b9a8a987c0e47e14ad0842917370"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/ChatHistoryView$Request.class",
+        "bytes": 2882,
+        "sha256": "7f6650f412685d8a4b632603c7ee46975caf909c10ac16c187793419d247d7a7"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/ChatHistoryView$Result.class",
+        "bytes": 2146,
+        "sha256": "32fdba4cbe8530d764aae041381cb4f88908508df9677d981fefdeb502ed7e86"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/ChatHistoryView.class",
+        "bytes": 15810,
+        "sha256": "cce2d406fc40347bb08810044751a4ed7218c34edb14be6f878dcc8688626c22"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/ChatMentionPopups$1.class",
+        "bytes": 1164,
+        "sha256": "a453388507adce2c397939a603ab96b92003067010f659b5282d2535bc1d257a"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/ChatMentionPopups$2.class",
+        "bytes": 1477,
+        "sha256": "5e98e403252c1d94f5e32df9329040777c3e21b15a930d59727fe17741d91c10"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/ChatMentionPopups$3.class",
+        "bytes": 1579,
+        "sha256": "97ab7e6c25c6658386b93a1850cc152f173ffde2b143a203126e80fcd40bf483"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/ChatMentionPopups.class",
+        "bytes": 20881,
+        "sha256": "d921e1e2f20e661127257fa001eca30eda89840671f36d51f344cafb25f3ccbe"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/ChatToolWindowFactory$ChatPanel.class",
+        "bytes": 21015,
+        "sha256": "1410093df1af3768af5283470524c205f7f24f2acc989958909011f656510a31"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/ChatToolWindowFactory.class",
+        "bytes": 6700,
+        "sha256": "2f7db454ea7d5451338d6b33ff191d5c0b61c0598e9d49c6a8a50cc8d0acc49b"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/ChatTranscript$1.class",
+        "bytes": 894,
+        "sha256": "87933135900a3696ea571dbeba685b09318c09f66d20800dc70d9beb23be4bcb"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/ChatTranscript$ThinkingBlock.class",
+        "bytes": 623,
+        "sha256": "2225e1ed67020decb0ec18f31e46ea505e6e0823407110ef0c90fabefd6a0a2f"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/ChatTranscript.class",
+        "bytes": 22417,
+        "sha256": "71c51e8feeb4f38a792c8d2cd7bdd59e0636d0be19aa9f714f1fa9f6b7978709"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/ChatTranscriptHistory$1.class",
+        "bytes": 2934,
+        "sha256": "882f343c0b7f9e83a7ed12a9052ffb5733ccbd5470a8c4350f72bd4da9a2d3b7"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/ChatTranscriptHistory$EditObserver.class",
+        "bytes": 316,
+        "sha256": "4b2b903ece52e3caaef9690e85aaa5a0cc5a9c5a512a31f4c6c7e855abb7d6d9"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/ChatTranscriptHistory$Span.class",
+        "bytes": 1133,
+        "sha256": "3948893e5d2b2797b6ed7f98fb1e149f7864f27ffb51c6e95da2dc0ab190f9cc"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/ChatTranscriptHistory.class",
+        "bytes": 17884,
+        "sha256": "7a0b044924d1204d3f930581b8b48fa2074ddd96cde3df733c0f22f9c5f6ded3"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/ChatTranscriptRendering.class",
+        "bytes": 3463,
+        "sha256": "720f9d80a79e91cf91034dfe3701a08f39424169558d66b762f7e31e3ae43b0b"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/ChoiceDialog.class",
+        "bytes": 3101,
+        "sha256": "e1be426a0a21cde9d562bbd2f3f3f7ac03999f6a8893d4fe47c77d7acc13760c"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/ChromeConnectorAction.class",
+        "bytes": 8746,
+        "sha256": "a3817d46a59248cbadc00fe5ddc3038567114279e7ce6d814e4db6226754162a"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/ConfigureEvolutionDeploymentAction$DeploymentDialog.class",
+        "bytes": 15266,
+        "sha256": "fe89b5567bc1980fb0853a6448ce64b4fabe8904eb393be278b7b6e8932aa434"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/ConfigureEvolutionDeploymentAction.class",
+        "bytes": 1299,
+        "sha256": "56d1475d80b045f2549b00e02a7022a3cbb1ba72d270f194de6115786f26c303"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/ConfigureLlmAction$ConnectionDialog.class",
+        "bytes": 8410,
+        "sha256": "abac8c7953c0fd30f2fdf76289014d0bbf6333ec14bb7c4010de3acd1bd1bed6"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/ConfigureLlmAction.class",
+        "bytes": 5164,
+        "sha256": "36cc237ecc5094bd5f573b00c5a38aeeb3857336db67eab6491b85e17caf288d"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/ConfigureVisionModelAction.class",
+        "bytes": 991,
+        "sha256": "2fa56beb60fe1961c805f9e7fd008df181a6e784c46145185f5bc4df3183a233"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/ContextCenterAction.class",
+        "bytes": 16093,
+        "sha256": "7025f3093d03ddf45e4737605559f6dd4126f11d02e990a7a4377b3e11a273b6"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/ContextCenterPersistence.class",
+        "bytes": 2784,
+        "sha256": "aba3117a9a09f6b84a5ecb56120af780accba9809d7c6c4a92427093d4d19e3c"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/ConversationView$1.class",
+        "bytes": 2714,
+        "sha256": "ab4aa1c0c57231c004e23c5765093f8b70532818cf513b5a0c9407138f487374"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/ConversationView$2.class",
+        "bytes": 1445,
+        "sha256": "f8a01e0567a3118f27d24729ded2e5c74fcb2be4a3b12ffbadedbb83e16dc8a0"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/ConversationView$3.class",
+        "bytes": 2767,
+        "sha256": "d645744c97ca94f2e9e4d6729f1a81f32bc4c1239d4009cf74dd25a8920401e9"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/ConversationView$4.class",
+        "bytes": 2407,
+        "sha256": "f6c366d82c762c5de49f7f39bc6e7dead08add2ed93b530d615214ff743d3d61"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/ConversationView$5.class",
+        "bytes": 2356,
+        "sha256": "2f7f4e5c93c2893d36b4adf766b479e5e9fbcbcb7ce7e0298ba8047b4568d05e"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/ConversationView$ApprovalCard.class",
+        "bytes": 1262,
+        "sha256": "a84bd2f4af87cf8d35f730250fb7d469ae3f70f1b3b64aadfb73ce372d197914"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/ConversationView$ApprovalGrantCommand.class",
+        "bytes": 601,
+        "sha256": "faac5e18b782d09766f0c721317255e22f3332b5fa6a16d33871a61d7944128d"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/ConversationView$ContainerActions.class",
+        "bytes": 317,
+        "sha256": "fc1f94d91314a1297dc0fee864b1b12008d5f7caf31ab1a20cb1d460c854dd5b"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/ConversationView$SessionIdSink.class",
+        "bytes": 343,
+        "sha256": "9069c02ac760a8e91446ded32ef321bfa518019e3ddf160625ef21ce015d933f"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/ConversationView.class",
+        "bytes": 160448,
+        "sha256": "c701a7e08fee04a762e3d7edd9a3f5102097f7ff58231e787a38c8c70daaef14"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/DashboardToolWindowFactory$Refresher.class",
+        "bytes": 5822,
+        "sha256": "6998c485b4532fcd0323dcc68e5bb76fa6123a1fdf81bbd8faa58c111f44f4b7"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/DashboardToolWindowFactory.class",
+        "bytes": 3688,
+        "sha256": "3181826d2658f080cb2b4821de4dc7d0f2ef66e487ff5dd7347e4bcd31a92fc2"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/DiagnoseBridgeAction.class",
+        "bytes": 22678,
+        "sha256": "403f3bd0a198e2f9c7449474e38f1c5eb19dd0f01accb345ad147f856bd81939"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/EvolutionWorkbenchAction$Model.class",
+        "bytes": 2779,
+        "sha256": "853b63d8aa82cd8642c1ade7a927e53aa3209774d25a258812b2257d0408a2ca"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/EvolutionWorkbenchAction.class",
+        "bytes": 27127,
+        "sha256": "2b8f972eb9898031c387ac7714eccd900bb8e98526e50f0ed7157ea4a8e093f9"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/ExplainSelectionAction.class",
+        "bytes": 2970,
+        "sha256": "db8412b71747c440e38f6650cbc75746f54034147025edc09d7a1cedc1819e25"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/ExportDiagnosticsAction.class",
+        "bytes": 8766,
+        "sha256": "07b07f76dadb50b25468a09c29fb0584c332d4d235741a9c4447ee582f2d9180"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/FixWithCcIntention.class",
+        "bytes": 6934,
+        "sha256": "9e57281c558ab2c8108e686ec66a04ac306719d3102cd7c68c99bdd516a866bd"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/GenerateProjectMemoryAction$1.class",
+        "bytes": 2536,
+        "sha256": "c9825def133516b4899c88ae50163a9e164ee76dd7b54d9e79f62ea227c9c0d0"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/GenerateProjectMemoryAction.class",
+        "bytes": 5027,
+        "sha256": "082a9cf0ef46686fc2720aee955fbce2092c2e9d9876489f0862fcb1aff86c9e"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/IdeBridgeService.class",
+        "bytes": 6261,
+        "sha256": "85d0df009c9443695bb377ae9f64d1ddef97b1798812a9fdbeb048960b537b70"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/IdeBridgeStartup.class",
+        "bytes": 5597,
+        "sha256": "2c1b2134a7948edbd771a676bcad7c401f0f77ebf1afb424d27cd67f470863cf"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/InsertFileReferenceAction.class",
+        "bytes": 5224,
+        "sha256": "8f9fa1c764e05a3a987049b037bd8d382f9c9258c286e8bf0ccb74791f3b1401"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/InstallManagedCliAction$1.class",
+        "bytes": 4483,
+        "sha256": "b2c29d4122b9443c00311979f8460a2df9ff1798bfb40e6b983512c8f1eb124f"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/InstallManagedCliAction.class",
+        "bytes": 8030,
+        "sha256": "af3378313c6bf23cfd34c0f77f703bca44c33609566578be588cb25601c851c9"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/IntellijEditorFacade$1.class",
+        "bytes": 1316,
+        "sha256": "db13bd63dafa19e72f44556d59acc1faed6af671a950108a61b19f3b87477e81"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/IntellijEditorFacade$2.class",
+        "bytes": 1432,
+        "sha256": "6c1f06c4ca79e0a48ebf89d6e331fcd7ea2fedeab846039f5689ba6469f2b498"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/IntellijEditorFacade$3.class",
+        "bytes": 1406,
+        "sha256": "856e82d6aa5385b8f0ec0f329abf9e97ab6b71c39243c8ebf852eca2a4198a2a"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/IntellijEditorFacade$FileProbe.class",
+        "bytes": 605,
+        "sha256": "03e105d12e2423bdcf18a332edd005ed6c9e2cf60a425a5d8419a71249bab27c"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/IntellijEditorFacade$MemoryFile.class",
+        "bytes": 771,
+        "sha256": "0526533fc0756c6eb1103811c707efb832a44db337574a9a4053cdf5fdb332d6"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/IntellijEditorFacade.class",
+        "bytes": 69100,
+        "sha256": "663292a25dfa1753df71ec3602bcb01c9b601e89dc0e5cd2dcba6cd2a8f44d8e"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/IntellijQualityContext.class",
+        "bytes": 16813,
+        "sha256": "a5c8d0fcfc3146e557d63397ad971dae59aa792b341e870ff4e3d5d1098c9e50"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/ModelInputDiagnosticsAction.class",
+        "bytes": 5406,
+        "sha256": "1101e0f502e9eba2fea7600229f37d0255cf50a877ed43accbd65f04572605d1"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/NewConversationAction.class",
+        "bytes": 1900,
+        "sha256": "e40b18cece1828d299719c47e9a18d12f24f0776fa3863ab7ab9b5119a0628a3"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/OpenDashboardAction.class",
+        "bytes": 1543,
+        "sha256": "46f6376e25db4c65a9c7334b456963696043ce42028be802570614c6345cc4eb"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/PluginManagerAction$1.class",
+        "bytes": 1848,
+        "sha256": "54e762e83b19323eb3fcf88ab52e588cf1c76307dcaf0ad72b0b32c6e34efd1a"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/PluginManagerAction$1Continuation.class",
+        "bytes": 2399,
+        "sha256": "462fbf4f2983d08d175394384e3556c8ce7e32c655429a15b0f1c7c3bb487b87"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/PluginManagerAction.class",
+        "bytes": 104949,
+        "sha256": "063ba8806041b92c100e43b337d17e33d3c4ad067f24f8bbd230636d3f714c56"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/PolicyViewerAction.class",
+        "bytes": 14704,
+        "sha256": "19e66286ab6545904dfd2ed2a3fbb3ad363e5318cf192ffcc7cf6b9295802fc2"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/PrStatusAction.class",
+        "bytes": 4927,
+        "sha256": "d2b90ba86f93e277bf15386841bdefcedb5ea715b0d2d318be9d701498435e38"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/PreviewService$1.class",
+        "bytes": 4133,
+        "sha256": "41264e038161e34f5cdc9fc56204772c0f122c348520d483d34ac1c6857db11e"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/PreviewService.class",
+        "bytes": 12484,
+        "sha256": "f3cbcf4990cf411535321bc22348b2b2d7f2dffd260034d23a6cdf4da0bf98b8"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/PreviewToolWindowFactory.class",
+        "bytes": 1685,
+        "sha256": "7609186b8610ea1a82cf42451e047e8a86a02a58c9eabc516dc65a9df24497bf"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/PsiSemanticFacade$Ctx.class",
+        "bytes": 646,
+        "sha256": "49296dcdc293e2d3d9c3c35ae078e104325249ee5fef7bc7e14bf96ce53a8a34"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/PsiSemanticFacade$JavaSupport$1.class",
+        "bytes": 1800,
+        "sha256": "b7e01efc8b2a370ef79fb09bc2f94f03778c0216401e35114b505e5494b89756"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/PsiSemanticFacade$JavaSupport.class",
+        "bytes": 6672,
+        "sha256": "3d9ddd89a3036ce387c091a1cc72fc84e2416f8af5aac341cb50eb52e72e99a4"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/PsiSemanticFacade.class",
+        "bytes": 21088,
+        "sha256": "1864d226edbba9e99a7b9328142a04f3e2daa21f28f5420d63da5e9a55f303f6"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/QuestionFormView$1.class",
+        "bytes": 1203,
+        "sha256": "6f9843d45fe892a907f1ef7ffff5631e1f0dee317b34dfca968730e072081ae3"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/QuestionFormView.class",
+        "bytes": 27760,
+        "sha256": "0e04eadaf4009e3cdbeac8fc976375ad4e1d2ffc26669739d5589a51d71116ee"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/RefactorSelectionAction.class",
+        "bytes": 2998,
+        "sha256": "7faeeb6c099fe5f05b685ea2fb4fa985161ac119556d5d955e3505cebf0b10bc"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/RemoteControlAction.class",
+        "bytes": 21387,
+        "sha256": "23a8cd0431e368f2410de7104eac6e295125e5c625ec435b148a515219c48306"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/ReopenClosedConversationAction.class",
+        "bytes": 1924,
+        "sha256": "d99844d787d161948ec02c95ba6cde6242713572bf57c2edc9c725a4b66833d8"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/RestartBridgeAction.class",
+        "bytes": 3262,
+        "sha256": "9875c97f291209e94f0436df971a56615eeea026c4ebbea3af499852c01161fb"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/RollbackManagedCliAction.class",
+        "bytes": 5418,
+        "sha256": "30efc492ae647a94bc836922f9683d21dda2c23aa652af5cea53d33be12c4fcb"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/SessionsWorkbenchAction.class",
+        "bytes": 1562,
+        "sha256": "6cb95876a7f81ea8fc9f580c3c61b11e004051885af28de4c6f9233cf184441c"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/SessionsWorkbenchToolWindowFactory$GroupChoice.class",
+        "bytes": 799,
+        "sha256": "3cce4c89abd0fba4d3b66dd56a1404795cf0f5b6f5f015a8732f6cbd0019e06c"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/SessionsWorkbenchToolWindowFactory$Model.class",
+        "bytes": 2997,
+        "sha256": "481f547f533471f7ce56a3391927b54de060f8d70812ccd98ac5c71147992d06"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/SessionsWorkbenchToolWindowFactory$Panel$1.class",
+        "bytes": 1314,
+        "sha256": "724ae1385605d0107ea413524f5d83e56c88d9d2f54773fb2e81754bb8c718e0"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/SessionsWorkbenchToolWindowFactory$Panel$DeliveryOperation.class",
+        "bytes": 583,
+        "sha256": "8df0c26f86fdf87eebab18170331970deeb39b4db7e352052ebd3436b8a46027"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/SessionsWorkbenchToolWindowFactory$Panel.class",
+        "bytes": 47200,
+        "sha256": "585870482fb1e45281a49b82ef963ad3d6200dfb1d4425b648c2fc2facfd92bf"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/SessionsWorkbenchToolWindowFactory.class",
+        "bytes": 2460,
+        "sha256": "c073f162092d353f35bfa83ae57ea5fa088de700fdf436c2d5ba4ce218b2809b"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/ShowActivityAction.class",
+        "bytes": 5112,
+        "sha256": "a026b21fd3e42de10893b79f1fb271eba5a469a3d666e1fe3489cecb4ae80ab8"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/ShowMemoryFilesAction$1.class",
+        "bytes": 2409,
+        "sha256": "998d873e1883adfec848f564f68282cf6e7d077b19068334d6b28746657f09bc"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/ShowMemoryFilesAction.class",
+        "bytes": 1532,
+        "sha256": "b13590580592f35a1e6eac609480e77b502e9d31cc57b2eab66fee493d587526"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/ShowStatusAction.class",
+        "bytes": 2076,
+        "sha256": "1f644561caddb65c62f2a0b3af9b6b6909418b25a32a44add3d1a0ceae9596e0"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/ShowUsageAction.class",
+        "bytes": 5017,
+        "sha256": "611c087ed6655632a03a728a2cbcd63f35aaa9fe1dc3dd7b33146243144a2202"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/ShowWhatsNewAction.class",
+        "bytes": 5981,
+        "sha256": "ec2872043558ec6279e4d08e1bfcfa84fcb5ba6ae51dac08cef67637105ed6af"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/SkillRetrievalAction$Model.class",
+        "bytes": 2565,
+        "sha256": "cccbd2656b2402a8aa35dd5c7be4f6dcb05c5d0c1a1ca53936b2522fc1e34eaa"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/SkillRetrievalAction.class",
+        "bytes": 9250,
+        "sha256": "c53b9a5a8d6c7f3978f099cc7ef0ad5a1bcb4a41d79265bf151f3118ce1d62ec"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/StartPreviewAction.class",
+        "bytes": 2159,
+        "sha256": "c1d04ad696834905b5ccb9bf175d4a6da08853872fbbc5045f6bbd738c7c312d"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/StopPreviewAction.class",
+        "bytes": 1212,
+        "sha256": "58f3036f7ed4ba675de5ae8f9c298d2c44d817a01641dbf60856f81e563a9025"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/TeamMonitorAction$TaskChoice.class",
+        "bytes": 1499,
+        "sha256": "2a9941b6d5092bc532c93e7f09c178cf923b0beb98ddca4a4cbd89e475ed2f61"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/TeamMonitorAction.class",
+        "bytes": 25464,
+        "sha256": "4bf9c4a748376524398147060881201d8e0cbe9be4a4333a5c69b8d75c38b544"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/TerminalLauncher.class",
+        "bytes": 1984,
+        "sha256": "5cec8fb450bbcc2c07a8aa6094bcb839d4416864647f5b7efebdab520e4f1792"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/TerminalTextReader.class",
+        "bytes": 3071,
+        "sha256": "bf979c1f32fed272ed45e47423189ceba1fe418ed348df78dea22937346de2fd"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/TriggerCompletionAction.class",
+        "bytes": 2523,
+        "sha256": "88ab3180b286172603561599e2ffa18dcd348272b0dbf0cc3275b38cb2af334c"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/WorktreeTasksAction$Git.class",
+        "bytes": 675,
+        "sha256": "6e30b8a379512412f99efcc1f9482c117ba894b0b06438f291ba085b4035a7a9"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/WorktreeTasksAction$ReviewSelection.class",
+        "bytes": 864,
+        "sha256": "b28f6258e3c3e728469996b9ef23769f97a0bb304681a3fda1fc83179e273ecd"
+      },
+      {
+        "name": "com/chainlesschain/ide/intellij/WorktreeTasksAction.class",
+        "bytes": 40816,
+        "sha256": "476b4dd0ef882ae2bf9c58b831e6034b3c45e10323f19e198a01d0d24ff1257b"
+      },
+      {
+        "name": "icons/chainlesschain.png",
+        "bytes": 164,
+        "sha256": "a24faedef45a727f9b6355e8295e847d5f73bd6f8a7ae4561994709e1f821e49"
+      },
+      {
+        "name": "icons/chainlesschain.svg",
+        "bytes": 2228,
+        "sha256": "327e5df6f5afa1ba8e8bf5a9c743d010cb97fc488668b13fc6dac7fbfc260c1b"
+      },
+      {
+        "name": "icons/chainlesschain@2x.png",
+        "bytes": 318,
+        "sha256": "d5b39e5d0e5af2b09e05f6fedd597980732beecf7d787c4d672af93706e38441"
+      },
+      {
+        "name": "icons/chainlesschain_dark.png",
+        "bytes": 183,
+        "sha256": "b10cc309297b5504a8b0ab1e0683ee3c1f4833e52dd451e37ec06d48731c693a"
+      },
+      {
+        "name": "icons/chainlesschain_dark.svg",
+        "bytes": 1300,
+        "sha256": "8fb44efd574a6abf909d41d0d51b4e3401ec6d00ac93ed21c909ba9b949bf13f"
+      },
+      {
+        "name": "icons/chainlesschain_dark@2x.png",
+        "bytes": 378,
+        "sha256": "c60c2819431a5191251bf31378e4004bd9466451cefd12ec079b9cf4b2ece02e"
+      },
+      {
+        "name": "intentionDescriptions/FixWithCcIntention/description.html",
+        "bytes": 233,
+        "sha256": "f75965599401e590a3ebf62c288c4931ae03fe406843bdca7e4e5e393c3f8e22"
+      },
+      {
+        "name": "messages/CcBundle.properties",
+        "bytes": 25833,
+        "sha256": "7ef6e449be0af131c90774d38a696cfb4c661ae9d4e2767865dba84547e79a67"
+      },
+      {
+        "name": "messages/CcBundle_zh.properties",
+        "bytes": 25397,
+        "sha256": "3129e52acde9fee6a8844f4e0e7937a67b2701945cd276467ded694402f5d346"
+      }
+    ]
+  },
+  {
+    "name": "chainlesschain-ide-bridge/lib/chainlesschain-ide-bridge-0.4.198-searchableOptions.jar",
+    "bytes": 1278,
+    "sha256": "1cb05365b221a2566c6c872b2dd6bc39c0e159fd0c29610c76c7dff3ce1a65cb",
+    "jarEntries": [
+      {
+        "name": "META-INF/MANIFEST.MF",
+        "bytes": 25,
+        "sha256": "566ad1a80220026d05099562645ce968ff0e7c36cde22634332605bb34cc3eff"
+      },
+      {
+        "name": "p-com.chainlesschain.ide-searchableOptions.json",
+        "bytes": 9383,
+        "sha256": "adb61eea76fcffee0a887cf616e828c6564ebe25ea7b8cdbd3ead09e20813af5"
+      }
+    ]
+  }
+]

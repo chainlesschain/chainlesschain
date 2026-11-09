@@ -1,0 +1,12 @@
+"use strict";
+const net = require("node:net");
+const nonce = process.argv[2];
+const emit = (event, fields = {}) => process.stdout.write(JSON.stringify({ event, at: new Date().toISOString(), pid: process.pid, ...fields }) + "\n");
+const server = net.createServer(socket => {
+  emit("accept"); let text = ""; socket.setEncoding("utf8");
+  socket.on("data", chunk => { text += chunk; if (text.length > 128) socket.destroy(); else if (text.includes("\n")) { if (text === nonce + "\n") { emit("nonce"); socket.end("ACK:" + nonce + "\n"); } else socket.destroy(); } });
+  socket.on("error", error => emit("socket-error", { code: error.code }));
+});
+server.on("error", error => { emit("server-error", { code: error.code }); process.exit(1); });
+server.listen(0, "127.0.0.1", () => emit("bound", { port: server.address().port }));
+setTimeout(() => process.exit(2), 30000);

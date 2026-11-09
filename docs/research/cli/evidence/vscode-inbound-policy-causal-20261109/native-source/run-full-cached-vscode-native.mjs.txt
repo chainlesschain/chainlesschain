@@ -1,0 +1,8 @@
+import fs from 'node:fs';import path from 'node:path';import {spawn} from 'node:child_process';
+const log=fs.openSync(path.resolve('.tmp/vscode-full-cached-fw.log'),'wx');
+const args=['test/extension-host/run.cjs','--vsix','chainlesschain-ide-0.37.182.vsix','--vscode-version','1.145.2','--work-dir',path.resolve('.tmp/gap-cached-vscode-native-fw'),'--artifact-dir',path.resolve('.tmp/gap-cached-vscode-native-fw-evidence'),'--release-commit','ae2372cd82c4d1ca870378c202da7f41366006dc'];
+const child=spawn(process.execPath,args,{cwd:path.resolve('packages/vscode-extension'),env:{...process.env,CC_UI_CONVERSATION_RECOVERY:'1'},windowsHide:true,stdio:['ignore',log,log]});
+console.log(JSON.stringify({pid:child.pid,version:'1.145.2'}));
+const timer=setTimeout(()=>child.kill(),700000);
+child.once('error',error=>{console.error(error.name);process.exitCode=1;clearTimeout(timer);});
+child.once('exit',(code,signal)=>{clearTimeout(timer);fs.closeSync(log);console.log(JSON.stringify({code,signal}));process.exitCode=code===0?0:1;});

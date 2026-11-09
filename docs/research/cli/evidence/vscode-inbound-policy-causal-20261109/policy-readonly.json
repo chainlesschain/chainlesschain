@@ -1,0 +1,128 @@
+{
+  "schema": "runtime-inbound-policy-readonly/v1",
+  "observedAt": "2026-11-09T03:10:24.040Z",
+  "changesMade": false,
+  "activeProfiles": ["Public"],
+  "effectivePublic": {
+    "enabled": true,
+    "defaultInbound": "Block",
+    "defaultOutbound": "Allow",
+    "allowInboundRules": true,
+    "allowLocalFirewallRules": true
+  },
+  "runtimeRules": {
+    "installedCode": "Public inbound Allow TCP and UDP",
+    "node24": "Public inbound Allow TCP and UDP for resolved symlink target",
+    "cachedCode": "No exact application rule found"
+  },
+  "explicitInboundBlocks": "No enumerated enabled inbound Block applies to target applications on 127.0.0.1 or ::1; general offline rule excludes loopback",
+  "existingDropRecords": {
+    "securityWfpLast2Hours": "No matching events",
+    "wfpAudit": "No Auditing",
+    "firewallLogBlocked": false,
+    "firewallTextLog": "Absent"
+  },
+  "thirdPartyState": {
+    "qqpcrtpService": "Running",
+    "qqSysMonX64": "Running",
+    "tsSysKit": "Running",
+    "xlwfp": "Running",
+    "tencentWfpCallout": "Registered, including inbound transport V4/V6; static filter action CALLOUT_UNKNOWN; behavior not established"
+  },
+  "signature": {
+    "cachedCode": "Valid Microsoft Corporation Authenticode"
+  },
+  "conclusion": "Narrow exact-executable, loopback-only TCP inbound Allow is a valid reversible causal experiment, not guaranteed effective; third-party callout behavior is unknown. No policy changes performed.",
+  "nextTest": "With explicit authorization: keep one ephemeral cached-Code listener and nonce client control, add uniquely named temporary inbound Allow for its exact validated binary, active Public profile, exact local TCP port, local/remote 127.0.0.1 (separate ::1 test), repeat Node nonce/ACK, remove only that rule in finally, repeat baseline. Preserve self-probe. Allow-dependent pass and removal-dependent failure support policy attribution; unchanged failure does not identify third-party cause.",
+  "limitations": [
+    "WFP dump is static configuration, not a classify/drop receipt",
+    "Full XML parser failed; bounded textual excerpts only, no claim all dynamic filters fully evaluated",
+    "Raw WFP state and system logs contain machine-specific information; keep private"
+  ],
+  "files": [
+    {
+      "name": "antivirus.json",
+      "sha256": "38660a101d4cc9bca5010ad5f6f5c602e6252b86f8562881cad2829e5f323fa1"
+    },
+    {
+      "name": "connection-profiles.json",
+      "sha256": "46df9a9c849ea6bd067bad63c4137ecdb3a65ab1a3058b0111b22d2bff343fad"
+    },
+    {
+      "name": "connections-typed.json",
+      "sha256": "5a1cc432ea1123a0c6dbb2b7f613377e217d40adc1e65acb267cf1c8737b3aa1"
+    },
+    {
+      "name": "enabled-inbound-blocks.json",
+      "sha256": "010254f68d44d70843161ff0b0f15bd082c153226f8ff42e0e05d6b9db67860c"
+    },
+    {
+      "name": "excerpts.cjs",
+      "sha256": "8d5724e61656df8fb5538c9ce55e61d32a3d64238a989bbf6298b9bd49514e94"
+    },
+    {
+      "name": "firewall-events.json",
+      "sha256": "edd64a06d1d08d9ac6bc3a6368454e2a0bbde37ca6f96d29d4ba1106b0bff5cb"
+    },
+    {
+      "name": "firewall-profiles.json",
+      "sha256": "014a4f4f851ae5e5a4b38cf9dd1c34462167ec863796f0716e65c98ba82b72e2"
+    },
+    {
+      "name": "inspect.ps1",
+      "sha256": "f2494177b4f6e86568706754c9441de047687cc556cc42dd43985a199f2fa449"
+    },
+    {
+      "name": "log-availability.json",
+      "sha256": "fa6627f8ffc48c56fffd0040c337ab171dbdfb7389b341d4a6e10b5e4c334b3a"
+    },
+    {
+      "name": "logs.ps1",
+      "sha256": "1c2c3aa43ae1de3f975096f8dbbf4ac511cd2b87a194accda3430ab2a7e46839"
+    },
+    {
+      "name": "offline-rule-security.json",
+      "sha256": "2f95b6cd268c529b61adc38d6471b951915018aa56ae8776d7688f84bce32af8"
+    },
+    {
+      "name": "profiles-typed.json",
+      "sha256": "b6ba70b5b36e31e2a62d8a836aa085c941076e83e28233ac07bfac3962032072"
+    },
+    {
+      "name": "runtime-rules.json",
+      "sha256": "a23eb39f63cdc8c6db860bed82e0cf5be1dcd5ec5e09c5b645130f8d2079adf2"
+    },
+    {
+      "name": "security-network-drivers.json",
+      "sha256": "fddca05260117173d935a1507d94bfeeca78519c3457b812f6888a8237bbff6d"
+    },
+    {
+      "name": "security-services.json",
+      "sha256": "b7eeda696fe5e980a5fc58cc59e5c82ff0c06cb25ef68a5360c0c67f8c6f8aed"
+    },
+    {
+      "name": "summarize.cjs",
+      "sha256": "48ad699724b103207f133c1cf4e788af61bac4c44e65404c9e729c73d3d4db9c"
+    },
+    {
+      "name": "third-party-wfp.json",
+      "sha256": "ca96edbb44b058c4f560b178fd4c9c8ff29e8d3889f19a47a1afc06ca921357a"
+    },
+    {
+      "name": "wfp-excerpts.json",
+      "sha256": "48bee3e5b720d079899a846fc0c04261dff53d64046d655ee1c377522d1ba256"
+    },
+    {
+      "name": "wfp-state.xml",
+      "sha256": "31308b77e7dbce312f39f18e1e8894299af2e29529c67733d81ca61c9563a713"
+    },
+    {
+      "name": "wfp-summary.json",
+      "sha256": "f8d11277619134f17e3fa86bfe5e557183b4fe3b96f24bf8394f0cf25c6f6d97"
+    },
+    {
+      "name": "wfp-summary.ps1",
+      "sha256": "bd9caa16daeeaf0343c3320445fd1a9624ae03069fc4c5b4fdbd597a77716e31"
+    }
+  ]
+}

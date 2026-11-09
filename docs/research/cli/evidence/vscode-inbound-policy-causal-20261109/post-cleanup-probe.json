@@ -1,0 +1,22 @@
+{
+  "schema": "chainlesschain.host-loopback-diagnostic/v1",
+  "nodeVersion": "24.22.1",
+  "electronVersion": "43.8.3",
+  "platform": "win32",
+  "architecture": "x64",
+  "extensionLoaded": false,
+  "cases": [
+    {
+      "host": "127.0.0.1",
+      "listening": true,
+      "connected": false,
+      "errorCode": "ETIMEDOUT"
+    },
+    {
+      "host": "::1",
+      "listening": true,
+      "connected": false,
+      "errorCode": "ETIMEDOUT"
+    }
+  ]
+}
