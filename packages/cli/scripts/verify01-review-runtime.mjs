@@ -548,43 +548,15 @@ export function runReviewStage(
           !installation.signal,
         "locked dependency installation failed",
       );
-      // The generated evaluator probes the host-Node driver from the root
-      // node_modules path. The CLI/desktop workspace install above can place
-      // optional native dependencies only in a nested workspace, so install
-      // this fixed host driver explicitly at the root before running its
-      // prebuild installer. Lifecycle scripts remain disabled and the binary
-      // is still validated below before any evaluator executes.
-      const nativePackage = runner.run(
-        [
-          "npm",
-          "install",
-          "--prefix",
-          "/workspace",
-          "--no-save",
-          "--package-lock=false",
-          "--ignore-scripts",
-          "--legacy-peer-deps",
-          "--no-audit",
-          "--no-fund",
-          "better-sqlite3@11.10.0",
-        ],
-        { setup: true },
-      );
-      requireCondition(
-        nativePackage.status === 0 &&
-          !nativePackage.error &&
-          !nativePackage.signal,
-        "locked SQLite package installation failed",
-      );
-      // npm lifecycle hooks stay disabled. Explicitly invoke only the locked
-      // native dependency's prebuild installer, before any candidate exists.
-      // Do not fall back to arbitrary install scripts or a source build.
+      // The behavioral controls resolve dependencies from the CLI package.
+      // Install the optional native binary there so the setup probe and those
+      // controls exercise the same locked better-sqlite3 installation.
       const native = runner.run(
         [
           "node",
           "--input-type=commonjs",
           "--eval",
-          'process.chdir("/workspace/node_modules/better-sqlite3"); require("/workspace/node_modules/prebuild-install/bin.js");',
+          'process.chdir("/workspace/packages/cli/node_modules/better-sqlite3"); require("/workspace/packages/cli/node_modules/prebuild-install/bin.js");',
         ],
         { setup: true },
       );
@@ -596,7 +568,7 @@ export function runReviewStage(
         "node",
         "--input-type=commonjs",
         "--eval",
-        'const fs=require("node:fs"),crypto=require("node:crypto"),Database=require("/workspace/node_modules/better-sqlite3"); const db=new Database(":memory:"); if(db.prepare("select 42 as value").get().value!==42) throw new Error("SQLite native probe failed"); db.close(); const bytes=fs.readFileSync("/workspace/node_modules/better-sqlite3/build/Release/better_sqlite3.node"); console.log(JSON.stringify({sha256:crypto.createHash("sha256").update(bytes).digest("hex"),sqliteVerified:true}));',
+        'const fs=require("node:fs"),crypto=require("node:crypto"),Database=require("/workspace/packages/cli/node_modules/better-sqlite3"); const db=new Database(":memory:"); if(db.prepare("select 42 as value").get().value!==42) throw new Error("SQLite native probe failed"); db.close(); const bytes=fs.readFileSync("/workspace/packages/cli/node_modules/better-sqlite3/build/Release/better_sqlite3.node"); console.log(JSON.stringify({sha256:crypto.createHash("sha256").update(bytes).digest("hex"),sqliteVerified:true}));',
       ]);
       requireCondition(
         nativeProbe.status === 0 && !nativeProbe.error && !nativeProbe.signal,
