@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import http from "node:http";
 import { once } from "node:events";
+import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
   assertCompleteScanHistory,
@@ -555,6 +556,47 @@ describe("isolated generated rollout copying", () => {
       thread: { id: "thread-a", path: source },
     };
   }
+
+  it.runIf(process.platform === "win32")(
+    "copies canonical rollout paths from real Windows short homes without admitting siblings or the same home",
+    ({ skip }) => {
+      const f = fixture();
+      const shortRoot = execFileSync(
+        process.env.ComSpec || "cmd.exe",
+        ["/d", "/c", `for %I in ("${f.root}") do @echo %~sI`],
+        { encoding: "utf8", windowsHide: true, windowsVerbatimArguments: true },
+      ).trim();
+      if (shortRoot.toLowerCase() === f.root.toLowerCase())
+        skip("fixture volume has no Windows 8.3 alias");
+      const sourceHome = path.join(shortRoot, "source");
+      const targetHome = path.join(shortRoot, "target");
+      expect(fs.realpathSync.native(sourceHome)).toBe(f.sourceHome);
+      // The original lexical containment check rejects this same real file.
+      expect(path.relative(sourceHome, f.source)).toMatch(/^\.\./u);
+      const copied = copyHistoryRollouts([f.thread], sourceHome, targetHome);
+      expect(copied).toHaveLength(1);
+      expect(copied[0].relativePath).toBe(
+        path.join("sessions", "2026", "10", "29", "rollout.jsonl"),
+      );
+      expect(
+        fs
+          .readFileSync(path.join(f.targetHome, copied[0].relativePath))
+          .equals(f.bytes),
+      ).toBe(true);
+      const outside = path.join(f.root, "outside.jsonl");
+      fs.writeFileSync(outside, f.bytes);
+      expect(() =>
+        copyHistoryRollouts(
+          [{ ...f.thread, path: outside }],
+          sourceHome,
+          targetHome,
+        ),
+      ).toThrow(/inside/);
+      expect(() =>
+        copyHistoryRollouts([f.thread], sourceHome, f.sourceHome),
+      ).toThrow(/homes must differ/);
+    },
+  );
 
   it("accepts a namespaced generated rollout path while retaining its isolated root", () => {
     const f = fixture();
