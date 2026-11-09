@@ -61,8 +61,8 @@ function loadManager() {
 }
 let managers;
 async function fixture(mode) {
-  const directory = fs.mkdtempSync(
-    path.join(os.tmpdir(), "cc-goal-model-protocol-"),
+  const directory = fs.realpathSync.native(
+    fs.mkdtempSync(path.join(os.tmpdir(), "cc-goal-model-protocol-")),
   );
   const db = new Database(path.join(directory, "project.sqlite"));
   const actor = "did:chainless:owner",
@@ -230,8 +230,8 @@ async function fixture(mode) {
       server.closeAllConnections();
       await new Promise((resolve) => server.close(resolve));
       db.close();
-      const resolved = path.resolve(directory);
-      assert.equal(path.dirname(resolved), path.resolve(os.tmpdir()));
+      const resolved = fs.realpathSync.native(directory);
+      assert.equal(path.dirname(resolved), fs.realpathSync.native(os.tmpdir()));
       assert.ok(path.basename(resolved).startsWith("cc-goal-model-protocol-"));
       fs.rmSync(resolved, { recursive: true, force: true });
     },
