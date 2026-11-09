@@ -98,6 +98,44 @@ function extractYamlScript(workflow, anchor) {
   return scriptLines.join("\n");
 }
 
+test("native accessibility bootstrap retains download evidence before unchanged assertions", () => {
+  const workflow = fs.readFileSync(
+    path.join(
+      repoRoot,
+      ".github/workflows/ide-roadmap-accessibility-performance.yml",
+    ),
+    "utf8",
+  );
+  const bootstrap = workflow.indexOf(
+    "name: Bootstrap pinned Gradle distribution",
+  );
+  const upload = workflow.indexOf("name: Upload Gradle bootstrap evidence");
+  const measurements = workflow.indexOf(
+    "name: Measure JetBrains native Swing product surfaces",
+  );
+  assert.ok(bootstrap > 0 && upload > bootstrap && measurements > upload);
+  assert.match(
+    workflow.slice(bootstrap, upload),
+    /verify01-gradle-bootstrap\.mjs/u,
+  );
+  assert.match(workflow.slice(upload, measurements), /always\(\)/u);
+  assert.match(
+    workflow.slice(upload, measurements),
+    /if-no-files-found: error/u,
+  );
+  const assertions = workflow.slice(
+    measurements,
+    workflow.indexOf("name: Measure VS Code index"),
+  );
+  assert.match(assertions, /gradlew\.bat test --tests/u);
+  assert.match(assertions, /\.\/gradlew test --tests/u);
+  assert.match(
+    assertions,
+    /if \(\$LASTEXITCODE -ne 0\) \{ exit \$LASTEXITCODE \}/u,
+  );
+  assert.doesNotMatch(assertions, /continue-on-error|retry/iu);
+});
+
 test("CLI CI cancels superseded branch and PR matrices without rerunning release tags", () => {
   const workflow = fs.readFileSync(
     path.join(repoRoot, ".github", "workflows", "cli-ci.yml"),
