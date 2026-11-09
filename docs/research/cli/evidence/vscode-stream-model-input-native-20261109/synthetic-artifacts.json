@@ -1,0 +1,20 @@
+{
+  "input": {
+    "nonce": "1ff51a0877bb339749d219ceb9c89b63",
+    "amounts": [3, 23, 41],
+    "label": "native-canonical-observer-vscode"
+  },
+  "output": {
+    "nonce": "1ff51a0877bb339749d219ceb9c89b63",
+    "total": 67,
+    "label": "native-canonical-observer-vscode"
+  },
+  "inputRaw": {
+    "bytes": 139,
+    "sha256": "6c4c058874bf9176e8b1ba4683b7f65aa7c69a2ac898aa5630f12df000e80528"
+  },
+  "outputRaw": {
+    "bytes": 99,
+    "sha256": "c2faaed933017ee40cad71deade2f9c2add2792ffcf15d8193bc34e5c79bcbf6"
+  }
+}

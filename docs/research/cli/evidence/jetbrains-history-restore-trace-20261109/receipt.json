@@ -1,0 +1,66 @@
+{
+  "schema": "public-native-evidence-archive/v1",
+  "sourceCommit": "937ceaa3746ba032111ea304b061bc4703118b78",
+  "paidReady": false,
+  "overallHarnessPassed": false,
+  "scope": "History diagnostics verified; original journey failed; restart-only continuation passed",
+  "artifacts": [
+    {
+      "path": "README.md",
+      "bytes": 1739,
+      "sha256": "d74bb9edbebd525f5fd52eb01f64445aebd65f8266e34e74d655ca001161c21e"
+    },
+    {
+      "path": "cleanup.json",
+      "bytes": 2863,
+      "sha256": "69c6446fc160e4e3b3782bf378491f1543c703851f1c91ef099eb69ae35d7f99"
+    },
+    {
+      "path": "initial-capture.json",
+      "bytes": 1727,
+      "sha256": "ead5cd0dc67890f4e3c5236f10c047318ea32dc4a37cab8d54762c626d71278c"
+    },
+    {
+      "path": "initial-history-events.jsonl",
+      "bytes": 3670,
+      "sha256": "c4ef34dfdd07d984c7f583020f52c2ceca161f910a26c3db3f91a600907cef85"
+    },
+    {
+      "path": "launcher-adaptation.patch",
+      "bytes": 5600,
+      "sha256": "8550c3c23d9488db9625d10cf5ba9b91767f200ca9d4dec7d6262e2f2eb9168d"
+    },
+    {
+      "path": "launcher-provenance.json",
+      "bytes": 2304,
+      "sha256": "c8893aa079a5216ee102921b6d5c1c56ce85b2f9793a02463aea50ead381f9b0"
+    },
+    {
+      "path": "restart-capture.json",
+      "bytes": 1316,
+      "sha256": "418086cefc274cdb9e8b86459afa71e3032f9313611a26c86a8692a36662d3e6"
+    },
+    {
+      "path": "restart-history-events.jsonl",
+      "bytes": 4815,
+      "sha256": "73d1719d145082f0bb39f5fa26afa6aadde930d2ba0e7d0fe45750539de8cbc0"
+    },
+    {
+      "path": "source-bindings.json",
+      "bytes": 73583,
+      "sha256": "46fec0900f3d9fe070640d0ad8cdbcf5016b0bc0b35ce243655404f87eea19dd"
+    },
+    {
+      "path": "targeted-tests.json",
+      "bytes": 789,
+      "sha256": "a40f79af99a07fd8da4dbebc9d93038580a090962787cea94ff1b548203182c3"
+    },
+    {
+      "path": "verification.json",
+      "bytes": 4140,
+      "sha256": "39aaef940bea7215a554f332fa0b5101590136ce524402734b4173f82a1e9768"
+    }
+  ],
+  "receiptSelfHashExcluded": true,
+  "privateRawFilesExcluded": true
+}

@@ -20,10 +20,13 @@
         "cli/evidence/vscode-installed-native-recovery-20261109",
         "cli/evidence/canonical-model-input-native-readback-20261109",
         "cli/evidence/jetbrains-canonical-native-readback-20261109",
-        "cli/evidence/vscode-real-file-task-native-20261109"
+        "cli/evidence/vscode-real-file-task-native-20261109",
+        "cli/evidence/jetbrains-real-file-task-native-20261109",
+        "cli/evidence/vscode-unadapted-file-task-native-20261109",
+        "cli/evidence/vscode-stream-model-input-native-20261109"
       ],
       "remaining": [
-        "JetBrains IDE-initiated real-provider tasks; broader independent task coverage and unadapted physical-body attribution"
+        "Broader independent task/failure attribution and task-specific instruction compliance; JetBrains unadapted source mapping, safe teardown and cross-platform acceptance"
       ],
       "scopedRealCanonicalNativeReadback": {
         "cliCommit": "e691dad7b3879844eed649db45a10e251f9eb343",
@@ -42,6 +45,29 @@
         "dualIdeDiagnosticReadbackVerified": true,
         "jetbrainsSelectionSeam": "production resumeSession via test reflection",
         "jetbrainsStandardGradleVerified": false
+      },
+      "scopedNativeStreamMapping": {
+        "sourceCommit": "bcce11f6455ad2584a5ce4fed36b5de6de23f2ff",
+        "observerFixCommit": "39d95352e7089b4c0bf9e6fe5503a870cac5480a",
+        "evidence": "cli/evidence/vscode-stream-model-input-native-20261109",
+        "originalNativeHarnessExit": 0,
+        "requests": 4,
+        "http200": 4,
+        "newRequestsAfterRestart": 0,
+        "canonicalDiagnosticRecords": 8,
+        "logicalPlanningCovered": 4,
+        "sourceMappingsCovered": 8,
+        "mappedSourcesPerRequest": [50, 50, 51, 52],
+        "physicalBodyDigestMatches": true,
+        "diagnosticTransportBodyChanged": false,
+        "strictSyntheticOutputPassed": true,
+        "actualNativeInitialAndRestartPassed": true,
+        "sameSessionWorklogReadRetained": true,
+        "completeInstructionComplianceClaimed": false,
+        "temporaryRuleRemoved": true,
+        "fullDescendantCleanupAttested": false,
+        "stockHostAccepted": false,
+        "paidReady": false
       }
     },
     "3": {
@@ -57,10 +83,14 @@
         "cli/evidence/canonical-model-input-native-readback-20261109",
         "cli/evidence/jetbrains-canonical-native-readback-20261109",
         "cli/evidence/vscode-real-file-task-native-20261109",
-        "cli/evidence/jetbrains-conditioned-native-journeys-20261109"
+        "cli/evidence/jetbrains-conditioned-native-journeys-20261109",
+        "cli/evidence/jetbrains-real-file-task-native-20261109",
+        "cli/evidence/jetbrains-history-restore-trace-20261109",
+        "cli/evidence/vscode-unadapted-file-task-native-20261109",
+        "cli/evidence/vscode-stream-model-input-native-20261109"
       ],
       "remaining": [
-        "complete real-provider cross-entry lifecycle, JetBrains real task and recovery-diagnostic completeness"
+        "complete real-provider cross-entry lifecycle and safe native teardown; history capture now verified only for the source-bound initial/restart continuation"
       ]
     },
     "4": {
@@ -142,7 +172,8 @@
         "cli/evidence/implementation-plan-volcengine-cap-live-20261109",
         "cli/evidence/volcengine-model-price-20261109",
         "cli/evidence/implementation-plan-volcengine-live-current2-20261109",
-        "cli/evidence/native-price-windows-20261109"
+        "cli/evidence/native-price-windows-20261109",
+        "cli/evidence/vscode-stream-model-input-native-20261109"
       ],
       "remaining": [
         "invoice reconciliation",
@@ -199,7 +230,11 @@
         "cli/evidence/vscode-inbound-policy-causal-20261109",
         "cli/evidence/jetbrains-gradle-inbound-policy-20261109",
         "cli/evidence/vscode-real-file-task-native-20261109",
-        "cli/evidence/jetbrains-conditioned-native-journeys-20261109"
+        "cli/evidence/jetbrains-conditioned-native-journeys-20261109",
+        "cli/evidence/jetbrains-real-file-task-native-20261109",
+        "cli/evidence/jetbrains-history-restore-trace-20261109",
+        "cli/evidence/vscode-unadapted-file-task-native-20261109",
+        "cli/evidence/vscode-stream-model-input-native-20261109"
       ],
       "remaining": [
         "stock-host VS Code inbound authorization (1.145.2 passed with temporary IPv4 rule)",
@@ -261,6 +296,68 @@
         "temporaryJavaTcpAndGradleUdpRulesRemoved": true,
         "model": "deterministic fixture",
         "realProviderTaskAccepted": false
+      },
+      "scopedJetbrainsRealTask": {
+        "sourceCommit": "171659e7e668276285aa56ac8eadcffcf9ea39e1",
+        "evidence": "cli/evidence/jetbrains-real-file-task-native-20261109",
+        "developmentPlugin": true,
+        "marketplaceValidated": false,
+        "modelTaskPassed": true,
+        "independentNonceAndTotal59Passed": true,
+        "nativeUiAndRestartAssertionsPassed": true,
+        "requests": 4,
+        "http200": 4,
+        "restartRequests": 0,
+        "overallHarnessPassed": false,
+        "cleanupFailure": "Shared SGTool input-method daemon retained; no force kill",
+        "physicalOutputCapAdapted": 1024,
+        "canonicalPhysicalBodyMappingClaimed": false,
+        "temporaryRulesRemoved": true,
+        "paidReady": false
+      },
+      "scopedVscodeUnadaptedBodyTask": {
+        "sourceCommit": "02f892dbe3091f9c41e5655f4d579891108e03b7",
+        "evidence": "cli/evidence/vscode-unadapted-file-task-native-20261109",
+        "packagedPayloadsVerified": 184,
+        "strictNonceAndTotal47Passed": true,
+        "physicalRequests": 3,
+        "http200": 3,
+        "productionMaxOutputTokens": 1024,
+        "physicalBodyIdentityVerified": true,
+        "transportBodyAdapted": false,
+        "canonicalPhysicalSourceMappingClaimed": false,
+        "modelInputDiagnosticRecords": 0,
+        "originalHarnessPassed": false,
+        "midrunDiagnosticShimRepaired": true,
+        "originalCleanupFailed": true,
+        "separateReadonlyNativePhasesPassed": 2,
+        "additionalProviderDispatches": 0,
+        "completeDescendantCleanupVerified": false,
+        "temporaryRulesRemoved": true,
+        "paidReady": false
+      },
+      "scopedNativeStreamTask": {
+        "sourceCommit": "bcce11f6455ad2584a5ce4fed36b5de6de23f2ff",
+        "observerFixCommit": "39d95352e7089b4c0bf9e6fe5503a870cac5480a",
+        "evidence": "cli/evidence/vscode-stream-model-input-native-20261109",
+        "originalNativeHarnessExit": 0,
+        "requests": 4,
+        "http200": 4,
+        "newRequestsAfterRestart": 0,
+        "canonicalDiagnosticRecords": 8,
+        "logicalPlanningCovered": 4,
+        "sourceMappingsCovered": 8,
+        "mappedSourcesPerRequest": [50, 50, 51, 52],
+        "physicalBodyDigestMatches": true,
+        "diagnosticTransportBodyChanged": false,
+        "strictSyntheticOutputPassed": true,
+        "actualNativeInitialAndRestartPassed": true,
+        "sameSessionWorklogReadRetained": true,
+        "completeInstructionComplianceClaimed": false,
+        "temporaryRuleRemoved": true,
+        "fullDescendantCleanupAttested": false,
+        "stockHostAccepted": false,
+        "paidReady": false
       }
     },
     "8": {
@@ -288,12 +385,16 @@
         "cli/evidence/jetbrains-canonical-native-readback-20261109",
         "cli/evidence/vscode-inbound-policy-causal-20261109",
         "cli/evidence/jetbrains-gradle-inbound-policy-20261109",
-        "cli/evidence/jetbrains-conditioned-native-journeys-20261109"
+        "cli/evidence/jetbrains-conditioned-native-journeys-20261109",
+        "cli/evidence/jetbrains-real-file-task-native-20261109",
+        "cli/evidence/jetbrains-history-restore-trace-20261109",
+        "cli/evidence/vscode-unadapted-file-task-native-20261109",
+        "cli/evidence/vscode-stream-model-input-native-20261109"
       ],
       "remaining": [
-        "JetBrains IDE-initiated real-provider lifecycle and three-system acceptance",
-        "persistent host ingress configuration and independent desktop failure localization",
-        "canonical recovery host event/log capture completeness"
+        "complete JetBrains real-provider lifecycle including safe teardown and three-system acceptance",
+        "stock-host ingress authorization and independent desktop failure localization",
+        "full unmodified-harness recovery acceptance; source937 history trace is verified without overriding the original cleanup failure"
       ],
       "guidance": {
         "status": "implemented",
@@ -338,6 +439,21 @@
         "persistentPolicyChanged": false,
         "ipv6RuleSetup": "rejected before creation",
         "exclusiveFilterAttributionVerified": false
+      },
+      "scopedHistoryTraceFix": {
+        "sourceCommit": "937ceaa3746ba032111ea304b061bc4703118b78",
+        "evidence": "cli/evidence/jetbrains-history-restore-trace-20261109",
+        "targetedTestsPassed": 16,
+        "capturesComplete": [true, true],
+        "historyRecords": [15, 20],
+        "completeCorrelatedGroups": [5, 3],
+        "originalFullJourneyPassed": false,
+        "restartOnlyContinuationPassed": true,
+        "initialRerun": false,
+        "realModelCalls": 0,
+        "temporarySafeLauncherAdaptation": true,
+        "productionJavaAndUiAssertionsUnchanged": true,
+        "earlierIncompleteCapturePreserved": true
       }
     }
   },
@@ -367,5 +483,62 @@
     "vscodeRealFileTaskEvidence": "cli/evidence/vscode-real-file-task-native-20261109",
     "jetbrainsConditionedNativeJourneys": "cli/evidence/jetbrains-conditioned-native-journeys-20261109"
   },
-  "auditedSourceCommit": "44f56fe58aee36e6cc097755ce7c4ab3ec94b126"
+  "auditedSourceCommit": "44f56fe58aee36e6cc097755ce7c4ab3ec94b126",
+  "localSourceFollowups": {
+    "explicitOutputCap": {
+      "sourceCommit": "bc28be429c031af1b6dda9f12fc5b59c6e64893c",
+      "testsPassed": 232,
+      "scope": "main agent/tool-loop requested output cap across entrypoints and background launch",
+      "auxiliaryBudgetsIncluded": false,
+      "providerEnforcementAndBillingAccepted": false
+    },
+    "cleanupExecutableIdentity": {
+      "sourceCommit": "02f892dbe3091f9c41e5655f4d579891108e03b7",
+      "testsPassed": 17,
+      "testsSkipped": 3,
+      "terminationIdentity": "unchanged PID plus CreationDate",
+      "commandLineCollectionAdded": false,
+      "sharedImeKillAuthorized": false,
+      "originalCleanupFailureReclassified": false
+    },
+    "streamModelInputObserver": {
+      "sourceCommit": "39d95352e7089b4c0bf9e6fe5503a870cac5480a",
+      "testFiles": 3,
+      "testsPassed": 111,
+      "failures": 0,
+      "errors": 0,
+      "privateJunitIdentity": {
+        "bytes": 25058,
+        "sha256": "2c604cfcdce50d99268fe4affe61799f654bfa2e10ebd4a169a55a183fe7628e"
+      },
+      "realCanonicalJournalReadback": true,
+      "appendThrowAndFalseRejectedBeforeDispatch": true,
+      "anonymousObserverCovered": true,
+      "historicalZeroRecordReportReclassified": false,
+      "newNativeMappingAccepted": true,
+      "nativeEvidence": "cli/evidence/vscode-stream-model-input-native-20261109",
+      "nativeAcceptanceScope": "Archived single real-task case only"
+    },
+    "integratedStreamObserverRegression": {
+      "mergeCommit": "bcce11f6455ad2584a5ce4fed36b5de6de23f2ff",
+      "remoteSourceReference": "773e740",
+      "testFiles": 6,
+      "testsPassed": 207,
+      "failures": 0,
+      "errors": 0,
+      "includedTests": {
+        "observer": 111,
+        "thinking": 26,
+        "history": 17,
+        "storage": 53
+      },
+      "earlier111IncludedNotAdditional": true,
+      "privateJunitIdentity": {
+        "bytes": 50304,
+        "sha256": "1b7c68855c3c605418b4a6b9fd0ce9df7fff3b0dd79c8a5870195069ed5c0de6"
+      },
+      "newNativeMappingTaskAtThisUpdate": "passed: original task and canonical physical mapping, single-case scope",
+      "nativeEvidence": "cli/evidence/vscode-stream-model-input-native-20261109"
+    }
+  }
 }

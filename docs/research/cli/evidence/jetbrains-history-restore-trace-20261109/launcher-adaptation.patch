@@ -1,0 +1,83 @@
+diff --git a/.tmp/jetbrains-history-trace-native-20261109/original-harness.mjs b/.tmp/jetbrains-history-trace-native-20261109/private-harness.mjs
+index 8f4a35bb6..a7ab6df10 100644
+--- a/.tmp/jetbrains-history-trace-native-20261109/original-harness.mjs
++++ b/.tmp/jetbrains-history-trace-native-20261109/private-harness.mjs
+@@ -17,10 +17,10 @@ import {
+ import path from "node:path";
+ import os from "node:os";
+ import { fileURLToPath, pathToFileURL } from "node:url";
+-import { verifyConversationRecovery } from "./conversation-recovery-evidence.mjs";
+-import { verifyNativeTranscriptEvidence } from "./native-transcript-evidence.mjs";
++import { verifyConversationRecovery } from "file:///<REPO_ROOT>/packages/jetbrains-plugin/scripts/conversation-recovery-evidence.mjs";
++import { verifyNativeTranscriptEvidence } from "file:///<REPO_ROOT>/packages/jetbrains-plugin/scripts/native-transcript-evidence.mjs";
+ 
+-const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
++const SCRIPT_DIR = "<REPO_ROOT>\\packages\\jetbrains-plugin\\scripts";
+ const PACKAGE_ROOT = path.resolve(SCRIPT_DIR, "..");
+ const REPO_ROOT = path.resolve(PACKAGE_ROOT, "..", "..");
+ const DEFAULT_ROBOT_URL = "http://127.0.0.1:8082";
+@@ -334,31 +334,22 @@ function processAlive(child) {
+ 
+ async function stopProcessTree(child) {
+   if (!processAlive(child)) return;
+-  if (process.platform === "win32") {
+-    spawnSync("taskkill", ["/PID", String(child.pid), "/T", "/F"], {
+-      windowsHide: true,
+-      stdio: "ignore",
+-    });
+-    for (let attempt = 0; attempt < 10 && processAlive(child); attempt += 1) {
+-      await delay(500);
+-    }
+-    return;
+-  }
++  const snapshot = () => {
++    const ps = "$ErrorActionPreference='Stop';$r=@(foreach($p in (Get-CimInstance -Query 'SELECT ProcessId,ParentProcessId,Name,CreationDate,ExecutablePath FROM Win32_Process')){[pscustomobject]@{pid=[int]$p.ProcessId;parentPid=[int]$p.ParentProcessId;name=$p.Name;created=if($p.CreationDate){$p.CreationDate.ToUniversalTime().Ticks.ToString()}else{$null};exe=$p.ExecutablePath}});ConvertTo-Json -InputObject $r -Compress";
++    const r=spawnSync('powershell.exe',['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(ps,'utf16le').toString('base64')],{windowsHide:true,encoding:'utf8',timeout:10000,maxBuffer:4*1024*1024});
++    if(r.status!==0)throw Error('Private graceful process observation failed');return JSON.parse(r.stdout);
++  };
++  const before=snapshot(),owner=before.find(x=>x.pid===child.pid);if(!owner?.created)throw Error('Private graceful owner identity unavailable');
++  const owned=[owner];let changed=true;while(changed){changed=false;for(const p of before)if(p.created&&!owned.some(x=>x.pid===p.pid)&&owned.some(x=>x.pid===p.parentPid&&BigInt(p.created)>=BigInt(x.created))){owned.push(p);changed=true;}}
++  const receipt={schema:'private-graceful-only-cleanup/v1',ownerPid:child.pid,owned,forceTerminationUsed:false,confirmed:false};
++  const file=path.join("<REPO_ROOT>\\.tmp\\jetbrains-history-trace-native-20261109",'graceful-'+child.pid+'.json');
+   try {
+-    process.kill(-child.pid, "SIGTERM");
+-  } catch {
+-    child.kill("SIGTERM");
+-  }
+-  for (let attempt = 0; attempt < 10 && processAlive(child); attempt += 1) {
+-    await delay(500);
+-  }
+-  if (processAlive(child)) {
+-    try {
+-      process.kill(-child.pid, "SIGKILL");
+-    } catch {
+-      child.kill("SIGKILL");
+-    }
+-  }
++    const response=await fetch('http://127.0.0.1:8082/js/execute',{method:'POST',headers:{'Content-Type':'application/json'},signal:AbortSignal.timeout(5000),body:JSON.stringify({runInEdt:false,script:"importClass(com.intellij.openapi.application.ApplicationManager); importClass(java.lang.Runnable); const app=ApplicationManager.getApplication(); app.invokeLater(new Runnable({run:function(){app.exit(Packages.com.intellij.openapi.application.ex.ApplicationEx.EXIT_CONFIRMED | Packages.com.intellij.openapi.application.ex.ApplicationEx.ApplicationEx.SAVE);}}));".replace('ApplicationEx.ApplicationEx','ApplicationEx')})});receipt.gracefulAcknowledged=response.ok;
++  }catch(e){receipt.gracefulError=e.message;}
++  const deadline=Date.now()+30000;
++  do {const live=snapshot();let expanded=true;while(expanded){expanded=false;for(const p of live)if(p.created&&!owned.some(x=>x.pid===p.pid&&x.created===p.created)&&owned.some(x=>x.pid===p.parentPid&&BigInt(p.created)>=BigInt(x.created))){owned.push(p);expanded=true;}}receipt.remaining=owned.filter(p=>live.some(x=>x.pid===p.pid&&x.created===p.created));if(!receipt.remaining.length){receipt.confirmed=true;break;}await delay(250);}while(Date.now()<deadline);
++  writeFileSync(file,JSON.stringify(receipt,null,2));
++  if(!receipt.confirmed)throw Error('Private graceful-only cleanup incomplete; known survivors preserved, no shared IME terminated');
+ }
+ 
+ function readPackageVersion(filePath) {
+@@ -1190,7 +1181,8 @@ export async function runJourney(options) {
+         } catch (error) {
+           phaseError = error;
+         } finally {
+-          await stopProcessTree(ideProcess);
++          let cleanupError = null;
++          try { await stopProcessTree(ideProcess); } catch (error) { cleanupError = error; }
+           ideProcess = null;
+           try {
+             const capture = captureHostDiagnostics(
+@@ -1215,6 +1207,7 @@ export async function runJourney(options) {
+               `[jetbrains-ui-host] diagnostic capture failed: ${captureError.message}\n`,
+             );
+           }
++          if (cleanupError) throw cleanupError;
+         }
+         await waitForRobotStopped(options.robotUrl);
+         if (!phaseError) break;

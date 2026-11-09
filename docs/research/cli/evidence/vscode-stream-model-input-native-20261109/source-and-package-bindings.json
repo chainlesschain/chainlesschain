@@ -1,0 +1,1916 @@
+{
+  "runtimeSourceCommit": "bcce11f6455ad2584a5ce4fed36b5de6de23f2ff",
+  "observerFixCommit": "39d95352e7089b4c0bf9e6fe5503a870cac5480a",
+  "reusedDevelopmentVsix": {
+    "sourceCommit": "02f892dbe3091f9c41e5655f4d579891108e03b7",
+    "vsixSha256": "546bda4d53c8d97865a3dea1cb0d350a543befa7c678e1fd3a5643c245fbf1b1",
+    "packager": "@vscode/vsce 3.9.2 (repository pinned package script)",
+    "extensionVersion": "0.37.183",
+    "payloadsVerified": 184,
+    "byteExactPayloads": 182,
+    "normalizedMarkdownFiles": ["readme.md", "changelog.md"],
+    "licenseFilenameNormalization": "LICENSE to LICENSE.txt",
+    "payloads": [
+      {
+        "path": "extension/readme.md",
+        "sourcePath": "packages/vscode-extension/README.md",
+        "sourceSha256": "90ede0d3ea9fd5ee141d0e4267088f518bd5124169f65749a917de1a773de8fa",
+        "packagedSha256": "fe9e5c146b779b27cb4204f3c637a981fb3cf6aa919a8bc5535803965d8a8c46"
+      },
+      {
+        "path": "extension/package.nls.zh-cn.json",
+        "sourcePath": "packages/vscode-extension/package.nls.zh-cn.json",
+        "sourceSha256": "ecbebc26e357bad6d0ad53a97a20e47464c8fd82923df7bf52d908052958379c",
+        "packagedSha256": "ecbebc26e357bad6d0ad53a97a20e47464c8fd82923df7bf52d908052958379c"
+      },
+      {
+        "path": "extension/package.nls.json",
+        "sourcePath": "packages/vscode-extension/package.nls.json",
+        "sourceSha256": "586e51fd06dadba790c286fd2c456f9e58f82a8fb2b925018f28f5464df07ab4",
+        "packagedSha256": "586e51fd06dadba790c286fd2c456f9e58f82a8fb2b925018f28f5464df07ab4"
+      },
+      {
+        "path": "extension/package.json",
+        "sourcePath": "packages/vscode-extension/package.json",
+        "sourceSha256": "00ace3760ccb5685bb7eca1a1a06f53e3115f7af05700d1d9b88b4ba2c552fab",
+        "packagedSha256": "00ace3760ccb5685bb7eca1a1a06f53e3115f7af05700d1d9b88b4ba2c552fab"
+      },
+      {
+        "path": "extension/LICENSE.txt",
+        "sourcePath": "packages/vscode-extension/LICENSE",
+        "sourceSha256": "cdc1d6d07beefa49ad1d3a4c39973eb20544c178b7de42fc6271e1e9c8052e4a",
+        "packagedSha256": "cdc1d6d07beefa49ad1d3a4c39973eb20544c178b7de42fc6271e1e9c8052e4a"
+      },
+      {
+        "path": "extension/changelog.md",
+        "sourcePath": "packages/vscode-extension/CHANGELOG.md",
+        "sourceSha256": "bb0cc5dc5f95217cbb37be5d686d25ba1e69d215ac9f44922fc767854e091bec",
+        "packagedSha256": "925f25734adda30352fd088a9f3d88e6e1b13b1d5831bd6a74fd2c163d36aa3f"
+      },
+      {
+        "path": "extension/src/worktree-tasks.js",
+        "sourcePath": "packages/vscode-extension/src/worktree-tasks.js",
+        "sourceSha256": "2f72e08c2348fda3a896bf65d85e7881d4639d8336a1c893efe11d1efff79ab1",
+        "packagedSha256": "2f72e08c2348fda3a896bf65d85e7881d4639d8336a1c893efe11d1efff79ab1"
+      },
+      {
+        "path": "extension/src/win-shell.js",
+        "sourcePath": "packages/vscode-extension/src/win-shell.js",
+        "sourceSha256": "a5c8579edd89e7aa2de6ecc48035ec2e93ac8759e49b33fbfc8b32e584900c56",
+        "packagedSha256": "a5c8579edd89e7aa2de6ecc48035ec2e93ac8759e49b33fbfc8b32e584900c56"
+      },
+      {
+        "path": "extension/src/whats-new.js",
+        "sourcePath": "packages/vscode-extension/src/whats-new.js",
+        "sourceSha256": "dc0ab33e550b69991be6fa1df4f83a5dac2bdb72d002c02c8522d2f3d3c54dee",
+        "packagedSha256": "dc0ab33e550b69991be6fa1df4f83a5dac2bdb72d002c02c8522d2f3d3c54dee"
+      },
+      {
+        "path": "extension/src/webview-upgrade-reload.js",
+        "sourcePath": "packages/vscode-extension/src/webview-upgrade-reload.js",
+        "sourceSha256": "be5af28756a1fdbea0eb1a9846ee44f15e5fa6042d5ea28a073d3f5ee124c979",
+        "packagedSha256": "be5af28756a1fdbea0eb1a9846ee44f15e5fa6042d5ea28a073d3f5ee124c979"
+      },
+      {
+        "path": "extension/src/vscode-facade.js",
+        "sourcePath": "packages/vscode-extension/src/vscode-facade.js",
+        "sourceSha256": "14133718b6e3e5d471c04b367666b6d0da1f63af50f756f5a073ae1c77303277",
+        "packagedSha256": "14133718b6e3e5d471c04b367666b6d0da1f63af50f756f5a073ae1c77303277"
+      },
+      {
+        "path": "extension/src/version-check.js",
+        "sourcePath": "packages/vscode-extension/src/version-check.js",
+        "sourceSha256": "7651229cc6c0a694231341b205a9d85897efc3d5595cc18495e7c1652dbb5fda",
+        "packagedSha256": "7651229cc6c0a694231341b205a9d85897efc3d5595cc18495e7c1652dbb5fda"
+      },
+      {
+        "path": "extension/src/usage-report.js",
+        "sourcePath": "packages/vscode-extension/src/usage-report.js",
+        "sourceSha256": "dbf530f2e1905da70311303943ae02b2abf0e7a7a081b08ce88ef3bf40c97655",
+        "packagedSha256": "dbf530f2e1905da70311303943ae02b2abf0e7a7a081b08ce88ef3bf40c97655"
+      },
+      {
+        "path": "extension/src/uri-handler.js",
+        "sourcePath": "packages/vscode-extension/src/uri-handler.js",
+        "sourceSha256": "63b6560346ad891a6fbb0617c8724c698535340276491119ef80cf81643109bf",
+        "packagedSha256": "63b6560346ad891a6fbb0617c8724c698535340276491119ef80cf81643109bf"
+      },
+      {
+        "path": "extension/src/terminal-capture.js",
+        "sourcePath": "packages/vscode-extension/src/terminal-capture.js",
+        "sourceSha256": "c1e74992f68e400a5b3fbe7541d4f8623af205e45f4315d344862312fe5b8576",
+        "packagedSha256": "c1e74992f68e400a5b3fbe7541d4f8623af205e45f4315d344862312fe5b8576"
+      },
+      {
+        "path": "extension/src/team-monitor.js",
+        "sourcePath": "packages/vscode-extension/src/team-monitor.js",
+        "sourceSha256": "c28b94dae94899c9bef7141cc702717cda81a5463090ab33a2be8a77b12603c0",
+        "packagedSha256": "c28b94dae94899c9bef7141cc702717cda81a5463090ab33a2be8a77b12603c0"
+      },
+      {
+        "path": "extension/src/sessions-workbench.js",
+        "sourcePath": "packages/vscode-extension/src/sessions-workbench.js",
+        "sourceSha256": "14543638d07dc9c6857f58e64e2fee84a2eed52e8b29ff422a806681fada4f1b",
+        "packagedSha256": "14543638d07dc9c6857f58e64e2fee84a2eed52e8b29ff422a806681fada4f1b"
+      },
+      {
+        "path": "extension/src/semantic-tools.js",
+        "sourcePath": "packages/vscode-extension/src/semantic-tools.js",
+        "sourceSha256": "9402715ea017ee6c1d5a77a8700a65aad9b3fc77d61b9f36f2d7e3d0c7c90aa1",
+        "packagedSha256": "9402715ea017ee6c1d5a77a8700a65aad9b3fc77d61b9f36f2d7e3d0c7c90aa1"
+      },
+      {
+        "path": "extension/src/runtime-environment.js",
+        "sourcePath": "packages/vscode-extension/src/runtime-environment.js",
+        "sourceSha256": "be4c87d010cf41f853b2a7ac628a0b5a5b566b9dd6b33c9a60e164791afedd92",
+        "packagedSha256": "be4c87d010cf41f853b2a7ac628a0b5a5b566b9dd6b33c9a60e164791afedd92"
+      },
+      {
+        "path": "extension/src/runtime-compatibility.js",
+        "sourcePath": "packages/vscode-extension/src/runtime-compatibility.js",
+        "sourceSha256": "01e0841b8bea0f39615dfb7eb1a7f398f7f6453cb473ec64c42896598e141bfc",
+        "packagedSha256": "01e0841b8bea0f39615dfb7eb1a7f398f7f6453cb473ec64c42896598e141bfc"
+      },
+      {
+        "path": "extension/src/remote-doctor.js",
+        "sourcePath": "packages/vscode-extension/src/remote-doctor.js",
+        "sourceSha256": "fdb9f0fe3820ab1bc52a40b8f09e80d2e2184d8cd91ae745ae86cdea22b0da35",
+        "packagedSha256": "fdb9f0fe3820ab1bc52a40b8f09e80d2e2184d8cd91ae745ae86cdea22b0da35"
+      },
+      {
+        "path": "extension/src/remote-doctor-fixes.js",
+        "sourcePath": "packages/vscode-extension/src/remote-doctor-fixes.js",
+        "sourceSha256": "6731dde08714d21bdac7adabdb0c97367d038a62a77fef924bffee96055f17ce",
+        "packagedSha256": "6731dde08714d21bdac7adabdb0c97367d038a62a77fef924bffee96055f17ce"
+      },
+      {
+        "path": "extension/src/remote-control-host.js",
+        "sourcePath": "packages/vscode-extension/src/remote-control-host.js",
+        "sourceSha256": "b480a55dbe27b3567a6ad98487230a1c758b35236ea071e8edbfc4dd2fda5cfc",
+        "packagedSha256": "b480a55dbe27b3567a6ad98487230a1c758b35236ea071e8edbfc4dd2fda5cfc"
+      },
+      {
+        "path": "extension/src/qr-code.js",
+        "sourcePath": "packages/vscode-extension/src/qr-code.js",
+        "sourceSha256": "a684d5f3c33342cb4bcaf50d742a34f1da788fac444f65f358cbd60ae3605678",
+        "packagedSha256": "a684d5f3c33342cb4bcaf50d742a34f1da788fac444f65f358cbd60ae3605678"
+      },
+      {
+        "path": "extension/src/project-memory-commands.js",
+        "sourcePath": "packages/vscode-extension/src/project-memory-commands.js",
+        "sourceSha256": "6c3cb6bdf6ca334abcc022a86cccfcc3f57da4aa52d228500a4c35170ec9902b",
+        "packagedSha256": "6c3cb6bdf6ca334abcc022a86cccfcc3f57da4aa52d228500a4c35170ec9902b"
+      },
+      {
+        "path": "extension/src/preview.js",
+        "sourcePath": "packages/vscode-extension/src/preview.js",
+        "sourceSha256": "8b0d4d2a0e92b401285bf6238a0348ea48b914f397c29eb5345b148090a5331e",
+        "packagedSha256": "8b0d4d2a0e92b401285bf6238a0348ea48b914f397c29eb5345b148090a5331e"
+      },
+      {
+        "path": "extension/src/preview-detect.js",
+        "sourcePath": "packages/vscode-extension/src/preview-detect.js",
+        "sourceSha256": "8947a15aba46fb97ed0c6e0daff3d145a7fcef2532f70d87b13d9449ea7bc6b3",
+        "packagedSha256": "8947a15aba46fb97ed0c6e0daff3d145a7fcef2532f70d87b13d9449ea7bc6b3"
+      },
+      {
+        "path": "extension/src/pr-status-view.js",
+        "sourcePath": "packages/vscode-extension/src/pr-status-view.js",
+        "sourceSha256": "ceee396d1d53c8e8251e94b2034bf2f893fddf449621a44231d21bc132d2c7a5",
+        "packagedSha256": "ceee396d1d53c8e8251e94b2034bf2f893fddf449621a44231d21bc132d2c7a5"
+      },
+      {
+        "path": "extension/src/policy-viewer.js",
+        "sourcePath": "packages/vscode-extension/src/policy-viewer.js",
+        "sourceSha256": "86b3a4d83fa2d692b8eab31928585102b38d39834b7bdd473aa27da639ba8849",
+        "packagedSha256": "86b3a4d83fa2d692b8eab31928585102b38d39834b7bdd473aa27da639ba8849"
+      },
+      {
+        "path": "extension/src/plugin-quality.js",
+        "sourcePath": "packages/vscode-extension/src/plugin-quality.js",
+        "sourceSha256": "b2a47d39b972a06cba318e19a8e33dbee9f58ce9299b84b588a6fc950d40d6fb",
+        "packagedSha256": "b2a47d39b972a06cba318e19a8e33dbee9f58ce9299b84b588a6fc950d40d6fb"
+      },
+      {
+        "path": "extension/src/plugin-manager.js",
+        "sourcePath": "packages/vscode-extension/src/plugin-manager.js",
+        "sourceSha256": "34e7488435800f9a96df1b51542d78b466456f04d1e3061b6bb0d63a4e63668e",
+        "packagedSha256": "34e7488435800f9a96df1b51542d78b466456f04d1e3061b6bb0d63a4e63668e"
+      },
+      {
+        "path": "extension/src/phase-attention.js",
+        "sourcePath": "packages/vscode-extension/src/phase-attention.js",
+        "sourceSha256": "8e1435210588021ae21681e4dcab30fb3da1759f11f9a355c57d62c497f5cc29",
+        "packagedSha256": "8e1435210588021ae21681e4dcab30fb3da1759f11f9a355c57d62c497f5cc29"
+      },
+      {
+        "path": "extension/src/multi-diff.js",
+        "sourcePath": "packages/vscode-extension/src/multi-diff.js",
+        "sourceSha256": "41b84397e73211c20ef821168edcf96ab21973aa02b5232ccfbd473310b0c941",
+        "packagedSha256": "41b84397e73211c20ef821168edcf96ab21973aa02b5232ccfbd473310b0c941"
+      },
+      {
+        "path": "extension/src/model-input-diagnostics.js",
+        "sourcePath": "packages/vscode-extension/src/model-input-diagnostics.js",
+        "sourceSha256": "9eae306768cde706cfad01df88859aa1d9c085693e81c593c64e45e4339c6971",
+        "packagedSha256": "9eae306768cde706cfad01df88859aa1d9c085693e81c593c64e45e4339c6971"
+      },
+      {
+        "path": "extension/src/mcp-http-server.js",
+        "sourcePath": "packages/vscode-extension/src/mcp-http-server.js",
+        "sourceSha256": "35f7c22b3243f5e18860b9adacf18a340c3d57a3f616bab1fd845caf6635dad3",
+        "packagedSha256": "35f7c22b3243f5e18860b9adacf18a340c3d57a3f616bab1fd845caf6635dad3"
+      },
+      {
+        "path": "extension/src/managed-cli.js",
+        "sourcePath": "packages/vscode-extension/src/managed-cli.js",
+        "sourceSha256": "155fc8532e7c5308e8f13b5d6e3deccc8c1134a30fe4e392fc95786e7d4d2d3d",
+        "packagedSha256": "155fc8532e7c5308e8f13b5d6e3deccc8c1134a30fe4e392fc95786e7d4d2d3d"
+      },
+      {
+        "path": "extension/src/managed-cli-flow.js",
+        "sourcePath": "packages/vscode-extension/src/managed-cli-flow.js",
+        "sourceSha256": "26f3a70c46718a69017781fa00a11e53b41222d6878a80c01c351daee51a4807",
+        "packagedSha256": "26f3a70c46718a69017781fa00a11e53b41222d6878a80c01c351daee51a4807"
+      },
+      {
+        "path": "extension/src/lockfile.js",
+        "sourcePath": "packages/vscode-extension/src/lockfile.js",
+        "sourceSha256": "d980d0dc904557105e66f6e69d8273b8af0ec615d7806257b7c3a7d4130f1008",
+        "packagedSha256": "d980d0dc904557105e66f6e69d8273b8af0ec615d7806257b7c3a7d4130f1008"
+      },
+      {
+        "path": "extension/src/llm-config.js",
+        "sourcePath": "packages/vscode-extension/src/llm-config.js",
+        "sourceSha256": "074520cf1bd0b55865f8d1b14f6e7fe9a577ee45707dfc8bdabf6c62e59bfaaf",
+        "packagedSha256": "074520cf1bd0b55865f8d1b14f6e7fe9a577ee45707dfc8bdabf6c62e59bfaaf"
+      },
+      {
+        "path": "extension/src/inline-chat.js",
+        "sourcePath": "packages/vscode-extension/src/inline-chat.js",
+        "sourceSha256": "ed9cdbceb3743f6d5c6268fd4237bf0b8cdfebf7c68c2334b16a1be9062d52e6",
+        "packagedSha256": "ed9cdbceb3743f6d5c6268fd4237bf0b8cdfebf7c68c2334b16a1be9062d52e6"
+      },
+      {
+        "path": "extension/src/ide-tools.js",
+        "sourcePath": "packages/vscode-extension/src/ide-tools.js",
+        "sourceSha256": "169524457fe2d08dda9ad1ea57a2e087a86e44d82396b315a93fa1c67ea42782",
+        "packagedSha256": "169524457fe2d08dda9ad1ea57a2e087a86e44d82396b315a93fa1c67ea42782"
+      },
+      {
+        "path": "extension/src/ide-path-guard.js",
+        "sourcePath": "packages/vscode-extension/src/ide-path-guard.js",
+        "sourceSha256": "12136d1622b1659d50fbeb9c8b3b037737e0505f932221139c9bad75d3f3f20f",
+        "packagedSha256": "12136d1622b1659d50fbeb9c8b3b037737e0505f932221139c9bad75d3f3f20f"
+      },
+      {
+        "path": "extension/src/ide-doctor.js",
+        "sourcePath": "packages/vscode-extension/src/ide-doctor.js",
+        "sourceSha256": "81c018a207fc137a57b931f958b45feb9244f663b13da1ccea410bd3c8d7338d",
+        "packagedSha256": "81c018a207fc137a57b931f958b45feb9244f663b13da1ccea410bd3c8d7338d"
+      },
+      {
+        "path": "extension/src/ide-context-v2.js",
+        "sourcePath": "packages/vscode-extension/src/ide-context-v2.js",
+        "sourceSha256": "b94e9eb52e764c3a70cc5b7d496b51e6a0de62cb50b994ec81e063fe11f1310a",
+        "packagedSha256": "b94e9eb52e764c3a70cc5b7d496b51e6a0de62cb50b994ec81e063fe11f1310a"
+      },
+      {
+        "path": "extension/src/ide-capabilities.test.js",
+        "sourcePath": "packages/vscode-extension/src/ide-capabilities.test.js",
+        "sourceSha256": "5b86df6c324b62ff35dec0266733d63d6863dbb3234b1186cbfa4397bb50db6f",
+        "packagedSha256": "5b86df6c324b62ff35dec0266733d63d6863dbb3234b1186cbfa4397bb50db6f"
+      },
+      {
+        "path": "extension/src/ide-capabilities.js",
+        "sourcePath": "packages/vscode-extension/src/ide-capabilities.js",
+        "sourceSha256": "0b67aaced16809a658e86358c3cabe00d788c6b650bc813279ecf5ae3abc1165",
+        "packagedSha256": "0b67aaced16809a658e86358c3cabe00d788c6b650bc813279ecf5ae3abc1165"
+      },
+      {
+        "path": "extension/src/hardened-env.js",
+        "sourcePath": "packages/vscode-extension/src/hardened-env.js",
+        "sourceSha256": "4579cee63bcd65bb0e67469f0064145d0da93bcac163fc09abb2786e1b467f4b",
+        "packagedSha256": "4579cee63bcd65bb0e67469f0064145d0da93bcac163fc09abb2786e1b467f4b"
+      },
+      {
+        "path": "extension/src/goal-history.js",
+        "sourcePath": "packages/vscode-extension/src/goal-history.js",
+        "sourceSha256": "b2867f43ef29a8773a25e44ebde1982e46744dacc5ba5b9197dc1a54223675c4",
+        "packagedSha256": "b2867f43ef29a8773a25e44ebde1982e46744dacc5ba5b9197dc1a54223675c4"
+      },
+      {
+        "path": "extension/src/goal-events.js",
+        "sourcePath": "packages/vscode-extension/src/goal-events.js",
+        "sourceSha256": "f48d3427ba52176da89a00c59f11bc13e585dd6a97d70d1dae980b8a4f9bd7ed",
+        "packagedSha256": "f48d3427ba52176da89a00c59f11bc13e585dd6a97d70d1dae980b8a4f9bd7ed"
+      },
+      {
+        "path": "extension/src/goal-drafts.js",
+        "sourcePath": "packages/vscode-extension/src/goal-drafts.js",
+        "sourceSha256": "09bdec70dc9509d8b62573964aee0e7fe2a92e0c297a23571f7ebbe313fbdeea",
+        "packagedSha256": "09bdec70dc9509d8b62573964aee0e7fe2a92e0c297a23571f7ebbe313fbdeea"
+      },
+      {
+        "path": "extension/src/extension.js",
+        "sourcePath": "packages/vscode-extension/src/extension.js",
+        "sourceSha256": "38bcb3ced0681907d992da415425008bbeec01b8054047ff55034ef115348e76",
+        "packagedSha256": "38bcb3ced0681907d992da415425008bbeec01b8054047ff55034ef115348e76"
+      },
+      {
+        "path": "extension/src/evolution-workbench-profile.js",
+        "sourcePath": "packages/vscode-extension/src/evolution-workbench-profile.js",
+        "sourceSha256": "dd2cec12349766d670458cb5309a672069a3225d9b40cabf6f29c4a05de0dbe6",
+        "packagedSha256": "dd2cec12349766d670458cb5309a672069a3225d9b40cabf6f29c4a05de0dbe6"
+      },
+      {
+        "path": "extension/src/evolution-deployment-config.js",
+        "sourcePath": "packages/vscode-extension/src/evolution-deployment-config.js",
+        "sourceSha256": "aa16a9a7f6ba57bc0f81fb7f7f376a18c5841fa0d3def9335c0ae1512134db4a",
+        "packagedSha256": "aa16a9a7f6ba57bc0f81fb7f7f376a18c5841fa0d3def9335c0ae1512134db4a"
+      },
+      {
+        "path": "extension/src/diff-review-audit.js",
+        "sourcePath": "packages/vscode-extension/src/diff-review-audit.js",
+        "sourceSha256": "b139be61b5b09b72aec32116df2b77bc9ce44a9da34bc14ff21b44302ebc558c",
+        "packagedSha256": "b139be61b5b09b72aec32116df2b77bc9ce44a9da34bc14ff21b44302ebc558c"
+      },
+      {
+        "path": "extension/src/diff-hunks.js",
+        "sourcePath": "packages/vscode-extension/src/diff-hunks.js",
+        "sourceSha256": "4dfed4bc3e199b01a2bb2d457225a53efdf13cc1efd53b99c7f68fc3094fb2f2",
+        "packagedSha256": "4dfed4bc3e199b01a2bb2d457225a53efdf13cc1efd53b99c7f68fc3094fb2f2"
+      },
+      {
+        "path": "extension/src/diff-apply-guard.js",
+        "sourcePath": "packages/vscode-extension/src/diff-apply-guard.js",
+        "sourceSha256": "99464eb977686207605a99edc62b09e4a2c060c728cd67974f0c8408ce9cfe6a",
+        "packagedSha256": "99464eb977686207605a99edc62b09e4a2c060c728cd67974f0c8408ce9cfe6a"
+      },
+      {
+        "path": "extension/src/diagnostics-scheduler.js",
+        "sourcePath": "packages/vscode-extension/src/diagnostics-scheduler.js",
+        "sourceSha256": "b96fdb2beb032b2204fe35937068d27e4e8bb1139b754818294eed3c9958e2db",
+        "packagedSha256": "b96fdb2beb032b2204fe35937068d27e4e8bb1139b754818294eed3c9958e2db"
+      },
+      {
+        "path": "extension/src/diagnostic-export.js",
+        "sourcePath": "packages/vscode-extension/src/diagnostic-export.js",
+        "sourceSha256": "9b4c840a4d47b80e69dfbc33298e91a5a7c48911372ca36209e277f1499596bf",
+        "packagedSha256": "9b4c840a4d47b80e69dfbc33298e91a5a7c48911372ca36209e277f1499596bf"
+      },
+      {
+        "path": "extension/src/delivery-workflow.js",
+        "sourcePath": "packages/vscode-extension/src/delivery-workflow.js",
+        "sourceSha256": "5a9e95499670f620c6871fbf2c17edc6b7953e0ebe502c5657797d8be54fdae6",
+        "packagedSha256": "5a9e95499670f620c6871fbf2c17edc6b7953e0ebe502c5657797d8be54fdae6"
+      },
+      {
+        "path": "extension/src/context-memory-authority.js",
+        "sourcePath": "packages/vscode-extension/src/context-memory-authority.js",
+        "sourceSha256": "1329dc99b02d2be9f0ffdc8f94b064828ac2af41205a522a66b58c52f9569c21",
+        "packagedSha256": "1329dc99b02d2be9f0ffdc8f94b064828ac2af41205a522a66b58c52f9569c21"
+      },
+      {
+        "path": "extension/src/context-external-sources.js",
+        "sourcePath": "packages/vscode-extension/src/context-external-sources.js",
+        "sourceSha256": "4f23769c14afbff667de54ad5b70774f51c5da49703f9025e3c2fda43bde1250",
+        "packagedSha256": "4f23769c14afbff667de54ad5b70774f51c5da49703f9025e3c2fda43bde1250"
+      },
+      {
+        "path": "extension/src/context-center.js",
+        "sourcePath": "packages/vscode-extension/src/context-center.js",
+        "sourceSha256": "e36a43b971d78f2cc7df15e4ae32fdd7c41d9e52e6f60ac59940dba1f58bccec",
+        "packagedSha256": "e36a43b971d78f2cc7df15e4ae32fdd7c41d9e52e6f60ac59940dba1f58bccec"
+      },
+      {
+        "path": "extension/src/completion.js",
+        "sourcePath": "packages/vscode-extension/src/completion.js",
+        "sourceSha256": "821fc19d99e82b1b80f55e89406753368c207444c9a806aef7dd9cfa53e4a064",
+        "packagedSha256": "821fc19d99e82b1b80f55e89406753368c207444c9a806aef7dd9cfa53e4a064"
+      },
+      {
+        "path": "extension/src/code-lens.js",
+        "sourcePath": "packages/vscode-extension/src/code-lens.js",
+        "sourceSha256": "92d39b00beb58986d5ac74f43ef127c78b2d9ead538cceb641e0d3ea1d719cdb",
+        "packagedSha256": "92d39b00beb58986d5ac74f43ef127c78b2d9ead538cceb641e0d3ea1d719cdb"
+      },
+      {
+        "path": "extension/src/code-actions.js",
+        "sourcePath": "packages/vscode-extension/src/code-actions.js",
+        "sourceSha256": "56fb304c85c01541522215d72b8ee5b694f259651ba8da71ff7f96227a9b5d32",
+        "packagedSha256": "56fb304c85c01541522215d72b8ee5b694f259651ba8da71ff7f96227a9b5d32"
+      },
+      {
+        "path": "extension/src/cli-binary.js",
+        "sourcePath": "packages/vscode-extension/src/cli-binary.js",
+        "sourceSha256": "af7fd35b214a68bc0a1880eca2bce7ebb8bb0b80d10c9b9617290376693a9bd1",
+        "packagedSha256": "af7fd35b214a68bc0a1880eca2bce7ebb8bb0b80d10c9b9617290376693a9bd1"
+      },
+      {
+        "path": "extension/src/chrome-connector.js",
+        "sourcePath": "packages/vscode-extension/src/chrome-connector.js",
+        "sourceSha256": "28426bb305b7b0aa8f407023a14051d36f01e215355db8260b8c1ea9a70a6789",
+        "packagedSha256": "28426bb305b7b0aa8f407023a14051d36f01e215355db8260b8c1ea9a70a6789"
+      },
+      {
+        "path": "extension/src/background-agents.js",
+        "sourcePath": "packages/vscode-extension/src/background-agents.js",
+        "sourceSha256": "26123b857a2541cd100908dc8e15d43c6ce80b25247d2060d02fa54e2b861ba9",
+        "packagedSha256": "26123b857a2541cd100908dc8e15d43c6ce80b25247d2060d02fa54e2b861ba9"
+      },
+      {
+        "path": "extension/src/automation-center.js",
+        "sourcePath": "packages/vscode-extension/src/automation-center.js",
+        "sourceSha256": "bff5773caaca0a69e0673797d298c8126066d200da7199b8c0bf374eed2a16df",
+        "packagedSha256": "bff5773caaca0a69e0673797d298c8126066d200da7199b8c0bf374eed2a16df"
+      },
+      {
+        "path": "extension/src/auto-exec-guard.js",
+        "sourcePath": "packages/vscode-extension/src/auto-exec-guard.js",
+        "sourceSha256": "368ea42a95657cf8e5474e01d64d44f62c7f93d70aa6e23c3cc162fcb71ebeb6",
+        "packagedSha256": "368ea42a95657cf8e5474e01d64d44f62c7f93d70aa6e23c3cc162fcb71ebeb6"
+      },
+      {
+        "path": "extension/src/artifacts-drawer.js",
+        "sourcePath": "packages/vscode-extension/src/artifacts-drawer.js",
+        "sourceSha256": "cd7aac61d8652edab84b29866702192739c5fee10bf22ab229d8ecbc4e8f7320",
+        "packagedSha256": "cd7aac61d8652edab84b29866702192739c5fee10bf22ab229d8ecbc4e8f7320"
+      },
+      {
+        "path": "extension/src/app-server-question-review.js",
+        "sourcePath": "packages/vscode-extension/src/app-server-question-review.js",
+        "sourceSha256": "5a6166c4b561d4b97406535c67857eaf37f07957eba13203244e70a212424fec",
+        "packagedSha256": "5a6166c4b561d4b97406535c67857eaf37f07957eba13203244e70a212424fec"
+      },
+      {
+        "path": "extension/src/app-server-question-lifecycle.js",
+        "sourcePath": "packages/vscode-extension/src/app-server-question-lifecycle.js",
+        "sourceSha256": "a91b6648e4e8a444bf1aad6e159b7448ac2a853b6fe911650ac44d6ea497b649",
+        "packagedSha256": "a91b6648e4e8a444bf1aad6e159b7448ac2a853b6fe911650ac44d6ea497b649"
+      },
+      {
+        "path": "extension/src/app-server-pilot.js",
+        "sourcePath": "packages/vscode-extension/src/app-server-pilot.js",
+        "sourceSha256": "bcc186ff86eb5c5e0b433629862d96bda6f7b6599d6efe8fb32b8ec899b3880f",
+        "packagedSha256": "bcc186ff86eb5c5e0b433629862d96bda6f7b6599d6efe8fb32b8ec899b3880f"
+      },
+      {
+        "path": "extension/src/app-server-elicitation-review.js",
+        "sourcePath": "packages/vscode-extension/src/app-server-elicitation-review.js",
+        "sourceSha256": "9a290620e7c41e127dc792c1c2d0fa0274efdbc2be4c1425dc2a169941709026",
+        "packagedSha256": "9a290620e7c41e127dc792c1c2d0fa0274efdbc2be4c1425dc2a169941709026"
+      },
+      {
+        "path": "extension/src/app-server-approval-review.js",
+        "sourcePath": "packages/vscode-extension/src/app-server-approval-review.js",
+        "sourceSha256": "1f7deb1f05da53b00bd6fffed2384908c2f89dca8adc755920a9dffa55c92224",
+        "packagedSha256": "1f7deb1f05da53b00bd6fffed2384908c2f89dca8adc755920a9dffa55c92224"
+      },
+      {
+        "path": "extension/src/activity-log.js",
+        "sourcePath": "packages/vscode-extension/src/activity-log.js",
+        "sourceSha256": "8bfa92eca69696c874a0b0ab357ae5595d8b954c631576e19d53c50ab1df0d0e",
+        "packagedSha256": "8bfa92eca69696c874a0b0ab357ae5595d8b954c631576e19d53c50ab1df0d0e"
+      },
+      {
+        "path": "extension/media/skill-catalog.js",
+        "sourcePath": "packages/vscode-extension/media/skill-catalog.js",
+        "sourceSha256": "49ec2d5f11e407765361bd1750e8e905068f8450fdef9122226084afa9444188",
+        "packagedSha256": "49ec2d5f11e407765361bd1750e8e905068f8450fdef9122226084afa9444188"
+      },
+      {
+        "path": "extension/media/settings-workbench.css",
+        "sourcePath": "packages/vscode-extension/media/settings-workbench.css",
+        "sourceSha256": "46d43c8dade0976703a73ba5eb4f19943b558201bf06904c87f4cdf43b6472b3",
+        "packagedSha256": "46d43c8dade0976703a73ba5eb4f19943b558201bf06904c87f4cdf43b6472b3"
+      },
+      {
+        "path": "extension/media/logo.png",
+        "sourcePath": "packages/vscode-extension/media/logo.png",
+        "sourceSha256": "b859fcfa6d4c1d4812db7666ca332dcea445c9fc3f4e6511c5f201d1fb728564",
+        "packagedSha256": "b859fcfa6d4c1d4812db7666ca332dcea445c9fc3f4e6511c5f201d1fb728564"
+      },
+      {
+        "path": "extension/media/logo-mark.png",
+        "sourcePath": "packages/vscode-extension/media/logo-mark.png",
+        "sourceSha256": "87f740321716e3d7e59a9534d9edfcfbaa4de61e7f316bed47c346a1a3811ec9",
+        "packagedSha256": "87f740321716e3d7e59a9534d9edfcfbaa4de61e7f316bed47c346a1a3811ec9"
+      },
+      {
+        "path": "extension/media/llm-config.js",
+        "sourcePath": "packages/vscode-extension/media/llm-config.js",
+        "sourceSha256": "72f7ae42c210535874f7c4831ba1b0965c65b497d23a02331eec11c68ade5754",
+        "packagedSha256": "72f7ae42c210535874f7c4831ba1b0965c65b497d23a02331eec11c68ade5754"
+      },
+      {
+        "path": "extension/media/inline-chat.css",
+        "sourcePath": "packages/vscode-extension/media/inline-chat.css",
+        "sourceSha256": "954a05b02de9f9be2048d3629b94996c46e4d93439458cf747d8588e8c5756a8",
+        "packagedSha256": "954a05b02de9f9be2048d3629b94996c46e4d93439458cf747d8588e8c5756a8"
+      },
+      {
+        "path": "extension/media/ide-bridge.svg",
+        "sourcePath": "packages/vscode-extension/media/ide-bridge.svg",
+        "sourceSha256": "749da3af625240e6c5de9834d43f1c97f04a70dbf1e03afb1d9d1fdd56368fd2",
+        "packagedSha256": "749da3af625240e6c5de9834d43f1c97f04a70dbf1e03afb1d9d1fdd56368fd2"
+      },
+      {
+        "path": "extension/media/evolution-workbench.js",
+        "sourcePath": "packages/vscode-extension/media/evolution-workbench.js",
+        "sourceSha256": "3ce65b759ed39740d7668a47be42b10d4db5e4f371c42ad9ba85520fe8e84fae",
+        "packagedSha256": "3ce65b759ed39740d7668a47be42b10d4db5e4f371c42ad9ba85520fe8e84fae"
+      },
+      {
+        "path": "extension/media/evolution-deployment-config.js",
+        "sourcePath": "packages/vscode-extension/media/evolution-deployment-config.js",
+        "sourceSha256": "9c40f1f9e1eb2f6f5caa885c658cebf4c3052eed9f16673a5012565308334c64",
+        "packagedSha256": "9c40f1f9e1eb2f6f5caa885c658cebf4c3052eed9f16673a5012565308334c64"
+      },
+      {
+        "path": "extension/l10n/bundle.l10n.zh-cn.json",
+        "sourcePath": "packages/vscode-extension/l10n/bundle.l10n.zh-cn.json",
+        "sourceSha256": "ad10cc39e5e5fe8945e6391e2f778ffbb3fe5364a8a169618104776cda235758",
+        "packagedSha256": "ad10cc39e5e5fe8945e6391e2f778ffbb3fe5364a8a169618104776cda235758"
+      },
+      {
+        "path": "extension/scripts/vsix-release-artifact.mjs",
+        "sourcePath": "packages/vscode-extension/scripts/vsix-release-artifact.mjs",
+        "sourceSha256": "316ee2de71f1f601281f600d42bcebb9ed4cd3f0284ea5744e695dc43295baf5",
+        "packagedSha256": "316ee2de71f1f601281f600d42bcebb9ed4cd3f0284ea5744e695dc43295baf5"
+      },
+      {
+        "path": "extension/scripts/verify-vsix.selftest.mjs",
+        "sourcePath": "packages/vscode-extension/scripts/verify-vsix.selftest.mjs",
+        "sourceSha256": "154ef76de269c53c88d37d571036a9157ff636ff6823ad71e576e5f73d004158",
+        "packagedSha256": "154ef76de269c53c88d37d571036a9157ff636ff6823ad71e576e5f73d004158"
+      },
+      {
+        "path": "extension/scripts/verify-vsix.mjs",
+        "sourcePath": "packages/vscode-extension/scripts/verify-vsix.mjs",
+        "sourceSha256": "3920b12085f0deaa1487a82b71e1a24b579b4f468247ce03a70b7329d86af7e1",
+        "packagedSha256": "3920b12085f0deaa1487a82b71e1a24b579b4f468247ce03a70b7329d86af7e1"
+      },
+      {
+        "path": "extension/scripts/verify-marketplace-overview.mjs",
+        "sourcePath": "packages/vscode-extension/scripts/verify-marketplace-overview.mjs",
+        "sourceSha256": "a321119df2213e23c6aabcf5b925e9b2736b4ac5720e6cf1ce1b6589437b702e",
+        "packagedSha256": "a321119df2213e23c6aabcf5b925e9b2736b4ac5720e6cf1ce1b6589437b702e"
+      },
+      {
+        "path": "extension/scripts/sync-elicitation-schema.mjs",
+        "sourcePath": "packages/vscode-extension/scripts/sync-elicitation-schema.mjs",
+        "sourceSha256": "e313c0610fbbbc99212d489c92c736a6afbf5b48e222c9b9a8f9baf5b647369a",
+        "packagedSha256": "e313c0610fbbbc99212d489c92c736a6afbf5b48e222c9b9a8f9baf5b647369a"
+      },
+      {
+        "path": "extension/scripts/sync-agent-sdk.mjs",
+        "sourcePath": "packages/vscode-extension/scripts/sync-agent-sdk.mjs",
+        "sourceSha256": "a32ea7e7571d7365a1e32151874dc2fafa9ec5f24fca6d08c89f6c53cbadee94",
+        "packagedSha256": "a32ea7e7571d7365a1e32151874dc2fafa9ec5f24fca6d08c89f6c53cbadee94"
+      },
+      {
+        "path": "extension/docs/CHAT_TRANSCRIPT_HISTORY.md",
+        "sourcePath": "packages/vscode-extension/docs/CHAT_TRANSCRIPT_HISTORY.md",
+        "sourceSha256": "6991ac7b984703b0d8a20814018a0e5ba331e0e1447a0d6c521fae9b68ed223c",
+        "packagedSha256": "6991ac7b984703b0d8a20814018a0e5ba331e0e1447a0d6c521fae9b68ed223c"
+      },
+      {
+        "path": "extension/docs/CHAT_DRAFT_RECOVERY.md",
+        "sourcePath": "packages/vscode-extension/docs/CHAT_DRAFT_RECOVERY.md",
+        "sourceSha256": "6eeab2d88ce5528c433458ed3d876aec4ffa95c0c7522ab485b814a44a734de3",
+        "packagedSha256": "6eeab2d88ce5528c433458ed3d876aec4ffa95c0c7522ab485b814a44a734de3"
+      },
+      {
+        "path": "extension/src/vendor/llm-onboarding-presets.json",
+        "sourcePath": "packages/vscode-extension/src/vendor/llm-onboarding-presets.json",
+        "sourceSha256": "9be57153d2062cb9edc7cbf646a0cbddfd6f74e85bb51e8c5c906abb98b8b102",
+        "packagedSha256": "9be57153d2062cb9edc7cbf646a0cbddfd6f74e85bb51e8c5c906abb98b8b102"
+      },
+      {
+        "path": "extension/src/chat/workspace-mention-index.js",
+        "sourcePath": "packages/vscode-extension/src/chat/workspace-mention-index.js",
+        "sourceSha256": "567896697f262fe41d0a6cab693620b8eb56bd234baaf673f67f20832f9ac3fd",
+        "packagedSha256": "567896697f262fe41d0a6cab693620b8eb56bd234baaf673f67f20832f9ac3fd"
+      },
+      {
+        "path": "extension/src/chat/transcript-sync.js",
+        "sourcePath": "packages/vscode-extension/src/chat/transcript-sync.js",
+        "sourceSha256": "22d513c0f66036fa198234d3bbb722065e93670b121d0c7a9e10ec6d8a069c57",
+        "packagedSha256": "22d513c0f66036fa198234d3bbb722065e93670b121d0c7a9e10ec6d8a069c57"
+      },
+      {
+        "path": "extension/src/chat/transcript-reconciler.js",
+        "sourcePath": "packages/vscode-extension/src/chat/transcript-reconciler.js",
+        "sourceSha256": "1dbde716dd57aa51929028bb889dc0d86e8562831cdebdc0b332ba961caf2fe3",
+        "packagedSha256": "1dbde716dd57aa51929028bb889dc0d86e8562831cdebdc0b332ba961caf2fe3"
+      },
+      {
+        "path": "extension/src/chat/transcript-cache.js",
+        "sourcePath": "packages/vscode-extension/src/chat/transcript-cache.js",
+        "sourceSha256": "8487dd5fe509115d64d4cff7d6c7ebddef566e80fd2cb122cf96bafe9dd012a5",
+        "packagedSha256": "8487dd5fe509115d64d4cff7d6c7ebddef566e80fd2cb122cf96bafe9dd012a5"
+      },
+      {
+        "path": "extension/src/chat/symbol-mentions.js",
+        "sourcePath": "packages/vscode-extension/src/chat/symbol-mentions.js",
+        "sourceSha256": "e60cd37153f5b7b1a26d109e50017b1a76f7caedb6b1ef50a07c3bf4b015dbcf",
+        "packagedSha256": "e60cd37153f5b7b1a26d109e50017b1a76f7caedb6b1ef50a07c3bf4b015dbcf"
+      },
+      {
+        "path": "extension/src/chat/streaming-transcript.js",
+        "sourcePath": "packages/vscode-extension/src/chat/streaming-transcript.js",
+        "sourceSha256": "0c630890d6279561a689f8035fa6e0e26c88b716cef44e006402e5cb6f9f42eb",
+        "packagedSha256": "0c630890d6279561a689f8035fa6e0e26c88b716cef44e006402e5cb6f9f42eb"
+      },
+      {
+        "path": "extension/src/chat/streaming-profile.js",
+        "sourcePath": "packages/vscode-extension/src/chat/streaming-profile.js",
+        "sourceSha256": "50f55dc6628477cce8d38a7ad519b047e983f684ab735b9b4894c3fb6021ba22",
+        "packagedSha256": "50f55dc6628477cce8d38a7ad519b047e983f684ab735b9b4894c3fb6021ba22"
+      },
+      {
+        "path": "extension/src/chat/stop-agent-process.js",
+        "sourcePath": "packages/vscode-extension/src/chat/stop-agent-process.js",
+        "sourceSha256": "580dab9b7ee089ab8a3ea688c2c90e56183ba300b77dfbbd9b5037607c2e386f",
+        "packagedSha256": "580dab9b7ee089ab8a3ea688c2c90e56183ba300b77dfbbd9b5037607c2e386f"
+      },
+      {
+        "path": "extension/src/chat/slash-commands.js",
+        "sourcePath": "packages/vscode-extension/src/chat/slash-commands.js",
+        "sourceSha256": "fa01a09e4f13b71ca7220faf5fbb5e46e235012413c85633115889f4b7add9bc",
+        "packagedSha256": "fa01a09e4f13b71ca7220faf5fbb5e46e235012413c85633115889f4b7add9bc"
+      },
+      {
+        "path": "extension/src/chat/session-model.js",
+        "sourcePath": "packages/vscode-extension/src/chat/session-model.js",
+        "sourceSha256": "8b98bb37dca176b634a0744e8c1c26e4c525c1dd5668c7dd4166b73528d954ae",
+        "packagedSha256": "8b98bb37dca176b634a0744e8c1c26e4c525c1dd5668c7dd4166b73528d954ae"
+      },
+      {
+        "path": "extension/src/chat/session-list.js",
+        "sourcePath": "packages/vscode-extension/src/chat/session-list.js",
+        "sourceSha256": "cfb38cf3b17ac27ed9238dcf89a7349e7511d12586eb8b5b64ef2dbc7ff80692",
+        "packagedSha256": "cfb38cf3b17ac27ed9238dcf89a7349e7511d12586eb8b5b64ef2dbc7ff80692"
+      },
+      {
+        "path": "extension/src/chat/selection-actions.js",
+        "sourcePath": "packages/vscode-extension/src/chat/selection-actions.js",
+        "sourceSha256": "9980f4e9f4c4fa864532f823514bd1ddfe8cef4f3eb9e83cf24bf2e4e5c5d1fa",
+        "packagedSha256": "9980f4e9f4c4fa864532f823514bd1ddfe8cef4f3eb9e83cf24bf2e4e5c5d1fa"
+      },
+      {
+        "path": "extension/src/chat/saved-tool-result.js",
+        "sourcePath": "packages/vscode-extension/src/chat/saved-tool-result.js",
+        "sourceSha256": "02ae24f5b075c2686b1548778867864d746be313150d5776c77e2ba5329d1d4e",
+        "packagedSha256": "02ae24f5b075c2686b1548778867864d746be313150d5776c77e2ba5329d1d4e"
+      },
+      {
+        "path": "extension/src/chat/rewind-commands.js",
+        "sourcePath": "packages/vscode-extension/src/chat/rewind-commands.js",
+        "sourceSha256": "8f2a68f5757f85399e22b094da36c6b704158fc78ff9a16764b80a57dc801878",
+        "packagedSha256": "8f2a68f5757f85399e22b094da36c6b704158fc78ff9a16764b80a57dc801878"
+      },
+      {
+        "path": "extension/src/chat/remote-handoff.js",
+        "sourcePath": "packages/vscode-extension/src/chat/remote-handoff.js",
+        "sourceSha256": "c0a84e56e43791da3a8c7f34af971128ac58aea8707d356993a15040c411986e",
+        "packagedSha256": "c0a84e56e43791da3a8c7f34af971128ac58aea8707d356993a15040c411986e"
+      },
+      {
+        "path": "extension/src/chat/question-form-drafts.js",
+        "sourcePath": "packages/vscode-extension/src/chat/question-form-drafts.js",
+        "sourceSha256": "3e7902a95f231672418801648269e68da96985dca2056f63445911456962fada",
+        "packagedSha256": "3e7902a95f231672418801648269e68da96985dca2056f63445911456962fada"
+      },
+      {
+        "path": "extension/src/chat/question-drafts.js",
+        "sourcePath": "packages/vscode-extension/src/chat/question-drafts.js",
+        "sourceSha256": "2c3a0d7913ce0940941fd323f519f78c9f0e01c51a93916e2528693a1f4d1bee",
+        "packagedSha256": "2c3a0d7913ce0940941fd323f519f78c9f0e01c51a93916e2528693a1f4d1bee"
+      },
+      {
+        "path": "extension/src/chat/question-draft-contract.js",
+        "sourcePath": "packages/vscode-extension/src/chat/question-draft-contract.js",
+        "sourceSha256": "08f583818c7e9cf0ece05817edeea7ceb6f2d5b73110b1874bc9ab9ec6268ac4",
+        "packagedSha256": "08f583818c7e9cf0ece05817edeea7ceb6f2d5b73110b1874bc9ab9ec6268ac4"
+      },
+      {
+        "path": "extension/src/chat/protocol-capture.js",
+        "sourcePath": "packages/vscode-extension/src/chat/protocol-capture.js",
+        "sourceSha256": "226dcaed25ddb7ad4bf448e186e40564db0570aae22270d9358723069b5b86c8",
+        "packagedSha256": "226dcaed25ddb7ad4bf448e186e40564db0570aae22270d9358723069b5b86c8"
+      },
+      {
+        "path": "extension/src/chat/plan-review.js",
+        "sourcePath": "packages/vscode-extension/src/chat/plan-review.js",
+        "sourceSha256": "eaac72ab9adacfe2cf18d3a5c53eacc3f68effef55f5c072572eaaf390bb36c6",
+        "packagedSha256": "eaac72ab9adacfe2cf18d3a5c53eacc3f68effef55f5c072572eaaf390bb36c6"
+      },
+      {
+        "path": "extension/src/chat/permission-mode-state.js",
+        "sourcePath": "packages/vscode-extension/src/chat/permission-mode-state.js",
+        "sourceSha256": "0360774755b72738aadfb8c183ad951eb777738c1177c8a438405f773235d8d4",
+        "packagedSha256": "0360774755b72738aadfb8c183ad951eb777738c1177c8a438405f773235d8d4"
+      },
+      {
+        "path": "extension/src/chat/md-lite.js",
+        "sourcePath": "packages/vscode-extension/src/chat/md-lite.js",
+        "sourceSha256": "c6e1fbb07a568c0db43456f08e61debab627f0c79d961d9719c18d1d4ce65978",
+        "packagedSha256": "c6e1fbb07a568c0db43456f08e61debab627f0c79d961d9719c18d1d4ce65978"
+      },
+      {
+        "path": "extension/src/chat/introspect-commands.js",
+        "sourcePath": "packages/vscode-extension/src/chat/introspect-commands.js",
+        "sourceSha256": "cbadc3d5e7a347428ee2706eede4fb7f7b3e9cf7c1267ad553e20814fcec69c6",
+        "packagedSha256": "cbadc3d5e7a347428ee2706eede4fb7f7b3e9cf7c1267ad553e20814fcec69c6"
+      },
+      {
+        "path": "extension/src/chat/insert-reference.js",
+        "sourcePath": "packages/vscode-extension/src/chat/insert-reference.js",
+        "sourceSha256": "11dd5e21f50c3a6b0a4d7d015df40ea6faef384ef0c41cfe6755579791525455",
+        "packagedSha256": "11dd5e21f50c3a6b0a4d7d015df40ea6faef384ef0c41cfe6755579791525455"
+      },
+      {
+        "path": "extension/src/chat/inline-chat.js",
+        "sourcePath": "packages/vscode-extension/src/chat/inline-chat.js",
+        "sourceSha256": "a025ae05448e434ef8f85d16ab24d3368d4723c788fcbf6c8b4d5e294e4bb579",
+        "packagedSha256": "a025ae05448e434ef8f85d16ab24d3368d4723c788fcbf6c8b4d5e294e4bb579"
+      },
+      {
+        "path": "extension/src/chat/image-preview-gate.js",
+        "sourcePath": "packages/vscode-extension/src/chat/image-preview-gate.js",
+        "sourceSha256": "06e897b07a635c43e1a5a7c3da6047cc69dbfc7a61ff11e547c9484d7acbc413",
+        "packagedSha256": "06e897b07a635c43e1a5a7c3da6047cc69dbfc7a61ff11e547c9484d7acbc413"
+      },
+      {
+        "path": "extension/src/chat/image-file-snapshot.js",
+        "sourcePath": "packages/vscode-extension/src/chat/image-file-snapshot.js",
+        "sourceSha256": "1b19b1d1acecbe6e25b2b7a9191ac8fec3ac5a18e68f77640380d1a3fe3b455e",
+        "packagedSha256": "1b19b1d1acecbe6e25b2b7a9191ac8fec3ac5a18e68f77640380d1a3fe3b455e"
+      },
+      {
+        "path": "extension/src/chat/image-decode-budget.js",
+        "sourcePath": "packages/vscode-extension/src/chat/image-decode-budget.js",
+        "sourceSha256": "d1b3fe8eca174df430bfc51a7414f78eee75bfbf37edf7ca125919d40d6d16ad",
+        "packagedSha256": "d1b3fe8eca174df430bfc51a7414f78eee75bfbf37edf7ca125919d40d6d16ad"
+      },
+      {
+        "path": "extension/src/chat/image-attachments.js",
+        "sourcePath": "packages/vscode-extension/src/chat/image-attachments.js",
+        "sourceSha256": "e56ae057281535b00ebd44fd4873d2c62354ef86e8b7ce251b89dac0464af2cb",
+        "packagedSha256": "e56ae057281535b00ebd44fd4873d2c62354ef86e8b7ce251b89dac0464af2cb"
+      },
+      {
+        "path": "extension/src/chat/ide-session-index.js",
+        "sourcePath": "packages/vscode-extension/src/chat/ide-session-index.js",
+        "sourceSha256": "7d1b4bcd6e7496bfa1f4f990e626e47764a423f8a860de2ef555484c72602c4f",
+        "packagedSha256": "7d1b4bcd6e7496bfa1f4f990e626e47764a423f8a860de2ef555484c72602c4f"
+      },
+      {
+        "path": "extension/src/chat/host-dom-relay.js",
+        "sourcePath": "packages/vscode-extension/src/chat/host-dom-relay.js",
+        "sourceSha256": "9cb0e3e3d3f09f5958101e545e71ad07377b17062b0c0617cccba762544e604f",
+        "packagedSha256": "9cb0e3e3d3f09f5958101e545e71ad07377b17062b0c0617cccba762544e604f"
+      },
+      {
+        "path": "extension/src/chat/host-dom-image-fixtures.js",
+        "sourcePath": "packages/vscode-extension/src/chat/host-dom-image-fixtures.js",
+        "sourceSha256": "1f6e8eca0d577fc35fef35941ec849f2ae25cf7d7df12861851c5661a6096507",
+        "packagedSha256": "1f6e8eca0d577fc35fef35941ec849f2ae25cf7d7df12861851c5661a6096507"
+      },
+      {
+        "path": "extension/src/chat/fix-with-cc.js",
+        "sourcePath": "packages/vscode-extension/src/chat/fix-with-cc.js",
+        "sourceSha256": "4b96ba0c5d80933a06540f85a64c45fa9739edc5b74b3e7a58218032aaa16e89",
+        "packagedSha256": "4b96ba0c5d80933a06540f85a64c45fa9739edc5b74b3e7a58218032aaa16e89"
+      },
+      {
+        "path": "extension/src/chat/elicitation-form.js",
+        "sourcePath": "packages/vscode-extension/src/chat/elicitation-form.js",
+        "sourceSha256": "653201e9aced1f1d3862433f36cc8af240bb299e4154d38cb0f77827002b0615",
+        "packagedSha256": "653201e9aced1f1d3862433f36cc8af240bb299e4154d38cb0f77827002b0615"
+      },
+      {
+        "path": "extension/src/chat/draft-store.js",
+        "sourcePath": "packages/vscode-extension/src/chat/draft-store.js",
+        "sourceSha256": "5a9d0e918e38f87388d5af71002b0515c601386b0f46b7d499a7f5b3b8f9bb2e",
+        "packagedSha256": "5a9d0e918e38f87388d5af71002b0515c601386b0f46b7d499a7f5b3b8f9bb2e"
+      },
+      {
+        "path": "extension/src/chat/conversation-manager.js",
+        "sourcePath": "packages/vscode-extension/src/chat/conversation-manager.js",
+        "sourceSha256": "93594cb550ea7cbd5ee90c250bc383815232659150265b02d1f7fe90586b1e01",
+        "packagedSha256": "93594cb550ea7cbd5ee90c250bc383815232659150265b02d1f7fe90586b1e01"
+      },
+      {
+        "path": "extension/src/chat/chat-view.js",
+        "sourcePath": "packages/vscode-extension/src/chat/chat-view.js",
+        "sourceSha256": "5cf622b3d433adcf96230d1e4ec007ac353079a250259aec9c713644c16dc072",
+        "packagedSha256": "5cf622b3d433adcf96230d1e4ec007ac353079a250259aec9c713644c16dc072"
+      },
+      {
+        "path": "extension/src/chat/chat-html.js",
+        "sourcePath": "packages/vscode-extension/src/chat/chat-html.js",
+        "sourceSha256": "0a826f2af713ccda9513b3e7213a5cca18220c424822108750fbc8c6ffacb416",
+        "packagedSha256": "0a826f2af713ccda9513b3e7213a5cca18220c424822108750fbc8c6ffacb416"
+      },
+      {
+        "path": "extension/src/chat/chat-events.js",
+        "sourcePath": "packages/vscode-extension/src/chat/chat-events.js",
+        "sourceSha256": "5b21e65f09d54a4de924f0fa1fa6af5259c529d46bc78b69fd5f64b6450e1e88",
+        "packagedSha256": "5b21e65f09d54a4de924f0fa1fa6af5259c529d46bc78b69fd5f64b6450e1e88"
+      },
+      {
+        "path": "extension/src/chat/at-mention.js",
+        "sourcePath": "packages/vscode-extension/src/chat/at-mention.js",
+        "sourceSha256": "4ac8fae6da74298dc4cd2f5c0428083907404f10ead80ff341eb909faf083bb0",
+        "packagedSha256": "4ac8fae6da74298dc4cd2f5c0428083907404f10ead80ff341eb909faf083bb0"
+      },
+      {
+        "path": "extension/src/chat/approval-response.js",
+        "sourcePath": "packages/vscode-extension/src/chat/approval-response.js",
+        "sourceSha256": "73991383d1984a065b8e069a80befd40dfbea60453582001a3719a88965196ef",
+        "packagedSha256": "73991383d1984a065b8e069a80befd40dfbea60453582001a3719a88965196ef"
+      },
+      {
+        "path": "extension/src/chat/agent-session.js",
+        "sourcePath": "packages/vscode-extension/src/chat/agent-session.js",
+        "sourceSha256": "8ac967d52efe8b4ddbce09ff1fd3c6fcb637b590fd87f4f7938283eac324f3ba",
+        "packagedSha256": "8ac967d52efe8b4ddbce09ff1fd3c6fcb637b590fd87f4f7938283eac324f3ba"
+      },
+      {
+        "path": "extension/src/chat/agent-diagnostics.js",
+        "sourcePath": "packages/vscode-extension/src/chat/agent-diagnostics.js",
+        "sourceSha256": "b01bef80449667681929e4e2ccdbbf56b0d69e3689ebb2ae8a0dd3844850b677",
+        "packagedSha256": "b01bef80449667681929e4e2ccdbbf56b0d69e3689ebb2ae8a0dd3844850b677"
+      },
+      {
+        "path": "extension/src/ui/worktree-tasks-view.js",
+        "sourcePath": "packages/vscode-extension/src/ui/worktree-tasks-view.js",
+        "sourceSha256": "b37ca4dc67c6e720ef924fc497e8f4ed76118f065fd5ee1272a5fa02f9530559",
+        "packagedSha256": "b37ca4dc67c6e720ef924fc497e8f4ed76118f065fd5ee1272a5fa02f9530559"
+      },
+      {
+        "path": "extension/src/ui/tree-view.js",
+        "sourcePath": "packages/vscode-extension/src/ui/tree-view.js",
+        "sourceSha256": "f68a9cea3755dc2a9b1a948cab4f6842a892ce63605812238b44988819fde49f",
+        "packagedSha256": "f68a9cea3755dc2a9b1a948cab4f6842a892ce63605812238b44988819fde49f"
+      },
+      {
+        "path": "extension/src/ui/team-monitor-view.js",
+        "sourcePath": "packages/vscode-extension/src/ui/team-monitor-view.js",
+        "sourceSha256": "6593314a7ff1e326cbf251e04ddb0b01eea61fdb10d08998fc9ec8afe1763a89",
+        "packagedSha256": "6593314a7ff1e326cbf251e04ddb0b01eea61fdb10d08998fc9ec8afe1763a89"
+      },
+      {
+        "path": "extension/src/ui/status-bar.js",
+        "sourcePath": "packages/vscode-extension/src/ui/status-bar.js",
+        "sourceSha256": "afe51d8a34e582cb5b07b9bb16f1edd576091f7100f1236c1b006a3566e973c0",
+        "packagedSha256": "afe51d8a34e582cb5b07b9bb16f1edd576091f7100f1236c1b006a3566e973c0"
+      },
+      {
+        "path": "extension/src/ui/skill-retrieval-view.js",
+        "sourcePath": "packages/vscode-extension/src/ui/skill-retrieval-view.js",
+        "sourceSha256": "96eb7f450bb74eddc33b4dd1651802e1a4f6b28f6c6f9c6a05b27d4a4bba0843",
+        "packagedSha256": "96eb7f450bb74eddc33b4dd1651802e1a4f6b28f6c6f9c6a05b27d4a4bba0843"
+      },
+      {
+        "path": "extension/src/ui/skill-catalog-panel.js",
+        "sourcePath": "packages/vscode-extension/src/ui/skill-catalog-panel.js",
+        "sourceSha256": "f599116def736f6a2e8c9cd1570fc43109f86328bcf082cbc6345e3e6dd159fd",
+        "packagedSha256": "f599116def736f6a2e8c9cd1570fc43109f86328bcf082cbc6345e3e6dd159fd"
+      },
+      {
+        "path": "extension/src/ui/sessions-view.js",
+        "sourcePath": "packages/vscode-extension/src/ui/sessions-view.js",
+        "sourceSha256": "d975b60a7349989666137bd7dc863210f4d73ce385f289d4c0230cbf7a152752",
+        "packagedSha256": "d975b60a7349989666137bd7dc863210f4d73ce385f289d4c0230cbf7a152752"
+      },
+      {
+        "path": "extension/src/ui/policy-view.js",
+        "sourcePath": "packages/vscode-extension/src/ui/policy-view.js",
+        "sourceSha256": "9f6e1a4eb59ef8977a1962a8ae84c9aa46dd1d8ab6c10658cc98a92a0016ae25",
+        "packagedSha256": "9f6e1a4eb59ef8977a1962a8ae84c9aa46dd1d8ab6c10658cc98a92a0016ae25"
+      },
+      {
+        "path": "extension/src/ui/plugin-manager-view.js",
+        "sourcePath": "packages/vscode-extension/src/ui/plugin-manager-view.js",
+        "sourceSha256": "9c09f88b9f97ed47e2483da7955c60feef82f557e61db4bbb2cd26ffc60990d6",
+        "packagedSha256": "9c09f88b9f97ed47e2483da7955c60feef82f557e61db4bbb2cd26ffc60990d6"
+      },
+      {
+        "path": "extension/src/ui/panel-shell.js",
+        "sourcePath": "packages/vscode-extension/src/ui/panel-shell.js",
+        "sourceSha256": "4623cf075cffb794c3c7bf2dec913fee88da93ffcc95489dbb4cda584b9276e0",
+        "packagedSha256": "4623cf075cffb794c3c7bf2dec913fee88da93ffcc95489dbb4cda584b9276e0"
+      },
+      {
+        "path": "extension/src/ui/llm-config-panel.js",
+        "sourcePath": "packages/vscode-extension/src/ui/llm-config-panel.js",
+        "sourceSha256": "40c461a6529462b319b6a7fc6c13e1683c618bf23a9aa26c09e7efc649c7a430",
+        "packagedSha256": "40c461a6529462b319b6a7fc6c13e1683c618bf23a9aa26c09e7efc649c7a430"
+      },
+      {
+        "path": "extension/src/ui/evolution-workbench-view.js",
+        "sourcePath": "packages/vscode-extension/src/ui/evolution-workbench-view.js",
+        "sourceSha256": "0fb85e143b784019c9979f1952369cf4eb2fa8a56da8d83c3a6653be1f43b254",
+        "packagedSha256": "0fb85e143b784019c9979f1952369cf4eb2fa8a56da8d83c3a6653be1f43b254"
+      },
+      {
+        "path": "extension/src/ui/evolution-workbench-snapshot.js",
+        "sourcePath": "packages/vscode-extension/src/ui/evolution-workbench-snapshot.js",
+        "sourceSha256": "efed15238030572f748027986af0bd7ed0287a0c7ea04c174fce4aa9e4767062",
+        "packagedSha256": "efed15238030572f748027986af0bd7ed0287a0c7ea04c174fce4aa9e4767062"
+      },
+      {
+        "path": "extension/src/ui/evolution-workbench-panel.js",
+        "sourcePath": "packages/vscode-extension/src/ui/evolution-workbench-panel.js",
+        "sourceSha256": "35028813d956af35549eae0843fc99269d7eeb039772ee05f7f6152793f5d8ec",
+        "packagedSha256": "35028813d956af35549eae0843fc99269d7eeb039772ee05f7f6152793f5d8ec"
+      },
+      {
+        "path": "extension/src/ui/evolution-deployment-config-panel.js",
+        "sourcePath": "packages/vscode-extension/src/ui/evolution-deployment-config-panel.js",
+        "sourceSha256": "39e888b35fc6b684f12bfeb26df9d685d0a5968872b86842f298d1dd11b70ddc",
+        "packagedSha256": "39e888b35fc6b684f12bfeb26df9d685d0a5968872b86842f298d1dd11b70ddc"
+      },
+      {
+        "path": "extension/src/ui/dashboard.js",
+        "sourcePath": "packages/vscode-extension/src/ui/dashboard.js",
+        "sourceSha256": "bc7c9a8bf2adb0e36a457c495356797aa5b65f858acff617f41f4dc7323b95ac",
+        "packagedSha256": "bc7c9a8bf2adb0e36a457c495356797aa5b65f858acff617f41f4dc7323b95ac"
+      },
+      {
+        "path": "extension/src/ui/context-center-view.js",
+        "sourcePath": "packages/vscode-extension/src/ui/context-center-view.js",
+        "sourceSha256": "fae558fc0419b5877cd9ce15f721cd0d05de64e3703d5d48148b55da02b90261",
+        "packagedSha256": "fae558fc0419b5877cd9ce15f721cd0d05de64e3703d5d48148b55da02b90261"
+      },
+      {
+        "path": "extension/src/ui/background-agents-view.js",
+        "sourcePath": "packages/vscode-extension/src/ui/background-agents-view.js",
+        "sourceSha256": "59afdf92a712f50d41e31c6d3533ad4d21d909f164cdc33d489a20c9ac2b77f1",
+        "packagedSha256": "59afdf92a712f50d41e31c6d3533ad4d21d909f164cdc33d489a20c9ac2b77f1"
+      },
+      {
+        "path": "extension/src/ui/automation-center-view.js",
+        "sourcePath": "packages/vscode-extension/src/ui/automation-center-view.js",
+        "sourceSha256": "9139b470307fc21622c03cd33bab7f6140f920905d068b607363c84004d2a7af",
+        "packagedSha256": "9139b470307fc21622c03cd33bab7f6140f920905d068b607363c84004d2a7af"
+      },
+      {
+        "path": "extension/src/ui/artifacts-view.js",
+        "sourcePath": "packages/vscode-extension/src/ui/artifacts-view.js",
+        "sourceSha256": "ba9db31bff1e594543bc29e422361f657b2dc77d9fd95b06cd73a2629aeb0a91",
+        "packagedSha256": "ba9db31bff1e594543bc29e422361f657b2dc77d9fd95b06cd73a2629aeb0a91"
+      },
+      {
+        "path": "extension/src/vendor/elicitation-schema/VENDORED.md",
+        "sourcePath": "packages/vscode-extension/src/vendor/elicitation-schema/VENDORED.md",
+        "sourceSha256": "f30bba46dcb038176a978db8b2727a89df6e340f726d1973015eff6bd8ff5ab6",
+        "packagedSha256": "f30bba46dcb038176a978db8b2727a89df6e340f726d1973015eff6bd8ff5ab6"
+      },
+      {
+        "path": "extension/src/vendor/elicitation-schema/index.js",
+        "sourcePath": "packages/vscode-extension/src/vendor/elicitation-schema/index.js",
+        "sourceSha256": "47c6fd68734e1d382f4c8f5a795e0acab0dbc6f602fc4be244b2e0fc85edf7a6",
+        "packagedSha256": "47c6fd68734e1d382f4c8f5a795e0acab0dbc6f602fc4be244b2e0fc85edf7a6"
+      },
+      {
+        "path": "extension/src/vendor/agent-sdk/VENDORED.md",
+        "sourcePath": "packages/vscode-extension/src/vendor/agent-sdk/VENDORED.md",
+        "sourceSha256": "1781073ac4851868040ab99c66acc1581252d1f9c2ebe2186e0ddc6390ea3c6b",
+        "packagedSha256": "1781073ac4851868040ab99c66acc1581252d1f9c2ebe2186e0ddc6390ea3c6b"
+      },
+      {
+        "path": "extension/src/vendor/agent-sdk/protocol.js",
+        "sourcePath": "packages/vscode-extension/src/vendor/agent-sdk/protocol.js",
+        "sourceSha256": "a2ec5ec07ca21a122da1a11fd7cf7fbf85831507d81f944fe9e06b1143464a3c",
+        "packagedSha256": "a2ec5ec07ca21a122da1a11fd7cf7fbf85831507d81f944fe9e06b1143464a3c"
+      },
+      {
+        "path": "extension/src/vendor/agent-sdk/package.json",
+        "sourcePath": "packages/vscode-extension/src/vendor/agent-sdk/package.json",
+        "sourceSha256": "8005a3491db7d92f36ac66369861589f9c47123d3a7c71e643fc2c06168cd45a",
+        "packagedSha256": "8005a3491db7d92f36ac66369861589f9c47123d3a7c71e643fc2c06168cd45a"
+      },
+      {
+        "path": "extension/src/vendor/agent-sdk/ndjson.js",
+        "sourcePath": "packages/vscode-extension/src/vendor/agent-sdk/ndjson.js",
+        "sourceSha256": "06f57b17678a46eff1b6abe0fce8d896ad44fe34084b701aeed6e5e392c5052e",
+        "packagedSha256": "06f57b17678a46eff1b6abe0fce8d896ad44fe34084b701aeed6e5e392c5052e"
+      },
+      {
+        "path": "extension/src/vendor/agent-sdk/index.js",
+        "sourcePath": "packages/vscode-extension/src/vendor/agent-sdk/index.js",
+        "sourceSha256": "416bf4c3e8b1e8dfdd1f052e0fa31230abd68114200b43bb2e8b2f5aa55c5789",
+        "packagedSha256": "416bf4c3e8b1e8dfdd1f052e0fa31230abd68114200b43bb2e8b2f5aa55c5789"
+      },
+      {
+        "path": "extension/src/vendor/agent-sdk/cli-json.js",
+        "sourcePath": "packages/vscode-extension/src/vendor/agent-sdk/cli-json.js",
+        "sourceSha256": "cf268ed4c2b92307c3e621890dd2279d7db76ca6e3ca1a39fd26e05c09ac46bc",
+        "packagedSha256": "cf268ed4c2b92307c3e621890dd2279d7db76ca6e3ca1a39fd26e05c09ac46bc"
+      },
+      {
+        "path": "extension/src/vendor/agent-sdk/browser.js",
+        "sourcePath": "packages/vscode-extension/src/vendor/agent-sdk/browser.js",
+        "sourceSha256": "aa6b832fc8e9f6a01a0fbaba38a4d4813c93722441b2ba33ffa704a6b09935b7",
+        "packagedSha256": "aa6b832fc8e9f6a01a0fbaba38a4d4813c93722441b2ba33ffa704a6b09935b7"
+      },
+      {
+        "path": "extension/src/vendor/agent-sdk/background.js",
+        "sourcePath": "packages/vscode-extension/src/vendor/agent-sdk/background.js",
+        "sourceSha256": "f47adf33dacc41eeeb82be95c6e0444fe0951b3ae89e8e34dd880c7b810e0c17",
+        "packagedSha256": "f47adf33dacc41eeeb82be95c6e0444fe0951b3ae89e8e34dd880c7b810e0c17"
+      },
+      {
+        "path": "extension/src/vendor/agent-sdk/app-server-pilot-client.js",
+        "sourcePath": "packages/vscode-extension/src/vendor/agent-sdk/app-server-pilot-client.js",
+        "sourceSha256": "f19a0d1203d5d8027360e907425a0857e1e26380b2cf122bcd8aacbe05824128",
+        "packagedSha256": "f19a0d1203d5d8027360e907425a0857e1e26380b2cf122bcd8aacbe05824128"
+      },
+      {
+        "path": "extension/src/vendor/agent-sdk/app-server-client.js",
+        "sourcePath": "packages/vscode-extension/src/vendor/agent-sdk/app-server-client.js",
+        "sourceSha256": "7585c5890331d2d913e7d37a134beab7ce83f40db80188dc9ba7580ab09960cb",
+        "packagedSha256": "7585c5890331d2d913e7d37a134beab7ce83f40db80188dc9ba7580ab09960cb"
+      },
+      {
+        "path": "extension/src/vendor/agent-sdk/agent-session.js",
+        "sourcePath": "packages/vscode-extension/src/vendor/agent-sdk/agent-session.js",
+        "sourceSha256": "afb4503e758842f1330fd563dfb1b109a212f6a97f18eb0412e1fac9aa0e65b4",
+        "packagedSha256": "afb4503e758842f1330fd563dfb1b109a212f6a97f18eb0412e1fac9aa0e65b4"
+      },
+      {
+        "path": "extension/src/__fixtures__/runtime-compatibility/cases.json",
+        "sourcePath": "packages/vscode-extension/src/__fixtures__/runtime-compatibility/cases.json",
+        "sourceSha256": "ed1df07f298531ce2a75fb80401985a8990e5dc452b324257fc3581e842cb7fb",
+        "packagedSha256": "ed1df07f298531ce2a75fb80401985a8990e5dc452b324257fc3581e842cb7fb"
+      },
+      {
+        "path": "extension/src/__fixtures__/managed-cli/verify-cases.json",
+        "sourcePath": "packages/vscode-extension/src/__fixtures__/managed-cli/verify-cases.json",
+        "sourceSha256": "f73c9c88953914fcf152a9d5ecc8cdd7392216e9d1000cbf12c240ebcd21799c",
+        "packagedSha256": "f73c9c88953914fcf152a9d5ecc8cdd7392216e9d1000cbf12c240ebcd21799c"
+      },
+      {
+        "path": "extension/src/__fixtures__/managed-cli/state-cases.json",
+        "sourcePath": "packages/vscode-extension/src/__fixtures__/managed-cli/state-cases.json",
+        "sourceSha256": "75f28aa3ffa8b3ed64c81631dbcef61c8a52ad9fa810c3bf5a409df94fe627de",
+        "packagedSha256": "75f28aa3ffa8b3ed64c81631dbcef61c8a52ad9fa810c3bf5a409df94fe627de"
+      },
+      {
+        "path": "extension/src/__fixtures__/managed-cli/registry-meta.json",
+        "sourcePath": "packages/vscode-extension/src/__fixtures__/managed-cli/registry-meta.json",
+        "sourceSha256": "5f74053a4bb1f002a140c50de827a13cf43b794228534e5f4c593ec5630e7cec",
+        "packagedSha256": "5f74053a4bb1f002a140c50de827a13cf43b794228534e5f4c593ec5630e7cec"
+      },
+      {
+        "path": "extension/src/__fixtures__/managed-cli/README.md",
+        "sourcePath": "packages/vscode-extension/src/__fixtures__/managed-cli/README.md",
+        "sourceSha256": "b8745e29443f0c945f6c8629497f9af51a2bd57766755cd495b42f1c85d353ee",
+        "packagedSha256": "b8745e29443f0c945f6c8629497f9af51a2bd57766755cd495b42f1c85d353ee"
+      },
+      {
+        "path": "extension/src/__fixtures__/managed-cli/plan-cases.json",
+        "sourcePath": "packages/vscode-extension/src/__fixtures__/managed-cli/plan-cases.json",
+        "sourceSha256": "1dc5e2b791fae05bdd3b018e5d461cad7a46aa13cc124967af459801983c239d",
+        "packagedSha256": "1dc5e2b791fae05bdd3b018e5d461cad7a46aa13cc124967af459801983c239d"
+      },
+      {
+        "path": "extension/src/__fixtures__/managed-cli/candidate-cases.json",
+        "sourcePath": "packages/vscode-extension/src/__fixtures__/managed-cli/candidate-cases.json",
+        "sourceSha256": "7ba179d6305fd861dc45564a87d86ada3dbbfa6ecae6489a50872c437a343d25",
+        "packagedSha256": "7ba179d6305fd861dc45564a87d86ada3dbbfa6ecae6489a50872c437a343d25"
+      },
+      {
+        "path": "extension/src/__fixtures__/ide-context-v2/cases.json",
+        "sourcePath": "packages/vscode-extension/src/__fixtures__/ide-context-v2/cases.json",
+        "sourceSha256": "7a684c38bcd375c9cdc91615753a51a3d8c7f4e413b970109d1c49f87b2c1dd2",
+        "packagedSha256": "7a684c38bcd375c9cdc91615753a51a3d8c7f4e413b970109d1c49f87b2c1dd2"
+      },
+      {
+        "path": "extension/src/__fixtures__/context-center/external-sources.json",
+        "sourcePath": "packages/vscode-extension/src/__fixtures__/context-center/external-sources.json",
+        "sourceSha256": "34eeb8c0883a4a5606ee667aa676c8388480e717441b7e38fc202cab108de2b2",
+        "packagedSha256": "34eeb8c0883a4a5606ee667aa676c8388480e717441b7e38fc202cab108de2b2"
+      },
+      {
+        "path": "extension/src/__fixtures__/context-center/cases.json",
+        "sourcePath": "packages/vscode-extension/src/__fixtures__/context-center/cases.json",
+        "sourceSha256": "ca405228a0f2ef9f90cccee4b4a17949c10a1a2e1e66c9b37969c8fb3351927c",
+        "packagedSha256": "ca405228a0f2ef9f90cccee4b4a17949c10a1a2e1e66c9b37969c8fb3351927c"
+      },
+      {
+        "path": "extension/src/__fixtures__/checkpoint-timeline/cases.json",
+        "sourcePath": "packages/vscode-extension/src/__fixtures__/checkpoint-timeline/cases.json",
+        "sourceSha256": "992bd82f46300f58bf9bfd1618e776fceac6d449a5da91e0479ef1fc2fe2b5d9",
+        "packagedSha256": "992bd82f46300f58bf9bfd1618e776fceac6d449a5da91e0479ef1fc2fe2b5d9"
+      },
+      {
+        "path": "extension/src/vendor/agent-sdk/generated/app-protocol.js",
+        "sourcePath": "packages/vscode-extension/src/vendor/agent-sdk/generated/app-protocol.js",
+        "sourceSha256": "9581388d63d9b181680e48328cbc4cbd4a952cb5c10887bc71d8b1390b6a4f37",
+        "packagedSha256": "9581388d63d9b181680e48328cbc4cbd4a952cb5c10887bc71d8b1390b6a4f37"
+      }
+    ],
+    "runtimeRelevantPayloadSourcesMatchMerge": true,
+    "repackagedAtMerge": false
+  },
+  "sources": [
+    {
+      "path": "packages/vscode-extension/README.md",
+      "sha256": "90ede0d3ea9fd5ee141d0e4267088f518bd5124169f65749a917de1a773de8fa"
+    },
+    {
+      "path": "packages/vscode-extension/package.nls.zh-cn.json",
+      "sha256": "ecbebc26e357bad6d0ad53a97a20e47464c8fd82923df7bf52d908052958379c"
+    },
+    {
+      "path": "packages/vscode-extension/package.nls.json",
+      "sha256": "586e51fd06dadba790c286fd2c456f9e58f82a8fb2b925018f28f5464df07ab4"
+    },
+    {
+      "path": "packages/vscode-extension/package.json",
+      "sha256": "00ace3760ccb5685bb7eca1a1a06f53e3115f7af05700d1d9b88b4ba2c552fab"
+    },
+    {
+      "path": "packages/vscode-extension/LICENSE",
+      "sha256": "cdc1d6d07beefa49ad1d3a4c39973eb20544c178b7de42fc6271e1e9c8052e4a"
+    },
+    {
+      "path": "packages/vscode-extension/CHANGELOG.md",
+      "sha256": "bb0cc5dc5f95217cbb37be5d686d25ba1e69d215ac9f44922fc767854e091bec"
+    },
+    {
+      "path": "packages/vscode-extension/src/worktree-tasks.js",
+      "sha256": "2f72e08c2348fda3a896bf65d85e7881d4639d8336a1c893efe11d1efff79ab1"
+    },
+    {
+      "path": "packages/vscode-extension/src/win-shell.js",
+      "sha256": "a5c8579edd89e7aa2de6ecc48035ec2e93ac8759e49b33fbfc8b32e584900c56"
+    },
+    {
+      "path": "packages/vscode-extension/src/whats-new.js",
+      "sha256": "dc0ab33e550b69991be6fa1df4f83a5dac2bdb72d002c02c8522d2f3d3c54dee"
+    },
+    {
+      "path": "packages/vscode-extension/src/webview-upgrade-reload.js",
+      "sha256": "be5af28756a1fdbea0eb1a9846ee44f15e5fa6042d5ea28a073d3f5ee124c979"
+    },
+    {
+      "path": "packages/vscode-extension/src/vscode-facade.js",
+      "sha256": "14133718b6e3e5d471c04b367666b6d0da1f63af50f756f5a073ae1c77303277"
+    },
+    {
+      "path": "packages/vscode-extension/src/version-check.js",
+      "sha256": "7651229cc6c0a694231341b205a9d85897efc3d5595cc18495e7c1652dbb5fda"
+    },
+    {
+      "path": "packages/vscode-extension/src/usage-report.js",
+      "sha256": "dbf530f2e1905da70311303943ae02b2abf0e7a7a081b08ce88ef3bf40c97655"
+    },
+    {
+      "path": "packages/vscode-extension/src/uri-handler.js",
+      "sha256": "63b6560346ad891a6fbb0617c8724c698535340276491119ef80cf81643109bf"
+    },
+    {
+      "path": "packages/vscode-extension/src/terminal-capture.js",
+      "sha256": "c1e74992f68e400a5b3fbe7541d4f8623af205e45f4315d344862312fe5b8576"
+    },
+    {
+      "path": "packages/vscode-extension/src/team-monitor.js",
+      "sha256": "c28b94dae94899c9bef7141cc702717cda81a5463090ab33a2be8a77b12603c0"
+    },
+    {
+      "path": "packages/vscode-extension/src/sessions-workbench.js",
+      "sha256": "14543638d07dc9c6857f58e64e2fee84a2eed52e8b29ff422a806681fada4f1b"
+    },
+    {
+      "path": "packages/vscode-extension/src/semantic-tools.js",
+      "sha256": "9402715ea017ee6c1d5a77a8700a65aad9b3fc77d61b9f36f2d7e3d0c7c90aa1"
+    },
+    {
+      "path": "packages/vscode-extension/src/runtime-environment.js",
+      "sha256": "be4c87d010cf41f853b2a7ac628a0b5a5b566b9dd6b33c9a60e164791afedd92"
+    },
+    {
+      "path": "packages/vscode-extension/src/runtime-compatibility.js",
+      "sha256": "01e0841b8bea0f39615dfb7eb1a7f398f7f6453cb473ec64c42896598e141bfc"
+    },
+    {
+      "path": "packages/vscode-extension/src/remote-doctor.js",
+      "sha256": "fdb9f0fe3820ab1bc52a40b8f09e80d2e2184d8cd91ae745ae86cdea22b0da35"
+    },
+    {
+      "path": "packages/vscode-extension/src/remote-doctor-fixes.js",
+      "sha256": "6731dde08714d21bdac7adabdb0c97367d038a62a77fef924bffee96055f17ce"
+    },
+    {
+      "path": "packages/vscode-extension/src/remote-control-host.js",
+      "sha256": "b480a55dbe27b3567a6ad98487230a1c758b35236ea071e8edbfc4dd2fda5cfc"
+    },
+    {
+      "path": "packages/vscode-extension/src/qr-code.js",
+      "sha256": "a684d5f3c33342cb4bcaf50d742a34f1da788fac444f65f358cbd60ae3605678"
+    },
+    {
+      "path": "packages/vscode-extension/src/project-memory-commands.js",
+      "sha256": "6c3cb6bdf6ca334abcc022a86cccfcc3f57da4aa52d228500a4c35170ec9902b"
+    },
+    {
+      "path": "packages/vscode-extension/src/preview.js",
+      "sha256": "8b0d4d2a0e92b401285bf6238a0348ea48b914f397c29eb5345b148090a5331e"
+    },
+    {
+      "path": "packages/vscode-extension/src/preview-detect.js",
+      "sha256": "8947a15aba46fb97ed0c6e0daff3d145a7fcef2532f70d87b13d9449ea7bc6b3"
+    },
+    {
+      "path": "packages/vscode-extension/src/pr-status-view.js",
+      "sha256": "ceee396d1d53c8e8251e94b2034bf2f893fddf449621a44231d21bc132d2c7a5"
+    },
+    {
+      "path": "packages/vscode-extension/src/policy-viewer.js",
+      "sha256": "86b3a4d83fa2d692b8eab31928585102b38d39834b7bdd473aa27da639ba8849"
+    },
+    {
+      "path": "packages/vscode-extension/src/plugin-quality.js",
+      "sha256": "b2a47d39b972a06cba318e19a8e33dbee9f58ce9299b84b588a6fc950d40d6fb"
+    },
+    {
+      "path": "packages/vscode-extension/src/plugin-manager.js",
+      "sha256": "34e7488435800f9a96df1b51542d78b466456f04d1e3061b6bb0d63a4e63668e"
+    },
+    {
+      "path": "packages/vscode-extension/src/phase-attention.js",
+      "sha256": "8e1435210588021ae21681e4dcab30fb3da1759f11f9a355c57d62c497f5cc29"
+    },
+    {
+      "path": "packages/vscode-extension/src/multi-diff.js",
+      "sha256": "41b84397e73211c20ef821168edcf96ab21973aa02b5232ccfbd473310b0c941"
+    },
+    {
+      "path": "packages/vscode-extension/src/model-input-diagnostics.js",
+      "sha256": "9eae306768cde706cfad01df88859aa1d9c085693e81c593c64e45e4339c6971"
+    },
+    {
+      "path": "packages/vscode-extension/src/mcp-http-server.js",
+      "sha256": "35f7c22b3243f5e18860b9adacf18a340c3d57a3f616bab1fd845caf6635dad3"
+    },
+    {
+      "path": "packages/vscode-extension/src/managed-cli.js",
+      "sha256": "155fc8532e7c5308e8f13b5d6e3deccc8c1134a30fe4e392fc95786e7d4d2d3d"
+    },
+    {
+      "path": "packages/vscode-extension/src/managed-cli-flow.js",
+      "sha256": "26f3a70c46718a69017781fa00a11e53b41222d6878a80c01c351daee51a4807"
+    },
+    {
+      "path": "packages/vscode-extension/src/lockfile.js",
+      "sha256": "d980d0dc904557105e66f6e69d8273b8af0ec615d7806257b7c3a7d4130f1008"
+    },
+    {
+      "path": "packages/vscode-extension/src/llm-config.js",
+      "sha256": "074520cf1bd0b55865f8d1b14f6e7fe9a577ee45707dfc8bdabf6c62e59bfaaf"
+    },
+    {
+      "path": "packages/vscode-extension/src/inline-chat.js",
+      "sha256": "ed9cdbceb3743f6d5c6268fd4237bf0b8cdfebf7c68c2334b16a1be9062d52e6"
+    },
+    {
+      "path": "packages/vscode-extension/src/ide-tools.js",
+      "sha256": "169524457fe2d08dda9ad1ea57a2e087a86e44d82396b315a93fa1c67ea42782"
+    },
+    {
+      "path": "packages/vscode-extension/src/ide-path-guard.js",
+      "sha256": "12136d1622b1659d50fbeb9c8b3b037737e0505f932221139c9bad75d3f3f20f"
+    },
+    {
+      "path": "packages/vscode-extension/src/ide-doctor.js",
+      "sha256": "81c018a207fc137a57b931f958b45feb9244f663b13da1ccea410bd3c8d7338d"
+    },
+    {
+      "path": "packages/vscode-extension/src/ide-context-v2.js",
+      "sha256": "b94e9eb52e764c3a70cc5b7d496b51e6a0de62cb50b994ec81e063fe11f1310a"
+    },
+    {
+      "path": "packages/vscode-extension/src/ide-capabilities.test.js",
+      "sha256": "5b86df6c324b62ff35dec0266733d63d6863dbb3234b1186cbfa4397bb50db6f"
+    },
+    {
+      "path": "packages/vscode-extension/src/ide-capabilities.js",
+      "sha256": "0b67aaced16809a658e86358c3cabe00d788c6b650bc813279ecf5ae3abc1165"
+    },
+    {
+      "path": "packages/vscode-extension/src/hardened-env.js",
+      "sha256": "4579cee63bcd65bb0e67469f0064145d0da93bcac163fc09abb2786e1b467f4b"
+    },
+    {
+      "path": "packages/vscode-extension/src/goal-history.js",
+      "sha256": "b2867f43ef29a8773a25e44ebde1982e46744dacc5ba5b9197dc1a54223675c4"
+    },
+    {
+      "path": "packages/vscode-extension/src/goal-events.js",
+      "sha256": "f48d3427ba52176da89a00c59f11bc13e585dd6a97d70d1dae980b8a4f9bd7ed"
+    },
+    {
+      "path": "packages/vscode-extension/src/goal-drafts.js",
+      "sha256": "09bdec70dc9509d8b62573964aee0e7fe2a92e0c297a23571f7ebbe313fbdeea"
+    },
+    {
+      "path": "packages/vscode-extension/src/extension.js",
+      "sha256": "38bcb3ced0681907d992da415425008bbeec01b8054047ff55034ef115348e76"
+    },
+    {
+      "path": "packages/vscode-extension/src/evolution-workbench-profile.js",
+      "sha256": "dd2cec12349766d670458cb5309a672069a3225d9b40cabf6f29c4a05de0dbe6"
+    },
+    {
+      "path": "packages/vscode-extension/src/evolution-deployment-config.js",
+      "sha256": "aa16a9a7f6ba57bc0f81fb7f7f376a18c5841fa0d3def9335c0ae1512134db4a"
+    },
+    {
+      "path": "packages/vscode-extension/src/diff-review-audit.js",
+      "sha256": "b139be61b5b09b72aec32116df2b77bc9ce44a9da34bc14ff21b44302ebc558c"
+    },
+    {
+      "path": "packages/vscode-extension/src/diff-hunks.js",
+      "sha256": "4dfed4bc3e199b01a2bb2d457225a53efdf13cc1efd53b99c7f68fc3094fb2f2"
+    },
+    {
+      "path": "packages/vscode-extension/src/diff-apply-guard.js",
+      "sha256": "99464eb977686207605a99edc62b09e4a2c060c728cd67974f0c8408ce9cfe6a"
+    },
+    {
+      "path": "packages/vscode-extension/src/diagnostics-scheduler.js",
+      "sha256": "b96fdb2beb032b2204fe35937068d27e4e8bb1139b754818294eed3c9958e2db"
+    },
+    {
+      "path": "packages/vscode-extension/src/diagnostic-export.js",
+      "sha256": "9b4c840a4d47b80e69dfbc33298e91a5a7c48911372ca36209e277f1499596bf"
+    },
+    {
+      "path": "packages/vscode-extension/src/delivery-workflow.js",
+      "sha256": "5a9e95499670f620c6871fbf2c17edc6b7953e0ebe502c5657797d8be54fdae6"
+    },
+    {
+      "path": "packages/vscode-extension/src/context-memory-authority.js",
+      "sha256": "1329dc99b02d2be9f0ffdc8f94b064828ac2af41205a522a66b58c52f9569c21"
+    },
+    {
+      "path": "packages/vscode-extension/src/context-external-sources.js",
+      "sha256": "4f23769c14afbff667de54ad5b70774f51c5da49703f9025e3c2fda43bde1250"
+    },
+    {
+      "path": "packages/vscode-extension/src/context-center.js",
+      "sha256": "e36a43b971d78f2cc7df15e4ae32fdd7c41d9e52e6f60ac59940dba1f58bccec"
+    },
+    {
+      "path": "packages/vscode-extension/src/completion.js",
+      "sha256": "821fc19d99e82b1b80f55e89406753368c207444c9a806aef7dd9cfa53e4a064"
+    },
+    {
+      "path": "packages/vscode-extension/src/code-lens.js",
+      "sha256": "92d39b00beb58986d5ac74f43ef127c78b2d9ead538cceb641e0d3ea1d719cdb"
+    },
+    {
+      "path": "packages/vscode-extension/src/code-actions.js",
+      "sha256": "56fb304c85c01541522215d72b8ee5b694f259651ba8da71ff7f96227a9b5d32"
+    },
+    {
+      "path": "packages/vscode-extension/src/cli-binary.js",
+      "sha256": "af7fd35b214a68bc0a1880eca2bce7ebb8bb0b80d10c9b9617290376693a9bd1"
+    },
+    {
+      "path": "packages/vscode-extension/src/chrome-connector.js",
+      "sha256": "28426bb305b7b0aa8f407023a14051d36f01e215355db8260b8c1ea9a70a6789"
+    },
+    {
+      "path": "packages/vscode-extension/src/background-agents.js",
+      "sha256": "26123b857a2541cd100908dc8e15d43c6ce80b25247d2060d02fa54e2b861ba9"
+    },
+    {
+      "path": "packages/vscode-extension/src/automation-center.js",
+      "sha256": "bff5773caaca0a69e0673797d298c8126066d200da7199b8c0bf374eed2a16df"
+    },
+    {
+      "path": "packages/vscode-extension/src/auto-exec-guard.js",
+      "sha256": "368ea42a95657cf8e5474e01d64d44f62c7f93d70aa6e23c3cc162fcb71ebeb6"
+    },
+    {
+      "path": "packages/vscode-extension/src/artifacts-drawer.js",
+      "sha256": "cd7aac61d8652edab84b29866702192739c5fee10bf22ab229d8ecbc4e8f7320"
+    },
+    {
+      "path": "packages/vscode-extension/src/app-server-question-review.js",
+      "sha256": "5a6166c4b561d4b97406535c67857eaf37f07957eba13203244e70a212424fec"
+    },
+    {
+      "path": "packages/vscode-extension/src/app-server-question-lifecycle.js",
+      "sha256": "a91b6648e4e8a444bf1aad6e159b7448ac2a853b6fe911650ac44d6ea497b649"
+    },
+    {
+      "path": "packages/vscode-extension/src/app-server-pilot.js",
+      "sha256": "bcc186ff86eb5c5e0b433629862d96bda6f7b6599d6efe8fb32b8ec899b3880f"
+    },
+    {
+      "path": "packages/vscode-extension/src/app-server-elicitation-review.js",
+      "sha256": "9a290620e7c41e127dc792c1c2d0fa0274efdbc2be4c1425dc2a169941709026"
+    },
+    {
+      "path": "packages/vscode-extension/src/app-server-approval-review.js",
+      "sha256": "1f7deb1f05da53b00bd6fffed2384908c2f89dca8adc755920a9dffa55c92224"
+    },
+    {
+      "path": "packages/vscode-extension/src/activity-log.js",
+      "sha256": "8bfa92eca69696c874a0b0ab357ae5595d8b954c631576e19d53c50ab1df0d0e"
+    },
+    {
+      "path": "packages/vscode-extension/media/skill-catalog.js",
+      "sha256": "49ec2d5f11e407765361bd1750e8e905068f8450fdef9122226084afa9444188"
+    },
+    {
+      "path": "packages/vscode-extension/media/settings-workbench.css",
+      "sha256": "46d43c8dade0976703a73ba5eb4f19943b558201bf06904c87f4cdf43b6472b3"
+    },
+    {
+      "path": "packages/vscode-extension/media/logo.png",
+      "sha256": "b859fcfa6d4c1d4812db7666ca332dcea445c9fc3f4e6511c5f201d1fb728564"
+    },
+    {
+      "path": "packages/vscode-extension/media/logo-mark.png",
+      "sha256": "87f740321716e3d7e59a9534d9edfcfbaa4de61e7f316bed47c346a1a3811ec9"
+    },
+    {
+      "path": "packages/vscode-extension/media/llm-config.js",
+      "sha256": "72f7ae42c210535874f7c4831ba1b0965c65b497d23a02331eec11c68ade5754"
+    },
+    {
+      "path": "packages/vscode-extension/media/inline-chat.css",
+      "sha256": "954a05b02de9f9be2048d3629b94996c46e4d93439458cf747d8588e8c5756a8"
+    },
+    {
+      "path": "packages/vscode-extension/media/ide-bridge.svg",
+      "sha256": "749da3af625240e6c5de9834d43f1c97f04a70dbf1e03afb1d9d1fdd56368fd2"
+    },
+    {
+      "path": "packages/vscode-extension/media/evolution-workbench.js",
+      "sha256": "3ce65b759ed39740d7668a47be42b10d4db5e4f371c42ad9ba85520fe8e84fae"
+    },
+    {
+      "path": "packages/vscode-extension/media/evolution-deployment-config.js",
+      "sha256": "9c40f1f9e1eb2f6f5caa885c658cebf4c3052eed9f16673a5012565308334c64"
+    },
+    {
+      "path": "packages/vscode-extension/l10n/bundle.l10n.zh-cn.json",
+      "sha256": "ad10cc39e5e5fe8945e6391e2f778ffbb3fe5364a8a169618104776cda235758"
+    },
+    {
+      "path": "packages/vscode-extension/scripts/vsix-release-artifact.mjs",
+      "sha256": "316ee2de71f1f601281f600d42bcebb9ed4cd3f0284ea5744e695dc43295baf5"
+    },
+    {
+      "path": "packages/vscode-extension/scripts/verify-vsix.selftest.mjs",
+      "sha256": "154ef76de269c53c88d37d571036a9157ff636ff6823ad71e576e5f73d004158"
+    },
+    {
+      "path": "packages/vscode-extension/scripts/verify-vsix.mjs",
+      "sha256": "3920b12085f0deaa1487a82b71e1a24b579b4f468247ce03a70b7329d86af7e1"
+    },
+    {
+      "path": "packages/vscode-extension/scripts/verify-marketplace-overview.mjs",
+      "sha256": "a321119df2213e23c6aabcf5b925e9b2736b4ac5720e6cf1ce1b6589437b702e"
+    },
+    {
+      "path": "packages/vscode-extension/scripts/sync-elicitation-schema.mjs",
+      "sha256": "e313c0610fbbbc99212d489c92c736a6afbf5b48e222c9b9a8f9baf5b647369a"
+    },
+    {
+      "path": "packages/vscode-extension/scripts/sync-agent-sdk.mjs",
+      "sha256": "a32ea7e7571d7365a1e32151874dc2fafa9ec5f24fca6d08c89f6c53cbadee94"
+    },
+    {
+      "path": "packages/vscode-extension/docs/CHAT_TRANSCRIPT_HISTORY.md",
+      "sha256": "6991ac7b984703b0d8a20814018a0e5ba331e0e1447a0d6c521fae9b68ed223c"
+    },
+    {
+      "path": "packages/vscode-extension/docs/CHAT_DRAFT_RECOVERY.md",
+      "sha256": "6eeab2d88ce5528c433458ed3d876aec4ffa95c0c7522ab485b814a44a734de3"
+    },
+    {
+      "path": "packages/vscode-extension/src/vendor/llm-onboarding-presets.json",
+      "sha256": "9be57153d2062cb9edc7cbf646a0cbddfd6f74e85bb51e8c5c906abb98b8b102"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/workspace-mention-index.js",
+      "sha256": "567896697f262fe41d0a6cab693620b8eb56bd234baaf673f67f20832f9ac3fd"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/transcript-sync.js",
+      "sha256": "22d513c0f66036fa198234d3bbb722065e93670b121d0c7a9e10ec6d8a069c57"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/transcript-reconciler.js",
+      "sha256": "1dbde716dd57aa51929028bb889dc0d86e8562831cdebdc0b332ba961caf2fe3"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/transcript-cache.js",
+      "sha256": "8487dd5fe509115d64d4cff7d6c7ebddef566e80fd2cb122cf96bafe9dd012a5"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/symbol-mentions.js",
+      "sha256": "e60cd37153f5b7b1a26d109e50017b1a76f7caedb6b1ef50a07c3bf4b015dbcf"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/streaming-transcript.js",
+      "sha256": "0c630890d6279561a689f8035fa6e0e26c88b716cef44e006402e5cb6f9f42eb"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/streaming-profile.js",
+      "sha256": "50f55dc6628477cce8d38a7ad519b047e983f684ab735b9b4894c3fb6021ba22"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/stop-agent-process.js",
+      "sha256": "580dab9b7ee089ab8a3ea688c2c90e56183ba300b77dfbbd9b5037607c2e386f"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/slash-commands.js",
+      "sha256": "fa01a09e4f13b71ca7220faf5fbb5e46e235012413c85633115889f4b7add9bc"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/session-model.js",
+      "sha256": "8b98bb37dca176b634a0744e8c1c26e4c525c1dd5668c7dd4166b73528d954ae"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/session-list.js",
+      "sha256": "cfb38cf3b17ac27ed9238dcf89a7349e7511d12586eb8b5b64ef2dbc7ff80692"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/selection-actions.js",
+      "sha256": "9980f4e9f4c4fa864532f823514bd1ddfe8cef4f3eb9e83cf24bf2e4e5c5d1fa"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/saved-tool-result.js",
+      "sha256": "02ae24f5b075c2686b1548778867864d746be313150d5776c77e2ba5329d1d4e"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/rewind-commands.js",
+      "sha256": "8f2a68f5757f85399e22b094da36c6b704158fc78ff9a16764b80a57dc801878"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/remote-handoff.js",
+      "sha256": "c0a84e56e43791da3a8c7f34af971128ac58aea8707d356993a15040c411986e"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/question-form-drafts.js",
+      "sha256": "3e7902a95f231672418801648269e68da96985dca2056f63445911456962fada"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/question-drafts.js",
+      "sha256": "2c3a0d7913ce0940941fd323f519f78c9f0e01c51a93916e2528693a1f4d1bee"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/question-draft-contract.js",
+      "sha256": "08f583818c7e9cf0ece05817edeea7ceb6f2d5b73110b1874bc9ab9ec6268ac4"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/protocol-capture.js",
+      "sha256": "226dcaed25ddb7ad4bf448e186e40564db0570aae22270d9358723069b5b86c8"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/plan-review.js",
+      "sha256": "eaac72ab9adacfe2cf18d3a5c53eacc3f68effef55f5c072572eaaf390bb36c6"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/permission-mode-state.js",
+      "sha256": "0360774755b72738aadfb8c183ad951eb777738c1177c8a438405f773235d8d4"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/md-lite.js",
+      "sha256": "c6e1fbb07a568c0db43456f08e61debab627f0c79d961d9719c18d1d4ce65978"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/introspect-commands.js",
+      "sha256": "cbadc3d5e7a347428ee2706eede4fb7f7b3e9cf7c1267ad553e20814fcec69c6"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/insert-reference.js",
+      "sha256": "11dd5e21f50c3a6b0a4d7d015df40ea6faef384ef0c41cfe6755579791525455"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/inline-chat.js",
+      "sha256": "a025ae05448e434ef8f85d16ab24d3368d4723c788fcbf6c8b4d5e294e4bb579"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/image-preview-gate.js",
+      "sha256": "06e897b07a635c43e1a5a7c3da6047cc69dbfc7a61ff11e547c9484d7acbc413"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/image-file-snapshot.js",
+      "sha256": "1b19b1d1acecbe6e25b2b7a9191ac8fec3ac5a18e68f77640380d1a3fe3b455e"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/image-decode-budget.js",
+      "sha256": "d1b3fe8eca174df430bfc51a7414f78eee75bfbf37edf7ca125919d40d6d16ad"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/image-attachments.js",
+      "sha256": "e56ae057281535b00ebd44fd4873d2c62354ef86e8b7ce251b89dac0464af2cb"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/ide-session-index.js",
+      "sha256": "7d1b4bcd6e7496bfa1f4f990e626e47764a423f8a860de2ef555484c72602c4f"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/host-dom-relay.js",
+      "sha256": "9cb0e3e3d3f09f5958101e545e71ad07377b17062b0c0617cccba762544e604f"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/host-dom-image-fixtures.js",
+      "sha256": "1f6e8eca0d577fc35fef35941ec849f2ae25cf7d7df12861851c5661a6096507"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/fix-with-cc.js",
+      "sha256": "4b96ba0c5d80933a06540f85a64c45fa9739edc5b74b3e7a58218032aaa16e89"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/elicitation-form.js",
+      "sha256": "653201e9aced1f1d3862433f36cc8af240bb299e4154d38cb0f77827002b0615"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/draft-store.js",
+      "sha256": "5a9d0e918e38f87388d5af71002b0515c601386b0f46b7d499a7f5b3b8f9bb2e"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/conversation-manager.js",
+      "sha256": "93594cb550ea7cbd5ee90c250bc383815232659150265b02d1f7fe90586b1e01"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/chat-view.js",
+      "sha256": "5cf622b3d433adcf96230d1e4ec007ac353079a250259aec9c713644c16dc072"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/chat-html.js",
+      "sha256": "0a826f2af713ccda9513b3e7213a5cca18220c424822108750fbc8c6ffacb416"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/chat-events.js",
+      "sha256": "5b21e65f09d54a4de924f0fa1fa6af5259c529d46bc78b69fd5f64b6450e1e88"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/at-mention.js",
+      "sha256": "4ac8fae6da74298dc4cd2f5c0428083907404f10ead80ff341eb909faf083bb0"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/approval-response.js",
+      "sha256": "73991383d1984a065b8e069a80befd40dfbea60453582001a3719a88965196ef"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/agent-session.js",
+      "sha256": "8ac967d52efe8b4ddbce09ff1fd3c6fcb637b590fd87f4f7938283eac324f3ba"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/agent-diagnostics.js",
+      "sha256": "b01bef80449667681929e4e2ccdbbf56b0d69e3689ebb2ae8a0dd3844850b677"
+    },
+    {
+      "path": "packages/vscode-extension/src/ui/worktree-tasks-view.js",
+      "sha256": "b37ca4dc67c6e720ef924fc497e8f4ed76118f065fd5ee1272a5fa02f9530559"
+    },
+    {
+      "path": "packages/vscode-extension/src/ui/tree-view.js",
+      "sha256": "f68a9cea3755dc2a9b1a948cab4f6842a892ce63605812238b44988819fde49f"
+    },
+    {
+      "path": "packages/vscode-extension/src/ui/team-monitor-view.js",
+      "sha256": "6593314a7ff1e326cbf251e04ddb0b01eea61fdb10d08998fc9ec8afe1763a89"
+    },
+    {
+      "path": "packages/vscode-extension/src/ui/status-bar.js",
+      "sha256": "afe51d8a34e582cb5b07b9bb16f1edd576091f7100f1236c1b006a3566e973c0"
+    },
+    {
+      "path": "packages/vscode-extension/src/ui/skill-retrieval-view.js",
+      "sha256": "96eb7f450bb74eddc33b4dd1651802e1a4f6b28f6c6f9c6a05b27d4a4bba0843"
+    },
+    {
+      "path": "packages/vscode-extension/src/ui/skill-catalog-panel.js",
+      "sha256": "f599116def736f6a2e8c9cd1570fc43109f86328bcf082cbc6345e3e6dd159fd"
+    },
+    {
+      "path": "packages/vscode-extension/src/ui/sessions-view.js",
+      "sha256": "d975b60a7349989666137bd7dc863210f4d73ce385f289d4c0230cbf7a152752"
+    },
+    {
+      "path": "packages/vscode-extension/src/ui/policy-view.js",
+      "sha256": "9f6e1a4eb59ef8977a1962a8ae84c9aa46dd1d8ab6c10658cc98a92a0016ae25"
+    },
+    {
+      "path": "packages/vscode-extension/src/ui/plugin-manager-view.js",
+      "sha256": "9c09f88b9f97ed47e2483da7955c60feef82f557e61db4bbb2cd26ffc60990d6"
+    },
+    {
+      "path": "packages/vscode-extension/src/ui/panel-shell.js",
+      "sha256": "4623cf075cffb794c3c7bf2dec913fee88da93ffcc95489dbb4cda584b9276e0"
+    },
+    {
+      "path": "packages/vscode-extension/src/ui/llm-config-panel.js",
+      "sha256": "40c461a6529462b319b6a7fc6c13e1683c618bf23a9aa26c09e7efc649c7a430"
+    },
+    {
+      "path": "packages/vscode-extension/src/ui/evolution-workbench-view.js",
+      "sha256": "0fb85e143b784019c9979f1952369cf4eb2fa8a56da8d83c3a6653be1f43b254"
+    },
+    {
+      "path": "packages/vscode-extension/src/ui/evolution-workbench-snapshot.js",
+      "sha256": "efed15238030572f748027986af0bd7ed0287a0c7ea04c174fce4aa9e4767062"
+    },
+    {
+      "path": "packages/vscode-extension/src/ui/evolution-workbench-panel.js",
+      "sha256": "35028813d956af35549eae0843fc99269d7eeb039772ee05f7f6152793f5d8ec"
+    },
+    {
+      "path": "packages/vscode-extension/src/ui/evolution-deployment-config-panel.js",
+      "sha256": "39e888b35fc6b684f12bfeb26df9d685d0a5968872b86842f298d1dd11b70ddc"
+    },
+    {
+      "path": "packages/vscode-extension/src/ui/dashboard.js",
+      "sha256": "bc7c9a8bf2adb0e36a457c495356797aa5b65f858acff617f41f4dc7323b95ac"
+    },
+    {
+      "path": "packages/vscode-extension/src/ui/context-center-view.js",
+      "sha256": "fae558fc0419b5877cd9ce15f721cd0d05de64e3703d5d48148b55da02b90261"
+    },
+    {
+      "path": "packages/vscode-extension/src/ui/background-agents-view.js",
+      "sha256": "59afdf92a712f50d41e31c6d3533ad4d21d909f164cdc33d489a20c9ac2b77f1"
+    },
+    {
+      "path": "packages/vscode-extension/src/ui/automation-center-view.js",
+      "sha256": "9139b470307fc21622c03cd33bab7f6140f920905d068b607363c84004d2a7af"
+    },
+    {
+      "path": "packages/vscode-extension/src/ui/artifacts-view.js",
+      "sha256": "ba9db31bff1e594543bc29e422361f657b2dc77d9fd95b06cd73a2629aeb0a91"
+    },
+    {
+      "path": "packages/vscode-extension/src/vendor/elicitation-schema/VENDORED.md",
+      "sha256": "f30bba46dcb038176a978db8b2727a89df6e340f726d1973015eff6bd8ff5ab6"
+    },
+    {
+      "path": "packages/vscode-extension/src/vendor/elicitation-schema/index.js",
+      "sha256": "47c6fd68734e1d382f4c8f5a795e0acab0dbc6f602fc4be244b2e0fc85edf7a6"
+    },
+    {
+      "path": "packages/vscode-extension/src/vendor/agent-sdk/VENDORED.md",
+      "sha256": "1781073ac4851868040ab99c66acc1581252d1f9c2ebe2186e0ddc6390ea3c6b"
+    },
+    {
+      "path": "packages/vscode-extension/src/vendor/agent-sdk/protocol.js",
+      "sha256": "a2ec5ec07ca21a122da1a11fd7cf7fbf85831507d81f944fe9e06b1143464a3c"
+    },
+    {
+      "path": "packages/vscode-extension/src/vendor/agent-sdk/package.json",
+      "sha256": "8005a3491db7d92f36ac66369861589f9c47123d3a7c71e643fc2c06168cd45a"
+    },
+    {
+      "path": "packages/vscode-extension/src/vendor/agent-sdk/ndjson.js",
+      "sha256": "06f57b17678a46eff1b6abe0fce8d896ad44fe34084b701aeed6e5e392c5052e"
+    },
+    {
+      "path": "packages/vscode-extension/src/vendor/agent-sdk/index.js",
+      "sha256": "416bf4c3e8b1e8dfdd1f052e0fa31230abd68114200b43bb2e8b2f5aa55c5789"
+    },
+    {
+      "path": "packages/vscode-extension/src/vendor/agent-sdk/cli-json.js",
+      "sha256": "cf268ed4c2b92307c3e621890dd2279d7db76ca6e3ca1a39fd26e05c09ac46bc"
+    },
+    {
+      "path": "packages/vscode-extension/src/vendor/agent-sdk/browser.js",
+      "sha256": "aa6b832fc8e9f6a01a0fbaba38a4d4813c93722441b2ba33ffa704a6b09935b7"
+    },
+    {
+      "path": "packages/vscode-extension/src/vendor/agent-sdk/background.js",
+      "sha256": "f47adf33dacc41eeeb82be95c6e0444fe0951b3ae89e8e34dd880c7b810e0c17"
+    },
+    {
+      "path": "packages/vscode-extension/src/vendor/agent-sdk/app-server-pilot-client.js",
+      "sha256": "f19a0d1203d5d8027360e907425a0857e1e26380b2cf122bcd8aacbe05824128"
+    },
+    {
+      "path": "packages/vscode-extension/src/vendor/agent-sdk/app-server-client.js",
+      "sha256": "7585c5890331d2d913e7d37a134beab7ce83f40db80188dc9ba7580ab09960cb"
+    },
+    {
+      "path": "packages/vscode-extension/src/vendor/agent-sdk/agent-session.js",
+      "sha256": "afb4503e758842f1330fd563dfb1b109a212f6a97f18eb0412e1fac9aa0e65b4"
+    },
+    {
+      "path": "packages/vscode-extension/src/__fixtures__/runtime-compatibility/cases.json",
+      "sha256": "ed1df07f298531ce2a75fb80401985a8990e5dc452b324257fc3581e842cb7fb"
+    },
+    {
+      "path": "packages/vscode-extension/src/__fixtures__/managed-cli/verify-cases.json",
+      "sha256": "f73c9c88953914fcf152a9d5ecc8cdd7392216e9d1000cbf12c240ebcd21799c"
+    },
+    {
+      "path": "packages/vscode-extension/src/__fixtures__/managed-cli/state-cases.json",
+      "sha256": "75f28aa3ffa8b3ed64c81631dbcef61c8a52ad9fa810c3bf5a409df94fe627de"
+    },
+    {
+      "path": "packages/vscode-extension/src/__fixtures__/managed-cli/registry-meta.json",
+      "sha256": "5f74053a4bb1f002a140c50de827a13cf43b794228534e5f4c593ec5630e7cec"
+    },
+    {
+      "path": "packages/vscode-extension/src/__fixtures__/managed-cli/README.md",
+      "sha256": "b8745e29443f0c945f6c8629497f9af51a2bd57766755cd495b42f1c85d353ee"
+    },
+    {
+      "path": "packages/vscode-extension/src/__fixtures__/managed-cli/plan-cases.json",
+      "sha256": "1dc5e2b791fae05bdd3b018e5d461cad7a46aa13cc124967af459801983c239d"
+    },
+    {
+      "path": "packages/vscode-extension/src/__fixtures__/managed-cli/candidate-cases.json",
+      "sha256": "7ba179d6305fd861dc45564a87d86ada3dbbfa6ecae6489a50872c437a343d25"
+    },
+    {
+      "path": "packages/vscode-extension/src/__fixtures__/ide-context-v2/cases.json",
+      "sha256": "7a684c38bcd375c9cdc91615753a51a3d8c7f4e413b970109d1c49f87b2c1dd2"
+    },
+    {
+      "path": "packages/vscode-extension/src/__fixtures__/context-center/external-sources.json",
+      "sha256": "34eeb8c0883a4a5606ee667aa676c8388480e717441b7e38fc202cab108de2b2"
+    },
+    {
+      "path": "packages/vscode-extension/src/__fixtures__/context-center/cases.json",
+      "sha256": "ca405228a0f2ef9f90cccee4b4a17949c10a1a2e1e66c9b37969c8fb3351927c"
+    },
+    {
+      "path": "packages/vscode-extension/src/__fixtures__/checkpoint-timeline/cases.json",
+      "sha256": "992bd82f46300f58bf9bfd1618e776fceac6d449a5da91e0479ef1fc2fe2b5d9"
+    },
+    {
+      "path": "packages/vscode-extension/src/vendor/agent-sdk/generated/app-protocol.js",
+      "sha256": "9581388d63d9b181680e48328cbc4cbd4a952cb5c10887bc71d8b1390b6a4f37"
+    },
+    {
+      "path": "packages/cli/bin/chainlesschain.js",
+      "sha256": "32339064da330222d3f1129c201a5e9473441ed3d12b4758193696d3c3565547"
+    },
+    {
+      "path": "packages/cli/src/runtime/headless-stream.js",
+      "sha256": "66c62522029f509f600024397d73d7068b26840f8356585dac2cee0f019c68fc"
+    },
+    {
+      "path": "packages/vscode-extension/test/extension-host/verify01-run.cjs",
+      "sha256": "7843460e829832d36768c90036414a1ceba5b3a03cca674f981b7e2fa3fdae44"
+    },
+    {
+      "path": "packages/cli/src/lib/session-model-input-diagnostics.js",
+      "sha256": "d0619cce147b1eaae01b6e6c45efe0ee737e7ccc3ae481e4b0299c3eedca78ca"
+    },
+    {
+      "path": "packages/vscode-extension/test/extension-host/driver/verify01.cjs",
+      "sha256": "a4a8a1d3d0e83227f22943e36920883d234fcdc847fb0f9faa08a969abf0c177"
+    }
+  ],
+  "prelaunch": {
+    "at": "2026-11-09T04:47:35.319Z",
+    "sourceCommit": "bcce11f6455ad2584a5ce4fed36b5de6de23f2ff",
+    "files": [
+      {
+        "file": ".tmp/run-vscode-stream-observer-task.mjs",
+        "sha256": "a8222181f6ee3cf33a16f3c4d701e3978ebb01ceeaa4cf08ec6ffeb7f63bcab5"
+      },
+      {
+        "file": ".tmp/vscode-unadapted-task-fetch-guard.mjs",
+        "sha256": "0a8401e18c69d2f846acc07916e772bfa464b667915b42de299d3759af0655b5"
+      },
+      {
+        "file": "agent-cli-intermediary.mjs",
+        "sha256": "50e255911abbf5bb7c3f920813b6816b05d95306b9654fda75af2552225beefa"
+      },
+      {
+        "file": "real-cc.cmd",
+        "sha256": "dc30e7cd8f536aaece09d8dd101be12c321d7d361552fade1a587615b35b986b"
+      },
+      {
+        "file": "packages/cli/bin/chainlesschain.js",
+        "sha256": "32339064da330222d3f1129c201a5e9473441ed3d12b4758193696d3c3565547"
+      },
+      {
+        "file": "packages/cli/src/runtime/headless-stream.js",
+        "sha256": "66c62522029f509f600024397d73d7068b26840f8356585dac2cee0f019c68fc"
+      },
+      {
+        "file": "packages/vscode-extension/test/extension-host/verify01-run.cjs",
+        "sha256": "7843460e829832d36768c90036414a1ceba5b3a03cca674f981b7e2fa3fdae44"
+      }
+    ],
+    "privateIntermediaryCapAddedOnlyForAgent": true,
+    "historyArgvPreflightPassed": true
+  }
+}

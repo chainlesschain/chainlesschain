@@ -1,0 +1,171 @@
+{
+  "schema": "readonly-native-continuation-independent-verification/v1",
+  "originalHarnessPassed": false,
+  "originalCleanupFailurePreserved": true,
+  "nativeRestoreAssertionsPassed": true,
+  "nativeSecondRestartAssertionsPassed": true,
+  "canonicalSavedRowExactTextAndEventIdentity": true,
+  "providerDispatches": 0,
+  "physicalLedgerSha256": "dc9f27e31ad3316eab5cacf91605adb058fca150342db6239854a3ce6af1882b",
+  "originalProtocolUnchanged": true,
+  "profileSettingsRestored": true,
+  "temporaryRuleRemoved": true,
+  "persisted": false,
+  "readOnlyCliCalls": 9,
+  "blockedAppServerStarts": 2,
+  "agentStarts": 0,
+  "processCleanupScope": "Managed Code owner exited with code0 and no Code process command line retained this isolated profile after each phase. Descendant identity snapshots were not captured; this is not complete descendant-tree cleanup attestation.",
+  "completeDescendantCleanupVerified": false,
+  "forcedTreeKill": false,
+  "driverHashesVerified": true,
+  "files": [
+    {
+      "path": "run.cjs",
+      "bytes": 4207,
+      "sha256": "c1a381fe3b9e3f3df4ac90015a97567508c1cffca01abcfeed0efcbd72012730"
+    },
+    {
+      "path": "run.ps1",
+      "bytes": 2922,
+      "sha256": "2df1c092dbc59120d6c6cfbe1077402b904fc4766217e20653bde3843e485110"
+    },
+    {
+      "path": "driver/continuation.cjs",
+      "bytes": 1823,
+      "sha256": "a99f09063d995d6b806397547cb157ea94c22b1717bdd3ad0ce608feb5c5241a"
+    },
+    {
+      "path": "driver/noop.cjs",
+      "bytes": 311,
+      "sha256": "822addad075f76cb7869686b1dff9170ea912b98fcd5d9e8083aeee7731a87d7"
+    },
+    {
+      "path": "readonly-cli.mjs",
+      "bytes": 768,
+      "sha256": "087e3f83d713142689076556168c5f86e907fa8889ee7ee10e2902638f4701ae"
+    },
+    {
+      "path": "readonly-cli.cmd",
+      "bytes": 137,
+      "sha256": "464c7d91e2b3b20c11d1cb74ff0032aec0a3dba4d79e48ef4dbdd03cffd4a6d4"
+    },
+    {
+      "path": "restore.json",
+      "bytes": 632,
+      "sha256": "46c83bb376ff1e17cd272eef82ec184863430e02fc94c73f92052e1acb9c0079"
+    },
+    {
+      "path": "restart.json",
+      "bytes": 632,
+      "sha256": "915d026d656a261e392d2bd08cd8a650355bd7f22f9e846d676014f71401bff6"
+    },
+    {
+      "path": "result.json",
+      "bytes": 687,
+      "sha256": "4746dc044df4cc121944f6bc4163667868fe33f0fd500f2defaa2af0878a4a11"
+    },
+    {
+      "path": "rule.json",
+      "bytes": 770,
+      "sha256": "c1cc8ea5edc4a0a6438a85095f654482c1794def6c5da4fe3f1a478051b20875"
+    },
+    {
+      "path": "cli-reads.jsonl",
+      "bytes": 956,
+      "sha256": "9cf53c53d87418d44880b1298dd432b75c6f8caf40e7ec7a3c657ceb11238776"
+    }
+  ],
+  "sourceCommit": "02f892dbe3091f9c41e5655f4d579891108e03b7",
+  "restore": {
+    "phase": "restore",
+    "extensionHostPid": 42864,
+    "sessionId": "panel-a0542f50-2c52-47a1-8802-f9e646fdc5d1",
+    "eventId": "b42e0a59c152221851a3da6d76fee3bfa6c1928cecc08eea2fd441527834f630",
+    "canonicalSavedRowId": "panel-a0542f50-2c52-47a1-8802-f9e646fdc5d1:b42e0a59c152221851a3da6d76fee3bfa6c1928cecc08eea2fd441527834f630:0",
+    "sourceTextMatches": true,
+    "nonStreaming": true,
+    "renderedTextSha256": "9f11bb5026f633611a4752db3317b17f75cbf691f6c89ee856707e11d3402324",
+    "completedAt": "2026-11-09T04:43:00.296Z"
+  },
+  "restart": {
+    "phase": "restart",
+    "extensionHostPid": 51896,
+    "sessionId": "panel-a0542f50-2c52-47a1-8802-f9e646fdc5d1",
+    "eventId": "b42e0a59c152221851a3da6d76fee3bfa6c1928cecc08eea2fd441527834f630",
+    "canonicalSavedRowId": "panel-a0542f50-2c52-47a1-8802-f9e646fdc5d1:b42e0a59c152221851a3da6d76fee3bfa6c1928cecc08eea2fd441527834f630:0",
+    "sourceTextMatches": true,
+    "nonStreaming": true,
+    "renderedTextSha256": "9f11bb5026f633611a4752db3317b17f75cbf691f6c89ee856707e11d3402324",
+    "completedAt": "2026-11-09T04:43:07.544Z"
+  },
+  "driverProvenance": {
+    "originalHarnessPassed": false,
+    "originalCaptureModified": false,
+    "readOnlyContinuation": true,
+    "driverAssertions": "Same strict terminal text, saved row identity, role, streaming and nonempty rendered text; additionally exact canonical event ID",
+    "files": [
+      {
+        "path": "driver/package.json",
+        "sha256": "6f699eed451cba15f5303b1aafe9d51cc0f9ac281ef928785fcbae2fed1ff4d9"
+      },
+      {
+        "path": "driver/noop.cjs",
+        "sha256": "822addad075f76cb7869686b1dff9170ea912b98fcd5d9e8083aeee7731a87d7"
+      },
+      {
+        "path": "driver/continuation.cjs",
+        "sha256": "a99f09063d995d6b806397547cb157ea94c22b1717bdd3ad0ce608feb5c5241a"
+      },
+      {
+        "path": "readonly-cli.mjs",
+        "sha256": "087e3f83d713142689076556168c5f86e907fa8889ee7ee10e2902638f4701ae"
+      },
+      {
+        "path": "readonly-cli.cmd",
+        "sha256": "464c7d91e2b3b20c11d1cb74ff0032aec0a3dba4d79e48ef4dbdd03cffd4a6d4"
+      }
+    ]
+  },
+  "originalPrivateCaptureIdentities": [
+    {
+      "file": "7a337331-2e49-48dc-ba99-9ce151a18300.ndjson",
+      "bytes": 330225,
+      "sha256": "efeb82c99cdcce6c0d1bee872e9e34f7857f84e852538fa0401fa3891c157320"
+    },
+    {
+      "file": "driver-initial.failure.json",
+      "bytes": 8160,
+      "sha256": "ad0903365f9ebcc8f42109ae3ca8620b0e39ba2aef77f69b1fe8c185ccc7f2dc"
+    },
+    {
+      "file": "launcher-config.json",
+      "bytes": 1026,
+      "sha256": "fa1231387b362ad8afe50b78dbf5115c9de365002ae442213b1191c0b0b10c9f"
+    },
+    {
+      "file": "physical-model.jsonl",
+      "bytes": 2220,
+      "sha256": "dc9f27e31ad3316eab5cacf91605adb058fca150342db6239854a3ce6af1882b"
+    },
+    {
+      "file": "protocol.json",
+      "bytes": 395693,
+      "sha256": "22dbb9faa3cc7228caf07721f7400461d3d6f21a4bad2c2869bd7278e0959780"
+    },
+    {
+      "file": "terminal.json",
+      "bytes": 863,
+      "sha256": "39dd9a9ff4687daed04400b9f4e4dec00bb75e3a0f983e99faf1cb4550337d3f"
+    },
+    {
+      "file": "ui.ndjson",
+      "bytes": 459,
+      "sha256": "32ab773253af1c536de124e43c2688a711399eb754e8c1619932ecd70828570a"
+    },
+    {
+      "file": "vscode-install.json",
+      "bytes": 642,
+      "sha256": "9068ecd1c29465c14132116d4bce94d035e6fceb725404e998c055974fee9b78"
+    }
+  ]
+}

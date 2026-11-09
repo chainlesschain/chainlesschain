@@ -1,0 +1,1466 @@
+{
+  "commit": "171659e7e668276285aa56ac8eadcffcf9ea39e1",
+  "method": "SHA256 of immutable git show bytes; not current checkout",
+  "files": [
+    {
+      "path": "packages/jetbrains-plugin/build.gradle.kts",
+      "sha256": "a9ae061c4cabaf225c580a0f90b928f3ac73e5553b284c9e2d70454520687a08"
+    },
+    {
+      "path": "packages/jetbrains-plugin/scripts/archived-reply-evidence.mjs",
+      "sha256": "9b22723a65e2954926d668ed588cfdd9d0eebd32a61e94df8defbde03208304a"
+    },
+    {
+      "path": "packages/jetbrains-plugin/scripts/archived-reply-evidence.test.mjs",
+      "sha256": "9f33c60057a2277eb65fae277a732f0e2dfcfe77c957d719900f2bcf837e5226"
+    },
+    {
+      "path": "packages/jetbrains-plugin/scripts/build-canonical-model-input-host.cjs",
+      "sha256": "10583b29f85a537acfd4b9e1e9bf3c5c26ba1388e4a1c129e6690358097d53fe"
+    },
+    {
+      "path": "packages/jetbrains-plugin/scripts/conversation-recovery-evidence.mjs",
+      "sha256": "1c45061fcd5670ca4261af2f9f630db152e382847625e5d15adaf65ebb4e5f72"
+    },
+    {
+      "path": "packages/jetbrains-plugin/scripts/conversation-recovery-evidence.test.mjs",
+      "sha256": "ffa08a4bbb2c84b2f1a5c85d3a98f0f0040f97218425a00572cf11faa07689bd"
+    },
+    {
+      "path": "packages/jetbrains-plugin/scripts/fixtures/popup-enter/com/chainlesschain/ide/uitest/PopupEnterRegression.java",
+      "sha256": "ab5faa4e791d6720d411abda9fc197d1e2b0fc21cea2339c27a10d142166213d"
+    },
+    {
+      "path": "packages/jetbrains-plugin/scripts/fixtures/popup-enter/com/intellij/openapi/application/ApplicationManager.java",
+      "sha256": "39d25eafe2a8192d87b91fe4ac38f3ada76b583b54d33fec87954e8437b36d7c"
+    },
+    {
+      "path": "packages/jetbrains-plugin/scripts/fixtures/popup-enter/com/intellij/ui/components/JBList.java",
+      "sha256": "d7b76398246b1382cc3f66d3e9293d594f2e63a8a582cf8e9ba27310ea49209d"
+    },
+    {
+      "path": "packages/jetbrains-plugin/scripts/native-transcript-evidence.mjs",
+      "sha256": "fbd8804d53daa20725f239d1d4c70b3f758351bded874dd7b5247fa572e3ec4b"
+    },
+    {
+      "path": "packages/jetbrains-plugin/scripts/native-transcript-evidence.test.mjs",
+      "sha256": "8ead753a0cb248e3b2ccef2f6f0778ee32dca3db808a0b6981d94fa575ce59fd"
+    },
+    {
+      "path": "packages/jetbrains-plugin/scripts/onboarding-diagnostic.mjs",
+      "sha256": "875d952f660b54a20fa9907f305a5641d479167e1d68bf26e45952bd289706ff"
+    },
+    {
+      "path": "packages/jetbrains-plugin/scripts/run-canonical-model-input-host.cjs",
+      "sha256": "2ac658c080b0982228e0948245d31e0f18289637cbd4fbaf7673eae5c5494194"
+    },
+    {
+      "path": "packages/jetbrains-plugin/scripts/run-popup-enter-regression.mjs",
+      "sha256": "a1c3b62e83f6a767014ff2fcdca3c07d1410c69a0ebde3b40371170c2e4d1a7b"
+    },
+    {
+      "path": "packages/jetbrains-plugin/scripts/run-ui-host-journey.mjs",
+      "sha256": "bd2e7431d93b25281e6927838dc8cdb952ad55b1e3aafc321f3f3233ee3aa560"
+    },
+    {
+      "path": "packages/jetbrains-plugin/scripts/run-ui-host-journey.test.mjs",
+      "sha256": "683e17783c1d8278934476cdaac244de413efac8b772d9a7fa716a629e71a7fd"
+    },
+    {
+      "path": "packages/jetbrains-plugin/scripts/vendor-onboarding.test.mjs",
+      "sha256": "0f9e87dc35f44e31c90017ba3c10e93f69f28a52e2c3f2c480c3519f905550e3"
+    },
+    {
+      "path": "packages/jetbrains-plugin/scripts/verify-release-metadata.mjs",
+      "sha256": "ae844727ac6d3c1461fc66981290b76a9888e0d5da69fd16af4fd28836c7ec47"
+    },
+    {
+      "path": "packages/jetbrains-plugin/scripts/verify-release-metadata.test.mjs",
+      "sha256": "e0ee3309145eaa8f1022f5b72311895fb5e8142cfa4dd7c571a7048df47ee561"
+    },
+    {
+      "path": "packages/jetbrains-plugin/scripts/verify01-archived-reply-recovery.mjs",
+      "sha256": "c6a0c6663c85ff1f381d33f917066c82ccae09add69ac97d204bdde18b5e2d48"
+    },
+    {
+      "path": "packages/jetbrains-plugin/scripts/verify01-diagnostic.mjs",
+      "sha256": "c32bbeee8f4760e3bc4098860842d3aba4b2bff539f086a481f042014b0ae2c5"
+    },
+    {
+      "path": "packages/jetbrains-plugin/scripts/verify01-native-task-adapter.mjs",
+      "sha256": "b8fc449018df5d188d9aada8469e023bd220ece659620b2323cf796e9d08fdcb"
+    },
+    {
+      "path": "packages/jetbrains-plugin/scripts/verify01-native-task-adapter.test.mjs",
+      "sha256": "64121f5ab8b31613608e806cd203d831972584ff12cac733f1f7777ab653d127"
+    },
+    {
+      "path": "packages/jetbrains-plugin/scripts/verify01-public-first-run.mjs",
+      "sha256": "f395e613c01842da85082a309b4d4f939e953012e91e97595357df2e8cee4146"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/ActivityLog.java",
+      "sha256": "58c96ea8d33f952b18b4a1872be3a2cebb4d7ab0d4e0689a0b91ad71c6c80218"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/AgentChatSession.java",
+      "sha256": "3146b03c1967d372d0799cf717dec04d47d6ad1dfeff7e52ddaa9018978e9c01"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/AgentInitFailure.java",
+      "sha256": "f483b08b06ca35aba17940777b367a6be97961e72616d63ecfad9e994df77d61"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/ApprovalGrants.java",
+      "sha256": "4119f49e9dfb506edc4112ae4ecc857ddc7b1ee00fac548b8b55a48d56d8b999"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/ApprovalResponses.java",
+      "sha256": "3264a1bb0f552d7297dead05416a00f8e6502c2991cd100126e70683ca45756f"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/ApprovalSettlementRegistry.java",
+      "sha256": "da44d3f3737e4e772442b855286429929155850779f35453a7b2c369ad9e7742"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/Artifacts.java",
+      "sha256": "bc58ad8e66e5adda8deac6d527df63538c6dcf791bbff35bb172c1ccf2c6f897"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/AutoExecGuard.java",
+      "sha256": "e2a8ee28288cfba0758bad2ea24f67509e7b020f75878800b1c0c38466c14977"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/AutomationCenter.java",
+      "sha256": "a6e00551b2cc17ce9935a8ee2c1fdb3fe1346d8ce494288a7481b3fd73fa48f0"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/BackgroundAgents.java",
+      "sha256": "49c395f3cbe4be7dbf1319e0d309744d71a759b9b933c6b7202b52bfd990c309"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/BackgroundSessionPipeClient.java",
+      "sha256": "554c973885e60b3ab1f58d6a86fd34d86c7ec8860e8e768a20cc2d86da7b307d"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/BridgeSecurityPolicy.java",
+      "sha256": "7c2b5bed16981aedd7e9e2a7e29e52c80e2b82acf100a68be98155d539a2017b"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/CapabilityNegotiation.java",
+      "sha256": "655cb0cc944c85c0c3982c86c7ff2472553914befe9644c66370bfd24bf497d2"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/CcAutomaticCompletionPolicy.java",
+      "sha256": "a42ee0737f0ac2b0779d49d005e4376d1bcb45d73b96b9dce67b7336c794eed6"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/CcCompletion.java",
+      "sha256": "786134558aee070ebffc3b50618a63be1ee0f66ce3d7511c3103c8c1adc07177"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/ChatDraftStore.java",
+      "sha256": "4ec57863ab439fd874dc9ca1411bac8d9fdf9c28a422433055745db42aa1ddc8"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/ChatDraftTasks.java",
+      "sha256": "7e9566bd8ba310a607a0f0fd053fff4e01c7a4d04a10054ea96681ac852922a1"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/ChatEvents.java",
+      "sha256": "4e02f0ea07753320c14cd662fc11266bc85cca71f409f280049b35d886bc47e2"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/ChromeConnector.java",
+      "sha256": "5f5778e8bc552b9f63c3095b606fd3dc74c3145aaf386915bc8d8c464ba7e4fb"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/CliLauncher.java",
+      "sha256": "6efad7e8f3e395196584c0d9f3fe99d0a01f6c59a1c2865415164463d81d9192"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/CliVersionCheck.java",
+      "sha256": "c2c4b3b0cb14c3737ca8e110b97d8ddaf01ec7efc457394823a5e266649c2f44"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/ContextCenter.java",
+      "sha256": "b72cb92ab288539c1949aa00475eba0630b35d29670bed88060d4db7098ff6ed"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/ContextExternalSources.java",
+      "sha256": "04dcd538dadd7f0120acec4bf1a600a426ee1489b73c8659c84727b18a9ce7e5"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/ContextMemoryAuthority.java",
+      "sha256": "169b4cdd092b1c0a216ded272beb49838826ba75d8f1b452f9e4753f68091fe4"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/ContextMemoryProjection.java",
+      "sha256": "977e86da97f0e7a1a0efa3f8edd67b88178e6f2e7499d9ad9d8ad0c000da9565"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/ContextStatus.java",
+      "sha256": "88422bfea0d075a1ef106083f5b8f9f40e80b1a781c362c67e24c70dad75cb13"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/ConversationManager.java",
+      "sha256": "d3e0ae407defa2cddd4189c6e1b7dddf42ac27cc074affaed438d676fdce4505"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/DashboardHtml.java",
+      "sha256": "08edf1cd0adeb16b012fd4aa495dfb9071ac8ea7fe9b9a10cf910956f0b798bc"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/DeepLink.java",
+      "sha256": "ced24e582d546ca83130cf17fc5a154844bd525c2084866431fae77068901fcc"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/DeliveryWorkflow.java",
+      "sha256": "b4711c904a6fa49e2120c1b3d79231af7eb2972e214b1bd02d06e846ad8c1805"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/DeliveryWorkflowController.java",
+      "sha256": "9420ba13be69d4a72c4ece8f54ac0b74267e8be82704f67b2a6e5b29f4fa438e"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/DiagnosticBundleExport.java",
+      "sha256": "8a8c4f50990676837e2373a0a244e3d2e52e87cc91030d09d56533edd328c761"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/DiagnosticsSnapshotScheduler.java",
+      "sha256": "e78cade7556a6845469e16087336ee30fe25e1812985e567cff2e621499f073e"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/DiffApplyGuard.java",
+      "sha256": "e54c0999f8b9fb290963cdfb166fba73ae6200bbfa524d9a6f6144b6a3e435e5"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/DiffHunks.java",
+      "sha256": "160e1488c5c2f614f6f949b2b48ace327a5a4d2998d02fef1c46dc8e59a91744"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/DiffReviewAudit.java",
+      "sha256": "b4a4222ad79d7d46c045351f5dd036a407a803767d7eb223dd49cf6c8ed8a875"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/EditorFacade.java",
+      "sha256": "faa8c9f78517195167a055103e910b632e33794bf5e7bff17a32d8fe3041aba3"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/ElicitationSchema.java",
+      "sha256": "97be61a3360bce9938acde063107b5bc1bcd4d8857655443e1e46feba2ee4e0a"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/EvolutionDeploymentConfig.java",
+      "sha256": "2110e9404bfd8341dc0a207e0c62e8bc89519d7631137e8d510ecb81b34cedb2"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/EvolutionWorkbench.java",
+      "sha256": "36944049bb05a97a952a334abafb7deebffbd87df304d280a2ec22234b4df9cd"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/EvolutionWorkbenchSession.java",
+      "sha256": "46feeecb08176c81ba2b7c71691f24f9ba6966a630e1e82e04d6aa38ecb6d6e2"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/FixWithCc.java",
+      "sha256": "deb67b1b4a7a01cd6a5bfb3a3b342640b4447b85054b061b36b083bdf3e1cd80"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/GoalEventObserver.java",
+      "sha256": "65612edc8e439db5a6dcda902bb71726115989dcc567755f91b9d206f7e1f139"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/GoalHistoryReplay.java",
+      "sha256": "59312c956e37178950a5fb487ec7aa2a25bd6a62eea2b4efc41ecb366cdb859d"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/GoalTaskCreateExport.java",
+      "sha256": "06ff9b4e5f8ded0ac0231c9d1e0d9c38f6f511e4bd99a48d6b6a7ff34357989e"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/IdeCapabilities.java",
+      "sha256": "06a76876f867dd1bdc7a67fcf5c0c0dae47cf2feb8abb1c54a00fc1e8ac494df"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/IdeContextV2.java",
+      "sha256": "9f8367d2546a9445e960c53f4bb4ae50a9b562571535ffbdd5fc4885d8df5487"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/IdeDoctor.java",
+      "sha256": "1419d9655bc560b670432df26fe91316432b96e11f96debbeff6fcf42512054b"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/IdePathGuard.java",
+      "sha256": "7ce1682ac17192cd956a3ff20134a155e4bf35a9dcb322b58eeacd03b5557e8b"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/IdeSessionIndex.java",
+      "sha256": "0d7cb00feb9ec7d801600417afe7a2f84fa7556c9c293e347b6c4d27531696cb"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/IdeToolAdmission.java",
+      "sha256": "8618406bf4e1266ee9541652278759674c2919e8b1858bd3b7a6f32e2222b292"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/IdeTools.java",
+      "sha256": "649a4f681eab0fd6e51b7b041e11a9b7a3b3cad8565696ca2a49f5e6d0eb7ad4"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/ImageAttachments.java",
+      "sha256": "90b46810837d672c8c18c945e5576ad7cbbfe2ee4ccbb3e8e93f3a2d7851f881"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/ImageFileSnapshot.java",
+      "sha256": "7352b7ab4b1fdada3c97576c1c58844441d36a2b1412911ba0f30b29680c2966"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/InputDispatch.java",
+      "sha256": "524497f1c42ed16444035837e82cfeb1bcb8d8296b168456d11dd319c27769d7"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/IntrospectArgs.java",
+      "sha256": "512a7fa5b85edc3a34763a7e6df386c9ddd7d125f8f87b8e5052d026e469d264"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/JetbrainsMcpLocator.java",
+      "sha256": "31aa0089824dda2dba5abbf1f497c46309dbaba8aab5b0123f74ff187828984b"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/JetbrainsMcpProbe.java",
+      "sha256": "17fd275d9d5574ee63013170ea97660c0b209836cd3ab8767ece11013bc57270"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/LlmConfig.java",
+      "sha256": "24b4502928113b3dc534956e425d2cec56160fc46a7ed62c185fa826cc3673f5"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/LlmConnectionPanel.java",
+      "sha256": "e9654e1e8adbf5892f8203c5f66153b520bd47baaf1ae2582b5c3b5e10dd2838"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/LockfileWriter.java",
+      "sha256": "9dcd0647dcfc3758df773fdbfa1707c64127a4112a5e772c6d4e09bcdcf1f9a2"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/ManagedCli.java",
+      "sha256": "ca8e870ea26a9552f5de942e9ddfa7084f913611a36af84931d9b10577376e4c"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/ManagedCliRuntime.java",
+      "sha256": "599111f19611eb3e0ebc783f321cc94ce26b31c8ddeb7905f9088ba47217a4b6"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/MarkdownLite.java",
+      "sha256": "62943329ef0c8856c113c65c332fa3de9b5392b510e66e735cec20e1f2db7907"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/McpServer.java",
+      "sha256": "2f2a2415b4a55eab847145f35f8a6af419fb58abbf6a4e70340fe8ae24330af8"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/Mentions.java",
+      "sha256": "aba349899e7a47ca95d2c585cb5a36a2f2a11d86490a065ada30f0f6ff891f23"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/MiniJson.java",
+      "sha256": "2f8882ad6874840605549acbf5e41b903b1c22b851638e6dfa039c61277939b6"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/MultiDiff.java",
+      "sha256": "5d366175a5626ffccbc508b641678236f2365c35b4cc2dedebd8031a183a6040"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/NdjsonLineBuffer.java",
+      "sha256": "8f5fd42174250fcccfee11b31ac5aa98cc9bf4246f9e5c9b36a191318d80e045"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/PermissionModeState.java",
+      "sha256": "09887b83cbe567195f7c0c91695f4e95f4a92bd6f682f27dd17c60e69e1b0105"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/PlanReview.java",
+      "sha256": "525d45af68d919cf17dc3cfb211e90bc5e0b849ac6ae63bf9779f67a26ddbdf9"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/PluginManager.java",
+      "sha256": "79055ad81699bf4c5269ccba32d7c24790d1624b19b9e2fa0e8056fa9e658545"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/PluginQuality.java",
+      "sha256": "44fd6a1005f6a4c605e8d9b91960785b9a92a25ee0acdb7dfeff2f8ae2642e43"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/PolicyViewer.java",
+      "sha256": "fb2db814b0686f05ddca6201ce70f8a303b6fbbca425c2b57fe9a015d59f744a"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/PrStatus.java",
+      "sha256": "f7f6cde04f1d8892ba2994859dce7210d302cf839148d65aebed40bf6948bed5"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/PreviewDetect.java",
+      "sha256": "4d9d6331ecb7e73b6db04c07e6f879ca22a2a71a82a44d2b91ef1fc4c1a35462"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/ProcessTreeTermination.java",
+      "sha256": "9354a00ccc1e767fd99ffe1fd2919c6d6338a02cef794ac58877518856683fe1"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/ProjectMemory.java",
+      "sha256": "779f2e0e4ea929423ca8c2e60d9cc4c066f22a75108b14c533f8d21385baa2e0"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/QrCode.java",
+      "sha256": "21c291a195ab59f55e0c10cb3fb75435a10cb13658088b6fb0cfd6df61b71960"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/QuestionDraftContract.java",
+      "sha256": "cddf95d9c2c60bc4729801b30ce5d174a05dad0aba04538e33bcdc978b6f253e"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/QuestionDraftRegistry.java",
+      "sha256": "d0e2088334d26412c1a36a9fea8323af8d1733668ae6a779c201174e93efcc80"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/RemoteDoctor.java",
+      "sha256": "9149da2375174d4913671a331b362db47067ca196f258076892d7e76ae92e135"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/RemoteDoctorFixes.java",
+      "sha256": "1031cdca841a98dbede33fc3ecc3fb22d8b3e60b4cdbbd0a13dbaa5b23cbe6fd"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/RemoteHandoff.java",
+      "sha256": "8d250878f4d669a8b7cf18d96b471ffc75fdcba6fd0a7e6338129ae85f703a79"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/ReviewNote.java",
+      "sha256": "7b3b78ca77f47763bbf370e5e3c42610b4e3391e6f34564a9c0ecaec6fd53bf5"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/RewindCommands.java",
+      "sha256": "69f6b79f4e6fa0d459fbc156af05cb225a370ecc984ca1bea9e13c6a58c420c8"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/RuntimeCompatibility.java",
+      "sha256": "8d628cbefaac690338cc18701fcf9ab31939214453a812ab702b5070e1c6941e"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/RuntimeEnvironment.java",
+      "sha256": "3baa0cd0b1176404f9c7334c6725abbf96df2b143e41f485d39f36d6ec02e713"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/SemanticTools.java",
+      "sha256": "b2fd3f09393380b5a1c4c6745cc0a93cbc090922b1536e4da0d4bb8b8dbf2329"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/SessionArgs.java",
+      "sha256": "fed13ee570a55d5bcf99ebe01b3609d081e001fb094825e0603667a62b3ca6c9"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/SessionHistoryReader.java",
+      "sha256": "ea84de3ed206b0752f571f970bc9e5f5b4e1e9e97fedf9408622d35ac7d0f45d"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/SessionList.java",
+      "sha256": "b70131e67f711517c634675f33e4929673c844f3bcdc80248b54f74d84913b96"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/SessionModel.java",
+      "sha256": "d2eedb4f771bf5e7c10b54df6081497fe299649ca2af4d6c8082e6fa56ad3688"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/SessionModelInputs.java",
+      "sha256": "1ae84fa513f562cfb12efdf5115f914d4d87e4925989443ed7529131b8e0fc81"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/SessionProjection.java",
+      "sha256": "03a9b2390bf585f6c2f12c830ae3397d9c2788ad3a00ae2901574a63a31e68e1"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/SessionTranscriptChanges.java",
+      "sha256": "8907b925a5368d00cd04f595491c71a34ecef303a76494f500a33c8876e2c736"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/SessionTranscriptPage.java",
+      "sha256": "8f035a45605ae60ff5e43c7550de9bf9a1c5ef08910d19dc86619459cf3abf05"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/SessionsWorkbench.java",
+      "sha256": "0f49fcaf5076f0ddc694274874f264b6441909abee41e20138f769df30f32040"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/SkillRetrieval.java",
+      "sha256": "46805592f791ba4a50ed98ad2d11f028903bd96c1a2c2e28ee647b49ceb20d10"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/SlashCommands.java",
+      "sha256": "56840a5594019bfd016322fa04c21f9ed7325dda34fb0e979b37178967c1f677"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/StatusBarText.java",
+      "sha256": "0f0179dbe358424eea5f27dce94e82eefa4021c66535c2c4e9d74c4dbcfdcfd7"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/TeamControl.java",
+      "sha256": "a4148cfd82b6dca122cee0db81e459a52c920636055081e928bd54df565ac922"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/TeamControlCommandRunner.java",
+      "sha256": "c9e784c13ef52f469cb5563ba3055394b197f4dc02e7d809d9fd0de287f87401"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/TeamMonitor.java",
+      "sha256": "98a6ef09356345dcd830c23e4454d87e8a87e230f4a914a7d8a626c66e63c110"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/Tool.java",
+      "sha256": "b02cedaa865848ca055f566a8c11e38216d4c4da28d8b98fd1c648a08e9c858a"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/TranscriptCap.java",
+      "sha256": "07239b0e423f8fef2148e50b9c9541c32daa6df5224d0312276b38f3d7a363ca"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/TranscriptReferences.java",
+      "sha256": "be3e507165cef55eb96db46639c26e2375f793b8212e260b9839f08eaac25091"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/UiEventDiagnostics.java",
+      "sha256": "f6523a6e58344f5afaaf224e6faf8ac939674dadc68d2c503f2b3f0494935fe3"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/UsageReport.java",
+      "sha256": "fd60f028970281c4c579e5928201e175530aec8de7a1bc6c51869f5e46d66d9e"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/Verify01ProtocolCapture.java",
+      "sha256": "096527622b942a969f3c1d5425a32e6a4654e5caec3145679eb9ba5909b4e9e8"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/WhatsNew.java",
+      "sha256": "c61d64d3066ba49e9318f4dd43a982c4c2a66fb0c09a0c5d3457df0893402970"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/WindowsOwnerOnlyAcl.java",
+      "sha256": "f2153e5818a01ca0f45dd38f591ea6c1da6097aa788b686cf604b09f78d61785"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/WorkspaceMentionIndex.java",
+      "sha256": "0f9d6b400e45ef6be6efa4f226628be05ad2d038790ea0ec6f67bf0f1e7775db"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/WorktreeTasks.java",
+      "sha256": "d6298eab547feee9c3259f30a50f3b27e0f20910abb9c05e911f582d32217451"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ArtifactsAction.java",
+      "sha256": "e301c211296cf1a1f21db7ced148fd089779297930dbb4222652ec4564ea3c3e"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/AutoExecScanAction.java",
+      "sha256": "915d0dfe0a2e6d3fc814df3ab9845e89de3f87ab5584e0c955cc3393ebd4631c"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/AutomationCenterAction.java",
+      "sha256": "e68770b1e3119ff48d57695b3c27cb79e02e8f610e06a223d25546cd6b27df02"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/AutomationCenterToolWindowFactory.java",
+      "sha256": "f71b572621512d92a1ad09c1107545aaad65cfa3f611d00c4d18d0c37aedc1ac"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/BackgroundAgentsAction.java",
+      "sha256": "bb6351ec2e9248abefc61da3308165c50a960ba7938c2fd1666b15cf615e1c63"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/BridgeStatusBarWidgetFactory.java",
+      "sha256": "64943e3dab1883f3d146c48d6e41a8c19573754c36f0cf6bc8ce655de9147b63"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/CcBundle.java",
+      "sha256": "5776041fb1fcbeefdaba75b7a14aaa3655bb0c2e4a9740dc9ff7845585b70ef7"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/CcConfigurable.java",
+      "sha256": "e28245f23723bafc7bb1bd532213637b049ce70df83007fbcb950371a7976708"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/CcProtocolCommand.java",
+      "sha256": "f3453fa56458967802aad7c5d895faf1990af6b54bd871850838ec174a42ebf8"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/CcSettings.java",
+      "sha256": "fe6dd4e061daf1dc50c681b2ef6a1e88fb5f3d889b273f73d3c39383a216a7c3"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ChatCardsLayout.java",
+      "sha256": "8f1902826aed0cde24d6ec6547f4a812e9c1bcc367b05bf3751b7f4d41f0491b"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ChatComposerDrafts.java",
+      "sha256": "216957e107718943bd96c323b2c02b37199499f4871b91e26b861722b688c6a6"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ChatComposerImages.java",
+      "sha256": "036c70afab0381ecf51b09ca54798d7632e1ee015b59fde7527e1823886f8ca6"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ChatHistoryView.java",
+      "sha256": "b4b8c5ccd8f540d820e70369fc80846363787664cce939ec0a8e70d4dcccddc1"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ChatMentionPopups.java",
+      "sha256": "c1527d0db7137dbd4d46ff651ed8a55be9ea95635b331041e2fbb9664a46f303"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ChatToolWindowFactory.java",
+      "sha256": "a66fdd0123ecedb7f90229f9a5ef229b93dcf0630a0601e3bc81e8daee29d2f1"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ChatTranscript.java",
+      "sha256": "db0313f0825981289d9e3e73efef32afcd89ad79966636d0169c9546306a2ea6"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ChatTranscriptHistory.java",
+      "sha256": "0d27868c087947b6929c96f22bbfc35105e18d0f386cce04e9469c38db609115"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ChatTranscriptRendering.java",
+      "sha256": "203d6ede6fade392d9ef8dede253e67b321fb2c5814ca0974864648df6b6e7da"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ChoiceDialog.java",
+      "sha256": "5364251b24c01bdb0484fcc9a2e91a7c17031f126600dabcb2139fccf105f88d"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ChromeConnectorAction.java",
+      "sha256": "cdef6570a407436e07f8ea8a490e5a803b1075b7ae46aa9a08a6c2e712471f96"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ConfigureEvolutionDeploymentAction.java",
+      "sha256": "e420c76dec6f56832b7837e5df35b98e98212e7d5768ac68fa49c56e06b1d3cc"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ConfigureLlmAction.java",
+      "sha256": "96d23b7e27d2971bee6c96d6eb8caa81c9b763009fb8b0024d90c12ae9e88963"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ConfigureVisionModelAction.java",
+      "sha256": "7b9516a1ef39028060b31fc09f6ea8a9634f8d1024288995002511df789b36a9"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ContextCenterAction.java",
+      "sha256": "51e2a9b79988ad37274ace2e410c92277dbaccc00a3c4813216b77eeec501dec"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ContextCenterPersistence.java",
+      "sha256": "c7c07084d20e5a6c05f3bbfc6bbb93501064580840027e0a9faa79d553de320f"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ConversationView.java",
+      "sha256": "18dd249d1b8209301ee8fcfc901384d182e4cbdb7996e85f3ecd8c992cd7eb3e"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/DashboardToolWindowFactory.java",
+      "sha256": "eed38305f01ff31e01a0b6cea31efd8d2293f24c312efb3614bdcadeba25fd7f"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/DiagnoseBridgeAction.java",
+      "sha256": "df99fc0c18b71fac362ca6f75e6d11e1259de56d49c3a26265457d66e5c0f50b"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/EvolutionWorkbenchAction.java",
+      "sha256": "8b884aec1a5990611f952d66688f5495d919dbb8a553493504240ba29aa5d091"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ExplainSelectionAction.java",
+      "sha256": "8aaab9f4f41c537c50585f82e11732dbc69487500bbd9347adc7ed8891ebe1ec"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ExportDiagnosticsAction.java",
+      "sha256": "4cbc97866d65ddd70792ea9ec33eeb96734ae06b4d27be54c14d2741f7ab312c"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/FixWithCcIntention.java",
+      "sha256": "5167bfda812ea5f854fe209026fd500f2f857f0626674de530837839260f2500"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/GenerateProjectMemoryAction.java",
+      "sha256": "0896676063c2e2daefc916327959934384af5411969a890e1820f642a77de86c"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/IdeBridgeService.java",
+      "sha256": "183d45ac834d73e0bb5734a83eac45638e6dbc4da8f437d47c52f5e6c876c39b"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/IdeBridgeStartup.java",
+      "sha256": "882decb831e5b1a1cbf0172da085739a6f92d283f9e3735fab64e0ba7f45692b"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/InsertFileReferenceAction.java",
+      "sha256": "f1be81df3e667ae098a4a9a03eed5c29932afa2558dc479183c8635b510615e0"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/InstallManagedCliAction.java",
+      "sha256": "25301b612e78755bcd23a7051f223b7a3bc320b599c9db56d55403b8c8e4df80"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/IntellijEditorFacade.java",
+      "sha256": "e292dd37babe6e8c50be81e840a7d3b1f2c9bebfccfb66937a3c225ddba5e83f"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/IntellijQualityContext.java",
+      "sha256": "c05b083b6fca69ec183e07039496463760b46c14f013b7fa89c63401f1e53932"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ModelInputDiagnosticsAction.java",
+      "sha256": "4b7dbd2966f96aea58627eac55c3f69fa934642fc36952f86391e9622636fde1"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/NewConversationAction.java",
+      "sha256": "71a11289da0b7310840ed731b7fdd1f6556aa873ba1161fca8775b5ffc6038cc"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/OpenDashboardAction.java",
+      "sha256": "f026f0c10d991e75f7de7ff8598318c1972d27b3e043a423e88bd7cd7c69cf03"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/PluginManagerAction.java",
+      "sha256": "d1238bab19824432077063e2d091d9d0c56d2cc87cbec6610651b0e5a4e0c99e"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/PolicyViewerAction.java",
+      "sha256": "a798ca6e55a5eb055bdc1262a91555f6bcf59a1b7f34685e286085b2e9871e89"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/PrStatusAction.java",
+      "sha256": "71d8efe13685d87bdc81b57b01313608b7b22bcdb85a27d64e03564289f28e85"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/PreviewService.java",
+      "sha256": "f456dcb46edbf03582e4c70ce697332310dd4bb62de2cb6adefc1d40be3b9563"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/PreviewToolWindowFactory.java",
+      "sha256": "ad17a13dbe8921a1f010d918f8d32438180f4b3a157c8821eddfaaf3b4d584b1"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/PsiSemanticFacade.java",
+      "sha256": "1b2c6887c30f7e1be6f46471910309d24c0c3fc86609671954f65d2e40ffbf60"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/QuestionFormView.java",
+      "sha256": "b0c18c3b54d887026fefbecaed016707a4384bb696c15918e73dc2bc70d99e76"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/RefactorSelectionAction.java",
+      "sha256": "98e9f5078a49d09846c9b82ef15dcd8b5450c90d84b4bfeb1fdc39a8f5d84308"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/RemoteControlAction.java",
+      "sha256": "a117b7ddd99ee33a48fd89fd336ccc9cf85d5f579e55a683810e556ee52f53c4"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ReopenClosedConversationAction.java",
+      "sha256": "0810ed944cb63e414b3ecf4175c975b66781763aa46bb5171dd582b00d16d9b2"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/RestartBridgeAction.java",
+      "sha256": "2148f1c5925770dd2015f638fc78f2427732c399e5a93070d12e8392ab560bc0"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/RollbackManagedCliAction.java",
+      "sha256": "0016c28812ecdaee263250ae5bab7afb12ca7e5c404329e8e2f62dd72d95193a"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/SessionsWorkbenchAction.java",
+      "sha256": "32f4830e9e5ba8c1e5d8bf1186f24241a27f60fce910887b397eb85a7a36df95"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/SessionsWorkbenchToolWindowFactory.java",
+      "sha256": "63046d835c75b61dfb540a75535ee0a33d24f65dc403e892e80823bfeb52d700"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ShowActivityAction.java",
+      "sha256": "f856c8feff4a26a4ec30b23ed02d8b266d5e458d00d6ce3dc4695fc879a2e9b2"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ShowMemoryFilesAction.java",
+      "sha256": "5ed343ed5b2dd15997c13dd0370f3cd2d5adc926adc5e43ff33735aeb2c10b2c"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ShowStatusAction.java",
+      "sha256": "700729e8a11a836283498af5c162cd3904687f9abcd8899e14a24932651557f2"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ShowUsageAction.java",
+      "sha256": "f5e2e357ff7e3dc4a0dbc93c5d1458ff101bd8eb9f8887499cd01b4b94546083"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ShowWhatsNewAction.java",
+      "sha256": "7b5d68e4fcceca2462eb674924f11c77828203e67ad2dce3720aa2d4a3a78470"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/SkillRetrievalAction.java",
+      "sha256": "2b7061ce6c34325bcefeba94d781a1b68665a7024d3f1aa31e1c4df339d48bd0"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/StartPreviewAction.java",
+      "sha256": "b1858f5a92b0e09fecc068841e51462ca2049b09316201008c64252cc0e4efa7"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/StopPreviewAction.java",
+      "sha256": "362866203d77fd41b0338fe8f0223c641a09fcd29c1388db25ea9888e9aaf69b"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/TeamMonitorAction.java",
+      "sha256": "8d50151cd13e3da88119976bdf5765f6a888cec9f4bebdf359544e4a42185ec6"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/TerminalLauncher.java",
+      "sha256": "9914c35e1380e5643eed28ab82873e682a50b7f04456456252aa8f43c535537d"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/TerminalTextReader.java",
+      "sha256": "06c41907c2c25d58d3f6193bbd95bf510168d251a759715b85e496b2226aa62d"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/TriggerCompletionAction.java",
+      "sha256": "4c8ddd3f43403aa87904415f20b5d2b7285c50d1a0e926aee7e0c1943080089d"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/WorktreeTasksAction.java",
+      "sha256": "0f77520877b303fb6dc1d17faef0f0ec8833d25759f53736964d02c992489b21"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/kotlin/com/chainlesschain/ide/intellij/CcInlineCompletionProvider.kt",
+      "sha256": "5f048635a4af2e7d33be036108ec55de2d1f6698e46139f5294df39caf11a97e"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/resources/META-INF/plugin.xml",
+      "sha256": "25e95ec43ce40ab63c9af788d46869ef25e8adae9cb3f9dd0283765b8ad6bbca"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/resources/META-INF/pluginIcon.svg",
+      "sha256": "01270ee5fd21408d77907a734facd50566af444403628ff49411b07c19d41d56"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/resources/META-INF/pluginIcon_dark.svg",
+      "sha256": "01270ee5fd21408d77907a734facd50566af444403628ff49411b07c19d41d56"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/resources/icons/chainlesschain.png",
+      "sha256": "a24faedef45a727f9b6355e8295e847d5f73bd6f8a7ae4561994709e1f821e49"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/resources/icons/chainlesschain.svg",
+      "sha256": "327e5df6f5afa1ba8e8bf5a9c743d010cb97fc488668b13fc6dac7fbfc260c1b"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/resources/icons/chainlesschain@2x.png",
+      "sha256": "d5b39e5d0e5af2b09e05f6fedd597980732beecf7d787c4d672af93706e38441"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/resources/icons/chainlesschain_dark.png",
+      "sha256": "b10cc309297b5504a8b0ab1e0683ee3c1f4833e52dd451e37ec06d48731c693a"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/resources/icons/chainlesschain_dark.svg",
+      "sha256": "8fb44efd574a6abf909d41d0d51b4e3401ec6d00ac93ed21c909ba9b949bf13f"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/resources/icons/chainlesschain_dark@2x.png",
+      "sha256": "c60c2819431a5191251bf31378e4004bd9466451cefd12ec079b9cf4b2ece02e"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/resources/intentionDescriptions/FixWithCcIntention/description.html",
+      "sha256": "f75965599401e590a3ebf62c288c4931ae03fe406843bdca7e4e5e393c3f8e22"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/resources/messages/CcBundle.properties",
+      "sha256": "7ef6e449be0af131c90774d38a696cfb4c661ae9d4e2767865dba84547e79a67"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/resources/messages/CcBundle_zh.properties",
+      "sha256": "3129e52acde9fee6a8844f4e0e7937a67b2701945cd276467ded694402f5d346"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/modelInputHost/java/com/chainlesschain/ide/modelinputtest/ModelInputProbe.java",
+      "sha256": "fc3e4a2ce75044de616e7b503c767d626ea466087ca6d22d4638b52f01bb5dbd"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/ActivityLogTest.java",
+      "sha256": "76183e39cbebc7261814217ef9b6813fc28bc7ee0b2a4e715c3c5b547c72bd68"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/AgentChatSessionTest.java",
+      "sha256": "7636d6e7ab02f1f7412c5108998deeb6ffd5728f59bfecd63098a33e1ce82d14"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/AgentInitFailureTest.java",
+      "sha256": "95860fe012c4ad44b423bfc39c147918844c34a385e1e061fa461ded20bf0119"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/AgentTerminationTest.java",
+      "sha256": "f5004f1a46df93eaea8c1b6ee73b60faa62cfaaaa6ea80c77ed2ba359fcf6c03"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/ApprovalGrantsTest.java",
+      "sha256": "288d53ad01c627cdf9c6d771f4041e26fc5fb0e55348701698409acc174a2b0c"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/ApprovalResponsesTest.java",
+      "sha256": "f29bcf1e2ce5efcfc47506a8f80fc6ac1078d04428729c7e499abededdf63f69"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/ApprovalSettlementRegistryTest.java",
+      "sha256": "6ce71dab41174a91ef57ac84a9cb5e7c49896fdb3ebbaa3a4a7b2756c06743de"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/ArtifactsTest.java",
+      "sha256": "827363ac866c02f61d185b08a98e10b777048868635a7162a02263bda509afc3"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/AutoExecGuardTest.java",
+      "sha256": "dfc3cc735d8f46e918528f0df27061a376c5cc9f124d02ea808a79c487299707"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/AutomationCenterTest.java",
+      "sha256": "41405dc6c96277adcb480f9d311a446eed955fdb7ee672c4231faf8cbb9795b1"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/BackgroundAgentsTest.java",
+      "sha256": "c115cd8745b17785d4c165a1e5ab9e74e20595042b8ec826e5dcd4af91f6c4c3"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/BridgeSecurityPolicyTest.java",
+      "sha256": "08071eb13eb0bd6a867d1fe0b5a00f81695b546aa06133977af2b29c4c5fbd17"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/CapabilityNegotiationTest.java",
+      "sha256": "588073d942d95f66c9fa0ac0047188d80b29f856b21d66f7db696d12363695e9"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/CcAutomaticCompletionPolicyTest.java",
+      "sha256": "b679232f57e13e109fc9da6c188f8d042e36527c24cc9d25c4110029a0722d96"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/CcCompletionTest.java",
+      "sha256": "213cf67393741fee41ccfaff2680790a9de67e444fecbe1323ba8d2e4dd4964d"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/ChatDraftStoreTest.java",
+      "sha256": "46ec76015ad85353e26b44510525a239ff415138ebb0f5e9d9e895360cbc39fd"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/ChatEventsTest.java",
+      "sha256": "eb2f49efcbe76cea1e5b9da49d75d3c4cd4a33d18e0eeda8feaf4097284bcb39"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/ChatSmokeMain.java",
+      "sha256": "e0f989b6317f9b9f765f1e9a0aae03bd9d726f9fd0f0dd8803e834e4fbb00895"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/ChromeConnectorTest.java",
+      "sha256": "14934d8fad9109adb7fa9cfe452304e1bf9872b6ef4eb664a80fdcae40293d79"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/CliIdentityProbeTest.java",
+      "sha256": "8357bbcb140ab1829995b0fb8f95e0687964a478e975fb22beaf277a4ac3640f"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/CliVersionCheckTest.java",
+      "sha256": "9acc69448268793c917e71967b09161d39d10f0d93f95632c864ac68878ba90f"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/ContextCenterTest.java",
+      "sha256": "0e036dae561f9bc5f9fadfbfdfcdc3d3148b4d495825763c20c2bbe504a45f59"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/ContextExternalSourcesTest.java",
+      "sha256": "2cb356367ddbf571ce9c0f1d094c26e3974e1e531daad8e2dfe18d8db1c24079"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/ContextMemoryAuthorityTest.java",
+      "sha256": "c298586dc4f6a3b9b174d32f2a54c94517dff604704b3bda1d94a56a3ff6120a"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/ContextMemoryProjectionTest.java",
+      "sha256": "4162c09a1e3356f49f24912352d6cf4251219f04985d29c77e0251c071ecf892"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/ContextStatusTest.java",
+      "sha256": "16ef1eb68f2c9a6a5dafd74d54294af00950bdb8bb1302947117cf2946658271"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/ConversationManagerTest.java",
+      "sha256": "ea5406634eab4d523e243c4134ada53897e27834f7d52bb5923e43fcd3ff9b2e"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/DashboardHtmlTest.java",
+      "sha256": "23a0708efb48bc151b18aa7b2e629c83201ff35513ea327018ae9e0c4d675c2a"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/DeepLinkTest.java",
+      "sha256": "1c17cb3190b7986cbc67e56475714bf04c40912a9e9d7786275976a2aa84815d"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/DeliveryWorkflowTest.java",
+      "sha256": "d8a0ef51a63b221ca8ba25e258260ca2a380f3fef30b99d1fb5b42304019dd8d"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/DiagnosticBundleExportTest.java",
+      "sha256": "97ecb000b22f9e9bc790ee17253beb5df09c72882ac4e3666aca336fb25b86a9"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/DiagnosticsSnapshotSchedulerTest.java",
+      "sha256": "e1eafbc710ba1987571fe209769c4fb552650e9c3f3361bb9ef76baf006b0027"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/DiffApplyGuardTest.java",
+      "sha256": "6f31fcf190cb4b3af5859345156e8904e3f323213163d43ccb2d61618e403983"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/DiffHunksTest.java",
+      "sha256": "a6448a61063f68a61465ad23d082b962822bc0e7a3a763677eaf05f5c5c687ef"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/DiffReviewAuditTest.java",
+      "sha256": "00f1ee0f3eb5eb84f6dcd43cb56f5d5c06a2078be4601311f480441ec00099d0"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/ElicitationSchemaTest.java",
+      "sha256": "6d9a585c7c285914f2c4ed8a6364ff537ab5fb0e52cdd95b4a4a8903a784eea0"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/EvolutionDeploymentConfigTest.java",
+      "sha256": "580a3aa252e6723e19db1aeb3f71de93fd2958ebfab98f9faf81e2c9e4be2b8f"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/EvolutionWorkbenchSessionTest.java",
+      "sha256": "4e575b4e2787f09e49cc103628bf71b64a862471588226576585a7539720c7a4"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/EvolutionWorkbenchTest.java",
+      "sha256": "f84bd165da58eab1573ed5f2ca9cda203d882979dee9a9a59b166957cbdc7775"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/FixWithCcTest.java",
+      "sha256": "5e1857d8cc44b6595ffd8c27f64ed5aa31766b83d4a678b1cb7465389a6ae3ec"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/GoalEventFixture.java",
+      "sha256": "be5f1bb25b2a3391aa4f9cb1b071d6fa4fc159a8a03cc44569dae01f6558c625"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/GoalEventObserverTest.java",
+      "sha256": "0d3402e4f474d1441c4b7454b5f21fa1f21d33dcca3e0b5db2115a4804c52bba"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/GoalHistoryFixture.java",
+      "sha256": "3c5cf1cc02f757f9f213cf13b610f89ae67a15acff62645a5c2c69bb3fc95ddb"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/GoalHistoryReplayTest.java",
+      "sha256": "2f215a5ba4bd138e422735f9b46e07af65b9da2d0d0d7d3795a61959f10ea8fb"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/GoalTaskCreateExportTest.java",
+      "sha256": "7addc444b475f2a9f0dccabd55df700132ef281e172f548546be6353e440e400"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/IdeCapabilitiesTest.java",
+      "sha256": "1970590550f233c92042c812b72941cd9c8a657122974f9d47db6ba2eccc4fd9"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/IdeContextV2Test.java",
+      "sha256": "b5cc9c9964d75dd65158d8b3ff5fbed6a58f7d0c22e2e8c3651b0399f95668bb"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/IdeDoctorTest.java",
+      "sha256": "28b9055cfe126c614b347b46a3e11edec46defd57700258f259b732a6f391e73"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/IdePathGuardTest.java",
+      "sha256": "d58d32db266aaf6425f835137e67b76d16e5f8dac3889fd5d99c455ad1e33a23"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/IdeQualityToolsTest.java",
+      "sha256": "07eb4e4864ae71000aac06e08bf23210c8b662b0a1e955ea8a0d0ae143b5ff6f"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/IdeSessionIndexTest.java",
+      "sha256": "81bbed61f42ad6bfbd026b47fb7c6f502015b2cb795c517d2dcb6eef68311432"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/IdeToolAdmissionTest.java",
+      "sha256": "9e96a7db22b58706d535702f47150af5eb4bb86e6111289edefb702b64395ef8"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/IdeToolsPreviewTest.java",
+      "sha256": "d4fbbd3fe7418f17c63b4742e232fcbfa84cc8e80f3ef7aae8f42424d74cfe83"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/IdeToolsTerminalTest.java",
+      "sha256": "d3e3ab5c23fb370ffd13254882a1b7614f03dd499ba20632cbbe1b12674d9960"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/ImageAttachmentsTest.java",
+      "sha256": "06efa03206c5a7686f2540be6f24efdbdf77ce7d6afcc7aa9773a53d1e25b0f2"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/ImageFileSnapshotTest.java",
+      "sha256": "37af1ee26bf5ba0ea3ce15d32659929a6ff60bf920c165908c8e95f9e6cc4ac1"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/InputDispatchTest.java",
+      "sha256": "fbebb39cf9aae18e4c81fdd77a2f2c95cc68cfcaf31dddc4bdcde6ce3b9557b2"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/InteropSmokeMain.java",
+      "sha256": "e0bf42f676d193060dba974dd162e6ce9677ac44d07c7f0e4091c2ad06d15e41"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/IntrospectArgsTest.java",
+      "sha256": "df064fae03e724b6bff81d3860fee13cf4d2afe71db22fbf4589e642d09b2447"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/LlmConfigSmokeMain.java",
+      "sha256": "a62c3d83949bbd49ebceba218b5f37640a5fbb0c01edd211c4f512db5d866ef5"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/LlmConfigTest.java",
+      "sha256": "6cac6c623fa2dbbceaf5b169f56d9c623249c89e819b2efd90dfb7e104b90b22"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/LlmConnectionPanelTest.java",
+      "sha256": "ebd7e77648a50a8a10806ac05eae9fc9aa607f9848552874462cbf2fd69f7883"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/LockfileAclTest.java",
+      "sha256": "94ab98426e303de7b6ba460e534722129dd32c83f143c0cd434b245733e4e944"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/ManagedCliTest.java",
+      "sha256": "dee0ae2e7bba80711f01dac425aa94cdd3b92dd327263cce4ba8840ec9959c32"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/MarkdownLiteTest.java",
+      "sha256": "39c51ab6686f7d139ebf5563042be959cb99d601b148c0750f3f7aa19e604182"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/MentionsTest.java",
+      "sha256": "80c8aed3dd788909f475454d6c29ae4511ff3fbd5c38043f8d704313e170d3ae"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/MiniJsonTest.java",
+      "sha256": "8495237e3fa2665435ec55dd75bc27cbed571796fcc37cddd25d710988836753"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/MultiDiffTest.java",
+      "sha256": "8022ab520937baf0a120e9ef7da73669d12cf5c111bedc7a6fc3d303b0d60e46"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/NdjsonLineBufferTest.java",
+      "sha256": "ac9b69d4ace2f720d7976099754c9c9885ed5074360ba08fc43b7547211dfe1c"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/PermissionModeStateTest.java",
+      "sha256": "7a6f83435e83a4c8b9868af52e5c7238b8c4ba1938237654ad8944e8394cfe81"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/PlanReviewTest.java",
+      "sha256": "81d90f5af107e7bbd18fb9dad14fb9bc40e952a87bd99b2a8cc35b80fa04ead0"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/PluginManagerTest.java",
+      "sha256": "667ac33fa8dcbe3e10e0e35a4d7e159c8e8a6393ca64bd690276b82996f29bd1"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/PluginQualityTest.java",
+      "sha256": "f2902a5de76300a8260a85da793c3c00b764349371880e203e276cfc1f4837d0"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/PolicyViewerTest.java",
+      "sha256": "09e4645c3f3470b762473a154d3e7623c662b3454cbb81b52e2dd08c2fdbc3f8"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/PrStatusTest.java",
+      "sha256": "5282dc937063db6074f308c422505d773b332c72a30095ef082643173dcd4812"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/PreviewDetectTest.java",
+      "sha256": "4d4c9f8b4e6bdbf01626048224cb56bcbd6468b8d5b5609ff22fbc60aaa6e56f"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/ProcessTreeTerminationTest.java",
+      "sha256": "7ae38124e6f5a4eafdbd0a2bf82ebbe0b6443a3b271b4afd76877fe8fb4f41bd"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/ProjectMemoryTest.java",
+      "sha256": "ceaa4eed3171f61103f761a52de16132435262caba8aa53918097ce4280f048d"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/ProtocolFixturesTest.java",
+      "sha256": "0386c189f94c6b3a812e894006a9e9f6817e4f551c612e94c46c285020f18a19"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/PureLogicSmokeMain.java",
+      "sha256": "b59613df716257ee0a36ec476249a0900897dad3cd1f7b7bef5104265ef139ea"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/QrCodeTest.java",
+      "sha256": "d61143b34fd9619ad1799da46b2cf78f997543a57f90d944f5d04f3e5b32bb52"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/QuestionDraftContractTest.java",
+      "sha256": "7e8615c327a0d929e660250a21ac3c17550cdeba7a97b12c121c03ea0937b41f"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/QuestionDraftRegistryTest.java",
+      "sha256": "bc5ea8771f5e2b146853257019b370961b618d16aa84389a02fd0e6367bcea29"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/QuestionDraftStoreTest.java",
+      "sha256": "5633382370b8889ab59c953b93d7b4207adbabd447658bc2e21692f94d74566f"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/RemoteDoctorFixesTest.java",
+      "sha256": "72ce0ce72d5493a2c874cf0d072c4cbabc86c277b14409b7e2816325a813deaa"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/RemoteDoctorTest.java",
+      "sha256": "fdf77eb8af25836c3938d459e2dab1a4501479a3a03cdc809c06b53939df1a0a"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/RemoteHandoffTest.java",
+      "sha256": "f6f8985a393e42deebbf4da7cea77424e6b352cd6e41b4301b7484b823c7e6e2"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/ReviewNoteTest.java",
+      "sha256": "df0106cb152c9da83969a48264d0c12e79f0e5a21e9979cbb01f8af17691c0d3"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/RewindCommandsTest.java",
+      "sha256": "93929ffcbca53624118081cc70e8b4e828a07d36ef75db292d76d01dc45381da"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/RuntimeCompatibilityTest.java",
+      "sha256": "f25d43fa75a910588ec5e02cbd5b2503ebdf1b271c3555dac9d4410cf4641bdf"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/RuntimeEnvironmentTest.java",
+      "sha256": "b95fdc6c1a9fc9b7ce77992203c10553abb572e26d972aba1692b0d34c0cae23"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/SemanticToolsTest.java",
+      "sha256": "033dcc90ae90b85fd8861e8cec33c4ac32a34fa005bde7eba19373919fb6845f"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/SessionArgsTest.java",
+      "sha256": "ea0bdbfe27e17d60b1c26b490ad662bdf10626ac547f7d4333877051099077bc"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/SessionHistoryReaderTest.java",
+      "sha256": "16ba69702ead57f11718ecf7a4f087ace7af978aacea53b23f09e061cc18ab72"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/SessionListTest.java",
+      "sha256": "33f5880f9762f7d92d60c877ce38af9044c026e6c03cca1a5ed3afd231d642c5"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/SessionModelInputsTest.java",
+      "sha256": "06f974d6203da0cdb07913504afa41cde349b66e82ff3b7f94a2a1c058ea48db"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/SessionModelTest.java",
+      "sha256": "18be92430556b8a881ff85d7d45ed229f6dfceb2632d55cbb785208b6603a163"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/SessionProjectionAuditProbe.java",
+      "sha256": "5a2b750a6974cf62f6a1af4a9f9702e1c237ad1db037760ec71fd6b3053d050b"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/SessionProjectionTest.java",
+      "sha256": "7a45445efc27bc845f8524719f85e2335e92edcf944ba7598a428983f11f7f4e"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/SessionTranscriptChangesTest.java",
+      "sha256": "e91b4b076b3b20e1896a131ce3696c08f3863de184abc46d037d470be7e4883c"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/SessionTranscriptPageTest.java",
+      "sha256": "e9ff2f8df0dad9ba670016ecf908da9bd78176ac92a381b9aeb96cc68decc054"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/SessionsWorkbenchTest.java",
+      "sha256": "701047deb89c597796b1997150922abf009cb50892e1a3255910619d2046d7c5"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/SkillRetrievalTest.java",
+      "sha256": "c7dac5a9eb473c30fa38d20a52ce3574bfab0757dc6c7978e8be8589c2b45b64"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/SlashCommandsTest.java",
+      "sha256": "a46812887c02f3d035a49bbc9a1dcc0e61691397b05db9645e3793440c59ecd9"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/StatusBarTextTest.java",
+      "sha256": "2b548cf894890d7d485878a7fe36b63f28727594fbd2bf86168393856f791ce7"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/TeamControlTest.java",
+      "sha256": "5dad88174a74c8ecfd648597c35e51f767d0e6e24c05d1ad25b4be71bf26eb3f"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/TeamMonitorTest.java",
+      "sha256": "b724ca753a793fd190cd94b04f7daa71c786475df4d7d66c9e68f466cad9a9d6"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/TranscriptCapTest.java",
+      "sha256": "6af483fae2e11e952f0e5ac381fed52c93434f9b966ef5d6b9e52d566587e12f"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/TranscriptReferencesTest.java",
+      "sha256": "5934b4b8dc322db013ef13c17dd79154e9f8a68146c88bfd5686d284a17b9451"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/UiEventDiagnosticsTest.java",
+      "sha256": "30fd0918c59a8893ae8f653156e0c7f3d36cce1e41cb2f2033725d97b9244247"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/UsageReportTest.java",
+      "sha256": "797615adc672e365c08322250c4be4b7586cc3900a4d309497b186b84c5e6878"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/Verify01ProtocolCaptureTest.java",
+      "sha256": "f9617d3f36ad38716e12ff0e7652c12566b5641c239363efd3c8aae6e11053f4"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/WhatsNewTest.java",
+      "sha256": "032db2b87b1353705a2eac6df15b1a39c2af8d2664f86b32af0f70cee7294cf3"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/WindowsOwnerOnlyAclTest.java",
+      "sha256": "188de544fe140254242a15e03a8f30d4a38b4c56b7ebde86908ceaa3edf84acd"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/WorkspaceMentionIndexPerformanceProfile.java",
+      "sha256": "ff295ed2d8bfe47e9f7e7e79a2c5525e82f3cbb3d6f57e7bd027d3c28e6cdff6"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/WorkspaceMentionIndexPerformanceTest.java",
+      "sha256": "afe8d87ff5f6e025591274debd3bdfbc4f77cb47c85b77592692bc80c19d7fc7"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/WorkspaceMentionIndexTest.java",
+      "sha256": "315db5146c0c79f6fb1a13756a2925f3d416141a049c82a1f48adb3c68c2d3fc"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/WorktreeTasksTest.java",
+      "sha256": "23fe0e99b655f4cc1a75782ba02c218ed291484674849547700db2ede425404a"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/AccessibilityPerformanceEvidenceTest.java",
+      "sha256": "5be85c7adcd6998fe74ab8cb700ae150f6fc146662a3c2c89f0388e391b2b061"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/ChatCardsLayoutTest.java",
+      "sha256": "e2328fea4609417759a7a2013838021cd9def255a668eb8d1afc77dc798dc15c"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/ChatComposerDraftsTest.java",
+      "sha256": "fa535610f9d13f0f547bcb0c421257961aa06aee8a530135e4c6fb2e73c710af"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/ChatHistorySyncTest.java",
+      "sha256": "2fee6f282f35900c6a532ba332fb63d481847320715b11c3e6685cf62414537b"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/ChatHistoryViewTest.java",
+      "sha256": "99de2c1620922e2676c6f419d01e9418476b533138ced287a4c58a0b3994341e"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/ChatTranscriptRenderingTest.java",
+      "sha256": "81d3f8adf9cae19b930a78c118cebeeab61bbfe20a799137f603ff324415ce26"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/ChatTranscriptSyncTest.java",
+      "sha256": "7ba883510f58d2572b2ffb17ef21a8408ac510af811aaee3636bfa147be3fba2"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/ChatTranscriptTest.java",
+      "sha256": "09e249ef499bc2a0ff17f1edda6454b8043dc30b827ead28f8219b20bdf118b4"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/QuestionFormViewTest.java",
+      "sha256": "1ccf4bbffcb13630c79d9fb93bf97729764632026dc8530b463efe5179224c3e"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/SessionUxEvidenceTest.java",
+      "sha256": "5784dcf60f5502e1ec73f2ceb19a28b58e48711dc5a32bd6fddd7ef57a44d401"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/ArchivedReplyRecoveryJourney.java",
+      "sha256": "bc5441749c5eebf427c35ae69038581f5d5237ab845cb4b4ab03d1b5adb678ef"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/ColdInitializationJourney.java",
+      "sha256": "ec11debebbfee98f3cd131c30b885c45efa582ace22387390f9dd61a1257910e"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/ConversationRecoveryJourney.java",
+      "sha256": "44cb87d4c64437b64204a4bca9d7faaec68a6cbbff8b7303c491e17e7597337b"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/IdeUiSmokeTest.java",
+      "sha256": "29655e9a949948528018ad85baf368e5240445216caa747719c95d6c83903e0b"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/NativeTranscriptJourney.java",
+      "sha256": "9f9b16bc377cc340e7b6f846ded0e23f353a4f535df1bbe43e32c37ecce44fcb"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/NativeTranscriptProbe.java",
+      "sha256": "f77b5a65b858855463a69ed5c75d5315a97ab9b6bd39d147e7165be25466d7cc"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/NativeTranscriptProbeTest.java",
+      "sha256": "3323f0df608a5f426c5c4324664bd1d2ce4f40de810135fec6f33161b9d21273"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/OnboardingIdentityJourney.java",
+      "sha256": "84c6e920558b6acc483f079e295f5857b11b844ebc6a8f4c1628f64b4c4da543"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/PluginStartupContractTest.java",
+      "sha256": "5c134a6ef84ca2f6c0b5694b42d474ec1cf2d87c4157f44db3bc37cbf1d60805"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/PopupEnterScripts.java",
+      "sha256": "e52cf89953dd841fca8f0510a7c0828da95b0ba803cd08dea3e084c4aae6016e"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/UiFailureDiagnostics.java",
+      "sha256": "5802b749fd82048d196e90ce5f0f2f4e4c7cfc527590f07b62ccafb73d4c6a20"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/VendorOnboarding.java",
+      "sha256": "afc265b1aaecb8645002fb10f74a8f0d919225943c659175fc5108e94132fec8"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/Verify01HostJourney.java",
+      "sha256": "b2a5f856e6607ec559b1c7d17be14a110cccd6bcaea323cbab5ae1458109ee5b"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/Verify01HostJourneyTest.java",
+      "sha256": "12330fb434299895f08eb04cca0cddd5ee1044319ac2b651b39891414b68cf1e"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/uiTest/resources/transcript-row-body.js",
+      "sha256": "8bb9c51d4b1cd17b35e1b3a99af115184558ea38800dc2e0ead8e272ed108b21"
+    }
+  ]
+}

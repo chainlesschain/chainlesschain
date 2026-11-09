@@ -1,0 +1,59 @@
+{
+  "schema": "midrun-diagnostic-shim-adaptation/v1",
+  "changedAt": "2026-11-09T04:40:56.645Z",
+  "oldShimSha256": "b0d6dbcc8938fc79fdb3dbfe8c1b6533203d6b71c5b0937a72bdec003c29a6fc",
+  "newShimSha256": "c1c4b43cb479045d395244e789e0bfed3fa2c5b8c5e6f7b1fe1988f82d382e10",
+  "intermediarySha256": "e2c3ac9164fc7681af81d3689d9ee1218558b0de65b560481cfab60238ff93fb",
+  "reason": "Batch IF comparison cannot parse production double-caret escaped argv; plain batch forwards into Node argv branching",
+  "productionHistoryReadPassed": true,
+  "canonicalResultRowMatched": true,
+  "canonicalRows": 6,
+  "physicalLedgerUnchanged": true,
+  "userInputResent": false,
+  "modelCalled": false,
+  "installedVsixChanged": false,
+  "currentModelChildChanged": false,
+  "deadlineExtended": false,
+  "syntheticControl": "wrapper-history-control.json",
+  "syntheticControls": {
+    "scope": "No model or actual session access; production runCliResult with synthetic argv and temporary batch wrappers",
+    "results": [
+      {
+        "name": "plain",
+        "ok": true,
+        "code": 0,
+        "stdout": "[\"session\",\"show\",\"--json\",\"--history\",\"--page-size\",\"50\",\"--\",\"panel-synthetic\"]",
+        "stderrBytes": 0
+      },
+      {
+        "name": "conditional",
+        "ok": false,
+        "code": 255,
+        "stdout": "",
+        "stderrBytes": 38
+      },
+      {
+        "name": "goto",
+        "ok": false,
+        "code": 255,
+        "stdout": "",
+        "stderrBytes": 38
+      },
+      {
+        "name": "nodeBranch",
+        "ok": true,
+        "code": 0,
+        "stdout": "[\"session\",\"show\",\"--json\",\"--history\",\"--page-size\",\"50\",\"--\",\"panel-synthetic\"]",
+        "stderrBytes": 0
+      },
+      {
+        "name": "nodeBranch-agent",
+        "ok": true,
+        "code": 0,
+        "stdout": "[\"agent\",\"--input-format\",\"stream-json\",\"--max-output-tokens\",\"1024\"]"
+      }
+    ]
+  },
+  "originalFailurePreserved": true,
+  "plainNodeBranchVerified": true
+}

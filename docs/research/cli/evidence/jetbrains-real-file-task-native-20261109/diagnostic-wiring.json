@@ -1,0 +1,10 @@
+{
+  "pluginOrigin": "locally Gradle-built development plugin; not Marketplace validation",
+  "pluginSha256": "sha256:6efd52b835c0a30a047c3a70bfae88c8a71765ecc90ef25a7419a5121295d632",
+  "originalAdapterSha256": "sha256:b8fc449018df5d188d9aada8469e023bd220ece659620b2323cf796e9d08fdcb",
+  "privateAdapterSha256": "sha256:115761eea972a5a746f534c4e1b107e1ff0685852672e9bc2bcdeb3553fb7fee",
+  "fetchHookSha256": "sha256:196ec96f11dc2f320a5b56ec5eebcc52af3bcd0f16b8e78f9477bc13a704b759",
+  "adaptation": "Private local SDK/development plugin adapter. Transport sets physical max_tokens=1024; original and physical body digests differ. No canonical physical-body mapping claim.",
+  "marketplaceValidated": false,
+  "paidReady": false
+}
