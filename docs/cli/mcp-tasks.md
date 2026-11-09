@@ -74,7 +74,7 @@ cc agent --resume <session-id> "Continue using the delivered result."
 
 只有模型答案与消费绑定原子保存后，continuationStatus 才变为 settled。started 跨进程恢复后保持未决，不自动重发模型请求；即使派发前崩溃也不猜测请求未执行。检查保存的会话、任务列表和 provider 用量后，可由真实用户显式继续。旧式自动唤醒曾写入的精确宿主提示若没有消费凭据，将要求人工核对，不推断为成功。普通用户文本中仅仅引用 deliveryId 不会被当作完成证明。
 
-Windows 的真实 readline、多进程 DPAPI、单次交付与三种崩溃窗口验证见[续跑证据](../research/cli/evidence/mcp-tasks-model-continuation-20261109/README.md)。模型替身链路通过；一次真实 OpenAI 请求返回 HTTP 429，仍保留未知用量与未决续跑，未证明真实模型成功消费结果。未宣称 OS PTY、双 IDE 或多平台通过。
+Windows 的真实 readline、多进程 DPAPI、单次交付与三种崩溃窗口验证见[续跑证据](../research/cli/evidence/mcp-tasks-model-continuation-20261109/README.md)。随后使用本机已配置的火山引擎 DeepSeek 完成[一次真实模型续跑](../research/cli/evidence/mcp-tasks-deepseek-continuation-20261109/README.md)：HTTP 200，输入 862、输出 71 tokens；独立读回确认原会话仅一条用户要求、一次外部参考和一条答案，重启 REPL 未重复派发。此前 OpenAI HTTP 429 的未知用量与未决续跑保持原记录。未宣称 OS PTY、远程生产 MCP、双 IDE、多平台或账单核验通过。
 
 fork 保留外部参考及已保存的答案，但不继承父任务或续跑操作权；原有外来 MCP 调用恢复门禁仍可能限制新操作。双 IDE 任务界面及本地 stdio 任务重启恢复仍属于后续工作。原调用未结算时，保守门禁也会限制同会话的新副作用调用。新式续跑的旧版本读取和降级尚未验收。
 

@@ -1,0 +1,90 @@
+{
+  "at": "2026-11-09T02:07:23.351Z",
+  "probeSha256": "d50d4feaaa5b2681e25b6a2f3e4cff3bf8f39f90b9e27039d6c0c6222b7b6ee5",
+  "rows": [
+    {
+      "label": "node",
+      "executableSha256": "2ffe3acc0458fdde999f50d11809bbe7c9b7ef204dcf17094e325d26ace101d8",
+      "exitCode": 0,
+      "errorCode": null,
+      "probe": {
+        "schema": "chainlesschain.host-loopback-diagnostic/v1",
+        "nodeVersion": "24.12.0",
+        "electronVersion": null,
+        "platform": "win32",
+        "architecture": "x64",
+        "extensionLoaded": false,
+        "cases": [
+          {
+            "host": "127.0.0.1",
+            "listening": true,
+            "connected": true,
+            "errorCode": null
+          },
+          {
+            "host": "::1",
+            "listening": true,
+            "connected": true,
+            "errorCode": null
+          }
+        ]
+      }
+    },
+    {
+      "label": "installed-code-1.96.2",
+      "executableSha256": "7619853d89007778e29aa077b7b0e89b88b1715fcda75845ecdb2e5b7decd271",
+      "exitCode": 0,
+      "errorCode": null,
+      "probe": {
+        "schema": "chainlesschain.host-loopback-diagnostic/v1",
+        "nodeVersion": "20.18.1",
+        "electronVersion": "32.2.6",
+        "platform": "win32",
+        "architecture": "x64",
+        "extensionLoaded": false,
+        "cases": [
+          {
+            "host": "127.0.0.1",
+            "listening": true,
+            "connected": true,
+            "errorCode": null
+          },
+          {
+            "host": "::1",
+            "listening": true,
+            "connected": true,
+            "errorCode": null
+          }
+        ]
+      }
+    },
+    {
+      "label": "cached-code-1.145.2",
+      "executableSha256": "51dfee70fd38d8cc3e204f9a304f6fb6700dfa5147223c59d8c37e8176fb9b64",
+      "exitCode": 0,
+      "errorCode": null,
+      "probe": {
+        "schema": "chainlesschain.host-loopback-diagnostic/v1",
+        "nodeVersion": "24.22.1",
+        "electronVersion": "43.8.3",
+        "platform": "win32",
+        "architecture": "x64",
+        "extensionLoaded": false,
+        "cases": [
+          {
+            "host": "127.0.0.1",
+            "listening": true,
+            "connected": false,
+            "errorCode": "ETIMEDOUT"
+          },
+          {
+            "host": "::1",
+            "listening": true,
+            "connected": false,
+            "errorCode": "ETIMEDOUT"
+          }
+        ]
+      }
+    }
+  ]
+}

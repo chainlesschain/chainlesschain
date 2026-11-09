@@ -1,6 +1,6 @@
 # MCP 模型续跑的持久凭据与恢复（2026-11-09）
 
-对应差距复核第 3、4 项。核心实现提交为 `29243cd1b8c7c45e58abaa3c8b78976e102d90d6`，随后补充私有唤醒标记和输入草稿等待。真实模型成功续跑仍未验收，整项目标保持 open。
+对应差距复核第 3、4 项。核心实现提交为 `29243cd1b8c7c45e58abaa3c8b78976e102d90d6`，随后补充私有唤醒标记和输入草稿等待。真实模型续跑已在 Windows／火山引擎 DeepSeek 上通过一次受限旅程；整项目标保持 open。
 
 ## 修复的实际问题
 
@@ -18,8 +18,10 @@ Windows x64 / Node 24.12.0，官方未修改 Everything 2.2.1 独立进程，生
 
 新增回归覆盖丢失发布 ACK 后的读回确认、伪造来源/输出摘要、孤立消费标记、租约释放、真实用户文本引用、旧式未知唤醒、相邻角色恢复和 fork。最终主回归 **755/755，46 文件**；另外会话读取、导出、输入持久化、宿主合同和出站边界 **72/72，8 文件**。JUnit 以[证据目录](../../cli/evidence/mcp-tasks-model-continuation-20261109/README.md)为准，子集不可与总数重复相加。Bash 用例在本机需把 Git for Windows 的 bin 放到 PATH，避免误选未安装发行版的 WSL；没有跳过这些测试。
 
-真实配置目前为 OpenAI / gpt-6.1-sol。沿已有 Responses 路由发出一次受限请求，保留原用户要求与一次外部参考，未创建伪用户消息；provider 返回 HTTP 429，没有有效 usage 或答案。原始失败保持失败：独立读取确认续跑仍 started、未知模型请求 1 条、模型答案 0 条。没有自动重试，也不把费用计为零。此前火山配置检查及一次探针格式检查在物理模型派发前拒绝，不能累计成成功请求。
+首次真实尝试的配置为 OpenAI / gpt-6.1-sol。沿已有 Responses 路由发出一次受限请求，保留原用户要求与一次外部参考，未创建伪用户消息；provider 返回 HTTP 429，没有有效 usage 或答案。原始失败保持失败：独立读取确认续跑仍 started、未知模型请求 1 条、模型答案 0 条。没有自动重试，也不把费用计为零。此前火山配置检查及一次探针格式检查在物理模型派发前拒绝，不能累计成成功请求。
 
 官方 [GPT-6.1 Sol 页面](https://developers.openai.com/api/docs/models/gpt-6.1-sol)说明工具调用使用 Responses；本批复用现有路由，没有更换用户配置或增加模型。256 是请求参数，不能证明 provider 执行了硬上限。单次诊断的公开价格估算停止条件不是账号计费保证；真实账单、账号价格与正式付费准入仍未核对，`paidReady:false`。
 
-尚需真实模型成功消费、生产远程 MCP 服务、现代输入交互、实际到期/撤权、双 IDE/桌面、多系统及旧版本降级证据。MCP Tasks 条目仍为 partial。后续代码和文档在 [#571](https://github.com/chainlesschain/chainlesschain/pull/571)；准确新提交的 GitHub 矩阵另行核对，历史本地结果不代替发布门禁。
+随后用户明确允许火山引擎 DeepSeek，并更新了本机 CLI 配置。提交 `8572855e16412d56dd73662ea0e487627b18e2c4` 使用该配置的 `deepseek-v4-1-flash-economy-261017` 完成一次真实续跑：HTTP 200、输入 862／输出 71 tokens（含推理 46）。独立进程验链读回为 settled，一条原用户要求、一次参考、一条答案；重启真实 REPL 没有重复模型派发。原生 CNY 诊断估算采用官方最高档且不换算 FX，未修改生产 USD 未匹配边界；26/26 定向回归通过。详见[真实 DeepSeek 证据](../../cli/evidence/mcp-tasks-deepseek-continuation-20261109/README.md)。
+
+尚需生产远程 MCP 服务、现代输入交互、实际到期/撤权、双 IDE/桌面、多系统及旧版本降级证据。MCP Tasks 条目仍为 partial。后续代码和文档在 [#571](https://github.com/chainlesschain/chainlesschain/pull/571)；准确新提交的 GitHub 矩阵另行核对，历史本地结果不代替发布门禁。
