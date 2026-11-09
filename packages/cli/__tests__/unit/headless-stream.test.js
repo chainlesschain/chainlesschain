@@ -29,6 +29,11 @@ import {
   readSessionInputReceipt,
 } from "../../src/lib/session-input-receipt.js";
 import { settledSkillInvocationReceipt } from "../helpers/skill-invocation-receipt.js";
+import {
+  withModelInputDiagnostics,
+  recordLogicalModelInput,
+  recordModelInputBody,
+} from "../../src/lib/model-input-diagnostics.js";
 
 function verifiedResume(messages, sessionId) {
   return {
@@ -250,6 +255,138 @@ describe("runAgentHeadlessStream", () => {
     expect(result.exitCode).toBe(0);
     expect(caps).toEqual([1024, 1024]);
   });
+
+  it("persists logical and physical input diagnostics for every IDE stream turn", async () => {
+    const writes = [];
+    const observed = [];
+    const physicalBodies = [];
+    const deps = baseDeps({
+      input: input({ text: "first" }, { text: "second" }),
+      sessionExists: () => false,
+      startSession: () => {},
+      appendUserMessage: () => {},
+      appendAssistantMessage: () => {},
+      appendEvent: (id, type, data) => {
+        writes.push({ id, type, data });
+      },
+      readEvents: () => [],
+      loadSideEffectLedger: () => null,
+      agentLoop: async function* (messages, options) {
+        const body = JSON.stringify({ messages, max_tokens: 37 });
+        await withModelInputDiagnostics(options, async () => {
+          await recordLogicalModelInput({ messages, tools: [] });
+          await recordModelInputBody(body, "fetch-body");
+          physicalBodies.push(body);
+        });
+        yield { type: "response-complete", content: "done" };
+        yield { type: "run-ended", reason: "complete" };
+      },
+    });
+    const result = await runAgentHeadlessStream(
+      {
+        sessionId: "stream-model-inputs",
+        expandFileRefs: false,
+        useRegisteredMcp: false,
+        onModelInputDiagnostic: (e) => observed.push(e),
+      },
+      deps,
+    );
+    expect(result.exitCode).toBe(0);
+    const diagnostics = writes.filter(
+      (x) => x.type === "model_input_diagnostic",
+    );
+    expect(diagnostics).toHaveLength(4);
+    expect(diagnostics.map((x) => x.data.phase)).toEqual([
+      "logical-input",
+      "body-prepared",
+      "logical-input",
+      "body-prepared",
+    ]);
+    expect(observed).toEqual(diagnostics.map((x) => x.data));
+    expect(new Set(observed.map((x) => x.requestId)).size).toBe(2);
+    const { createHash } = await import("node:crypto");
+    expect(
+      observed
+        .filter((x) => x.phase === "body-prepared")
+        .map((x) => x.bodyDigest),
+    ).toEqual(
+      physicalBodies.map((b) => createHash("sha256").update(b).digest("hex")),
+    );
+    expect(diagnostics.every((x) => x.id === "stream-model-inputs")).toBe(true);
+    expect(JSON.stringify(observed)).not.toContain('"content":"first"');
+  });
+
+  it("keeps anonymous diagnostics caller-owned without durable writes", async () => {
+    const observer = vi.fn();
+    const appendEvent = vi.fn();
+    const deps = baseDeps({
+      input: input({ text: "anonymous" }),
+      appendEvent,
+      agentLoop: async function* (messages, options) {
+        expect(options.onModelInputDiagnostic).toBe(observer);
+        await withModelInputDiagnostics(options, () =>
+          recordLogicalModelInput({ messages, tools: [] }),
+        );
+        yield { type: "response-complete", content: "done" };
+        yield { type: "run-ended", reason: "complete" };
+      },
+    });
+    const result = await runAgentHeadlessStream(
+      {
+        persist: false,
+        expandFileRefs: false,
+        useRegisteredMcp: false,
+        onModelInputDiagnostic: observer,
+      },
+      deps,
+    );
+    expect(result.exitCode).toBe(0);
+    expect(observer).toHaveBeenCalledTimes(1);
+    expect(appendEvent).not.toHaveBeenCalled();
+  });
+
+  it.each(["throw", "reject"])(
+    "blocks physical dispatch after diagnostic persistence %s",
+    async (failure) => {
+      const dispatched = vi.fn();
+      const deps = baseDeps({
+        input: input({ text: "first" }, { text: "second" }),
+        sessionExists: () => false,
+        startSession: () => {},
+        appendUserMessage: () => {},
+        appendAssistantMessage: () => {},
+        appendEvent: (_id, type) => {
+          if (type === "model_input_diagnostic") {
+            if (failure === "reject") return false;
+            throw new Error("private-diagnostic-path");
+          }
+        },
+        readEvents: () => [],
+        loadSideEffectLedger: () => null,
+        agentLoop: async function* (messages, options) {
+          await withModelInputDiagnostics(options, async () => {
+            await recordLogicalModelInput({ messages, tools: [] });
+            dispatched();
+          });
+          yield { type: "response-complete", content: "must not happen" };
+        },
+      });
+      const result = await runAgentHeadlessStream(
+        {
+          sessionId: "stream-diagnostic-failure",
+          expandFileRefs: false,
+          useRegisteredMcp: false,
+        },
+        deps,
+      );
+      expect(result.exitCode).toBe(1);
+      expect(result.turns).toBe(1);
+      expect(dispatched).not.toHaveBeenCalled();
+      const output = deps._lines.join("");
+      expect(output).toContain("CC_RUNTIME_LEDGER_PERSISTENCE_FAILED");
+      expect(output).not.toContain("private-diagnostic-path");
+    },
+  );
 
   it("preserves stream-input failure and adds only safe transport details", async () => {
     // This scenario intentionally fails before a generator can emit an event.

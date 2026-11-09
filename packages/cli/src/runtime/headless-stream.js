@@ -16,6 +16,7 @@
  * not duplicate (or fork) `runAgentHeadless`'s internals.
  */
 
+import { createPersistedModelInputObserver } from "../lib/session-model-input-diagnostics.js";
 import { randomUUID } from "node:crypto";
 import { transportErrorDetails } from "../lib/transport-error-details.js";
 import { storageFailureCauseSuffix } from "../lib/storage-failure-cause-codes.js";
@@ -3938,7 +3939,23 @@ async function runAgentHeadlessStreamInWorkspace(
     messages.push(...balanced);
     return settleToolRoundsForHost(phase);
   };
+  const onModelInputDiagnostic = persist
+    ? createPersistedModelInputObserver({
+        append: (type, data) => {
+          sessionHostLease?.assert?.();
+          const appended = requireSynchronousRecoveryResult(
+            store.appendEvent(sessionId, type, data),
+            "appendModelInputDiagnostic",
+          );
+          if (appended === false)
+            throw new Error("Model input diagnostic persistence was rejected");
+          return appended;
+        },
+        observe: options.onModelInputDiagnostic,
+      })
+    : options.onModelInputDiagnostic;
   const loopOptionsBase = {
+    onModelInputDiagnostic,
     contextMemoryModelWindowTokens: options.contextMemoryModelWindowTokens,
     ...(evolutionIngress === null ? {} : { evolutionIngress }),
     reviewChanges: options.reviewChanges === true,
