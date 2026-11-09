@@ -1,0 +1,19 @@
+name: Setup Linux canvas prerequisites
+description: Install the supported canvas 3.x source-build prerequisites on Ubuntu
+runs:
+  using: composite
+  steps:
+    - name: Install and verify native canvas prerequisites
+      shell: bash
+      # canvas 3.2 has no Linux ARM64 prebuild. X64 also needs these when
+      # prebuild download fails. Keep npm's real native fallback enabled.
+      # https://github.com/Automattic/node-canvas/tree/v3.2.0#compiling
+      run: |
+        set -euo pipefail
+        test "$RUNNER_OS" = "Linux"
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends \
+          build-essential pkg-config libcairo2-dev libpango1.0-dev \
+          libpixman-1-dev libjpeg-dev libgif-dev librsvg2-dev
+        pkg-config --exists cairo pangocairo pixman-1 libjpeg librsvg-2.0
+        pkg-config --modversion cairo pangocairo pixman-1 libjpeg librsvg-2.0
