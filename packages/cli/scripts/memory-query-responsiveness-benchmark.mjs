@@ -24,10 +24,12 @@ export async function measureMemoryStop(port, { delayMs = 10 } = {}) {
     runtime: { memoryPort: port },
   });
   const started = performance.now();
-  let deliveredAt;
+  let deliveredAt = null;
+  let stopDeliveryDelayMs = null;
   const delivered = new Promise((resolve) => {
     setTimeout(() => {
       deliveredAt = performance.now();
+      stopDeliveryDelayMs = Math.max(0, deliveredAt - started - delayMs);
       controller.abort();
       resolve();
     }, delayMs);
@@ -57,11 +59,11 @@ export async function measureMemoryStop(port, { delayMs = 10 } = {}) {
     resultCount,
     scheduledStopMs: delayMs,
     queryMs: settledAt - started,
-    stopDeliveryDelayMs: Math.max(0, deliveredAt - started - delayMs),
+    stopDeliveryDelayMs,
     stopAcknowledgementMs:
       outcome === "aborted" ? Math.max(0, settledAt - deliveredAt) : null,
     completedBeforeStopDeadline:
-      outcome === "completed" && settledAt - started <= delayMs,
+      outcome === "completed" && settledAt <= deliveredAt,
     lockReleased: true,
   };
 }
