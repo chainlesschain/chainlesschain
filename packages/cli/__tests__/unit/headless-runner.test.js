@@ -104,6 +104,86 @@ const replyText = (content) =>
   }));
 
 describe("bounded transport terminal details", () => {
+  it.each([false, true])(
+    "sends the explicit output cap in the physical provider request (stream=%s)",
+    async (stream) => {
+      const cwd = mkdtempSync(join(tmpdir(), "cc-headless-output-cap-"));
+      const bodies = [];
+      const fetchMock = vi
+        .spyOn(globalThis, "fetch")
+        .mockImplementation(async (_url, init) => {
+          const body = JSON.parse(init.body);
+          bodies.push(body);
+          const usage = {
+            prompt_tokens: 7,
+            completion_tokens: 3,
+            total_tokens: 10,
+          };
+          return body.stream
+            ? new Response(
+                [
+                  "data: " +
+                    JSON.stringify({
+                      choices: [{ delta: { content: "done" } }],
+                    }),
+                  "data: " +
+                    JSON.stringify({
+                      choices: [{ delta: {}, finish_reason: "stop" }],
+                      usage,
+                    }),
+                  "data: [DONE]",
+                  "",
+                ].join("\n\n"),
+                { headers: { "Content-Type": "text/event-stream" } },
+              )
+            : new Response(
+                JSON.stringify({
+                  choices: [
+                    {
+                      message: { role: "assistant", content: "done" },
+                      finish_reason: "stop",
+                    },
+                  ],
+                  usage,
+                }),
+                { headers: { "Content-Type": "application/json" } },
+              );
+        });
+      const { deps } = makeDeps((messages, options) =>
+        chatWithTools(messages, { ...options, apiKey: "unit-test-only" }),
+      );
+      try {
+        const result = await runAgentHeadless(
+          {
+            prompt: "finish without tools",
+            cwd,
+            ephemeral: true,
+            expandFileRefs: false,
+            provider: "volcengine",
+            model: "deepseek-v4-1-flash-economy-261017",
+            baseUrl: "https://ark.cn-beijing.volces.com/api/v3",
+            useRegisteredMcp: false,
+            ide: false,
+            pdh: false,
+            jetbrains: false,
+            allowedTools: [],
+            maxOutputTokens: 37,
+            includePartialMessages: stream,
+            outputFormat: "stream-json",
+          },
+          deps,
+        );
+        expect(result.isError).toBe(false);
+        expect(result.result).toBe("done");
+        expect(bodies).toHaveLength(1);
+        expect(bodies[0].max_tokens).toBe(37);
+        expect(bodies[0].stream === true).toBe(stream);
+      } finally {
+        fetchMock.mockRestore();
+        rmSync(cwd, { recursive: true, force: true });
+      }
+    },
+  );
   it("forwards the operator window into the actual provider planner", async () => {
     const cwd = mkdtempSync(join(tmpdir(), "cc-headless-window-"));
     const { deps } = makeDeps(replyText("done"));
@@ -152,6 +232,8 @@ describe("bounded transport terminal details", () => {
         }),
       });
       const { deps, out } = makeDeps(replyText("unused"));
+      // This scenario intentionally fails before a generator can emit an event.
+      // eslint-disable-next-line require-yield
       deps.agentLoop = vi.fn(async function* () {
         throw failure;
       });
@@ -3073,9 +3155,8 @@ describe("headless-runner — background phase reporter wiring", () => {
   // child, the human-blocking confirmers must surface their pending window as
   // phase waiting_permission + pendingApprovals in the background state.
   it("wraps the remote-control confirmer so its pending window hits the state file", async () => {
-    const { createBackgroundPhaseReporter } = await import(
-      "../../src/lib/background-phase-reporter.js"
-    );
+    const { createBackgroundPhaseReporter } =
+      await import("../../src/lib/background-phase-reporter.js");
     const confirmers = [];
     const gate = {
       setSessionPolicy: () => {},
@@ -3143,9 +3224,8 @@ describe("headless-runner — background phase reporter wiring", () => {
   });
 
   it("foreground runs (no CC_BACKGROUND_AGENT_ID) keep the confirmer object identity", async () => {
-    const { createBackgroundPhaseReporter } = await import(
-      "../../src/lib/background-phase-reporter.js"
-    );
+    const { createBackgroundPhaseReporter } =
+      await import("../../src/lib/background-phase-reporter.js");
     const confirmers = [];
     const gate = {
       setSessionPolicy: () => {},

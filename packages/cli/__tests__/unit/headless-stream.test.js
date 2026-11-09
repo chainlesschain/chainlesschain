@@ -228,7 +228,32 @@ describe("runAgentHeadlessStream", () => {
     yield jsonObjs.map((o) => JSON.stringify(o)).join("\n") + "\n";
   }
 
+  it("retains the output cap for every queued IDE input turn", async () => {
+    const caps = [];
+    const deps = baseDeps({
+      input: input({ text: "first" }, { text: "second" }),
+      agentLoop: async function* (_messages, options) {
+        caps.push(options.maxOutputTokens);
+        yield { type: "response-complete", content: "done" };
+        yield { type: "run-ended", reason: "complete" };
+      },
+    });
+    const result = await runAgentHeadlessStream(
+      {
+        persist: false,
+        expandFileRefs: false,
+        useRegisteredMcp: false,
+        maxOutputTokens: 1024,
+      },
+      deps,
+    );
+    expect(result.exitCode).toBe(0);
+    expect(caps).toEqual([1024, 1024]);
+  });
+
   it("preserves stream-input failure and adds only safe transport details", async () => {
+    // This scenario intentionally fails before a generator can emit an event.
+    // eslint-disable-next-line require-yield
     const agentLoop = vi.fn(async function* () {
       throw new TypeError("fetch failed", {
         cause: Object.assign(new Error("private endpoint"), {
@@ -476,9 +501,8 @@ describe("runAgentHeadlessStream", () => {
       path.join(root, "security"),
     );
     const store = await import("../../src/harness/jsonl-session-store.js");
-    const { readSessionTranscriptHistory } = await import(
-      "../../src/lib/session-transcript-history.js"
-    );
+    const { readSessionTranscriptHistory } =
+      await import("../../src/lib/session-transcript-history.js");
     const id = "real-transcript-references";
     try {
       const deps = receiptDeps({

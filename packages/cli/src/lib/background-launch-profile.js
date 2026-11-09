@@ -12,7 +12,8 @@ import { dirname, join, parse, resolve } from "node:path";
 import { getConfigPath } from "./paths.js";
 import { assertBackgroundArgvDurable } from "./background-command-argv.js";
 
-export const BACKGROUND_LAUNCH_PROFILE_VERSION = 1;
+export const BACKGROUND_LAUNCH_PROFILE_VERSION = 2;
+const LEGACY_BACKGROUND_LAUNCH_PROFILE_VERSION = 1;
 
 const PERMISSION_MODES = new Set([
   "manual",
@@ -247,7 +248,7 @@ function splitLongOption(token) {
 
 function emptyParsedProfile(cwd, worktree, governance) {
   return {
-    version: BACKGROUND_LAUNCH_PROFILE_VERSION,
+    version: LEGACY_BACKGROUND_LAUNCH_PROFILE_VERSION,
     command: "agent",
     llm: {
       provider: null,
@@ -514,6 +515,14 @@ export function captureBackgroundLaunchProfile({
           "thinkingTokens",
         );
         break;
+      case "--max-output-tokens":
+        // Older readers must reject this profile rather than drop its cap.
+        profile.version = BACKGROUND_LAUNCH_PROFILE_VERSION;
+        profile.budget.maxOutputTokens = policyBudget(
+          takePolicy(),
+          "maxOutputTokens",
+        );
+        break;
       case "--max-rewakes":
         profile.budget.maxRewakes = policyBudget(takePolicy(), "maxRewakes");
         break;
@@ -718,10 +727,23 @@ function normalizeSource(source) {
 
 /** Whitelist and normalize a profile supplied across an API boundary. */
 export function normalizeBackgroundLaunchProfile(input) {
-  if (!input || Number(input.version) !== BACKGROUND_LAUNCH_PROFILE_VERSION) {
+  const version = Number(input?.version);
+  if (
+    !input ||
+    ![
+      LEGACY_BACKGROUND_LAUNCH_PROFILE_VERSION,
+      BACKGROUND_LAUNCH_PROFILE_VERSION,
+    ].includes(version)
+  ) {
     throw new Error(
       `Unsupported background launch profile version: ${input?.version ?? "missing"}`,
     );
+  }
+  if (
+    version === LEGACY_BACKGROUND_LAUNCH_PROFILE_VERSION &&
+    input.budget?.maxOutputTokens != null
+  ) {
+    throw invalidProfileField("version");
   }
   const rejectField = (field) => {
     throw invalidProfileField(field);
@@ -800,6 +822,7 @@ export function normalizeBackgroundLaunchProfile(input) {
     "maxTurns",
     "maxCostUsd",
     "thinkingTokens",
+    "maxOutputTokens",
     "maxRewakes",
     "maxOuterTurns",
     "goalMaxTokens",
@@ -830,7 +853,7 @@ export function normalizeBackgroundLaunchProfile(input) {
     .filter(Boolean)
     .sort((a, b) => a.path.localeCompare(b.path));
   return {
-    version: BACKGROUND_LAUNCH_PROFILE_VERSION,
+    version,
     command: "agent",
     llm: {
       provider: scalar(input.llm?.provider),
@@ -891,6 +914,14 @@ export function normalizeBackgroundLaunchProfile(input) {
       maxTurns: positive(input.budget?.maxTurns, true),
       maxCostUsd: positive(input.budget?.maxCostUsd),
       thinkingTokens: positive(input.budget?.thinkingTokens, true),
+      ...(input.budget?.maxOutputTokens == null
+        ? {}
+        : {
+            maxOutputTokens: policyBudget(
+              input.budget.maxOutputTokens,
+              "maxOutputTokens",
+            ),
+          }),
       maxRewakes: positive(input.budget?.maxRewakes, true),
       maxOuterTurns: positive(input.budget?.maxOuterTurns, true),
       goalMaxTokens: positive(input.budget?.goalMaxTokens, true),
@@ -1001,8 +1032,8 @@ function same(a, b) {
 }
 
 function isBudgetLooser(before, after) {
-  if (before === null) return false;
-  return after === null || Number(after) > Number(before);
+  if (before == null) return false;
+  return after == null || Number(after) > Number(before);
 }
 
 function isToolPolicyLooser(before, after) {
@@ -1151,6 +1182,7 @@ export function buildArgvFromBackgroundLaunchProfile(profile) {
   pushValue(argv, "--max-turns", p.budget.maxTurns);
   pushValue(argv, "--max-budget-usd", p.budget.maxCostUsd);
   pushValue(argv, "--thinking-budget", p.budget.thinkingTokens);
+  pushValue(argv, "--max-output-tokens", p.budget.maxOutputTokens);
   pushValue(argv, "--max-rewakes", p.budget.maxRewakes);
   pushValue(argv, "--max-outer-turns", p.budget.maxOuterTurns);
   pushValue(argv, "--goal-max-tokens", p.budget.goalMaxTokens);

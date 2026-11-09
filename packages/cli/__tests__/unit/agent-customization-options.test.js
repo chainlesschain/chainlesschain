@@ -3,6 +3,32 @@ import { Command } from "commander";
 import { applyCustomizationOptions } from "../../src/lib/safe-mode.js";
 import { registerAgentCommand } from "../../src/commands/agent.js";
 
+describe("explicit agent output-token limit", () => {
+  function command() {
+    const program = new Command();
+    registerAgentCommand(program);
+    const agent = program.commands.find((item) => item.name() === "agent");
+    agent.exitOverride().configureOutput({ writeErr: () => {} });
+    return agent;
+  }
+  it("accepts the cap through the actual agent grammar and leaves defaults unset", () => {
+    const capped = command();
+    expect(
+      capped.parseOptions(["--max-output-tokens", "1024"]).unknown,
+    ).toEqual([]);
+    expect(capped.opts().maxOutputTokens).toBe(1024);
+    expect(command().opts().maxOutputTokens).toBeUndefined();
+  });
+  it.each(["0", "-1", "1.5", "1e3", "Infinity", "9007199254740992"])(
+    "rejects invalid output cap %s before an action can dispatch",
+    (value) => {
+      expect(() =>
+        command().parseOptions(["--max-output-tokens", value]),
+      ).toThrow();
+    },
+  );
+});
+
 describe("independent agent customization restrictions", () => {
   it("parses actual reconstructed CLI flags before applying runtime restrictions", () => {
     const program = new Command();

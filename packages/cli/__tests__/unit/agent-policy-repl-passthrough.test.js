@@ -25,6 +25,7 @@ describe("resolveAgentPolicy — interactive REPL passthrough keys", () => {
         vimMode: true,
         thinking: "high",
         thinkingBudget: 4096,
+        maxOutputTokens: 1024,
         fallbackModels: ["backup-a", "backup-b"],
         visionModel: "explicit-image-model",
         pdh: true,
@@ -48,6 +49,7 @@ describe("resolveAgentPolicy — interactive REPL passthrough keys", () => {
     expect(policy.vimMode).toBe(true);
     expect(policy.thinking).toBe("high");
     expect(policy.thinkingBudget).toBe(4096);
+    expect(policy.maxOutputTokens).toBe(1024);
     expect(policy.fallbackModels).toEqual(["backup-a", "backup-b"]);
     expect(policy.visionModel).toBe("explicit-image-model");
     expect(policy.pdh).toBe(true);
@@ -76,6 +78,7 @@ describe("resolveAgentPolicy — interactive REPL passthrough keys", () => {
     expect(policy.vimMode).toBeUndefined();
     expect(policy.thinking).toBeUndefined();
     expect(policy.thinkingBudget).toBeUndefined();
+    expect(policy.maxOutputTokens).toBeUndefined();
     expect(policy.fallbackModels).toBeUndefined();
     expect(policy.visionModel).toBeUndefined();
     expect(policy.pdh).toBeUndefined();
