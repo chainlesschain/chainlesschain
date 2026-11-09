@@ -1,0 +1,46 @@
+{
+  "schema": "chainlesschain.vscode-loopback-isolation/v1",
+  "sourceCommit": "cc965340c158e15637ee1bf71da3b2e74ed38bf0",
+  "startedAt": "2026-11-09T00:18:58.127Z",
+  "finishedAt": "2026-11-09T00:20:09.434Z",
+  "host": {
+    "name": "vscode",
+    "version": "1.145.2",
+    "operatingSystem": "win32",
+    "architecture": "x64",
+    "transport": "local-ide-bridge+vscode-extension-test-api"
+  },
+  "extensionVersion": "0.37.182",
+  "cliVersion": "0.166.145",
+  "journeyResult": "failed",
+  "journeyExitCode": 1,
+  "originalJourneyEvidenceDigest": "sha256:2e82d9cc763408156c8eaa0c1823deb1a1920b26c10491d61edd32fbb2c072f2",
+  "originalJourneyEvidenceComplete": true,
+  "archivedScope": "allowlisted diagnostic subset; VSIX and unrelated host logs excluded",
+  "hostFailure": "Bridge discovery timed out after activation and bridge self-probe failure; no lockfile published",
+  "independentRuntimeObservation": "Node IPv4/IPv6 connect; exact VS Code Electron IPv4/IPv6 ETIMEDOUT without extension loading",
+  "rootCauseIdentified": false,
+  "bridgeAccepted": false,
+  "productionAdmission": false,
+  "tests": {
+    "command": "node --test test/extension-host-runner.test.cjs test/release-workflow-contract.test.cjs",
+    "passed": 63,
+    "failed": 0,
+    "node": "24.12.0",
+    "platform": "win32-x64",
+    "sandbox": "outside"
+  },
+  "sourceHashes": {
+    "packages/vscode-extension/test/extension-host/run.cjs": "d635bfc18be69d06f97f7245a83aa47c095c0aaf4d7f3253d3d015dfa85f9b6f",
+    "packages/vscode-extension/test/extension-host/loopback-diagnostic.cjs": "d50d4feaaa5b2681e25b6a2f3e4cff3bf8f39f90b9e27039d6c0c6222b7b6ee5",
+    "packages/vscode-extension/test/extension-host-runner.test.cjs": "28f17628564dcf672153e3110e4956603548134bc6f476db638f9b237014b467",
+    "packages/vscode-extension/src/extension.js": "62ce0f155edf1c73995cc9e932c9fbd25174f0762783c8f48346dddd02365c97",
+    "packages/vscode-extension/src/mcp-http-server.js": "35f7c22b3243f5e18860b9adacf18a340c3d57a3f616bab1fd845caf6635dad3"
+  },
+  "artifactHashes": {
+    "loopback-node.json": "4bc08c0838b6267a4f0b28d6c60174d6823885af9b6b84af8681436e56001b7b",
+    "loopback-electron.json": "fee8d6e0b5b04007cf9eaf189c6f2c5d6b8186fc8d301c69312071ce393b3dcc",
+    "host-api-trace.jsonl": "dcb6e11de78415ed4189afe406ed3daf1aa3e210f96d451170b8e8e9910c5111",
+    "bridge-startup.log": "aefdc7f1175a5f610c94cccdd7a508e4ccf51f5db4b528b08df32fecc47574dc"
+  }
+}

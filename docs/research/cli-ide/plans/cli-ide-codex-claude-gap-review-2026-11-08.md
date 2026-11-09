@@ -10,15 +10,16 @@
 
 本文已进入逐项实施阶段。上方“未执行测试”等表述记录保存前的审核范围；后续新增执行证据单独记载，不覆盖历史结果。整项目标尚未完成。
 
-| 对应项                          | 当前状态                                                                        | 剩余完成证据                                                       |
-| ------------------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| Item 2: actual input and attribution | CLI/VS Code projections, model-input composition, usage attribution, and Volcengine live evidence verified; current-main project-goal task matrix 2/2 passed with runtime boundary attribution | Partial | Dual-IDE journey remains open |
-| Item 3: lifecycle recovery | Current HEAD compaction/restart 4/4, side-effect ledger resume 12/12, and REPL in-flight recovery 2/2 | Partial | Dual-IDE recovery and complete cross-entry journey remain open |
-| Item 4: MCP Tasks | Durable runtime, original-session delivery, deliveryId recovery, lease-bound watch, and opt-in REPL auto-wake verified | Partial | Third-party service, model continuation, dual IDE/desktop, and multiplatform journey remain open |
-| Item 5: cost, context, and paid admission | Volcengine live probe, output-cap check, usage capture, official price snapshot, and unknown settlement boundary verified | Partial | Invoice reconciliation, native-currency settlement integration, and formal paid admission remain open |
-| Item 6: Codex compatibility | Current HEAD native .167 and static 137/137 evidence archived; strict cold scan records upstream first-page omission | Partial | Strict cold-scan repair/acceptance, three-system CI, Linux/macOS native cancellation/recovery, and model-change closure remain open |
-| Item 7: IDE / desktop journey | JetBrains scripted 85/85, accessibility/performance contracts 30/30, and latest remote VS Code/browser CI evidence archived | Partial | VS Code bridge loopback, current-HEAD IDE/desktop matrix, full task journey, real host accessibility, and upgrade/rollback remain open |
-| Item 9: shared logic and guidance | Shared projections, usage attribution, model-input composition, and CLI/VS Code projection checks archived | Partial | JetBrains live runtime and independent IDE/desktop failure localization remain open |
+| 对应项                                    | 已有证据                                                                                                                                                                                                      | 当前状态 | 剩余完成证据                                                                                                                           |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Item 2: actual input and attribution      | CLI/VS Code projections, model-input composition, usage attribution, and Volcengine live evidence verified; current-main project-goal task matrix 2/2 passed with runtime boundary attribution                | Partial  | Dual-IDE journey remains open                                                                                                          |
+| Item 3: lifecycle recovery                | Current HEAD compaction/restart 4/4, side-effect ledger resume 12/12, and REPL in-flight recovery 2/2                                                                                                         | Partial  | Dual-IDE recovery and complete cross-entry journey remain open                                                                         |
+| Item 4: MCP Tasks                         | Durable runtime, original-session delivery, deliveryId recovery, lease-bound watch, and opt-in REPL auto-wake verified                                                                                        | Partial  | Third-party service, model continuation, dual IDE/desktop, and multiplatform journey remain open                                       |
+| Item 5: cost, context, and paid admission | Volcengine live probe, output-cap check, usage capture, official price snapshot, and unknown settlement boundary verified                                                                                     | Partial  | Invoice reconciliation, native-currency settlement integration, and formal paid admission remain open                                  |
+| Item 6: Codex compatibility               | Current HEAD native .167 and static 137/137 evidence archived; strict cold scan records upstream first-page omission                                                                                          | Partial  | Strict cold-scan repair/acceptance, three-system CI, Linux/macOS native cancellation/recovery, and model-change closure remain open    |
+| Item 7: IDE / desktop journey             | JetBrains scripted 85/85, accessibility/performance contracts 30/30, and latest remote VS Code/browser CI evidence archived                                                                                   | Partial  | VS Code bridge loopback, current-HEAD IDE/desktop matrix, full task journey, real host accessibility, and upgrade/rollback remain open |
+| Item 8: Memory performance and quality    | Production source wiring and local Windows responsiveness evidence archived                                                                                                                                   | Partial  | Cross-platform cold/hot/mixed SLO and multilingual real-user tasks remain open                                                         |
+| Item 9: shared logic and guidance         | Shared projections, usage attribution, model-input composition, CLI/VS Code projection checks, and independent Electron loopback diagnostics archived; standing guidance trimmed with release rules preserved | Partial  | JetBrains live runtime and independent JetBrains/desktop failure localization remain open                                              |
 
 本批兼容实现使用独立分支 feature/cli-ide-gap-20261108，工作区位于 .worktrees/cli-ide-gap-20261108。这样可满足现有协议探针对干净准确提交的要求，并保留主工作区已有 Memory / CLI CI 改动。尚未合并、发布或宣称生产支持扩大。
 
@@ -216,7 +217,6 @@ Claude Code 的 MCP Tasks 当前处于公开测试阶段，可在服务端受理
 
 本次新增 durable runtime 的显式 `watch` 路径：它在持有 session lease 的前提下按有界间隔轮询，遇到远端终态后保存结果并以已有 delivery 事件去重交付；不会自动注入模型历史，也不会启动新的模型回合。`mcp-task-runtime.test.js` 当前 13/13 通过，覆盖轮询终态、结果保存和重复交付。该实现补齐了 session-owned tracking 的安全边界，但 `modelContinuationVerified` 仍保持 false，自动唤醒仍需后续真实 REPL / IDE 旅程验收。
 
-
 本次继续接入真实 REPL：新增显式 /mcp-watch [local-id]，在当前 canonical session lease 下启动 tracker，并在 REPL 关闭时停止。设置 CC_MCP_TASK_AUTOWAKE=1 后，已验证 delivery 会排入有界 continuation queue，复用普通 turn 的预算、lease、turn binding 和持久化；默认关闭，且结果仍以外部引用身份进入上下文。MCP Tasks 与 REPL 交互定向回归为 116 项通过；完整模型自动唤醒的真实 provider / 双 IDE / 桌面旅程仍待验收。
 
 补充边界：watch 现尊重服务端声明的 pollInterval，并对本地 interval/timeout 执行有限整数和上下界校验；启用 CC_MCP_TASK_AUTOWAKE=1 时，REPL 启动会在 listener 就绪后扫描 canonical journal 并恢复 pending tracker。恢复和唤醒仍是显式 opt-in，默认不会产生后台模型请求。
@@ -224,65 +224,58 @@ Claude Code 的 MCP Tasks 当前处于公开测试阶段，可在服务端受理
 恢复边界进一步收紧：启动扫描现在也包含 resultSaved:true 但尚未 delivery 的记录，watch 会复用已保存结果而不重新请求远端，并通过既有 deliveryId 去重；对应 crash-after-result-save 回归已加入 runtime 测试。
 
 Auto-wake 崩溃恢复现在以 deliveryId 绑定 continuation prompt：启动时对已交付但没有对应 settled user prompt 的 delivery 重新排队，对已有 settled prompt 的记录跳过，避免重复模型回合。
+
 ### 2026-11-09 Volcengine live probe boundary
 
 ??????????????????????? key ??? Volcengine endpoint ? deepseek-v4-1-flash-economy-261017 ? bounded live probe?4/4 ??????? HTTP 200???? prompt/output usage?prompt_tokens ? 698?842?1037?2071?completion_tokens ?? 8??????????/????????[`context-token-volcengine-live-probe-20261109`](../../cli/evidence/context-token-volcengine-live-probe-20261109/README.md)?????????? usage capture?4 ????? `unknownCostRequests`?`invoiceAssessed:false`?`outputLimitEnforcementVerified:false`???????????????????????????????????????????????????
 
-
 Using the authorized key from `H:\code\api\deepseek.txt` only through the process environment and an isolated temporary config, the bounded live probe sent one generated request to the built-in Volcengine endpoint. The receipt was bound to source commit `7e9b7fcc8d7a71ae2600be19b938d65230222e0a`; it recorded `attemptedRequests: 1`, `requestCount: 0`, `unknownCostRequests: 1`, and `invoiceAssessed: false`. The request settled as `RESPONSE_OR_TRANSPORT_FAILED` without persisting response content, usage, response ID, or credentials. This is evidence that the probe path reached the request boundary, but it does not verify provider usage, billing, A/B context behavior, or production readiness; those acceptance items remain open.
+
 ### 2026-11-09 Codex cold-scan receipt archive
 
 The `.160` and `.164` zero-turn replay, environment, launcher-registry, and native-registry receipts are now archived in [`codex-cold-scan-0160-0164-20261109`](../../cli/evidence/codex-cold-scan-0160-0164-20261109/). Both replay receipts remain failed: the ascending cold scan found only 1/2 entries, with no provider request and no turn-start request. The archive preserves the failure evidence and does not claim `.167` or three-system compatibility.
 第 2 项新增组合回归：[`model-input-diagnostics.test.js`](../../../../packages/cli/__tests__/unit/model-input-diagnostics.test.js) 的 canonical planning / durable signed readback / governed fetch 两个用例 **2/2 通过**，同一 `requestId` 与 `attemptId` 贯穿阶段顺序，并验证 readback 失败时不会 dispatch。该证据使用本地 loopback/受控签名 fixture，不替代真实 provider 或双 IDE 任务旅程；同文件既有两个真实 loopback 用例在当前 Windows 沙箱中仍因 `EACCES 127.0.0.1` 未通过。组合回归的命令、源码提交和环境边界已固化到[`model-input-composition-20261109`回执](../../cli/evidence/model-input-composition-20261109/README.md)。第 3 项真实 REPL/SIGKILL 旅程已在当前提交重跑，但子进程在首个 prompt 前触发 `owner-only native ACL verification failed`，没有进入 provider 请求或恢复阶段；该环境阻断回执已归档于[`repl-inflight-recovery-20261109`](../../cli/evidence/repl-inflight-recovery-20261109/README.md)，因此不把历史 2/2 回执扩大为当前提交通过。第 8 项离线语义质量回归已在当前提交重跑并通过 **6/6**；指标、qrels、float32 完整性和确定性排序回执已归档于[`memory-semantic-quality-20261109`](../../cli/evidence/memory-semantic-quality-20261109/README.md)。该回执仍明确不替代生产 Memory 接入、冷/热/混合 SLO 或真实用户任务质量验收。第 9 项用量归因单元回归在当前提交通过 **12/12**；相关 transcript 集成回归仅 2 个解析用例通过，7 个需要严格 Windows session store 的用例因 owner-only ACL 环境阻断。结果已归档于[`usage-attribution-unit-20261109`](../../cli/evidence/usage-attribution-unit-20261109/README.md)，不宣称跨入口生产旅程完成。随后在具备 Windows owner-only ACL 的受控权限下于提交 `011b3c916` 重跑同一旅程，测试 **1/1 通过**：原请求被 SIGKILL 后保持 unknown，恢复阶段仅接纳 1 个新请求，旧请求 replay 为 0，并产生可见恢复提示。该提升权限回执与非提升环境阻断回执并列保存于[`repl-inflight-recovery-20261109`](../../cli/evidence/repl-inflight-recovery-20261109/README.md)；这证明 CLI/REPL 恢复旅程，但仍不等于双 IDE、桌面或付费 provider 全链路验收。同一提升权限环境下完整 `repl-inflight-recovery-e2e.test.js` 套件随后 **2/2 通过**；受控回执已补充完整套件命令和计数。第 4 项 durable MCP 七个定向测试文件在 owner-only ACL 可用环境中于提交 `354235664` 重跑，**118/118 通过**；当前回执见[`mcp-task-targeted-20261109`](../../cli/evidence/mcp-task-targeted-20261109/README.md)。该结果仍不覆盖真实第三方服务、模型 continuation、双 IDE/桌面或多平台验收。在 owner-only ACL 与 loopback 可用环境中，完整 `model-input-diagnostics.test.js` 于当前源码重跑为 **20/20 通过**；此前非提升沙箱的 `EACCES 127.0.0.1` 仅作为环境边界保留，不再代表当前实现失败。在 owner-only ACL 可用环境中，用量归因 unit 与 transcript 集成回归于提交 `878b288a6` 通过 **19/19**（12 个 unit、7 个 transcript）；当前回执已更新，先前非提升环境的 ACL 阻断保留为历史边界。第 6 项 Codex App Server 当前六个 schema/support/turn/history 单测在提交 `aba189fc7` 通过 **137/137**，回执见[`codex-app-server-137-20261109`](../../cli/evidence/codex-app-server-137-20261109/README.md)。该结果是静态/本地兼容证据，仍不替代准确 `.167` native 协议、取消恢复和三系统 CI 回执。
 
-
 ### 2026-11-09 Codex 0.164 scan-repair rerun
 
 Using the exact current source commit `72fe88974308bad8f9fea6acc078a3ec811f39e5`, the local official Codex 0.164.0 fixture was rerun with `--scope scan-repair`. The strict probe failed at `cold-asc:first-scan`: the first cold page sequence returned one of two expected identities. Later full-read and known-ID recovery observations were retained but did not promote the incomplete first scan. The negative receipt is archived in [`codex-history-scan-repair-0164-20261109`](../../cli/evidence/codex-history-scan-repair-0164-20261109/). This strengthens the failure boundary; it does not close exact `.167` native, cancellation/recovery, or three-system CI acceptance.
-
 
 ### 2026-11-09 JetBrains scripted journey rerun
 
 Four repository-hosted JetBrains journey/evidence suites passed **85/85** with Node's test runner. The receipt is archived in [`jetbrains-scripted-journey-20261109`](../../cli/evidence/jetbrains-scripted-journey-20261109/), with `realIdeHostVerified:false` and `gradleUiHostVerified:false`; this improves scripted contract coverage without claiming a live IntelliJ, dual-IDE, desktop, or accessibility journey.
 
-
 ## Current completion audit (2026-11-09)
 
 This table is the authoritative status snapshot for this plan. A row is marked complete only when the evidence matches the stated scope; fixture or static evidence does not satisfy a live-host, paid, native, or cross-platform gate.
 
-| Scope | Current evidence | Audit result | Remaining gate |
-| --- | --- | --- | --- |
-| Item 2: actual model input and attribution | CLI/VS Code/JetBrains projections plus canonical planning ? signed readback ? governed fetch composition; targeted diagnostics and attribution suites pass | Partial, locally verified | Independent real provider tasks, complete failure attribution, and dual-IDE journey |
-| Item 3: lifecycle recovery | Owner-only ACL CLI/REPL SIGKILL recovery suite 2/2 plus current-HEAD concurrent-input recovery 2/2, compaction/restart 4/4, and side-effect ledger resume 12/12 | Partial, current-HEAD CLI/REPL and local lifecycle sub-gates verified | Dual IDE recovery and complete cross-entry journey |
-| Item 4: MCP Tasks | Durable runtime/watch/deliveryId recovery and targeted suite 118/118; scripted REPL auto-wake | Partial, local contract verified | Third-party service, model continuation, dual IDE/desktop, and multiplatform journey |
-| Item 5: cost/context/paid admission | Volcengine bounded diagnostic and live provider output-cap checks passed; official time-windowed CNY price for the exact economy model is archived; 6-request cap receipt, usage captured, cancellation settlement preserved as unknown | Partial, transport/compaction/cancellation and official price lookup verified; settlement remains unpriced in the fixed USD estimator | Invoice reconciliation, native-currency/time-window settlement integration, and target-scope paid readiness |
-| Item 6: Codex compatibility | Current HEAD `.167.0` Windows native turn and database recovery passed; strict cold scan fails first 1/2 identity; static suite 137/137 | Partial current-HEAD Windows native evidence | Three-system CI, Linux/macOS native cancellation/recovery, and model-change closure |
-| Item 7: IDE/desktop journey | JetBrains scripted 85/85, accessibility/performance contract suite 30/30, and latest remote CI VS Code/browser gates passed on three systems; historical CI real hosts passed on Linux/Windows/macOS; current VS Code host activated but bridge timed out, current IntelliJ is Gradle-blocked | Partial; scripted and validator contracts pass, current-HEAD live host acceptance remains open | Current-HEAD IDE/desktop matrix, VS Code bridge, full task/recovery, real host accessibility/screen-reader journey, and upgrade/rollback |
-| Item 8: Memory quality and responsiveness | Semantic quality, current responsiveness, and production source wiring verification archived | Partial | Cross-platform cold/hot/mixed SLO and multilingual real-user tasks remain open |
-| Item 9: shared logic/guidance | Shared projections and usage attribution unit/transcript 19/19 plus current-HEAD CLI projection 52/52 and VS Code projection 10/10 (rerun receipt: cross-entry-projection-rerun-current-20261109) | Partial, CLI/VS Code bounded projection consistency verified | JetBrains live runtime and independent IDE/desktop failure localization |
+| Scope                                      | Current evidence                                                                                                                                                                                                                                                                              | Audit result                                                                                                                          | Remaining gate                                                                                                                           |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Item 2: actual model input and attribution | CLI/VS Code/JetBrains projections plus canonical planning ? signed readback ? governed fetch composition; targeted diagnostics and attribution suites pass                                                                                                                                    | Partial, locally verified                                                                                                             | Independent real provider tasks, complete failure attribution, and dual-IDE journey                                                      |
+| Item 3: lifecycle recovery                 | Owner-only ACL CLI/REPL SIGKILL recovery suite 2/2 plus current-HEAD concurrent-input recovery 2/2, compaction/restart 4/4, and side-effect ledger resume 12/12                                                                                                                               | Partial, current-HEAD CLI/REPL and local lifecycle sub-gates verified                                                                 | Dual IDE recovery and complete cross-entry journey                                                                                       |
+| Item 4: MCP Tasks                          | Durable runtime/watch/deliveryId recovery and targeted suite 118/118; scripted REPL auto-wake                                                                                                                                                                                                 | Partial, local contract verified                                                                                                      | Third-party service, model continuation, dual IDE/desktop, and multiplatform journey                                                     |
+| Item 5: cost/context/paid admission        | Volcengine bounded diagnostic and live provider output-cap checks passed; official time-windowed CNY price for the exact economy model is archived; 6-request cap receipt, usage captured, cancellation settlement preserved as unknown                                                       | Partial, transport/compaction/cancellation and official price lookup verified; settlement remains unpriced in the fixed USD estimator | Invoice reconciliation, native-currency/time-window settlement integration, and target-scope paid readiness                              |
+| Item 6: Codex compatibility                | Current HEAD `.167.0` Windows native turn and database recovery passed; strict cold scan fails first 1/2 identity; static suite 137/137                                                                                                                                                       | Partial current-HEAD Windows native evidence                                                                                          | Three-system CI, Linux/macOS native cancellation/recovery, and model-change closure                                                      |
+| Item 7: IDE/desktop journey                | JetBrains scripted 85/85, accessibility/performance contract suite 30/30, and latest remote CI VS Code/browser gates passed on three systems; historical CI real hosts passed on Linux/Windows/macOS; current VS Code host activated but bridge timed out, current IntelliJ is Gradle-blocked | Partial; scripted and validator contracts pass, current-HEAD live host acceptance remains open                                        | Current-HEAD IDE/desktop matrix, VS Code bridge, full task/recovery, real host accessibility/screen-reader journey, and upgrade/rollback |
+| Item 8: Memory quality and responsiveness  | Semantic quality, current responsiveness, and production source wiring verification archived                                                                                                                                                                                                  | Partial                                                                                                                               | Cross-platform cold/hot/mixed SLO and multilingual real-user tasks remain open                                                           |
+| Item 9: shared logic/guidance              | Shared projections and usage attribution unit/transcript 19/19 plus current-HEAD CLI projection 52/52 and VS Code projection 10/10 (rerun receipt: cross-entry-projection-rerun-current-20261109)                                                                                             | Partial, CLI/VS Code bounded projection consistency verified                                                                          | JetBrains live runtime and independent IDE/desktop failure localization                                                                  |
 
 The plan therefore remains open. The unresolved rows require an external provider invoice, a missing official native artifact or CI matrix, or live IDE/desktop hosts; no local fixture result is promoted to close those gates.
-
 
 ### 2026-11-09 Existing Codex 0.167 native receipt promoted into the audit
 
 The repository already contains a source-bound `.167.0` Windows x64 native evidence pack at [`codex-167-20261108`](../implementation/evidence/codex-167-20261108/), commit `e55e99ca22eda1f202d516e42ef306ee9cf28af6`. `fixed-turn.json` passed real native turn, approval cancellation, interleaved threads, and post-admission transport-loss handling; `fixed-database.json` passed process-restart database/history recovery without replaying the completed request. `fixed-scan-repair.json` remains a strict failure for the first cold scan, while later repair observations are retained. The pack explicitly records `realProviderAcceptance:false` and `productionAdmission:false`. Because the adapter/probe/history sources changed after `e55e99ca22eda1f202d516e42ef306ee9cf28af6`, the historical pack is not current-HEAD native evidence; the source-drift boundary is recorded in [`codex-167-current-head-boundary-20261109`](../../cli/evidence/codex-167-current-head-boundary-20261109/).
 
-
 ### 2026-11-09 Codex `.167` CI status readback
 
 Read-only GitHub verification for `e55e99ca22eda1f202d516e42ef306ee9cf28af6` found the compatibility workflow's `.167` Ubuntu, Windows, and macOS jobs cancelled; the separate cold-scan matrix was also cancelled. Shared manifest/adapter jobs and the `.164` Ubuntu job succeeded. The sanitized status receipt is archived in [`codex-ci-0167-cancelled-20261109`](../../cli/evidence/codex-ci-0167-cancelled-20261109/). This confirms that the Windows `.167` native receipt cannot be promoted to three-system CI acceptance, and no remote workflow was rerun.
-
 
 ### 2026-11-09 Codex `.167` current-HEAD source-drift boundary
 
 The historical `.167.0` Windows native pack is bound to `e55e99ca22eda1f202d516e42ef306ee9cf28af6`, while current `main` includes later changes to the App Server turn/history probe sources (`b60efe3a7c`, `8eadb310ff`, `e4e8eb21a6`, among others). No `.167` native binary is available locally for a current-HEAD rerun. The boundary receipt [`codex-167-current-head-boundary-20261109`](../../cli/evidence/codex-167-current-head-boundary-20261109/) therefore records `historicalNativeReceiptCurrentHeadVerified:false`; current HEAD retains static compatibility evidence only.
 
-
 ### 2026-11-09 Current HEAD native 0.164 rerun
 
 Using the local official Codex 0.164.0 Windows x64 binary, current HEAD `e1cde771c4f3c5508567a0f843184e5b38196698` passed the native turn probe (completed/failed/interrupted scenarios, approval cancellation, interleaved threads, and post-admission transport loss) and the database scope (process restart, same-second thread/turn pagination, settings restoration, and no replay). Receipts are archived in [`codex-current-head-native-0164-20261109`](../../cli/evidence/codex-current-head-native-0164-20261109/). This is current-HEAD native evidence for `.164.0`, not `.167` or production admission.
-
 
 ### 2026-11-09 Current Memory responsiveness benchmark
 
@@ -296,31 +289,25 @@ The bounded live implementation-plan diagnostic was rerun with the authorized Vo
 
 The live diagnostic harness was tightened after the first run exposed two real boundary issues: structured compaction JSON could be truncated at the ordinary 512-token cap, and the provider could settle a stream after a client abort. The compaction prompt now asks for concise bounded JSON; the diagnostic gives that summary request a separate 1024-token cap. The cancellation check uses a timed client abort, requires one admitted request with no retry, and preserves unknown settlement instead of treating the interrupted call as free. The authorized isolated-config rerun passed **4/4** checks with five requests; one cancellation request remains `usageUnknown:true`, so `totalEstimatedCostUsd` is null. Evidence: `../cli/evidence/implementation-plan-volcengine-live-20261109/`. This closes the bounded transport/compaction diagnostic, but not invoice reconciliation, formal pricing, output-cap enforcement, or production paid admission.
 
-
 ### 2026-11-09 Current HEAD Codex 0.167 native rerun
 
 A locally available official Windows x64 Codex `0.167.0` binary was rerun against current `main` commit `8c4ae22975c661813120fb728404145e848fad16`. The native turn scope passed completed/failed/interrupted turns, approval cancellation, interleaved threads, and post-admission transport loss. The database scope passed process restart, same-second thread pagination, settings restoration, and no replay of a completed request. The strict `scan-repair` scope still fails at the first cold ascending scan because only 1/2 known identities were returned; later repair observations were retained without promoting the incomplete first scan. Evidence: `../cli/evidence/codex-current-head-native-0167-20261109/`. The run uses a synthetic loopback provider and therefore does not close real-provider or production admission.
-
 
 ### 2026-11-09 IntelliJ live-host attempts
 
 The cached IntelliJ 2024.2 distribution was supplied to the repository's live UI-host driver. The default-JDK attempt and an isolated JDK 17 plus IPv4/Gradle-home retry both failed during Gradle preparation because the single-use Gradle daemon could not accept a localhost connection. The generated receipts mark `evidenceComplete:false`; no IDE or Robot host started, so this is a current environment boundary rather than live IDE acceptance. Evidence: `../cli/evidence/jetbrains-live-host-attempt-20261109/`.
 
-
 ### 2026-11-09 VS Code live Extension Host attempt
 
 The real VS Code Extension Host runner launched an isolated VS Code profile, installed the existing VSIX, opened a two-root workspace, and activated the packaged extension. The driver then timed out connecting to the extension's localhost bridge at `127.0.0.1:53123`; the task journey therefore failed even though host/activation evidence is complete. Evidence: `../cli/evidence/vscode-live-extension-host-20261109/`.
-
 
 ### 2026-11-09 Requirement-by-requirement completion audit
 
 The current Item 2?9 status is also recorded in the machine-readable [`cli-ide-gap-completion-audit-20261109`](../../cli/evidence/cli-ide-gap-completion-audit-20261109/README.md) manifest. Every row remains explicitly `partial`, with committed evidence paths and scope-matching remaining gates. The manifest is an audit aid, not a completion claim; the plan stays open until the external provider, native cross-platform, and live IDE/desktop gates are closed.
 
-
 ### 2026-11-09 Three-system desktop E2E CI readback
 
 Read-only GitHub verification of workflow run `42509137812` found successful Windows, Ubuntu, and macOS Electron/Playwright E2E jobs for PR commit `5d62ee9533e3f2f903d55930ca3c0f72a682c642`. Each built the desktop main/renderer and completed the E2E smoke step. This is cross-platform desktop smoke evidence for an older commit; it does not close current-HEAD, full IDE task/recovery, Codex native CI, or paid-provider gates. Evidence: `../cli/evidence/desktop-e2e-ci-42509137812-20261109/`.
-
 
 ### 2026-11-09 latest IDE Extensions CI readback
 
@@ -334,56 +321,45 @@ Read-only GitHub verification of IDE Extensions run `42505953777` found successf
 
 The repository Extension Host runner was rerun on the current local `main` worktree using the packaged VSIX from the previous live attempt, VS Code 1.145.2, a fresh profile, and `--host-api-only`. The installed VSIX was discovered and activated, and the extension log recorded `bridge up on 127.0.0.1:65215`. The runner's same-host TCP probe then timed out on the advertised port. This reproducibly separates packaging/activation from the unresolved loopback bridge gate; it does not close Item 7. Evidence: `../cli/evidence/vscode-live-extension-host-rerun-20261109/`.
 
-
 ### 2026-11-09 VS Code bridge regression checks
 
 The repository lockfile, IDE doctor, and Extension Host runner contract tests passed **55/55** on the current worktree. These are offline/unit and runner-contract checks; they validate fail-closed diagnostics and evidence handling, but do not override the live Host bridge timeout recorded in vscode-live-extension-host-rerun-20261109.
-
 
 ### 2026-11-09 direct bridge server probe
 
 The production src/mcp-http-server.js was exercised directly on a real Windows loopback port. The MCP initialize request connected successfully, returned HTTP 200 with a session header, and produced valid JSON. This confirms the server implementation and machine loopback path; the unresolved live failure is isolated to the production extension lifecycle inside VS Code Extension Host. Evidence: ../cli/evidence/vscode-bridge-server-direct-20261109/.
 
-
 ### 2026-11-09 VS Code lock and self-probe fixes
 
 The live Host driver was corrected to prefer the current Extension Host PID and newest started_at, avoiding an old same-workspace lock. A rebuilt VSIX then demonstrated the remaining boundary: the extension process could not connect to its own freshly bound 127.0.0.1 listener. The new production self-probe fails closed before publishing a dead lockfile. Runner contracts remain 54/54; the live task journey remains open. Evidence: ../cli/evidence/vscode-live-extension-host-lockfix-20261109/ and ../cli/evidence/vscode-live-extension-host-selfprobe-20261109/.
-
 
 ### 2026-11-09 VS Code self-probe error code
 
 The rebuilt real Host emitted ETIMEDOUT on all five bounded self-probe attempts to its freshly bound 127.0.0.1 listener, then failed closed without publishing a lockfile. A standalone Node probe against the same production HTTP server succeeds. The remaining issue is therefore constrained to the VS Code Extension Host process boundary; Item 7 remains open. Evidence: ../cli/evidence/vscode-live-extension-host-diagnostic-20261109/.
 
-
 ### 2026-11-09 Volcengine provider output cap
 
 The implementation diagnostic was extended with a bounded live provider-cap check. Against the configured Volcengine model, a long-output prompt sent with maxOutputTokens=1 returned usage.output_tokens=1; all five checks passed across six requests. The cancellation request remains unknown-settled and billing/formal paid admission remain unverified. Final receipt: ../cli/evidence/implementation-plan-volcengine-cap-live-20261109/receipt-v4.json, source commit e3714c33e.
-
 
 ### 2026-11-09 Volcengine exact model price readback
 
 The official Ark pricing page and model documentation identify `deepseek-v4-1-flash-261017` and its economy alias. The economy edition is listed at CNY 0.80 input / 0.016 cache-hit / 3.20 output per million tokens during idle hours, and CNY 1.60 / 0.032 / 6.40 during peak hours. The exact-model readback is archived in [`volcengine-model-price-20261109`](../../cli/evidence/volcengine-model-price-20261109/). This closes the official price lookup, but not invoice reconciliation or paid admission: the provider price is time-windowed and native-currency, while the current estimator requires fixed USD rates and therefore intentionally returns `matched:false` for the exact economy alias.
 
-
 ### 2026-11-09 Memory production source wiring current-source verification
 
 The archived real BGE smoke evidence was checked with `node docs/cli/evidence/local-memory-semantic-20261108/verify-evidence.mjs --check-current-sources` on the current `main`. Verification passed: six executable source hashes still match the real smoke, and the smoke had asserted all three production entries (CLI `search`, scoped recall, and provider-context planning), semantic-off controls, and three real worker launches. This closes the production source wiring sub-gate for the current source hashes. It does not close cross-platform cold/hot/mixed SLO, multilingual relevance, or real-user task quality; the archive still records `fullQualityAccepted:false` and `performanceAccepted:false`.
-
 
 ### 2026-11-09 Current HEAD lifecycle recovery suites
 
 Current `main` commit `eb3579908173f2f8f5da8075048c3c12b72282c0` passed the independent-process Compaction/Memory restart E2E suite **4/4** and the headless side-effect ledger resume suite **12/12**. The latter includes fail-closed persistence/readback, interrupted dangerous operations, clean completion, duplicate committed-effect detection, zero-duplicate correct resume, unknown background outcomes, and interaction recovery. The receipt is archived in [`lifecycle-recovery-current-20261109`](../../cli/evidence/lifecycle-recovery-current-20261109/). These close the local compaction and side-effect-idempotence sub-gates only; dual-IDE recovery, concurrent input during restart, and the complete cross-entry journey remain open.
 
-
 ### 2026-11-09 Current HEAD concurrent-input recovery
 
 The real CLI/readline/Evolution/JSONL and loopback REPL recovery suite passed **2/2** on current `main` commit `fb1cfe3a4352867ea99a9918d6a8271b729e98cf`. The journey killed an unsettled request, supplied new input immediately while restart/recovery overlapped, admitted exactly one new request, replayed the old request zero times, preserved unknown settlement, and emitted a visible recovery notice. The sanitized receipt is archived in [`repl-inflight-recovery-current-20261109`](../../cli/evidence/repl-inflight-recovery-current-20261109/). The test uses emulated stdin and a loopback fixture; dual-IDE and complete cross-entry recovery remain open.
 
-
 ### 2026-11-09 Current HEAD CLI/VS Code projection checks
 
 The current `main` commit `99c8a598a0c6553f1273e365d90b557943c7a82f` passed the four CLI model-input/source-mapping suites **52/52** and the VS Code model-input diagnostics suite **10/10**. These checks cover bounded allowlisted projections, source mappings, session ownership, stale-result rejection, and command argument safety. The receipt is archived in [`cross-entry-projection-current-20261109`](../../cli/evidence/cross-entry-projection-current-20261109/). This narrows Item 9's remaining scope, but JetBrains live runtime and independent IDE/desktop failure localization remain unverified.
-
 
 ### 2026-11-09 Current HEAD accessibility/performance contract checks
 
@@ -405,3 +381,9 @@ The completion manifest is [cli-ide-gap-completion-audit-20261109](../../cli/evi
 - Codex history probe contract rerun: current main passed 18 files / 705 tests; this validates the fail-closed cold-scan boundary and pagination diagnostics, but does not override the official .167 native first-page omission.
 - Codex 0.167 native turn rerun: [codex-turn-rerun-current-20261109](../../cli/evidence/codex-turn-rerun-current-20261109/) - official Windows native turn probe passed completed/failed/interrupted/approval/transport-loss scenarios; provider remains synthetic loopback and Linux/macOS gates remain open.
 - Codex 0.167 native history rerun: [codex-history-rerun-current-20261109](../../cli/evidence/codex-history-rerun-current-20261109/) - database recovery passed; strict cold-asc first scan still omitted one of two identities, while later recency_at asc/desc observations verified complete pagination. The cold-scan boundary remains open.
+
+### 2026-11-09 Independent Electron loopback isolation and standing guidance
+
+The real VS Code host journey at `cc965340c158e15637ee1bf71da3b2e74ed38bf0` still fails bridge discovery after fresh VSIX installation, activation and 19 registered commands. Its new automatic failure diagnostic connects successfully in standalone Node on IPv4/IPv6, while the exact signed VS Code Electron executable returns `ETIMEDOUT` on both without loading any extension. This replaces the earlier extension-lifecycle-only hypothesis with a reproduced executable-level boundary; the underlying cause and bridge repair remain open. The runner preserves the original failed result, and the joint runner/release-contract regression passed **63/63**. See [the diagnostic archive](../../cli/evidence/vscode-electron-loopback-isolation-20261109/README.md) and [draft PR #569](https://github.com/chainlesschain/chainlesschain/pull/569).
+
+Item 9 standing guidance is implemented: the root `AGENTS.md` now links to [the historical PM E2E inventory](../../../testing/pm-e2e-history-2026-02-04.md), preserving the prior text on demand and all standing release order, OIDC, exact-commit matrix and other active rules. The summary table now also includes Item 8 and has four explicit columns. These changes do not close the remaining JetBrains/desktop, provider, Memory quality, billing or production gates.

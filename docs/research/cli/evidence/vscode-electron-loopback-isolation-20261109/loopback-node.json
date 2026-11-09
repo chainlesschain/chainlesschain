@@ -1,0 +1,22 @@
+{
+  "schema": "chainlesschain.host-loopback-diagnostic/v1",
+  "nodeVersion": "24.12.0",
+  "electronVersion": null,
+  "platform": "win32",
+  "architecture": "x64",
+  "extensionLoaded": false,
+  "cases": [
+    {
+      "host": "127.0.0.1",
+      "listening": true,
+      "connected": true,
+      "errorCode": null
+    },
+    {
+      "host": "::1",
+      "listening": true,
+      "connected": true,
+      "errorCode": null
+    }
+  ]
+}

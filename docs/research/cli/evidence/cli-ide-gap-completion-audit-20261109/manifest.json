@@ -18,9 +18,7 @@
         "cli/evidence/project-goal-volcengine-live-current-20261109",
         "cli/evidence/project-goal-volcengine-live-current24-20261109"
       ],
-      "remaining": [
-        "dual IDE journey"
-      ]
+      "remaining": ["dual IDE journey"]
     },
     "3": {
       "status": "partial",
@@ -29,10 +27,7 @@
         "cli/evidence/lifecycle-recovery-current-20261109",
         "cli/evidence/repl-inflight-recovery-current-20261109"
       ],
-      "remaining": [
-        "dual IDE recovery",
-        "complete cross-entry journey"
-      ]
+      "remaining": ["dual IDE recovery", "complete cross-entry journey"]
     },
     "4": {
       "status": "partial",
@@ -97,7 +92,8 @@
         "cli/evidence/ide-extensions-ci-42518446281-20261109",
         "cli/evidence/vscode-live-extension-host-rerun-current-20261109",
         "cli/evidence/jetbrains-scripted-journey-rerun-current-20261109",
-        "cli/evidence/project-goal-volcengine-live-current-20261109"
+        "cli/evidence/project-goal-volcengine-live-current-20261109",
+        "cli/evidence/vscode-electron-loopback-isolation-20261109"
       ],
       "remaining": [
         "VS Code bridge loopback",
@@ -125,13 +121,26 @@
         "cli/evidence/usage-attribution-unit-20261109",
         "cli/evidence/model-input-composition-20261109",
         "cli/evidence/cross-entry-projection-current-20261109",
-        "cli/evidence/cross-entry-projection-rerun-current-20261109"
+        "cli/evidence/cross-entry-projection-rerun-current-20261109",
+        "cli/evidence/vscode-electron-loopback-isolation-20261109"
       ],
       "remaining": [
         "JetBrains live runtime",
-        "independent IDE/desktop failure localization"
-      ]
+        "independent JetBrains/desktop failure localization"
+      ],
+      "guidance": {
+        "status": "implemented",
+        "standingInstructions": "AGENTS.md",
+        "historicalInventory": "docs/testing/pm-e2e-history-2026-02-04.md",
+        "releaseConstraintsPreserved": true
+      }
     }
   },
-  "completionRule": "Do not promote overall to complete until every item has scope-matching evidence and every remaining gate is closed."
+  "completionRule": "Do not promote overall to complete until every item has scope-matching evidence and every remaining gate is closed.",
+  "followup": {
+    "branch": "feature/cli-ide-gap-20261109-followup",
+    "codeCommit": "cc965340c158e15637ee1bf71da3b2e74ed38bf0",
+    "pullRequest": "https://github.com/chainlesschain/chainlesschain/pull/569",
+    "overall": "open"
+  }
 }
