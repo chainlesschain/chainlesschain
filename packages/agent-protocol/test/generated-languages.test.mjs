@@ -6,6 +6,29 @@ function read(relativeUrl) {
   return readFileSync(new URL(relativeUrl, import.meta.url), "utf8");
 }
 
+test("Kotlin and Swift retain the published memory decision constructor alongside typed corrections", () => {
+  const kotlin = read("../generated/kotlin/CcAgentProtocol.kt");
+  const swift = read("../generated/swift/CcAgentProtocol.swift");
+  assert.match(kotlin, /data class MemoryDecisionRequest\(/u);
+  assert.match(
+    swift,
+    /public struct MemoryDecisionRequest: Codable, Sendable/u,
+  );
+  assert.match(
+    kotlin,
+    /typealias MemoryLifecycleDecisionRequest = MemoryDecisionRequest/u,
+  );
+  assert.match(
+    swift,
+    /public typealias MemoryLifecycleDecisionRequest = MemoryDecisionRequest/u,
+  );
+  assert.match(kotlin, /data class MemoryCorrectionRequest\(/u);
+  assert.match(
+    swift,
+    /public struct MemoryCorrectionRequest: Codable, Sendable/u,
+  );
+});
+
 test("generated clients preserve protocol field names across language keywords", () => {
   const typescript = read("../../agent-sdk/src/generated/app-protocol.ts");
   const python = read(

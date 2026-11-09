@@ -3542,7 +3542,7 @@ public struct MemoryCorrectionRequest: Codable, Sendable {
     }
 }
 
-public struct MemoryLifecycleDecisionRequest: Codable, Sendable {
+public struct MemoryDecisionRequest: Codable, Sendable {
     public let memoryId: String
     public let type: String
     public let expectedRevision: Int
@@ -3624,6 +3624,9 @@ public struct AgentMemoryCorrectedStreamEvent: Codable, Sendable {
         self.trace_id = trace_id
     }
 }
+
+// Legacy constructor remains lifecycle-only; corrections use MemoryCorrectionRequest.
+public typealias MemoryLifecycleDecisionRequest = MemoryDecisionRequest
 
 public enum AgentStreamEventPayload: Codable, Sendable {
     case approvalRequest(AgentApprovalRequestStreamEvent)

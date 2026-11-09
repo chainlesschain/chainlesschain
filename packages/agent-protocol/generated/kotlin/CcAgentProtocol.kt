@@ -1322,7 +1322,7 @@ data class MemoryCorrectionRequest(
     val at: String? = null
 )
 
-data class MemoryLifecycleDecisionRequest(
+data class MemoryDecisionRequest(
     val memoryId: String,
     val type: String,
     val expectedRevision: Long,
@@ -1350,6 +1350,9 @@ data class AgentMemoryCorrectedStreamEvent(
     val seq: Long? = null,
     val trace_id: String? = null
 ) : AgentStreamEventPayload
+
+// Legacy constructor remains lifecycle-only; corrections use MemoryCorrectionRequest.
+typealias MemoryLifecycleDecisionRequest = MemoryDecisionRequest
 
 sealed interface ApprovalDecision {
     data object AcceptOnce : ApprovalDecision

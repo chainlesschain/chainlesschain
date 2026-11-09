@@ -1083,6 +1083,33 @@ function renderSwiftApprovalDecision() {
 }`;
 }
 
+function nativeModelName(name) {
+  // Keep the concrete class/struct and constructor published in 0.1.12.
+  // The schema's new union name must not erase the legacy lifecycle model.
+  return name === "MemoryLifecycleDecisionRequest"
+    ? "MemoryDecisionRequest"
+    : name;
+}
+
+function renderNativeMemoryDecisionAlias(language) {
+  const variants = schema.$defs.MemoryDecisionRequest?.oneOf?.map(
+    (variant) => variant.$ref,
+  );
+  if (
+    JSON.stringify(variants) !==
+    JSON.stringify([
+      "#/$defs/MemoryLifecycleDecisionRequest",
+      "#/$defs/MemoryCorrectionRequest",
+    ])
+  ) {
+    throw new Error(
+      "Native memory decision compatibility requires the lifecycle/correction union",
+    );
+  }
+  return `// Legacy constructor remains lifecycle-only; corrections use MemoryCorrectionRequest.
+${language === "swift" ? "public " : ""}typealias MemoryLifecycleDecisionRequest = MemoryDecisionRequest`;
+}
+
 function renderKotlin() {
   const agentStreamPayloadNames = new Set(
     agentStreamPayloadVariants().map(({ name }) => name),
@@ -1110,7 +1137,7 @@ function renderKotlin() {
       const implementsPayload = agentStreamPayloadNames.has(name)
         ? " : AgentStreamEventPayload"
         : "";
-      return `data class ${name}(\n${fields.join(",\n")}\n)${implementsPayload}`;
+      return `data class ${nativeModelName(name)}(\n${fields.join(",\n")}\n)${implementsPayload}`;
     })
     .join("\n\n");
   const approvalDecision = renderKotlinApprovalDecision();
@@ -1128,6 +1155,8 @@ ${stringEnums}
 sealed interface AgentStreamEventPayload
 
 ${models}
+
+${renderNativeMemoryDecisionAlias("kotlin")}
 
 ${approvalDecision}
 `;
@@ -1228,7 +1257,7 @@ function renderSwift() {
                   : `        case ${identifier} = ${JSON.stringify(field)}`;
               })
               .join("\n")}\n    }`;
-      return `public struct ${name}: Codable, Sendable {
+      return `public struct ${nativeModelName(name)}: Codable, Sendable {
 ${declarations.join("\n")}${codingKeys}
 
     public init(
@@ -1282,6 +1311,8 @@ public indirect enum JSONValue: Codable, Sendable {
 ${stringEnums}
 
 ${models}
+
+${renderNativeMemoryDecisionAlias("swift")}
 
 ${agentStreamEventPayload}
 
