@@ -8,6 +8,10 @@ const path = require("node:path");
 const { PassThrough, Readable } = require("node:stream");
 const { afterEach, test } = require("node:test");
 const { probeLoopback } = require("./extension-host/loopback-diagnostic.cjs");
+const {
+  resolveConfiguredRuntime,
+  runConfiguredVsCodeCommand,
+} = require("./extension-host/configured-runtime.cjs");
 
 test("loopback diagnostics reject non-local targets before creating sockets", async () => {
   for (const host of ["0.0.0.0", "example.com", "localhost", undefined])
@@ -267,6 +271,7 @@ test("extension-host runner accepts an explicit evidence directory", () => {
     {
       vsix: "release.vsix",
       vscodeVersion: "1.85.2",
+      vscodeExecutable: null,
       workDir: null,
       artifactDir: "reports/stable",
       releaseCommit: "ab".repeat(20),
@@ -295,6 +300,77 @@ test("extension-host runner resolves the downloaded host's exact version", async
 
   assert.equal(await resolveVsCodeHostVersion(executable, "stable"), "1.110.3");
   assert.equal(await resolveVsCodeHostVersion(executable, "1.85.2"), "1.110.3");
+});
+
+test("configured host requires an exact matching distribution and native CLI", () => {
+  const root = temporaryRoot();
+  const executable = path.join(root, "Code.exe");
+  fs.writeFileSync(executable, "test executable");
+  assert.throws(
+    () => resolveConfiguredRuntime("Code.exe", "1.96.2"),
+    /absolute path/,
+  );
+  for (const alias of ["stable", "insiders", "1.96", undefined]) {
+    assert.throws(
+      () => resolveConfiguredRuntime(executable, alias),
+      /exact --vscode-version/,
+    );
+  }
+  assert.throws(
+    () => resolveConfiguredRuntime(executable, "1.96.2"),
+    /no application manifest/,
+  );
+  const app = path.join(root, "resources", "app");
+  fs.mkdirSync(path.join(app, "out"), { recursive: true });
+  fs.writeFileSync(
+    path.join(app, "package.json"),
+    JSON.stringify({ version: "1.96.2" }),
+  );
+  assert.throws(
+    () => resolveConfiguredRuntime(executable, "1.145.2"),
+    /version mismatch/,
+  );
+  assert.throws(
+    () => resolveConfiguredRuntime(executable, "1.96.2"),
+    /no native CLI entry/,
+  );
+  fs.writeFileSync(path.join(app, "out", "cli.js"), "");
+  const runtime = resolveConfiguredRuntime(executable, "1.96.2");
+  assert.equal(runtime.executablePath, fs.realpathSync(executable));
+  assert.equal(runtime.receipt.version, "1.96.2");
+  assert.match(runtime.receipt.executableSha256, /^[a-f0-9]{64}$/);
+  assert.match(runtime.receipt.manifestSha256, /^[a-f0-9]{64}$/);
+  assert.ok(!JSON.stringify(runtime.receipt).includes(root));
+});
+
+test("configured CLI preserves literal arguments and rejects failed or hung processes", async () => {
+  const root = temporaryRoot();
+  const cliPath = path.join(root, "fixture cli.cjs");
+  fs.writeFileSync(
+    cliPath,
+    `
+    const mode = process.argv[2];
+    if (mode === 'fail') { process.stderr.write('expected failure'); process.exit(7); }
+    else if (mode === 'hang') setInterval(() => {}, 1000);
+    else process.stdout.write(JSON.stringify({ args: process.argv.slice(2), node: process.env.ELECTRON_RUN_AS_NODE, dev: process.env.VSCODE_DEV }));
+  `,
+  );
+  const runtime = { executablePath: process.execPath, cliPath };
+  const args = [
+    "--user-data-dir=profile with spaces",
+    'literal "quote"',
+    "$(literal)",
+  ];
+  const result = await runConfiguredVsCodeCommand(runtime, args);
+  assert.deepEqual(JSON.parse(result.stdout), { args, node: "1" });
+  await assert.rejects(
+    runConfiguredVsCodeCommand(runtime, ["fail"]),
+    /failed \(7\): expected failure/,
+  );
+  await assert.rejects(
+    runConfiguredVsCodeCommand(runtime, ["hang"], { timeout: 200 }),
+    /timed out/,
+  );
 });
 
 test("host version resolves from the test-electron Windows archive directory", async () => {
