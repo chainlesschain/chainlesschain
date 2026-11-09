@@ -43,6 +43,37 @@ if (process.argv[2] === "inspect") {
     messages.some((item) => Object.hasOwn(item, "_cc_mcp_task_continuation")),
     false,
   );
+  let modelInputDiagnostics;
+  if (request.requireSourceMapping && answers) {
+    const { readSessionModelInputDiagnostics } =
+      await import("../../../src/lib/session-model-input-diagnostics.js");
+    const report = readSessionModelInputDiagnostics(request.sessionId);
+    assert.equal(report.truncated, false);
+    const logical = report.records.filter(
+      (r) => r.diagnostic.phase === "logical-input",
+    );
+    const wire = report.records.filter(
+      (r) => r.diagnostic.stage === "fetch-body",
+    );
+    assert.equal(logical.length, 1);
+    assert.equal(wire.length, 1);
+    for (const record of [...logical, ...wire]) {
+      assert.equal(record.diagnostic.sourceMapping.covered, true);
+      assert.equal(record.diagnostic.sourceMapping.reason, "complete");
+      assert.ok(record.diagnostic.sourceMapping.sourceCount > 0);
+    }
+    assert.equal(logical[0].diagnostic.planning.covered, true);
+    assert.equal(wire[0].diagnostic.bodyCovered, true);
+    assert.equal(logical[0].diagnostic.requestId, wire[0].diagnostic.requestId);
+    modelInputDiagnostics = {
+      records: report.total,
+      sourceCount: logical[0].diagnostic.sourceMapping.sourceCount,
+      planningDigest: logical[0].diagnostic.planning.digest,
+      bodyDigest: wire[0].diagnostic.bodyDigest,
+      logicalMappingCovered: true,
+      bodyMappingCovered: true,
+    };
+  }
   process.stdout.write(
     JSON.stringify({
       ok: true,
@@ -53,6 +84,7 @@ if (process.argv[2] === "inspect") {
       beginEventHash: record.beginEventHash,
       endEventHash: record.endEventHash,
       outputDigest: record.outputDigest,
+      ...(modelInputDiagnostics ? { modelInputDiagnostics } : {}),
     }) + "\n",
   );
 } else {

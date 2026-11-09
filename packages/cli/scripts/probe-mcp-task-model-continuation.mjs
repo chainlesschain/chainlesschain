@@ -22,6 +22,7 @@ const cli = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const installation = resolve(process.argv[2]);
 const output = resolve(process.argv[3]);
 const live = process.argv.includes("--confirm-live");
+const canonicalContext = process.argv.includes("--canonical-context");
 assert.equal(existsSync(output), false, "Never overwrite diagnostic evidence");
 mkdirSync(output, { recursive: true });
 const isolated = mkdtempSync(join(tmpdir(), "cc-mcp-model-continuation-"));
@@ -39,6 +40,10 @@ const env = {
   CC_AUTO_IMAGE: "0",
 };
 delete env.CLAUDE_CONFIG_DIR;
+if (canonicalContext) {
+  env.CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_STAGE = "opt_in_canary";
+  env.CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_OPT_IN = "1";
+}
 let provider = "ollama",
   model = "qwen2.5:7b",
   baseUrl,
@@ -227,6 +232,7 @@ try {
       marker: currentMarker,
       transportReceipt,
       confirmLive: live,
+      requireSourceMapping: canonicalContext,
       pricing,
       holdAt: scenario === "completed" ? null : scenario,
       expectedPhase: scenario === "completed" ? "settled" : "started",
@@ -281,6 +287,33 @@ try {
     resumed.child.stdin.write("/exit\n");
     assert.equal((await resumed.exited).code, 0);
     assert.equal(existsSync(resumedTransport), false);
+    if (scenario === "completed") {
+      const journalPath = join(
+        env.CHAINLESSCHAIN_HOME,
+        "sessions",
+        sessionId + ".jsonl",
+      );
+      // Private handoff metadata lets native IDE diagnostics read this exact
+      // completed task without generating a fixture report or another request.
+      writeFileSync(
+        join(output, "private-session-config.json"),
+        JSON.stringify(
+          {
+            sessionId,
+            sessionHome: env.CHAINLESSCHAIN_HOME,
+            securityAnchorHome: env.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME,
+            workspaceDir: workspace,
+            journalPath,
+            expectedJournalDigest: createHash("sha256")
+              .update(readFileSync(journalPath))
+              .digest("hex"),
+          },
+          null,
+          2,
+        ) + "\n",
+        { flag: "wx", mode: 0o600 },
+      );
+    }
     const attempt = transport().attempts[0];
     if (scenario === "completed") assert.equal(attempt.responseHasMarker, true);
     checkpoints.push({
@@ -314,6 +347,7 @@ try {
         platform: process.platform,
         node: process.version,
         realProviderVerified: live,
+        canonicalContextOptIn: canonicalContext,
         billingVerified: false,
         outputUpperBoundVerified: false,
         requestedOutputLimit: 256,
@@ -339,6 +373,11 @@ try {
             "__tests__/fixtures/mcp-tasks/repl-continuation-child.mjs",
             "__tests__/fixtures/mcp-tasks/durable-child.mjs",
             "scripts/probe-mcp-task-model-continuation.mjs",
+            "scripts/lib/model-continuation-probe-admission.mjs",
+            "src/lib/session-model-input-diagnostics.js",
+            "src/lib/model-input-source-mapping.js",
+            "src/lib/context-memory-kernel/provider-context.js",
+            "src/lib/context-memory-kernel/authority.js",
           ].map((file) => [
             "packages/cli/" + file,
             createHash("sha256")
