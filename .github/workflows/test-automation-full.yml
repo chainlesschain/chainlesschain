@@ -63,7 +63,9 @@ jobs:
   run-all-tests:
     needs: [docs-scope]
     if: ${{ always() && !cancelled() }}
-    name: Run All Tests
+    # Branch protection requires the stable windows-latest context even while
+    # its native toolchain runs on the pinned Windows 2022 image below.
+    name: Run All Tests (${{ matrix.os == 'windows-2022' && 'windows-latest' || matrix.os }})
     runs-on: ${{ matrix.os }}
 
     strategy:
