@@ -556,7 +556,7 @@ export function runReviewStage(
           "node",
           "--input-type=commonjs",
           "--eval",
-          'process.chdir("/workspace/packages/cli/node_modules/better-sqlite3"); require("/workspace/packages/cli/node_modules/prebuild-install/bin.js");',
+          'const path=require("node:path"),{createRequire}=require("node:module"),cliRequire=createRequire("/workspace/packages/cli/package.json"),packageFile=cliRequire.resolve("better-sqlite3/package.json"),packageDir=path.dirname(packageFile),packageRequire=createRequire(packageFile); process.chdir(packageDir); packageRequire(packageRequire.resolve("prebuild-install/bin.js"));',
         ],
         { setup: true },
       );
@@ -568,7 +568,7 @@ export function runReviewStage(
         "node",
         "--input-type=commonjs",
         "--eval",
-        'const fs=require("node:fs"),crypto=require("node:crypto"),Database=require("/workspace/packages/cli/node_modules/better-sqlite3"); const db=new Database(":memory:"); if(db.prepare("select 42 as value").get().value!==42) throw new Error("SQLite native probe failed"); db.close(); const bytes=fs.readFileSync("/workspace/packages/cli/node_modules/better-sqlite3/build/Release/better_sqlite3.node"); console.log(JSON.stringify({sha256:crypto.createHash("sha256").update(bytes).digest("hex"),sqliteVerified:true}));',
+        'const fs=require("node:fs"),path=require("node:path"),crypto=require("node:crypto"),{createRequire}=require("node:module"),cliRequire=createRequire("/workspace/packages/cli/package.json"),packageFile=cliRequire.resolve("better-sqlite3/package.json"),packageDir=path.dirname(packageFile),Database=cliRequire("better-sqlite3"); const db=new Database(":memory:"); if(db.prepare("select 42 as value").get().value!==42) throw new Error("SQLite native probe failed"); db.close(); const bytes=fs.readFileSync(path.join(packageDir,"build/Release/better_sqlite3.node")); console.log(JSON.stringify({sha256:crypto.createHash("sha256").update(bytes).digest("hex"),sqliteVerified:true}));',
       ]);
       requireCondition(
         nativeProbe.status === 0 && !nativeProbe.error && !nativeProbe.signal,
