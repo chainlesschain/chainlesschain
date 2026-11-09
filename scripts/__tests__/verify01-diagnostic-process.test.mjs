@@ -61,6 +61,43 @@ function root(t) {
   return directory;
 }
 
+test(
+  "Windows cleanup records executable identity without copying command-line secrets",
+  { skip: process.platform !== "win32", timeout: 30000 },
+  async (t) => {
+    const directory = root(t);
+    const privateMarker = "private-command-argument-do-not-record";
+    const handle = launchLogged(
+      process.execPath,
+      ["-e", "setInterval(() => {}, 1000)", privateMarker],
+      { logFile: path.join(directory, "executable-identity.log") },
+    );
+    try {
+      captureOwnedProcessTree(handle);
+      const owner = handle.cleanupEvidence.owned.find(
+        (entry) => entry.pid === handle.child.pid,
+      );
+      assert.ok(owner);
+      assert.equal(
+        path.basename(owner.executablePath).toLowerCase(),
+        path.basename(process.execPath).toLowerCase(),
+      );
+      assert.match(owner.created, /^\d+$/u);
+      assert.equal(Object.hasOwn(owner, "commandLine"), false);
+      assert.equal(Object.hasOwn(owner, "commandLineDigest"), false);
+      assert.equal(
+        fs
+          .readFileSync(`${handle.logFile}.cleanup.json`, "utf8")
+          .includes(privateMarker),
+        false,
+      );
+    } finally {
+      await stopOwned(handle, { requireRunningOwner: true });
+    }
+    assert.equal(handle.cleanupEvidence.confirmed, true);
+  },
+);
+
 for (const budgetMs of [-1, 100])
   test(
     `bounded Windows cleanup (${budgetMs}ms) does not kill an unverified child or retain its event-loop reference`,
@@ -635,7 +672,10 @@ test(
       assert.equal(handle.cleanupEvidence.confirmed, false);
       assert.equal(handle.cleanupEvidence.taskkill, null);
       assert.ok(
-        handle.cleanupEvidence.remaining.some((entry) => entry.pid === pid),
+        handle.cleanupEvidence.remaining.some(
+          (entry) =>
+            entry.pid === pid && /node\.exe$/iu.test(entry.executablePath),
+        ),
       );
       process.kill(pid, 0);
     } finally {

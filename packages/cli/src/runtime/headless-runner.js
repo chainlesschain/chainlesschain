@@ -2952,6 +2952,7 @@ async function runAgentHeadlessInWorkspace(
     // is the legacy-model budget_tokens override; ignored when thinking is off.
     thinking: options.thinking || null,
     thinkingBudget: options.thinkingBudget || null,
+    maxOutputTokens: options.maxOutputTokens,
     baseUrl,
     apiKey,
     cwd,
