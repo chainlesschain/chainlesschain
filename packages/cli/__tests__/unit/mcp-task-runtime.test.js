@@ -45,6 +45,10 @@ async function fixture() {
   let cancelFailure = false;
   let missing = false;
   let blockPolls = false;
+  let observeFirstPoll;
+  const firstPoll = new Promise((resolve) => {
+    observeFirstPoll = resolve;
+  });
   const task = () => ({
     taskId: "remote:opaque/task",
     status,
@@ -72,6 +76,7 @@ async function fixture() {
     for await (const chunk of req) chunks.push(chunk);
     const message = JSON.parse(Buffer.concat(chunks).toString());
     requests.push(message);
+    if (message.method === "tasks/get") observeFirstPoll();
     if (message.method === "tasks/get" && blockPolls) return;
     if (message.id == null) {
       res.writeHead(202).end();
@@ -183,6 +188,7 @@ async function fixture() {
     task,
     result,
     calls: (method) => requests.filter((item) => item.method === method),
+    waitForFirstPoll: () => firstPoll,
     blockPolls: (value) => {
       blockPolls = value;
     },
@@ -316,12 +322,39 @@ describe("durable MCP task auxiliary runtime", () => {
       const accepted = await host.runtime.create("remote", "export", {});
       f.blockPolls(stage === "network");
       const started = Date.now();
-      await expect(
-        host.runtime.watch(accepted.localId, {
-          intervalMs: 60_000,
-          timeoutMs: 100,
-        }),
-      ).rejects.toMatchObject({ code: "CC_MCP_TASK_WATCH_TIMEOUT" });
+      let observeUpdate;
+      const updated = new Promise((resolve) => {
+        observeUpdate = resolve;
+      });
+      // Keep the 100ms whole-watch budget, but advance its timer only after
+      // the intended stalled phase is observed. Real filesystem/HTTP setup
+      // under load must not turn this into a pre-dispatch timeout test.
+      vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+      try {
+        const outcome = host.runtime
+          .watch(accepted.localId, {
+            intervalMs: 60_000,
+            timeoutMs: 100,
+            onUpdate: observeUpdate,
+          })
+          .then(
+            (value) => ({ value }),
+            (error) => ({ error }),
+          );
+        const phase = stage === "network" ? f.waitForFirstPoll() : updated;
+        expect(
+          await Promise.race([
+            phase.then(() => "observed"),
+            outcome.then(() => "settled-before-phase"),
+          ]),
+        ).toBe("observed");
+        await vi.advanceTimersByTimeAsync(100);
+        expect((await outcome).error).toMatchObject({
+          code: "CC_MCP_TASK_WATCH_TIMEOUT",
+        });
+      } finally {
+        vi.useRealTimers();
+      }
       expect(Date.now() - started).toBeLessThan(2000);
       expect(f.calls("tasks/get")).toHaveLength(1);
       expect(f.calls("tools/call")).toHaveLength(1);

@@ -1,11 +1,16 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { createServer } from "node:http";
 import { createRequire } from "node:module";
 import { mkdtempSync, rmSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Command } from "commander";
-import { MCPClient, MCPServerConfig } from "../../src/harness/mcp-client.js";
+import {
+  MCPClient,
+  MCPServerConfig,
+  isLikelyConnectionError,
+  isTransientMcpError,
+} from "../../src/harness/mcp-client.js";
 import {
   statelessMcpRequest,
   admitStatelessMcpTask,
@@ -39,7 +44,13 @@ const task = (status = "working", id = "opaque/task:1") => ({
     : {}),
 });
 
-async function fixture({ extension = true, respond } = {}) {
+async function fixture({
+  extension = true,
+  respond,
+  respondHttp,
+  clientOptions,
+  connect = true,
+} = {}) {
   const requests = [];
   let status = "working";
   const server = createServer(async (req, res) => {
@@ -72,6 +83,7 @@ async function fixture({ extension = true, respond } = {}) {
     } else result = {};
     result = { resultType: "complete", ...result };
     if (respond) result = respond(message, result);
+    if (respondHttp?.(message, result, res)) return;
     res.setHeader("Content-Type", "application/json");
     res.end(JSON.stringify({ jsonrpc: "2.0", id: message.id, result }));
   });
@@ -83,14 +95,14 @@ async function fixture({ extension = true, respond } = {}) {
         server.close(resolve);
       }),
   );
-  const client = new MCPClient();
+  const client = new MCPClient(clientOptions);
   close.push(() => client.disconnectAll());
   const config = {
     transport: "http",
     url: `http://127.0.0.1:${server.address().port}/mcp`,
     protocolVersion: VERSION,
   };
-  await client.connect("modern", config);
+  if (connect) await client.connect("modern", config);
   return {
     client,
     config,
@@ -102,6 +114,235 @@ async function fixture({ extension = true, respond } = {}) {
 }
 
 describe("opt-in stateless MCP Tasks", () => {
+  const sseReply = (response, messages) => {
+    response.setHeader("Content-Type", "text/event-stream");
+    response.end(
+      messages
+        .map((message) => `data: ${JSON.stringify(message)}\n\n`)
+        .join(""),
+    );
+    return true;
+  };
+
+  it.each([
+    ["roots", { id: "peer-roots", method: "roots/list", params: {} }],
+    [
+      "form elicitation",
+      {
+        id: "peer-form",
+        method: "elicitation/create",
+        params: {
+          message: "synthetic form",
+          requestedSchema: {
+            type: "object",
+            properties: { answer: { type: "string" } },
+          },
+        },
+      },
+    ],
+    [
+      "URL elicitation",
+      {
+        id: "peer-url",
+        method: "elicitation/create",
+        params: {
+          mode: "url",
+          elicitationId: "synthetic-url",
+          url: "https://example.invalid/stateless",
+          message: "synthetic URL flow",
+        },
+      },
+    ],
+    ["catalog refresh", { method: "notifications/tools/list_changed" }],
+    [
+      "elicitation completion",
+      {
+        method: "notifications/elicitation/complete",
+        params: { elicitationId: "synthetic-url" },
+      },
+    ],
+  ])(
+    "rejects unadvertised stateless SSE %s before callbacks or follow-up POSTs",
+    async (_label, injected) => {
+      const handler = vi.fn(async () => ({
+        action: "accept",
+        content: { answer: "synthetic-only" },
+      }));
+      const f = await fixture({
+        clientOptions: {
+          roots: ["E:/synthetic-private-workspace"],
+          elicitationHandler: handler,
+        },
+        respondHttp: (request, result, response) =>
+          request.method === "tools/call" &&
+          sseReply(response, [
+            { jsonrpc: "2.0", ...injected },
+            { jsonrpc: "2.0", id: request.id, result },
+          ]),
+      });
+      const roots = vi.spyOn(f.client, "listRoots");
+      const initialRequests = f.requests.length;
+      const failure = await f.client
+        .callTool("modern", "work", {})
+        .catch((error) => error);
+      expect(failure).toMatchObject({
+        code: "CC_MCP_STATELESS_CLIENT_REQUEST_UNSUPPORTED",
+        dispatched: true,
+        outcomeUnknown: true,
+        retryable: false,
+      });
+      expect(isLikelyConnectionError(failure)).toBe(false);
+      expect(isTransientMcpError(failure)).toBe(false);
+      expect(handler).not.toHaveBeenCalled();
+      expect(roots).not.toHaveBeenCalled();
+      await new Promise((done) => setTimeout(done, 20));
+      expect(
+        f.requests.slice(initialRequests).map((request) => request.method),
+      ).toEqual(["tools/call"]);
+      expect(
+        f.requests.at(-1).params._meta[
+          "io.modelcontextprotocol/clientCapabilities"
+        ],
+      ).toEqual({});
+    },
+  );
+
+  it("keeps valid request-correlated progress without legacy control dispatch", async () => {
+    const f = await fixture({
+      respondHttp: (request, result, response) =>
+        request.method === "tools/call" &&
+        sseReply(response, [
+          {
+            jsonrpc: "2.0",
+            method: "notifications/progress",
+            params: {
+              progressToken: request.params._meta.progressToken,
+              progress: 1,
+              total: 2,
+              message: "untrusted peer status",
+            },
+          },
+          { jsonrpc: "2.0", id: request.id, result },
+        ]),
+    });
+    const progress = [];
+    f.client.on("tool-progress", (event) => progress.push(event));
+    expect(
+      (await f.client.callTool("modern", "work", {})).content[0].text,
+    ).toBe("ordinary result");
+    expect(progress).toEqual([
+      {
+        server: "modern",
+        progressToken: expect.any(String),
+        progress: 1,
+        total: 2,
+      },
+    ]);
+    expect(
+      f.requests.filter((request) => request.method === "tools/call"),
+    ).toHaveLength(1);
+  });
+
+  it.each(["missing", "foreign", "request-shaped"])(
+    "rejects %s progress authority without accepting a later result",
+    async (kind) => {
+      const f = await fixture({
+        respondHttp: (request, result, response) =>
+          request.method === "tools/call" &&
+          sseReply(response, [
+            {
+              jsonrpc: "2.0",
+              ...(kind === "request-shaped" ? { id: "peer-progress" } : {}),
+              method: "notifications/progress",
+              params: {
+                ...(kind === "missing"
+                  ? {}
+                  : {
+                      progressToken:
+                        kind === "foreign"
+                          ? "other-operation"
+                          : request.params._meta.progressToken,
+                    }),
+                progress: 1,
+              },
+            },
+            { jsonrpc: "2.0", id: request.id, result },
+          ]),
+      });
+      const progress = vi.fn();
+      f.client.on("tool-progress", progress);
+      await expect(
+        f.client.callTool("modern", "work", {}),
+      ).rejects.toMatchObject({
+        code: "CC_MCP_STATELESS_CLIENT_REQUEST_UNSUPPORTED",
+      });
+      expect(progress).not.toHaveBeenCalled();
+      expect(
+        f.requests.filter((request) => request.method === "tools/call"),
+      ).toHaveLength(1);
+    },
+  );
+
+  it("does not resolve a legacy URL-required error through stateless callbacks", async () => {
+    const handler = vi.fn(async () => ({ action: "decline" }));
+    const f = await fixture({
+      clientOptions: { elicitationHandler: handler },
+      respondHttp: (request, _result, response) => {
+        if (request.method !== "tools/call") return false;
+        response.setHeader("Content-Type", "application/json");
+        response.end(
+          JSON.stringify({
+            jsonrpc: "2.0",
+            id: request.id,
+            error: {
+              code: -32042,
+              message: "synthetic URL requirement",
+              data: {
+                elicitations: [
+                  {
+                    mode: "url",
+                    elicitationId: "unsupported-url",
+                    url: "https://example.invalid/stateless",
+                    message: "synthetic URL flow",
+                  },
+                ],
+              },
+            },
+          }),
+        );
+        return true;
+      },
+    });
+    await expect(f.client.callTool("modern", "work", {})).rejects.toMatchObject(
+      { code: -32042 },
+    );
+    expect(handler).not.toHaveBeenCalled();
+    expect(
+      f.requests.filter((request) => request.method === "tools/call"),
+    ).toHaveLength(1);
+  });
+
+  it("treats unsupported stateless discovery traffic as fatal", async () => {
+    const f = await fixture({
+      connect: false,
+      respondHttp: (request, result, response) =>
+        request.method === "tools/list" &&
+        sseReply(response, [
+          { jsonrpc: "2.0", id: "peer-roots", method: "roots/list" },
+          { jsonrpc: "2.0", id: request.id, result },
+        ]),
+    });
+    const roots = vi.spyOn(f.client, "listRoots");
+    await expect(f.client.connect("modern", f.config)).rejects.toMatchObject({
+      code: "CC_MCP_STATELESS_CLIENT_REQUEST_UNSUPPORTED",
+    });
+    expect(roots).not.toHaveBeenCalled();
+    expect(f.requests.map((request) => request.method)).toEqual([
+      "server/discover",
+      "tools/list",
+    ]);
+  });
+
   it("discovers without initialize, sessions or background GET and scopes capabilities per request", async () => {
     const f = await fixture();
     expect(f.requests[0].method).toBe("server/discover");

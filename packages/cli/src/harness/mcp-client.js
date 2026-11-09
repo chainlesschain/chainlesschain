@@ -1198,7 +1198,16 @@ function safeRpcErrorText(error) {
   return typeof message === "string" ? message : "";
 }
 
+function unsupportedStatelessClientRequest() {
+  return mcpTaskError(
+    "CC_MCP_STATELESS_CLIENT_REQUEST_UNSUPPORTED",
+    "MCP stateless response requires unadvertised client interaction",
+    true,
+  );
+}
+
 const MCP_NON_RETRYABLE_PROTOCOL_ERROR_CODES = new Set([
+  "CC_MCP_STATELESS_CLIENT_REQUEST_UNSUPPORTED",
   "CC_MCP_WS_PAYLOAD_TOO_LARGE",
   "CC_MCP_WS_BINARY_MESSAGE",
   "CC_MCP_WS_INVALID_MESSAGE",
@@ -1934,6 +1943,8 @@ export class MCPClient extends EventEmitter {
   }
 
   async _resolveElicitation(serverName, requestId, params = {}) {
+    if (this.servers.get(String(serverName))?.statelessHttp)
+      throw unsupportedStatelessClientRequest();
     if (this._activeElicitations >= this._maxConcurrentElicitations) {
       const request = normalizeMcpElicitationRequest(
         serverName,
@@ -2158,6 +2169,7 @@ export class MCPClient extends EventEmitter {
   }
 
   _handleElicitationComplete(serverName, params = {}) {
+    if (this.servers.get(String(serverName))?.statelessHttp) return false;
     const elicitationId = String(params.elicitationId || "");
     const entry = this._urlElicitations.get(elicitationId);
     if (!entry || entry.server !== String(serverName)) {
@@ -3910,6 +3922,7 @@ export class MCPClient extends EventEmitter {
   }
 
   async _resolveRequiredUrlElicitations(serverName, error) {
+    if (this.servers.get(serverName)?.statelessHttp) return false;
     const requested = mcpRpcControlData.get(error)?.elicitations;
     if (
       !Array.isArray(requested) ||
@@ -5487,7 +5500,18 @@ export class MCPClient extends EventEmitter {
           response,
           id,
           cap,
-          (message) => this._handleMessage(serverName, message, entry),
+          (message) =>
+            entry.statelessHttp
+              ? this._handleStatelessProgress(
+                  serverName,
+                  entry,
+                  message,
+                  safeRpcProperty(
+                    safeRpcProperty(params, "_meta"),
+                    "progressToken",
+                  ),
+                )
+              : this._handleMessage(serverName, message, entry),
           controller?.signal,
           (text) => parseMcpJson(text, serverName, entry),
         );
@@ -5786,10 +5810,55 @@ export class MCPClient extends EventEmitter {
     return error;
   }
 
+  _handleStatelessProgress(serverName, entry, message, expectedToken) {
+    if (this.servers.get(serverName) !== entry)
+      throw this._staleLifecycleCallbackError();
+    const wire = snapshotRpcMessage(message);
+    // Stateless requests advertise no reverse-RPC or subscription authority.
+    // Reject the whole response before dispatching an unexpected SSE envelope;
+    // a later tool result cannot erase callbacks or data already sent to a peer.
+    if (
+      !wire ||
+      !wire.hasJsonrpc ||
+      wire.jsonrpc !== "2.0" ||
+      wire.hasId ||
+      wire.hasResult ||
+      wire.hasError ||
+      !wire.hasMethod ||
+      wire.method !== "notifications/progress" ||
+      typeof expectedToken !== "string" ||
+      expectedToken.length === 0 ||
+      safeRpcProperty(wire.params, "progressToken") !== expectedToken
+    )
+      throw unsupportedStatelessClientRequest();
+    this._handleToolProgress(serverName, wire.params);
+  }
+
+  _handleToolProgress(serverName, params) {
+    const progressToken = safeRpcProperty(params, "progressToken");
+    const resetIdle =
+      typeof progressToken === "string"
+        ? this._toolProgress.get(progressToken)
+        : null;
+    if (resetIdle) resetIdle();
+    // Peer status text is tool data, not host diagnostics or interaction.
+    this.emit("tool-progress", {
+      server: serverName,
+      ...(typeof progressToken === "string" ? { progressToken } : {}),
+      ...(Number.isFinite(safeRpcProperty(params, "progress"))
+        ? { progress: safeRpcProperty(params, "progress") }
+        : {}),
+      ...(Number.isFinite(safeRpcProperty(params, "total"))
+        ? { total: safeRpcProperty(params, "total") }
+        : {}),
+    });
+  }
+
   _handleMessage(serverName, msg, sourceEntry = null) {
     const currentEntry = this.servers.get(serverName);
     const entry = sourceEntry || currentEntry;
-    if (!entry) return;
+    // HTTP stateless progress has a separate request-correlated admission path.
+    if (!entry || entry.statelessHttp) return;
     if (sourceEntry && currentEntry !== sourceEntry) {
       const wire = snapshotRpcMessage(msg);
       if (wire?.hasId && !wire.hasMethod) {
@@ -5919,24 +5988,7 @@ export class MCPClient extends EventEmitter {
         this._refreshServerList(serverName, "resources");
         this._refreshServerList(serverName, "resourceTemplates");
       } else if (wire.method === "notifications/progress") {
-        const progressToken = safeRpcProperty(wire.params, "progressToken");
-        const resetIdle =
-          typeof progressToken === "string"
-            ? this._toolProgress.get(progressToken)
-            : null;
-        if (resetIdle) resetIdle();
-        // Project only numeric progress. Server-controlled status text belongs
-        // to the tool result, not host diagnostics/events.
-        this.emit("tool-progress", {
-          server: serverName,
-          ...(typeof progressToken === "string" ? { progressToken } : {}),
-          ...(Number.isFinite(safeRpcProperty(wire.params, "progress"))
-            ? { progress: safeRpcProperty(wire.params, "progress") }
-            : {}),
-          ...(Number.isFinite(safeRpcProperty(wire.params, "total"))
-            ? { total: safeRpcProperty(wire.params, "total") }
-            : {}),
-        });
+        this._handleToolProgress(serverName, wire.params);
       } else if (wire.method === "notifications/resources/updated") {
         this.emit("resource-updated", {
           server: serverName,
@@ -6067,6 +6119,7 @@ export class MCPClient extends EventEmitter {
    * method-not-found error instead of silence, so the server fails fast.
    */
   _handleServerRequest(serverName, msg) {
+    if (this.servers.get(serverName)?.statelessHttp) return;
     const { id, method } = msg;
     if (method === "roots/list") {
       this._sendResponse(serverName, id, { roots: this.listRoots() });
@@ -6096,7 +6149,7 @@ export class MCPClient extends EventEmitter {
   /** Write a JSON-RPC response back over stdio or Streamable HTTP POST. */
   _sendResponse(serverName, id, result, error) {
     const entry = this.servers.get(serverName);
-    if (!entry || entry._httpDiscardStopping) return;
+    if (!entry || entry._httpDiscardStopping || entry.statelessHttp) return;
     const envelope =
       error !== undefined
         ? { jsonrpc: "2.0", id, error }
