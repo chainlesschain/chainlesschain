@@ -13,6 +13,10 @@ import {
 } from "../src/lib/formal-budget-lineage-registry.js";
 import { createFormalBudgetTransport } from "../src/lib/formal-budget-transport.js";
 import {
+  checkpointWorkerFailure,
+  publishSyntheticCheckpoint,
+} from "./formal-budget-checkpoint-fixture.mjs";
+import {
   NOW,
   attest,
   body,
@@ -25,6 +29,85 @@ const Database = createRequire(import.meta.url)("better-sqlite3");
 const worker = fileURLToPath(
   new URL("./formal-budget-lineage-worker.mjs", import.meta.url),
 );
+
+test("synthetic checkpoint replacement retries the same fsynced temp within the Windows budget", (t) => {
+  const root = fs.mkdtempSync(
+    path.join(os.tmpdir(), "cc-checkpoint-publication-"),
+  );
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const file = path.join(root, "host.json");
+  fs.writeFileSync(file, "[]");
+  let writes = 0,
+    syncs = 0,
+    closes = 0,
+    attempts = 0,
+    temporary;
+  const delays = [];
+  const receipt = publishSyntheticCheckpoint(file, [{ head: "next" }], {
+    platform: "win32",
+    sleep: (ms) => delays.push(ms),
+    io: {
+      ...fs,
+      writeFileSync(...args) {
+        writes++;
+        return fs.writeFileSync(...args);
+      },
+      fsyncSync(fd) {
+        syncs++;
+        fs.fsyncSync(fd);
+      },
+      closeSync(fd) {
+        closes++;
+        fs.closeSync(fd);
+      },
+      renameSync(from, to) {
+        assert.equal(writes, 1);
+        assert.equal(syncs, 1);
+        assert.equal(closes, 1);
+        temporary ??= from;
+        assert.equal(from, temporary);
+        assert.equal(fs.readFileSync(to, "utf8"), "[]");
+        if (++attempts < 3)
+          throw Object.assign(new Error("private path"), { code: "EPERM" });
+        fs.renameSync(from, to);
+      },
+    },
+  });
+  assert.equal(receipt.attempts, 3);
+  assert.deepEqual(delays, [20, 40]);
+  assert.deepEqual(JSON.parse(fs.readFileSync(file, "utf8")), [
+    { head: "next" },
+  ]);
+});
+
+test("synthetic checkpoint failure diagnostics expose only approved codes and syscalls", () => {
+  const failure = Object.assign(new Error("secret body"), {
+    code: "CC_BUDGET_LINEAGE_HOST_UNAVAILABLE",
+    cause: Object.assign(new Error("secret path"), {
+      code: "EPERM",
+      syscall: "rename",
+      path: "private-source",
+      dest: "private-target",
+      publicationFailure: { temporary: "private-temp" },
+    }),
+  });
+  assert.deepEqual(checkpointWorkerFailure(failure), {
+    ok: false,
+    code: "CC_BUDGET_LINEAGE_HOST_UNAVAILABLE",
+    causeCode: "EPERM",
+    syscall: "rename",
+  });
+  failure.cause.code = "secret code";
+  failure.cause.syscall = "secret syscall";
+  assert.deepEqual(checkpointWorkerFailure(failure), {
+    ok: false,
+    code: "CC_BUDGET_LINEAGE_HOST_UNAVAILABLE",
+  });
+  assert.deepEqual(
+    checkpointWorkerFailure({ code: "secret", name: "secret" }),
+    { ok: false, code: "Error" },
+  );
+});
 function sql(filename, action) {
   const db = new Database(filename);
   try {
@@ -640,7 +723,7 @@ test("simultaneous real processes using the host never obtain two reservations",
         "CC_BUDGET_LINEAGE_HOST_STALE",
         "CC_BUDGET_LINEAGE_STATE",
       ].includes(result.code),
-      result.code,
+      JSON.stringify(result),
     );
   const calls = sql(f.descriptor.filename, (db) =>
     db.prepare("SELECT reserved_usd FROM call").all(),
