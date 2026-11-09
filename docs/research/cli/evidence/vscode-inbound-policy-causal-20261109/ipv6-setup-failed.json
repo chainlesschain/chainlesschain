@@ -1,0 +1,16 @@
+{
+  "schema": "chainlesschain.temporary-loopback-rule/v1",
+  "name": "ChainlessChain-Diagnostic-2abd7251f2a7491caa661a6143dc0c22",
+  "created": false,
+  "removed": true,
+  "policyStore": "ActiveStore",
+  "publicOnly": true,
+  "tcpOnly": true,
+  "localAddress": "::1",
+  "remoteAddress": "::1",
+  "localPort": 59373,
+  "exeSha256": "51dfee70fd38d8cc3e204f9a304f6fb6700dfa5147223c59d8c37e8176fb9b64",
+  "errorType": "CimException",
+  "error": "已指定未指定的多播、广播或环回 IPv6 地址。",
+  "finishedAt": "2026-11-09T03:13:32.4409850Z"
+}

@@ -1,0 +1,1296 @@
+{
+  "schema": "cross-runtime-loopback/v1",
+  "at": "2026-11-09T03:06:52.719Z",
+  "runtimes": [
+    {
+      "label": "node24",
+      "exe": "[runtime executable; identified by label/hash]",
+      "sha256": "2ffe3acc0458fdde999f50d11809bbe7c9b7ef204dcf17094e325d26ace101d8"
+    },
+    {
+      "label": "installed-code-1.96.2",
+      "exe": "[runtime executable; identified by label/hash]",
+      "sha256": "7619853d89007778e29aa077b7b0e89b88b1715fcda75845ecdb2e5b7decd271"
+    },
+    {
+      "label": "cached-code-1.145.2",
+      "exe": "[runtime executable; identified by label/hash]",
+      "sha256": "51dfee70fd38d8cc3e204f9a304f6fb6700dfa5147223c59d8c37e8176fb9b64"
+    }
+  ],
+  "workerSha256": "111a320d725433cf3e86ade811148be1bf1989040d16687435de98bed2781781",
+  "rows": [
+    {
+      "listener": "node24",
+      "client": "node24",
+      "host": "127.0.0.1",
+      "nonce": "88568e0a6e36d04aae93abd439942050fb072457227e9861",
+      "port": 52005,
+      "listenerResult": {
+        "events": [
+          {
+            "role": "listener",
+            "host": "127.0.0.1",
+            "pid": 47664,
+            "node": "24.12.0",
+            "electron": null,
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "listener-bound",
+            "at": "2026-11-09T03:06:52.788Z",
+            "port": 52005
+          },
+          {
+            "role": "listener",
+            "host": "127.0.0.1",
+            "pid": 47664,
+            "node": "24.12.0",
+            "electron": null,
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "server-accept",
+            "at": "2026-11-09T03:06:52.832Z",
+            "peer": "127.0.0.1"
+          },
+          {
+            "role": "listener",
+            "host": "127.0.0.1",
+            "pid": 47664,
+            "node": "24.12.0",
+            "electron": null,
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "nonce-received",
+            "at": "2026-11-09T03:06:52.833Z"
+          },
+          {
+            "role": "listener",
+            "host": "127.0.0.1",
+            "pid": 47664,
+            "node": "24.12.0",
+            "electron": null,
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "ack-written",
+            "at": "2026-11-09T03:06:52.834Z"
+          }
+        ],
+        "stderr": "",
+        "exitCode": null,
+        "signal": "SIGTERM"
+      },
+      "clientResult": {
+        "events": [
+          {
+            "role": "client",
+            "host": "127.0.0.1",
+            "pid": 39108,
+            "node": "24.12.0",
+            "electron": null,
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "client-connect",
+            "at": "2026-11-09T03:06:52.833Z"
+          },
+          {
+            "role": "client",
+            "host": "127.0.0.1",
+            "pid": 39108,
+            "node": "24.12.0",
+            "electron": null,
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "ack-verified",
+            "at": "2026-11-09T03:06:52.835Z"
+          }
+        ],
+        "stderr": "",
+        "exitCode": 0,
+        "signal": null
+      },
+      "passed": true
+    },
+    {
+      "listener": "node24",
+      "client": "cached-code-1.145.2",
+      "host": "127.0.0.1",
+      "nonce": "966a6e6493d8748c008cbeff81706091654c72ae055e6a0b",
+      "port": 52007,
+      "listenerResult": {
+        "events": [
+          {
+            "role": "listener",
+            "host": "127.0.0.1",
+            "pid": 21044,
+            "node": "24.12.0",
+            "electron": null,
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "listener-bound",
+            "at": "2026-11-09T03:06:52.807Z",
+            "port": 52007
+          },
+          {
+            "role": "listener",
+            "host": "127.0.0.1",
+            "pid": 21044,
+            "node": "24.12.0",
+            "electron": null,
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "server-accept",
+            "at": "2026-11-09T03:06:52.842Z",
+            "peer": "127.0.0.1"
+          },
+          {
+            "role": "listener",
+            "host": "127.0.0.1",
+            "pid": 21044,
+            "node": "24.12.0",
+            "electron": null,
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "nonce-received",
+            "at": "2026-11-09T03:06:52.843Z"
+          },
+          {
+            "role": "listener",
+            "host": "127.0.0.1",
+            "pid": 21044,
+            "node": "24.12.0",
+            "electron": null,
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "ack-written",
+            "at": "2026-11-09T03:06:52.843Z"
+          }
+        ],
+        "stderr": "",
+        "exitCode": null,
+        "signal": "SIGTERM"
+      },
+      "clientResult": {
+        "events": [
+          {
+            "role": "client",
+            "host": "127.0.0.1",
+            "pid": 45748,
+            "node": "24.22.1",
+            "electron": "43.8.3",
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "client-connect",
+            "at": "2026-11-09T03:06:52.843Z"
+          },
+          {
+            "role": "client",
+            "host": "127.0.0.1",
+            "pid": 45748,
+            "node": "24.22.1",
+            "electron": "43.8.3",
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "ack-verified",
+            "at": "2026-11-09T03:06:52.844Z"
+          }
+        ],
+        "stderr": "",
+        "exitCode": 0,
+        "signal": null
+      },
+      "passed": true
+    },
+    {
+      "listener": "node24",
+      "client": "installed-code-1.96.2",
+      "host": "127.0.0.1",
+      "nonce": "46b22a5abcf87b49aa10b0c5b4806a898cbf7a0044ab3bad",
+      "port": 52006,
+      "listenerResult": {
+        "events": [
+          {
+            "role": "listener",
+            "host": "127.0.0.1",
+            "pid": 38456,
+            "node": "24.12.0",
+            "electron": null,
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "listener-bound",
+            "at": "2026-11-09T03:06:52.797Z",
+            "port": 52006
+          },
+          {
+            "role": "listener",
+            "host": "127.0.0.1",
+            "pid": 38456,
+            "node": "24.12.0",
+            "electron": null,
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "server-accept",
+            "at": "2026-11-09T03:06:52.861Z",
+            "peer": "127.0.0.1"
+          },
+          {
+            "role": "listener",
+            "host": "127.0.0.1",
+            "pid": 38456,
+            "node": "24.12.0",
+            "electron": null,
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "nonce-received",
+            "at": "2026-11-09T03:06:52.862Z"
+          },
+          {
+            "role": "listener",
+            "host": "127.0.0.1",
+            "pid": 38456,
+            "node": "24.12.0",
+            "electron": null,
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "ack-written",
+            "at": "2026-11-09T03:06:52.862Z"
+          }
+        ],
+        "stderr": "",
+        "exitCode": null,
+        "signal": "SIGTERM"
+      },
+      "clientResult": {
+        "events": [
+          {
+            "role": "client",
+            "host": "127.0.0.1",
+            "pid": 14648,
+            "node": "20.18.1",
+            "electron": "32.2.6",
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "client-connect",
+            "at": "2026-11-09T03:06:52.860Z"
+          },
+          {
+            "role": "client",
+            "host": "127.0.0.1",
+            "pid": 14648,
+            "node": "20.18.1",
+            "electron": "32.2.6",
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "ack-verified",
+            "at": "2026-11-09T03:06:52.862Z"
+          }
+        ],
+        "stderr": "",
+        "exitCode": 0,
+        "signal": null
+      },
+      "passed": true
+    },
+    {
+      "listener": "installed-code-1.96.2",
+      "client": "cached-code-1.145.2",
+      "host": "127.0.0.1",
+      "nonce": "dac4902070d2de235beadd0b4ae37dadb0af620461451d41",
+      "port": 52013,
+      "listenerResult": {
+        "events": [
+          {
+            "role": "listener",
+            "host": "127.0.0.1",
+            "pid": 28964,
+            "node": "20.18.1",
+            "electron": "32.2.6",
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "listener-bound",
+            "at": "2026-11-09T03:06:53.229Z",
+            "port": 52013
+          },
+          {
+            "role": "listener",
+            "host": "127.0.0.1",
+            "pid": 28964,
+            "node": "20.18.1",
+            "electron": "32.2.6",
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "server-accept",
+            "at": "2026-11-09T03:06:53.277Z",
+            "peer": "127.0.0.1"
+          },
+          {
+            "role": "listener",
+            "host": "127.0.0.1",
+            "pid": 28964,
+            "node": "20.18.1",
+            "electron": "32.2.6",
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "nonce-received",
+            "at": "2026-11-09T03:06:53.277Z"
+          },
+          {
+            "role": "listener",
+            "host": "127.0.0.1",
+            "pid": 28964,
+            "node": "20.18.1",
+            "electron": "32.2.6",
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "ack-written",
+            "at": "2026-11-09T03:06:53.278Z"
+          }
+        ],
+        "stderr": "",
+        "exitCode": null,
+        "signal": "SIGTERM"
+      },
+      "clientResult": {
+        "events": [
+          {
+            "role": "client",
+            "host": "127.0.0.1",
+            "pid": 47264,
+            "node": "24.22.1",
+            "electron": "43.8.3",
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "client-connect",
+            "at": "2026-11-09T03:06:53.276Z"
+          },
+          {
+            "role": "client",
+            "host": "127.0.0.1",
+            "pid": 47264,
+            "node": "24.22.1",
+            "electron": "43.8.3",
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "ack-verified",
+            "at": "2026-11-09T03:06:53.277Z"
+          }
+        ],
+        "stderr": "",
+        "exitCode": 0,
+        "signal": null
+      },
+      "passed": true
+    },
+    {
+      "listener": "installed-code-1.96.2",
+      "client": "installed-code-1.96.2",
+      "host": "127.0.0.1",
+      "nonce": "1593244c6153e3efd8a9755abed7a920654a7eb25cf96d47",
+      "port": 52012,
+      "listenerResult": {
+        "events": [
+          {
+            "role": "listener",
+            "host": "127.0.0.1",
+            "pid": 44368,
+            "node": "20.18.1",
+            "electron": "32.2.6",
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "listener-bound",
+            "at": "2026-11-09T03:06:53.229Z",
+            "port": 52012
+          },
+          {
+            "role": "listener",
+            "host": "127.0.0.1",
+            "pid": 44368,
+            "node": "20.18.1",
+            "electron": "32.2.6",
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "server-accept",
+            "at": "2026-11-09T03:06:53.296Z",
+            "peer": "127.0.0.1"
+          },
+          {
+            "role": "listener",
+            "host": "127.0.0.1",
+            "pid": 44368,
+            "node": "20.18.1",
+            "electron": "32.2.6",
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "nonce-received",
+            "at": "2026-11-09T03:06:53.297Z"
+          },
+          {
+            "role": "listener",
+            "host": "127.0.0.1",
+            "pid": 44368,
+            "node": "20.18.1",
+            "electron": "32.2.6",
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "ack-written",
+            "at": "2026-11-09T03:06:53.298Z"
+          }
+        ],
+        "stderr": "",
+        "exitCode": null,
+        "signal": "SIGTERM"
+      },
+      "clientResult": {
+        "events": [
+          {
+            "role": "client",
+            "host": "127.0.0.1",
+            "pid": 44184,
+            "node": "20.18.1",
+            "electron": "32.2.6",
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "client-connect",
+            "at": "2026-11-09T03:06:53.296Z"
+          },
+          {
+            "role": "client",
+            "host": "127.0.0.1",
+            "pid": 44184,
+            "node": "20.18.1",
+            "electron": "32.2.6",
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "ack-verified",
+            "at": "2026-11-09T03:06:53.298Z"
+          }
+        ],
+        "stderr": "",
+        "exitCode": 0,
+        "signal": null
+      },
+      "passed": true
+    },
+    {
+      "listener": "installed-code-1.96.2",
+      "client": "node24",
+      "host": "127.0.0.1",
+      "nonce": "f2b70c3cbefddcaaf60acc0811a649a09be60539c4240a53",
+      "port": 52011,
+      "listenerResult": {
+        "events": [
+          {
+            "role": "listener",
+            "host": "127.0.0.1",
+            "pid": 45296,
+            "node": "20.18.1",
+            "electron": "32.2.6",
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "listener-bound",
+            "at": "2026-11-09T03:06:53.222Z",
+            "port": 52011
+          },
+          {
+            "role": "listener",
+            "host": "127.0.0.1",
+            "pid": 45296,
+            "node": "20.18.1",
+            "electron": "32.2.6",
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "server-accept",
+            "at": "2026-11-09T03:06:53.266Z",
+            "peer": "127.0.0.1"
+          },
+          {
+            "role": "listener",
+            "host": "127.0.0.1",
+            "pid": 45296,
+            "node": "20.18.1",
+            "electron": "32.2.6",
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "nonce-received",
+            "at": "2026-11-09T03:06:53.267Z"
+          },
+          {
+            "role": "listener",
+            "host": "127.0.0.1",
+            "pid": 45296,
+            "node": "20.18.1",
+            "electron": "32.2.6",
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "ack-written",
+            "at": "2026-11-09T03:06:53.267Z"
+          }
+        ],
+        "stderr": "",
+        "exitCode": null,
+        "signal": "SIGTERM"
+      },
+      "clientResult": {
+        "events": [
+          {
+            "role": "client",
+            "host": "127.0.0.1",
+            "pid": 21468,
+            "node": "24.12.0",
+            "electron": null,
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "client-connect",
+            "at": "2026-11-09T03:06:53.266Z"
+          },
+          {
+            "role": "client",
+            "host": "127.0.0.1",
+            "pid": 21468,
+            "node": "24.12.0",
+            "electron": null,
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "ack-verified",
+            "at": "2026-11-09T03:06:53.267Z"
+          }
+        ],
+        "stderr": "",
+        "exitCode": 0,
+        "signal": null
+      },
+      "passed": true
+    },
+    {
+      "listener": "cached-code-1.145.2",
+      "client": "node24",
+      "host": "127.0.0.1",
+      "nonce": "18bf120f5d4369db6c955f01955c413f0243250c139a4890",
+      "port": 52017,
+      "listenerResult": {
+        "events": [
+          {
+            "role": "listener",
+            "host": "127.0.0.1",
+            "pid": 6792,
+            "node": "24.22.1",
+            "electron": "43.8.3",
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "listener-bound",
+            "at": "2026-11-09T03:06:54.139Z",
+            "port": 52017
+          }
+        ],
+        "stderr": "",
+        "exitCode": null,
+        "signal": "SIGTERM"
+      },
+      "clientResult": {
+        "events": [
+          {
+            "role": "client",
+            "host": "127.0.0.1",
+            "pid": 30100,
+            "node": "24.12.0",
+            "electron": null,
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "client-error",
+            "at": "2026-11-09T03:06:54.914Z",
+            "code": "ETIMEDOUT"
+          }
+        ],
+        "stderr": "",
+        "exitCode": 1,
+        "signal": null
+      },
+      "passed": false
+    },
+    {
+      "listener": "cached-code-1.145.2",
+      "client": "installed-code-1.96.2",
+      "host": "127.0.0.1",
+      "nonce": "a807a14a12dbc16cb0aa5b3f7335fce70341e6686eb4ec02",
+      "port": 52018,
+      "listenerResult": {
+        "events": [
+          {
+            "role": "listener",
+            "host": "127.0.0.1",
+            "pid": 47288,
+            "node": "24.22.1",
+            "electron": "43.8.3",
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "listener-bound",
+            "at": "2026-11-09T03:06:54.144Z",
+            "port": 52018
+          }
+        ],
+        "stderr": "",
+        "exitCode": null,
+        "signal": "SIGTERM"
+      },
+      "clientResult": {
+        "events": [
+          {
+            "role": "client",
+            "host": "127.0.0.1",
+            "pid": 46680,
+            "node": "20.18.1",
+            "electron": "32.2.6",
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "client-error",
+            "at": "2026-11-09T03:06:54.946Z",
+            "code": "ETIMEDOUT"
+          }
+        ],
+        "stderr": "",
+        "exitCode": 1,
+        "signal": null
+      },
+      "passed": false
+    },
+    {
+      "listener": "cached-code-1.145.2",
+      "client": "cached-code-1.145.2",
+      "host": "127.0.0.1",
+      "nonce": "bf69eddd3cb34964524b57cd4ffb39eafcd7afe215a3a97b",
+      "port": 52020,
+      "listenerResult": {
+        "events": [
+          {
+            "role": "listener",
+            "host": "127.0.0.1",
+            "pid": 46744,
+            "node": "24.22.1",
+            "electron": "43.8.3",
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "listener-bound",
+            "at": "2026-11-09T03:06:54.623Z",
+            "port": 52020
+          }
+        ],
+        "stderr": "",
+        "exitCode": null,
+        "signal": "SIGTERM"
+      },
+      "clientResult": {
+        "events": [
+          {
+            "role": "client",
+            "host": "127.0.0.1",
+            "pid": 39796,
+            "node": "24.22.1",
+            "electron": "43.8.3",
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "client-error",
+            "at": "2026-11-09T03:06:54.962Z",
+            "code": "ETIMEDOUT"
+          }
+        ],
+        "stderr": "",
+        "exitCode": 1,
+        "signal": null
+      },
+      "passed": false
+    },
+    {
+      "listener": "node24",
+      "client": "node24",
+      "host": "::1",
+      "nonce": "32323e340719b7ad9196646b2537f783adbe3d684eac6f0a",
+      "port": 52024,
+      "listenerResult": {
+        "events": [
+          {
+            "role": "listener",
+            "host": "::1",
+            "pid": 43808,
+            "node": "24.12.0",
+            "electron": null,
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "listener-bound",
+            "at": "2026-11-09T03:06:55.323Z",
+            "port": 52024
+          },
+          {
+            "role": "listener",
+            "host": "::1",
+            "pid": 43808,
+            "node": "24.12.0",
+            "electron": null,
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "server-accept",
+            "at": "2026-11-09T03:06:55.365Z",
+            "peer": "::1"
+          },
+          {
+            "role": "listener",
+            "host": "::1",
+            "pid": 43808,
+            "node": "24.12.0",
+            "electron": null,
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "nonce-received",
+            "at": "2026-11-09T03:06:55.366Z"
+          },
+          {
+            "role": "listener",
+            "host": "::1",
+            "pid": 43808,
+            "node": "24.12.0",
+            "electron": null,
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "ack-written",
+            "at": "2026-11-09T03:06:55.366Z"
+          }
+        ],
+        "stderr": "",
+        "exitCode": null,
+        "signal": "SIGTERM"
+      },
+      "clientResult": {
+        "events": [
+          {
+            "role": "client",
+            "host": "::1",
+            "pid": 35716,
+            "node": "24.12.0",
+            "electron": null,
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "client-connect",
+            "at": "2026-11-09T03:06:55.364Z"
+          },
+          {
+            "role": "client",
+            "host": "::1",
+            "pid": 35716,
+            "node": "24.12.0",
+            "electron": null,
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "ack-verified",
+            "at": "2026-11-09T03:06:55.365Z"
+          }
+        ],
+        "stderr": "",
+        "exitCode": 0,
+        "signal": null
+      },
+      "passed": true
+    },
+    {
+      "listener": "node24",
+      "client": "cached-code-1.145.2",
+      "host": "::1",
+      "nonce": "64f01ca393a02e4eeff62f7a74cad5901ad25fe749f507fa",
+      "port": 52026,
+      "listenerResult": {
+        "events": [
+          {
+            "role": "listener",
+            "host": "::1",
+            "pid": 45624,
+            "node": "24.12.0",
+            "electron": null,
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "listener-bound",
+            "at": "2026-11-09T03:06:55.344Z",
+            "port": 52026
+          },
+          {
+            "role": "listener",
+            "host": "::1",
+            "pid": 45624,
+            "node": "24.12.0",
+            "electron": null,
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "server-accept",
+            "at": "2026-11-09T03:06:55.379Z",
+            "peer": "::1"
+          },
+          {
+            "role": "listener",
+            "host": "::1",
+            "pid": 45624,
+            "node": "24.12.0",
+            "electron": null,
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "nonce-received",
+            "at": "2026-11-09T03:06:55.380Z"
+          },
+          {
+            "role": "listener",
+            "host": "::1",
+            "pid": 45624,
+            "node": "24.12.0",
+            "electron": null,
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "ack-written",
+            "at": "2026-11-09T03:06:55.380Z"
+          }
+        ],
+        "stderr": "",
+        "exitCode": null,
+        "signal": "SIGTERM"
+      },
+      "clientResult": {
+        "events": [
+          {
+            "role": "client",
+            "host": "::1",
+            "pid": 13496,
+            "node": "24.22.1",
+            "electron": "43.8.3",
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "client-connect",
+            "at": "2026-11-09T03:06:55.379Z"
+          },
+          {
+            "role": "client",
+            "host": "::1",
+            "pid": 13496,
+            "node": "24.22.1",
+            "electron": "43.8.3",
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "ack-verified",
+            "at": "2026-11-09T03:06:55.380Z"
+          }
+        ],
+        "stderr": "",
+        "exitCode": 0,
+        "signal": null
+      },
+      "passed": true
+    },
+    {
+      "listener": "node24",
+      "client": "installed-code-1.96.2",
+      "host": "::1",
+      "nonce": "3de8ec8b0831453c7e7f2b2aa4f1baa714105db1174cf95d",
+      "port": 52025,
+      "listenerResult": {
+        "events": [
+          {
+            "role": "listener",
+            "host": "::1",
+            "pid": 47132,
+            "node": "24.12.0",
+            "electron": null,
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "listener-bound",
+            "at": "2026-11-09T03:06:55.337Z",
+            "port": 52025
+          },
+          {
+            "role": "listener",
+            "host": "::1",
+            "pid": 47132,
+            "node": "24.12.0",
+            "electron": null,
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "server-accept",
+            "at": "2026-11-09T03:06:55.400Z",
+            "peer": "::1"
+          },
+          {
+            "role": "listener",
+            "host": "::1",
+            "pid": 47132,
+            "node": "24.12.0",
+            "electron": null,
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "nonce-received",
+            "at": "2026-11-09T03:06:55.402Z"
+          },
+          {
+            "role": "listener",
+            "host": "::1",
+            "pid": 47132,
+            "node": "24.12.0",
+            "electron": null,
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "ack-written",
+            "at": "2026-11-09T03:06:55.402Z"
+          }
+        ],
+        "stderr": "",
+        "exitCode": null,
+        "signal": "SIGTERM"
+      },
+      "clientResult": {
+        "events": [
+          {
+            "role": "client",
+            "host": "::1",
+            "pid": 13796,
+            "node": "20.18.1",
+            "electron": "32.2.6",
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "client-connect",
+            "at": "2026-11-09T03:06:55.401Z"
+          },
+          {
+            "role": "client",
+            "host": "::1",
+            "pid": 13796,
+            "node": "20.18.1",
+            "electron": "32.2.6",
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "ack-verified",
+            "at": "2026-11-09T03:06:55.403Z"
+          }
+        ],
+        "stderr": "",
+        "exitCode": 0,
+        "signal": null
+      },
+      "passed": true
+    },
+    {
+      "listener": "installed-code-1.96.2",
+      "client": "node24",
+      "host": "::1",
+      "nonce": "5c36e4651a08945f719eb5b236e727838e4df41804817bab",
+      "port": 52030,
+      "listenerResult": {
+        "events": [
+          {
+            "role": "listener",
+            "host": "::1",
+            "pid": 29172,
+            "node": "20.18.1",
+            "electron": "32.2.6",
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "listener-bound",
+            "at": "2026-11-09T03:06:55.763Z",
+            "port": 52030
+          },
+          {
+            "role": "listener",
+            "host": "::1",
+            "pid": 29172,
+            "node": "20.18.1",
+            "electron": "32.2.6",
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "server-accept",
+            "at": "2026-11-09T03:06:55.804Z",
+            "peer": "::1"
+          },
+          {
+            "role": "listener",
+            "host": "::1",
+            "pid": 29172,
+            "node": "20.18.1",
+            "electron": "32.2.6",
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "nonce-received",
+            "at": "2026-11-09T03:06:55.805Z"
+          },
+          {
+            "role": "listener",
+            "host": "::1",
+            "pid": 29172,
+            "node": "20.18.1",
+            "electron": "32.2.6",
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "ack-written",
+            "at": "2026-11-09T03:06:55.806Z"
+          }
+        ],
+        "stderr": "",
+        "exitCode": null,
+        "signal": "SIGTERM"
+      },
+      "clientResult": {
+        "events": [
+          {
+            "role": "client",
+            "host": "::1",
+            "pid": 42516,
+            "node": "24.12.0",
+            "electron": null,
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "client-connect",
+            "at": "2026-11-09T03:06:55.803Z"
+          },
+          {
+            "role": "client",
+            "host": "::1",
+            "pid": 42516,
+            "node": "24.12.0",
+            "electron": null,
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "ack-verified",
+            "at": "2026-11-09T03:06:55.805Z"
+          }
+        ],
+        "stderr": "",
+        "exitCode": 0,
+        "signal": null
+      },
+      "passed": true
+    },
+    {
+      "listener": "installed-code-1.96.2",
+      "client": "cached-code-1.145.2",
+      "host": "::1",
+      "nonce": "937e83b12c9c48b6c1e2839793b08cf3cc270af1e29c1712",
+      "port": 52031,
+      "listenerResult": {
+        "events": [
+          {
+            "role": "listener",
+            "host": "::1",
+            "pid": 4296,
+            "node": "20.18.1",
+            "electron": "32.2.6",
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "listener-bound",
+            "at": "2026-11-09T03:06:55.775Z",
+            "port": 52031
+          },
+          {
+            "role": "listener",
+            "host": "::1",
+            "pid": 4296,
+            "node": "20.18.1",
+            "electron": "32.2.6",
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "server-accept",
+            "at": "2026-11-09T03:06:55.811Z",
+            "peer": "::1"
+          },
+          {
+            "role": "listener",
+            "host": "::1",
+            "pid": 4296,
+            "node": "20.18.1",
+            "electron": "32.2.6",
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "nonce-received",
+            "at": "2026-11-09T03:06:55.812Z"
+          },
+          {
+            "role": "listener",
+            "host": "::1",
+            "pid": 4296,
+            "node": "20.18.1",
+            "electron": "32.2.6",
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "ack-written",
+            "at": "2026-11-09T03:06:55.812Z"
+          }
+        ],
+        "stderr": "",
+        "exitCode": null,
+        "signal": "SIGTERM"
+      },
+      "clientResult": {
+        "events": [
+          {
+            "role": "client",
+            "host": "::1",
+            "pid": 47864,
+            "node": "24.22.1",
+            "electron": "43.8.3",
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "client-connect",
+            "at": "2026-11-09T03:06:55.811Z"
+          },
+          {
+            "role": "client",
+            "host": "::1",
+            "pid": 47864,
+            "node": "24.22.1",
+            "electron": "43.8.3",
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "ack-verified",
+            "at": "2026-11-09T03:06:55.812Z"
+          }
+        ],
+        "stderr": "",
+        "exitCode": 0,
+        "signal": null
+      },
+      "passed": true
+    },
+    {
+      "listener": "installed-code-1.96.2",
+      "client": "installed-code-1.96.2",
+      "host": "::1",
+      "nonce": "0d331809981de6eba8f28be06af6af83a707e6d5e0c7c3f8",
+      "port": 52032,
+      "listenerResult": {
+        "events": [
+          {
+            "role": "listener",
+            "host": "::1",
+            "pid": 42344,
+            "node": "20.18.1",
+            "electron": "32.2.6",
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "listener-bound",
+            "at": "2026-11-09T03:06:55.775Z",
+            "port": 52032
+          },
+          {
+            "role": "listener",
+            "host": "::1",
+            "pid": 42344,
+            "node": "20.18.1",
+            "electron": "32.2.6",
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "server-accept",
+            "at": "2026-11-09T03:06:55.848Z",
+            "peer": "::1"
+          },
+          {
+            "role": "listener",
+            "host": "::1",
+            "pid": 42344,
+            "node": "20.18.1",
+            "electron": "32.2.6",
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "nonce-received",
+            "at": "2026-11-09T03:06:55.849Z"
+          },
+          {
+            "role": "listener",
+            "host": "::1",
+            "pid": 42344,
+            "node": "20.18.1",
+            "electron": "32.2.6",
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "ack-written",
+            "at": "2026-11-09T03:06:55.850Z"
+          }
+        ],
+        "stderr": "",
+        "exitCode": null,
+        "signal": "SIGTERM"
+      },
+      "clientResult": {
+        "events": [
+          {
+            "role": "client",
+            "host": "::1",
+            "pid": 37160,
+            "node": "20.18.1",
+            "electron": "32.2.6",
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "client-connect",
+            "at": "2026-11-09T03:06:55.849Z"
+          },
+          {
+            "role": "client",
+            "host": "::1",
+            "pid": 37160,
+            "node": "20.18.1",
+            "electron": "32.2.6",
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "ack-verified",
+            "at": "2026-11-09T03:06:55.850Z"
+          }
+        ],
+        "stderr": "",
+        "exitCode": 0,
+        "signal": null
+      },
+      "passed": true
+    },
+    {
+      "listener": "cached-code-1.145.2",
+      "client": "node24",
+      "host": "::1",
+      "nonce": "88415e28225a5b46175ca28ca1729652824afa9e3d483d07",
+      "port": 52036,
+      "listenerResult": {
+        "events": [
+          {
+            "role": "listener",
+            "host": "::1",
+            "pid": 38464,
+            "node": "24.22.1",
+            "electron": "43.8.3",
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "listener-bound",
+            "at": "2026-11-09T03:06:56.195Z",
+            "port": 52036
+          }
+        ],
+        "stderr": "",
+        "exitCode": null,
+        "signal": "SIGTERM"
+      },
+      "clientResult": {
+        "events": [
+          {
+            "role": "client",
+            "host": "::1",
+            "pid": 28536,
+            "node": "24.12.0",
+            "electron": null,
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "client-error",
+            "at": "2026-11-09T03:06:56.558Z",
+            "code": "ETIMEDOUT"
+          }
+        ],
+        "stderr": "",
+        "exitCode": 1,
+        "signal": null
+      },
+      "passed": false
+    },
+    {
+      "listener": "cached-code-1.145.2",
+      "client": "cached-code-1.145.2",
+      "host": "::1",
+      "nonce": "ff0cea9bb403dc5e1c744dab291744224f81ad99616bb1a0",
+      "port": 52038,
+      "listenerResult": {
+        "events": [
+          {
+            "role": "listener",
+            "host": "::1",
+            "pid": 37952,
+            "node": "24.22.1",
+            "electron": "43.8.3",
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "listener-bound",
+            "at": "2026-11-09T03:06:56.205Z",
+            "port": 52038
+          }
+        ],
+        "stderr": "",
+        "exitCode": null,
+        "signal": "SIGTERM"
+      },
+      "clientResult": {
+        "events": [
+          {
+            "role": "client",
+            "host": "::1",
+            "pid": 35360,
+            "node": "24.22.1",
+            "electron": "43.8.3",
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "client-error",
+            "at": "2026-11-09T03:06:56.557Z",
+            "code": "ETIMEDOUT"
+          }
+        ],
+        "stderr": "",
+        "exitCode": 1,
+        "signal": null
+      },
+      "passed": false
+    },
+    {
+      "listener": "cached-code-1.145.2",
+      "client": "installed-code-1.96.2",
+      "host": "::1",
+      "nonce": "2d7fc004be7a4f50bdc489ff6e047e13ee268d3fe4f44061",
+      "port": 52037,
+      "listenerResult": {
+        "events": [
+          {
+            "role": "listener",
+            "host": "::1",
+            "pid": 21240,
+            "node": "24.22.1",
+            "electron": "43.8.3",
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "listener-bound",
+            "at": "2026-11-09T03:06:56.199Z",
+            "port": 52037
+          }
+        ],
+        "stderr": "",
+        "exitCode": null,
+        "signal": "SIGTERM"
+      },
+      "clientResult": {
+        "events": [
+          {
+            "role": "client",
+            "host": "::1",
+            "pid": 22604,
+            "node": "20.18.1",
+            "electron": "32.2.6",
+            "exe": "[runtime executable; identified by label/hash]",
+            "event": "client-error",
+            "at": "2026-11-09T03:06:56.589Z",
+            "code": "ETIMEDOUT"
+          }
+        ],
+        "stderr": "",
+        "exitCode": 1,
+        "signal": null
+      },
+      "passed": false
+    }
+  ]
+}

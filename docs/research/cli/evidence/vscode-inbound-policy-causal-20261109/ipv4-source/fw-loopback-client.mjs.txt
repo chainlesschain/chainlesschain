@@ -1,0 +1,11 @@
+import fs from 'node:fs';import net from 'node:net';
+const [input,phase]=process.argv.slice(2);const config=JSON.parse(fs.readFileSync(input,'utf8'));
+const receipt={phase,at:new Date().toISOString(),host:'127.0.0.1',port:config.port,connected:false,nonceAck:false};
+await new Promise(resolve=>{
+ let done=false;const finish=()=>{if(done)return;done=true;socket.destroy();resolve();};
+ const socket=net.createConnection({host:'127.0.0.1',port:config.port});socket.setTimeout(2000);let data='';socket.setEncoding('utf8');
+ socket.once('connect',()=>{receipt.connected=true;socket.write(config.nonce+'\n')});
+ socket.on('data',chunk=>{data+=chunk;if(data.includes('\n')){receipt.nonceAck=data==='ACK:'+config.nonce+'\n';finish()}});
+ socket.once('timeout',()=>{receipt.error='ETIMEDOUT';finish()});socket.once('error',error=>{receipt.error=error.code;finish()});
+});
+fs.writeFileSync(config.output+'-'+phase+'.json',JSON.stringify(receipt,null,2)+'\n',{flag:'wx'});console.log(JSON.stringify(receipt));

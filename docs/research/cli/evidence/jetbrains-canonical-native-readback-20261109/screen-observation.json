@@ -1,0 +1,20 @@
+{
+  "schema": "chainlesschain.native-screen-observation/v1",
+  "observer": "assistant visual inspection via view_image",
+  "nativeDialogVisible": true,
+  "title": "ChainlessChain - Current Session Model Inputs",
+  "visibleSummaryCount": 2,
+  "planningCoveredVisible": true,
+  "selectedCountVisible": 5,
+  "sourceCountVisible": 5,
+  "completeSourceMappingVisible": true,
+  "screenshotSha256": "f59cec71dd3b0a12a305e8809532d5bb1fdd2e053c650b9f9f5c509f14945f7a",
+  "automatedColorHeuristicAccepted": false,
+  "humanOrScreenReaderVerified": false,
+  "retainedExploratoryFailure": {
+    "boundary": "first screenshot showed unrelated foreground content despite the color-count heuristic",
+    "screenshotSha256": "6d4c6d9c28fdcf987dec9a3ae012040d847f12b2639df01ca733a44bf7aea060",
+    "privateCaptureExcluded": true,
+    "excludedFromAcceptance": true
+  }
+}

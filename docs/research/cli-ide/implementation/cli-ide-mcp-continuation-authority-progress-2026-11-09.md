@@ -27,3 +27,5 @@ Windows x64 / Node 24.12.0，官方未修改 Everything 2.2.1 独立进程，生
 尚需生产远程 MCP 服务、现代输入交互、实际到期/撤权、双 IDE/桌面、多系统及旧版本降级证据。MCP Tasks 条目仍为 partial。后续代码和文档在 [#571](https://github.com/chainlesschain/chainlesschain/pull/571)；准确新提交的 GitHub 矩阵另行核对，历史本地结果不代替发布门禁。
 
 后续 canonical opt-in 旅程在提交 `e691dad7b3879844eed649db45a10e251f9eb343` 完成五个来源的完整逻辑／正文映射，且诊断摘要与真实 fetch 请求相同；853／72 tokens 的新样本不与此前 shadow 样本混合。VS Code 提交 `d4460f315ff9c2ccc8e5ed8ccc0ded24d6d9d38b` 修复关闭 bridge 时诊断命令误用全局 CLI 的问题，并通过真实已安装 VSIX 对该会话的只读命令／编辑器验收；352/352 扩展单测及准确源码的完整原生恢复旅程通过。详见[canonical 输入与 IDE 读回证据](../../cli/evidence/canonical-model-input-native-readback-20261109/README.md)。这仍不是 IDE 发起的完整真实任务或双 IDE 验收。
+
+JetBrains 后续在提交 `ae2372cd82c4d1ca870378c202da7f41366006dc` 使用当前源码重新编译开发插件，并通过原生已注册动作读取同一真实模型会话，九次受限只读 CLI 调用与 VS Code 的 canonical journal 摘要一致。参见[原生 JetBrains 证据](../../cli/evidence/jetbrains-canonical-native-readback-20261109/README.md)。这补齐双 IDE 的诊断读回子门，不等于双 IDE 发起完整任务、标准 Gradle 或跨系统验收。

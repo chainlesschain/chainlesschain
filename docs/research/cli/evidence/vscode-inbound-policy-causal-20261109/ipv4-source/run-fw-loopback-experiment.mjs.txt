@@ -1,0 +1,21 @@
+import fs from 'node:fs';import path from 'node:path';import crypto from 'node:crypto';import {spawn,spawnSync} from 'node:child_process';import assert from 'node:assert/strict';
+const root=path.resolve('.tmp/fw-cached-code-experiment');fs.mkdirSync(root,{recursive:true});
+const exe=fs.realpathSync('packages/vscode-extension/.vscode-test/vscode-win32-x64-archive-1.145.2/Code.exe');
+const expected='51dfee70fd38d8cc3e204f9a304f6fb6700dfa5147223c59d8c37e8176fb9b64';
+const hash=()=>crypto.createHash('sha256').update(fs.readFileSync(exe)).digest('hex');assert.equal(hash(),expected);
+const nonce=crypto.randomBytes(16).toString('hex');
+const child=spawn(exe,[path.resolve('.tmp/fw-cached-listener-peer.cjs'),nonce],{env:{...process.env,ELECTRON_RUN_AS_NODE:'1'},windowsHide:true,stdio:['ignore','pipe','pipe']});
+const events=[];let pending='';let resolveBound;const bound=new Promise(r=>resolveBound=r);
+child.stdout.on('data',chunk=>{pending+=chunk;while(pending.includes('\n')){const i=pending.indexOf('\n');const line=pending.slice(0,i);pending=pending.slice(i+1);const event=JSON.parse(line);events.push(event);if(event.event==='bound')resolveBound(event.port)}});
+const exited=new Promise(r=>child.once('exit',(code,signal)=>r({code,signal})));
+const timer=setTimeout(()=>{resolveBound(null);child.kill()},35000);
+try {
+ const port=await bound;assert.ok(port);
+ const config={exe,exeSha256:expected,node:process.execPath,client:path.resolve('.tmp/fw-loopback-client.mjs'),port,nonce,output:path.join(root,'receipt')};
+ const input=path.join(root,'private-input.json');fs.writeFileSync(input,JSON.stringify(config),{flag:'wx',mode:0o600});
+ const run=(command,args)=>{const result=spawnSync(command,args,{encoding:'utf8',windowsHide:true,timeout:15000,maxBuffer:65536});assert.equal(result.status,0,result.stderr);if(result.stdout.trim())console.log(result.stdout.trim())};
+ run(process.execPath,[config.client,input,'before']);
+ run('powershell.exe',['-NoProfile','-NonInteractive','-File',path.resolve('.tmp/fw-loopback-temporary-rule.ps1'),'-InputFile',input]);
+ run(process.execPath,[config.client,input,'after']);
+ assert.equal(hash(),expected);
+} finally {clearTimeout(timer);child.kill();const exit=await exited;fs.writeFileSync(path.join(root,'server.json'),JSON.stringify({events,exit},null,2)+'\n',{flag:'wx'});}

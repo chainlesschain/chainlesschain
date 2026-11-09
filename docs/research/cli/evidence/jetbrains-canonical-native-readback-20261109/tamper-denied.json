@@ -1,0 +1,12 @@
+{
+  "schema": "chainlesschain.jetbrains-native-provenance-negative/v1",
+  "sourceCommit": "ae2372cd82c4d1ca870378c202da7f41366006dc",
+  "case": "compiled-output-one-byte-tamper",
+  "result": "denied",
+  "exitCode": 1,
+  "boundary": "Compiled class changed",
+  "beforeIdeLaunch": true,
+  "modelRequests": 0,
+  "journalUnchanged": true,
+  "fixtureBuild": "fresh current-source direct SDK build"
+}

@@ -1,0 +1,30 @@
+param([Parameter(Mandatory=$true)][string]$InputFile)
+$ErrorActionPreference = 'Stop'
+$config = Get-Content -LiteralPath $InputFile -Raw | ConvertFrom-Json
+$ruleName = 'ChainlessChain-Diagnostic-' + [Guid]::NewGuid().ToString('N')
+$receipt = [ordered]@{schema='chainlesschain.temporary-loopback-rule/v1';name=$ruleName;created=$false;removed=$false;policyStore='ActiveStore';publicOnly=$true;tcpOnly=$true;localAddress='127.0.0.1';remoteAddress='127.0.0.1';localPort=$config.port;exeSha256=$config.exeSha256}
+try {
+  if ((Get-FileHash -LiteralPath $config.exe -Algorithm SHA256).Hash.ToLowerInvariant() -ne $config.exeSha256) { throw 'Executable identity changed' }
+  if ((Get-AuthenticodeSignature -LiteralPath $config.exe).Status.ToString() -ne 'Valid') { throw 'Executable signature is not valid' }
+  if (@(Get-NetFirewallRule -Name $ruleName -ErrorAction SilentlyContinue).Count -ne 0) { throw 'Diagnostic rule identity collision' }
+  New-NetFirewallRule -Name $ruleName -DisplayName 'ChainlessChain temporary loopback diagnosis' -PolicyStore ActiveStore -Direction Inbound -Action Allow -Enabled True -Profile Public -Protocol TCP -Program $config.exe -LocalAddress '127.0.0.1' -RemoteAddress '127.0.0.1' -LocalPort $config.port -EdgeTraversalPolicy Block | Out-Null
+  $receipt.created = $true
+  $effective = Get-NetFirewallRule -Name $ruleName -PolicyStore ActiveStore
+  $receipt.effectiveAction = $effective.Action.ToString()
+  $receipt.effectiveProfile = $effective.Profile.ToString()
+  $receipt.persisted = @(Get-NetFirewallRule -Name $ruleName -PolicyStore PersistentStore -ErrorAction SilentlyContinue).Count -ne 0
+  & $config.node $config.client $InputFile 'during'
+  if ($LASTEXITCODE -ne 0) { throw 'Diagnostic client failed' }
+} catch {
+  $receipt.errorType = $_.Exception.GetType().Name
+  $receipt.error = $_.Exception.Message
+} finally {
+  foreach ($store in @('ActiveStore','PersistentStore')) {
+    $ownRule = @(Get-NetFirewallRule -Name $ruleName -PolicyStore $store -ErrorAction SilentlyContinue)
+    if ($ownRule.Count -gt 0) { Remove-NetFirewallRule -Name $ruleName -PolicyStore $store -ErrorAction Stop }
+  }
+  $receipt.removed = @(Get-NetFirewallRule -Name $ruleName -PolicyStore ActiveStore -ErrorAction SilentlyContinue).Count -eq 0 -and @(Get-NetFirewallRule -Name $ruleName -PolicyStore PersistentStore -ErrorAction SilentlyContinue).Count -eq 0
+  $receipt.finishedAt = [DateTime]::UtcNow.ToString('o')
+  [IO.File]::WriteAllText(($config.output + '-rule.json'),($receipt | ConvertTo-Json -Depth 6),[Text.UTF8Encoding]::new($false))
+}
+if (-not $receipt.removed) { throw 'Diagnostic rule cleanup not confirmed' }

@@ -18,9 +18,12 @@
         "cli/evidence/project-goal-volcengine-live-current-20261109",
         "cli/evidence/project-goal-volcengine-live-current24-20261109",
         "cli/evidence/vscode-installed-native-recovery-20261109",
-        "cli/evidence/canonical-model-input-native-readback-20261109"
+        "cli/evidence/canonical-model-input-native-readback-20261109",
+        "cli/evidence/jetbrains-canonical-native-readback-20261109"
       ],
-      "remaining": ["dual IDE journey"],
+      "remaining": [
+        "complete independent real-provider task journeys through both IDEs"
+      ],
       "scopedRealCanonicalNativeReadback": {
         "cliCommit": "e691dad7b3879844eed649db45a10e251f9eb343",
         "vscodeCommit": "d4460f315ff9c2ccc8e5ed8ccc0ded24d6d9d38b",
@@ -33,7 +36,11 @@
         "installedVsixNativeCommandPassed": true,
         "ideModelRequests": 0,
         "taskInitiatedInIde": false,
-        "dualIdeVerified": false
+        "dualIdeVerified": false,
+        "jetbrainsCommit": "ae2372cd82c4d1ca870378c202da7f41366006dc",
+        "dualIdeDiagnosticReadbackVerified": true,
+        "jetbrainsSelectionSeam": "production resumeSession via test reflection",
+        "jetbrainsStandardGradleVerified": false
       }
     },
     "3": {
@@ -46,7 +53,8 @@
         "cli/evidence/mcp-tasks-model-continuation-20261109",
         "cli/evidence/vscode-installed-native-recovery-20261109",
         "cli/evidence/mcp-tasks-deepseek-continuation-20261109",
-        "cli/evidence/canonical-model-input-native-readback-20261109"
+        "cli/evidence/canonical-model-input-native-readback-20261109",
+        "cli/evidence/jetbrains-canonical-native-readback-20261109"
       ],
       "remaining": ["dual IDE recovery", "complete cross-entry journey"]
     },
@@ -181,10 +189,12 @@
         "cli/evidence/project-goal-volcengine-live-current-20261109",
         "cli/evidence/vscode-electron-loopback-isolation-20261109",
         "cli/evidence/vscode-installed-native-recovery-20261109",
-        "cli/evidence/canonical-model-input-native-readback-20261109"
+        "cli/evidence/canonical-model-input-native-readback-20261109",
+        "cli/evidence/jetbrains-canonical-native-readback-20261109",
+        "cli/evidence/vscode-inbound-policy-causal-20261109"
       ],
       "remaining": [
-        "VS Code 1.145.2 bridge loopback (installed 1.96.2 separately passed)",
+        "stock-host VS Code inbound authorization (1.145.2 passed with temporary IPv4 rule)",
         "current-HEAD IDE/desktop matrix",
         "full IDE/desktop task journey",
         "real IDE host accessibility and screen-reader journey",
@@ -198,6 +208,18 @@
         "needsInputSamples": 100,
         "needsInputP95Ms": 1437,
         "latestCached1_145_2Accepted": false
+      },
+      "scopedCachedVscode": {
+        "status": "windows-1.145.2-conditioned-real-dom-passed",
+        "sourceCommit": "ae2372cd82c4d1ca870378c202da7f41366006dc",
+        "model": "deterministic fixture",
+        "needsInputSamples": 100,
+        "needsInputP95Ms": 1414,
+        "temporaryRule": "Public inbound TCP, exact cached executable, local+remote127.0.0.1",
+        "activeStoreOnly": true,
+        "ruleRemoved": true,
+        "persistentRuleInstalled": false,
+        "stockHostRepaired": false
       }
     },
     "8": {
@@ -221,11 +243,13 @@
         "cli/evidence/cross-entry-projection-rerun-current-20261109",
         "cli/evidence/vscode-electron-loopback-isolation-20261109",
         "cli/evidence/native-ide-runtime-controls-20261109",
-        "cli/evidence/canonical-model-input-native-readback-20261109"
+        "cli/evidence/canonical-model-input-native-readback-20261109",
+        "cli/evidence/jetbrains-canonical-native-readback-20261109",
+        "cli/evidence/vscode-inbound-policy-causal-20261109"
       ],
       "remaining": [
-        "JetBrains live runtime",
-        "JetBrains loopback cause/repair and independent desktop failure localization"
+        "JetBrains complete native task/recovery and standard Gradle/three-system acceptance",
+        "persistent host ingress configuration and independent desktop failure localization"
       ],
       "guidance": {
         "status": "implemented",
@@ -245,6 +269,28 @@
         "sourceCommit": "d4460f315ff9c2ccc8e5ed8ccc0ded24d6d9d38b",
         "bridgeDisabled": true,
         "explicitCliPathHonored": true
+      },
+      "scopedJetbrainsNative": {
+        "sourceCommit": "ae2372cd82c4d1ca870378c202da7f41366006dc",
+        "ide": "2024.2",
+        "freshCurrentSourceCompile": true,
+        "registeredProductionAction": true,
+        "canonicalCliRead": true,
+        "journalUnchanged": true,
+        "guardedReadCalls": 9,
+        "gradleVerified": false,
+        "fullTaskJourneyVerified": false
+      },
+      "inboundPolicyCausal": {
+        "runtimeMatrixRuns": 2,
+        "pairsEach": 18,
+        "cachedCodeOutboundWorks": true,
+        "cachedCodeListenerUnreachableWithoutRule": true,
+        "ipv4SamePortABA": "timeout/pass/timeout",
+        "temporaryActiveStoreRuleRemoved": true,
+        "persistentPolicyChanged": false,
+        "ipv6RuleSetup": "rejected before creation",
+        "exclusiveFilterAttributionVerified": false
       }
     }
   },
@@ -266,7 +312,10 @@
     "deepseekContinuationEvidence": "cli/evidence/mcp-tasks-deepseek-continuation-20261109",
     "canonicalModelInputReadbackEvidence": "cli/evidence/canonical-model-input-native-readback-20261109",
     "canonicalMcpProbeCommit": "e691dad7b3879844eed649db45a10e251f9eb343",
-    "configuredCliDiagnosticFixCommit": "d4460f315ff9c2ccc8e5ed8ccc0ded24d6d9d38b"
+    "configuredCliDiagnosticFixCommit": "d4460f315ff9c2ccc8e5ed8ccc0ded24d6d9d38b",
+    "jetbrainsCanonicalReadbackCommit": "ae2372cd82c4d1ca870378c202da7f41366006dc",
+    "jetbrainsCanonicalEvidence": "cli/evidence/jetbrains-canonical-native-readback-20261109",
+    "inboundPolicyEvidence": "cli/evidence/vscode-inbound-policy-causal-20261109"
   },
   "auditedSourceCommit": "44f56fe58aee36e6cc097755ce7c4ab3ec94b126"
 }

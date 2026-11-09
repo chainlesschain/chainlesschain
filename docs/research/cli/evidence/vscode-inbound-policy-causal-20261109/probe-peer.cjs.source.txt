@@ -1,0 +1,15 @@
+'use strict';
+const net=require('node:net');
+const [role,host,nonce,port]=process.argv.slice(2);
+const receipt={role,host,pid:process.pid,node:process.versions.node,electron:process.versions.electron||null,exe:process.execPath};
+const emit=(event,extra={})=>process.stdout.write(JSON.stringify({...receipt,event,at:new Date().toISOString(),...extra})+'\n');
+const deadline=setTimeout(()=>{emit('deadline');process.exit(2)},8000);
+function finish(code){clearTimeout(deadline);setTimeout(()=>process.exit(code),30)}
+if(role==='listener'){
+ const server=net.createServer(socket=>{emit('server-accept',{peer:socket.remoteAddress});let input='';socket.setEncoding('utf8');socket.on('data',data=>{input+=data;if(input.length>512){emit('nonce-rejected');socket.destroy();return}if(input.includes('\n')){if(input===nonce+'\n'){emit('nonce-received');socket.end('ACK:'+nonce+'\n',()=>emit('ack-written'));}else{emit('nonce-rejected');socket.destroy()}}});socket.on('error',e=>emit('socket-error',{code:e.code}));});
+ server.on('error',e=>{emit('bind-error',{code:e.code});finish(1)});server.listen({host,port:0,exclusive:true},()=>emit('listener-bound',{port:server.address().port}));
+}else{
+ const socket=net.createConnection({host,port:Number(port)});socket.setTimeout(4000);let input='';socket.setEncoding('utf8');
+ socket.on('connect',()=>{emit('client-connect');socket.write(nonce+'\n')});socket.on('data',data=>{input+=data;if(input.length>512){emit('ack-rejected');socket.destroy();finish(1)}else if(input.includes('\n')){const valid=input==='ACK:'+nonce+'\n';emit(valid?'ack-verified':'ack-rejected');socket.destroy();finish(valid?0:1)}});
+ socket.on('timeout',()=>{emit('client-timeout');socket.destroy();finish(2)});socket.on('error',e=>{emit('client-error',{code:e.code});finish(1)});
+}
