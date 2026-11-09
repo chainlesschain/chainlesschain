@@ -1,0 +1,16 @@
+{
+  "expected": {
+    "nonce": "74efa47ae088232da684310f9cc87172",
+    "total": 49,
+    "label": "真实入口独立产物核对"
+  },
+  "actual": {
+    "nonce": "74efa47ae088232da684310f9cc87172",
+    "total": 49,
+    "label": "真实入口独立产物核对"
+  },
+  "inputFileSha256": "3b91184403714a29ae1aac8c58299903bc781642cc32b6330284f05eaf0d3e84",
+  "outputFileSha256": "aef96f95af4366d7fb00883ced03e706e5ff0ba0456b38a2aac1c1a7bf99cba0",
+  "strictSchemaAndValuesMatched": true,
+  "nonceAbsentFromPrompt": true
+}

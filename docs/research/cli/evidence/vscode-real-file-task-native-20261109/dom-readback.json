@@ -1,0 +1,108 @@
+{
+  "sessionId": "panel-87940053-4ed8-4113-adb5-e43fc9c3a7b5",
+  "initialRows": [
+    {
+      "id": "panel-87940053-4ed8-4113-adb5-e43fc9c3a7b5:b581604add20fb077068eef3ae1b5d547e71f1bd00c50c0c7f5fa92e99c472bf:0",
+      "role": "user",
+      "saved": false,
+      "streaming": false,
+      "sourceTextSha256": "095fba1ddad731d1c1f056dfefe2af132ccb4079ed6e658b7f5feed3e827eb87",
+      "displayedTextSha256": "095fba1ddad731d1c1f056dfefe2af132ccb4079ed6e658b7f5feed3e827eb87"
+    },
+    {
+      "id": "panel-87940053-4ed8-4113-adb5-e43fc9c3a7b5:5d757c852069214ca48edb00eeccad3644f1b06b5585d64216e5e4edb5d7c28c:0",
+      "role": "assistant",
+      "saved": true,
+      "streaming": false,
+      "sourceTextSha256": "fdb1e4e6644db9eed88166bc6b6e7dabf0d12ee097600c5fda0c63cadec23d8a",
+      "displayedTextSha256": "fdb1e4e6644db9eed88166bc6b6e7dabf0d12ee097600c5fda0c63cadec23d8a"
+    },
+    {
+      "id": "panel-87940053-4ed8-4113-adb5-e43fc9c3a7b5:5d757c852069214ca48edb00eeccad3644f1b06b5585d64216e5e4edb5d7c28c:1",
+      "role": "tool",
+      "saved": true,
+      "streaming": false,
+      "sourceTextSha256": "c88550d6a83677fcac43db312abf00eb87738d68945210e3d0fdb20043866cdf",
+      "displayedTextSha256": "fe2b8e3c912a9c82d5b2fd58fe1606866f8799557706741a2025818dc68f9bb4"
+    },
+    {
+      "id": "panel-87940053-4ed8-4113-adb5-e43fc9c3a7b5:5d757c852069214ca48edb00eeccad3644f1b06b5585d64216e5e4edb5d7c28c:2",
+      "role": "assistant",
+      "saved": true,
+      "streaming": false,
+      "sourceTextSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "displayedTextSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "panel-87940053-4ed8-4113-adb5-e43fc9c3a7b5:5d757c852069214ca48edb00eeccad3644f1b06b5585d64216e5e4edb5d7c28c:3",
+      "role": "tool",
+      "saved": true,
+      "streaming": false,
+      "sourceTextSha256": "ead7508a52ce34cc21dba88490e19513af2e9dd4ac77744dab80dc5cc7a696f2",
+      "displayedTextSha256": "1d236b4ec0f866ded8c8c1f8c74dcb957c0619179ad4ce6599f43fe6bebf5c23"
+    },
+    {
+      "id": "panel-87940053-4ed8-4113-adb5-e43fc9c3a7b5:8532bf335e69764fcb84fd7d07045472cc963e6c8f59917f3d7cbed775ef526b:0",
+      "role": "assistant",
+      "saved": false,
+      "streaming": false,
+      "sourceTextSha256": "0255a16b07ec4df02ce541ed92da063c046324cb4ce2f47f001aaec0260be8d9",
+      "displayedTextSha256": "08633de9ec56a7268bf2249984f3193075a67328041aa6ac802ad403f19ea5d0"
+    }
+  ],
+  "restoredRows": [
+    {
+      "id": "panel-87940053-4ed8-4113-adb5-e43fc9c3a7b5:b581604add20fb077068eef3ae1b5d547e71f1bd00c50c0c7f5fa92e99c472bf:0",
+      "role": "user",
+      "saved": true,
+      "streaming": false,
+      "sourceTextSha256": "095fba1ddad731d1c1f056dfefe2af132ccb4079ed6e658b7f5feed3e827eb87",
+      "displayedTextSha256": "095fba1ddad731d1c1f056dfefe2af132ccb4079ed6e658b7f5feed3e827eb87"
+    },
+    {
+      "id": "panel-87940053-4ed8-4113-adb5-e43fc9c3a7b5:5d757c852069214ca48edb00eeccad3644f1b06b5585d64216e5e4edb5d7c28c:0",
+      "role": "assistant",
+      "saved": true,
+      "streaming": false,
+      "sourceTextSha256": "fdb1e4e6644db9eed88166bc6b6e7dabf0d12ee097600c5fda0c63cadec23d8a",
+      "displayedTextSha256": "fdb1e4e6644db9eed88166bc6b6e7dabf0d12ee097600c5fda0c63cadec23d8a"
+    },
+    {
+      "id": "panel-87940053-4ed8-4113-adb5-e43fc9c3a7b5:5d757c852069214ca48edb00eeccad3644f1b06b5585d64216e5e4edb5d7c28c:1",
+      "role": "tool",
+      "saved": true,
+      "streaming": false,
+      "sourceTextSha256": "c88550d6a83677fcac43db312abf00eb87738d68945210e3d0fdb20043866cdf",
+      "displayedTextSha256": "fe2b8e3c912a9c82d5b2fd58fe1606866f8799557706741a2025818dc68f9bb4"
+    },
+    {
+      "id": "panel-87940053-4ed8-4113-adb5-e43fc9c3a7b5:5d757c852069214ca48edb00eeccad3644f1b06b5585d64216e5e4edb5d7c28c:2",
+      "role": "assistant",
+      "saved": true,
+      "streaming": false,
+      "sourceTextSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "displayedTextSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "panel-87940053-4ed8-4113-adb5-e43fc9c3a7b5:5d757c852069214ca48edb00eeccad3644f1b06b5585d64216e5e4edb5d7c28c:3",
+      "role": "tool",
+      "saved": true,
+      "streaming": false,
+      "sourceTextSha256": "ead7508a52ce34cc21dba88490e19513af2e9dd4ac77744dab80dc5cc7a696f2",
+      "displayedTextSha256": "1d236b4ec0f866ded8c8c1f8c74dcb957c0619179ad4ce6599f43fe6bebf5c23"
+    },
+    {
+      "id": "panel-87940053-4ed8-4113-adb5-e43fc9c3a7b5:8532bf335e69764fcb84fd7d07045472cc963e6c8f59917f3d7cbed775ef526b:0",
+      "role": "assistant",
+      "saved": true,
+      "streaming": false,
+      "sourceTextSha256": "0255a16b07ec4df02ce541ed92da063c046324cb4ce2f47f001aaec0260be8d9",
+      "displayedTextSha256": "08633de9ec56a7268bf2249984f3193075a67328041aa6ac802ad403f19ea5d0"
+    }
+  ],
+  "completedAt": "2026-11-09T03:43:14.716Z",
+  "initialCapturedAt": "2026-11-09T03:43:07.037Z",
+  "finalSourceSha256": "0255a16b07ec4df02ce541ed92da063c046324cb4ce2f47f001aaec0260be8d9",
+  "initialDisplayedFinalSha256": "08633de9ec56a7268bf2249984f3193075a67328041aa6ac802ad403f19ea5d0",
+  "visibleLimitation": "Task worklogs require canonical Context/Memory Kernel mode; no canonical worklog acceptance asserted"
+}

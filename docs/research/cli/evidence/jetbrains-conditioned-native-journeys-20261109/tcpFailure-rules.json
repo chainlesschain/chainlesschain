@@ -1,0 +1,33 @@
+{
+  "schema": "jetbrains-fixture-ui-temporary-rules/v1",
+  "profile": "Public",
+  "protocol": "TCP",
+  "direction": "Inbound",
+  "localAddress": "127.0.0.1",
+  "remoteAddress": "127.0.0.1",
+  "policyStore": "ActiveStore",
+  "rules": [
+    {
+      "name": "ChainlessChain-Diagnostic-db066ac52623466c95b52d85779dfb13",
+      "exe": "[user home]\\AppData\\Local\\Temp\\cc-jetbrains-model-input-build-20261108\\jdk-21.0.13+9\\bin\\java.exe",
+      "sha256": "f8dc082a7dedbfd2924c3562405a5a1fd12efd2641808c92e2de819c76a58b7e",
+      "created": true,
+      "removed": true,
+      "persisted": false,
+      "hashUnchanged": true
+    },
+    {
+      "name": "ChainlessChain-Diagnostic-b741b4b21e3a41dea7a7bce13faff7eb",
+      "exe": "[user home]\\AppData\\Local\\Temp\\cc-jetbrains-model-input-build-20261108\\gradle-home\\caches\\transforms-4\\d37c9f32fbab395f1b63ffaf762b843b\\transformed\\ideaIC-2024.2-win\\jbr\\bin\\java.exe",
+      "sha256": "106540d88dbdd39987cfd52929ec99260990275be26b27724af3b9fe2c517851",
+      "created": true,
+      "removed": true,
+      "persisted": false,
+      "hashUnchanged": true
+    }
+  ],
+  "removed": true,
+  "startedAt": "2026-11-09T03:36:58.8755451Z",
+  "harnessExitCode": 1,
+  "finishedAt": "2026-11-09T03:40:04.3082468Z"
+}

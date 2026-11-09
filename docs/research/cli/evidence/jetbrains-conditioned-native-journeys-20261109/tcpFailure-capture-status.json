@@ -1,0 +1,27 @@
+[
+  {
+    "sourceFile": "011-host-capture-initial_capture-status.json",
+    "schema": "chainlesschain.ui-host-capture/v1",
+    "complete": false,
+    "scope": "Metadata event trace and original IDE log bytes after this host phase stopped",
+    "files": [
+      {
+        "path": "idea-001.log.bin",
+        "source": "IC-2024.2/log_runIdeForUiTests/idea.log",
+        "bytes": 83774,
+        "sha256": "804fe53df0ffdf07cf5296b2419dfeaabe80a007045090682a59a927844d7350",
+        "originalBytes": true
+      }
+    ],
+    "failures": ["event-trace-or-capture-root-unavailable"],
+    "failureDetails": [
+      {
+        "failure": "event-trace-or-capture-root-unavailable",
+        "stage": "event-trace.stat",
+        "name": "Error",
+        "code": "ENOENT",
+        "syscall": "lstat"
+      }
+    ]
+  }
+]

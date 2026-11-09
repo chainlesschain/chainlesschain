@@ -1,0 +1,32 @@
+{
+  "sourceReferenceCommit": "f59598281ad636b848ca120c5ecfcb52d079857c",
+  "scope": "local regression after fast-forward integration; separate from source635 native model task; supplementary to exact-head GitHub Actions",
+  "vscodeSourceCandidate": "0.37.183",
+  "results": {
+    "mcp": {
+      "originalXmlSha256": "bdf9cf0fc95d0aa35fc8aba3032b1fe70d04a70184b42712e9e3a719368ada99",
+      "publicXml": "integration-mcp-junit.xml",
+      "normalization": "repository path prefixes removed; CRLF normalized to LF",
+      "tests": 44,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "vscode": {
+      "originalXmlSha256": "bc8fc4d61f7dad4f820c035472e7c4326df8c4a0d11c2c2a937f5df51a3b0e77",
+      "publicXml": "integration-vscode-junit.xml",
+      "normalization": "repository path prefixes removed; CRLF normalized to LF",
+      "checks": 352,
+      "failed": 0,
+      "skipped": 0,
+      "leafTestcases": 351
+    }
+  },
+  "sourceHashes": {
+    "packages/cli/src/harness/mcp-client.js": "8dce7d99d9e782512632eb012f812072e4fa4eba600ce20c606cbfb6f0126f48",
+    "packages/cli/__tests__/unit/mcp-client-stateless.test.js": "668fe455988da1957c2b5a3b19099cdd75ca01ade276e26d17eee86435ba5c93",
+    "packages/cli/__tests__/unit/mcp-task-runtime.test.js": "4cabd19881c48dcf0311876b35e045b91fa278f878c72de7aef8bc5d81e2984a",
+    "packages/vscode-extension/package.json": "00ace3760ccb5685bb7eca1a1a06f53e3115f7af05700d1d9b88b4ba2c552fab",
+    "packages/vscode-extension/README.md": "90ede0d3ea9fd5ee141d0e4267088f518bd5124169f65749a917de1a773de8fa"
+  }
+}

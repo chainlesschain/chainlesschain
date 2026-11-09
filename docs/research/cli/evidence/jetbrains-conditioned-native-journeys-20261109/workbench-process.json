@@ -1,0 +1,23 @@
+{
+  "schema": "bounded-jetbrains-fixture-ui/v1",
+  "startedAt": "2026-11-09T03:44:42.339Z",
+  "pid": 52824,
+  "args": [
+    "[repository]\\packages\\jetbrains-plugin\\scripts\\run-ui-host-journey.mjs",
+    "--ide-version",
+    "2024.2",
+    "--artifact-dir",
+    "[repository]\\.tmp\\jetbrains-workbench-ui-tcp-udp-20261109\\artifacts",
+    "--startup-timeout-ms",
+    "120000"
+  ],
+  "timeoutMs": 540000,
+  "startupTimeoutMs": 120000,
+  "sourceHash": "bd2e7431d93b25281e6927838dc8cdb952ad55b1e3aafc321f3f3233ee3aa560",
+  "fixture": true,
+  "realModel": false,
+  "conditionalFirewallRules": true,
+  "exitCode": 0,
+  "signal": null,
+  "finishedAt": "2026-11-09T03:52:25.095Z"
+}

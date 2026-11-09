@@ -1,0 +1,48 @@
+{
+  "schema": "independent-jetbrains-journey-verification/v1",
+  "journeyId": "jetbrains-chat-control-workbench-restart-rewind",
+  "result": "passed",
+  "exitCode": 0,
+  "elapsedMs": 462756,
+  "artifactCount": 53,
+  "allArtifactBytesAndHashesMatch": true,
+  "artifactBundleDigest": "sha256:4a9c4126b34b3b7fbb0eae697d28de21acac3213bc06c4cda103a58b35495a5a",
+  "artifactBundleDigestVerified": true,
+  "evidenceDigest": "sha256:121c8fd6dc58daa2efd13f7bcdd2f27fa1e6a58b515f61a4a4b4ac7aa5191ae8",
+  "evidenceDigestVerified": true,
+  "temporaryRulesRemoved": true,
+  "persisted": false,
+  "scope": "temporary exact Java Public loopback firewall rules; fixture only; not unconditional platform/release acceptance",
+  "diagnosticCaptureWarning": false,
+  "source": {
+    "startCommit": "63538f8d83bc9f100e6ac6432ce84fc88bf87961",
+    "finishRepositoryCommit": "f59598281ad636b848ca120c5ecfcb52d079857c",
+    "verificationRepositoryCommit": "f59598281ad636b848ca120c5ecfcb52d079857c",
+    "journeyRecordedCommit": "f59598281ad636b848ca120c5ecfcb52d079857c",
+    "repositoryFastForwardDuringThisRun": true,
+    "relatedCommittedPathsUnchanged": true,
+    "mainSourceResourcesCompared": 198,
+    "mainSourceResourcesChanged": [],
+    "harnessHash": "bd2e7431d93b25281e6927838dc8cdb952ad55b1e3aafc321f3f3233ee3aa560"
+  },
+  "rules": [
+    {
+      "name": "ChainlessChain-Diagnostic-2255e6c39c50421486d707638c2d4f2b",
+      "protocol": "TCP",
+      "sha256": "f8dc082a7dedbfd2924c3562405a5a1fd12efd2641808c92e2de819c76a58b7e",
+      "removed": true
+    },
+    {
+      "name": "ChainlessChain-Diagnostic-2707866718a542298a309d60038b3f6c",
+      "protocol": "TCP",
+      "sha256": "106540d88dbdd39987cfd52929ec99260990275be26b27724af3b9fe2c517851",
+      "removed": true
+    },
+    {
+      "name": "ChainlessChain-Diagnostic-438c18e89aec45628170fe0c079fa692",
+      "protocol": "UDP",
+      "sha256": "f8dc082a7dedbfd2924c3562405a5a1fd12efd2641808c92e2de819c76a58b7e",
+      "removed": true
+    }
+  ]
+}

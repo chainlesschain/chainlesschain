@@ -1,0 +1,26 @@
+$ErrorActionPreference='Stop'
+$cacheExe=(Resolve-Path -LiteralPath 'packages/vscode-extension/.vscode-test/vscode-win32-x64-archive-1.145.2/Code.exe').Path
+$expectedHash='51dfee70fd38d8cc3e204f9a304f6fb6700dfa5147223c59d8c37e8176fb9b64'
+if ((Get-FileHash -LiteralPath $cacheExe -Algorithm SHA256).Hash.ToLowerInvariant() -ne $expectedHash) {throw 'Cached Code identity changed'}
+if ((Get-AuthenticodeSignature -LiteralPath $cacheExe).Status.ToString() -ne 'Valid') {throw 'Cached Code signature invalid'}
+$diagnosticName='ChainlessChain-Diagnostic-' + [Guid]::NewGuid().ToString('N')
+$receiptPath=Join-Path (Get-Location).Path '.tmp/vscode-real-file-task-firewall-v2.json'
+$receipt=[ordered]@{schema='chainlesschain.temporary-real-native-task-rule/v1';name=$diagnosticName;created=$false;removed=$false;persisted=$false;policyStore='ActiveStore';profile='Public';direction='Inbound';protocol='TCP';localAddress='127.0.0.1';remoteAddress='127.0.0.1';localPorts='Any (IDE allocates ephemeral ports)';exeSha256=$expectedHash;startedAt=[DateTime]::UtcNow.ToString('o')}
+function Save-TaskRuleReceipt { [IO.File]::WriteAllText($receiptPath,($receipt|ConvertTo-Json -Depth 5),[Text.UTF8Encoding]::new($false)) }
+try {
+  New-NetFirewallRule -Name $diagnosticName -DisplayName 'ChainlessChain temporary isolated VS Code real task' -PolicyStore ActiveStore -Direction Inbound -Action Allow -Enabled True -Profile Public -Protocol TCP -Program $cacheExe -LocalAddress '127.0.0.1' -RemoteAddress '127.0.0.1' -EdgeTraversalPolicy Block | Out-Null
+  $receipt.created=$true
+  $receipt.persisted=@(Get-NetFirewallRule -Name $diagnosticName -PolicyStore PersistentStore -ErrorAction SilentlyContinue).Count -ne 0
+  Save-TaskRuleReceipt
+  & (Join-Path $env:NVM_SYMLINK 'node.exe') '.tmp/run-vscode-real-file-task.mjs' '.tmp/vscode-real-file-task-20261109-v2'
+  $receipt.nativeExitCode=$LASTEXITCODE
+} catch { $receipt.error=$_.Exception.Message; $receipt.nativeExitCode=1 }
+finally {
+  foreach($store in @('ActiveStore','PersistentStore')) {
+    if (@(Get-NetFirewallRule -Name $diagnosticName -PolicyStore $store -ErrorAction SilentlyContinue).Count -gt 0) { Remove-NetFirewallRule -Name $diagnosticName -PolicyStore $store -ErrorAction Stop }
+  }
+  $receipt.removed=@(Get-NetFirewallRule -Name $diagnosticName -PolicyStore ActiveStore -ErrorAction SilentlyContinue).Count -eq 0 -and @(Get-NetFirewallRule -Name $diagnosticName -PolicyStore PersistentStore -ErrorAction SilentlyContinue).Count -eq 0
+  $receipt.exeHashAfter=(Get-FileHash -LiteralPath $cacheExe -Algorithm SHA256).Hash.ToLowerInvariant()
+  $receipt.finishedAt=[DateTime]::UtcNow.ToString('o'); Save-TaskRuleReceipt
+}
+if (-not $receipt.removed -or $receipt.nativeExitCode -ne 0 -or $receipt.exeHashAfter -ne $expectedHash) {exit 1}

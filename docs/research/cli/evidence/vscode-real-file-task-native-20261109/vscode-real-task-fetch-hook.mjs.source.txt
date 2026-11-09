@@ -1,0 +1,32 @@
+import fs from 'node:fs';import {createHash}from'node:crypto';
+const dir=process.env.CC_REAL_TASK_CAPTURE;
+if(dir){
+const ledger=dir+'/physical-model.jsonl';const rawFetch=globalThis.fetch;
+const sha=b=>createHash('sha256').update(b).digest('hex');
+const append=x=>fs.appendFileSync(ledger,JSON.stringify({at:new Date().toISOString(),pid:process.pid,...x})+'\n',{mode:0o600});
+globalThis.fetch=async function(input,init={}){
+ const url=typeof input==='string'?input:input instanceof URL?input.href:input.url;
+ if(url.startsWith('http://127.0.0.1:')||url.startsWith('http://localhost:'))return rawFetch(input,init);
+ const endpoint='https://ark.cn-beijing.volces.com/api/v3/chat/completions';
+ if(url!==endpoint){append({event:'blocked-other-fetch',urlOrigin:new URL(url).origin});throw Error('Isolated native task blocks unlisted fetch endpoint');}
+ if(init.method!=='POST'||typeof init.body!=='string')throw Error('Unexpected model request form');
+ const original=Buffer.from(init.body);if(original.length>256*1024)throw Error('Model input exceeds diagnostic byte limit');
+ const body=JSON.parse(init.body);if(body.model!==process.env.CC_REAL_TASK_MODEL)throw Error('Real model identity changed');
+ if(!JSON.stringify(body.messages).includes(process.env.CC_REAL_TASK_MARKER))throw Error('Real task marker missing');
+ const existing=fs.existsSync(ledger)?fs.readFileSync(ledger,'utf8').trim().split('\n').filter(Boolean).map(JSON.parse):[];
+ const call=existing.filter(x=>x.event==='dispatch').length+1;if(call>4){append({event:'request-limit-denied',call});throw Error('Diagnostic physical request limit reached');}
+ // A diagnostic transport adaptation, explicitly excluded from production
+ // request-identity/mapping acceptance: bound output even if runtime omits it.
+ const effective=JSON.stringify({...body,max_tokens:Math.min(body.max_tokens||1024,1024)});
+ append({event:'dispatch',call,model:body.model,originalBodySha256:sha(original),physicalBodySha256:sha(effective),bodyChanged:effective!==init.body,stream:body.stream===true,maxOutputTokens:1024,inputBytes:Buffer.byteLength(effective)});
+ const response=await rawFetch(url,{...init,body:effective,signal:AbortSignal.any([...(init.signal?[init.signal]:[]),AbortSignal.timeout(45000)])});
+ const chunks=[];let bytes=0;
+ const stream=response.body.pipeThrough(new TransformStream({transform(chunk,c){bytes+=chunk.length;if(bytes>1024*1024)throw Error('Model response exceeds diagnostic byte limit');chunks.push(Buffer.from(chunk));c.enqueue(chunk);},flush(){
+  const raw=Buffer.concat(chunks);let usage=null;const text=raw.toString('utf8');
+  if(body.stream){for(const line of text.split('\n'))if(line.startsWith('data: ')&&line.slice(6).trim()!=='[DONE]'){try{const x=JSON.parse(line.slice(6));if(x.usage)usage=x.usage;}catch{}}}
+  else{try{usage=JSON.parse(text).usage||null;}catch{}}
+  append({event:'response-complete',call,status:response.status,responseSha256:sha(raw),bytes,usage});
+ }}));
+ return new Response(stream,{status:response.status,statusText:response.statusText,headers:response.headers});
+};
+}

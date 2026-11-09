@@ -1,0 +1,9 @@
+{
+  "readinessSamples": 40,
+  "samples": 100,
+  "p95": 1607,
+  "max": 15667,
+  "threshold": 2000,
+  "overThreshold": 3,
+  "allSamplesRetained": true
+}

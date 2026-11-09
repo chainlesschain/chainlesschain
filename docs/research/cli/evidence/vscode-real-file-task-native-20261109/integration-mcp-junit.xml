@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="44" failures="0" errors="0" time="12.6932695">
+    <testsuite name="__tests__/unit/mcp-client-stateless.test.js" timestamp="2026-11-09T03:52:23.364Z" hostname="DESKTOP-TFPBTD2" tests="24" failures="0" errors="0" skipped="0" time="1.537677">
+        <testcase classname="__tests__/unit/mcp-client-stateless.test.js" name="opt-in stateless MCP Tasks &gt; rejects unadvertised stateless SSE roots before callbacks or follow-up POSTs" time="0.1019187">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-stateless.test.js" name="opt-in stateless MCP Tasks &gt; rejects unadvertised stateless SSE form elicitation before callbacks or follow-up POSTs" time="0.0442778">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-stateless.test.js" name="opt-in stateless MCP Tasks &gt; rejects unadvertised stateless SSE URL elicitation before callbacks or follow-up POSTs" time="0.0320208">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-stateless.test.js" name="opt-in stateless MCP Tasks &gt; rejects unadvertised stateless SSE catalog refresh before callbacks or follow-up POSTs" time="0.0318859">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-stateless.test.js" name="opt-in stateless MCP Tasks &gt; rejects unadvertised stateless SSE elicitation completion before callbacks or follow-up POSTs" time="0.0314932">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-stateless.test.js" name="opt-in stateless MCP Tasks &gt; keeps valid request-correlated progress without legacy control dispatch" time="0.009815">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-stateless.test.js" name="opt-in stateless MCP Tasks &gt; rejects missing progress authority without accepting a later result" time="0.0073983">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-stateless.test.js" name="opt-in stateless MCP Tasks &gt; rejects foreign progress authority without accepting a later result" time="0.007544">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-stateless.test.js" name="opt-in stateless MCP Tasks &gt; rejects request-shaped progress authority without accepting a later result" time="0.0095188">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-stateless.test.js" name="opt-in stateless MCP Tasks &gt; does not resolve a legacy URL-required error through stateless callbacks" time="0.0103683">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-stateless.test.js" name="opt-in stateless MCP Tasks &gt; treats unsupported stateless discovery traffic as fatal" time="0.0052063">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-stateless.test.js" name="opt-in stateless MCP Tasks &gt; discovers without initialize, sessions or background GET and scopes capabilities per request" time="0.0335452">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-stateless.test.js" name="opt-in stateless MCP Tasks &gt; reads the inline result through tasks/get and binds canonical result metadata" time="0.0120452">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-stateless.test.js" name="opt-in stateless MCP Tasks &gt; observes cancellation separately from acknowledgement and retains completed tasks" time="0.0120468">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-stateless.test.js" name="opt-in stateless MCP Tasks &gt; does not call a cancellation acknowledgement remote termination" time="0.0096067">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-stateless.test.js" name="opt-in stateless MCP Tasks &gt; refuses unsupported list/TTL and absent extension before task dispatch" time="0.0116866">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-stateless.test.js" name="opt-in stateless MCP Tasks &gt; cannot settle an unsolicited task as a synchronous tool result or replay it" time="0.0067708">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-stateless.test.js" name="opt-in stateless MCP Tasks &gt; refuses a pending result and prevents terminal status regression" time="0.008228">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-stateless.test.js" name="opt-in stateless MCP Tasks &gt; restores only an authenticated server identity on a fresh stateless connection" time="0.0124786">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-stateless.test.js" name="stateless wire admission and persisted configuration &gt; encodes Unicode and reserved sentinel names without header ambiguity" time="0.0004643">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-stateless.test.js" name="stateless wire admission and persisted configuration &gt; rejects conflicting result identities, legacy aliases and incomplete terminal snapshots" time="0.0009108">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-stateless.test.js" name="stateless wire admission and persisted configuration &gt; persists the protocol override through real SQLite upgrades and unrelated updates" time="1.0768723">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-stateless.test.js" name="stateless wire admission and persisted configuration &gt; retains the selected protocol in managed/project configuration and exposes the CLI flag" time="0.0080359">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-stateless.test.js" name="stateless wire admission and persisted configuration &gt; retains the protocol through the real agent MCP loader instead of falling back to initialize" time="0.0514556">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/unit/mcp-task-runtime.test.js" timestamp="2026-11-09T03:52:23.369Z" hostname="DESKTOP-TFPBTD2" tests="20" failures="0" errors="0" skipped="0" time="11.1555925">
+        <testcase classname="__tests__/unit/mcp-task-runtime.test.js" name="durable MCP task auxiliary runtime &gt; recovers acceptance on a new client and saves one final result across compaction" time="1.4875047">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-runtime.test.js" name="durable MCP task auxiliary runtime &gt; watches a remote task and delivers its verified result exactly once" time="0.798487">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-runtime.test.js" name="durable MCP task auxiliary runtime &gt; rejects unbounded watch options before contacting the server" time="0.2685795">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-runtime.test.js" name="durable MCP task auxiliary runtime &gt; bounds the whole watch during a stalled network without cancelling or replaying the remote task" time="0.7780651">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-runtime.test.js" name="durable MCP task auxiliary runtime &gt; bounds the whole watch during a stalled interval without cancelling or replaying the remote task" time="0.7897525">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-runtime.test.js" name="durable MCP task auxiliary runtime &gt; times out behind a queued poll and never dispatches that expired queued request" time="0.5990991">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-runtime.test.js" name="durable MCP task auxiliary runtime &gt; honors caller cancellation between a cached observation and delivery" time="0.5274844">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-runtime.test.js" name="durable MCP task auxiliary runtime &gt; keeps an already-aborted caller authoritative and never publishes a cached result" time="0.5605196">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-runtime.test.js" name="durable MCP task auxiliary runtime &gt; recovers a saved but undelivered result without refetching it" time="0.6961003">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-runtime.test.js" name="durable MCP task auxiliary runtime &gt; keeps prepare-only disconnect unknown and blocks both task and ordinary replay" time="0.2951644">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-runtime.test.js" name="durable MCP task auxiliary runtime &gt; keeps prepare-only 404 unknown and blocks both task and ordinary replay" time="0.2771142">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-runtime.test.js" name="durable MCP task auxiliary runtime &gt; rejects changed credentials after restart without task query" time="0.4111754">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-runtime.test.js" name="durable MCP task auxiliary runtime &gt; fails closed if the recovery secret was lost" time="0.2783084">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-runtime.test.js" name="durable MCP task auxiliary runtime &gt; does not confuse expired/revoked task errors with effects never executing" time="0.3277481">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-runtime.test.js" name="durable MCP task auxiliary runtime &gt; requires reconciliation before repeating a lost cancellation" time="0.8519868">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-runtime.test.js" name="durable MCP task auxiliary runtime &gt; fences cancellation revoked between journal preparation and the actual send" time="0.354338">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-runtime.test.js" name="durable MCP task auxiliary runtime &gt; repairs a crash after result_saved without retrieving it again" time="0.4508059">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-runtime.test.js" name="durable MCP task auxiliary runtime &gt; rejects another session&apos;s local task ID" time="0.3334166">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-runtime.test.js" name="durable MCP task auxiliary runtime &gt; does not dispatch when OS secret storage refuses the key" time="0.1033797">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-runtime.test.js" name="durable MCP task auxiliary runtime &gt; routes real CLI commands through the durable service and keeps list offline" time="0.9415501">
+        </testcase>
+    </testsuite>
+</testsuites>
