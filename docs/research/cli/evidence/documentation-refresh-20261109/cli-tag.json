@@ -1,0 +1,14 @@
+{
+  "checkedAt": "2026-11-09T00:49:39.347522+00:00",
+  "url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/ref/tags/v-npm-0-166-145",
+  "data": {
+    "ref": "refs/tags/v-npm-0-166-145",
+    "node_id": "REF_kwDOQgDM2rlyZWZzL3RhZ3Mvdi1ucG0tMC0xNjYtMTQ1",
+    "url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/refs/tags/v-npm-0-166-145",
+    "object": {
+      "sha": "6dd5c9331e6ab2887e3cb0790b3f8d494a540ae5",
+      "type": "tag",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/tags/6dd5c9331e6ab2887e3cb0790b3f8d494a540ae5"
+    }
+  }
+}

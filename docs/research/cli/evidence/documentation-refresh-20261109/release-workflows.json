@@ -1,0 +1,215 @@
+{
+  "sourceCommit": "4e4b421bfb42e524f071c9ad70c2a2a2ce607374",
+  "runs": [
+    {
+      "id": 42505954083,
+      "name": "IDE Extensions",
+      "path": ".github/workflows/ide-extensions.yml",
+      "head_sha": "4e4b421bfb42e524f071c9ad70c2a2a2ce607374",
+      "status": "completed",
+      "conclusion": "failure",
+      "run_attempt": 2,
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42505954083"
+    },
+    {
+      "id": 42505953777,
+      "name": "IDE Extensions",
+      "path": ".github/workflows/ide-extensions.yml",
+      "head_sha": "4e4b421bfb42e524f071c9ad70c2a2a2ce607374",
+      "status": "completed",
+      "conclusion": "success",
+      "run_attempt": 1,
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42505953777"
+    },
+    {
+      "id": 42502632915,
+      "name": "CLI Scheduler Soak Auto Dispatch",
+      "path": ".github/workflows/cli-scheduler-soak-auto-dispatch.yml",
+      "head_sha": "4e4b421bfb42e524f071c9ad70c2a2a2ce607374",
+      "status": "completed",
+      "conclusion": "success",
+      "run_attempt": 1,
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42502632915"
+    },
+    {
+      "id": 42495050656,
+      "name": "Publish CLI release to npm",
+      "path": ".github/workflows/npm-publish.yml",
+      "head_sha": "4e4b421bfb42e524f071c9ad70c2a2a2ce607374",
+      "status": "completed",
+      "conclusion": "success",
+      "run_attempt": 1,
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42495050656"
+    },
+    {
+      "id": 42494781847,
+      "name": "CI Tests",
+      "path": ".github/workflows/test.yml",
+      "head_sha": "4e4b421bfb42e524f071c9ad70c2a2a2ce607374",
+      "status": "completed",
+      "conclusion": "cancelled",
+      "run_attempt": 1,
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42494781847"
+    },
+    {
+      "id": 42494781968,
+      "name": "CLI CI",
+      "path": ".github/workflows/cli-ci.yml",
+      "head_sha": "4e4b421bfb42e524f071c9ad70c2a2a2ce607374",
+      "status": "completed",
+      "conclusion": "success",
+      "run_attempt": 1,
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42494781968"
+    },
+    {
+      "id": 42494781795,
+      "name": "Graph Kernel Production Cutover",
+      "path": ".github/workflows/graph-kernel-production-cutover.yml",
+      "head_sha": "4e4b421bfb42e524f071c9ad70c2a2a2ce607374",
+      "status": "completed",
+      "conclusion": "success",
+      "run_attempt": 1,
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42494781795"
+    },
+    {
+      "id": 42494781839,
+      "name": "VERIFY01 Docker Review Pack",
+      "path": ".github/workflows/verify01-review-pack-docker.yml",
+      "head_sha": "4e4b421bfb42e524f071c9ad70c2a2a2ce607374",
+      "status": "completed",
+      "conclusion": "failure",
+      "run_attempt": 1,
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42494781839"
+    },
+    {
+      "id": 42494781780,
+      "name": "IDE Roadmap Safety Matrix",
+      "path": ".github/workflows/ide-roadmap-safety.yml",
+      "head_sha": "4e4b421bfb42e524f071c9ad70c2a2a2ce607374",
+      "status": "completed",
+      "conclusion": "success",
+      "run_attempt": 1,
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42494781780"
+    },
+    {
+      "id": 42494781820,
+      "name": "CLI Session Host Consistency",
+      "path": ".github/workflows/cli-session-host-consistency.yml",
+      "head_sha": "4e4b421bfb42e524f071c9ad70c2a2a2ce607374",
+      "status": "completed",
+      "conclusion": "success",
+      "run_attempt": 1,
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42494781820"
+    },
+    {
+      "id": 42494781815,
+      "name": "IDE Roadmap Live Provider Trajectory",
+      "path": ".github/workflows/ide-roadmap-live-provider.yml",
+      "head_sha": "4e4b421bfb42e524f071c9ad70c2a2a2ce607374",
+      "status": "completed",
+      "conclusion": "success",
+      "run_attempt": 1,
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42494781815"
+    },
+    {
+      "id": 42494781796,
+      "name": "Project Management E2E Tests",
+      "path": ".github/workflows/pm-e2e-tests.yml",
+      "head_sha": "4e4b421bfb42e524f071c9ad70c2a2a2ce607374",
+      "status": "completed",
+      "conclusion": "success",
+      "run_attempt": 1,
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42494781796"
+    },
+    {
+      "id": 42494781805,
+      "name": "CLI Strict Sandbox",
+      "path": ".github/workflows/cli-strict-sandbox.yml",
+      "head_sha": "4e4b421bfb42e524f071c9ad70c2a2a2ce607374",
+      "status": "completed",
+      "conclusion": "success",
+      "run_attempt": 1,
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42494781805"
+    },
+    {
+      "id": 42494781774,
+      "name": "ESM require() Audit (hard gate, trap",
+      "path": ".github/workflows/esm-require-audit.yml",
+      "head_sha": "4e4b421bfb42e524f071c9ad70c2a2a2ce607374",
+      "status": "completed",
+      "conclusion": "success",
+      "run_attempt": 1,
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42494781774"
+    },
+    {
+      "id": 42494781782,
+      "name": "Context Memory Kernel CI",
+      "path": ".github/workflows/context-memory-kernel.yml",
+      "head_sha": "4e4b421bfb42e524f071c9ad70c2a2a2ce607374",
+      "status": "completed",
+      "conclusion": "success",
+      "run_attempt": 1,
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42494781782"
+    },
+    {
+      "id": 42494781806,
+      "name": "CLI macOS MCP Launcher Release Gate",
+      "path": ".github/workflows/cli-macos-mcp-launcher-release.yml",
+      "head_sha": "4e4b421bfb42e524f071c9ad70c2a2a2ce607374",
+      "status": "completed",
+      "conclusion": "success",
+      "run_attempt": 1,
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42494781806"
+    },
+    {
+      "id": 42494781900,
+      "name": "E2E Tests",
+      "path": ".github/workflows/e2e-tests.yml",
+      "head_sha": "4e4b421bfb42e524f071c9ad70c2a2a2ce607374",
+      "status": "completed",
+      "conclusion": "success",
+      "run_attempt": 1,
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42494781900"
+    },
+    {
+      "id": 42494781789,
+      "name": "Code Quality & Security",
+      "path": ".github/workflows/code-quality.yml",
+      "head_sha": "4e4b421bfb42e524f071c9ad70c2a2a2ce607374",
+      "status": "completed",
+      "conclusion": "success",
+      "run_attempt": 1,
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42494781789"
+    },
+    {
+      "id": 42494781772,
+      "name": "VERIFY01 Host Diagnostics",
+      "path": ".github/workflows/verify01-host-diagnostics.yml",
+      "head_sha": "4e4b421bfb42e524f071c9ad70c2a2a2ce607374",
+      "status": "completed",
+      "conclusion": "success",
+      "run_attempt": 1,
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42494781772"
+    },
+    {
+      "id": 42494781807,
+      "name": "Full Test Automation with Diagnostics",
+      "path": ".github/workflows/test-automation-full.yml",
+      "head_sha": "4e4b421bfb42e524f071c9ad70c2a2a2ce607374",
+      "status": "completed",
+      "conclusion": "success",
+      "run_attempt": 1,
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42494781807"
+    },
+    {
+      "id": 42494781797,
+      "name": "IDE Extensions",
+      "path": ".github/workflows/ide-extensions.yml",
+      "head_sha": "4e4b421bfb42e524f071c9ad70c2a2a2ce607374",
+      "status": "completed",
+      "conclusion": "failure",
+      "run_attempt": 1,
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42494781797"
+    }
+  ]
+}

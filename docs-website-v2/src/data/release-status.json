@@ -1,43 +1,43 @@
 {
-  "checkedAt": "2026-11-06",
-  "recommendedCliVersion": "0.166.143",
-  "npmLatestCliVersion": "0.166.143",
-  "sourceMainCliVersion": "0.166.143",
-  "cliReleaseTag": "v-npm-0-166-143",
-  "cliReleaseCommit": "3fa3a4b258bbcb60b23b4298cec375661ad6f410",
-  "npmLatestReleaseTag": "v-npm-0-166-143",
-  "npmLatestReleaseCommit": "3fa3a4b258bbcb60b23b4298cec375661ad6f410",
-  "npmLatestGateStatus": "Exact-source CLI CI76/76 and Strict Sandbox6/6 passed across Linux/Windows/macOS. OIDC and independent signed public readback passed. Both IDE public payloads verified.",
+  "checkedAt": "2026-11-09",
+  "recommendedCliVersion": "0.166.145",
+  "npmLatestCliVersion": "0.166.145",
+  "sourceMainCliVersion": "0.166.145",
+  "cliReleaseTag": "v-npm-0-166-145",
+  "cliReleaseCommit": "4e4b421bfb42e524f071c9ad70c2a2a2ce607374",
+  "npmLatestReleaseTag": "v-npm-0-166-145",
+  "npmLatestReleaseCommit": "4e4b421bfb42e524f071c9ad70c2a2a2ce607374",
+  "npmLatestGateStatus": "Exact-source CLI CI: 75 success, 1 skipped; Strict Sandbox: 6 success. Public npm archive integrity and provenance metadata read back; IDE public downloads verified.",
   "cliReleaseGateConclusion": "success",
-  "sourceCandidateCommit": "3fa3a4b258bbcb60b23b4298cec375661ad6f410",
-  "sourceHeadCommit": "d2070ce914af8d675191e3492e0ce7db650c79c3",
+  "sourceCandidateCommit": "4e4b421bfb42e524f071c9ad70c2a2a2ce607374",
+  "sourceHeadCommit": "c34a664f426f8ff1c026d21a25bf8d3fd2f6f959",
   "documentedDesktopCommit": "93917e15d6fd65a4a0147f2e5b5aace1bc87294a",
   "postReleaseDesktopGovernanceCommit": "3fa3a4b258bbcb60b23b4298cec375661ad6f410",
-  "sourceMainStatus": "CLI .143 and both IDEs publicly include local compute configuration, endpoint credential isolation and controlled task-creation requests. New native v6 creation/model drafting is in later desktop source, outside public product145.",
+  "sourceMainStatus": "Reviewed main includes later model-input diagnostics, lifecycle recovery, MCP Tasks, Memory and native pricing repairs; these are not all in immutable public CLI .145.",
   "agentSdkVersion": "0.2.17",
   "pythonAgentSdkVersion": "0.2.9",
   "agentProtocolVersion": "0.1.12",
-  "openVsxVersion": "0.37.179",
-  "sourceVsCodeVersion": "0.37.179",
-  "vsCodeCandidateVersion": "0.37.179",
-  "vsCodeCandidateCommit": "3fa3a4b258bbcb60b23b4298cec375661ad6f410",
-  "vsCodeCandidateStatus": "Verified public Open VSX .179; public VSIX is byte-identical to its official build.",
-  "developmentCheckedAt": "2026-11-06",
-  "openVsxRecommendedCliVersion": "0.166.143",
-  "openVsxDownloadsMilestone": "60,000+",
-  "openVsxDownloadsDisplayZh": "6 万+",
-  "openVsxDownloadsDisplayEn": "60K+",
-  "jetBrainsMarketplaceVersion": "0.4.196",
-  "sourceJetBrainsVersion": "0.4.196",
-  "vsCodeReleaseCommit": "3fa3a4b258bbcb60b23b4298cec375661ad6f410",
-  "lastFullyGatedVsCodeVersion": "0.37.179",
-  "lastFullyGatedJetBrainsVersion": "0.4.196",
-  "sessionCoreVersion": "0.3.26",
+  "openVsxVersion": "0.37.181",
+  "sourceVsCodeVersion": "0.37.182",
+  "vsCodeCandidateVersion": "0.37.182",
+  "vsCodeCandidateCommit": "84df43224",
+  "vsCodeCandidateStatus": "Source .182 is not the verified public Open VSX .181 release.",
+  "developmentCheckedAt": "2026-11-09",
+  "openVsxRecommendedCliVersion": "0.166.145",
+  "openVsxDownloadsMilestone": "70,000+",
+  "openVsxDownloadsDisplayZh": "7 万+",
+  "openVsxDownloadsDisplayEn": "70K+",
+  "jetBrainsMarketplaceVersion": "0.4.198",
+  "sourceJetBrainsVersion": "0.4.198",
+  "vsCodeReleaseCommit": "4e4b421bfb42e524f071c9ad70c2a2a2ce607374",
+  "lastFullyGatedVsCodeVersion": "0.37.181",
+  "lastFullyGatedJetBrainsVersion": "0.4.198",
+  "sessionCoreVersion": "0.3.27",
   "contextMemoryKernelVersion": "0.1.11",
   "personalDataHubVersion": "0.4.66",
   "coreDbVersion": "0.1.5",
-  "jetBrainsRecommendedCliVersion": "0.166.143",
-  "jetBrainsReleaseCommit": "3fa3a4b258bbcb60b23b4298cec375661ad6f410",
+  "jetBrainsRecommendedCliVersion": "0.166.145",
+  "jetBrainsReleaseCommit": "4e4b421bfb42e524f071c9ad70c2a2a2ce607374",
   "unpublishedCliVersions": [
     "0.166.23",
     "0.166.27",
@@ -55,15 +55,15 @@
     "0.166.134",
     "0.166.137"
   ],
-  "jetBrainsCandidateStatus": "Approved/listed/downloadable update1213983; all627 original payload files, including nested JAR entries, match the official build.",
-  "sourceSessionCoreVersion": "0.3.26",
+  "jetBrainsCandidateStatus": "Approved, listed and independently downloaded update 1215424. Official artifact parity was not rerun in this documentation review.",
+  "sourceSessionCoreVersion": "0.3.27",
   "sourcePersonalDataHubVersion": "0.4.66",
   "productVersion": "v5.0.3.145",
   "sourceContextMemoryKernelVersion": "0.1.11",
   "productReleaseWorkflowStatus": "Public product145 at source93917e15d6fd65a4a0147f2e5b5aace1bc87294a; official Release run41961242898 attempt2 succeeded. Public metadata lists22 assets. Product source predates new native v6 task creation/model drafts in CLI143 source.",
-  "jetBrainsCandidateVersion": "0.4.196",
-  "jetBrainsCandidateRecommendedCliVersion": "0.166.143",
-  "jetBrainsCandidateCommit": "3fa3a4b258bbcb60b23b4298cec375661ad6f410",
+  "jetBrainsCandidateVersion": "0.4.198",
+  "jetBrainsCandidateRecommendedCliVersion": "0.166.145",
+  "jetBrainsCandidateCommit": "4e4b421bfb42e524f071c9ad70c2a2a2ce607374",
   "jetBrainsPublicationStatus": "verified-public",
   "taskRetestStatus": "COMPLETE_VERIFIED_HISTORICAL_PUBLIC140_CORRECTED_ROUND",
   "taskRetestRecords": 45,
@@ -71,9 +71,9 @@
   "cumulativeAcceptedDeliveries": 41,
   "totalTaskSamples": 45,
   "remainingUnaccepted": 4,
-  "releaseEvidence": "https://github.com/chainlesschain/chainlesschain/blob/d2070ce914af8d675191e3492e0ce7db650c79c3/docs/research/cli/evidence/release143-public/README.md",
+  "releaseEvidence": "https://github.com/chainlesschain/chainlesschain/blob/feature/site-refresh-20261109/docs/research/cli/evidence/documentation-refresh-20261109/README.md",
   "taskEvidence": "https://github.com/chainlesschain/chainlesschain/blob/df9295e33ad04aec0aa74cab4dd242766d5556a4/docs/research/cli/verify01-36-plus-9-task-list.md",
-  "sourceSnapshotStatus": "Reviewed code/publication evidence at d2070ce914af8d675191e3492e0ce7db650c79c3; immutable npm/IDE source 3fa3a4b258bbcb60b23b4298cec375661ad6f410. Deployment source is recorded separately. No new model-task retest in this documentation update.",
+  "sourceSnapshotStatus": "Reviewed committed source at c34a664f42; public runtime release identity remains separate at 4e4b421bfb42e524f071c9ad70c2a2a2ce607374. No new model-task retest for this documentation update.",
   "currentReleaseModelTaskRetest": "NOT_RUN_NO_ADDITIONAL_MODEL_TASK_RETEST",
   "currentReleaseLimits": {
     "paidReadiness": "NOT_PAID_READY",
@@ -124,11 +124,11 @@
       "receiptUrl": "https://github.com/chainlesschain/chainlesschain/blob/08ffc589ec0f0c7ad5af87eb54c5efcce739a2f9/docs/research/cli/evidence/release108-public/publication.json"
     }
   },
-  "jetBrainsUpdateId": 1213983,
+  "jetBrainsUpdateId": 1215424,
   "historicalTaskRetestRelease": "0.166.138",
-  "upgradeGuide": "https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-11-06-143.html",
+  "upgradeGuide": "https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-11-09-145.html",
   "recoveryGuide": "https://docs.chainlesschain.com/chainlesschain/agent-input-and-recovery.html",
-  "runtimeDesign": "https://design.chainlesschain.com/release-runtime-update-2026-11-06-143.html",
+  "runtimeDesign": "https://design.chainlesschain.com/release-runtime-update-2026-11-09.html",
   "release117Channels": {
     "cli": {
       "version": "0.166.117",
@@ -287,13 +287,8 @@
     }
   },
   "documentationReview": {
-    "reviewedSourceCommit": "d2070ce914af8d675191e3492e0ce7db650c79c3",
-    "releaseSourceCommit": "3fa3a4b258bbcb60b23b4298cec375661ad6f410",
-    "checkedAt": "2026-11-06",
-    "evidenceUrl": "https://github.com/chainlesschain/chainlesschain/blob/b56683ff17c796929236271f0ea1497609d5a339/docs/research/cli/evidence/release143-public/documentation-review.json",
-    "uncommittedRetestsIncluded": false,
-    "additionalModelTaskRetestsRun": false,
-    "additionalUnreleasedSourceCommit": "a2e7f17a03df38bd8e97a8a977351f37dd5319c3"
+    "checkedAt": "2026-11-09",
+    "evidenceUrl": "https://github.com/chainlesschain/chainlesschain/blob/feature/site-refresh-20261109/docs/research/cli/evidence/documentation-refresh-20261109/README.md"
   },
   "release129Channels": {
     "cli": {
@@ -496,7 +491,7 @@
       "publicListingVerified": true
     }
   },
-  "jetBrainsCandidateArtifactsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42232726964#artifacts",
+  "jetBrainsCandidateArtifactsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42505954083#artifacts",
   "historical138Limits": {
     "paidReadiness": "NOT_PAID_READY",
     "nativeAdmission": "NOT_ADMITTED",
@@ -647,8 +642,8 @@
   "productCandidateCommit": "93917e15d6fd65a4a0147f2e5b5aace1bc87294a",
   "productCandidateStatus": "verified-public",
   "productCandidateWorkflow": "https://github.com/chainlesschain/chainlesschain/actions/runs/41961242898",
-  "productCandidateStatusZh": "客户端 v5.0.3.145 已独立公开，提供桌面、Android 与 iOS 下载；本批新增原生 v6 创建及模型草稿仍需匹配的新桌面构建。",
-  "productCandidateStatusEn": "Client v5.0.3.145 is independently public with desktop, Android and iOS downloads. New native v6 creation and model drafts still require matching newer desktop builds.",
+  "productCandidateStatusZh": "客户端 v5.0.3.145 仍为独立公开版本；v5.0.3.146 仅在源码准备，新原生移交/创建功能需匹配桌面构建并独立验收。",
+  "productCandidateStatusEn": "Client v5.0.3.145 remains the independent public product; v5.0.3.146 is source preparation. New native transfer/creation requires matching desktop builds and separate acceptance.",
   "release142Channels": {
     "cli": {
       "version": "0.166.142",
@@ -732,12 +727,41 @@
     "sourceCommit": "a2e7f17a03df38bd8e97a8a977351f37dd5319c3",
     "implementationCommit": "7b5376091a",
     "pullRequest": 539,
-    "status": "unreleased-source",
+    "status": "public-cli-matching-desktop-required",
     "localReportFiles": 49,
     "localReportPassed": 790,
-    "validationScope": "Windows local reports; Electron dialogs/login and Vue IPC are doubles; GUI/Linux/macOS/release CI and publication remain pending",
+    "validationScope": "CLI transfer commands present in public .145; native import needs matching newer desktop, explicit confirmation and separate GUI acceptance.",
     "includedInPublic143": false,
     "designUrl": "https://design.chainlesschain.com/cli-goal-transfer-source-2026-11-07.html",
-    "evidenceUrl": "https://github.com/chainlesschain/chainlesschain/blob/a2e7f17a03df38bd8e97a8a977351f37dd5319c3/docs/research/agents/evidence/dmm-goal-transfer-2026-11-06/README.md"
+    "evidenceUrl": "https://github.com/chainlesschain/chainlesschain/blob/a2e7f17a03df38bd8e97a8a977351f37dd5319c3/docs/research/agents/evidence/dmm-goal-transfer-2026-11-06/README.md",
+    "includedInPublic145": true
+  },
+  "openVsxDownloadsMilestoneSource": {
+    "reportedAt": "2026-11-09",
+    "source": "repository owner report in this task",
+    "publicApiObserved": 69550,
+    "note": "Milestone display follows owner-confirmed total; API snapshot is retained separately without alteration."
+  },
+  "release145Channels": {
+    "cli": {
+      "version": "0.166.145",
+      "sourceSha": "4e4b421bfb42e524f071c9ad70c2a2a2ce607374",
+      "status": "verified-public",
+      "archiveIntegrityVerified": true,
+      "workflowUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42495050656"
+    },
+    "openVsx": {
+      "version": "0.37.181",
+      "status": "public-download-verified",
+      "recommendedCliVersion": "0.166.145",
+      "officialArtifactParity": "not rerun"
+    },
+    "jetbrains": {
+      "version": "0.4.198",
+      "updateId": 1215424,
+      "status": "approved-listed-public-download-verified",
+      "recommendedCliVersion": "0.166.145",
+      "officialArtifactParity": "not rerun"
+    }
   }
 }

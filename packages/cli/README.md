@@ -2,19 +2,15 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
 
-## CLI 0.166.145 / Memory authority and release gate repairs
+## Public CLI 0.166.145 / verified IDE pairing
 
-Release pairing: Session Core **0.3.27**, CLI **0.166.145**, VS Code/Open VSX
-**0.37.181** and JetBrains **0.4.198**. Session Core must be published and
-verified before CLI; the paired IDE releases follow independent CLI registry readback.
+Public versions checked 2026-11-09: Session Core **0.3.27**, CLI **0.166.145**, Open VSX **0.37.181**, JetBrains **0.4.198**. Both IDEs recommend CLI .145. Open VSX passed **70K+ downloads** (owner-confirmed milestone). Source VS Code .182 is separate from public .181.
 
-After this version is available from the public registry, install
-`npm i -g chainlesschain@0.166.145 --registry https://registry.npmjs.org`,
-restart CLI / IDE hosts, then run `cc --version` and `cc doctor`.
+Install `npm i -g chainlesschain@0.166.145 --registry https://registry.npmjs.org`, restart CLI / IDE hosts, then run `cc --version` and `cc doctor`.
 
-Candidate .144 was blocked by its exact-source gate; its immutable tag is retained.
-This candidate revalidates Memory authority at physical provider dispatch,
-including after asynchronous diagnostics, and synchronizes generated release artifacts.
+Immutable source `4e4b421bfb42e524f071c9ad70c2a2a2ce607374`: CLI CI **75 passed, 1 skipped**, Strict Sandbox **6 passed** and Actions OIDC publication succeeded. Public npm integrity and IDE download/pairing readbacks are archived in [the documentation review](../../docs/research/cli/evidence/documentation-refresh-20261109/README.md). Cryptographic attestation verification and full IDE artifact parity were not rerun for this review.
+
+Candidate .144 retains its immutable blocked tag. Public .145 includes Memory dispatch authority repair and explicit goal transfer/signed rollback commands; native import still requires matching newer desktop builds and explicit confirmation. Public PC/mobile clients remain **v5.0.3.145**. Later main recovery, MCP Tasks, Memory and pricing changes retain separate source scopes. **NOT_PAID_READY / NOT_ADMITTED / HOLD** remain; this documentation update adds no model-task acceptance.
 
 For an interactive session, `cc agent --no-recall-memory` disables automatic
 startup and per-request Memory recall, including inherited sub-agent recall.

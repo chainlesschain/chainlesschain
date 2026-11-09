@@ -1,0 +1,993 @@
+{
+  "total_count": 6,
+  "jobs": [
+    {
+      "id": 128774644556,
+      "run_id": 42494781805,
+      "workflow_name": "CLI Strict Sandbox",
+      "head_branch": "main",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/42494781805",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAd-5EjTA",
+      "head_sha": "4e4b421bfb42e524f071c9ad70c2a2a2ce607374",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/128774644556",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42494781805/job/128774644556",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-08T15:26:02Z",
+      "started_at": "2026-11-08T15:26:04Z",
+      "completed_at": "2026-11-08T15:26:39Z",
+      "name": "Scoped documentation check / Detect and validate scoped documentation",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-08T15:26:05Z",
+          "completed_at": "2026-11-08T15:26:06Z"
+        },
+        {
+          "name": "Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-08T15:26:06Z",
+          "completed_at": "2026-11-08T15:26:31Z"
+        },
+        {
+          "name": "Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-08T15:26:31Z",
+          "completed_at": "2026-11-08T15:26:36Z"
+        },
+        {
+          "name": "Classify complete diff and validate allowed documentation",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-08T15:26:36Z",
+          "completed_at": "2026-11-08T15:26:36Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-11-08T15:26:36Z",
+          "completed_at": "2026-11-08T15:26:37Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-11-08T15:26:37Z",
+          "completed_at": "2026-11-08T15:26:37Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-11-08T15:26:37Z",
+          "completed_at": "2026-11-08T15:26:37Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/128774644556",
+      "labels": ["ubuntu-latest"],
+      "runner_id": 1000451157,
+      "runner_name": "GitHub Actions 1000451157",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 128774802383,
+      "run_id": 42494781805,
+      "workflow_name": "CLI Strict Sandbox",
+      "head_branch": "main",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/42494781805",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAd-5OLzw",
+      "head_sha": "4e4b421bfb42e524f071c9ad70c2a2a2ce607374",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/128774802383",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42494781805/job/128774802383",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-08T15:26:40Z",
+      "started_at": "2026-11-08T15:32:55Z",
+      "completed_at": "2026-11-08T15:35:22Z",
+      "name": "macOS latest native capability",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-08T15:32:55Z",
+          "completed_at": "2026-11-08T15:32:56Z"
+        },
+        {
+          "name": "Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-08T15:32:56Z",
+          "completed_at": "2026-11-08T15:33:23Z"
+        },
+        {
+          "name": "Verify exact source identity",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-08T15:33:23Z",
+          "completed_at": "2026-11-08T15:33:23Z"
+        },
+        {
+          "name": "Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-08T15:33:23Z",
+          "completed_at": "2026-11-08T15:33:38Z"
+        },
+        {
+          "name": "Run ./.github/actions/setup-node-deps",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-08T15:33:38Z",
+          "completed_at": "2026-11-08T15:35:13Z"
+        },
+        {
+          "name": "Probe current macOS Seatbelt capability with a real process",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-11-08T15:35:13Z",
+          "completed_at": "2026-11-08T15:35:14Z"
+        },
+        {
+          "name": "Upload capability evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-11-08T15:35:14Z",
+          "completed_at": "2026-11-08T15:35:16Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-11-08T15:35:16Z",
+          "completed_at": "2026-11-08T15:35:16Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-11-08T15:35:16Z",
+          "completed_at": "2026-11-08T15:35:17Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-11-08T15:35:17Z",
+          "completed_at": "2026-11-08T15:35:19Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/128774802383",
+      "labels": ["macos-latest"],
+      "runner_id": 1000451189,
+      "runner_name": "GitHub Actions 1000451189",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 128774802414,
+      "run_id": 42494781805,
+      "workflow_name": "CLI Strict Sandbox",
+      "head_branch": "main",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/42494781805",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAd-5OL7g",
+      "head_sha": "4e4b421bfb42e524f071c9ad70c2a2a2ce607374",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/128774802414",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42494781805/job/128774802414",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-08T15:26:40Z",
+      "started_at": "2026-11-08T15:26:51Z",
+      "completed_at": "2026-11-08T15:30:28Z",
+      "name": "strict native boundary (ubuntu-24.04-arm)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-08T15:26:51Z",
+          "completed_at": "2026-11-08T15:26:52Z"
+        },
+        {
+          "name": "Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-08T15:26:52Z",
+          "completed_at": "2026-11-08T15:27:12Z"
+        },
+        {
+          "name": "Verify exact source identity and native ARM64 runner",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-08T15:27:12Z",
+          "completed_at": "2026-11-08T15:27:12Z"
+        },
+        {
+          "name": "Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-08T15:27:12Z",
+          "completed_at": "2026-11-08T15:27:17Z"
+        },
+        {
+          "name": "Run ./.github/actions/setup-node-deps",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-08T15:27:17Z",
+          "completed_at": "2026-11-08T15:29:08Z"
+        },
+        {
+          "name": "Record native environment",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-11-08T15:29:08Z",
+          "completed_at": "2026-11-08T15:29:08Z"
+        },
+        {
+          "name": "Verify synchronous settings authority on native ARM64",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-11-08T15:29:08Z",
+          "completed_at": "2026-11-08T15:29:08Z"
+        },
+        {
+          "name": "Verify native anonymous tmpfile support",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-11-08T15:29:08Z",
+          "completed_at": "2026-11-08T15:29:08Z"
+        },
+        {
+          "name": "Run ./.github/actions/setup-linux-bwrap",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-11-08T15:29:08Z",
+          "completed_at": "2026-11-08T15:29:33Z"
+        },
+        {
+          "name": "Record bubblewrap version",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-11-08T15:29:33Z",
+          "completed_at": "2026-11-08T15:29:33Z"
+        },
+        {
+          "name": "Run native broker and MCP capsule boundary",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-11-08T15:29:33Z",
+          "completed_at": "2026-11-08T15:29:49Z"
+        },
+        {
+          "name": "Run native bubblewrap boundary",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-11-08T15:29:49Z",
+          "completed_at": "2026-11-08T15:29:51Z"
+        },
+        {
+          "name": "Run native Docker egress boundary",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-11-08T15:29:51Z",
+          "completed_at": "2026-11-08T15:30:21Z"
+        },
+        {
+          "name": "Upload native ARM64 evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-11-08T15:30:21Z",
+          "completed_at": "2026-11-08T15:30:21Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@v6",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-11-08T15:30:21Z",
+          "completed_at": "2026-11-08T15:30:22Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 29,
+          "started_at": "2026-11-08T15:30:22Z",
+          "completed_at": "2026-11-08T15:30:26Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 30,
+          "started_at": "2026-11-08T15:30:26Z",
+          "completed_at": "2026-11-08T15:30:26Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 31,
+          "started_at": "2026-11-08T15:30:26Z",
+          "completed_at": "2026-11-08T15:30:26Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/128774802414",
+      "labels": ["ubuntu-24.04-arm"],
+      "runner_id": 1000451173,
+      "runner_name": "GitHub Actions 1000451173",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 128774802443,
+      "run_id": 42494781805,
+      "workflow_name": "CLI Strict Sandbox",
+      "head_branch": "main",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/42494781805",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAd-5OMCw",
+      "head_sha": "4e4b421bfb42e524f071c9ad70c2a2a2ce607374",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/128774802443",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42494781805/job/128774802443",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-08T15:26:40Z",
+      "started_at": "2026-11-08T15:32:33Z",
+      "completed_at": "2026-11-08T15:40:59Z",
+      "name": "strict native boundary (windows-latest)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-08T15:32:34Z",
+          "completed_at": "2026-11-08T15:32:35Z"
+        },
+        {
+          "name": "Enable Windows long paths before checkout",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-08T15:32:35Z",
+          "completed_at": "2026-11-08T15:32:36Z"
+        },
+        {
+          "name": "Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-08T15:32:36Z",
+          "completed_at": "2026-11-08T15:33:11Z"
+        },
+        {
+          "name": "Verify exact source identity",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-08T15:33:11Z",
+          "completed_at": "2026-11-08T15:33:11Z"
+        },
+        {
+          "name": "Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-08T15:33:11Z",
+          "completed_at": "2026-11-08T15:33:20Z"
+        },
+        {
+          "name": "Run ./.github/actions/setup-node-deps",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-11-08T15:33:20Z",
+          "completed_at": "2026-11-08T15:36:37Z"
+        },
+        {
+          "name": "Run mapped Claude security delta tests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-11-08T15:36:37Z",
+          "completed_at": "2026-11-08T15:36:52Z"
+        },
+        {
+          "name": "Verify synchronous settings authority at supported Node floor",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-11-08T15:36:52Z",
+          "completed_at": "2026-11-08T15:36:53Z"
+        },
+        {
+          "name": "Verify Windows helper source contract",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-11-08T15:36:53Z",
+          "completed_at": "2026-11-08T15:36:54Z"
+        },
+        {
+          "name": "Set up Linux kernel sandbox backend",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 10,
+          "started_at": "2026-11-08T15:36:54Z",
+          "completed_at": "2026-11-08T15:36:54Z"
+        },
+        {
+          "name": "Verify native Windows capsule transport and unchanged v1 limits",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-11-08T15:36:54Z",
+          "completed_at": "2026-11-08T15:37:03Z"
+        },
+        {
+          "name": "Upload native Windows capsule transport evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-11-08T15:37:03Z",
+          "completed_at": "2026-11-08T15:37:04Z"
+        },
+        {
+          "name": "Run platform sandbox contract tests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-11-08T15:37:04Z",
+          "completed_at": "2026-11-08T15:39:31Z"
+        },
+        {
+          "name": "Run background agent supervisor contract tests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-11-08T15:39:31Z",
+          "completed_at": "2026-11-08T15:40:18Z"
+        },
+        {
+          "name": "Run native ProcessExecutionBroker strict boundary",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-11-08T15:40:18Z",
+          "completed_at": "2026-11-08T15:40:48Z"
+        },
+        {
+          "name": "Produce advisory canonical SEC-DELTA fragment",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 16,
+          "started_at": "2026-11-08T15:40:48Z",
+          "completed_at": "2026-11-08T15:40:49Z"
+        },
+        {
+          "name": "Capture macOS sandbox diagnostics",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 17,
+          "started_at": "2026-11-08T15:40:49Z",
+          "completed_at": "2026-11-08T15:40:49Z"
+        },
+        {
+          "name": "Upload strict sandbox result",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 18,
+          "started_at": "2026-11-08T15:40:49Z",
+          "completed_at": "2026-11-08T15:40:50Z"
+        },
+        {
+          "name": "Run Linux bubblewrap filesystem and network boundary",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 19,
+          "started_at": "2026-11-08T15:40:50Z",
+          "completed_at": "2026-11-08T15:40:50Z"
+        },
+        {
+          "name": "Run Linux Docker egress boundary with real containers",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 20,
+          "started_at": "2026-11-08T15:40:50Z",
+          "completed_at": "2026-11-08T15:40:50Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 39,
+          "started_at": "2026-11-08T15:40:50Z",
+          "completed_at": "2026-11-08T15:40:55Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 40,
+          "started_at": "2026-11-08T15:40:55Z",
+          "completed_at": "2026-11-08T15:40:57Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 41,
+          "started_at": "2026-11-08T15:40:57Z",
+          "completed_at": "2026-11-08T15:40:57Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/128774802443",
+      "labels": ["windows-latest"],
+      "runner_id": 1000451188,
+      "runner_name": "GitHub Actions 1000451188",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 128774802472,
+      "run_id": 42494781805,
+      "workflow_name": "CLI Strict Sandbox",
+      "head_branch": "main",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/42494781805",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAd-5OMKA",
+      "head_sha": "4e4b421bfb42e524f071c9ad70c2a2a2ce607374",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/128774802472",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42494781805/job/128774802472",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-08T15:26:40Z",
+      "started_at": "2026-11-08T15:26:44Z",
+      "completed_at": "2026-11-08T15:31:32Z",
+      "name": "strict native boundary (ubuntu-24.04)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-08T15:26:45Z",
+          "completed_at": "2026-11-08T15:26:46Z"
+        },
+        {
+          "name": "Enable Windows long paths before checkout",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 2,
+          "started_at": "2026-11-08T15:26:46Z",
+          "completed_at": "2026-11-08T15:26:46Z"
+        },
+        {
+          "name": "Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-08T15:26:46Z",
+          "completed_at": "2026-11-08T15:27:00Z"
+        },
+        {
+          "name": "Verify exact source identity",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-08T15:27:00Z",
+          "completed_at": "2026-11-08T15:27:00Z"
+        },
+        {
+          "name": "Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-08T15:27:00Z",
+          "completed_at": "2026-11-08T15:27:10Z"
+        },
+        {
+          "name": "Run ./.github/actions/setup-node-deps",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-11-08T15:27:10Z",
+          "completed_at": "2026-11-08T15:28:43Z"
+        },
+        {
+          "name": "Run mapped Claude security delta tests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-11-08T15:28:43Z",
+          "completed_at": "2026-11-08T15:28:52Z"
+        },
+        {
+          "name": "Verify synchronous settings authority at supported Node floor",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-11-08T15:28:52Z",
+          "completed_at": "2026-11-08T15:28:52Z"
+        },
+        {
+          "name": "Verify Windows helper source contract",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 9,
+          "started_at": "2026-11-08T15:28:52Z",
+          "completed_at": "2026-11-08T15:28:52Z"
+        },
+        {
+          "name": "Set up Linux kernel sandbox backend",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-11-08T15:28:52Z",
+          "completed_at": "2026-11-08T15:29:05Z"
+        },
+        {
+          "name": "Verify native Windows capsule transport and unchanged v1 limits",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 11,
+          "started_at": "2026-11-08T15:29:05Z",
+          "completed_at": "2026-11-08T15:29:05Z"
+        },
+        {
+          "name": "Upload native Windows capsule transport evidence",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 12,
+          "started_at": "2026-11-08T15:29:05Z",
+          "completed_at": "2026-11-08T15:29:05Z"
+        },
+        {
+          "name": "Run platform sandbox contract tests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-11-08T15:29:05Z",
+          "completed_at": "2026-11-08T15:30:21Z"
+        },
+        {
+          "name": "Run background agent supervisor contract tests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-11-08T15:30:21Z",
+          "completed_at": "2026-11-08T15:30:34Z"
+        },
+        {
+          "name": "Run native ProcessExecutionBroker strict boundary",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-11-08T15:30:34Z",
+          "completed_at": "2026-11-08T15:30:49Z"
+        },
+        {
+          "name": "Produce advisory canonical SEC-DELTA fragment",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 16,
+          "started_at": "2026-11-08T15:30:49Z",
+          "completed_at": "2026-11-08T15:30:50Z"
+        },
+        {
+          "name": "Capture macOS sandbox diagnostics",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 17,
+          "started_at": "2026-11-08T15:30:50Z",
+          "completed_at": "2026-11-08T15:30:50Z"
+        },
+        {
+          "name": "Upload strict sandbox result",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 18,
+          "started_at": "2026-11-08T15:30:50Z",
+          "completed_at": "2026-11-08T15:30:51Z"
+        },
+        {
+          "name": "Run Linux bubblewrap filesystem and network boundary",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 19,
+          "started_at": "2026-11-08T15:30:51Z",
+          "completed_at": "2026-11-08T15:30:53Z"
+        },
+        {
+          "name": "Run Linux Docker egress boundary with real containers",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 20,
+          "started_at": "2026-11-08T15:30:53Z",
+          "completed_at": "2026-11-08T15:31:28Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 39,
+          "started_at": "2026-11-08T15:31:28Z",
+          "completed_at": "2026-11-08T15:31:29Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 40,
+          "started_at": "2026-11-08T15:31:29Z",
+          "completed_at": "2026-11-08T15:31:30Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 41,
+          "started_at": "2026-11-08T15:31:30Z",
+          "completed_at": "2026-11-08T15:31:30Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/128774802472",
+      "labels": ["ubuntu-24.04"],
+      "runner_id": 1000451172,
+      "runner_name": "GitHub Actions 1000451172",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 128774802490,
+      "run_id": 42494781805,
+      "workflow_name": "CLI Strict Sandbox",
+      "head_branch": "main",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/42494781805",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAd-5OMOg",
+      "head_sha": "4e4b421bfb42e524f071c9ad70c2a2a2ce607374",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/128774802490",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42494781805/job/128774802490",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-08T15:26:40Z",
+      "started_at": "2026-11-08T15:44:05Z",
+      "completed_at": "2026-11-08T15:49:33Z",
+      "name": "strict native boundary (macos-15)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-08T15:44:05Z",
+          "completed_at": "2026-11-08T15:44:06Z"
+        },
+        {
+          "name": "Enable Windows long paths before checkout",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 2,
+          "started_at": "2026-11-08T15:44:06Z",
+          "completed_at": "2026-11-08T15:44:06Z"
+        },
+        {
+          "name": "Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-08T15:44:06Z",
+          "completed_at": "2026-11-08T15:44:39Z"
+        },
+        {
+          "name": "Verify exact source identity",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-08T15:44:39Z",
+          "completed_at": "2026-11-08T15:44:40Z"
+        },
+        {
+          "name": "Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-08T15:44:40Z",
+          "completed_at": "2026-11-08T15:44:57Z"
+        },
+        {
+          "name": "Run ./.github/actions/setup-node-deps",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-11-08T15:44:57Z",
+          "completed_at": "2026-11-08T15:46:48Z"
+        },
+        {
+          "name": "Run mapped Claude security delta tests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-11-08T15:46:48Z",
+          "completed_at": "2026-11-08T15:47:03Z"
+        },
+        {
+          "name": "Verify synchronous settings authority at supported Node floor",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-11-08T15:47:03Z",
+          "completed_at": "2026-11-08T15:47:04Z"
+        },
+        {
+          "name": "Verify Windows helper source contract",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 9,
+          "started_at": "2026-11-08T15:47:04Z",
+          "completed_at": "2026-11-08T15:47:04Z"
+        },
+        {
+          "name": "Set up Linux kernel sandbox backend",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 10,
+          "started_at": "2026-11-08T15:47:04Z",
+          "completed_at": "2026-11-08T15:47:04Z"
+        },
+        {
+          "name": "Verify native Windows capsule transport and unchanged v1 limits",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 11,
+          "started_at": "2026-11-08T15:47:04Z",
+          "completed_at": "2026-11-08T15:47:04Z"
+        },
+        {
+          "name": "Upload native Windows capsule transport evidence",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 12,
+          "started_at": "2026-11-08T15:47:04Z",
+          "completed_at": "2026-11-08T15:47:04Z"
+        },
+        {
+          "name": "Run platform sandbox contract tests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-11-08T15:47:04Z",
+          "completed_at": "2026-11-08T15:48:53Z"
+        },
+        {
+          "name": "Run background agent supervisor contract tests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-11-08T15:48:53Z",
+          "completed_at": "2026-11-08T15:49:18Z"
+        },
+        {
+          "name": "Run native ProcessExecutionBroker strict boundary",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-11-08T15:49:18Z",
+          "completed_at": "2026-11-08T15:49:24Z"
+        },
+        {
+          "name": "Produce advisory canonical SEC-DELTA fragment",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 16,
+          "started_at": "2026-11-08T15:49:24Z",
+          "completed_at": "2026-11-08T15:49:25Z"
+        },
+        {
+          "name": "Capture macOS sandbox diagnostics",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 17,
+          "started_at": "2026-11-08T15:49:25Z",
+          "completed_at": "2026-11-08T15:49:25Z"
+        },
+        {
+          "name": "Upload strict sandbox result",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 18,
+          "started_at": "2026-11-08T15:49:25Z",
+          "completed_at": "2026-11-08T15:49:26Z"
+        },
+        {
+          "name": "Run Linux bubblewrap filesystem and network boundary",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 19,
+          "started_at": "2026-11-08T15:49:26Z",
+          "completed_at": "2026-11-08T15:49:26Z"
+        },
+        {
+          "name": "Run Linux Docker egress boundary with real containers",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 20,
+          "started_at": "2026-11-08T15:49:26Z",
+          "completed_at": "2026-11-08T15:49:26Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 39,
+          "started_at": "2026-11-08T15:49:26Z",
+          "completed_at": "2026-11-08T15:49:26Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 40,
+          "started_at": "2026-11-08T15:49:26Z",
+          "completed_at": "2026-11-08T15:49:27Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 41,
+          "started_at": "2026-11-08T15:49:27Z",
+          "completed_at": "2026-11-08T15:49:31Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/128774802490",
+      "labels": ["macos-15"],
+      "runner_id": 1000451216,
+      "runner_name": "GitHub Actions 1000451216",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    }
+  ]
+}

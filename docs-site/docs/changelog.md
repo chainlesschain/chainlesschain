@@ -3,6 +3,14 @@
 所有重要的项目变更都会记录在此文件中。  
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循语义化版本。
 
+## 2026-11-09 文档与公开发行核对
+
+- 公开组合更新为 CLI **0.166.145** / Session Core **0.3.27** / Open VSX **0.37.181** / JetBrains **0.4.198**；PC/mobile 仍为独立 **v5.0.3.145**。
+- 官网中英文同步 **7 万+ / 70K+** Open VSX 下载里程碑（项目方确认），修正把已公开 .145 当候选的旧入口。
+- 新增主线输入诊断、REPL 恢复、MCP Tasks、Memory、计费窗口和宿主诊断说明，保留实际源码、平台与验证边界。
+- 准确发行源 CLI CI **75 成功、1 跳过** / Strict Sandbox **6 成功**；未新增模型任务验收，**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。
+- [本轮用户升级指南](/chainlesschain/cli-ide-update-2026-11-09-145) · [设计](/design/release-runtime-update-2026-11-09)。
+
 ## [Unreleased]
 
 ### 已公开 — CLI 0.166.127 / Open VSX 0.37.165 / JetBrains 0.4.182 / 产品 v5.0.3.142（2026-10-27）
