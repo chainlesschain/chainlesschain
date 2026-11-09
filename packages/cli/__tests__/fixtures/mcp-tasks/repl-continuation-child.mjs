@@ -101,20 +101,15 @@ if (process.argv[2] === "inspect") {
           outputLimit <= 256,
       );
       assert.equal(request.confirmLive, true);
-      const { estimateCost, mergePricing } =
-        await import("../../../src/lib/llm-pricing.js");
-      const quote = estimateCost({
+      const { resolveContinuationProbeEstimate } =
+        await import("../../../scripts/lib/model-continuation-probe-admission.mjs");
+      request.diagnosticEstimate = resolveContinuationProbeEstimate({
         provider: request.provider,
         model: request.model,
-        inputTokens: Buffer.byteLength(options.body),
+        inputBytes: Buffer.byteLength(options.body),
         outputTokens: outputLimit,
-        table: mergePricing(request.pricing),
+        pricing: request.pricing,
       });
-      assert.equal(quote.matched, true);
-      assert.ok(
-        quote.totalCost <= 0.05,
-        "Diagnostic estimate stop reached; not a hard billing ceiling",
-      );
     }
     const messages = body.messages || body.input;
     assert.ok(Array.isArray(messages));
@@ -155,6 +150,9 @@ if (process.argv[2] === "inspect") {
       ),
       requestedMaxOutputTokens:
         outputLimit ?? body.options?.num_predict ?? null,
+      ...(request.diagnosticEstimate
+        ? { diagnosticEstimate: request.diagnosticEstimate }
+        : {}),
       protocol: body.input
         ? "openai-responses"
         : request.provider === "ollama"
