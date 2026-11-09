@@ -12308,6 +12308,24 @@ async function chatWithToolsAdmitted(rawMessages, options, captureAdmission) {
   } = { ...options, ...connection };
   captureAdmission(null, provider);
 
+  // Validate the combined Anthropic output/thinking intent before admission
+  // work or onProviderCallStart. Reuse these exact values in both transports.
+  let anthropicOutputBudget = null;
+  let anthropicThinkingParams = null;
+  if (provider === "anthropic") {
+    const effectiveModel = model || "claude-sonnet-4-6";
+    anthropicOutputBudget = resolveAgentOutputBudget({
+      provider,
+      model: effectiveModel,
+      maxOutputTokens: options.maxOutputTokens,
+    });
+    anthropicThinkingParams = _anthropicThinkingParams(
+      effectiveModel,
+      options,
+      anthropicOutputBudget.requestMaxOutputTokens,
+    );
+  }
+
   const providerRequestId = _normalizeProviderRequestId(
     options.providerRequestId,
   );
@@ -12539,11 +12557,6 @@ async function chatWithToolsAdmitted(rawMessages, options, captureAdmission) {
     // Fallback to the CURRENT Sonnet, not a retired snapshot:
     // claude-sonnet-4-20250514 was retired 2026-06-15 and would 404 here.
     const effModel = model || "claude-sonnet-4-6";
-    const anthropicOutputBudget = resolveAgentOutputBudget({
-      provider: "anthropic",
-      model: effModel,
-      maxOutputTokens: options.maxOutputTokens,
-    });
     const otherIndexes = messages.flatMap((message, index) =>
       message.role !== "system" ? [index] : [],
     );
@@ -12571,12 +12584,7 @@ async function chatWithToolsAdmitted(rawMessages, options, captureAdmission) {
     // Sampling parameters are never sent. RUNTIME-UNVERIFIED: no Anthropic key
     // here to E2E the
     // thinking-block signature replay (see cli_claude_code_parity_landed memory).
-    const thinkingParams = _anthropicThinkingParams(
-      effModel,
-      options,
-      body.max_tokens,
-    );
-    if (thinkingParams) Object.assign(body, thinkingParams);
+    if (anthropicThinkingParams) Object.assign(body, anthropicThinkingParams);
     if (systemMsgs.length > 0) {
       const systemText = systemMsgs.map((m) => m.content).join("\n");
       // Array-form system with a cache breakpoint when caching is on; plain
@@ -13934,6 +13942,16 @@ export function _anthropicThinkingParams(
     return params;
   }
   if (legacy) {
+    // Neither transport enables the interleaved-thinking beta exception.
+    // Preserve both explicit intents: do not raise the cap or disable thinking.
+    if (maxTokens <= 1024) {
+      throw Object.assign(
+        new RangeError(
+          "Anthropic manual thinking requires maxOutputTokens greater than 1024; choose a larger output cap or explicitly disable thinking.",
+        ),
+        { code: "CC_ANTHROPIC_THINKING_OUTPUT_CAP_INVALID" },
+      );
+    }
     let budget = Number(options.thinkingBudget) || 8000;
     // budget_tokens must be strictly < max_tokens (min 1024) on legacy models
     if (budget >= maxTokens) budget = Math.max(1024, Math.floor(maxTokens / 2));

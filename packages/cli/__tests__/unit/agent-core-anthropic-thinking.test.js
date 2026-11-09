@@ -8,13 +8,131 @@
  *     blocks (with signature) verbatim.
  *   - _anthropicThinkingParams: model-aware, opt-in, off by default.
  */
-import { describe, it, expect } from "vitest";
+import os from "node:os";
+import { afterEach, describe, it, expect, vi } from "vitest";
+import { chatWithTools } from "../helpers/test-model-egress.js";
 import {
   _toAnthropicMessages,
   _anthropicThinkingParams,
   _normalizeAnthropicResponse,
   _accumulateAnthropicStream,
 } from "../../src/runtime/agent-core.js";
+
+afterEach(() => vi.unstubAllGlobals());
+
+describe.each([false, true])(
+  "Anthropic output cap admission (stream=%s)",
+  (stream) => {
+    const messages = [{ role: "user", content: "Reply with one word." }];
+    const options = (overrides = {}) => ({
+      provider: "anthropic",
+      model: "claude-sonnet-4-5",
+      apiKey: "unit-test-only",
+      cwd: os.tmpdir(),
+      thinking: true,
+      ...(stream ? { onToken: vi.fn() } : {}),
+      ...overrides,
+    });
+
+    it.each([37, 1024])(
+      "rejects manual thinking with cap %s before provider accounting or fetch",
+      async (maxOutputTokens) => {
+        const fetch = vi.fn(() => {
+          throw new Error("unexpected dispatch");
+        });
+        vi.stubGlobal("fetch", fetch);
+        const onProviderCallStart = vi.fn();
+        await expect(
+          chatWithTools(
+            messages,
+            options({ maxOutputTokens, onProviderCallStart }),
+          ),
+        ).rejects.toMatchObject({
+          name: "RangeError",
+          code: "CC_ANTHROPIC_THINKING_OUTPUT_CAP_INVALID",
+          message: expect.stringContaining("greater than 1024"),
+        });
+        expect(onProviderCallStart).not.toHaveBeenCalled();
+        expect(fetch).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each([
+      [
+        "manual minimum",
+        { maxOutputTokens: 1025 },
+        { type: "enabled", budget_tokens: 1024 },
+      ],
+      [
+        "thinking disabled",
+        { maxOutputTokens: 37, thinking: false },
+        undefined,
+      ],
+      [
+        "adaptive",
+        { maxOutputTokens: 37, model: "claude-sonnet-4-6" },
+        { type: "adaptive" },
+      ],
+    ])(
+      "preserves the physical cap and thinking intent for %s",
+      async (_label, overrides, thinking) => {
+        const fetch = vi.fn(async () =>
+          stream
+            ? new Response(
+                [
+                  {
+                    type: "message_start",
+                    message: { usage: { input_tokens: 2 } },
+                  },
+                  {
+                    type: "content_block_start",
+                    index: 0,
+                    content_block: { type: "text", text: "" },
+                  },
+                  {
+                    type: "content_block_delta",
+                    index: 0,
+                    delta: { type: "text_delta", text: "ok" },
+                  },
+                  { type: "content_block_stop", index: 0 },
+                  {
+                    type: "message_delta",
+                    delta: { stop_reason: "end_turn" },
+                    usage: { output_tokens: 1 },
+                  },
+                  { type: "message_stop" },
+                ]
+                  .map((event) => `data: ${JSON.stringify(event)}\n\n`)
+                  .join(""),
+                { headers: { "Content-Type": "text/event-stream" } },
+              )
+            : new Response(
+                JSON.stringify({
+                  content: [{ type: "text", text: "ok" }],
+                  usage: { input_tokens: 2, output_tokens: 1 },
+                  stop_reason: "end_turn",
+                }),
+                { headers: { "Content-Type": "application/json" } },
+              ),
+        );
+        vi.stubGlobal("fetch", fetch);
+        const onProviderCallStart = vi.fn();
+        await chatWithTools(
+          messages,
+          options({ ...overrides, onProviderCallStart }),
+        );
+        expect(fetch).toHaveBeenCalledOnce();
+        expect(onProviderCallStart).toHaveBeenCalledOnce();
+        const init = fetch.mock.calls[0][1];
+        const body = JSON.parse(init.body);
+        expect(body.max_tokens).toBe(overrides.maxOutputTokens);
+        expect(body.thinking).toEqual(thinking);
+        // The transport does not opt into the interleaved-thinking budget exception.
+        expect(new Headers(init.headers).has("anthropic-beta")).toBe(false);
+      },
+    );
+  },
+);
 
 describe("_toAnthropicMessages — OpenAI-shaped -> Anthropic content blocks", () => {
   it("passes a plain user message through as a string", () => {
@@ -29,7 +147,10 @@ describe("_toAnthropicMessages — OpenAI-shaped -> Anthropic content blocks", (
         role: "assistant",
         content: "",
         tool_calls: [
-          { id: "t1", function: { name: "read_file", arguments: '{"path":"a"}' } },
+          {
+            id: "t1",
+            function: { name: "read_file", arguments: '{"path":"a"}' },
+          },
         ],
       },
     ]);
@@ -37,7 +158,12 @@ describe("_toAnthropicMessages — OpenAI-shaped -> Anthropic content blocks", (
       {
         role: "assistant",
         content: [
-          { type: "tool_use", id: "t1", name: "read_file", input: { path: "a" } },
+          {
+            type: "tool_use",
+            id: "t1",
+            name: "read_file",
+            input: { path: "a" },
+          },
         ],
       },
     ]);
@@ -105,7 +231,9 @@ describe("_toAnthropicMessages — OpenAI-shaped -> Anthropic content blocks", (
       {
         role: "assistant",
         content: "",
-        tool_calls: [{ id: "t1", function: { name: "read", arguments: '{"p":"a"}' } }],
+        tool_calls: [
+          { id: "t1", function: { name: "read", arguments: '{"p":"a"}' } },
+        ],
       },
       { role: "tool", tool_call_id: "t1", content: "AAA" },
     ]);
@@ -147,20 +275,24 @@ describe("_anthropicThinkingParams — model-aware, opt-in", () => {
   it("adaptive + effort for Opus 4.8", () => {
     expect(
       _anthropicThinkingParams("claude-opus-4-8", { thinking: "think" }),
-    ).toEqual({ thinking: { type: "adaptive" }, output_config: { effort: "medium" } });
+    ).toEqual({
+      thinking: { type: "adaptive" },
+      output_config: { effort: "medium" },
+    });
     expect(
-      _anthropicThinkingParams("claude-opus-4-8", { thinking: true }).output_config
-        .effort,
+      _anthropicThinkingParams("claude-opus-4-8", { thinking: true })
+        .output_config.effort,
     ).toBe("high");
     expect(
-      _anthropicThinkingParams("claude-opus-4-8", { thinking: "ultra" }).output_config
-        .effort,
+      _anthropicThinkingParams("claude-opus-4-8", { thinking: "ultra" })
+        .output_config.effort,
     ).toBe("xhigh");
   });
 
   it("adaptive for Sonnet 4.6", () => {
     expect(
-      _anthropicThinkingParams("claude-sonnet-4-6", { thinking: true }).thinking.type,
+      _anthropicThinkingParams("claude-sonnet-4-6", { thinking: true }).thinking
+        .type,
     ).toBe("adaptive");
   });
 
@@ -213,7 +345,11 @@ describe("_accumulateAnthropicStream — captures thinking blocks from SSE", () 
     ];
     const thinks = [];
     const texts = [];
-    _accumulateAnthropicStream(lines, (t) => texts.push(t), (t) => thinks.push(t));
+    _accumulateAnthropicStream(
+      lines,
+      (t) => texts.push(t),
+      (t) => thinks.push(t),
+    );
     // reasoning deltas reach onThinking; answer text stays on onToken (separate)
     expect(thinks).toEqual(["step1 ", "step2"]);
     expect(texts).toEqual(["answer"]);

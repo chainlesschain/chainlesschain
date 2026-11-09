@@ -9,9 +9,76 @@ import {
   storageFailureReason as reason,
   storageFailureReasonFromMessage as parseReason,
   recordStorageFailureReason as recordReason,
+  recordStorageFailureClockWindow as recordClockWindow,
+  storageFailureClockWindow as clockWindow,
 } from "../../src/lib/storage-failure-cause-codes.js";
 
 describe("bounded storage failure diagnostics", () => {
+  const windowObservation = Object.freeze({
+    windowSize: 2,
+    backwardCount: 0,
+    expiredCount: 1,
+    minRemainingMs: -1,
+    maxReadAgeMs: 30_001,
+    elapsedMs: 30_002.5,
+  });
+  const historyError = () =>
+    Object.assign(
+      new Error("artifact authority expired before ledger history release"),
+      { code: "CC_EVOLUTION_ARTIFACT_EXPIRED" },
+    );
+
+  it("retains only frozen numeric clock observations through bounded causes", () => {
+    const error = Object.freeze(historyError());
+    const descriptors = Object.getOwnPropertyDescriptors(error);
+    expect(recordClockWindow(error, windowObservation)).toBe(error);
+    const wrapped = new Error("private path", { cause: error });
+    expect(clockWindow(wrapped)).toEqual(windowObservation);
+    expect(Object.isFrozen(clockWindow(wrapped))).toBe(true);
+    expect(Object.getOwnPropertyDescriptors(error)).toEqual(descriptors);
+    expect(reason(wrapped)).toBe("history-clock-window");
+    let tooDeep = error;
+    for (let index = 0; index < 6; index++)
+      tooDeep = new Error("outer", { cause: tooDeep });
+    expect(clockWindow(tooDeep)).toBeNull();
+  });
+
+  it("rejects untrusted clock metadata without invoking accessors or proxy traps", () => {
+    const getter = vi.fn(() => {
+      throw new Error("private getter");
+    });
+    const values = [
+      { ...windowObservation, path: "private path" },
+      { ...windowObservation, expiredCount: 3 },
+      { ...windowObservation, minRemainingMs: Infinity },
+      { ...windowObservation, elapsedMs: -1 },
+      {
+        ...windowObservation,
+        get windowSize() {
+          return getter();
+        },
+      },
+      new Proxy(windowObservation, { ownKeys: getter, get: getter }),
+    ];
+    for (const value of values) {
+      const error = historyError();
+      expect(recordClockWindow(error, value)).toBe(error);
+      expect(clockWindow(error)).toBeNull();
+    }
+    expect(
+      clockWindow({
+        get cause() {
+          return getter();
+        },
+      }),
+    ).toBeNull();
+    expect(
+      clockWindow(new Proxy({}, { getOwnPropertyDescriptor: getter })),
+    ).toBeNull();
+    expect(clockWindow({ clockWindow: windowObservation })).toBeNull();
+    expect(getter).not.toHaveBeenCalled();
+  });
+
   it.each([
     "auth-clock-backward",
     "auth-envelope-expired",

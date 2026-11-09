@@ -11,6 +11,7 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { performance } from "node:perf_hooks";
 import { types as utilTypes } from "node:util";
 import {
   ArtifactStore,
@@ -27,6 +28,7 @@ import {
 import {
   recordStorageFailureReason,
   recordStorageFailureStage,
+  recordStorageFailureClockWindow,
 } from "../storage-failure-cause-codes.js";
 import { artifactPhysicalIdentity as physicalIdentity } from "./evolution-artifact-identity.js";
 import { withEvolutionFileIdentity } from "./evolution-file-identity.js";
@@ -4421,6 +4423,13 @@ export class EvolutionArtifactPorts {
       chunks.push(frozenCanonicalClone(chunk));
     }
     const readHistory = (directoryScope) => {
+      // Monotonic timing is observation only. Never substitute it for #clock().
+      let observationStartedAt = null;
+      try {
+        observationStartedAt = performance.now();
+      } catch {
+        /* optional */
+      }
       const snapshot = readTrustedIndexSnapshot(this.#store.layout);
       this.#indexLedgerBatchEntries(snapshot.entries);
       const window = [];
@@ -4478,10 +4487,36 @@ export class EvolutionArtifactPorts {
             completed < entry.checkedAt || completed >= entry.expiresAt,
         )
       ) {
-        throw artifactError(
+        const error = artifactError(
           EVOLUTION_ARTIFACT_EXPIRED_CODE,
           "artifact authority expired before ledger history release",
         );
+        try {
+          let elapsedMs = null;
+          try {
+            if (observationStartedAt !== null)
+              elapsedMs = performance.now() - observationStartedAt;
+          } catch {
+            /* optional; retain the authoritative window observations */
+          }
+          recordStorageFailureClockWindow(error, {
+            windowSize: window.length,
+            backwardCount: window.filter((entry) => completed < entry.checkedAt)
+              .length,
+            expiredCount: window.filter((entry) => completed >= entry.expiresAt)
+              .length,
+            minRemainingMs: Math.min(
+              ...window.map((entry) => entry.expiresAt - completed),
+            ),
+            maxReadAgeMs: Math.max(
+              ...window.map((entry) => completed - entry.checkedAt),
+            ),
+            elapsedMs,
+          });
+        } catch {
+          // Even a failed observer must preserve this exact rejection.
+        }
+        throw error;
       }
       return Object.freeze(results);
     };
