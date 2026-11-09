@@ -125,18 +125,18 @@ vi.mock("./packages/cli/src/lib/evolution/agent-evolution-ingress.js", () => ({
       copySource(root, `packages/cli/src/lib/${file}`);
     // Frozen source audits may predate complete provider tool-round replay.
     if (
-      sourceBytes("packages/cli/src/lib/session-transcript-structure.js").includes(
-        '"./session-tool-round.js"',
-      )
+      sourceBytes(
+        "packages/cli/src/lib/session-transcript-structure.js",
+      ).includes('"./session-tool-round.js"')
     ) {
       copySource(root, "packages/cli/src/lib/session-tool-round.js");
     }
     // Current transcripts validate real MCP task journals and deliveries.
     // Frozen audits predating those imports must keep their original sources.
     if (
-      sourceBytes("packages/cli/src/lib/session-transcript-structure.js").includes(
-        '"./mcp-task-journal-projection.js"',
-      )
+      sourceBytes(
+        "packages/cli/src/lib/session-transcript-structure.js",
+      ).includes('"./mcp-task-journal-projection.js"')
     ) {
       for (const file of [
         "mcp-task-journal-projection.js",
@@ -149,6 +149,18 @@ vi.mock("./packages/cli/src/lib/evolution/agent-evolution-ingress.js", () => ({
         "mcp-tasks.js",
       ]) {
         copySource(root, `packages/cli/src/lib/${file}`);
+      }
+      // Continuation authority was added after the initial task journal.
+      // Copy it only when the selected current or frozen source imports it.
+      if (
+        sourceBytes(
+          "packages/cli/src/lib/mcp-task-journal-projection.js",
+        ).includes('"./mcp-task-continuation-contract.js"')
+      ) {
+        copySource(
+          root,
+          "packages/cli/src/lib/mcp-task-continuation-contract.js",
+        );
       }
     }
     copySource(root, "packages/cli/src/harness/jsonl-session-store.js");
