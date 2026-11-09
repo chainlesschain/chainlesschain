@@ -341,7 +341,9 @@ async function startBridge(context) {
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
     if (bridgeReady !== "listening") {
-      throw new Error(`IDE bridge listener was not reachable on 127.0.0.1:${_port}`);
+      throw new Error(
+        `IDE bridge listener was not reachable on 127.0.0.1:${_port}`,
+      );
     }
 
     _workspaceFolders = (vscode.workspace.workspaceFolders || []).map(
@@ -1105,11 +1107,10 @@ async function activate(context) {
         const {
           openModelInputDiagnostics,
         } = require("./model-input-diagnostics.js");
-        const { getResolvedCli } = require("./cli-binary.js");
         const { runCliResult } = require("./chat/introspect-commands.js");
         return openModelInputDiagnostics(vscode, {
           getSessionId: () => chatProvider.activeSessionId(),
-          command: getResolvedCli(),
+          command: chatProvider._cliCommand(),
           runCliResult,
           cwd: vscode.workspace.workspaceFolders?.[0]?.uri?.fsPath,
         });
