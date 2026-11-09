@@ -1,0 +1,20 @@
+{
+  "events": [
+    {
+      "event": "bound",
+      "host": "127.0.0.1",
+      "port": 55305,
+      "pid": 46576
+    },
+    {
+      "event": "accepted"
+    },
+    {
+      "event": "nonce-ack"
+    }
+  ],
+  "exit": {
+    "code": null,
+    "signal": "SIGTERM"
+  }
+}

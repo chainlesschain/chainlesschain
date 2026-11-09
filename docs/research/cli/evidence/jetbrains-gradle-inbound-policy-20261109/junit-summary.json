@@ -1,0 +1,1089 @@
+{
+  "suiteCount": 120,
+  "tests": 1031,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 3,
+  "suites": [
+    {
+      "file": "TEST-com.chainlesschain.ide.ActivityLogTest.xml",
+      "name": "com.chainlesschain.ide.ActivityLogTest",
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "a493c9f4655e19e9d7c0f70e1af9a7ba1564e8d9a4c9ccbba0d5ee8c8537bdab"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.AgentChatSessionTest.xml",
+      "name": "com.chainlesschain.ide.AgentChatSessionTest",
+      "tests": 15,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "7ca53f0e43b908d145e1e957dad6754ed2dde1d6b52722cdc55dc77cdec1d5e8"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.AgentInitFailureTest.xml",
+      "name": "com.chainlesschain.ide.AgentInitFailureTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "31c622be8fc9e36aa92795f302159d5fddaeff55810f0c4ac1202543755a3ff4"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.AgentTerminationTest.xml",
+      "name": "com.chainlesschain.ide.AgentTerminationTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "722d8c91a7be64388e8a1e0ce2fbbcb69348755582e550683bda58e0e377c7c7"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.ApprovalGrantsTest.xml",
+      "name": "com.chainlesschain.ide.ApprovalGrantsTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "23fb79ae3036efd5a47c9c3018fc406765ce6ace7e6357de3d23b9bc61c39e09"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.ApprovalResponsesTest.xml",
+      "name": "com.chainlesschain.ide.ApprovalResponsesTest",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "9e4ed574008b808c106116613c9f57d5029ddefe2451de1ef1b48ab59e343b3c"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.ApprovalSettlementRegistryTest.xml",
+      "name": "com.chainlesschain.ide.ApprovalSettlementRegistryTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "6660c03242983f71e8203a883ec8232df7cb3c527ce8028c333826b12c0d7f0c"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.ArtifactsTest.xml",
+      "name": "com.chainlesschain.ide.ArtifactsTest",
+      "tests": 11,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "8b9724ac094db3f11e40ff1cd343b282e724e4a79c69d1aec7330d36cc09f1f4"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.AutoExecGuardTest.xml",
+      "name": "com.chainlesschain.ide.AutoExecGuardTest",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "2ceb276c5beab9a8bdae261d7268710145a9e3c3e9d00671f7a54329dc5cb267"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.AutomationCenterTest.xml",
+      "name": "com.chainlesschain.ide.AutomationCenterTest",
+      "tests": 8,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "1fd9eded769c94583b8dd40b2e5e62fefa22ddbcbe1f0473728f99a2f5209c84"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.BackgroundAgentsTest.xml",
+      "name": "com.chainlesschain.ide.BackgroundAgentsTest",
+      "tests": 11,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "e2e5953208d424ba48c5761fe7ce30b2e10e26527c4ee72870c7d1006f7f430a"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.BridgeSecurityPolicyTest.xml",
+      "name": "com.chainlesschain.ide.BridgeSecurityPolicyTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "019e4291d74af4231df3a470467d8ae21c527807bd57735ca32f854f29e71164"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.CapabilityNegotiationTest.xml",
+      "name": "com.chainlesschain.ide.CapabilityNegotiationTest",
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "1a2e934cd74f0c4cc0aa812a18185fd8ebe7763a910edc33a0a893a23e9ddfb8"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.CcAutomaticCompletionPolicyTest.xml",
+      "name": "com.chainlesschain.ide.CcAutomaticCompletionPolicyTest",
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "37ab3fe3a0e29b5d43ef08af717a5c5040eab86db9c35fcc8a2003d6a55e095a"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.CcCompletionTest.xml",
+      "name": "com.chainlesschain.ide.CcCompletionTest",
+      "tests": 13,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "2004dbf902c9e8ece8cc81dec5ed1eb2f1e09d90915d0966d06129a014a119a2"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.ChatDraftStoreTest.xml",
+      "name": "com.chainlesschain.ide.ChatDraftStoreTest",
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "68e849468838dec9b9424e9a7b8489ab90171107969c3004fcb4fb7d4b28a034"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.ChatEventsTest.xml",
+      "name": "com.chainlesschain.ide.ChatEventsTest",
+      "tests": 33,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "1dcbebd2ad0709eafac34c595be8dea4fc28592ce642cdbe17ec849814702f96"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.ChromeConnectorTest.xml",
+      "name": "com.chainlesschain.ide.ChromeConnectorTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "091475483e63f98e485cca6887054c28cf99920ba2c540de6ba0299bdea0ecf6"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.CliIdentityProbeTest.xml",
+      "name": "com.chainlesschain.ide.CliIdentityProbeTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "1bc48e10ba8968c688dae579de39e46f86256769e5d76817aac022b4f8b66242"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.CliVersionCheckTest.xml",
+      "name": "com.chainlesschain.ide.CliVersionCheckTest",
+      "tests": 8,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "f12093c1134c1c3d7643a165a51425c370ee70cef7e052628d19a2d55aebeda8"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.ContextCenterTest.xml",
+      "name": "com.chainlesschain.ide.ContextCenterTest",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "e31b1c11ca9650478e259b588ca7757d6ef6fcaaf4fad2660b0b3634d284bf6a"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.ContextExternalSourcesTest.xml",
+      "name": "com.chainlesschain.ide.ContextExternalSourcesTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "1e9eace69565536078a23d86a8d3d6e02d2065f6f436123d93100650cbf01aa6"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.ContextMemoryAuthorityTest.xml",
+      "name": "com.chainlesschain.ide.ContextMemoryAuthorityTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "06d8b84e8f66fb091bed1bc24bef160915fc6fe8e714e438067a942aa29140c1"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.ContextMemoryProjectionTest.xml",
+      "name": "com.chainlesschain.ide.ContextMemoryProjectionTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "3066c012e40fb507bb00598525940b7f2f4a75ee3e4eb48d1990f910e35fbcca"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.ContextStatusTest.xml",
+      "name": "com.chainlesschain.ide.ContextStatusTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "3583795bb1b9e549a715a68558a97588795d718a06ef49d8df4a77063658f75b"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.ConversationManagerTest.xml",
+      "name": "com.chainlesschain.ide.ConversationManagerTest",
+      "tests": 14,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "5f50d103372be027c13078e628bd046c2d5b757e7c8130456c8726d7ae311967"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.DashboardHtmlTest.xml",
+      "name": "com.chainlesschain.ide.DashboardHtmlTest",
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "54b33831c4b08e0f03d72be2d68c714fbf074dca37f82b7a24f04143b82d543b"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.DeepLinkTest.xml",
+      "name": "com.chainlesschain.ide.DeepLinkTest",
+      "tests": 11,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "f8132bcbf73c9ef9b111bb46da6717b28b508e1911fcf2cfb2c5bb3133bfebc2"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.DeliveryWorkflowTest.xml",
+      "name": "com.chainlesschain.ide.DeliveryWorkflowTest",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "46096b935b7b90426472d0a7710afc47ec5205811c266642227b742a948d98aa"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.DiagnosticBundleExportTest.xml",
+      "name": "com.chainlesschain.ide.DiagnosticBundleExportTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "8bad77923955b5830f045704ef55db2dfe025a3e24aaf14f27843fe8c57d7fe9"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.DiagnosticsSnapshotSchedulerTest.xml",
+      "name": "com.chainlesschain.ide.DiagnosticsSnapshotSchedulerTest",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "a79d7f29a8de3d011604677f9abd4b873b3f92e845157c707078d37fefcc65ab"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.DiffApplyGuardTest.xml",
+      "name": "com.chainlesschain.ide.DiffApplyGuardTest",
+      "tests": 14,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "4b818f95140bbc87fdd74f35e3f9c463c684118429fd60bc451544c9d762f2f2"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.DiffHunksTest.xml",
+      "name": "com.chainlesschain.ide.DiffHunksTest",
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "84725f996257bc6dc0ba68a5036631ffabb74991006981eac30122cc6a27ebf5"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.DiffReviewAuditTest.xml",
+      "name": "com.chainlesschain.ide.DiffReviewAuditTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "d394019cbdfe924e8155cdaba50e52952ca5bee91426d7eaec457b73f2441849"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.ElicitationSchemaTest.xml",
+      "name": "com.chainlesschain.ide.ElicitationSchemaTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "f8ee7a649cf2c1411eb9240326acb558d135073d38027c2da9b90deffa271458"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.EvolutionDeploymentConfigTest.xml",
+      "name": "com.chainlesschain.ide.EvolutionDeploymentConfigTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "1c663d3ca95635459d00678b1ad0acef32a6c2c70de6fa2adc67471f09fb4dce"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.EvolutionWorkbenchSessionTest.xml",
+      "name": "com.chainlesschain.ide.EvolutionWorkbenchSessionTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "9b5da28a9e5522877bcc5e71dc232f256723ad0f578b929be48e453c598a6846"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.EvolutionWorkbenchTest.xml",
+      "name": "com.chainlesschain.ide.EvolutionWorkbenchTest",
+      "tests": 11,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "238d994470ea66a058730ea256c016c07f00f7ecc3d083278ce2847cf6ebad91"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.FixWithCcTest.xml",
+      "name": "com.chainlesschain.ide.FixWithCcTest",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "95a979ea334869064afd6df3eeb2a70aa4166a1c727b3c4a2bfe9ff4ce8e9fc6"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.GoalEventObserverTest.xml",
+      "name": "com.chainlesschain.ide.GoalEventObserverTest",
+      "tests": 8,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "4b5fbba74be8ff8b19e78cf0f8282a6d6d059921df2ddd8f6ece3ce6e4b9a8b4"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.GoalHistoryReplayTest.xml",
+      "name": "com.chainlesschain.ide.GoalHistoryReplayTest",
+      "tests": 9,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "99ee9d87e82a1dcd01ed2846aa3ccda44d3ed38dde3ad99a96897592c40e4bc6"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.GoalTaskCreateExportTest.xml",
+      "name": "com.chainlesschain.ide.GoalTaskCreateExportTest",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "0d74cf758efbfe2a04d0428f4cf3a727d64cd9336509d5d91e1a35d5cfbcd0d5"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.IdeCapabilitiesTest.xml",
+      "name": "com.chainlesschain.ide.IdeCapabilitiesTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "563c48b43a00501688072aad5e24c168eac113d58279e6815f282e56084af3a5"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.IdeContextV2Test.xml",
+      "name": "com.chainlesschain.ide.IdeContextV2Test",
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "0987439b7618a68f9df2c0ab86346e60399b430cf65ace074ae580640b93b5a2"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.IdeDoctorTest.xml",
+      "name": "com.chainlesschain.ide.IdeDoctorTest",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "46f29283b200641af79f476ac0166dd17d7ad29a8130522a73c03c7db463083d"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.IdePathGuardTest.xml",
+      "name": "com.chainlesschain.ide.IdePathGuardTest",
+      "tests": 19,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1,
+      "rawXmlSha256": "2a0d30a279f3dec5f6d326109bebb21bdc62b904d904b61478905906cb7c8f75"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.IdeQualityToolsTest.xml",
+      "name": "com.chainlesschain.ide.IdeQualityToolsTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "01172438ab498dcbdfcfc6c2289cee97a1d2902895fd6d5a8eae1f2a313328a6"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.IdeSessionIndexTest.xml",
+      "name": "com.chainlesschain.ide.IdeSessionIndexTest",
+      "tests": 10,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "51c4f35fd0fcc8a71c4b2b0192f72d3cb3adc64d47535806390cb51bd8d35c99"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.IdeToolAdmissionTest.xml",
+      "name": "com.chainlesschain.ide.IdeToolAdmissionTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "198865f82671e28d671d36283ab19aa1427b1c02b4607ed5aebb18cf6e548603"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.IdeToolsPreviewTest.xml",
+      "name": "com.chainlesschain.ide.IdeToolsPreviewTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "5c28881bc605f3e84635303df5e8ff91b89b227b2292dc2acf0bbeac326f58c0"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.IdeToolsTerminalTest.xml",
+      "name": "com.chainlesschain.ide.IdeToolsTerminalTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "01f8b15bb83c377ca964a7d39c817275f10910d4df052f5d5bc1db6dd5513727"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.ImageAttachmentsTest.xml",
+      "name": "com.chainlesschain.ide.ImageAttachmentsTest",
+      "tests": 8,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "b53eedbfa6084350df0467903c886b0d9e0d3d4079d9b94a4a2edbfe455f7f2c"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.ImageFileSnapshotTest.xml",
+      "name": "com.chainlesschain.ide.ImageFileSnapshotTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "aa097e77c2e31682d32b5da9d8730ce96d3d71f2338a3febd555afe7b23c8baf"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.InputDispatchTest.xml",
+      "name": "com.chainlesschain.ide.InputDispatchTest",
+      "tests": 10,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "2110f4eaeb4b544488295c6a1c890b0d0c0e40d3135cf79d03e6b4fb48d3a39f"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.intellij.AccessibilityPerformanceEvidenceTest.xml",
+      "name": "com.chainlesschain.ide.intellij.AccessibilityPerformanceEvidenceTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "49b8c3c7d6febe82397542ec8b266a6e094368c0a32d4bab950f3df07505c3ac"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.intellij.ChatCardsLayoutTest.xml",
+      "name": "com.chainlesschain.ide.intellij.ChatCardsLayoutTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "c90e9764bbc0a6a2090e8e2855118f46cab457857424851f3901735c4514deaf"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.intellij.ChatComposerDraftsTest.xml",
+      "name": "com.chainlesschain.ide.intellij.ChatComposerDraftsTest",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "0ccf0b4386d1b46f69c9bb6acc9e84bca68098007d4aae077a89065ba6c3fc34"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.intellij.ChatHistorySyncTest.xml",
+      "name": "com.chainlesschain.ide.intellij.ChatHistorySyncTest",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "ff2b898be78ab3fcb6c389ff0fdbae58ab022c3cbf0f97706666f2ee178ecf27"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.intellij.ChatHistoryViewTest.xml",
+      "name": "com.chainlesschain.ide.intellij.ChatHistoryViewTest",
+      "tests": 9,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "ef03f03f43573dc0e8daca095673f1b85a31ab2ef0f9893e5316ced3b273ac7b"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.intellij.ChatTranscriptRenderingTest.xml",
+      "name": "com.chainlesschain.ide.intellij.ChatTranscriptRenderingTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "17f7a85a1363298e261d70e7ef8e962894d694f819de2b6247d333ee8572d7d1"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.intellij.ChatTranscriptSyncTest.xml",
+      "name": "com.chainlesschain.ide.intellij.ChatTranscriptSyncTest",
+      "tests": 9,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "053f101e2fed120fe488907d19e1135c877dde0ce1ed6d407d618a5769dd7716"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.intellij.ChatTranscriptTest.xml",
+      "name": "com.chainlesschain.ide.intellij.ChatTranscriptTest",
+      "tests": 8,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "5a7fbb5e5664ed931e7f339479f4bf4568821f05024dd07e69de5700c73a6bea"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.intellij.QuestionFormViewTest.xml",
+      "name": "com.chainlesschain.ide.intellij.QuestionFormViewTest",
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "8c684944d931ff116aef37be80659a00c64458c69480a14a133a0941a3b77375"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.intellij.SessionUxEvidenceTest.xml",
+      "name": "com.chainlesschain.ide.intellij.SessionUxEvidenceTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "a932c56a522831494ed1317fa42978a4785e9ec9d94d0da50ea7e693bd1ea676"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.IntrospectArgsTest.xml",
+      "name": "com.chainlesschain.ide.IntrospectArgsTest",
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "0701e14befe7308fc0e57c7307a57cfd8091d0907599bd44df46a1576e80f56a"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.LlmConfigTest.xml",
+      "name": "com.chainlesschain.ide.LlmConfigTest",
+      "tests": 29,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "15181877575a37fa3a06a6c86a6edf0502cebb9fa9ad86a971d20694e8b18a01"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.LlmConnectionPanelTest.xml",
+      "name": "com.chainlesschain.ide.LlmConnectionPanelTest",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "a77d2db235589755f8f09420dcf90dcc34357f1ea13b35108d33d0bfc4bd6e73"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.LockfileAclTest.xml",
+      "name": "com.chainlesschain.ide.LockfileAclTest",
+      "tests": 13,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 2,
+      "rawXmlSha256": "498dff4fa4635be1d6214c5299c6e9b6e9380dde6aa26c9397b0d507c1844d92"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.ManagedCliTest.xml",
+      "name": "com.chainlesschain.ide.ManagedCliTest",
+      "tests": 74,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "1aca8007e081cfb6f43067a605d473a1f1a64072993021bc9313caa677456ad6"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.MarkdownLiteTest.xml",
+      "name": "com.chainlesschain.ide.MarkdownLiteTest",
+      "tests": 8,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "feba73035b2afc36c7632657f7ca88bb7721739b92c34dea7d1cf32639e143b1"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.MentionsTest.xml",
+      "name": "com.chainlesschain.ide.MentionsTest",
+      "tests": 15,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "9a3818f1baf5e3da1f4a933cb0a3f151cc3d037829bcf8b7c6d231982f788d2d"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.MiniJsonTest.xml",
+      "name": "com.chainlesschain.ide.MiniJsonTest",
+      "tests": 11,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "0fb551b522ec5ad497dabd4ddf6c610a136968aba97fae17edcb15e992471ff6"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.MultiDiffTest.xml",
+      "name": "com.chainlesschain.ide.MultiDiffTest",
+      "tests": 17,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "aa91fe1c517099f3d544d0f8daf1fe152c77dc8eaea5fa9ec1f1f92de37e95e8"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.NdjsonLineBufferTest.xml",
+      "name": "com.chainlesschain.ide.NdjsonLineBufferTest",
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "d6e2a69d0222f13753ec3d05cf3d42df7916c8f4d373d7fcf7129c6e9e488b7a"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.PermissionModeStateTest.xml",
+      "name": "com.chainlesschain.ide.PermissionModeStateTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "1f200ff7738c80aa393c514503696aa401e157619e085d3e97e42523e2177130"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.PlanReviewTest.xml",
+      "name": "com.chainlesschain.ide.PlanReviewTest",
+      "tests": 8,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "4e6c6d0c223a90506e2de2da0da99db820a191315f9ebd8f3dbf1de0e0663f51"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.PluginManagerTest.xml",
+      "name": "com.chainlesschain.ide.PluginManagerTest",
+      "tests": 23,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "45bc34e5626f2b95e3d640b47f0d900e83bf68744b00b1ccf4bccd9fee09c9c3"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.PluginQualityTest.xml",
+      "name": "com.chainlesschain.ide.PluginQualityTest",
+      "tests": 24,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "81503c45ae516f9ae96560a4335038db29be26e1554767dee0a989e7ad30223c"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.PolicyViewerTest.xml",
+      "name": "com.chainlesschain.ide.PolicyViewerTest",
+      "tests": 14,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "ba5dac62d7f9fdc954945e1bafddd02084df453c0178ada6a036a859e9593301"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.PreviewDetectTest.xml",
+      "name": "com.chainlesschain.ide.PreviewDetectTest",
+      "tests": 11,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "4c179f1a234ad85c60d3724b6b8500ec0d248127397fe1f9443dca8f19b58340"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.ProcessTreeTerminationTest.xml",
+      "name": "com.chainlesschain.ide.ProcessTreeTerminationTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "2e788f0e67d57764971ced1eed343870ff4fe993d75eb9f8cdbcd5dc9fc8327f"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.ProjectMemoryTest.xml",
+      "name": "com.chainlesschain.ide.ProjectMemoryTest",
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "b20dc0e1d4a25ef35b5b3b800f1bff8d469d859b9b8177f27e0506439662546d"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.ProtocolFixturesTest.xml",
+      "name": "com.chainlesschain.ide.ProtocolFixturesTest",
+      "tests": 9,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "552048dbdcc5ab5fa7f9b38de252932f1c995a2dbe14f5544cdacae62e4bdb21"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.PrStatusTest.xml",
+      "name": "com.chainlesschain.ide.PrStatusTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "f8cb7f9da7f80be55bc5a817f65ed19173bb7b536dac0d7f67f0e93e7c98fff9"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.QrCodeTest.xml",
+      "name": "com.chainlesschain.ide.QrCodeTest",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "2e0fd7c1879eabe170b2aefe7c53824ac478a4821304eaf04bfa7197bbd740c7"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.QuestionDraftContractTest.xml",
+      "name": "com.chainlesschain.ide.QuestionDraftContractTest",
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "80aad3fed8961c56893f0175cc0df43629c0b9325d17999612ca37dfdb14565b"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.QuestionDraftRegistryTest.xml",
+      "name": "com.chainlesschain.ide.QuestionDraftRegistryTest",
+      "tests": 9,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "5cc1a5614df12bb4ded32ab2a26080659366912a6f29ebd00ad42058d3cd6d13"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.QuestionDraftStoreTest.xml",
+      "name": "com.chainlesschain.ide.QuestionDraftStoreTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "476716ac5fc16ee2a3fbf586a3b00877899cf9035d8dec8576c7d1d424a5dc71"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.RemoteDoctorFixesTest.xml",
+      "name": "com.chainlesschain.ide.RemoteDoctorFixesTest",
+      "tests": 16,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "d4da213e9491f215c1248cb3994a4490c4590bc72824113dd3c08c4b7edec626"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.RemoteDoctorTest.xml",
+      "name": "com.chainlesschain.ide.RemoteDoctorTest",
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "f569256ac3bd925a88433b4ae19740d24bfda70c8acf80fd45a51920934c8e8d"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.RemoteHandoffTest.xml",
+      "name": "com.chainlesschain.ide.RemoteHandoffTest",
+      "tests": 11,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "d4492c1aaf8faf072ea8e86e621de2e39a60f66969fcadbef8911b3301494b36"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.ReviewNoteTest.xml",
+      "name": "com.chainlesschain.ide.ReviewNoteTest",
+      "tests": 11,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "8202edbe1a70da31391da94626d43a34a60c2cbe913c49b5d044a2fecbe6d8cb"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.RewindCommandsTest.xml",
+      "name": "com.chainlesschain.ide.RewindCommandsTest",
+      "tests": 17,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "7e76b279f43d8b89127e1e233115750333620fa1fbce94076ac2ff63f5babe83"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.RuntimeCompatibilityTest.xml",
+      "name": "com.chainlesschain.ide.RuntimeCompatibilityTest",
+      "tests": 13,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "e3a2a509aac44b4fb86bcc433d4edf0b904d7c5cdb165647b54938b7661a3d15"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.RuntimeEnvironmentTest.xml",
+      "name": "com.chainlesschain.ide.RuntimeEnvironmentTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "a0d896729a3f95621152a711c64edaa8c4d75aab7e817cfb9a71f6452cee2ba2"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.SemanticToolsTest.xml",
+      "name": "com.chainlesschain.ide.SemanticToolsTest",
+      "tests": 31,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "d1272bce1b6038d979933394abe75f6c3348f74862ccb2e2ec576cd017957ae1"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.SessionArgsTest.xml",
+      "name": "com.chainlesschain.ide.SessionArgsTest",
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "5f7369aacc7dddab3449c8ffa5435b1eb2c9180e99888d3f7fb0883c2dcfa566"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.SessionHistoryReaderTest.xml",
+      "name": "com.chainlesschain.ide.SessionHistoryReaderTest",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "dd73c85cf3cd819c00f3b67662e3312870184f8bf301ec60da253e4e9f285b7e"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.SessionListTest.xml",
+      "name": "com.chainlesschain.ide.SessionListTest",
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "c7ad16949778185ee011a96914a0247263123ee72da2b7cc80d51d4ca53431d1"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.SessionModelInputsTest.xml",
+      "name": "com.chainlesschain.ide.SessionModelInputsTest",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "f3a4a9017ff94b664c2b9bd0ccba4d5db48249e2cbcaccc1bfc46a415325d3a0"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.SessionModelTest.xml",
+      "name": "com.chainlesschain.ide.SessionModelTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "444790110461cc35c06d5569de06cac97369b4b8840a10ab30e66fdb279153b5"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.SessionProjectionTest.xml",
+      "name": "com.chainlesschain.ide.SessionProjectionTest",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "d8da8c5947d00d315ba2fd544c05a3295cf6a78c203573230830ffdeea835556"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.SessionsWorkbenchTest.xml",
+      "name": "com.chainlesschain.ide.SessionsWorkbenchTest",
+      "tests": 16,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "90d50c069dd8b696007dfd98597b0cbf6004326121d902448b5766e8de5c245a"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.SessionTranscriptChangesTest.xml",
+      "name": "com.chainlesschain.ide.SessionTranscriptChangesTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "4735408693648643acea09b32932495c6a3aae306ccdff76f3ef32efa9d9b3d5"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.SessionTranscriptPageTest.xml",
+      "name": "com.chainlesschain.ide.SessionTranscriptPageTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "d538527e49282397815ade8da7b1dbc14f88e8946186a4a960b37f375a893cc7"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.SkillRetrievalTest.xml",
+      "name": "com.chainlesschain.ide.SkillRetrievalTest",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "accd025fad32d91d8b974bbcd6bb35e50df7bf5bde5873c1652bab496e2c66c8"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.SlashCommandsTest.xml",
+      "name": "com.chainlesschain.ide.SlashCommandsTest",
+      "tests": 13,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "dc9dabca01a7faa41299b69a9604299d9b86b4a970c9e16901d40506cada9d8c"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.StatusBarTextTest.xml",
+      "name": "com.chainlesschain.ide.StatusBarTextTest",
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "15f54163070b458ca479ef185ea66094cc02a8119cd66fcf56b5f704bd6bbde6"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.TeamControlTest.xml",
+      "name": "com.chainlesschain.ide.TeamControlTest",
+      "tests": 17,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "7ee4fffe46cc4967af3e44caf807955347b11ac593087281d2d0ea59130ebf62"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.TeamMonitorTest.xml",
+      "name": "com.chainlesschain.ide.TeamMonitorTest",
+      "tests": 9,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "5fd3102899dd662d6666d8a23511e687e03596b998b5bcf70fdffaeac60c698c"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.TranscriptCapTest.xml",
+      "name": "com.chainlesschain.ide.TranscriptCapTest",
+      "tests": 9,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "e258d9de842834ab3027ad5427d41d420959e120e9a45328d79c6fbfe05bc235"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.TranscriptReferencesTest.xml",
+      "name": "com.chainlesschain.ide.TranscriptReferencesTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "f34ed899cf9dff7cbbaf7f1aa20eede39203908ef92ebcb420e6282eae54b37d"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.UiEventDiagnosticsTest.xml",
+      "name": "com.chainlesschain.ide.UiEventDiagnosticsTest",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "f19edbfd817407f94f67a42aba8b88ba2eb337f7088ad8eeb466b32cc37b014a"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.UsageReportTest.xml",
+      "name": "com.chainlesschain.ide.UsageReportTest",
+      "tests": 16,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "7aa7b7481ac0a5b4590742370e269a063bf2583a3f9acdce6430ae9e838e7d4c"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.Verify01ProtocolCaptureTest.xml",
+      "name": "com.chainlesschain.ide.Verify01ProtocolCaptureTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "d7c4b4ec439f8aa4ab0529eda3b552583683f3248b5cbcd665f728c14132ad93"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.WhatsNewTest.xml",
+      "name": "com.chainlesschain.ide.WhatsNewTest",
+      "tests": 8,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "8bf4a4aa7051abca7daaec1eefce928c041a15eb7f67d95eeec596c07b9a2762"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.WindowsOwnerOnlyAclTest.xml",
+      "name": "com.chainlesschain.ide.WindowsOwnerOnlyAclTest",
+      "tests": 9,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "9130bf818a532ae7641ddb5cad3be2ec348d0a618462573928e9300ea21f9cf7"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.WorkspaceMentionIndexPerformanceTest.xml",
+      "name": "com.chainlesschain.ide.WorkspaceMentionIndexPerformanceTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "910a7a0290947a26a9eeb1e9d22f8abd4512d895027d4bf4acb2c44bac3c18a3"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.WorkspaceMentionIndexTest.xml",
+      "name": "com.chainlesschain.ide.WorkspaceMentionIndexTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "a5ca61a6ba56863643c4c1a4b9e55b96a08dc51699e72a376743fe398c861dc8"
+    },
+    {
+      "file": "TEST-com.chainlesschain.ide.WorktreeTasksTest.xml",
+      "name": "com.chainlesschain.ide.WorktreeTasksTest",
+      "tests": 8,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "rawXmlSha256": "327e1dcd1b82ee0b01d050ca3c5f9443e8415bccbcbe8a7d7759739f8218390c"
+    }
+  ]
+}

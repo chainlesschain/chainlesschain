@@ -1,0 +1,17 @@
+{
+  "schema": "gradle-temporary-loopback-rule/v1",
+  "name": "ChainlessChain-Diagnostic-dfe1fa2da2ac4170a77a5ce5c0a50907",
+  "exeSha256": "f8dc082a7dedbfd2924c3562405a5a1fd12efd2641808c92e2de819c76a58b7e",
+  "created": true,
+  "removed": true,
+  "persisted": false,
+  "profile": "Public",
+  "protocol": "TCP",
+  "direction": "Inbound",
+  "policyStore": "ActiveStore",
+  "localAddress": "127.0.0.1",
+  "remoteAddress": "127.0.0.1",
+  "localPort": "Any (Gradle ephemeral listener ports)",
+  "gradleExitCode": 0,
+  "finishedAt": "2026-11-09T03:31:31.5338025Z"
+}
