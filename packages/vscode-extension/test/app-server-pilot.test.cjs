@@ -314,6 +314,33 @@ test("VS Code pilot fails closed when no reviewed request handler exists", async
   );
 });
 
+test("VS Code correction metadata evicts an old body and recalled snapshot", () => {
+  const client = new FakeClient({});
+  const pilot = new IdeAppServerPilot({ client });
+  client.emit("notification", {
+    method: "memory/event",
+    params: {
+      type: "memory.activated",
+      memory_id: "memory-1",
+      record: { memoryId: "memory-1", content: "obsolete" },
+    },
+  });
+  client.emit("notification", {
+    method: "memory/event",
+    params: { type: "memory.recalled", result: { results: ["obsolete"] } },
+  });
+  client.emit("notification", {
+    method: "memory/event",
+    params: {
+      type: "memory.corrected",
+      memory_id: "memory-1",
+      revision: 2,
+    },
+  });
+  assert.deepEqual(pilot.status.contextMemory.memories, []);
+  assert.equal(pilot.status.contextMemory.lastRecall, null);
+});
+
 test("VS Code pilot forwards canonical events and contains host errors", () => {
   const client = new FakeClient({});
   const pilot = new IdeAppServerPilot({ client });

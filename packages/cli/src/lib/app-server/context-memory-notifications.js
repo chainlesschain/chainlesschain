@@ -2,6 +2,7 @@ const MEMORY_MUTATION_EVENTS = new Set([
   "memory.candidate.created",
   "memory.activated",
   "memory.reinforced",
+  "memory.corrected",
   "memory.superseded",
   "memory.expired",
 ]);
@@ -29,12 +30,20 @@ export function memoryMutationNotification(mutation) {
       memory_id: mutation.record.memoryId,
       revision: mutation.record.revision,
       record_digest: mutation.record.digest,
-      record: mutation.record,
+      ...(mutation.event.type === "memory.corrected"
+        ? {
+            previous_revision: mutation.event.previousRevision,
+            previous_record_digest: mutation.event.previousRecordDigest,
+          }
+        : { record: mutation.record }),
     },
   };
 }
 
-export function memoryDeletionNotification(receipt, operationId = receipt?.requestId) {
+export function memoryDeletionNotification(
+  receipt,
+  operationId = receipt?.requestId,
+) {
   if (!receipt?.memoryId || !receipt?.recordDigest || !receipt?.revision) {
     return null;
   }

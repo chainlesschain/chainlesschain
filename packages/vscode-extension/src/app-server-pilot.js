@@ -211,6 +211,12 @@ class IdeAppServerPilot extends EventEmitter {
       }
       return;
     }
+    if (value.type === "memory.corrected" && value.memory_id) {
+      // Corrections carry lineage only; an earlier body must be read again.
+      this.contextMemoryProjection.memories.delete(value.memory_id);
+      this.contextMemoryProjection.lastRecall = null;
+      return;
+    }
     if (value.memory_id && value.record) {
       this.contextMemoryProjection.memories.set(value.memory_id, value.record);
       while (this.contextMemoryProjection.memories.size > 256) {

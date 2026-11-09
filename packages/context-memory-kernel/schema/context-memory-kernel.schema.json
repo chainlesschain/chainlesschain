@@ -691,6 +691,26 @@
       }
     },
     "MemoryDecisionRequest": {
+      "oneOf": [
+        { "$ref": "#/$defs/MemoryLifecycleDecisionRequest" },
+        { "$ref": "#/$defs/MemoryCorrectionRequest" }
+      ]
+    },
+    "MemoryCorrectionRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["memoryId", "type", "expectedRevision", "content"],
+      "properties": {
+        "memoryId": { "$ref": "#/$defs/Identifier" },
+        "type": { "const": "correct" },
+        "expectedRevision": { "type": "integer", "minimum": 1 },
+        "content": { "type": "string", "minLength": 1, "maxLength": 4194304 },
+        "reason": { "type": "string", "minLength": 1, "maxLength": 2048 },
+        "authority": { "$ref": "#/$defs/Identifier" },
+        "at": { "$ref": "#/$defs/Timestamp" }
+      }
+    },
+    "MemoryLifecycleDecisionRequest": {
       "type": "object",
       "additionalProperties": false,
       "required": ["memoryId", "type", "expectedRevision"],

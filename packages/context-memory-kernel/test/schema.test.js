@@ -11,6 +11,44 @@ const {
 const { contextItem, proposal } = require("./helpers.js");
 const { createMemoryCandidate } = require("../lib/memory-reducer.js");
 
+test("correction schema accepts only explicit content and CAS authority fields", () => {
+  const request = {
+    memoryId: "rule-1",
+    type: "correct",
+    expectedRevision: 1,
+    content: "Updated rule",
+  };
+  assert.equal(
+    validateContextMemoryDefinition("MemoryDecisionRequest", request).ok,
+    true,
+  );
+  for (const extra of [
+    { summary: "old" },
+    { allowedSinks: ["*"] },
+    { confidenceDelta: 0.1 },
+    { successorMemoryId: "other" },
+  ])
+    assert.equal(
+      validateContextMemoryDefinition("MemoryDecisionRequest", {
+        ...request,
+        ...extra,
+      }).ok,
+      false,
+    );
+  const { content, ...missingContent } = request;
+  assert.equal(
+    validateContextMemoryDefinition("MemoryDecisionRequest", missingContent).ok,
+    false,
+  );
+  assert.equal(
+    validateContextMemoryDefinition("MemoryDecisionRequest", {
+      ...request,
+      type: "reinforce",
+    }).ok,
+    false,
+  );
+});
+
 test("published schema has executable contract entry points and immutable definitions", () => {
   assert.equal(CONTEXT_MEMORY_SCHEMA["x-cc-context-memory"].version, 1);
   assert.ok(CONTEXT_MEMORY_SCHEMA.anyOf.length >= 14);

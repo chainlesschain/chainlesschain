@@ -521,6 +521,11 @@ class DesktopAppServerPilot extends EventEmitter {
       }
       return;
     }
+    if (value.type === "memory.corrected" && value.memory_id) {
+      this.contextMemoryProjection.memories.delete(value.memory_id);
+      this.contextMemoryProjection.lastRecall = null;
+      return;
+    }
     if (value.type === "memory.purged" && value.memory_id) {
       this.contextMemoryProjection.memories.delete(value.memory_id);
       return;

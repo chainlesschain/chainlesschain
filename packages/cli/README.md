@@ -404,6 +404,37 @@ cc agent process-ownership recover <execution-id> --timeout-ms 5000 --json
 
 Recovery verifies the exact persisted cgroup, stops it, and clears quarantine only after confirmed cleanup. It never resumes the task; Windows/macOS reject this Linux-specific operation. Windows native evaluation keeps wall-time, capability/admission and failed-cleanup evidence; diagnostics and CLI release checks do not qualify a formal effect experiment.
 
+### Correcting canonical Memory (source candidate)
+
+Inspect the exact record before replacing an incorrect fact or updating an
+existing rule:
+
+```bash
+cc memory inspect <memory-id> --json
+cc memory correct <memory-id> "Corrected content" --expected-revision 1 --json
+```
+
+Use the revision returned by `inspect`. Correction keeps the memory ID and its
+scope, sensitivity, sinks and retention policy, increments the revision, and
+clears the old summary and content reference. Only active or reinforced records
+can be corrected; correction does not restore archived or deleted memory.
+Adding another entry is a separate operation and does not automatically replace
+an earlier rule.
+
+A concurrent edit rejects the stale revision. The command never refreshes that
+revision or retries an uncertain write. Read the current record again before
+deciding on another edit; a conflict alone does not prove that your edit committed.
+Exit code2 with `CONTEXT_MEMORY_COMMIT_PUBLISHED` means the new version was
+published but maintenance failed; the JSON retains durability and cleanup status.
+The correction event keeps predecessor/new digests and revisions, not old content
+or the free-form reason. Existing source metadata describes provenance history,
+not independent verification of the corrected fact.
+
+These commands require canonical mode and the updated kernel. They are not part
+of the currently published CLI. Older SQLite readers reject correction events;
+mixed-version and downgrade acceptance remain unverified. The change adds no
+semantic-quality, paid-admission or publication claim.
+
 ### Memory pagination (public 0.166.88)
 
 Requires canonical memory mode; legacy/shadow rejects paging and does not migrate automatically. Back up and arrange the supported canonical cutover first.

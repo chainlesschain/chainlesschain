@@ -170,7 +170,21 @@ const COMMAND_FIELDS = new Set([
 function applyMemoryCommand(recordInput, commandInput, options = {}) {
   const current = normalizeMemoryRecord(recordInput);
   const command = objectValue(commandInput, "MemoryCommand");
-  assertKnownFields(command, COMMAND_FIELDS, "MemoryCommand");
+  const correcting = command.type === "correct";
+  assertKnownFields(
+    command,
+    correcting
+      ? new Set([
+          "type",
+          "expectedRevision",
+          "content",
+          "reason",
+          "authority",
+          "at",
+        ])
+      : COMMAND_FIELDS,
+    "MemoryCommand",
+  );
   const expectedRevision = boundedInteger(
     command.expectedRevision,
     "expectedRevision",
@@ -189,6 +203,7 @@ function applyMemoryCommand(recordInput, commandInput, options = {}) {
   }
   const type = boundedString(command.type, "type", { min: 1, max: 64 });
   const target = {
+    correct: current.state,
     activate: "active",
     reinforce: "reinforced",
     supersede: "superseded",
@@ -199,7 +214,14 @@ function applyMemoryCommand(recordInput, commandInput, options = {}) {
   }[type];
   if (!target)
     throw invalidArgument("unsupported MemoryCommand type", { type });
-  assertTransition(current.state, target);
+  if (correcting) {
+    if (!["active", "reinforced"].includes(current.state))
+      throw kernelError(
+        CONTEXT_ERROR_CODES.ILLEGAL_MEMORY_TRANSITION,
+        "only active or reinforced memories can be corrected",
+        { from: current.state },
+      );
+  } else assertTransition(current.state, target);
   const at =
     command.at === undefined
       ? isoNow(options.clock)
@@ -210,6 +232,17 @@ function applyMemoryCommand(recordInput, commandInput, options = {}) {
     updatedAt: at,
     revision: current.revision + 1,
   };
+  if (correcting) {
+    next.content = boundedString(command.content, "content", {
+      min: 1,
+      max: 4 * 1024 * 1024,
+    });
+    // Reasons may quote the replaced body; validate but do not persist them.
+    if (command.reason !== undefined)
+      boundedString(command.reason, "reason", { min: 1, max: 2048 });
+    delete next.summary;
+    delete next.contentRef;
+  }
 
   if (type === "reinforce") {
     const delta = boundedNumber(
@@ -320,15 +353,16 @@ function applyMemoryCommand(recordInput, commandInput, options = {}) {
   const event = {
     schema: "chainlesschain.memory-event/v1",
     eventId: `memory-event-${(options.randomUUID || randomUUID)()}`,
-    type: `memory.${target}`,
+    type: correcting ? "memory.corrected" : `memory.${target}`,
     memoryId: record.memoryId,
     fromState: current.state,
     toState: target,
     previousRevision: current.revision,
+    ...(correcting ? { previousRecordDigest: current.digest } : {}),
     revision: record.revision,
     recordDigest: record.digest,
     at,
-    ...(command.reason === undefined
+    ...(command.reason === undefined || correcting
       ? {}
       : {
           reason: boundedString(command.reason, "reason", {
@@ -355,6 +389,7 @@ function applyMemoryCommand(recordInput, commandInput, options = {}) {
     status: "committed",
     memoryId: record.memoryId,
     previousRevision: current.revision,
+    ...(correcting ? { previousRecordDigest: current.digest } : {}),
     revision: record.revision,
     recordDigest: record.digest,
     eventDigest: event.digest,
