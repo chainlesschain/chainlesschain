@@ -74,7 +74,9 @@ jobs:
         include:
           - os: ubuntu-latest
             platform: linux
-          - os: windows-latest
+          # The locked Electron node-gyp fork supports VS2022, not VS2026.
+          # Keep a native Windows build rather than skipping SQLite scripts.
+          - os: windows-2022
             platform: windows
           - os: macos-latest
             platform: macos
@@ -103,8 +105,16 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - uses: actions/setup-python@v6
+        id: kernel-python
         with:
           python-version: "3.12"
+
+      - name: Bind native builds to the selected Python
+        shell: bash
+        env:
+          KERNEL_PYTHON: ${{ steps.kernel-python.outputs.python-path }}
+        run: |
+          node --input-type=module -e 'import {appendFileSync,realpathSync} from "node:fs"; const python=realpathSync(process.env.KERNEL_PYTHON); if (/[\r\n]/u.test(python)) throw new Error("Invalid Python executable"); appendFileSync(process.env.GITHUB_ENV, `NODE_GYP_FORCE_PYTHON=${python}\n`);'
 
       - uses: actions/setup-java@v5
         with:
@@ -112,6 +122,18 @@ jobs:
           java-version: "21"
 
       - uses: ./.github/actions/setup-node-deps
+
+      - name: Require a loadable native SQLite driver for this Node runtime
+        run: >-
+          node --input-type=module -e 'import {createRequire} from "node:module";
+          import path from "node:path";
+          const require=createRequire(path.resolve("packages/context-memory-kernel/package.json"));
+          const Database=require("better-sqlite3");
+          const db=new Database(":memory:");
+          try { const version=db.prepare("SELECT sqlite_version() AS version").get().version;
+          console.log(JSON.stringify({node:process.version,abi:process.versions.modules,sqlite:version,
+          driver:require("better-sqlite3/package.json").version,python:process.env.NODE_GYP_FORCE_PYTHON})); }
+          finally { db.close(); }'
 
       - name: Verify canonical Kernel, inventory, privacy, and release evidence
         run: npm --prefix packages/context-memory-kernel test
