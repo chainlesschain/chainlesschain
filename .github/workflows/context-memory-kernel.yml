@@ -114,6 +114,8 @@ jobs:
         env:
           KERNEL_PYTHON: ${{ steps.kernel-python.outputs.python-path }}
         run: |
+          # Node evaluates the template literal, not the shell.
+          # shellcheck disable=SC2016
           node --input-type=module -e 'import {appendFileSync,realpathSync} from "node:fs"; const python=realpathSync(process.env.KERNEL_PYTHON); if (/[\r\n]/u.test(python)) throw new Error("Invalid Python executable"); appendFileSync(process.env.GITHUB_ENV, `NODE_GYP_FORCE_PYTHON=${python}\n`);'
 
       - uses: actions/setup-java@v5

@@ -8,6 +8,7 @@ on:
       - "scripts/lib/verify01-diagnostic-process.mjs"
       - "scripts/__tests__/verify01-gradle-bootstrap.test.mjs"
       - ".github/actions/setup-node-deps/action.yml"
+      - ".github/actions/setup-linux-canvas/action.yml"
       - "packages/cli/scripts/ide-roadmap-accessibility-performance.mjs"
       - "packages/cli/scripts/ide-input-performance-profile.mjs"
       - "packages/cli/scripts/verify-ide-roadmap-accessibility-performance.mjs"
@@ -72,6 +73,7 @@ on:
       - "scripts/lib/verify01-diagnostic-process.mjs"
       - "scripts/__tests__/verify01-gradle-bootstrap.test.mjs"
       - ".github/actions/setup-node-deps/action.yml"
+      - ".github/actions/setup-linux-canvas/action.yml"
       - "packages/cli/scripts/ide-roadmap-accessibility-performance.mjs"
       - "packages/cli/scripts/ide-input-performance-profile.mjs"
       - "packages/cli/scripts/verify-ide-roadmap-accessibility-performance.mjs"
@@ -205,11 +207,16 @@ jobs:
           set -euo pipefail
           mkdir -p "$CC_P2_ARTIFACT_DIR"
           printf '{"schema":"chainlesschain.accessibility-performance-bootstrap.v1","releaseCommit":"%s","operatingSystem":"%s"}\n' "$ACCESSIBILITY_PERFORMANCE_COMMIT" "${{ matrix.suffix }}" > "$CC_P2_ARTIFACT_DIR/bootstrap.json"
+      - uses: ./.github/actions/setup-linux-canvas
+        if: runner.os == 'Linux'
       - name: Install exact-checkout workspace dependencies
         # The CLI now depends on unpublished first-party workspaces such as the
         # context-memory kernel. A standalone --prefix install incorrectly asks
         # the public registry for those packages, so use the repository lockfile.
         uses: ./.github/actions/setup-node-deps
+      - name: Verify native canvas loads before host assertions
+        if: runner.os == 'Linux'
+        run: node -e "require('canvas').createCanvas(1, 1).toBuffer('image/png')"
       - name: Install exact Playwright Chromium
         shell: pwsh
         run: |
