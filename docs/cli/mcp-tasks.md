@@ -1,6 +1,6 @@
 # MCP 服务端长任务（开发分支）
 
-本功能提供显式的 MCP Tasks CLI 工作流，当前适用于 HTTP / HTTPS 服务。它尚未纳入公开发行承诺。服务端必须协商 Tasks 能力，并为工具声明 optional 或 required 的任务支持。
+本功能提供显式的 MCP Tasks CLI 工作流，当前适用于 HTTP / HTTPS 服务。它尚未纳入公开发行承诺。默认沿用 2025-11-25：服务端必须协商 Tasks 能力，并为工具声明 optional 或 required 的任务支持。2026-07-28 的显式配置见下文。
 
 先用 cc session list 找到所属会话，并确认该会话已保存为 canonical 会话。操作期间应退出正在占用同一会话的 REPL 或其他宿主；会话租约会拒绝同时写入，不会自动接管仍存活的宿主。
 
@@ -14,10 +14,27 @@ cc mcp tasks list --session <session-id> --json
 cc mcp tasks poll <local-id> --session <session-id> --json
 cc mcp tasks result <local-id> --session <session-id> --json
 cc mcp tasks deliver <local-id> --session <session-id> --json
+cc mcp tasks watch <local-id> --session <session-id> --interval 1000 --timeout 60000 --json
 cc mcp tasks cancel <local-id> --session <session-id> --json
 ```
 
-create 可以追加 --args 传入工具所需的 JSON 参数，或用 --ttl 指定期望保留的毫秒数。create 返回的 localId 用于后续命令；服务器返回的 taskId 是另一种身份。poll / result / cancel 从所属会话读取原服务器配置名，不接受重定向到另一台服务器。
+create 可以追加 --args 传入工具所需的 JSON 参数；默认协议还可以用 --ttl 指定期望保留的毫秒数。create 返回的 localId 用于后续命令；服务器返回的 taskId 是另一种身份。poll / result / cancel 从所属会话读取原服务器配置名，不接受重定向到另一台服务器。
+
+watch 查询并保存结果，默认随后执行单次 deliver；--no-deliver 只保存。--timeout 覆盖排队、网络请求和轮询间隔；到期只结束本地等待，不向远端发送取消或重放原工具。之后仍可对同一个 localId 再次 poll / watch。显式取消使用 cancel。
+
+**2026-07-28 无状态 HTTP 配置**
+
+仅在服务端支持该协议时显式选择，例如：
+
+```text
+cc mcp add reference --transport http --url http://127.0.0.1:3001/mcp --protocol-version 2026-07-28
+```
+
+配置文件中的对应字段为 `protocolVersion: "2026-07-28"`，支持用户、项目和受管配置。省略字段保持默认协议；不能在 initialize 响应中自动升级为无状态协议。已有任务的恢复身份包含协议，更换协议后不能自动接续原任务。
+
+该路径通过 server/discover 核查版本和 `io.modelcontextprotocol/tasks` 扩展。宿主为每个请求设置协议、客户端能力和路由信息；只在显式任务操作中声明 Tasks。创建时不发送旧协议 task / ttl，保留期由服务端决定，--ttl 会在派发前被拒绝。查询和领取结果都使用 tasks/get；没有远端 tasks/list 或 tasks/result，CLI 的 list 仍然只读本地日志。取消 ACK 后必须另行查询状态，不能把 ACK 直接显示为远端已停止。
+
+这是有界的任务轮询支持。尚未实现新协议的 input_required 交互续传、采样或订阅流，也没有声明这些客户端能力。独立官方 Everything 2.2.1 的 Windows 多进程恢复与投递证据见[参考服务验收](../research/cli/evidence/mcp-tasks-reference-stateless-20261109/README.md)；它不是远程生产服务、模型续跑或三系统的验收结论。
 
 list 只读已验证的本地记录。第一次 result 会领取并保存正文；保存成功后的 result / poll 可在服务端离线或配置删除后完成本地读取及必要的结算修复，不再次领取正文。列表不会输出结果正文、凭据或 HMAC 密钥。
 
@@ -51,7 +68,7 @@ cc agent --resume <session-id> "Continue using the delivered result."
 
 恢复身份绑定完整 endpoint、有效认证 headers、协议、TLS 材料及相关配置。新的 HTTP transport session 可以变化；凭据、服务器或 TLS 身份变化会拒绝自动续接，避免跨账号领取任务。密钥丢失也会拒绝远端恢复；已经保存的本地结果仍可读取。
 
-本批支持显式 deliver 后由真实用户继续，没有自动后台唤醒或模型自行跟踪。fork 保留外部参考，但不继承父任务操作权；原有外来 MCP 调用恢复门禁仍可能限制新操作。双 IDE 任务界面及本地 stdio 任务重启恢复仍属于后续工作。原调用未结算时，保守门禁也会限制同会话的新副作用调用。
+支持显式 deliver 后由真实用户继续；现有 REPL 另有显式 /mcp-watch 和可选自动唤醒接线。本次参考服务验证只证明跟踪、恢复和会话参考投递，未证明真实模型续跑。fork 保留外部参考，但不继承父任务操作权；原有外来 MCP 调用恢复门禁仍可能限制新操作。双 IDE 任务界面及本地 stdio 任务重启恢复仍属于后续工作。原调用未结算时，保守门禁也会限制同会话的新副作用调用。
 
 实现与测试证据见[实施记录](../research/cli-ide/implementation/cli-ide-mcp-task-durable-progress-2026-11-08.md)。
 

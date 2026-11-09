@@ -204,9 +204,9 @@
     },
     {
       "path": "packages/cli/src/harness/mcp-client.js",
-      "digest": "sha256:a2d57a0aeef46613ae7b05113cc02f3936f453400c88936edba99e3f1f876afc",
+      "digest": "sha256:84c889a4b353e678d669f9a02d39675e5c53ae76218d0249a23c7bc71fa8b056",
       "category": "TASK_CONTROLLED_NETWORK",
-      "rationale": "MCP HTTP/WebSocket/stdio transport can delegate arbitrary tools. Remote or tool costs and descendant containment remain unverified. MCP Tasks .144 review: explicit task creation and get/result/cancel/list use the existing admitted request transport. Live entry/session bindings and bounded reservations prevent task rebinding; acceptance and cancellation with unknown outcomes are not replayed. Durable HTTP recovery uses a secret-keyed digest of endpoint, protocol, authorization headers and TLS identity, then binds the verified journal task to the live connection. No independent outbound transport, arbitrary-tool containment or financial admission is established."
+      "rationale": "MCP HTTP/WebSocket/stdio transport can delegate arbitrary tools. Remote or tool costs and descendant containment remain unverified. MCP Tasks .144 review: explicit task creation and get/result/cancel/list use the existing admitted request transport. Live entry/session bindings and bounded reservations prevent task rebinding; acceptance and cancellation with unknown outcomes are not replayed. Durable HTTP recovery uses a secret-keyed digest of endpoint, protocol, authorization headers and TLS identity, then binds the verified journal task to the live connection. No independent outbound transport, arbitrary-tool containment or financial admission is established. 2026-11-09 stateless review: explicit HTTP protocol override uses server/discover and host-owned per-request metadata/routing on the existing transport. Tasks are advertised only for explicit task operations; task result retrieval uses tasks/get and cancellation ACK requires a separate observation. HTTP/session recovery and ambiguous outcomes do not replay tools/call. Legacy defaults remain unchanged. This establishes neither remote tool-cost containment nor financial admission."
     },
     {
       "path": "packages/cli/src/harness/remote-session-push-fcm.js",

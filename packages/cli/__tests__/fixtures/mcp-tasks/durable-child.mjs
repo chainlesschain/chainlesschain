@@ -21,6 +21,7 @@ const line = await new Promise((resolve) => {
   });
 });
 const request = JSON.parse(line);
+const serverName = request.serverName || "native-fixture";
 let lease;
 let client;
 const emit = (value) => process.stdout.write(JSON.stringify(value) + "\n");
@@ -34,10 +35,13 @@ try {
     hostKind: "mcp-tasks-native-probe",
   });
   client = new MCPClient();
-  await client.connect("native-fixture", {
+  await client.connect(serverName, {
     transport: "http",
     url: request.url,
     headers: { Authorization: "synthetic-loopback-fixture" },
+    ...(request.protocolVersion
+      ? { protocolVersion: request.protocolVersion }
+      : {}),
   });
   const secrets = createSecretStore({
     file: request.vaultFile,
@@ -51,9 +55,11 @@ try {
   });
   let result;
   if (request.action === "create") {
-    result = await runtime.create("native-fixture", "export", {
-      fixture: request.sessionId,
-    });
+    result = await runtime.create(
+      serverName,
+      request.toolName || "export",
+      request.arguments || { fixture: request.sessionId },
+    );
   } else if (request.action === "save-only") {
     const saved = readMcpTaskJournal(request.sessionId).records.find(
       (item) => item.localId === request.localId,
@@ -86,6 +92,17 @@ try {
       (item) => item.localId === request.localId,
     );
     assert.equal(deliveries.length, 1);
+    if (request.expectedMarker) {
+      const record = journal.records.find(
+        (item) => item.localId === request.localId,
+      );
+      assert.ok(
+        record.result.content.some(
+          (part) =>
+            part.type === "text" && part.text.includes(request.expectedMarker),
+        ),
+      );
+    }
     const delivery = deliveries[0];
     const resumed = readSessionHostResumeState(request.sessionId);
     assert.equal(resumed?.snapshot?.verified, true);
@@ -123,7 +140,7 @@ try {
         .length,
     };
   } else {
-    result = await runtime[request.action](request.localId);
+    result = await runtime[request.action](request.localId, request.options);
   }
   emit({ ok: true, result, pid: process.pid, backend: secrets.name });
   if (request.hold) {

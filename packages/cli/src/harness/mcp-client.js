@@ -36,7 +36,13 @@ import {
   requireMcpTaskCapability,
   requireMcpToolTaskMode,
   admitMcpTaskResponse,
+  MCP_STATELESS_PROTOCOL_VERSION,
 } from "../lib/mcp-tasks.js";
+import {
+  statelessMcpRequest,
+  admitStatelessMcpTask,
+  assertStatelessMcpAck,
+} from "../lib/mcp-stateless-protocol.js";
 
 import { terminateOwnedProcessTree } from "../lib/process-tree-termination.js";
 import {
@@ -379,6 +385,7 @@ export const SUPPORTED_MCP_PROTOCOL_VERSIONS = Object.freeze([
   "2025-03-26",
   "2025-06-18",
   MCP_PROTOCOL_VERSION,
+  MCP_STATELESS_PROTOCOL_VERSION,
 ]);
 const supportedMcpProtocolVersions = new Set(SUPPORTED_MCP_PROTOCOL_VERSIONS);
 
@@ -455,6 +462,7 @@ function discoveryCacheKey(name, entry) {
     entry?.httpUrl || entry?.socketUrl || config.url || null,
     config.command || null,
     Array.isArray(config.args) ? config.args : [],
+    entry?.protocolVersion ?? null,
   ]);
 }
 
@@ -482,6 +490,23 @@ export function assertSupportedMcpProtocolVersion(value) {
     throw error;
   }
   return value;
+}
+
+export function mcpProtocolVersionField(config = {}) {
+  if (config.protocolVersion == null) return {};
+  const protocolVersion = assertSupportedMcpProtocolVersion(
+    config.protocolVersion,
+  );
+  if (
+    protocolVersion === MCP_STATELESS_PROTOCOL_VERSION &&
+    !["http", "https"].includes(inferTransport(config))
+  ) {
+    throw mcpTaskError(
+      "CC_MCP_STATELESS_TRANSPORT_UNSUPPORTED",
+      "MCP stateless configuration requires Streamable HTTP",
+    );
+  }
+  return { protocolVersion };
 }
 const URL_ELICITATION_REQUIRED = -32042;
 const MCP_RPC_ERROR_CODE = "CC_MCP_RPC_ERROR";
@@ -2449,6 +2474,17 @@ export class MCPClient extends EventEmitter {
     }
 
     const transportKind = inferTransport(config);
+    const requestedProtocolVersion = assertSupportedMcpProtocolVersion(
+      config?.protocolVersion ?? this._protocolVersion,
+    );
+    const statelessHttp =
+      requestedProtocolVersion === MCP_STATELESS_PROTOCOL_VERSION;
+    if (statelessHttp && !["http", "https"].includes(transportKind)) {
+      throw mcpTaskError(
+        "CC_MCP_STATELESS_TRANSPORT_UNSUPPORTED",
+        "MCP 2026-07-28 currently requires explicit Streamable HTTP configuration",
+      );
+    }
     let stdioExecutionApproval = null;
     let approvedStdioInvocation = null;
     if (transportKind === "stdio") {
@@ -2587,7 +2623,8 @@ export class MCPClient extends EventEmitter {
       httpUrl: null,
       httpHeaders: connectionHeaders,
       httpSessionId: null,
-      protocolVersion: null,
+      protocolVersion: statelessHttp ? MCP_STATELESS_PROTOCOL_VERSION : null,
+      statelessHttp,
       _httpMessageStream: null,
       _httpRequestControllers: new Set(),
       _httpDiscardControllers: new Set(),
@@ -3175,33 +3212,63 @@ export class MCPClient extends EventEmitter {
       this._transitionLifecycle(entry, MCP_LIFECYCLE_PHASES.INITIALIZING, {
         tlsIdentityDigest: entry._tlsIdentityDigest,
       });
-      const initResult = await this._requestWithRetry(name, "initialize", {
-        protocolVersion: this._protocolVersion,
-        capabilities: {
-          tools: {},
-          resources: {},
-          prompts: {},
-          elicitation: supportsUrlElicitationVersion(this._protocolVersion)
-            ? { form: {}, url: {} }
-            : { form: {} },
-          // Client-side roots capability: servers may request roots/list and
-          // subscribe to list_changed notifications (Claude-Code 2.1.203).
-          roots: { listChanged: true },
-        },
-        clientInfo: { name: "chainlesschain-cli", version: "0.37.9" },
-      });
-
-      entry.protocolVersion = assertSupportedMcpProtocolVersion(
-        initResult?.protocolVersion,
+      const initResult = await this._requestWithRetry(
+        name,
+        statelessHttp ? "server/discover" : "initialize",
+        statelessHttp
+          ? {}
+          : {
+              protocolVersion: requestedProtocolVersion,
+              capabilities: {
+                tools: {},
+                resources: {},
+                prompts: {},
+                elicitation: supportsUrlElicitationVersion(
+                  requestedProtocolVersion,
+                )
+                  ? { form: {}, url: {} }
+                  : { form: {} },
+                // Client-side roots capability: servers may request roots/list and
+                // subscribe to list_changed notifications (Claude-Code 2.1.203).
+                roots: { listChanged: true },
+              },
+              clientInfo: { name: "chainlesschain-cli", version: "0.37.9" },
+            },
       );
+
+      if (statelessHttp) {
+        if (
+          !Array.isArray(initResult?.supportedVersions) ||
+          !initResult.supportedVersions.includes(MCP_STATELESS_PROTOCOL_VERSION)
+        ) {
+          throw mcpTaskError(
+            "CC_MCP_PROTOCOL_VERSION_UNSUPPORTED",
+            "MCP discovery did not confirm the requested protocol",
+          );
+        }
+      } else {
+        entry.protocolVersion = assertSupportedMcpProtocolVersion(
+          initResult?.protocolVersion,
+        );
+        if (entry.protocolVersion === MCP_STATELESS_PROTOCOL_VERSION) {
+          throw mcpTaskError(
+            "CC_MCP_PROTOCOL_VERSION_UNSUPPORTED",
+            "MCP stateless protocol requires explicit discovery; initialization cannot upgrade it",
+          );
+        }
+      }
       this._transitionLifecycle(entry, MCP_LIFECYCLE_PHASES.DISCOVERING, {
         tlsIdentityDigest: entry._tlsIdentityDigest,
       });
       // Send initialized notification
-      this._sendNotification(name, "notifications/initialized", {});
+      if (!statelessHttp)
+        this._sendNotification(name, "notifications/initialized", {});
 
       entry.state = ServerState.CONNECTED;
-      entry.serverInfo = initResult?.serverInfo || {};
+      entry.serverInfo =
+        (statelessHttp
+          ? initResult?._meta?.["io.modelcontextprotocol/serverInfo"]
+          : initResult?.serverInfo) || {};
       entry.capabilities = initResult?.capabilities || {};
       // Optional top-level usage instructions from the server's initialize
       // response (previously discarded). Surfaced by tool search so a deferred
@@ -3363,6 +3430,7 @@ export class MCPClient extends EventEmitter {
       });
       if (
         entry.httpUrl &&
+        !entry.statelessHttp &&
         (this._elicitationHandler || this._elicitationHandlers.size > 0)
       ) {
         this._ensureHttpMessageStream(name);
@@ -3926,6 +3994,12 @@ export class MCPClient extends EventEmitter {
     const release = reserveTaskBinding(this);
     try {
       const entry = this.servers.get(serverName);
+      if (entry?.statelessHttp && options.ttl !== undefined) {
+        throw mcpTaskError(
+          "CC_MCP_TASK_TTL_UNSUPPORTED",
+          "Stateless task TTL is selected by the server; a client TTL cannot be requested",
+        );
+      }
       const identity = taskConnectionIdentity(entry || {});
       let result;
       try {
@@ -4077,7 +4151,12 @@ export class MCPClient extends EventEmitter {
     }
     let value;
     try {
-      value = await this._sendRequest(serverName, method, params, options);
+      value = await this._sendRequest(
+        serverName,
+        entry.statelessHttp && kind === "result" ? "tasks/get" : method,
+        params,
+        options,
+      );
     } catch (error) {
       if (
         kind === "cancel" &&
@@ -4102,6 +4181,29 @@ export class MCPClient extends EventEmitter {
         "MCP task connection changed during request",
         true,
       );
+    }
+    if (entry.statelessHttp) {
+      if (kind === "cancel") {
+        assertStatelessMcpAck(serverName, value, entry.config);
+        // Acknowledgement means accepted, not cancelled. Obtain a separate
+        // observation before reporting the remote terminal state.
+        return this.getTask(serverName, params.taskId, options);
+      }
+      const modern = admitStatelessMcpTask(serverName, value, entry.config, {
+        taskId: params.taskId,
+      });
+      rememberTasks(this, serverName, entry, identity, [modern.task]);
+      if (kind === "result") {
+        if (!modern.result) {
+          throw mcpTaskError(
+            "CC_MCP_TASK_RESULT_UNAVAILABLE",
+            "MCP task has no completed result; no tool invocation was replayed",
+            true,
+          );
+        }
+        return modern.result;
+      }
+      return modern.task;
     }
     const admitted = admitMcpTaskResponse(serverName, value, entry.config, {
       kind,
@@ -4236,7 +4338,7 @@ export class MCPClient extends EventEmitter {
         {
           name: toolName,
           arguments: args,
-          ...(task === undefined ? {} : { task }),
+          ...(task === undefined || entry.statelessHttp ? {} : { task }),
           _meta: { progressToken },
         },
         { ...options, signal: controller.signal },
@@ -4275,6 +4377,12 @@ export class MCPClient extends EventEmitter {
           true,
         );
       }
+      if (entry.statelessHttp) {
+        const modern = admitStatelessMcpTask(serverName, result, entry.config, {
+          create: true,
+        });
+        return { task: modern.task };
+      }
       return admitMcpTaskResponse(serverName, result, entry.config, {
         kind: "create",
       });
@@ -4284,7 +4392,7 @@ export class MCPClient extends EventEmitter {
       result,
       entry.config,
     ).result;
-    if (Object.hasOwn(admitted, "task")) {
+    if (Object.hasOwn(admitted, "task") || admitted.resultType === "task") {
       throw mcpTaskError(
         "CC_MCP_TASK_UNEXPECTED",
         "MCP task acceptance cannot settle an ordinary tool call",
@@ -4901,6 +5009,7 @@ export class MCPClient extends EventEmitter {
   }
 
   _sendRequestCancellation(serverName, method, requestId, reason) {
+    if (this.servers.get(serverName)?.statelessHttp) return;
     // The initialize handshake establishes the protocol/session needed for
     // later notifications, so it cannot itself be cancelled safely.
     if (method === "initialize") return;
@@ -5137,7 +5246,19 @@ export class MCPClient extends EventEmitter {
     }
 
     const id = this._nextId++;
-    const body = JSON.stringify({ jsonrpc: "2.0", id, method, params });
+    const modern = entry.statelessHttp
+      ? statelessMcpRequest(method, params, {
+          tasks:
+            options[MCP_TASK_REQUEST] !== undefined ||
+            method.startsWith("tasks/"),
+        })
+      : null;
+    const body = JSON.stringify({
+      jsonrpc: "2.0",
+      id,
+      method,
+      params: modern?.params || params,
+    });
     this._registerLifecycleRpc(entry, id, method);
     let lifecycleSettled = false;
     const settleLifecycle = (outcome) => {
@@ -5157,6 +5278,20 @@ export class MCPClient extends EventEmitter {
     if (method !== "initialize") {
       headers["MCP-Protocol-Version"] =
         entry.protocolVersion || this._protocolVersion;
+    }
+    if (modern) {
+      for (const key of Object.keys(headers)) {
+        if (
+          [
+            "mcp-session-id",
+            "mcp-protocol-version",
+            "mcp-method",
+            "mcp-name",
+          ].includes(key.toLowerCase())
+        )
+          delete headers[key];
+      }
+      Object.assign(headers, modern.headers);
     }
 
     // Every request owns a controller so caller cancellation and disconnect
@@ -5280,6 +5415,7 @@ export class MCPClient extends EventEmitter {
           ? response.headers.get("mcp-session-id") ||
             response.headers.get("Mcp-Session-Id")
           : null) || null;
+      if (sessionId && entry.statelessHttp) throw mcpRpcInvalidResponseError();
       if (sessionId && !entry.httpSessionId) {
         entry.httpSessionId = sessionId;
       }
@@ -5382,6 +5518,18 @@ export class MCPClient extends EventEmitter {
       if (wire.hasError) {
         throw mcpRpcError(wire.error);
       }
+      if (
+        entry.statelessHttp &&
+        (!wire.result ||
+          (wire.result.resultType !== "complete" &&
+            !(method === "tools/call" && wire.result.resultType === "task")))
+      ) {
+        throw mcpTaskError(
+          "CC_MCP_STATELESS_RESULT_UNSUPPORTED",
+          "MCP result requires an unsupported continuation; no request was replayed",
+          true,
+        );
+      }
       throwIfAborted();
       if (!settleLifecycle("completed")) {
         throw this._staleLifecycleCallbackError();
@@ -5419,7 +5567,13 @@ export class MCPClient extends EventEmitter {
   /** Fire-and-forget JSON-RPC notification over HTTP. Errors swallowed. */
   _sendHttpNotification(serverName, method, params) {
     const entry = this.servers.get(serverName);
-    if (!entry || !entry.httpUrl || entry._httpDiscardStopping) return;
+    if (
+      !entry ||
+      !entry.httpUrl ||
+      entry._httpDiscardStopping ||
+      entry.statelessHttp
+    )
+      return;
     const body = JSON.stringify({ jsonrpc: "2.0", method, params });
     const headers = {
       "Content-Type": "application/json",
@@ -6530,6 +6684,7 @@ export class MCPServerConfig {
         transport TEXT DEFAULT 'stdio',
         headers TEXT DEFAULT '{}',
         headers_helper TEXT,
+        protocol_version TEXT,
         config_scope TEXT DEFAULT 'user',
         config_source TEXT,
         project_path TEXT,
@@ -6577,6 +6732,11 @@ export class MCPServerConfig {
       }
       if (!cols.has("headers_helper")) {
         this.db.exec("ALTER TABLE mcp_servers ADD COLUMN headers_helper TEXT");
+      }
+      if (!cols.has("protocol_version")) {
+        this.db.exec(
+          "ALTER TABLE mcp_servers ADD COLUMN protocol_version TEXT",
+        );
       }
       if (!cols.has("config_scope")) {
         this.db.exec(
@@ -6653,6 +6813,11 @@ export class MCPServerConfig {
     const existingRow = this.db
       .prepare("SELECT * FROM mcp_servers WHERE name = ?")
       .get(storageName);
+    const protocolVersion =
+      config.protocolVersion === undefined
+        ? (existingRow?.protocol_version ?? null)
+        : config.protocolVersion;
+    mcpProtocolVersionField({ ...config, protocolVersion });
     const cwdUpdate = readMcpStdioCwd(config, {
       label: `MCP server "${name}"`,
     });
@@ -6675,7 +6840,7 @@ export class MCPServerConfig {
     }
     this.db
       .prepare(
-        "INSERT OR REPLACE INTO mcp_servers (name, command, args, env, runtime_kind, cwd, sandbox_policy, auto_connect, url, transport, headers, headers_helper, config_scope, config_source, project_path, display_name, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))",
+        "INSERT OR REPLACE INTO mcp_servers (name, command, args, env, runtime_kind, cwd, sandbox_policy, auto_connect, url, transport, headers, headers_helper, protocol_version, config_scope, config_source, project_path, display_name, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))",
       )
       .run(
         storageName,
@@ -6690,6 +6855,7 @@ export class MCPServerConfig {
         transport,
         JSON.stringify(config.headers || {}),
         headersHelper,
+        protocolVersion,
         configScope,
         configSource,
         projectPath,
@@ -6757,6 +6923,11 @@ export class MCPServerConfig {
       transport:
         row.transport || (row.url ? inferTransport({ url: row.url }) : "stdio"),
       headers: safeJsonParse(row.headers, {}),
+      ...mcpProtocolVersionField({
+        protocolVersion: row.protocol_version,
+        url: row.url,
+        transport: row.transport,
+      }),
       ...(typeof row.headers_helper === "string" && row.headers_helper.trim()
         ? { headersHelper: row.headers_helper }
         : {}),

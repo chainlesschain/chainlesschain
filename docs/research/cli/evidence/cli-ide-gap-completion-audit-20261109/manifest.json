@@ -34,14 +34,29 @@
       "status": "partial",
       "evidence": [
         "cli/evidence/mcp-task-targeted-20261109",
-        "cli/evidence/repl-inflight-recovery-20261109"
+        "cli/evidence/repl-inflight-recovery-20261109",
+        "cli/evidence/mcp-tasks-reference-stateless-20261109"
       ],
       "remaining": [
-        "third-party service",
+        "remote production third-party service",
         "model continuation",
+        "modern input-required continuation",
+        "independent-service expiry/revocation",
         "dual IDE/desktop",
         "multiplatform"
-      ]
+      ],
+      "scopedIndependentReference": {
+        "status": "windows-reference-verified",
+        "package": "@modelcontextprotocol/server-everything@2.2.1",
+        "publishedFilesMatched": 59,
+        "protocolVersion": "2026-07-28",
+        "forcedClientRestart": true,
+        "secretStore": "windows-dpapi",
+        "singleOriginalSessionDelivery": true,
+        "remoteProductionServiceVerified": false,
+        "modelContinuationVerified": false,
+        "multiplatformVerified": false
+      }
     },
     "5": {
       "status": "partial",
@@ -150,7 +165,8 @@
     "codeCommit": "cc965340c158e15637ee1bf71da3b2e74ed38bf0",
     "pullRequest": "https://github.com/chainlesschain/chainlesschain/pull/569",
     "overall": "open",
-    "nativePricingCommit": "44f56fe58aee36e6cc097755ce7c4ab3ec94b126"
+    "nativePricingCommit": "44f56fe58aee36e6cc097755ce7c4ab3ec94b126",
+    "statelessMcpEvidence": "cli/evidence/mcp-tasks-reference-stateless-20261109"
   },
   "auditedSourceCommit": "44f56fe58aee36e6cc097755ce7c4ab3ec94b126"
 }

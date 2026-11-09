@@ -17,6 +17,7 @@ import {
   MCP_CONFIG_SCOPES,
   inferTransport,
   normalizeMcpConfigScope,
+  mcpProtocolVersionField,
 } from "../harness/mcp-client.js";
 import {
   validateMcpServer,
@@ -418,6 +419,7 @@ export function managedMcpRowsFromSettings(settings, file) {
         ...(sandboxPolicy ? { sandboxPolicy } : {}),
         url: config.url || null,
         transport: inferTransport(config),
+        ...mcpProtocolVersionField(config),
         headers:
           config.headers && typeof config.headers === "object"
             ? config.headers
@@ -504,6 +506,7 @@ export function readProjectMcpRows(cwd = process.cwd()) {
         ...(sandboxPolicy ? { sandboxPolicy } : {}),
         url: config.url || null,
         transport: inferTransport(config),
+        ...mcpProtocolVersionField(config),
         headers:
           config.headers && typeof config.headers === "object"
             ? config.headers
@@ -585,6 +588,16 @@ export function writeProjectMcpServer(name, server, cwd = process.cwd()) {
   if (retainedPolicy.policy) config.sandboxPolicy = retainedPolicy.policy;
   if (server.url) config.url = server.url;
   if (server.transport) config.transport = server.transport;
+  Object.assign(
+    config,
+    mcpProtocolVersionField({
+      ...server,
+      protocolVersion:
+        server.protocolVersion === undefined
+          ? existing?.protocolVersion
+          : server.protocolVersion,
+    }),
+  );
   if (server.headers && Object.keys(server.headers).length > 0) {
     config.headers = server.headers;
   }
@@ -1237,6 +1250,10 @@ export function registerMcpCommand(program) {
       "--headers-helper <command>",
       "Shell command that prints fresh HTTP headers as one JSON object",
     )
+    .option(
+      "--protocol-version <version>",
+      "Explicit MCP protocol revision (2026-07-28 requires HTTP(S))",
+    )
     .option("--auto-connect", "Auto-connect on startup")
     .option(
       "--mode <mode>",
@@ -1384,6 +1401,13 @@ export function registerMcpCommand(program) {
           url: options.url || null,
           transport,
           env: {},
+          ...(options.protocolVersion === undefined
+            ? {}
+            : mcpProtocolVersionField({
+                transport,
+                url: options.url,
+                protocolVersion: options.protocolVersion,
+              })),
           autoConnect: !!options.autoConnect,
           headers: Object.keys(headers).length > 0 ? headers : undefined,
           ...headersHelperField(options.headersHelper),

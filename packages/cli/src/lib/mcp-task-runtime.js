@@ -1,4 +1,5 @@
 import { deliverMcpTaskResult } from "./mcp-task-delivery.js";
+import { raceWithAbort, throwIfAborted } from "./abort-utils.js";
 import { randomBytes, randomUUID } from "node:crypto";
 import { createSecretStore } from "./secret-store.js";
 import { createSessionMcpLedgerSink } from "./mcp-call-ledger-store.js";
@@ -450,42 +451,61 @@ export function createDurableMcpTaskRuntime({
           "MCP task watch interval/timeout is outside the allowed bounds",
         );
       }
-      const started = Date.now();
-      let latest = null;
-      for (;;) {
-        latest = await this.poll(localId, { signal });
-        onUpdate?.(latest);
-        if (latest.resultSaved) break;
-        if (
-          ["completed", "failed", "cancelled"].includes(latest.remoteStatus)
-        ) {
-          latest = await this.result(localId, { signal });
+      const deadline = new AbortController();
+      const combined = AbortSignal.any(
+        [signal, lease.signal, deadline.signal].filter(Boolean),
+      );
+      const timeout = failure(
+        "CC_MCP_TASK_WATCH_TIMEOUT",
+        "MCP task did not produce a verified result before the watch timeout",
+        { localId },
+      );
+      const timer = setTimeout(() => deadline.abort(timeout), requestedTimeout);
+      try {
+        throwIfAborted(combined);
+        let latest = null;
+        for (;;) {
+          // Bound queueing, transport and sleep with one deadline. Passing the
+          // same signal also prevents queued work dispatching after timeout.
+          latest = await raceWithAbort(
+            this.poll(localId, { signal: combined }),
+            combined,
+          );
           onUpdate?.(latest);
-          break;
-        }
-        if (Date.now() - started >= requestedTimeout) {
-          throw failure(
-            "CC_MCP_TASK_WATCH_TIMEOUT",
-            "MCP task did not produce a verified result before the watch timeout",
-            { localId },
+          throwIfAborted(combined);
+          if (latest.resultSaved) break;
+          if (
+            ["completed", "failed", "cancelled"].includes(latest.remoteStatus)
+          ) {
+            latest = await raceWithAbort(
+              this.result(localId, { signal: combined }),
+              combined,
+            );
+            onUpdate?.(latest);
+            break;
+          }
+          await waitForTaskPoll(
+            requestedInterval ?? latest.pollIntervalMs ?? 1000,
+            combined,
+            lease.signal,
           );
         }
-        await waitForTaskPoll(
-          requestedInterval ?? latest.pollIntervalMs ?? 1000,
-          signal,
-          lease.signal,
+        throwIfAborted(combined);
+        if (!deliver) return latest;
+        const receipt = await raceWithAbort(
+          this.deliver(localId, { signal: combined }),
+          combined,
         );
+        const delivery = read().deliveries.find(
+          (item) =>
+            item.localId === localId && item.deliveryId === receipt.deliveryId,
+        );
+        // Retain the original session binding and verified external reference.
+        onDelivery?.(receipt, delivery || null);
+        return Object.freeze({ ...receipt, watched: true });
+      } finally {
+        clearTimeout(timer);
       }
-      if (!deliver) return latest;
-      const receipt = await this.deliver(localId);
-      const delivery = read().deliveries.find(
-        (item) =>
-          item.localId === localId && item.deliveryId === receipt.deliveryId,
-      );
-      // Pass the full verified delivery record so consumers retain the
-      // session/local-id binding and the rendered external-reference message.
-      onDelivery?.(receipt, delivery || null);
-      return Object.freeze({ ...receipt, watched: true });
     },
 
     /** Start an opt-in timer without detaching it from the session lease. */
@@ -538,8 +558,9 @@ export function createDurableMcpTaskRuntime({
       });
     },
 
-    deliver(localId) {
+    deliver(localId, { signal } = {}) {
       return enqueue(async () => {
+        throwIfAborted(signal);
         const projection = read();
         const record = find(localId, projection);
         if (record.result === null) {
@@ -549,6 +570,7 @@ export function createDurableMcpTaskRuntime({
           );
         }
         await repairSettlement(record);
+        throwIfAborted(signal);
         return deliverMcpTaskResult(sessionId, localId);
       });
     },
