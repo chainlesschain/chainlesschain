@@ -4,11 +4,29 @@ ChainlessChain agent workspace for VS Code-compatible editors with streaming cha
 
 ## Next release candidate
 
-Source candidate **0.37.183** recommends CLI **`0.166.145`** and pairs with JetBrains **0.4.198**. The extension has not been published. Session Core **0.3.27** and CLI **0.166.145** must pass exact-source gates, OIDC publication and public readback before IDE publication.
+Source candidate **0.37.184** recommends CLI **`0.166.146`** and pairs with JetBrains **0.4.199**. The extension has not been published. Agent Protocol **0.1.13**, Agent SDK **0.2.18**, Context/Memory Kernel **0.1.12** and CLI **0.166.146** must pass exact-source gates, OIDC publication and public readback before IDE publication. Session Core remains **0.3.27**.
 
 This candidate adds local OpenAI-compatible compute configuration and explicit task-creation requests. Native creation requires matching desktop support and separate consent/confirmation; this release does not publish clients. LEXDATA real inference and real IDE GUI remain unverified. [Release stages](../../docs/research/cli/evidence/release143-public/README.md).
 
 ## Current release
+
+<!-- release181-status -->
+
+Open VSX version **0.37.181** pairs with public CLI `0.166.145`.
+
+| Component                 | Current public status                                          |
+| ------------------------- | -------------------------------------------------------------- |
+| VS Code extension         | **0.37.181**; verified public Open VSX release                 |
+| Recommended CLI           | **`chainlesschain@0.166.145`**; verified public npm package    |
+| Base bridge compatibility | `cc >= 0.162.190`; individual features can require a newer CLI |
+
+CLI `0.166.145` is the recommended public CLI. Using `@0.166.145` selects this verified pairing.
+Install `npm i -g chainlesschain@0.166.145 --registry https://registry.npmjs.org`, restart the host, then run `cc --version` and `cc doctor`.
+The immutable extension tag is `ide-vscode-v0.37.181`.
+Download [chainlesschain-ide-0.37.181.vsix](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.181/file/chainlesschain.chainlesschain-ide-0.37.181.vsix).
+Public JetBrains 0.4.198 also recommends CLI 0.166.145. The current public download and pairing snapshot is documented in [the 2026-11-09 readback](../../docs/research/cli/evidence/documentation-refresh-20261109/README.md); that snapshot does not claim a new full payload-parity or cryptographic provenance verification.
+
+### Previous verified release
 
 <!-- release178-status -->
 
@@ -488,7 +506,7 @@ Checked on 2026-10-20: npm CLI **0.166.107**, Session Core **0.3.20**, Open VSX 
 
 ## Release compatibility
 
-Candidate Open VSX **0.37.183** recommends CLI **`0.166.145`** and pairs with JetBrains **0.4.198** after verified upstream publication. The CLI and IDE use explicit local-platform provider/endpoint/model identity; API keys are optional for platforms that permit keyless access. Exact-source release matrices and public payload checks remain required.
+Candidate Open VSX **0.37.184** recommends CLI **`0.166.146`** and pairs with JetBrains **0.4.199** after verified upstream publication. The CLI and IDE use explicit local-platform provider/endpoint/model identity; API keys are optional for platforms that permit keyless access. Exact-source release matrices and public payload checks remain required.
 
 ### What's new in 0.37.159
 

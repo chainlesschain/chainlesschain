@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - cc CLI 0.166.146: canonical Memory corrections and retained diagnostics (candidate, 2026-11-09)
+
+- Add `memory inspect <id>` and `memory correct <id> <text> --expected-revision <n>` for canonical Memory. Corrections retain record identity and scope, reject stale revisions, clear obsolete summaries/references, and report durable-publication failures without automatic replay.
+- Add body-free correction notifications and invalidate stale Memory projections in VS Code, JetBrains and desktop. Pair CLI 0.166.146 with VS Code/Open VSX 0.37.184 and JetBrains 0.4.199, after Agent Protocol 0.1.13, Agent SDK 0.2.18 and Context/Memory Kernel 0.1.12 publication/readback; Session Core remains 0.3.27.
+- Persist stream-session model-input diagnostics and retain JetBrains restored tool traces. Carry the reviewed MCP Tasks continuation, REPL recovery, explicit output-token caps and durable billing-window changes with their documented limits.
+- Require exact-source Linux/Windows/macOS CLI CI and Strict Sandbox before OIDC publication, then IDE host matrices and public download verification. The candidates are not yet public. Full lifecycle, multilingual quality, invoice reconciliation and paid admission remain incomplete; PC/mobile clients remain v5.0.3.145.
+
 ### Added - cc CLI 0.166.145: integrated Memory authority and release gate repairs (candidate, 2026-11-08)
 
 - Preserve the failed immutable CLI 0.166.144 tag and use a new candidate version for the repaired source; no public package is claimed by this entry.

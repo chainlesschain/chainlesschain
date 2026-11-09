@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.146",
+      "cliVersions": ["0.166.146"],
+      "date": "2026-11-09",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Added - cc CLI 0.166.146: canonical Memory corrections and retained diagnostics (candidate, 2026-11-09)",
+          "body": "- Add `memory inspect <id>` and `memory correct <id> <text> --expected-revision <n>` for canonical Memory. Corrections retain record identity and scope, reject stale revisions, clear obsolete summaries/references, and report durable-publication failures without automatic replay.\n- Add body-free correction notifications and invalidate stale Memory projections in VS Code, JetBrains and desktop. Pair CLI 0.166.146 with VS Code/Open VSX 0.37.184 and JetBrains 0.4.199, after Agent Protocol 0.1.13, Agent SDK 0.2.18 and Context/Memory Kernel 0.1.12 publication/readback; Session Core remains 0.3.27.\n- Persist stream-session model-input diagnostics and retain JetBrains restored tool traces. Carry the reviewed MCP Tasks continuation, REPL recovery, explicit output-token caps and durable billing-window changes with their documented limits.\n- Require exact-source Linux/Windows/macOS CLI CI and Strict Sandbox before OIDC publication, then IDE host matrices and public download verification. The candidates are not yet public. Full lifecycle, multilingual quality, invoice reconciliation and paid admission remain incomplete; PC/mobile clients remain v5.0.3.145."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.145",
       "cliVersions": ["0.166.144", "0.166.145"],
       "date": "2026-11-08",

@@ -1,0 +1,58 @@
+{
+  "schema": "chainlesschain.cli-ide-release-candidate/v1",
+  "date": "2026-11-09",
+  "state": "prepared-not-published",
+  "implementationCommit": "7c10c10119d1fcf97af1498d0177c678f82d2536",
+  "versions": {
+    "cli": "0.166.146",
+    "vscode": "0.37.184",
+    "jetbrains": "0.4.199",
+    "agentProtocol": "0.1.13",
+    "agentSdk": "0.2.18",
+    "contextMemoryKernel": "0.1.12",
+    "sessionCoreUnchanged": "0.3.27"
+  },
+  "dependencyAudit": {
+    "sourceCommit": "7c10c10119d1fcf97af1498d0177c678f82d2536",
+    "unchangedPackagesComparedToPublicRegistryTarballs": 10,
+    "allUnchangedTarballsByteIdentical": true,
+    "allRegistrySha512IntegritiesVerified": true,
+    "changedPackagesRequireNewVersions": [
+      "@chainlesschain/agent-protocol",
+      "@chainlesschain/context-memory-kernel",
+      "@chainlesschain/agent-sdk"
+    ],
+    "cliKernelDependency": "0.1.12"
+  },
+  "supplementaryLocalChecks": {
+    "scope": "Candidate version/documentation preparation; these are not exact-commit release matrix results",
+    "cliReleaseContracts": { "files": 4, "passed": 58 },
+    "ideReleaseAndPublicCliPrerequisiteContracts": { "passed": 27 },
+    "newCorrectionTestsSelectedInActualCiShards": true,
+    "codeReview": "No concrete release-blocking defect found; platform results still required"
+  },
+  "requiredBeforePublication": [
+    "Exact release commit CLI CI succeeds on every configured operating system",
+    "Exact release commit CLI Strict Sandbox succeeds on every configured operating system",
+    "Exact release commit Context Memory Kernel CI succeeds on all three operating systems",
+    "Exact release commit IDE Extensions packaging and host gates succeed",
+    "Publish changed child npm packages using GitHub Actions OIDC and verify registry bytes/provenance",
+    "Publish CLI only after public child dependency installation succeeds",
+    "Verify publicly installed CLI and dependency pins before either IDE publication",
+    "Verify public IDE version, pairing and artifact; distinguish pending JetBrains review from availability"
+  ],
+  "publicationRoutes": {
+    "npm": "npm-publish.yml via immutable v-npm-0-166-146 tag; GitHub Actions OIDC only",
+    "vscode": "ide-extensions.yml via ide-vscode-v0.37.184 after CLI public readback",
+    "jetbrains": "ide-extensions.yml via ide-jetbrains-v0.4.199 after CLI public readback"
+  },
+  "limits": {
+    "multilingualQualityAccepted": false,
+    "completeLifecycleAndPlatformAcceptance": false,
+    "paidReady": false,
+    "desktopAndMobilePublishedByThisRelease": false,
+    "oldSqliteReadersAcceptCorrectionEvents": false,
+    "downgradeAndMixedVersionAcceptance": false,
+    "historicalFailuresReclassifiedAsSuccess": false
+  }
+}
