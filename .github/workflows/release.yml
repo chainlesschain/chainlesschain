@@ -1713,7 +1713,8 @@ jobs:
             // The upload verifier separately pins its official run and source.
             const authorizedUpload = channel === 'jetbrains' && (
               (productVersion === 'v5.0.3.144' && version === '0.4.192' && cliVersion === '0.166.139') ||
-              (productVersion === 'v5.0.3.145' && version === '0.4.195' && cliVersion === '0.166.142')
+              (productVersion === 'v5.0.3.145' && version === '0.4.195' && cliVersion === '0.166.142') ||
+              (productVersion === 'v5.0.3.146' && version === '0.4.199' && cliVersion === '0.166.146')
             );
             const verifier = authorizedUpload
               ? ['scripts/verify-product-jetbrains-upload.mjs', version]

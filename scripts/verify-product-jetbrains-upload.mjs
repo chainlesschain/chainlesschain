@@ -31,6 +31,17 @@ export const REVIEW_EXCEPTIONS = Object.freeze([
     repository: "chainlesschain/chainlesschain",
     tag: "ide-jetbrains-v0.4.195",
   }),
+  // User authorization (2026-11-10): product146 may follow the successful .199
+  // upload during review. Its future upload is bound to the immutable CLI tag,
+  // never to a PR build, a manual dispatch, or a successful listing probe alone.
+  Object.freeze({
+    productVersion: "v5.0.3.146",
+    cliVersion: "0.166.146",
+    version: "0.4.199",
+    sourceTag: "v-npm-0-166-146",
+    repository: "chainlesschain/chainlesschain",
+    tag: "ide-jetbrains-v0.4.199",
+  }),
 ]);
 
 function reviewException(productVersion, version, cliVersion) {
@@ -46,21 +57,70 @@ export function allowsReviewException(productVersion, version, cliVersion) {
   return Boolean(reviewException(productVersion, version, cliVersion));
 }
 
+export function selectOfficialUploadRun({
+  productVersion,
+  version,
+  cliVersion,
+  tagSha,
+  npmTagSha,
+  runs,
+}) {
+  const exception = reviewException(productVersion, version, cliVersion);
+  assert.ok(
+    exception?.sourceTag,
+    "This pairing requires a pinned historical run",
+  );
+  assert.match(tagSha || "", /^[a-f0-9]{40}$/u);
+  assert.equal(
+    npmTagSha,
+    tagSha,
+    "IDE tag must match the immutable CLI release source",
+  );
+  const candidates = runs.filter(
+    (run) =>
+      run.repository?.full_name === exception.repository &&
+      run.path === ".github/workflows/ide-extensions.yml" &&
+      run.event === "push" &&
+      run.head_branch === exception.tag &&
+      run.head_sha === tagSha &&
+      run.status === "completed" &&
+      run.conclusion === "success",
+  );
+  assert.equal(
+    candidates.length,
+    1,
+    "Exactly one successful official tagged upload run is required",
+  );
+  return candidates[0];
+}
+
 export function verifyUploadAuthority({
   productVersion,
   version,
   cliVersion,
   tagSha,
+  npmTagSha,
   run,
   jobs,
+  uploadAttempt = run.run_attempt,
 }) {
   const exception = reviewException(productVersion, version, cliVersion);
   assert.ok(
     exception,
     "No user-authorized review exception for this product/IDE/CLI pairing",
   );
-  assert.equal(tagSha, exception.source, "IDE tag source mismatch");
-  assert.equal(run.id, exception.runId);
+  if (exception.sourceTag) {
+    assert.match(tagSha || "", /^[a-f0-9]{40}$/u);
+    assert.equal(
+      npmTagSha,
+      tagSha,
+      "IDE tag must match the immutable CLI release source",
+    );
+    assert.ok(Number.isSafeInteger(run.id) && run.id > 0);
+  } else {
+    assert.equal(tagSha, exception.source, "IDE tag source mismatch");
+    assert.equal(run.id, exception.runId);
+  }
   assert.equal(run.repository?.full_name, exception.repository);
   assert.equal(run.path, ".github/workflows/ide-extensions.yml");
   assert.equal(run.event, "push");
@@ -69,11 +129,21 @@ export function verifyUploadAuthority({
   assert.equal(run.status, "completed");
   assert.equal(run.conclusion, "success");
   assert.ok(Number.isSafeInteger(run.run_attempt) && run.run_attempt >= 1);
+  assert.ok(
+    Number.isSafeInteger(uploadAttempt) &&
+      uploadAttempt >= 1 &&
+      uploadAttempt <= run.run_attempt,
+  );
+  if (!exception.sourceTag) assert.equal(uploadAttempt, run.run_attempt);
   const upload = jobs.filter(
     (job) => job.name === "JetBrains plugin (build + publish)",
   );
   assert.equal(upload.length, 1, "Exactly one official upload job is required");
   assert.equal(upload[0].run_id, run.id);
+  if (exception.sourceTag) {
+    assert.equal(upload[0].head_sha, tagSha);
+    assert.equal(upload[0].run_attempt, uploadAttempt);
+  }
   assert.equal(upload[0].status, "completed");
   assert.equal(upload[0].conclusion, "success");
   const publish = upload[0].steps?.filter(
@@ -87,9 +157,35 @@ export function verifyUploadAuthority({
     tag: exception.tag,
     runId: run.id,
     attempt: run.run_attempt,
+    runAttempt: run.run_attempt,
+    uploadAttempt,
     jobId: upload[0].id,
     uploadVerified: true,
   };
+}
+
+export async function verifyUploadAttempts(options, loadAttemptJobs) {
+  const exception = reviewException(
+    options.productVersion,
+    options.version,
+    options.cliVersion,
+  );
+  assert.ok(exception, "No user-authorized review exception for this pairing");
+  const latest = options.run.run_attempt;
+  assert.ok(Number.isSafeInteger(latest) && latest >= 1);
+  const earliest = exception.sourceTag ? 1 : latest;
+  for (let uploadAttempt = latest; uploadAttempt >= earliest; uploadAttempt--) {
+    const jobs = await loadAttemptJobs(uploadAttempt);
+    // rerun-failed may rerun only the listing job. Never skip a present but
+    // failed/skipped/ambiguous upload in order to reuse an older success.
+    if (
+      exception.sourceTag &&
+      !jobs.some((job) => job.name === "JetBrains plugin (build + publish)")
+    )
+      continue;
+    return verifyUploadAuthority({ ...options, jobs, uploadAttempt });
+  }
+  assert.fail("No actual official upload job exists in this run's attempts");
 }
 
 async function githubJson(endpoint, token) {
@@ -123,29 +219,69 @@ async function main() {
     ["rev-parse", `${exception.tag}^{commit}`],
     { encoding: "utf8" },
   ).trim();
-  const base = `repos/${exception.repository}/actions/runs/${exception.runId}`;
-  const run = await githubJson(base, token);
-  const jobs = [];
-  for (let page = 1; ; page += 1) {
-    const result = await githubJson(
-      `${base}/attempts/${run.run_attempt}/jobs?per_page=100&page=${page}`,
-      token,
+  let npmTagSha,
+    runId = exception.runId;
+  if (exception.sourceTag) {
+    npmTagSha = execFileSync(
+      "git",
+      ["rev-parse", `${exception.sourceTag}^{commit}`],
+      { encoding: "utf8" },
+    ).trim();
+    assert.equal(
+      npmTagSha,
+      tagSha,
+      "IDE tag must match the immutable CLI release source",
     );
-    jobs.push(...result.jobs);
-    if (jobs.length === result.total_count) break;
-    assert.ok(
-      result.jobs.length > 0 && jobs.length < result.total_count,
-      "Incomplete or inconsistent upload job pagination",
-    );
+    const runs = [];
+    for (let page = 1; ; page += 1) {
+      const result = await githubJson(
+        `repos/${exception.repository}/actions/workflows/ide-extensions.yml/runs?head_sha=${tagSha}&event=push&per_page=100&page=${page}`,
+        token,
+      );
+      runs.push(...result.workflow_runs);
+      if (runs.length === result.total_count) break;
+      assert.ok(
+        result.workflow_runs.length > 0 && runs.length < result.total_count,
+        "Incomplete or inconsistent upload run pagination",
+      );
+    }
+    runId = selectOfficialUploadRun({
+      productVersion,
+      version,
+      cliVersion,
+      tagSha,
+      npmTagSha,
+      runs,
+    }).id;
   }
-  const authority = verifyUploadAuthority({
-    productVersion,
-    version,
-    cliVersion,
-    tagSha,
-    run,
-    jobs,
-  });
+  const base = `repos/${exception.repository}/actions/runs/${runId}`;
+  const run = await githubJson(base, token);
+  const authority = await verifyUploadAttempts(
+    {
+      productVersion,
+      version,
+      cliVersion,
+      tagSha,
+      npmTagSha,
+      run,
+    },
+    async (attempt) => {
+      const jobs = [];
+      for (let page = 1; ; page += 1) {
+        const result = await githubJson(
+          `${base}/attempts/${attempt}/jobs?per_page=100&page=${page}`,
+          token,
+        );
+        jobs.push(...result.jobs);
+        if (jobs.length === result.total_count) break;
+        assert.ok(
+          result.jobs.length > 0 && jobs.length < result.total_count,
+          "Incomplete or inconsistent upload job pagination",
+        );
+      }
+      return jobs;
+    },
+  );
   const marketplace = JSON.parse(
     execFileSync(
       process.execPath,

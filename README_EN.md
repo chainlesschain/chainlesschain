@@ -1,6 +1,6 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
-Release candidate: CLI **0.166.146**, VS Code **0.37.184**, JetBrains **0.4.199**, preceded by Protocol **0.1.13**, Agent SDK **0.2.18** and Memory Kernel **0.1.12**. Exact-source platform gates and public readback are pending. The verified public installation below remains current. This adds explicit Memory corrections and diagnostic recovery; multilingual quality, full lifecycle and paid admission remain incomplete.
+Release candidate: CLI **0.166.146**, VS Code **0.37.184**, JetBrains **0.4.199**, preceded by Protocol **0.1.13**, Agent SDK **0.2.18** and Memory Kernel **0.1.12**. Exact-source platform gates and public readback are pending. The planned order is child packages → CLI → IDE extensions → PC/mobile **v5.0.3.146**, verifying each stage before the next. CLI and VS Code must be publicly verified; the user authorized the client stage after a successful JetBrains .199 upload while Marketplace review is pending. Pending review does not establish public availability. PC/mobile .146 remains a candidate; the verified public installation below remains current. This adds explicit Memory corrections and diagnostic recovery; multilingual quality, full lifecycle and paid admission remain incomplete.
 
 ## Current release and source progress — 2026-11-09
 
