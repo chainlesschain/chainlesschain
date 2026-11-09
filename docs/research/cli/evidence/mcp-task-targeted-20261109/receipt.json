@@ -1,0 +1,12 @@
+{
+    "testFiles":  7,
+    "aclMode":  "elevated Windows owner-only ACL available",
+    "capturedAt":  "2026-11-09",
+    "command":  "npx vitest run __tests__/unit/mcp-client-tasks.test.js __tests__/unit/mcp-task-cli-connector.test.js __tests__/unit/mcp-task-delivery-contract.test.js __tests__/unit/mcp-task-delivery.test.js __tests__/unit/mcp-task-journal.test.js __tests__/unit/mcp-task-runtime.test.js __tests__/unit/agent-repl-prompt-interactions.test.js",
+    "sourceCommit":  "354235664",
+    "testsPassed":  118,
+    "schema":  "chainlesschain.mcp-task-targeted-evidence/v1",
+    "modelContinuationVerified":  false,
+    "realThirdPartyProviderVerified":  false,
+    "testsFailed":  0
+}

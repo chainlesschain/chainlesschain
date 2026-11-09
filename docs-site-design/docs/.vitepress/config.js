@@ -137,8 +137,12 @@ export default defineConfig({
             link: "/modules/110-agent-platform-release-boundaries",
           },
           {
-            text: "CLI 目标移交与签名回退（未发行）",
+            text: "CLI 目标移交与签名回退（需匹配桌面）",
             link: "/cli-goal-transfer-source-2026-11-07",
+          },
+          {
+            text: "11-09 当前发行与主线",
+            link: "/release-runtime-update-2026-11-09",
           },
           {
             text: "CLI .143：本地算力与待审创建",
@@ -1147,8 +1151,12 @@ export default defineConfig({
               collapsed: true,
               items: [
                 {
-                  text: "CLI 目标移交与签名回退（未发行）",
+                  text: "CLI 目标移交与签名回退（需匹配桌面）",
                   link: "/cli-goal-transfer-source-2026-11-07",
+                },
+                {
+                  text: "11-09 当前发行与主线",
+                  link: "/release-runtime-update-2026-11-09",
                 },
                 {
                   text: "CLI .143：本地算力与待审创建",

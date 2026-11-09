@@ -15,6 +15,7 @@ on:
       - "packages/session-core/lib/**"
       - "packages/cli/src/**"
       - "packages/cli/test-node/context-memory-kernel.node-test.mjs"
+      - "packages/cli/test-node/local-memory-semantic.node-test.mjs"
       - "packages/cli/test-node/fixtures/context-memory-crash-child.mjs"
       - "packages/cli/test-node/fixtures/context-memory-compaction-restart-child.mjs"
       - "desktop-app-vue/package.json"
@@ -36,6 +37,7 @@ on:
       - "packages/session-core/lib/**"
       - "packages/cli/src/**"
       - "packages/cli/test-node/context-memory-kernel.node-test.mjs"
+      - "packages/cli/test-node/local-memory-semantic.node-test.mjs"
       - "packages/cli/test-node/fixtures/context-memory-crash-child.mjs"
       - "packages/cli/test-node/fixtures/context-memory-compaction-restart-child.mjs"
       - "desktop-app-vue/package.json"
@@ -112,6 +114,11 @@ jobs:
 
       - name: Verify CLI migration, shadow, provider, purge, and crash recovery
         run: npm --prefix packages/cli run test:context-memory-kernel
+
+      - name: Verify local Memory semantic source contracts (no model download)
+        env:
+          CC_MEMORY_SEMANTIC_REAL_TEST: "0"
+        run: node --test packages/cli/test-node/local-memory-semantic.node-test.mjs
 
       - name: Verify Agent Protocol schema and generated bindings
         run: npm --prefix packages/agent-protocol run check

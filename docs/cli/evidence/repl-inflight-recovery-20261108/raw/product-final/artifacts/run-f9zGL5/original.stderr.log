@@ -1,0 +1,7 @@
+[AppConfig] No config file, using defaults
+[AppConfig] Configuration saved
+[DatabaseManager] better-sqlite3-multiple-ciphers unusable: The module '\\?\E:\code\chainlesschain\node_modules\better-sqlite3-multiple-ciphers\build\Release\better_sqlite3.node'
+[DatabaseManager] Using better-sqlite3 (no encryption)
+[DatabaseManager] Database initialized: C:\Users\admin\AppData\Local\Temp\cc-repl-inflight-Vdm96M\config\data\chainlesschain.db
+Warning: sandbox mode is explicitly off; shell commands use policy checks without OS isolation.
+⚠ ⚠ MCP ledger recovery failed closed; inspect the transcript before using MCP tools.

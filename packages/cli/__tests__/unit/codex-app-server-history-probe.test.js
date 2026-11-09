@@ -4,11 +4,13 @@ import os from "node:os";
 import path from "node:path";
 import http from "node:http";
 import { once } from "node:events";
+import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
   assertCompleteScanHistory,
   cleanupHistoryResources,
   collectHistoryPages,
+  getHistoryPagination,
   createHistoryCheckRecorder,
   copyHistoryRollouts,
   observeRawThreadHistory,
@@ -555,6 +557,47 @@ describe("isolated generated rollout copying", () => {
     };
   }
 
+  it.runIf(process.platform === "win32")(
+    "copies canonical rollout paths from real Windows short homes without admitting siblings or the same home",
+    ({ skip }) => {
+      const f = fixture();
+      const shortRoot = execFileSync(
+        process.env.ComSpec || "cmd.exe",
+        ["/d", "/c", `for %I in ("${f.root}") do @echo %~sI`],
+        { encoding: "utf8", windowsHide: true, windowsVerbatimArguments: true },
+      ).trim();
+      if (shortRoot.toLowerCase() === f.root.toLowerCase())
+        skip("fixture volume has no Windows 8.3 alias");
+      const sourceHome = path.join(shortRoot, "source");
+      const targetHome = path.join(shortRoot, "target");
+      expect(fs.realpathSync.native(sourceHome)).toBe(f.sourceHome);
+      // The original lexical containment check rejects this same real file.
+      expect(path.relative(sourceHome, f.source)).toMatch(/^\.\./u);
+      const copied = copyHistoryRollouts([f.thread], sourceHome, targetHome);
+      expect(copied).toHaveLength(1);
+      expect(copied[0].relativePath).toBe(
+        path.join("sessions", "2026", "10", "29", "rollout.jsonl"),
+      );
+      expect(
+        fs
+          .readFileSync(path.join(f.targetHome, copied[0].relativePath))
+          .equals(f.bytes),
+      ).toBe(true);
+      const outside = path.join(f.root, "outside.jsonl");
+      fs.writeFileSync(outside, f.bytes);
+      expect(() =>
+        copyHistoryRollouts(
+          [{ ...f.thread, path: outside }],
+          sourceHome,
+          targetHome,
+        ),
+      ).toThrow(/inside/);
+      expect(() =>
+        copyHistoryRollouts([f.thread], sourceHome, f.sourceHome),
+      ).toThrow(/homes must differ/);
+    },
+  );
+
   it("accepts a namespaced generated rollout path while retaining its isolated root", () => {
     const f = fixture();
     const copied = copyHistoryRollouts(
@@ -635,6 +678,134 @@ describe("isolated generated rollout copying", () => {
         copyHistoryRollouts([f.thread], f.sourceHome, f.targetHome),
       ).toThrow(/links/);
       if (side === "destination") expect(fs.readdirSync(external)).toEqual([]);
+    },
+  );
+});
+
+describe("failed history pagination evidence", () => {
+  const params = {
+    limit: 1,
+    sortKey: "recency_at",
+    sortDirection: "asc",
+    useStateDbOnly: false,
+    sourceKinds: ["appServer"],
+  };
+  it.each([
+    [
+      "cursor",
+      { data: [{ id: "b" }], nextCursor: "next" },
+      /repeated history cursor/,
+    ],
+    [
+      "identity",
+      { data: [{ id: "a" }], nextCursor: null },
+      /duplicate history identity/,
+    ],
+  ])(
+    "retains both raw pages when %s validation fails",
+    async (stage, second, message) => {
+      const first = { data: [{ id: "a" }], nextCursor: "next" };
+      let calls = 0;
+      const request = async () => [first, second][calls++];
+      const checks = createHistoryCheckRecorder();
+      await checks.check("cold-asc:first-scan", () =>
+        collectHistoryPages(request, "thread/list", params),
+      );
+      expect(calls).toBe(2);
+      expect(() => checks.assertPassed()).toThrow(message);
+      const evidence = checks.failures[0].historyPagination;
+      expect(evidence.failure).toEqual({ stage, page: 2 });
+      expect(evidence.attempts).toEqual([
+        { page: 1, params, response: first },
+        { page: 2, params: { ...params, cursor: "next" }, response: second },
+      ]);
+      first.data[0].id = "mutated-after-failure";
+      expect(evidence.attempts[0].response.data[0].id).toBe("a");
+      expect(
+        JSON.parse(JSON.stringify(checks.failures))[0].historyPagination,
+      ).toEqual(evidence);
+    },
+  );
+  it("preserves the second-page timeout and its unanswered request", async () => {
+    const request = async (_method, query) =>
+      query.cursor
+        ? bounded(new Promise(() => {}), 10, "second history page")
+        : { data: [{ id: "a" }], nextCursor: "next" };
+    const keepAlive = setTimeout(() => {}, 1000);
+    try {
+      let caught;
+      try {
+        await collectHistoryPages(request, "thread/list", params);
+      } catch (error) {
+        caught = error;
+      }
+      expect(caught.message).toBe("second history page timed out");
+      expect(getHistoryPagination(caught)).toMatchObject({
+        method: "thread/list",
+        params,
+        pages: [{ ids: ["a"], nextCursor: "next" }],
+        failure: { stage: "request", page: 2 },
+        attempts: [
+          { page: 1 },
+          { page: 2, params: { ...params, cursor: "next" } },
+        ],
+      });
+      expect(getHistoryPagination(caught).attempts[1]).not.toHaveProperty(
+        "response",
+      );
+      const checks = createHistoryCheckRecorder();
+      await checks.check("cold", async () => {
+        throw caught;
+      });
+      await checks.check("later-full-read", async () => {});
+      try {
+        checks.assertPassed();
+      } catch (error) {
+        expect(error).toBe(caught);
+      }
+    } finally {
+      clearTimeout(keepAlive);
+    }
+  });
+});
+
+describe("history evidence with immutable transport errors", () => {
+  it.each([Object.freeze, Object.preventExtensions])(
+    "preserves immutable Error identity and code",
+    async (protect) => {
+      const original = protect(
+        Object.assign(new Error("transport timeout"), { code: "ETIMEDOUT" }),
+      );
+      let calls = 0;
+      const request = async () => {
+        if (calls++ === 0) return { data: [{ id: "a" }], nextCursor: "next" };
+        throw original;
+      };
+      const checks = createHistoryCheckRecorder();
+      await checks.check("cold-asc:first-scan", () =>
+        collectHistoryPages(request, "thread/list", { limit: 1 }),
+      );
+      expect(calls).toBe(2);
+      expect(original.code).toBe("ETIMEDOUT");
+      expect(Object.hasOwn(original, "historyPagination")).toBe(false);
+      let thrown;
+      try {
+        checks.assertPassed();
+      } catch (error) {
+        thrown = error;
+      }
+      expect(thrown).toBe(original);
+      expect(getHistoryPagination(original)).toMatchObject({
+        failure: { stage: "request", page: 2 },
+        pages: [{ ids: ["a"], nextCursor: "next" }],
+        attempts: [
+          { page: 1 },
+          { page: 2, params: { limit: 1, cursor: "next" } },
+        ],
+      });
+      expect(
+        JSON.parse(JSON.stringify(checks.failures))[0].historyPagination,
+      ).toEqual(getHistoryPagination(original));
     },
   );
 });

@@ -1,0 +1,6 @@
+[2026-11-09T00:19:19.774Z] IDE bridge self-probe error: ETIMEDOUT
+[2026-11-09T00:19:20.197Z] IDE bridge self-probe error: ETIMEDOUT
+[2026-11-09T00:19:20.620Z] IDE bridge self-probe error: ETIMEDOUT
+[2026-11-09T00:19:21.040Z] IDE bridge self-probe error: ETIMEDOUT
+[2026-11-09T00:19:21.461Z] IDE bridge self-probe error: ETIMEDOUT
+[2026-11-09T00:19:21.950Z] start failed: IDE bridge listener was not reachable on 127.0.0.1:55935

@@ -1,0 +1,27 @@
+{
+  "schema": "chainlesschain.codex-167-current-head-boundary/v1",
+  "capturedAt": "2026-11-09",
+  "historicalNativeSourceCommit": "e55e99ca22eda1f202d516e42ef306ee9cf28af6",
+  "currentHead": "5cb59d7616ff9db18922b49c6ab56287fee79db6",
+  "relevantPaths": [
+    "packages/cli/src/lib/codex-app-server-adapter.js",
+    "packages/cli/scripts/codex-app-server-turn-probe.mjs",
+    "packages/cli/scripts/codex-app-server-history-probe.mjs",
+    "packages/cli/__tests__/unit/codex-app-server-history-probe.test.js"
+  ],
+  "changedRelevantPaths": [
+    "packages/cli/__tests__/unit/codex-app-server-history-probe.test.js",
+    "packages/cli/scripts/codex-app-server-history-probe.mjs",
+    "packages/cli/scripts/codex-app-server-turn-probe.mjs"
+  ],
+  "commitsAfterHistoricalReceipt": [
+    "b60efe3a7c79d91c7994bddf18631e9b9f47adef fix(cli): register app server schema integer formats",
+    "8eadb310ffb0032940a58f9654fbb92392c45bfe fix(cli): support app server schema int64 format",
+    "e4e8eb21a653079de16cf2e0ac7c55fad26ab7ca fix(cli): preserve cold scan failure evidence",
+    "4ba7832e6a6766377748f4ee1e4b91fed6642768 fix(merge): integrate seven PRs and repair compatibility regressions"
+  ],
+  "historicalNativeReceiptCurrentHeadVerified": false,
+  "reason": "Codex App Server adapter/probe/history sources changed after the historical .167 native receipt; no .167 native binary is available locally for a current-HEAD rerun.",
+  "staticCurrentHeadVerified": true,
+  "productionAdmission": false
+}

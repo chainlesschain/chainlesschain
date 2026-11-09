@@ -257,3 +257,21 @@ docs/research/cli-ide/implementation/evidence/mcp-task-durable-20261108/* -text
 packages/cli/__tests__/fixtures/memory-query-index-e7.mjs.txt -text !eol -whitespace
 docs/research/cli-ide/implementation/evidence/mcp-task-delivery-20261108/* -text
 docs/research/cli-ide/implementation/evidence/model-input-mapping-20261108/* -text whitespace=cr-at-eol
+
+# Preserve measured local semantic source and raw evidence byte identities.
+packages/cli/src/lib/context-memory-kernel/local-semantic-worker.py -text
+docs/cli/evidence/local-memory-semantic-20261108/* -text
+# Keep original REPL crash recovery evidence bytes.
+docs/cli/evidence/repl-inflight-recovery-20261108/raw/** -text
+# Keep current accepted/settled post-wire crash evidence bytes.
+docs/cli/evidence/repl-input-durability-post-wire-20261108/raw/** -text !eol -whitespace
+# Preserve the real provider receipt byte-for-byte; it contains only digests and usage.
+docs/research/cli/evidence/real-volcengine-live-20261108/agent-read-file/receipt.json -text !eol -whitespace
+# Preserve the bounded real MCP provider receipt byte-for-byte.
+docs/cli/evidence/mcp-context-real-volcengine-20261108/receipt.json -text !eol -whitespace
+# Preserve the bounded real MCP Recall@5 receipt byte-for-byte.
+docs/cli/evidence/mcp-context-real-volcengine-recall5-20261108/receipt.json -text !eol -whitespace
+# Preserve the bounded real MCP deferred/full A/B receipt byte-for-byte.
+docs/cli/evidence/mcp-context-real-volcengine-ab3-20261108/receipt.json -text !eol -whitespace
+# Preserve the bounded real MCP host round-trip receipt byte-for-byte.
+docs/cli/evidence/mcp-context-real-volcengine-host-roundtrip-20261108/receipt.json -text !eol -whitespace

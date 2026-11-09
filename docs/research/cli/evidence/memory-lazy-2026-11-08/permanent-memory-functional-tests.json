@@ -1,0 +1,924 @@
+{
+  "numTotalTestSuites": 38,
+  "numPassedTestSuites": 38,
+  "numFailedTestSuites": 0,
+  "numPendingTestSuites": 0,
+  "numTotalTests": 83,
+  "numPassedTests": 83,
+  "numFailedTests": 0,
+  "numPendingTests": 0,
+  "numTodoTests": 0,
+  "snapshot": {
+    "added": 0,
+    "failure": false,
+    "filesAdded": 0,
+    "filesRemoved": 0,
+    "filesRemovedList": [],
+    "filesUnmatched": 0,
+    "filesUpdated": 0,
+    "matched": 0,
+    "total": 0,
+    "unchecked": 0,
+    "uncheckedKeysByFile": [],
+    "unmatched": 0,
+    "updated": 0,
+    "didUpdate": false
+  },
+  "startTime": 1794098809996,
+  "success": true,
+  "testResults": [
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": ["PermanentMemoryManager", "Daily Notes"],
+          "fullName": "PermanentMemoryManager Daily Notes should create daily notes directory on initialization",
+          "status": "passed",
+          "title": "should create daily notes directory on initialization",
+          "duration": 23.52479999999923,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["PermanentMemoryManager", "Daily Notes"],
+          "fullName": "PermanentMemoryManager Daily Notes should write a new daily note",
+          "status": "passed",
+          "title": "should write a new daily note",
+          "duration": 13.974199999996927,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["PermanentMemoryManager", "Daily Notes"],
+          "fullName": "PermanentMemoryManager Daily Notes should append to existing daily note",
+          "status": "passed",
+          "title": "should append to existing daily note",
+          "duration": 15.532200000001467,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["PermanentMemoryManager", "Daily Notes"],
+          "fullName": "PermanentMemoryManager Daily Notes should return null for non-existent daily note",
+          "status": "passed",
+          "title": "should return null for non-existent daily note",
+          "duration": 6.405999999995402,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["PermanentMemoryManager", "MEMORY.md"],
+          "fullName": "PermanentMemoryManager MEMORY.md should create MEMORY.md on initialization",
+          "status": "passed",
+          "title": "should create MEMORY.md on initialization",
+          "duration": 7.448100000001432,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["PermanentMemoryManager", "MEMORY.md"],
+          "fullName": "PermanentMemoryManager MEMORY.md should have default sections",
+          "status": "passed",
+          "title": "should have default sections",
+          "duration": 7.043400000002293,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["PermanentMemoryManager", "MEMORY.md"],
+          "fullName": "PermanentMemoryManager MEMORY.md should append to a specific section",
+          "status": "passed",
+          "title": "should append to a specific section",
+          "duration": 8.16359999999986,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["PermanentMemoryManager", "MEMORY.md"],
+          "fullName": "PermanentMemoryManager MEMORY.md should create section if not exists",
+          "status": "passed",
+          "title": "should create section if not exists",
+          "duration": 8.10570000000007,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["PermanentMemoryManager", "saveToMemory"],
+          "fullName": "PermanentMemoryManager saveToMemory should save to daily notes by default",
+          "status": "passed",
+          "title": "should save to daily notes by default",
+          "duration": 30.091699999997218,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["PermanentMemoryManager", "saveToMemory"],
+          "fullName": "PermanentMemoryManager saveToMemory should save discovery to MEMORY.md",
+          "status": "passed",
+          "title": "should save discovery to MEMORY.md",
+          "duration": 8.446199999998498,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["PermanentMemoryManager", "saveToMemory"],
+          "fullName": "PermanentMemoryManager saveToMemory should save solution to correct section",
+          "status": "passed",
+          "title": "should save solution to correct section",
+          "duration": 6.99659999999858,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["PermanentMemoryManager", "saveToMemory"],
+          "fullName": "PermanentMemoryManager saveToMemory should save preference to correct section",
+          "status": "passed",
+          "title": "should save preference to correct section",
+          "duration": 9.193500000001222,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "PermanentMemoryManager",
+            "extractFromConversation"
+          ],
+          "fullName": "PermanentMemoryManager extractFromConversation passes discovery prompts through the standard LLM chat signature",
+          "status": "passed",
+          "title": "passes discovery prompts through the standard LLM chat signature",
+          "duration": 9.161499999994703,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "PermanentMemoryManager",
+            "extractFromConversation"
+          ],
+          "fullName": "PermanentMemoryManager extractFromConversation should extract conversation to daily notes",
+          "status": "passed",
+          "title": "should extract conversation to daily notes",
+          "duration": 12.36540000000241,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "PermanentMemoryManager",
+            "extractFromConversation"
+          ],
+          "fullName": "PermanentMemoryManager extractFromConversation should throw on empty messages",
+          "status": "passed",
+          "title": "should throw on empty messages",
+          "duration": 10.588299999995797,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "PermanentMemoryManager",
+            "extractFromConversation"
+          ],
+          "fullName": "PermanentMemoryManager extractFromConversation should build conversation summary correctly",
+          "status": "passed",
+          "title": "should build conversation summary correctly",
+          "duration": 13.242200000000594,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["PermanentMemoryManager", "getMemorySections"],
+          "fullName": "PermanentMemoryManager getMemorySections should return all sections",
+          "status": "passed",
+          "title": "should return all sections",
+          "duration": 8.274799999999232,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["PermanentMemoryManager", "getMemorySections"],
+          "fullName": "PermanentMemoryManager getMemorySections should track section item count",
+          "status": "passed",
+          "title": "should track section item count",
+          "duration": 8.154699999999139,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["PermanentMemoryManager", "getMemorySections"],
+          "fullName": "PermanentMemoryManager getMemorySections should not cause infinite loop",
+          "status": "passed",
+          "title": "should not cause infinite loop",
+          "duration": 8.708699999995588,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["PermanentMemoryManager", "getStats"],
+          "fullName": "PermanentMemoryManager getStats should return stats object",
+          "status": "passed",
+          "title": "should return stats object",
+          "duration": 10.622999999999593,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["PermanentMemoryManager", "getTodayDate"],
+          "fullName": "PermanentMemoryManager getTodayDate should return date in YYYY-MM-DD format",
+          "status": "passed",
+          "title": "should return date in YYYY-MM-DD format",
+          "duration": 4.569400000000314,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        }
+      ],
+      "startTime": 1794098847731,
+      "endTime": 1794098847963.5693,
+      "status": "passed",
+      "message": "",
+      "name": "E:/code/chainlesschain/desktop-app-vue/tests/unit/llm/permanent-memory-manager.test.js"
+    },
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": ["Desktop canonical permanent-memory adapter"],
+          "fullName": "Desktop canonical permanent-memory adapter writes and reads daily notes through fixed App Server methods",
+          "status": "passed",
+          "title": "writes and reads daily notes through fixed App Server methods",
+          "duration": 7.8902000000016415,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["Desktop canonical permanent-memory adapter"],
+          "fullName": "Desktop canonical permanent-memory adapter replaces the editable MEMORY projection with revision-CAS supersede decisions",
+          "status": "passed",
+          "title": "replaces the editable MEMORY projection with revision-CAS supersede decisions",
+          "duration": 3.6304000000018277,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["Desktop canonical permanent-memory adapter"],
+          "fullName": "Desktop canonical permanent-memory adapter maps canonical recall into the existing renderer search projection",
+          "status": "passed",
+          "title": "maps canonical recall into the existing renderer search projection",
+          "duration": 1.7620999999999185,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["Desktop canonical permanent-memory adapter"],
+          "fullName": "Desktop canonical permanent-memory adapter fails closed when the canonical App Server is unavailable",
+          "status": "passed",
+          "title": "fails closed when the canonical App Server is unavailable",
+          "duration": 0.6845000000030268,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        }
+      ],
+      "startTime": 1794098846789,
+      "endTime": 1794098846802.7622,
+      "status": "passed",
+      "message": "",
+      "name": "E:/code/chainlesschain/desktop-app-vue/src/main/context-memory/__tests__/permanent-memory-adapter.test.js"
+    },
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": ["PermanentMemory IPC canonical cutover"],
+          "fullName": "PermanentMemory IPC canonical cutover registers only the renderer-consumed permanent memory routes",
+          "status": "passed",
+          "title": "registers only the renderer-consumed permanent memory routes",
+          "duration": 5.612399999998161,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["PermanentMemory IPC canonical cutover"],
+          "fullName": "PermanentMemory IPC canonical cutover routes production reads and writes to the canonical adapter",
+          "status": "passed",
+          "title": "routes production reads and writes to the canonical adapter",
+          "duration": 4.165199999995821,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["PermanentMemory IPC canonical cutover"],
+          "fullName": "PermanentMemory IPC canonical cutover keeps canonical routes available without a legacy manager",
+          "status": "passed",
+          "title": "keeps canonical routes available without a legacy manager",
+          "duration": 2.615700000002107,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        }
+      ],
+      "startTime": 1794098847167,
+      "endTime": 1794098847179.6157,
+      "status": "passed",
+      "message": "",
+      "name": "E:/code/chainlesschain/desktop-app-vue/src/main/context-memory/__tests__/permanent-memory-ipc-cutover.test.js"
+    },
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": ["BM25Search", "constructor"],
+          "fullName": "BM25Search constructor should initialize with default options",
+          "status": "passed",
+          "title": "should initialize with default options",
+          "duration": 7.50959999999759,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["BM25Search", "constructor"],
+          "fullName": "BM25Search constructor should initialize with custom options",
+          "status": "passed",
+          "title": "should initialize with custom options",
+          "duration": 8.622600000002421,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["BM25Search", "constructor"],
+          "fullName": "BM25Search constructor should create Chinese tokenizer for zh language",
+          "status": "passed",
+          "title": "should create Chinese tokenizer for zh language",
+          "duration": 2.841999999996915,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["BM25Search", "constructor"],
+          "fullName": "BM25Search constructor should create English tokenizer for en language",
+          "status": "passed",
+          "title": "should create English tokenizer for en language",
+          "duration": 3.283900000002177,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["BM25Search", "indexDocuments"],
+          "fullName": "BM25Search indexDocuments should index documents",
+          "status": "passed",
+          "title": "should index documents",
+          "duration": 3.4403999999994994,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["BM25Search", "indexDocuments"],
+          "fullName": "BM25Search indexDocuments should calculate average document length",
+          "status": "passed",
+          "title": "should calculate average document length",
+          "duration": 3.0358000000051106,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["BM25Search", "indexDocuments"],
+          "fullName": "BM25Search indexDocuments should store document metadata",
+          "status": "passed",
+          "title": "should store document metadata",
+          "duration": 3.0253999999986263,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["BM25Search", "indexDocuments"],
+          "fullName": "BM25Search indexDocuments should clear previous index when re-indexing",
+          "status": "passed",
+          "title": "should clear previous index when re-indexing",
+          "duration": 3.40230000000156,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["BM25Search", "search"],
+          "fullName": "BM25Search search should return empty array for empty index",
+          "status": "passed",
+          "title": "should return empty array for empty index",
+          "duration": 5.179700000000594,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["BM25Search", "search"],
+          "fullName": "BM25Search search should return matching documents",
+          "status": "passed",
+          "title": "should return matching documents",
+          "duration": 3.0993000000016764,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["BM25Search", "search"],
+          "fullName": "BM25Search search should rank documents by relevance",
+          "status": "passed",
+          "title": "should rank documents by relevance",
+          "duration": 2.987600000000384,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["BM25Search", "search"],
+          "fullName": "BM25Search search should respect limit parameter",
+          "status": "passed",
+          "title": "should respect limit parameter",
+          "duration": 2.6266000000032363,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["BM25Search", "search"],
+          "fullName": "BM25Search search should filter by threshold",
+          "status": "passed",
+          "title": "should filter by threshold",
+          "duration": 4.072500000002037,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["BM25Search", "search"],
+          "fullName": "BM25Search search should return empty for empty query",
+          "status": "passed",
+          "title": "should return empty for empty query",
+          "duration": 3.3372999999992317,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["BM25Search", "search"],
+          "fullName": "BM25Search search should include document and score in results",
+          "status": "passed",
+          "title": "should include document and score in results",
+          "duration": 3.297000000005937,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["BM25Search", "calculateBM25Score"],
+          "fullName": "BM25Search calculateBM25Score should calculate positive score for matching terms",
+          "status": "passed",
+          "title": "should calculate positive score for matching terms",
+          "duration": 3.8377000000036787,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["BM25Search", "calculateBM25Score"],
+          "fullName": "BM25Search calculateBM25Score should give higher score for more frequent terms",
+          "status": "passed",
+          "title": "should give higher score for more frequent terms",
+          "duration": 4.895100000001548,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["BM25Search", "calculateBM25Score"],
+          "fullName": "BM25Search calculateBM25Score should return zero for non-matching terms",
+          "status": "passed",
+          "title": "should return zero for non-matching terms",
+          "duration": 6.302400000000489,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["BM25Search", "getTermFrequency"],
+          "fullName": "BM25Search getTermFrequency should count term occurrences",
+          "status": "passed",
+          "title": "should count term occurrences",
+          "duration": 3.878599999996368,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["BM25Search", "getTermFrequency"],
+          "fullName": "BM25Search getTermFrequency should return zero for missing terms",
+          "status": "passed",
+          "title": "should return zero for missing terms",
+          "duration": 4.0671000000002095,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["BM25Search", "getDocumentFrequency"],
+          "fullName": "BM25Search getDocumentFrequency should count documents containing term",
+          "status": "passed",
+          "title": "should count documents containing term",
+          "duration": 3.2175999999963096,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "BM25Search",
+            "Chinese (default language) term frequency — regression"
+          ],
+          "fullName": "BM25Search Chinese (default language) term frequency — regression counts repeated Chinese tokens instead of capping at 1",
+          "status": "passed",
+          "title": "counts repeated Chinese tokens instead of capping at 1",
+          "duration": 3.592799999998533,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "BM25Search",
+            "Chinese (default language) term frequency — regression"
+          ],
+          "fullName": "BM25Search Chinese (default language) term frequency — regression ranks a doc with more occurrences of the query term higher",
+          "status": "passed",
+          "title": "ranks a doc with more occurrences of the query term higher",
+          "duration": 2.850399999995716,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["BM25Search", "addDocument"],
+          "fullName": "BM25Search addDocument should add document to index",
+          "status": "passed",
+          "title": "should add document to index",
+          "duration": 2.9468999999953667,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["BM25Search", "addDocument"],
+          "fullName": "BM25Search addDocument should update average document length",
+          "status": "passed",
+          "title": "should update average document length",
+          "duration": 2.79320000000007,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["BM25Search", "addDocument"],
+          "fullName": "BM25Search addDocument guards avgDocLength against an all-empty-token corpus (no NaN scoring)",
+          "status": "passed",
+          "title": "guards avgDocLength against an all-empty-token corpus (no NaN scoring)",
+          "duration": 3.32039999999688,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["BM25Search", "removeDocument"],
+          "fullName": "BM25Search removeDocument should remove document from index",
+          "status": "passed",
+          "title": "should remove document from index",
+          "duration": 4.017500000001746,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["BM25Search", "removeDocument"],
+          "fullName": "BM25Search removeDocument should handle removal of non-existent document",
+          "status": "passed",
+          "title": "should handle removal of non-existent document",
+          "duration": 3.138699999995879,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["BM25Search", "clear"],
+          "fullName": "BM25Search clear should clear all indexed data",
+          "status": "passed",
+          "title": "should clear all indexed data",
+          "duration": 2.9038999999975204,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["BM25Search", "getStats"],
+          "fullName": "BM25Search getStats should return statistics",
+          "status": "passed",
+          "title": "should return statistics",
+          "duration": 3.2713000000003376,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        }
+      ],
+      "startTime": 1794098848357,
+      "endTime": 1794098848473.2712,
+      "status": "passed",
+      "message": "",
+      "name": "E:/code/chainlesschain/desktop-app-vue/src/main/rag/__tests__/bm25-search.test.js"
+    },
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": ["HybridSearchEngine", "constructor"],
+          "fullName": "HybridSearchEngine constructor should require ragManager",
+          "status": "passed",
+          "title": "should require ragManager",
+          "duration": 5.158400000000256,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["HybridSearchEngine", "constructor"],
+          "fullName": "HybridSearchEngine constructor should initialize with default options",
+          "status": "passed",
+          "title": "should initialize with default options",
+          "duration": 3.5608999999967637,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["HybridSearchEngine", "constructor"],
+          "fullName": "HybridSearchEngine constructor should initialize with custom options",
+          "status": "passed",
+          "title": "should initialize with custom options",
+          "duration": 3.4133999999976368,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["HybridSearchEngine", "constructor"],
+          "fullName": "HybridSearchEngine constructor should create BM25Search instance",
+          "status": "passed",
+          "title": "should create BM25Search instance",
+          "duration": 2.7471000000005006,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["HybridSearchEngine", "indexDocuments"],
+          "fullName": "HybridSearchEngine indexDocuments should index documents",
+          "status": "passed",
+          "title": "should index documents",
+          "duration": 4.92160000000149,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["HybridSearchEngine", "indexDocuments"],
+          "fullName": "HybridSearchEngine indexDocuments should cache documents",
+          "status": "passed",
+          "title": "should cache documents",
+          "duration": 5.555400000004738,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["HybridSearchEngine", "search"],
+          "fullName": "HybridSearchEngine search should perform hybrid search",
+          "status": "passed",
+          "title": "should perform hybrid search",
+          "duration": 7.0777000000016415,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["HybridSearchEngine", "search"],
+          "fullName": "HybridSearchEngine search should respect limit parameter",
+          "status": "passed",
+          "title": "should respect limit parameter",
+          "duration": 7.10229999999865,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["HybridSearchEngine", "search"],
+          "fullName": "HybridSearchEngine search should filter by threshold",
+          "status": "passed",
+          "title": "should filter by threshold",
+          "duration": 6.313099999999395,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["HybridSearchEngine", "search"],
+          "fullName": "HybridSearchEngine search should disable vector search when enableVector is false",
+          "status": "passed",
+          "title": "should disable vector search when enableVector is false",
+          "duration": 8.038899999999558,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["HybridSearchEngine", "search"],
+          "fullName": "HybridSearchEngine search should disable BM25 search when enableBM25 is false",
+          "status": "passed",
+          "title": "should disable BM25 search when enableBM25 is false",
+          "duration": 5.552499999997963,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["HybridSearchEngine", "search"],
+          "fullName": "HybridSearchEngine search should handle vector search errors gracefully",
+          "status": "passed",
+          "title": "should handle vector search errors gracefully",
+          "duration": 12.7274000000034,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["HybridSearchEngine", "vectorSearch"],
+          "fullName": "HybridSearchEngine vectorSearch should call ragManager.search",
+          "status": "passed",
+          "title": "should call ragManager.search",
+          "duration": 4.108399999997346,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["HybridSearchEngine", "vectorSearch"],
+          "fullName": "HybridSearchEngine vectorSearch should transform results to unified format",
+          "status": "passed",
+          "title": "should transform results to unified format",
+          "duration": 2.548799999996845,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["HybridSearchEngine", "vectorSearch"],
+          "fullName": "HybridSearchEngine vectorSearch should return empty array on error",
+          "status": "passed",
+          "title": "should return empty array on error",
+          "duration": 3.3519999999989523,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["HybridSearchEngine", "fusionRank"],
+          "fullName": "HybridSearchEngine fusionRank should merge results using RRF algorithm",
+          "status": "passed",
+          "title": "should merge results using RRF algorithm",
+          "duration": 2.6573999999964144,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["HybridSearchEngine", "fusionRank"],
+          "fullName": "HybridSearchEngine fusionRank should include documents from both sources",
+          "status": "passed",
+          "title": "should include documents from both sources",
+          "duration": 3.0146999999997206,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["HybridSearchEngine", "fusionRank"],
+          "fullName": "HybridSearchEngine fusionRank should sort by score descending",
+          "status": "passed",
+          "title": "should sort by score descending",
+          "duration": 2.41370000000461,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["HybridSearchEngine", "fusionRank"],
+          "fullName": "HybridSearchEngine fusionRank should set source as hybrid",
+          "status": "passed",
+          "title": "should set source as hybrid",
+          "duration": 2.117899999997462,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["HybridSearchEngine", "fusionRank"],
+          "fullName": "HybridSearchEngine fusionRank should handle empty inputs",
+          "status": "passed",
+          "title": "should handle empty inputs",
+          "duration": 2.5288000000000466,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["HybridSearchEngine", "addDocument"],
+          "fullName": "HybridSearchEngine addDocument should add document to cache and BM25 index",
+          "status": "passed",
+          "title": "should add document to cache and BM25 index",
+          "duration": 3.471400000002177,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["HybridSearchEngine", "removeDocument"],
+          "fullName": "HybridSearchEngine removeDocument should remove document from cache",
+          "status": "passed",
+          "title": "should remove document from cache",
+          "duration": 6.84429999999702,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["HybridSearchEngine", "clear"],
+          "fullName": "HybridSearchEngine clear should clear all data",
+          "status": "passed",
+          "title": "should clear all data",
+          "duration": 6.244200000001001,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["HybridSearchEngine", "getStats"],
+          "fullName": "HybridSearchEngine getStats should return statistics",
+          "status": "passed",
+          "title": "should return statistics",
+          "duration": 4.342799999998533,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["HybridSearchEngine", "updateWeights"],
+          "fullName": "HybridSearchEngine updateWeights should update weights",
+          "status": "passed",
+          "title": "should update weights",
+          "duration": 2.2479999999995925,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        }
+      ],
+      "startTime": 1794098848365,
+      "endTime": 1794098848484.248,
+      "status": "passed",
+      "message": "",
+      "name": "E:/code/chainlesschain/desktop-app-vue/src/main/rag/__tests__/hybrid-search-engine.test.js"
+    }
+  ]
+}

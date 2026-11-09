@@ -1,0 +1,11 @@
+{"stage":"prepared","at":"2026-11-08T05:16:57.846Z"}
+{"stage":"install_started","at":"2026-11-08T05:16:58.153Z"}
+{"stage":"install_completed","at":"2026-11-08T05:19:59.613Z"}
+{"stage":"list_started","at":"2026-11-08T05:19:59.613Z"}
+{"stage":"list_completed","at":"2026-11-08T05:19:59.801Z"}
+{"stage":"download_started","at":"2026-11-08T05:19:59.802Z"}
+{"stage":"download_completed","at":"2026-11-08T05:19:59.802Z"}
+{"stage":"multi_window_started","at":"2026-11-08T05:19:59.802Z"}
+{"stage":"journey_failed","at":"2026-11-08T05:20:17.284Z"}
+{"stage":"evidence_started","at":"2026-11-08T05:20:17.290Z"}
+{"stage":"evidence_completed","at":"2026-11-08T05:20:17.509Z"}

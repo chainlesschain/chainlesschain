@@ -1,0 +1,48 @@
+{
+  "schema": "chainlesschain.ide-journey-evidence",
+  "schemaVersion": 2,
+  "manifestVersion": "1.9.41",
+  "journeyId": "jetbrains-chat-control-workbench-restart-rewind",
+  "required": true,
+  "releaseCommit": "ab0c6982c7740d2bfe73add655aafbb755c7b957",
+  "host": {
+    "name": "jetbrains",
+    "version": "2024.2",
+    "operatingSystem": "win32",
+    "architecture": "x64",
+    "transport": "local-ide-bridge"
+  },
+  "cliVersion": "0.166.145",
+  "extensionVersion": "0.4.198",
+  "startedAt": "2026-11-08T18:29:56.428Z",
+  "finishedAt": "2026-11-08T18:30:01.010Z",
+  "result": "failed",
+  "evidenceComplete": false,
+  "artifactBundleDigest": "sha256:c193917d4defcfb86cb3f0ee1efa64c10bde9c634b423a3e93edd71141290c4d",
+  "artifacts": [
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/001-prepare.stderr.log",
+      "sha256": "sha256:0a730eead7ba21bf36332c11a3e8625a1179601e7d4103c2c04144cf2d9ec80b",
+      "bytes": 14419,
+      "truncated": false,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/002-prepare.stdout.log",
+      "sha256": "sha256:8ed7023fe49f9a6c8f6a16ea94838872076cbf9f0e33d45247d6dc1e905294dc",
+      "bytes": 232,
+      "truncated": false,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    }
+  ],
+  "incidents": [
+    {
+      "code": "required-artifact-missing"
+    }
+  ],
+  "evidenceDigest": "sha256:29cbd4fe3caa83de33161372ae3d5615cc80b7d14d867603b7f2a210337ce509"
+}

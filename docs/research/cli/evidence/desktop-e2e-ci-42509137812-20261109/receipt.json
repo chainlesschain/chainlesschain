@@ -1,0 +1,18 @@
+{
+  "schema":"chainlesschain.desktop-e2e-ci-evidence/v1",
+  "runId":42509137812,
+  "workflow":"E2E Tests",
+  "headSha":"5d62ee9533e3f2f903d55930ca3c0f72a682c642",
+  "event":"pull_request",
+  "conclusion":"success",
+  "jobs":{
+    "windows-latest":"success",
+    "ubuntu-latest":"success",
+    "macos-latest":"success"
+  },
+  "validatedSteps":["build desktop app main process","build desktop app renderer","run E2E smoke tests","upload test results"],
+  "scope":"Electron/Playwright desktop smoke matrix",
+  "currentHeadVerified":false,
+  "fullIdeTaskJourneyVerified":false,
+  "remoteMutation":false
+}

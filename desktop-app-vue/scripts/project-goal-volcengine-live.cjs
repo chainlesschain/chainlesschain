@@ -7,7 +7,7 @@ const fs = require("node:fs"),
 const { pathToFileURL } = require("node:url");
 const assert = require("node:assert/strict");
 const ROOT = path.resolve(__dirname, "../..");
-const OUT = path.join(
+const DEFAULT_OUT = path.join(
   ROOT,
   "docs/research/agents/evidence/dmm-volcengine-live-2026-11-06",
 );
@@ -49,7 +49,11 @@ const sourceFiles = [
 ];
 async function main() {
   const args = process.argv.slice(2);
-  if (args.length !== 1 || !["--inspect", "--confirm-live"].includes(args[0]))
+  if (
+    !["--inspect", "--confirm-live"].includes(args[0]) ||
+    (args.length !== 1 &&
+      !(args.length === 3 && args[1] === "--output-dir" && args[2]))
+  )
     throw new Error("EXPLICIT_LIVE_FLAG_REQUIRED");
   const llm = await config();
   const safeConfig = {
@@ -62,10 +66,22 @@ async function main() {
     console.log(JSON.stringify(safeConfig));
     return;
   }
-  fs.mkdirSync(OUT, { recursive: true });
+  const outputRoot = path.resolve(args[2] || DEFAULT_OUT);
+  const evidenceRoot = path.resolve(
+    ROOT,
+    "docs/research/cli/evidence",
+  );
+  const relation = path.relative(evidenceRoot, outputRoot);
+  if (
+    !relation ||
+    relation.startsWith(".." + path.sep) ||
+    path.isAbsolute(relation)
+  )
+    throw new Error("OUTPUT_DIR_MUST_BE_UNDER_CLI_EVIDENCE");
+  fs.mkdirSync(outputRoot, { recursive: true });
   // Each evidence directory is a single paid attempt. Re-running may spend
   // money, so it must use a new reviewed evidence directory in source.
-  const reportPath = path.join(OUT, "live-results.json");
+  const reportPath = path.join(outputRoot, "live-results.json");
   const fd = fs.openSync(reportPath, "wx");
   const {
     createFixture,

@@ -305,7 +305,7 @@ export async function prepareCanonicalProviderContext(
   });
   options.signal?.throwIfAborted();
   const recall = recallEnabled
-    ? await runtime.kernel.recallMemory(
+    ? await runtime.recallMemory(
         {
           query,
           sink,

@@ -12,6 +12,7 @@ import {
   validateRequest,
   validateResponse,
   quoteNative,
+  nativePricingWindowAt,
   convertToUsd,
 } from "./formal-budget-contract.js";
 
@@ -107,7 +108,28 @@ export class FormalBudgetAuthority {
           config.plan.digest === planDigest,
         "Authority lineage/plan mismatch",
       );
-      this.#config = validateActivation(config, verifyEvidence, now());
+      const activations = this.#db
+        .prepare("SELECT body FROM event WHERE kind='initialized'")
+        .all();
+      requireBudget(
+        activations.length === 1,
+        "Unique durable activation witness required",
+      );
+      const activation = JSON.parse(activations[0].body);
+      const openedAt = now();
+      requireBudget(
+        activation.activationDigest === row.digest &&
+          Number.isSafeInteger(activation.at) &&
+          activation.at >= 0 &&
+          Number.isSafeInteger(openedAt) &&
+          activation.at <= openedAt,
+        "Invalid durable activation time or identity",
+      );
+      // Reopening is also needed to settle an already dispatched request after
+      // its price/FX validity ends. Verify the original activation against its
+      // durable time, then recheck today's expiry in #contract before every
+      // new reservation/dispatch. No expired contract can start a new call.
+      this.#config = validateActivation(config, verifyEvidence, activation.at);
       requireBudget(
         this.#db.pragma("quick_check", { simple: true }) === "ok",
         "Corrupt budget database",
@@ -509,10 +531,17 @@ export class FormalBudgetAuthority {
         validateRequest(contract, body) === call.request_digest,
         "Reserved request changed",
       );
+      const dispatchedAt = this.#now();
+      const pricingWindow = nativePricingWindowAt(contract, dispatchedAt);
       this.#db
         .prepare("UPDATE call SET state='dispatched' WHERE id=?")
         .run(callId);
-      this.#event("dispatch", { callId });
+      this.#event("dispatch", {
+        callId,
+        ...(pricingWindow
+          ? { nativePricing: { dispatchedAt, windowId: pricingWindow.id } }
+          : {}),
+      });
       return JSON.parse(canonical(contract));
     });
   }
@@ -590,7 +619,30 @@ export class FormalBudgetAuthority {
           (rate) => rate.currency === contract.currency,
         );
         const usage = validateResponse(contract, receipt);
-        const native = quoteNative(contract, usage),
+        let nativePricing;
+        if (Object.hasOwn(contract, "pricingWindows")) {
+          const witnesses = this.#db
+            .prepare(
+              "SELECT body FROM event WHERE kind='dispatch' AND json_extract(body,'$.callId')=?",
+            )
+            .all(callId);
+          requireBudget(
+            witnesses.length === 1,
+            "A unique durable dispatch pricing witness is required",
+          );
+          nativePricing = JSON.parse(witnesses[0].body).nativePricing;
+          requireBudget(
+            nativePricing &&
+              Object.keys(nativePricing).length === 2 &&
+              Object.keys(nativePricing).every((key) =>
+                ["dispatchedAt", "windowId"].includes(key),
+              ) &&
+              nativePricingWindowAt(contract, nativePricing.dispatchedAt)
+                ?.id === nativePricing.windowId,
+            "Dispatch pricing witness differs from the attested schedule",
+          );
+        }
+        const native = quoteNative(contract, usage, nativePricing),
           usd = convertToUsd(native, fx);
         requireBudget(
           native <= call.reserved_native && usd <= call.reserved_usd,
@@ -612,6 +664,7 @@ export class FormalBudgetAuthority {
           costUsdMicros: usd,
           costNativeMicros: native,
           currency: contract.currency,
+          ...(nativePricing ? { nativePricing } : {}),
         });
         return {
           costUsdMicros: usd,

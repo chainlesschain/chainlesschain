@@ -1,0 +1,7 @@
+﻿{
+  "startedAt": "2026-11-08T00:11:56.2307228Z",
+  "updatedAt": "2026-11-08T00:55:51.6945881Z",
+  "completedStages": ["recovery", "stop", "mixed"],
+  "status": "complete",
+  "stage": "mixed"
+}

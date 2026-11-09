@@ -1,9 +1,48 @@
 # ChainlessChain 系统概述
 
-> **当前核对（2026-10-28）**：产品 **v5.0.3.143**；CLI **0.166.128**；Open VSX **0.37.166**；JetBrains **0.4.183**，两个 IDE 推荐 **.128**。Agent SDK TS/Python **0.2.16/0.2.9**、Agent Protocol **0.1.12**、Context/Memory Kernel **0.1.10**、Session Core **0.3.24** 与 PDH **0.4.66** 保持独立版本。
->
-> **当前能力与证据范围**：CLI 已公开 Goal 工具证据约束、检查点失败暴露、可选交付复查、共享模型入门与会话覆盖，以及 MCP/Skills/Memory 检索改进。CLI、IDE、产品各自的发行源码与回执分别核验；五平台产品的 22 个资产通过回读。真实任务累计 **32/45**，另有 **13** 项未完成，**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。见[升级指南](./cli-ide-update-2026-10-28)、[CLI Runtime](./cli-runtime-current)和[发行证据](./agent-platform-release)。以下带日期条目保留历史范围。
->
+截至 **2026-11-09**，ChainlessChain 提供本地优先的个人 AI、知识管理、Agent 任务、去中心化通信与跨设备数据入口。CLI、IDE 插件和桌面/移动客户端独立发行；下面分别列出可安装版本与最新源码进展。
+
+## 当前公开版本
+
+| 入口 / 组件                  | 已核对的公开版本    | 使用说明                                                    |
+| ---------------------------- | ------------------- | ----------------------------------------------------------- |
+| CLI                          | **0.166.145**       | npm 官方源可安装；升级后重启旧 CLI / IDE 宿主               |
+| VS Code / Open VSX           | **0.37.181**        | 推荐 CLI .145；下载突破 **7 万+**（项目方确认）             |
+| JetBrains                    | **0.4.198**         | 商店 update 1215424 已批准、列出并可下载；推荐 CLI .145     |
+| PC / Android / iOS           | **v5.0.3.145**      | 独立产品源码与 22 个公开资产；不能据 CLI 版本推断客户端功能 |
+| Session Core / Memory Kernel | **0.3.27 / 0.1.11** | 会话与上下文/记忆共享组件，各自保留独立版本                 |
+| Agent SDK TS / Python        | **0.2.17 / 0.2.9**  | Agent Protocol **0.1.12**                                   |
+| Personal Data Hub            | **0.4.66**          | 个人数据采集、索引与受控访问                                |
+
+源码中的 VS Code **0.37.182** 和产品 **v5.0.3.146** 尚不作为本页已核对的公开下载推荐。CLI .145 不可变发行源为 `4e4b421bfb42e524f071c9ad70c2a2a2ce607374`；本轮主线能力按 `c34a664f42` 及对应提交/证据核对。
+
+```bash
+npm i -g chainlesschain@0.166.145 --registry https://registry.npmjs.org
+cc --version
+cc doctor
+```
+
+[本轮升级指南](./cli-ide-update-2026-11-09-145) · [CLI 使用指南](./cli) · [IDE 安装与配置](./ide-plugin) · [运行时设计](https://design.chainlesschain.com/release-runtime-update-2026-11-09.html)
+
+## 近期能力与交付边界
+
+| 能力                   | 当前状态                                             | 如何使用或判断                                                                                             |
+| ---------------------- | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| 本地算力与模型配置     | 已进入公开 CLI / IDE 组合                            | 显式配置兼容端点、模型 ID、平台凭据和 HTTP 许可；实际模型能力按端点核验                                    |
+| CLI 目标移交与签名恢复 | CLI .145 已有命令                                    | `goal transfer-to-project` / `goal restore-transfer`；原生导入需匹配新桌面构建和显式确认，导入目标保持暂停 |
+| 模型实际输入诊断       | 共享 Runtime 与主线诊断已接入                        | 记录来源选择、发送前复核和用量归因；只读诊断不默认公开完整请求正文                                         |
+| 会话与长任务恢复       | 主线有压缩、重启、运行中追加输入和副作用账本证据     | 先核对原会话/回执；未知外部结果不盲目重放；跨入口完整旅程仍需独立验收                                      |
+| MCP Tasks              | 主线有持久状态、原会话结果交付及可选 auto-wake       | 第三方服务、模型续跑、双 IDE/桌面和多系统旅程按各自证据核验                                                |
+| Memory 与受治理演进    | 主线有发送前授权复核、查询取消/清理及检索诊断        | 自进化开关默认关闭；关闭自动回忆不删除旧记忆，也不撤回已发送内容                                           |
+| 费用与宿主诊断         | 主线有持久计费窗口、过期结算恢复及独立 loopback 诊断 | 合成测试不等于真实账号计价、发票对账、付费准入或真实 GUI 验收                                              |
+
+这些主线变化不全部包含在公开 CLI .145 中。双 IDE/Electron 完整 GUI、跨平台 Memory SLO、真实账号计价/汇率与账单核验仍有开放项，**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。
+
+历史模型任务成绩分别记录：Sol 原冻结项目 **41/45**、含修复项目源码的跨版本累计 **45/45**、独立修正四项 **2/4**；火山历史累计 **36/45**、.140 修正轮生成 **39/45** / 严格验收 **24/45**。这些不是当前版本的同条件一次全量成绩；本次文档更新未新增模型任务。
+
+<details>
+<summary>历史发行与功能增量记录（保留原版本和验证范围）</summary>
+
 > **v5.0.3.127–130 QQ空间一键采集 + 微信朋友圈采集 + §8.3 学习层备份上设备 + 个人助手 UX 收口（2026-06-24）**：QQ空间（Qzone）本地无库走 API——新增 `pdh/lib/forensics/qzone-collect.js`（`g_tk`=bkn hash over qzone 域 `p_skey`；说说/留言板/相册 → EVENT）+ `cc hub collect-qzone` + Android「QQ空间」一键采集卡（内嵌 WebView ptlogin2 登录 → 抓 cookie → in-APK 采集，真机 404 事件）；微信朋友圈 `SnsMicroMsg.db` 明文采集（`parseSnsEvents`，真机 2824 条）；§8.3 学习层备份命令上设备（`cc memory/instinct/learning export/import` → vault + 记忆 + 习惯 + 自进化轨迹全资产端到端备份）；个人助手 UX——卡死静默看门狗（20s 安抚/120s 友好超时+重试/进程退出自动重启）+ 待裁决信任卡固定（sticky）可见不再被消息流滚走。`pdh` 0.4.33→**0.4.36** + `chainlesschain` 0.162.101→**0.162.117** 已发 npm；Android cc bundle `internal-binaries-android-v20260624`（USR_VERSION 58）。
 >
 > **v5.0.3.122–126 个人数据中台 on-device 采集大扩展 + §8.3 跨设备加密备份 + 桌面安全硬化（2026-06-22）**：QQNT `collect-qq`（frida-free，nt_msg.db 解密入库）/ 微信 `collect-wechat`（派生密钥解密 + 解析）/ 通用明文库 `collect-db` + 多 app 通用 Magisk 守护进程（MIUI 全自动上设备）；个人助手 PDH 工具上设备 + node DNS 修复；§8.3 跨设备加密备份引擎（增量同步 + N 路版本并列冲突合并 + 加密块信封 + DID 派生备份密钥 + libp2p P2P 块传输 + 协调器坏块跳过不中断整体恢复）；桌面 IPC 发送方帧信任/actor-identity/param-identity 守卫默认 ENFORCE + 权限 grant/revoke/delegate/bulk-grant 的 RBAC 授权；CLI 数值选项 NaN 守卫 + config.llm 一致化（cc agents·command·cowork·orchestrate 不再误走 ollama）+ cc agents 接线修复；后端校验 500 修复 + 大批新测试。`pdh` 0.4.31 + `chainlesschain` 0.162.99 已发 npm；Android cc bundle `internal-binaries-android-v20260622d`（USR_VERSION 54）。
@@ -80,9 +119,14 @@
 >
 > **v5.0.3.78 Personal Data Hub Plan A v0.1 — Android 端本地数据 hub snapshot 模式真机闭环** | **v5.0.3.78 Personal Data Hub Plan A v0.1 — Android 端本地数据 hub snapshot 模式真机闭环**（Xiaomi 24115RA8EC 真机端到端：1305 entities（通讯录/通话/短信/位置/系统）入 vault · npm `@chainlesschain/personal-data-hub@0.2.1` + `chainlesschain@0.162.14` PDH-first publish ordering · `cc android` 15 子命令 scaffold + `system-data-android` bridge-direct 模式 · **Path C** phone-native snapshot writer + 桌面 ingest pipeline（Kotlin ContentResolver + PackageManager 直采 → WS 推桌面 staging → 既有 adapter snapshot 模式入 vault，完全绕开 A6 JNI）· **Path Y** desktop 返 RAG context + Android-local LLM 推理（DeepSeek + Doubao 等 9 云 LLM 接通）· 3 真机硬化修：originalId required + skip-embeddings flag + audit pagination 拆 1305 → 50/page · Android cc subprocess W^X execve via mksh symlink + reader-thread try/catch(Throwable) EOF race + ingestSystemDataAndroid 30→120s timeout · E2EE 7 androidTest 经 X3DHSimulator state-less E2EESession factories 重新启用 · Phase 14.1 step 5 ChatBubble 落地 + Phase 14.5 streaming-ask 设计 · bootstrap LLMManager 注册为 singleton + web-shell PDH wiring inject CcLLMAdapter · AnalysisEngine reads persons+items（stop hallucinating contact counts）+ LLM ResponseCache bypass for analysis ask · 6 真机 trap 全收口 · 工程基础 100% verified） | **v5.0.3.77 iOS .ipa ship + Phase 14.1 ChatBubble streaming-ask 设计** | **v5.0.3.71/.72 Personal Data Hub 13-phase burst + .72 iOS keychain hotfix repackage**（一晚 15 commits 把 hub 从 Phase 4 推到 Phase 13.7 全收口：Phase 4.5 Python sidecar + SystemDataAdapter 接 4 Android system sources（通讯录/通话/短信/位置） · Phase 7 Shopping three-pack（Taobao + JD + Meituan） · Phase 7.5 Mobile Extraction Layer（Android ADB + iOS iTunes backup） · Phase 9 Travel four-pack · Phase 10.1+10.2 AIChat 8/8 vendors 全部 live（DeepSeek + Kimi h5 API + 通义千问 + 智谱清言 + Doubao + 文心一言 + 讯飞星火 + 腾讯混元） + HttpClient infra · Phase 11 5 个内置 analysis skill · Phase 12 v0.5 WechatAdapter（frida-independent slice） · Phase 13.3-13.7 五 social adapter 落地（Douyin + Xiaohongshu + QQ + Telegram + WhatsApp）+ 13+ Bilibili + Weibo 借 sjqz parser · 38 test files / 792 tests · v5.0.3.72 release infra fix：v5.0.3.71 全 desktop build EUSAGE — root package-lock 与 hub package.json 不同步（adm-zip + iconv-lite hub optional deps 未注册到 root lock），sync lock 后 .72 repackage 同样 iOS keychain fix 真出包 18 assets 完整） | **v5.0.3.70 iOS 三件套 hotfix**（iOS 16 PIN-unlock crash 修 — Logger NSLock 保护 metadata 字典并发 / AuthViewModel.createPrimaryDID SQL 参数走 `execute(_:parameters:)` 重载 / AppIcon 真编进包 — Assets.xcassets 之前被声明为 PBXGroup 没进 PBXResourcesBuildPhase，actool 从未被调用、主屏一直是 wireframe 占位；`.70` 修 pbxproj wiring + Assets.car 真编进 ChainlessChain.app · `.69` 因 publish-cli npm 404 stuck draft 8h+，`.70` bundle .69 全部变更 forward + rerun publish-cli 成功 PATCH 发布；18 assets 全齐） | **v5.0.3.64 iOS 版本号 4 段制 + AppConstants stale 硬编码清零 + 测试三层覆盖**（Settings「关于」显示完整 `v5.0.3.64` 而非 stale 3 段制 `5.0.3` 或硬编码 `0.32.0` · 加 Bundle ID 一栏让用户能确认安装版本 · `AppConstants.App.{version,buildNumber,bundleId}` 改 Bundle 动态读 · 新 Bundle extension `appShortVersion`/`appFullVersion`/`appFullVersionTag` · 全仓 596 个 `.swift` × 29 个 iOS 17 API pattern 二次审计 0 新增违规 · 11 BundleVersionTests + 7 AppStateNotificationTests + 2 XCUITest 锁回归 · `AIDashboardView` `v0.16.0` + `PluginManager` `1.7.0` 硬编码 fallback 一并扫净） | **v5.0.3.63 iOS 16 PIN 闪退修复 + AppIcon 全幅 + Sub-phase 5-6 Android LOCAL 项目远程终端入口**（iOS `AppState.swift` `MainActor.assumeIsolated` → `Task { @MainActor in ... }` iOS 13 back-deploy · 518 个 `.swift` 全仓 0 处其它裸调 iOS 17 API · AppIcon 用 1282×1282 全幅 icon 重生成 18 张 + 3 张 Launch · Android `RemoteContextViewModel.pairedDesktops` StateFlow 兜替 sourcePeerId 让 LOCAL 项目（pcRootPath=null）首次也能看到 Terminal icon · `findPcProjectPathByName()` 异步调桌面 project.list 自动预填同名项目路径 · `pushPcRootPathToDesktop()` 双向同步写回桌面 projects.pc*root_path · 避免 PtyManager fallback 到 process.cwd() 落 Electron 启动目录与项目无关） | **v5.0.3.62 iOS deployment target 17.0 → 16.0**（覆盖 iPhone 8 起 2017 年以来全机型 · `SystemInfoView` `.symbolEffect` 加 `#available(iOS 17, *)`guard iOS 16 fallback 为静态图标 · 5 个 version surface 全 sync）| **v5.0.3.61 iOS CI 真签名 .ipa 出包**（ad-hoc 签名 ·`release.yml`build-ios xcodebuild archive + ExportArchive 路径恢复 · 配 4 GitHub Secret + Apple Developer 账号 · 每次发版自动产 7.4MB 签名`.ipa`随 GitHub Release） | **v5.0.3.57 Android 远程文件 skill 接通**（FileTransferScreen 浏览 PC 任意目录 + 上传到 PC Downloads 防覆盖 (1)/(2) 后缀 + 下载到手机公共 Download 目录走 MediaStore.Downloads + Intent.ACTION_VIEW app 内打开（图片→相册、PDF→阅读器）+ 本机下载文件夹 app 内 LazyColumn 列表 · android-file-handler.js 11 action 字段对齐 FileCommands.kt · 6 互锁雷一晚扫平 · 34 新单测全绿 · Xiaomi 24115RA8EC × Win 真机 E2E 8 场景跑通） | **v5.0.3.55 iOS Phase 1+2+3+4 完整移植**（桌面配对三流 + 远程终端 + 远程操控 framework + 4 typed skill + Notification skill · ~313 单测 · 待 Mac+iPhone 真机 E2E）| **#21 P1 主体 5/5 全闭环**（A.1 Linux native 配对 + A.2 三端 UI consistency + B.1 web-shell 私钥签字 + B.5 跨链桥 m-of-n 多签 + C.1 wear→phone voice forward · ~270 单测）| **CLI 0.162.0 minor**（cc pair preflight LAN 诊断 + cc pair token 子命令组 + systemd hardening 模板）| **v5.0.3.53 Plan A.1 远程终端 Android↔桌面 WebRTC DataChannel 直连**（Phase 1-5 一日全落 7 commits aee5f1d8f..7cd9aa342 · Plan A 真机首测 Xiaomi 24115RA8EC × Win desktop dev 暴露 4 跳信令链路 NAT idle 蜂窝运营商间歇杀 TCP 的架构性问题 · 把高频高吞吐终端流量切到 WebRTC DataChannel 直连绕开所有中间跳 signaling 保留兜底 · Phase 1 Trap 1 修：SignalClient.forwardedMessages multi-subscribe SharedFlow 替代单 listener 治 ice:config 拦截器被覆盖 + WebRTCClient.dataChannelReady StateFlow derived flag · Phase 2 SignalingRpcClient.invoke 内置 transport selector DC 优先 fallback signaling 两路 listener 同 requestId 同 CompletableDeferred · Phase 3 TerminalListViewModel 异步触发 handshake + UI chip 路径指示 · Phase 4 Android stdout 256-LRU dedup + exit 64-LRU + desktop mobile-bridge 128-LRU/30s-TTL · Phase 5 既有 wiring 组合无新代码 · RTT p50 200-500ms → 30-80ms LAN · p99 1.5-30s → 200-800ms · Android +8 测 / desktop +14 测 / WebRTCClientTest 12-test regression 修 mockk relaxed StateFlow 泛型擦除 · 真机 e2e §5.3 5 场景矩阵移交用户 · 设计文档 Android_Remote_Terminal_Plan_A1.md v1.0 · 遥测 [SignalingRpc.metric] path=dc|signaling 上线）| **v5.0.3.52 Plan A 远程终端 Android↔桌面 PTY 全链路**（Phase 1-4 全部 + 162 新测试全绿 · PtyManager 单例 web-shell WS + cc ui WS + V6 native IPC 三壳共享 · 8 个 terminal.* WS topics + server-push stdout/exit · attachTopicHandlers 共享 helper 抽出 ws-cli-loader dispatcher · web-panel Terminal.vue + xterm.js lazy 多 session 标签 + history 补帧 · V6 plugin widget + TerminalPanel modal + slash /terminal · Android TerminalRpcClient + TerminalWebView Kotlin↔JS bridge + xterm-shell.html + Compose list/session + softkey toolbar Ctrl/Tab/Esc/方向/Ctrl+C/D · confirmation-dialog 高危关键字 Electron messageBox + 永久信任 per-cmd cache · mobile-bridge per-peer stdout/exit fanout · 真 PTY spawn cmd.exe integration + cc ui subprocess e2e）| **v5.0.3.51 远程操控 Plan A + B 基础设施落地**（WebRTC signaling 透传中继 + coturn STUN/TURN 部署 turn.chainlesschain.com 监听 3478/5349/49152-65535 + iceServers HMAC-SHA1 24h ephemeral creds 桌面端 CC*TURN_SECRET 强制必填零硬编码 + signaling-relay server 新增 forward case offer/answer/ice-candidate/peer-status 注入 from 字段 + 桌面 RelayClient onMessage 统一 dispatch 与 LAN 完全对齐 + pushIceServersToMobile pair-ack 后双发 LAN signaling + 公网中继 chainlesschain:ice:config + Android WebRTCClient 注入 PairedDesktopsStore resolveIceServersFor by pcPeerId · 设计文档 Android_Remote_Operate_Plan_AB.md）| **v5.0.3.50 Android Remote Operate Plan C 信令转发 RPC**（手机点 Ping/系统状态/系统信息 → 桌面执行 → 响应返回 · SignalingRpcClient 30s withTimeout + LAN→relay 自动 fallback · 3 新单测文件 / 20 测试全绿 · 设计文档 Android_Remote_Operate_Plan_C.md）| **v5.0.3.49 M-of-N multisig Phase 1d + Phase 2a marketplace mediator + Phase 2b web-panel Multisig view + Flow B QR pairing 收口** | **v5.0.3.48 Android M3 capture suite (5/5 code) + M4 收尾**（VoiceMode + CameraOCR + LocationTagger + SharePayloadFlusher + PushNotifier 五件齐落 · RemoteSkillRegistry method-level 元数据 · ApprovalUI 4-category 适配 · ProgressViewer 长时任务面板 · §8.3 alias 兼容窗口 · 187 新单测全绿 / Android 总单测 196+ → 383+ · 仍待用户出场 5 项 M3 真机 / M4 D2 真机 / FCM 凭证 / M6 性能 / M7 GA flip）| **v5.0.3.47 verification release**（build-android keystore fix VERIFIED at release.yml run #25632845952 · density splits 14→4 用户侧首落 · 4 Android assets`app-{arm64-v8a,armeabi-v7a,universal}-release.apk + app-release.aab`入 Release · outstanding`../` 三处扫净：`keystore.properties.template`/`KEYSTORE_SETUP.md`/ orphan`android-app/.github/workflows/android-release.yml`，约定全 repo 统一 `release.storeFile=keystore/<name>.keystore`）| **Phase 3d Mobile-Bridge-Sync 桌面 ↔ Android 双向同步全套**（M2 → v1.2 共 12 commit · 5 ResourceType walker：note / conversation / did / community / channel + tombstones + IPC wire-up · Android 侧 dagger.Lazy 解 4 处 Hilt 循环 + Room 持久化 SyncRemoteCursor + sync.* JSON-RPC handlers + transport wiring + outbound JSON-RPC · 桌面 SyncMobile 设置页 + DeviceManager + 手动 pairing 表单 · v1.1 真 SocialSyncWalker handlePullRpc + DID auth 验证 + SyncCoordinator socket 连上自动 trigger · v1.2 真 @noble/ed25519 签名 + Android gate 4 验签，gate 1-4 全部 strict-verify · 52 mobile sync 测试，过程中找出并修 3 个 prod bug）| **Android 0.37.0 七件套**（Volcengine SeedASR 语音 16kHz mono PCM + 800ms poll · APK 自更新 issue #21 GitHub Releases `android-v`tag arm64-v8a + DownloadManager + REQUEST_INSTALL_PACKAGES · Splash 紫色渐变旋转环 + TT logo + 3-dot breathing · Claude coral 主题 #D97757 primary + dynamicColor=false 保品牌色 · i18n issue #16 三地区 zh-rCN/rTW/rHK 显式 qualifier + AppCompatDelegate locales · 生物识别 toggle 接 AuthVM enableBiometric/disable · KeyManagementScreen DID + public key hex + trusted devices + reset） | **e2e CI 静默回归洞收口**（drop e2e-tests workflow JOB 级`continue-on-error: true` —— 之前让 3/3 OS 失败显示 success，"No team IPC interface found" 沉了几周 · 加 Playwright browsers cache + npm cache，单 OS 时间 ~14m → ~6-8m）| **意图理解默认 opt-in（Chat 项目模式不再卡"理解中…"）+ cc ui QuickAsk llm.chat 路由对齐桌面 web-shell** | V6 Chat-First 桌面壳（P0–P9c 全量落地 + LanguageSwitcher + chat-panel-v5 Phase E 反向对齐）| CLI V2 规范层 220+ 治理表面（iter16–iter28 · ~5,984 V2 测试）| cc pack 多平台打包（macOS / Windows / Linux + 项目模式 Phase 2a/2b/3a/3b + OTA check-update / SHA-256 / 自替换）| MTC v0.5→v0.11（联邦 M-of-N 多签 + libp2p gossipsub 自发现 + Ed25519/SLH-DSA 异构 + 跨联邦信任 + 多跳 + gas-aware + SLA 监控 + Op Log 行级徽标 + Q-ENG-2 后端桥；476+ 测试）+ in-process 状态查询（`mtc.audit-status`/`mtc.bridge-status`/`mtc.bridge-sla` 绕过 asar 冷启动）+ **landmark.publisher_signature 验证（v5.0.3.43）** | Web Panel i18n M1–M3 + B4 post-pack ASAR surgery（Win 安装 20m → ~5m）| **社区/频道跨机同步 + B4 audit-grade 闭环**（§2.2.10 → §2.2.24 共 15 节，私钥 / 密码均不过线）| **chat-panel-v5 三壳对齐**（V5 / V6 / web-shell 聊天能力严格对等）| Web Shell Phase 3c.7（截图识别 + 通知设置 + 托盘 5 个 quick-action 路由收口）| **安全硬化级联（v5.0.3.43）**（HIGH 44→0 / MOD 4→0 / LOW 45→0）| v5.0.3.40 MTC 视图 in-process 提速 + CI 三发解锁\*\*
 
+</details>
+
 ## 概述
 
-ChainlessChain 是一个完全去中心化的个人 AI 管理系统，整合知识库管理、去中心化社交和交易辅助三大核心功能。系统通过 U-Key/SIMKey 硬件加密和本地 AI 模型提供军事级隐私保护，支持 146 个桌面内置技能、25 个 Android REMOTE 技能、175 个 CLI 命令以及 14+ 云端 LLM 和本地 Ollama 模型集成。
+ChainlessChain 将知识库、个人数据、AI Agent、去中心化社交和交易辅助放在可组合的跨端系统中。用户可以从 CLI、浏览器 Web 面板、VS Code / JetBrains、Electron 桌面或移动端进入；模型请求、文件处理和外部服务访问遵循各入口的配置、权限与授权范围。U-Key/SIMKey、加密存储及本地模型是按部署条件选择的能力。
+
+<details>
+<summary>历史架构与版本增量</summary>
 
 **v5.0.2.x新增**: CLI进化版 — Hashline哈希锚定行编辑（内容哈希替代行号，抗格式化漂移）、Hooks三件套（SessionStart/UserPromptSubmit/SessionEnd会话级钩子触发）、Skill-Embedded MCP（技能内联MCP服务器按需mount/unmount）、Category Routing类别路由（5类别quick/deep/reasoning/vision/creative自动匹配provider）、Canonical Tool Descriptor工具描述规范统一（inputSchema为真源，parameters只读镜像）、Coding Agent Envelope Protocol（统一WS信封协议，dot-case类型，requestId关联）、Sub-Runtime Pool子运行时池（Electron主进程子进程spawn，sessionId分片）、Web UI管理面板（HTTP 18810端口，项目/全局双模式）、AI Orchestration编排层（Claude Code/Codex/多Agent路由，5种策略）、AI Doc Creator模板（doc-generate/libre-convert/doc-edit三技能）、CLI Skill Packs（9个领域技能包，sync-cli命令自动生成）。**v0.46.0–v0.47.0（2026-04-15）增量**: Cowork Evolution F1–F9 全部落地（共享学习 / 决策回放 / 11 类任务模板 / Cron 调度 / DAG 工作流 / 历史学习 / 签名 P2P 共享）+ Open-Agents 对标 Phase 1–5（AGENT_TOOLS 13→16，新增 web_fetch / todo_write / ask_user_question；Skill `$ARGUMENTS` 占位符；Sub-Agent Profiles explorer/executor/design；prepareCall 转瞬即逝的 turn-context 注入；provider-options 三层深合并）。
 
@@ -98,6 +142,8 @@ ChainlessChain 是一个完全去中心化的个人 AI 管理系统，整合知�
 - **Web-shell 开发开关**：`--no-web-shell` dev opt-out + settings-authoritative precedence（9119bdec1），方便排查 Electron 内嵌 ws-server + web-panel dist 这条 Path A 链路。
 - **CLI 0.156.7 → 0.161.2**：MTC v0.6→v0.11 doc roll-up + bridge MTC opt-in flag + `cc crosschain mtc-*` 子命令 + video-protocol 测试随 AppLayout i18n 迁移修复。
 - **Release 工程线硬化**：electron-builder 路径 / Linux .deb 元数据 / icon.ico 256x256 / npmRebuild 关闭 / publish 流程修复（cf29f2ef1 / 8c0dc5e8f / b050abafd / da8ed9d91 / 8d5890bfd 等）；CLI publish 走 `--no-file-parallelism` + 静默 vitest + 分批跑集成测试以避开 IPC RPC 饱和；v5.0.3.6/3.7 修掉 npm workspaces 把 Express@5 拆出的 transitive deps（call-bind-apply-helpers 等）hoist 到 root `node_modules` 导致 ASAR 缺包的发布陷阱（496d21708 / f92505fb4 / 1c8d0994d / a84284eb6）。
+
+</details>
 
 ## 核心特性
 
@@ -142,24 +188,20 @@ ChainlessChain 是一个完全去中心化的个人 AI 管理系统，整合知�
 
 ## 项目统计
 
-| 指标        | 数值                                                                                                                                                                                                                   |
-| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 代码总行数  | 400,000+                                                                                                                                                                                                               |
-| Vue组件数   | 564+个                                                                                                                                                                                                                 |
-| IPC处理器   | 735+ (+178 v5.0)                                                                                                                                                                                                       |
-| 测试用例    | 14,800+ (桌面+CLI+Android)                                                                                                                                                                                             |
-| AI专用引擎  | 16个                                                                                                                                                                                                                   |
-| 内置技能    | 146个                                                                                                                                                                                                                  |
-| 统一工具    | 60+ FunctionCaller + 8 MCP + 146 Skills                                                                                                                                                                                |
-| Pinia Store | 99个                                                                                                                                                                                                                   |
-| 数据库表    | 95+张                                                                                                                                                                                                                  |
-| CLI命令     | 112个                                                                                                                                                                                                                  |
-| CLI版本     | v0.161.2（CLI V2 治理浪潮 iter16–iter28：220+ 治理表面 / ~5,984 V2 测试 / 1,965 回归测试零失败；cc pack 项目模式 + macOS/Windows/Linux 多平台打包；MTC v0.5→v0.11 联邦 / 跨联邦信任 / Op Log / `cc crosschain mtc-*`） |
-| 钩子事件    | 32个 (4种类型)                                                                                                                                                                                                         |
-| 开发阶段    | Phase 1-102 完成                                                                                                                                                                                                       |
-| 演示模板    | 11个 (Cowork v0.46.0 新增 code_review)                                                                                                                                                                                 |
-| 浏览器命令  | 215个                                                                                                                                                                                                                  |
-| CLI技能包   | 9个领域包 (101测试)                                                                                                                                                                                                    |
+| 指标                 | 当前核对值                                        | 统计范围                                                   |
+| -------------------- | ------------------------------------------------- | ---------------------------------------------------------- |
+| CLI 注册顶层命令     | **175**                                           | `packages/cli/src/command-manifest.json` 的 `commandCount` |
+| CLI 活跃注册命令     | **150**                                           | 同一清单的 `activeRegisteredCommandCount`                  |
+| 推荐顶层命令面       | **151**                                           | 包含兼容入口的 `lab` 虚拟命名空间；它不是额外默认注册命令  |
+| 弃用兼容入口         | **25**                                            | 保留兼容周期，不能与推荐命令面重复相加                     |
+| CLI / IDE 公开组合   | **.145 / .181 / .198**                            | CLI 0.166.145 / Open VSX 0.37.181 / JetBrains 0.4.198      |
+| Open VSX 下载        | **7 万+**                                         | 2026-11-09 项目方确认，原始 API 采样另行保留               |
+| PC / mobile 公开产品 | **v5.0.3.145**                                    | 22 个公开资产，独立发行身份                                |
+| 当前发行门禁         | **CLI CI 75 成功、1 跳过；Strict Sandbox 6 成功** | 仅对应公开 .145 的准确发行源，不是最新主线全部 CI 通过     |
+
+[命令清单来源](https://github.com/chainlesschain/chainlesschain/blob/c34a664f426f8ff1c026d21a25bf8d3fd2f6f959/packages/cli/src/command-manifest.json) · [公开下载和发行回读](https://github.com/chainlesschain/chainlesschain/blob/feature/site-refresh-20261109/docs/research/cli/evidence/documentation-refresh-20261109/README.md)
+
+旧版代码行数、组件数、用例数与阶段完成标签不作为本轮准确提交的统计或测试结果。历史版本记录在上方折叠区保留。
 
 ## 系统定位
 
@@ -311,6 +353,8 @@ ChainlessChain旨在成为用户的"第二大脑"和数字资产管理中心：
 - **技能系统**: Office文档处理（Excel/Word/PPT）、数据分析等专业技能
 
 #### 性能指标
+
+以下为历史典型参考值，未在本次文档更新或最新主线重新测量。实际时延取决于设备、数据规模、模型和入口；Memory 跨平台 cold/hot/mixed SLO 与真实用户任务保持独立验收。
 
 | 操作     | 响应时间 | 状态 |
 | -------- | -------- | ---- |
@@ -1528,6 +1572,8 @@ CLI Agent核心架构大幅升级，借鉴oh-my-openagent等先进实践。
 
 ## 快速开始
 
+CLI 安装需要 Node.js **22.12.0+** 和 npm **10+**。使用本页顶部的固定版本安装命令；升级后重启宿主，再运行 `cc --version` 与 `cc doctor`。桌面源码开发按下面步骤进行，产品安装包从独立发行渠道下载。
+
 ### 5分钟体验
 
 ```bash
@@ -1544,7 +1590,7 @@ docker-compose up -d
 
 # 4. 启动PC端
 cd ../..
-npm run dev:desktop
+npm run dev
 ```
 
 访问: 应用会自动打开
@@ -1856,16 +1902,16 @@ OPENAI_API_KEY=sk-...                # OpenAI API Key
 
 ## 性能指标
 
-| 指标                       | 典型值           | 备注                       |
-| -------------------------- | ---------------- | -------------------------- |
-| Electron 冷启动            | < 3 s            | 主进程 + Vue 首屏          |
-| 渲染进程首屏               | < 1.5 s          | 含 Ant Design Vue 懒加载   |
-| 本地 LLM 回合首 token      | 依赖 Ollama 模型 | `qwen2.5:7b` 约 300–600 ms |
-| Qdrant 向量检索            | < 50 ms          | 10 万条向量，近似 HNSW     |
-| BM25 本地搜索              | < 20 ms          | `natural` 索引，百万级笔记 |
-| SQLCipher 查询             | < 5 ms           | AES-256 加密开销           |
+| 指标                      | 典型值           | 备注                       |
+| ------------------------- | ---------------- | -------------------------- |
+| Electron 冷启动           | < 3 s            | 主进程 + Vue 首屏          |
+| 渲染进程首屏              | < 1.5 s          | 含 Ant Design Vue 懒加载   |
+| 本地 LLM 回合首 token     | 依赖 Ollama 模型 | `qwen2.5:7b` 约 300–600 ms |
+| Qdrant 向量检索           | < 50 ms          | 10 万条向量，近似 HNSW     |
+| BM25 本地搜索             | < 20 ms          | `natural` 索引，百万级笔记 |
+| SQLCipher 查询            | < 5 ms           | AES-256 加密开销           |
 | IPC 往返（renderer↔main） | < 2 ms           | 受 Domain Router 限流影响  |
-| CLI 单命令 startup         | < 200 ms         | 含 Commander + lib 懒加载  |
+| CLI 单命令 startup        | < 200 ms         | 含 Commander + lib 懒加载  |
 
 超 50MB 文档/视频等资源处理为异步任务，依赖 Sub-Runtime Pool 的并发上限。
 
@@ -2018,6 +2064,10 @@ chainlesschain config beta enable idle-park-2026-05-01
 | `src/renderer/stores/`       | 99 个 Pinia 状态管理 Store          |
 
 ## 相关文档
+
+- [2026-11-09 CLI / IDE 升级指南](./cli-ide-update-2026-11-09-145)
+- [当前 CLI Runtime](./cli-runtime-current) · [会话输入与恢复](./agent-input-and-recovery)
+- [主线 Runtime 与发行边界设计](https://design.chainlesschain.com/release-runtime-update-2026-11-09.html)
 
 - [安装部署](/chainlesschain/installation) - 详细安装与配置指南
 - [AI 技能系统](/chainlesschain/skills) - 146 个内置技能完整列表

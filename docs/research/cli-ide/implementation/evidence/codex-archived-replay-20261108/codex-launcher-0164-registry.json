@@ -1,0 +1,33 @@
+{
+  "dist": {
+    "shasum": "82693f5ef4b08b724dc1370f1622bc752e5d1bf4",
+    "tarball": "https://registry.npmjs.org/@openai/codex/-/codex-0.164.0.tgz",
+    "fileCount": 3,
+    "integrity": "sha512-TWj7UGyPRe3Pj/A3ddNAxs1te3a/W/xAd+J0LHrrFTmsSfahGMOLF/vn88D3QCIgAT3B1rm1y/Z3NYE0rx6cZQ==",
+    "signatures": [
+      {
+        "sig": "MEUCIQDDVE+pZ9SsWq4O4EJUGLHQTANtgITh8YhuCqVnzVspiwIgFECKMSbZfMv+3WvD7Eqsc3tqO0UxG8HmzIlCkj66wtY=",
+        "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+      },
+      {
+        "sig": "MEUCICCcsls8vQGPLorX8PL0Iis1hnLv1aY3lKb8AzPjHMu3AiEAhAOQffiQUv9lGbZmv2+3CkilbkNmQcYasvWPF1l+aF8=",
+        "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+      }
+    ],
+    "attestations": {
+      "url": "https://registry.npmjs.org/-/npm/v1/attestations/@openai%2fcodex@0.164.0",
+      "provenance": {
+        "predicateType": "https://slsa.dev/provenance/v1"
+      }
+    },
+    "unpackedSize": 13206
+  },
+  "optionalDependencies": {
+    "@openai/codex-linux-x64": "npm:@openai/codex@0.164.0-linux-x64",
+    "@openai/codex-win32-x64": "npm:@openai/codex@0.164.0-win32-x64",
+    "@openai/codex-darwin-x64": "npm:@openai/codex@0.164.0-darwin-x64",
+    "@openai/codex-linux-arm64": "npm:@openai/codex@0.164.0-linux-arm64",
+    "@openai/codex-win32-arm64": "npm:@openai/codex@0.164.0-win32-arm64",
+    "@openai/codex-darwin-arm64": "npm:@openai/codex@0.164.0-darwin-arm64"
+  }
+}

@@ -1,1233 +1,232 @@
 # ChainlessChain 安装部署
 
-> 2026-10-18 实时核对：npm CLI **0.166.106**、Open VSX **0.37.151** 已公开，Open VSX 推荐 CLI `.106`，发行提交 `dca47fd91a`。JetBrains 当前已核验公开 **0.4.167**，仍推荐 CLI `.105`；`.168` 的公开上架与下载待核验。公开 `.105/.150/.167` 任务补测已收齐生成与独立验收各 **20/20**，新增 **6** 项候选及全流程通过；跨版本累计候选合格交付 **31/45**（普通 **26/36**、首次 **5/9**），剩余 **14** 项。`.106/.151/.168` 新轮模型补测尚未运行，累计覆盖不等于新版单轮成功率。Microsoft Marketplace 未发布。
-
-> **快速开始 | 支持 Windows / macOS / Linux | Electron + Vue3 桌面端 | Docker 后端服务**
-
-> 2026-10-13：CLI **0.166.100** 与 Open VSX **0.37.144** 已公开，发行源码 `6a8db627c8`，文档核对主线 `283634169a`。JetBrains **0.4.162** 已上传，公开上架与下载待核验；已核验公开 **0.4.161** 推荐 CLI `.99`。Session Core **0.3.19**、Kernel **0.1.9**、SDK **0.2.14**、PDH **0.4.64** 与产品 **v5.0.3.140** 保持独立版本。 参见[本轮升级与诊断](./cli-ide-update-2026-10-13)。正式 36+9 保持 **NOT_RUN**，完整 native review 为 **NOT_ADMITTED**，自动晋升 **HOLD**；预算 PR #436 未进入本次发行，仍为 **NOT_PAID_READY**。
-
-本指南将帮助您在不同平台上安装和配置ChainlessChain个人AI系统。
+> 核对日期：**2026-11-09**。公开 CLI **0.166.145**、Open VSX **0.37.181**、JetBrains **0.4.198**；两款 IDE 推荐 CLI .145。PC / mobile 仍为独立公开产品 **v5.0.3.145**。源码产品 .146 和 VS Code .182 不作为本页已核对的公开安装推荐。
 
 ## 概述
 
-本文档提供 ChainlessChain 在 Windows、macOS、Linux 桌面端及 Android/iOS 移动端的完整安装部署指南，涵盖安装包安装、源码构建、Docker 后端服务部署、首次启动配置向导以及从 Notion/Evernote/Obsidian 等平台的数据迁移方法。
+先选择需要的入口：终端 Agent 安装 npm CLI；浏览器工作台由 `cc ui` 启动；桌面与移动客户端使用各自的产品安装包；IDE 插件另外安装并连接 CLI。仅使用 CLI 和云端模型时，不需要先部署整套 Docker 后端。
+
+[系统概述](./overview) · [本轮升级指南](./cli-ide-update-2026-11-09-145) · [配置说明](./configuration)
 
 ## 核心特性
 
-- 🖥️ **多平台支持**: Windows / macOS / Linux 桌面端
-- 📱 **移动端**: Android APK 直装
-- 🐳 **Docker 服务**: 一键启动 Ollama / Qdrant / PostgreSQL / Redis
-- ⚡ **CLI 安装**: `npm install -g chainlesschain@0.166.105` 一行命令（支持 `cc` / `clc` / `clchain` 短命令别名）
-- 🔧 **交互式向导**: `chainlesschain setup`（或 `cc setup`）引导完成配置
-- 🩺 **环境诊断**: `chainlesschain doctor`（或 `cc doctor`）自动检测问题
+- **固定公开版本安装**：使用官方 npm registry，区分 CLI、IDE、客户端及共享子包的独立版本。
+- **跨端入口**：Windows / macOS / Linux 桌面、Android、iOS、CLI、Web 面板与双 IDE。
+- **按需初始化**：`cc setup` 支持跳过桌面下载和 Docker 配置，先完成模型连接与 CLI 初始化。
+- **环境诊断**：`cc doctor`、`cc config validate` 检查实际安装与配置状态。
+- **独立升级**：CLI / IDE 升级不自动替换已经安装的桌面或移动客户端。
 
 ## 系统架构
 
-```
-                   安装部署架构
-┌─────────────────────────────────────────┐
-│  npm install -g chainlesschain@0.166.105  │  CLI 工具
-│         │                               │
-│         ▼                               │
-│  chainlesschain setup (交互式向导)       │
-│    │         │          │               │
-│    ▼         ▼          ▼               │
-│ 选择版本  配置 LLM   下载二进制         │
-│ (个人/企业) (8 提供商) (GitHub Releases) │
-│                         │               │
-│                         ▼               │
-│  chainlesschain start ← 桌面应用 (Electron) │
-│         │                               │
-│         ▼                               │
-│  chainlesschain services up             │
-│    │      │       │       │             │
-│    ▼      ▼       ▼       ▼             │
-│  Ollama  Qdrant  Postgres  Redis        │
-│  (11434) (6333)  (5432)   (6379)        │
-└─────────────────────────────────────────┘
+```text
+npm 包 → CLI / Agent → 配置的模型服务
+                  ├→ cc ui → 本机浏览器工作台
+                  └→ IDE 插件 → 当前工作区的 CLI 宿主
+
+产品 Release → 桌面安装包 / Android APK / iOS IPA
+Docker Compose → 按需启动本地模型、向量库和项目后端
 ```
 
 ## 系统要求
 
-### 硬件要求
+| 用途               | 要求                                                                                   |
+| ------------------ | -------------------------------------------------------------------------------------- |
+| npm CLI / 源码开发 | Node.js **22.12.0+**、npm **10+**；源码开发还需要 Git                                  |
+| 桌面客户端         | 按 Release 中操作系统与架构选择安装包；安装打包客户端不等于需要系统 Node.js            |
+| Android .145       | **Android 9 / API 28+**；按设备选择 APK 架构                                           |
+| iOS .145           | **iOS 16.0+**；公开 IPA 按 ad-hoc 签名设备范围安装                                     |
+| Docker 后端        | 已运行的 Docker Engine / Docker Desktop 与 Docker Compose；仅在使用相关服务时需要      |
+| 本地模型           | 内存、显存和磁盘按选用模型及上下文规模准备，不把固定的历史资源数字当作所有模型最低要求 |
 
-#### PC端最低配置
+Android / iOS 要求按公开产品 .145 的发行源码核对，不能从源码包版本 .146 推断已经发布了新安装包。
 
-- **CPU**: 双核 2.0GHz 或更高
-- **内存**: 4GB RAM
-- **硬盘**: 10GB 可用空间
-- **网络**: 宽带网络连接
+## 安装 CLI 与 Web 面板
 
-#### PC端推荐配置（含AI功能）
-
-- **CPU**: 四核 3.0GHz 或更高（支持AVX2指令集）
-- **内存**: 8GB+ RAM（运行大模型需要16GB+）
-- **硬盘**: 50GB+ SSD（存储模型文件）
-- **显卡**: NVIDIA RTX系列（可选，加速AI推理）
-- **网络**: 稳定的宽带连接
-
-#### 移动端要求
-
-**Android**:
-
-- 系统版本: Android 8.0 (API 26) 或更高
-- 内存: 3GB RAM 或更高
-- 存储: 5GB 可用空间
-- 处理器: 64位ARMv8
-
-**iOS**:
-
-- 系统版本: iOS 14.0 或更高
-- 设备: iPhone 8 或更新型号
-- 存储: 5GB 可用空间
-
-### 软件要求
-
-#### PC端开发环境
-
-- **Node.js**: 18.0 或更高版本
-- **npm**: 9.0 或更高版本
-- **Git**: 2.30 或更高版本
-- **Docker**: 20.10 或更高版本（用于后端服务）
-
-#### 可选软件
-
-- **Ollama**: 本地AI模型运行环境
-- **SQLite Browser**: 数据库查看工具
-- **Postman**: API测试工具
-
----
-
-## PC端安装
-
-### Windows 安装
-
-#### 方式一: 安装包安装（推荐）
-
-1. **下载安装包**
-
-访问 [ChainlessChain官网](https://www.chainlesschain.com/download) 下载Windows安装包：
-
-- `ChainlessChain-Setup-1.0.0.exe` (约150MB)
-
-2. **运行安装程序**
-
-- 双击运行安装包
-- 选择安装路径（默认: `C:\Program Files\ChainlessChain`）
-- 勾选"创建桌面快捷方式"
-- 点击"安装"
-
-3. **首次启动**
-
-- 启动ChainlessChain
-- 完成初始化配置向导
-- 插入U盾/SIMKey设备
-
-#### 方式二: 从源码构建
-
-1. **克隆项目**
+### 1. 检查环境并安装
 
 ```bash
-# 克隆仓库
-git clone https://github.com/chainlesschain/chainlesschain.git
-cd chainlesschain
+node --version
+npm --version
+npm i -g chainlesschain@0.166.145 --registry https://registry.npmjs.org
+cc --version
 ```
 
-2. **安装依赖**
+安装后应显示 `0.166.145`。若 `cc` 指向系统 C 编译器或另一个工具，使用完整命令 `chainlesschain --version`，并核对 npm 全局可执行目录是否在当前终端的 PATH 中。
+
+### 2. 初始化 CLI
 
 ```bash
-# 安装Node.js依赖
-npm install
-
-# 安装桌面端依赖
-cd desktop
-npm install
-cd ..
+cc setup --skip-download --skip-services
+cc doctor
+cc config validate
 ```
 
-3. **启动后端服务**
+按向导选择实际可访问的模型服务、API 模型 ID 和该服务的凭据。向导的 `--skip-download` 跳过桌面二进制下载，`--skip-services` 跳过 Docker 配置；没有这些选项时按向导确认相应步骤。配置修改与密钥输入详见[配置说明](./configuration)。
+
+### 3. 打开需要的工作入口
 
 ```bash
-# 启动Docker服务（MySQL, Redis, Ollama等）
-cd backend/docker
-docker-compose up -d
+# 终端交互 Agent
+cc agent
 
-# 等待服务启动（约30秒）
-docker-compose ps
+# 本机浏览器工作台
+cc ui
 ```
 
-4. **启动PC端应用**
+浏览器面板默认使用本机 HTTP `18810`、WebSocket `18800`，以启动时输出的地址为准。远程访问需要另外配置绑定与认证，不应直接把本机默认服务当成公网部署。
+
+## PC 端安装
+
+从 [v5.0.3.145 正式发行页](https://github.com/chainlesschain/chainlesschain/releases/tag/v5.0.3.145) 或[官网桌面下载页](https://www.chainlesschain.com/desktop)选择资产。
+
+| 平台                | 该版本资产示例                                          | 安装方式                           |
+| ------------------- | ------------------------------------------------------- | ---------------------------------- |
+| Windows             | `ChainlessChain-Setup-5.0.3-alpha.145.exe`              | 运行安装程序，按向导完成安装       |
+| Windows Portable    | `ChainlessChain-Portable-5.0.3-alpha.145.exe`           | 使用便携版本，按其数据目录说明运行 |
+| macOS Apple Silicon | `ChainlessChain-5.0.3-alpha.145-arm64.dmg`              | 打开 DMG 并复制应用到 Applications |
+| macOS Intel         | `ChainlessChain-5.0.3-alpha.145.dmg`                    | 选择与 CPU 架构匹配的资产          |
+| Linux AppImage      | `ChainlessChain-5.0.3-alpha.145.AppImage`               | 赋予执行权限后运行                 |
+| Debian / Ubuntu     | `chainlesschain-desktop-vue_5.0.3-alpha.145_amd64.deb`  | 用系统包管理器安装本地 DEB         |
+| RPM 系统            | `chainlesschain-desktop-vue-5.0.3-alpha.145.x86_64.rpm` | 用对应系统包管理器安装本地 RPM     |
+
+产品标签使用 `v5.0.3.145`，桌面资产包含 `5.0.3-alpha.145`，两者是该发行的不同命名形式。下载大小以资产页面为准；本页不再使用旧的 1.0.0 文件名或未经核验的 APT 软件源。
+
+Linux 本地文件安装示例，在保存资产的目录执行：
 
 ```bash
-# 开发模式
-npm run dev:desktop
+chmod +x ChainlessChain-5.0.3-alpha.145.AppImage
+./ChainlessChain-5.0.3-alpha.145.AppImage
 
-# 或构建生产版本
-npm run build:desktop
+# 或安装已下载的 Debian 资产
+sudo apt install ./chainlesschain-desktop-vue_5.0.3-alpha.145_amd64.deb
 ```
 
-#### 常见问题
+首次启动按应用界面完成身份、存储和模型配置。原生创建、目标移交及模型草稿等新入口仍要求匹配的桌面实现，不能只凭 CLI .145 安装成功认定现有客户端具备这些能力。
 
-**问题1: 缺少Visual C++运行库**
+## IDE 插件安装
 
-解决方法:
+| IDE                | 当前公开插件          | 安装与配对                                                                                                                                                                                                                          |
+| ------------------ | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| VS Code 兼容编辑器 | Open VSX **0.37.181** | [商店页面](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide)，或[下载 VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.181/file/chainlesschain.chainlesschain-ide-0.37.181.vsix)后从 VSIX 安装 |
+| JetBrains          | **0.4.198**           | [Marketplace](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge)，按 IDE 兼容范围安装                                                                                                                            |
 
-```bash
-# 下载并安装 Visual C++ Redistributable
-# https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist
-```
-
-**问题2: 端口冲突**
-
-解决方法:
-
-```bash
-# 检查端口占用
-netstat -ano | findstr "3000"
-netstat -ano | findstr "3306"
-
-# 修改配置文件端口
-# desktop/config.js
-```
-
----
-
-### macOS 安装
-
-#### 方式一: DMG安装包（推荐）
-
-1. **下载DMG文件**
-
-访问官网下载macOS安装包：
-
-- `ChainlessChain-1.0.0.dmg` (约140MB)
-
-2. **安装应用**
-
-- 双击打开DMG文件
-- 将ChainlessChain拖到Applications文件夹
-- 首次打开时，右键选择"打开"（绕过Gatekeeper）
-
-3. **授予权限**
-
-```bash
-# 如果提示权限问题
-xattr -cr /Applications/ChainlessChain.app
-```
-
-#### 方式二: Homebrew安装
-
-```bash
-# 添加ChainlessChain tap
-brew tap chainlesschain/tap
-
-# 安装ChainlessChain
-brew install chainlesschain
-
-# 启动应用
-chainlesschain
-```
-
-#### 方式三: 从源码构建
-
-```bash
-# 克隆项目
-git clone https://github.com/chainlesschain/chainlesschain.git
-cd chainlesschain
-
-# 安装依赖
-npm install
-
-# 启动Docker服务
-cd backend/docker
-docker-compose up -d
-cd ../..
-
-# 启动开发模式
-npm run dev:desktop
-```
-
-#### macOS特定配置
-
-**允许USB设备访问**:
-
-```bash
-# 授予USB设备访问权限
-sudo kextload -b com.apple.driver.usb.AppleUSBUHCI
-```
-
-**配置Ollama**:
-
-```bash
-# 安装Ollama
-brew install ollama
-
-# 启动Ollama服务
-ollama serve
-
-# 下载模型
-ollama pull llama3
-ollama pull qwen
-```
-
----
-
-### Linux 安装
-
-#### Ubuntu/Debian 安装
-
-1. **添加软件源**
-
-```bash
-# 添加ChainlessChain GPG密钥
-curl -fsSL https://www.chainlesschain.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/chainlesschain.gpg
-
-# 添加软件源
-echo "deb [signed-by=/usr/share/keyrings/chainlesschain.gpg] https://repo.chainlesschain.com/apt stable main" | sudo tee /etc/apt/sources.list.d/chainlesschain.list
-
-# 更新软件包列表
-sudo apt update
-```
-
-2. **安装ChainlessChain**
-
-```bash
-# 安装
-sudo apt install chainlesschain
-
-# 启动
-chainlesschain
-```
-
-#### AppImage安装（通用）
-
-```bash
-# 下载AppImage
-wget https://www.chainlesschain.com/download/ChainlessChain-1.0.0.AppImage
-
-# 添加执行权限
-chmod +x ChainlessChain-1.0.0.AppImage
-
-# 运行
-./ChainlessChain-1.0.0.AppImage
-```
-
-#### 从源码构建
-
-```bash
-# 安装依赖
-sudo apt install -y nodejs npm git docker.io docker-compose
-
-# 克隆项目
-git clone https://github.com/chainlesschain/chainlesschain.git
-cd chainlesschain
-
-# 安装Node.js依赖
-npm install
-
-# 启动Docker服务
-cd backend/docker
-sudo docker-compose up -d
-cd ../..
-
-# 启动应用
-npm run dev:desktop
-```
-
-#### 配置systemd服务（可选）
-
-```bash
-# 创建服务文件
-sudo nano /etc/systemd/system/chainlesschain.service
-```
-
-内容:
-
-```ini
-[Unit]
-Description=ChainlessChain Personal AI System
-After=network.target
-
-[Service]
-Type=simple
-User=your-username
-WorkingDirectory=/home/your-username/chainlesschain
-ExecStart=/usr/bin/npm run start:desktop
-Restart=on-failure
-RestartSec=10
-
-[Install]
-WantedBy=multi-user.target
-```
-
-启动服务:
-
-```bash
-sudo systemctl daemon-reload
-sudo systemctl enable chainlesschain
-sudo systemctl start chainlesschain
-```
-
----
+两款插件均推荐 CLI **0.166.145**。安装/升级后重启旧聊天宿主，通过 Doctor 核对实际 CLI 路径。Microsoft Marketplace 尚未发行；VS Code 用户可使用公开 VSIX。详细操作见 [IDE 指南](./ide-plugin)。
 
 ## 移动端安装
 
-### Android 安装
-
-#### 方式一: Google Play（推荐）
-
-1. 打开Google Play商店
-2. 搜索"ChainlessChain"
-3. 点击"安装"
-4. 打开应用并完成初始化
-
-#### 方式二: APK安装
-
-1. **下载APK**
-
-访问官网下载Android安装包：
-
-- `ChainlessChain-v1.0.0.apk` (约50MB)
-
-2. **启用未知来源**
-
-设置 → 安全 → 允许安装未知应用
-
-3. **安装APK**
-
-- 打开下载的APK文件
-- 点击"安装"
-- 等待安装完成
-
-#### 方式三: 从源码构建
-
-```bash
-# 克隆项目
-git clone https://github.com/chainlesschain/chainlesschain.git
-cd chainlesschain
-
-# 安装依赖
-npm install
-
-# 构建Android应用
-cd android
-./gradlew assembleRelease
-
-# APK文件位置
-# android/app/build/outputs/apk/release/app-release.apk
-```
-
-**开发模式**:
-
-```bash
-# 启动开发服务器
-npm run dev:android
-
-# 在Android Studio中运行
-# File -> Open -> chainlesschain/android
-# 点击Run按钮
-```
-
----
-
-### iOS 安装
-
-#### 方式一: App Store（即将上线）
-
-1. 打开App Store
-2. 搜索"ChainlessChain"
-3. 点击"获取"
-4. 等待安装完成
-
-#### 方式二: TestFlight测试版
-
-1. **加入TestFlight**
-
-- 访问 https://testflight.apple.com/join/chainlesschain
-- 安装TestFlight应用
-- 接受测试邀请
-
-2. **安装测试版**
-
-- 在TestFlight中找到ChainlessChain
-- 点击"安装"
-
-#### 方式三: 从源码构建
-
-**要求**:
-
-- macOS系统
-- Xcode 15+
-- Apple Developer账号（用于真机调试）
-
-**步骤**:
-
-```bash
-# 克隆项目
-git clone https://github.com/chainlesschain/chainlesschain.git
-cd chainlesschain
-
-# 安装依赖
-npm install
-
-# 安装CocoaPods依赖
-cd ios
-pod install
-cd ..
-
-# 在Xcode中打开项目
-open ios/ChainlessChain.xcworkspace
-
-# 在Xcode中:
-# 1. 选择你的开发团队
-# 2. 选择目标设备
-# 3. 点击Run按钮
-```
-
----
-
-## 后端服务配置
-
-### Docker部署（推荐）
-
-ChainlessChain的后端服务使用Docker Compose部署，包括：
-
-- **MySQL**: 数据库
-- **Redis**: 缓存
-- **Ollama**: 本地AI模型
-- **MeiliSearch**: 全文搜索引擎
-
-#### 启动所有服务
-
-```bash
-cd backend/docker
-docker-compose up -d
-```
-
-#### 查看服务状态
-
-```bash
-docker-compose ps
-```
-
-应该看到:
-
-```
-NAME                STATUS          PORTS
-chainless-mysql     Up 30 seconds   0.0.0.0:3306->3306/tcp
-chainless-redis     Up 30 seconds   0.0.0.0:6379->6379/tcp
-chainless-ollama    Up 30 seconds   0.0.0.0:11434->11434/tcp
-chainless-meilisearch Up 30 seconds 0.0.0.0:7700->7700/tcp
-```
-
-#### 查看日志
-
-```bash
-# 查看所有服务日志
-docker-compose logs -f
-
-# 查看特定服务日志
-docker-compose logs -f ollama
-```
-
-#### 停止服务
-
-```bash
-docker-compose down
-```
-
-#### 重启服务
-
-```bash
-docker-compose restart
-```
-
-### 手动安装后端服务
-
-如果不使用Docker，可以手动安装各个服务。
-
-#### MySQL 8.0
-
-**Windows**:
-
-```bash
-# 下载MySQL Installer
-# https://dev.mysql.com/downloads/installer/
-
-# 创建数据库
-mysql -u root -p
-CREATE DATABASE chainlesschain DEFAULT CHARACTER SET utf8mb4;
-```
-
-**Linux**:
-
-```bash
-sudo apt install mysql-server
-sudo mysql_secure_installation
-mysql -u root -p
-CREATE DATABASE chainlesschain DEFAULT CHARACTER SET utf8mb4;
-```
-
-#### Redis 7.0
-
-**Windows**:
-
-```bash
-# 下载Redis for Windows
-# https://github.com/microsoftarchive/redis/releases
-```
-
-**Linux**:
-
-```bash
-sudo apt install redis-server
-sudo systemctl start redis
-sudo systemctl enable redis
-```
-
-#### Ollama
-
-**Windows/macOS/Linux**:
-
-```bash
-# 下载并安装Ollama
-# https://ollama.com/download
-
-# 启动Ollama
-ollama serve
-
-# 下载模型
-ollama pull llama3
-ollama pull qwen
-```
-
-#### MeiliSearch
-
-```bash
-# 下载MeiliSearch
-curl -L https://install.meilisearch.com | sh
-
-# 启动MeiliSearch
-./meilisearch --http-addr 127.0.0.1:7700
-```
-
----
-
-## 初始化配置
-
-### 首次启动向导
-
-1. **欢迎页面**
-
-- 选择语言（简体中文/English）
-- 阅读用户协议
-- 点击"开始配置"
-
-2. **设备设置**
-
-**选择设备类型**:
-
-- U盾（USB Key）
-- SIMKey（SIM卡密钥）
-- 软件模拟（测试用）
-
-**插入U盾**:
-
-- 将U盾插入USB接口
-- 系统自动检测设备
-- 输入U盾PIN码（默认: 123456）
-
-**SIMKey配置**:
-
-- 插入SIMKey卡
-- 输入PIN码
-- 选择SIM卡槽
-
-3. **创建身份**
-
-**生成DID**:
-
-```
-did:key:z6MkpTHR8VNsBxYAAWHut2Geadd9jSwuBV8xRoAnwWsdvktH
-```
-
-**设置个人信息**:
-
-- 昵称: 你的名字
-- 头像: 上传或使用默认
-- 简介: 可选
-
-**备份助记词**（重要！）:
-
-```
-abandon ability able about above absent absorb abstract absurd abuse access accident
-```
-
-- 抄写到纸上
-- 妥善保管
-- 不要截图或电子存储
-- 验证助记词
-
-4. **配置AI模型**
-
-**选择AI引擎**:
-
-- Ollama（推荐）
-- LLaMA.cpp
-- 无（稍后配置）
-
-**选择模型**:
-
-- LLaMA 3 8B（推荐，4GB内存）
-- Qwen 7B（中文优化，5GB内存）
-- GLM-4 9B（对话优化，6GB内存）
-
-**下载模型**:
-
-```bash
-正在下载模型...
-[████████████████████] 100%
-LLaMA 3 8B (4.7GB) - 下载完成
-```
-
-**测试AI**:
-
-```
-你: 介绍一下ChainlessChain
-AI: ChainlessChain是一个去中心化的个人AI管理系统...
-```
-
-5. **数据同步**
-
-**配置Git仓库**:
-
-- 使用GitHub/GitLab
-- 自建Git服务器
-- 稍后配置
-
-**GitHub示例**:
-
-```bash
-仓库URL: https://github.com/username/chainlesschain-data.git
-用户名: your-username
-Token: ghp_xxxxxxxxxxxxxxxxxxxx
-```
-
-**同步频率**:
-
-- 实时同步（推荐）
-- 每小时
-- 每天
-- 手动
-
-6. **完成配置**
-
-- 配置摘要确认
-- 点击"完成"
-- 进入主界面
-
----
-
-## 配置文件
-
-### 主配置文件
-
-位置: `~/.chainlesschain/config.json`
-
-```json
-{
-  "version": "1.0.0",
-  "user": {
-    "did": "did:key:z6Mkp...",
-    "nickname": "张三",
-    "avatar": "avatar.jpg"
-  },
-  "device": {
-    "type": "UKEY",
-    "path": "/dev/usb0",
-    "pin": "encrypted_pin"
-  },
-  "ai": {
-    "engine": "ollama",
-    "model": "llama3",
-    "apiUrl": "http://localhost:11434",
-    "temperature": 0.7,
-    "maxTokens": 2048
-  },
-  "sync": {
-    "enabled": true,
-    "remote": "https://github.com/user/data.git",
-    "frequency": "realtime",
-    "autoCommit": true
-  },
-  "database": {
-    "path": "~/.chainlesschain/data.db",
-    "backup": true,
-    "backupInterval": "daily"
-  },
-  "network": {
-    "p2p": {
-      "enabled": true,
-      "port": 4001,
-      "bootstrap": [
-        "/ip4/104.131.131.82/tcp/4001/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ"
-      ]
-    },
-    "relay": {
-      "enabled": true,
-      "servers": ["/ip4/relay.chainlesschain.com/tcp/443/wss/p2p/QmRelay"]
-    }
-  },
-  "ui": {
-    "theme": "auto",
-    "language": "zh-CN",
-    "fontSize": 14
-  }
-}
-```
-
-### AI模型配置
-
-位置: `~/.chainlesschain/ai-config.json`
-
-```json
-{
-  "models": [
-    {
-      "name": "llama3",
-      "path": "~/.ollama/models/llama3",
-      "size": "4.7GB",
-      "contextLength": 8192,
-      "enabled": true
-    },
-    {
-      "name": "qwen",
-      "path": "~/.ollama/models/qwen",
-      "size": "5.2GB",
-      "contextLength": 32768,
-      "enabled": false
-    }
-  ],
-  "rag": {
-    "enabled": true,
-    "chunkSize": 512,
-    "overlap": 50,
-    "embeddingModel": "bge-small-zh",
-    "topK": 5
-  }
-}
-```
-
----
-
-## 数据迁移
-
-### 从其他笔记软件迁移
-
-#### 从Notion导出
-
-```bash
-# 在Notion中导出为Markdown & CSV
-# Settings -> Export all workspace content -> Markdown & CSV
-
-# 导入到ChainlessChain
-chainlesschain import --source notion --path ~/Downloads/Notion_Export.zip
-```
-
-#### 从Evernote导出
-
-```bash
-# 在Evernote中导出为ENEX格式
-# File -> Export Notes -> ENEX
-
-# 转换ENEX到Markdown
-npm install -g evernote-to-md
-evernote-to-md ~/Downloads/notes.enex ~/markdown/
-
-# 导入
-chainlesschain import --source markdown --path ~/markdown/
-```
-
-#### 从Obsidian迁移
-
-```bash
-# Obsidian使用Markdown，可直接导入
-chainlesschain import --source markdown --path ~/ObsidianVault/
-```
-
-### 备份和恢复
-
-当前公开 CLI `0.166.100` **没有注册**顶层 `backup` / `restore` 命令。请使用具体业务页面提供的导出、同步或快照入口，并在备份前停止相关写入进程；不要照用旧文档中的 `chainlesschain backup` / `chainlesschain restore` 示例。恢复必须使用与备份制品同源的产品入口并先校验版本、摘要和目标目录，CLI 暂不承诺跨设备通用整库恢复。
-
----
-
-## 使用示例
-
-### 方式一：通过 npm CLI 快速安装（推荐）
-
-```bash
-# 一行命令全局安装
-npm install -g chainlesschain
-
-# 交互式设置（选择版本、LLM 提供商、下载二进制）
-chainlesschain setup
-
-# 启动桌面应用
-chainlesschain start
-
-# 环境诊断（检查 Node.js、Docker、端口等）
-chainlesschain doctor
-```
-
-### 方式二：Docker 一键部署后端服务
-
-```bash
-# 启动全部后端服务（Ollama、Qdrant、PostgreSQL、Redis）
-chainlesschain services up
-
-# 查看服务运行状态
-chainlesschain services logs -f
-
-# 停止所有服务
-chainlesschain services down
-```
-
-### 方式三：从源码构建桌面应用
+- **Android**：从产品 .145 发行页下载 `app-arm64-v8a-release.apk`、`app-armeabi-v7a-release.apk` 或 `app-universal-release.apk`；按设备架构选择并在系统界面确认安装。`app-release.aab` 是分发构建，不是直接点击安装的 APK。
+- **iOS**：该发行提供 `ChainlessChain.ipa`；按发行说明和 ad-hoc 签名设备范围安装。源码构建需要 macOS、Xcode 及匹配的签名配置，本页不承诺 App Store / TestFlight 全设备可用。
+- **跨设备功能**：安装后仍需显式配对、身份确认和相应数据授权。详见 [Android 指南](/guide/mobile-android-usage) 与 [iOS 指南](/guide/mobile-ios-usage)。
+
+## 从源码开发桌面应用
 
 ```bash
 git clone https://github.com/chainlesschain/chainlesschain.git
-cd chainlesschain/desktop-app-vue
-npm install
-npm run build:main    # 构建主进程
-npm run dev           # 开发模式运行
-npm run make:win      # 打包 Windows 安装包
+cd chainlesschain
+npm ci --legacy-peer-deps
+npm run dev
+
+# 生产构建
+npm run build
 ```
 
----
+以上根目录脚本实际进入 `desktop-app-vue`。也可以在该目录运行 `npm run dev`、`npm run build`；主进程单独构建为 `npm run build:main`。源码安装涉及 Electron 和原生依赖，应按平台提供兼容工具链；不要跳过安装脚本后把缺失的 native 模块当成产品故障。源码构建属于当前 Git 提交，不是已经公开的产品安装包。
 
-## 故障排查
+## 按需启动 Docker 服务
 
-### 常见问题
-
-#### 1. U盾/SIMKey无法识别
-
-**症状**: 插入设备后无响应
-
-**解决**:
+在仓库根目录显式指定所用 Compose 文件和服务，避免混淆根目录、`backend/docker` 与 `config/docker` 下的不同编排：
 
 ```bash
-# Windows: 检查驱动
-# 设备管理器 -> 通用串行总线控制器
-
-# Linux: 检查USB设备
-lsusb
-
-# 检查设备权限
-sudo chmod 666 /dev/bus/usb/001/002
-
-# 添加udev规则
-sudo nano /etc/udev/rules.d/99-ukey.rules
-# 添加: SUBSYSTEM=="usb", ATTR{idVendor}=="xxxx", MODE="0666"
-sudo udevadm control --reload-rules
+docker compose -f docker-compose.yml up -d ollama qdrant postgres redis
+docker compose -f docker-compose.yml ps
+docker compose -f docker-compose.yml logs --tail=100 ollama
 ```
 
-#### 2. AI模型加载失败
-
-**症状**: "Failed to load model"
-
-**解决**:
+CLI 的对应包装命令为：
 
 ```bash
-# 检查Ollama服务
-curl http://localhost:11434/api/tags
-
-# 重新下载模型
-ollama rm llama3
-ollama pull llama3
-
-# 检查磁盘空间
-df -h
-
-# 检查内存
-free -h
+cc services up ollama qdrant postgres redis
+cc services logs --tail 100 ollama
 ```
 
-#### 3. Git同步失败
+`cc services` 从当前工作目录及其明确搜索路径查找 Compose 文件；应在包含目标编排的目录运行。本页不提供未注册的 `cc services restart`：需要重启时直接使用 `docker compose -f docker-compose.yml restart <service>`。
 
-**症状**: "Failed to push to remote"
-
-**解决**:
-
-```bash
-# 检查网络连接
-ping github.com
-
-# 检查Git配置
-git config --list
-
-# 重新设置远程仓库
-git remote set-url origin https://github.com/user/repo.git
-
-# 检查认证
-git credential fill
-```
-
-#### 4. 数据库损坏
-
-**症状**: "Database disk image is malformed"
-
-**解决**:
-
-```bash
-# 备份数据库
-cp ~/.chainlesschain/data.db ~/.chainlesschain/data.db.backup
-
-# 修复数据库
-sqlite3 ~/.chainlesschain/data.db
-> PRAGMA integrity_check;
-> .quit
-
-# 如果无法修复，请保持原文件不变，并使用创建该备份的产品入口恢复；
-# 当前 CLI 没有通用的 chainlesschain restore 命令。
-```
-
----
-
-## 性能优化
-
-### PC端优化
-
-```bash
-# 增加Node.js内存限制
-export NODE_OPTIONS="--max-old-space-size=4096"
-
-# 启用GPU加速（NVIDIA）
-export OLLAMA_GPU=1
-
-# 禁用不需要的功能
-# config.json
-{
-  "network": {
-    "p2p": { "enabled": false }
-  }
-}
-```
-
-### 数据库优化
-
-```sql
--- 定期清理
-VACUUM;
-
--- 重建索引
-REINDEX;
-
--- 分析表
-ANALYZE;
-```
-
----
-
-## 下一步
-
-- [知识库管理](/chainlesschain/knowledge-base) - 学习使用知识库
-- [AI模型配置](/chainlesschain/ai-models) - 深入配置AI
-- [Git同步](/chainlesschain/git-sync) - 设置跨设备同步
-- [去中心化社交](/chainlesschain/social) - 开始P2P通讯
+根编排中 Ollama 为 `11434`、Qdrant HTTP 为 `6333`、PostgreSQL 为 `5432`、Redis 为 `6379`。其他服务按所选 Compose 文件核对；部署到服务器时设置实际凭据与监听范围，不沿用开发默认值。
 
 ## 配置参考
 
-### 安装选项配置
+| 配置入口                                   | 作用                                                |
+| ------------------------------------------ | --------------------------------------------------- |
+| `cc setup --skip-download --skip-services` | 只初始化 CLI 与模型配置                             |
+| `cc config list`                           | 显示脱敏配置和 CLI 配置文件的实际路径               |
+| `cc config effective --json`               | 查看启动配置的脱敏来源诊断                          |
+| `cc config validate`                       | 校验字段、类型与配置存储权限                        |
+| `cc config set-secret llm.apiKey`          | 交互式隐藏输入模型服务密钥                          |
+| `cc start`                                 | 完成 setup 后启动已配置的桌面二进制，不代替安装验证 |
 
-`chainlesschain setup` 支持通过环境变量或 CLI 参数预设安装选项，适用于自动化部署场景：
+CLI 默认配置在 `~/.chainlesschain/config.json`；桌面端还存在 Electron `userData` 下的应用和模型配置，它们不是同一个文件。不要把旧的完整 JSON 示例覆盖到新配置中；详见[配置路径与字段](./configuration)。
+
+## 使用示例
+
+### 更新到本页核对的公开组合
 
 ```bash
-# 非交互式安装（CI/CD 场景）
-CC_VERSION=personal \
-CC_LLM_PROVIDER=ollama \
-CC_SKIP_DOWNLOAD=false \
-CC_DATA_DIR="$HOME/.chainlesschain" \
-  chainlesschain setup --yes
-
-# 指定自定义数据目录和 LLM 端点
-chainlesschain setup \
-  --data-dir /opt/chainlesschain \
-  --llm-url http://localhost:11434 \
-  --llm-model qwen2:7b \
-  --yes
+npm i -g chainlesschain@0.166.145 --registry https://registry.npmjs.org
+chainlesschain --version
+chainlesschain doctor
 ```
 
-### Docker 服务配置覆盖
+随后升级到 Open VSX .181 / JetBrains .198 并重启聊天宿主。桌面与移动客户端按产品发行页独立升级，不因 CLI 更新而自动更换。
 
-在 `docker-compose.override.yml` 中覆盖默认端口或资源限制：
+### 安装后检查模型配置
 
-```yaml
-# docker-compose.override.yml
-services:
-  ollama:
-    environment:
-      - OLLAMA_NUM_PARALLEL=4
-      - OLLAMA_MAX_LOADED_MODELS=2
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - capabilities: [gpu] # 启用 NVIDIA GPU
-
-  qdrant:
-    ports:
-      - "6334:6334" # 将 gRPC 端口暴露到本地
-
-  postgres:
-    environment:
-      POSTGRES_MAX_CONNECTIONS: "200"
-      POSTGRES_SHARED_BUFFERS: "256MB"
+```bash
+cc config explain llm.provider
+cc config explain llm.model
+cc llm providers --json
 ```
 
-### CLI 全局配置文件
-
-`~/.chainlesschain/config.json` 中与安装相关的完整字段参考：
-
-```json
-{
-  "install": {
-    "version": "personal",
-    "channel": "stable",
-    "autoUpdate": true,
-    "updateCheckInterval": "daily",
-    "binaryPath": "/usr/local/bin/chainlesschain-desktop"
-  },
-  "services": {
-    "ollama": { "host": "http://localhost:11434", "autoStart": true },
-    "qdrant": { "host": "http://localhost:6333", "autoStart": true },
-    "postgres": { "host": "localhost", "port": 5432, "autoStart": true },
-    "redis": { "host": "localhost", "port": 6379, "autoStart": true }
-  },
-  "doctor": {
-    "checks": ["node", "docker", "ports", "ollama", "disk"],
-    "warnThresholdDiskGB": 5,
-    "failThresholdDiskGB": 1
-  }
-}
-```
-
-### 环境变量速查
-
-| 变量名           | 默认值                   | 说明                                                 |
-| ---------------- | ------------------------ | ---------------------------------------------------- |
-| `CC_DATA_DIR`    | `~/.chainlesschain`      | 数据存储根目录                                       |
-| `CC_VERSION`     | `personal`               | 安装版本（personal / enterprise）                    |
-| `OLLAMA_HOST`    | `http://localhost:11434` | Ollama 服务地址                                      |
-| `QDRANT_HOST`    | `http://localhost:6333`  | Qdrant 向量库地址                                    |
-| `DB_HOST`        | `localhost:5432`         | PostgreSQL 连接地址                                  |
-| `REDIS_HOST`     | `localhost:6379`         | Redis 连接地址                                       |
-| `CC_SKIP_DOCTOR` | `false`                  | 跳过启动时环境检查                                   |
-| `NODE_OPTIONS`   | —                        | Node.js 运行时参数（如 `--max-old-space-size=4096`） |
-
----
+显式运行 `cc llm test` 会访问所配置的模型服务，可能产生真实推理用量；只读配置检查不等于模型连通性或任务质量验收。
 
 ## 性能指标
 
-### 安装耗时（参考值）
+本次未重新测量安装耗时、内存、模型首 token 延迟或 Docker 就绪时间。下载大小以当前资产为准，源码依赖、平台、缓存和网络会影响安装耗时；本地模型资源按模型与上下文选择。本页不提供未经本轮实测的“15 秒安装”或固定覆盖率结论。
 
-| 安装方式                                        | 网络条件 | 典型耗时 |
-| ----------------------------------------------- | -------- | -------- |
-| `npm install -g chainlesschain`                 | 100 Mbps | ~15 秒   |
-| `chainlesschain setup`（仅配置，无模型下载）    | —        | ~30 秒   |
-| `chainlesschain setup`（含 llama3:8b 模型下载） | 100 Mbps | ~8 分钟  |
-| `docker-compose up -d`（首次拉取所有镜像）      | 100 Mbps | ~5 分钟  |
-| `docker-compose up -d`（镜像已缓存）            | —        | ~20 秒   |
-| AppImage / DMG / .exe 安装包                    | 100 Mbps | ~2 分钟  |
+## 测试覆盖
 
-### 磁盘占用
+本页根据命令注册、包版本、实际资产、平台构建配置和对应测试文件更新。相关回归包括 `packages/cli/__tests__/integration/setup-flow.test.js`、`__tests__/unit/downloader.test.js`、`__tests__/unit/service-manager.test.js`、`__tests__/unit/config-security.test.js` 与 `__tests__/unit/paths.test.js`。
 
-| 组件                                                    | 占用空间 |
-| ------------------------------------------------------- | -------- |
-| CLI 核心包（`chainlesschain` npm）                      | ~2 MB    |
-| 桌面应用（Electron 打包后）                             | ~180 MB  |
-| Docker 镜像合计（Ollama + Qdrant + PostgreSQL + Redis） | ~3.5 GB  |
-| llama3:8b 模型文件                                      | ~4.7 GB  |
-| qwen2:7b 模型文件                                       | ~4.4 GB  |
-| `~/.chainlesschain/` 初始数据目录（无笔记）             | ~50 MB   |
-
-### 运行时资源（推荐配置下）
-
-| 指标                       | 空载    | 对话中（7B 模型）     |
-| -------------------------- | ------- | --------------------- |
-| 桌面应用内存               | ~120 MB | ~200 MB               |
-| Ollama 内存                | ~200 MB | ~5–6 GB（模型加载后） |
-| Qdrant 内存                | ~80 MB  | ~150 MB               |
-| CPU 占用（推理时，8 核）   | <1%     | 40–70%                |
-| GPU 显存（NVIDIA，启用时） | —       | ~5 GB（7B 模型）      |
-
-### 启动时间
-
-| 阶段                                 | 时间（SSD，推荐配置） |
-| ------------------------------------ | --------------------- |
-| 桌面应用冷启动到主界面               | ~3 秒                 |
-| `chainlesschain doctor` 完成全项检查 | ~5 秒                 |
-| Ollama 首次加载 7B 模型              | ~8–15 秒              |
-| Ollama 模型已缓存时加载              | ~2–4 秒               |
-| Docker 全服务就绪（镜像已缓存）      | ~20 秒                |
-
----
-
-## 测试覆盖率
-
-安装与部署相关模块的测试文件列表：
-
-### CLI 安装命令
-
-- ✅ `packages/cli/__tests__/commands/setup.test.js` — 交互式向导全流程、`--yes` 非交互、版本选择、LLM 提供商配置
-- ✅ `packages/cli/__tests__/commands/doctor.test.js` — Node.js 版本检测、Docker 检测、端口可用性、Ollama 连通性、磁盘空间检查
-- ✅ `packages/cli/__tests__/commands/start.test.js` — 桌面应用启动、二进制路径解析、已运行实例检测
-- ✅ `packages/cli/__tests__/commands/services.test.js` — `services up/down/logs/restart`、Docker Compose 调用、服务健康检查
-
-### 配置管理
-
-- ✅ `packages/cli/__tests__/lib/config-manager.test.js` — 配置读写、环境变量优先级、默认值回退、加密字段处理
-- ✅ `packages/cli/__tests__/lib/binary-downloader.test.js` — GitHub Releases 下载、SHA-256 校验、断点续传、平台检测（win32/darwin/linux）
-- ✅ `desktop-app-vue/src/main/config/__tests__/unified-config-manager.test.js` — 统一配置管理器、跨平台路径、配置合并
-
-### Docker 服务编排
-
-- ✅ `packages/cli/__tests__/lib/docker-compose-manager.test.js` — compose 文件生成、服务启停、日志流、GPU 配置注入
-- ✅ `packages/cli/__tests__/lib/service-health-checker.test.js` — Ollama / Qdrant / PostgreSQL / Redis 健康探针、超时重试
-
-### 数据迁移
-
-- ✅ `packages/cli/__tests__/commands/import.test.js` — Notion ZIP 导入、Evernote ENEX 解析、Obsidian Markdown 导入、标签保留
-- ✅ `packages/cli/__tests__/commands/backup-restore.test.js` — 完整备份打包、增量备份、跨设备恢复、备份完整性验证
-
-### 环境诊断
-
-- ✅ `packages/cli/__tests__/lib/environment-checker.test.js` — 操作系统检测、Node.js/npm 版本验证、Git 可用性、U-Key 驱动检测
-
----
+公开 .145 的准确发行源已核对 CLI CI **75 成功、1 跳过** / Strict Sandbox **6 成功**。这是该发行的记录，不替代本次文档提交的构建，也不代表所有客户端安装、IDE GUI 或真实模型任务已重新验收。**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。
 
 ## 安全考虑
 
-- **环境变量安全**: 避免将 API Key、数据库密码等敏感信息硬编码在脚本或配置文件中，使用 `chainlesschain config set` 加密存储
-- **Docker 安全**: 生产环境中为 Docker 容器配置网络隔离，避免将数据库端口暴露到公网
-- **密钥与助记词**: 首次创建身份时生成的助记词务必离线保存（纸笔），切勿截图或存储在电子设备中
-- **U-Key PIN 码**: 默认 PIN 码为 `123456`，首次使用后务必立即修改为强 PIN
-- **文件权限**: 配置目录 `~/.chainlesschain/` 建议设置权限为 700，配置文件权限为 600
-- **网络传输**: 所有远程连接（Git 同步、API 调用）强制使用 HTTPS/TLS 加密
-- **二进制校验**: CLI 下载的二进制文件通过 SHA-256 校验和验证完整性，防止中间人篡改
-- **最小权限原则**: 不要以 root/管理员身份运行 ChainlessChain，使用普通用户权限即可
+- 模型密钥用 `set-secret` 的隐藏输入或受控 stdin；普通 `config set` 拒绝把密钥放进命令行参数。
+- 保存模式可能是系统密钥存储，也可能是仅当前用户可读的配置文件，不能统称所有平台都在 JSON 内 AES 加密。
+- 下载并核对与操作系统、架构和发行版本匹配的资产；备份前停止相关写入，保留恢复所需的权限、密钥存储与版本信息。
+- CLI 没有通用顶层 `backup` / `restore` 命令；使用具体业务的导出/同步/快照入口，不以复制单个 JSON 代替完整恢复。
+- U-Key/SIMKey 的 PIN、驱动和签名方式按设备配置核对，不使用文档假定的通用默认 PIN。
 
----
+## 故障排查
+
+| 现象                           | 检查方式                                                                                     |
+| ------------------------------ | -------------------------------------------------------------------------------------------- |
+| npm 安装 E404 或旧版本         | 核对 `--registry https://registry.npmjs.org`、固定版本与网络，再重新打开终端检查完整命令     |
+| `cc` 不是 ChainlessChain       | 使用 `chainlesschain --version`，检查 PATH 中实际命令来源                                    |
+| Electron / native 模块安装失败 | 核对 Node 版本、平台工具链和原始安装日志；不要把镜像或编译失败当作安装完成                   |
+| `cc start` 提示未 setup        | 先运行向导；只使用 CLI 时可跳过桌面下载，另行安装客户端                                      |
+| Docker 提示找不到编排          | 切换到目标目录或直接运行显式 `docker compose -f ...` 命令                                    |
+| 模型返回 401 / 不存在的模型    | 在配置入口核对同一个 provider、Base URL、API 模型 ID 与该端点的凭据                          |
+| 配置权限校验失败               | 先读 `cc config validate --json`；确认目标是自己的配置目录后再用 `--fix` 做安全迁移/权限修复 |
 
 ## 关键文件
 
-- `packages/cli/src/commands/setup.js` — CLI 安装向导
-- `packages/cli/src/commands/doctor.js` — 环境诊断
-- `desktop-app-vue/package.json` — 桌面应用依赖
-- `docker-compose.yml` — Docker 服务编排
+- `packages/cli/src/constants.js`：CLI 默认值和最低 Node 版本。
+- `packages/cli/src/commands/setup.js`、`doctor.js`、`start.js`、`services.js`：实际命令和选项。
+- `packages/cli/src/lib/paths.js`、`service-manager.js`、`downloader.js`：目录、Compose 查找与下载。
+- `desktop-app-vue/package.json`、`android-app/app/build.gradle.kts`、`ios-app/ChainlessChain.xcodeproj/project.pbxproj`：构建脚本和平台要求。
 
 ## 相关文档
 
-- [CLI 命令行工具](./cli) — CLI 完整命令参考
-- [配置说明](./configuration) — 详细配置文件说明
-- [CLI 分发系统](./cli-distribution) — 分发与安装机制
-- [AI 模型配置](./ai-models) — LLM 提供商配置
+- [系统概述](./overview) · [配置说明](./configuration) · [CLI 指南](./cli)
+- [IDE 指南](./ide-plugin) · [CLI / IDE 当前升级指南](./cli-ide-update-2026-11-09-145)
+- [自进化开关配置](./self-evolution-configuration) · [输入与恢复](./agent-input-and-recovery)

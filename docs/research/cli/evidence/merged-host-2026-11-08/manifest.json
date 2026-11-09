@@ -1,0 +1,40 @@
+{
+  "sourceHead": "a3296d55fd38f4e186a712ef26c3bd3421bcbab4",
+  "vsixSha256": "75a59a257f46c5a971f9893baa4878549926a02ae2a0803ef3c2ada4d79e4af1",
+  "originalJourneySha256": "b7ebb0a8a260eb645f440aaebf46303ef5dc9414776c30109587a619310b12e8",
+  "journeyResult": "failed",
+  "artifacts": [
+    {
+      "name": "bridge-trace.jsonl",
+      "bytes": 449,
+      "sha256": "8052bf0e4ecc3a0af27b145eb82fa54a40e7ef7e3ae73b915abe024e29c3adb3"
+    },
+    {
+      "name": "bridge-failure.json",
+      "bytes": 322,
+      "sha256": "b81459c648106f225fb317022b0b858575b49d0df4678fe2218a4d495990bf66"
+    },
+    {
+      "name": "cross-loopback.json",
+      "bytes": 205,
+      "sha256": "7cfdb56e53e671c1d49f140b54119b8ea95921c2bb71af3d584c5ab3761fb124"
+    },
+    {
+      "name": "host-progress.jsonl",
+      "bytes": 663,
+      "sha256": "15e6c11fb8bcfa25f725a5fdaa7504ba11359a576f9907c18b2739df3689c86a"
+    },
+    {
+      "name": "loopback-comparison.json",
+      "bytes": 686,
+      "sha256": "392203acb048a80741ee853064bace4ad377fef23680d4912f8bce33b6684bac",
+      "transformation": "Parsed probe JSON and replaced executable paths with host roles; original remains in .tmp."
+    },
+    {
+      "name": "ipv6-loopback.json",
+      "bytes": 2031,
+      "sha256": "45de7b8843da46fc9c0ce8914c8bc73d7f96f5817b82f1406c82c739dcf30725",
+      "transformation": "Parsed isolated IPv4/IPv6 probe results and replaced executable paths with host roles; original remains in .tmp."
+    }
+  ]
+}

@@ -1,3 +1,4 @@
+import { createLocalSemanticSource } from "./local-semantic-source.js";
 import { ContextMemoryKernel } from "@chainlesschain/context-memory-kernel";
 import { SegmentedMemoryPort } from "./segmented-memory-port.js";
 import { JsonlSessionContextPort } from "./jsonl-session-context-port.js";
@@ -56,7 +57,46 @@ export function createCliContextMemoryRuntime(options = {}) {
     ...(options.randomUUID ? { randomUUID: options.randomUUID } : {}),
     purgePorts,
   });
+  const semanticSource = createLocalSemanticSource({
+    memoryPort,
+    env: options.env || process.env,
+    clock: options.clock || Date.now,
+  });
+  async function recallMemory(request, controls = {}) {
+    controls.signal?.throwIfAborted();
+    const useLocalSource =
+      decision.canonical &&
+      request.semanticCandidates === undefined &&
+      semanticSource.isEnabled() &&
+      request.query !== "*";
+    const sourceRevision = useLocalSource
+      ? await memoryPort.getRevision(controls)
+      : null;
+    controls.signal?.throwIfAborted();
+    const candidates = useLocalSource
+      ? await semanticSource.candidates(request, controls)
+      : undefined;
+    controls.signal?.throwIfAborted();
+    const result = await kernel.recallMemory(
+      {
+        ...request,
+        ...(candidates === undefined ? {} : { semanticCandidates: candidates }),
+      },
+      controls,
+    );
+    controls.signal?.throwIfAborted();
+    if (sourceRevision !== null && result.memoryRevision !== sourceRevision) {
+      const error = new Error(
+        "Memory changed during local semantic inference; prepare a fresh recall",
+      );
+      error.code = "revision_conflict";
+      error.noReplay = true;
+      throw error;
+    }
+    return result;
+  }
   return Object.freeze({
+    recallMemory,
     decision,
     kernel,
     memoryPort,

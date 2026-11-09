@@ -1,0 +1,30 @@
+{
+  "schema": "chainlesschain.dmm-native-goal-journey/v1",
+  "startedAt": "2026-11-08T00:49:46.405Z",
+  "sourceSha": "74f8df309ee69741003fab426ae30bb50514505a",
+  "sourceStatus": "M .github/workflows/cli-ci.yml\n M .github/workflows/dmm-native-goal-workspace.yml\n M desktop-app-vue/package.json\n M desktop-app-vue/src/main/llm/permanent-memory-manager.js\n M docs/research/cli-ide/implementation/README.md\n M docs/research/cli-ide/plans/README.md\n M docs/research/cli-ide/plans/cli-ide-codex-claude-gap-review-2026-10-27.md\n M packages/cli/scripts/memory-mixed-concurrency-benchmark.mjs\n M packages/cli/src/lib/context-memory-kernel/memory-query-index.js\n M packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js\n?? desktop-app-vue/scripts/__tests__/install-electron.test.mjs\n?? desktop-app-vue/scripts/__tests__/permanent-memory-startup.test.mjs\n?? desktop-app-vue/scripts/install-electron.cjs\n?? docs/research/cli-ide/implementation/cli-ide-codex-167-progress-2026-11-08.md\n?? docs/research/cli-ide/implementation/cli-ide-memory-lazy-progress-2026-11-08.md\n?? docs/research/cli-ide/implementation/cli-ide-model-input-diagnostics-progress-2026-11-08.md\n?? docs/research/cli-ide/implementation/cli-ide-model-input-journal-progress-2026-11-08.md\n?? docs/research/cli-ide/implementation/evidence/\n?? docs/research/cli-ide/plans/cli-ide-codex-claude-gap-review-2026-11-08.md\n?? docs/research/cli/evidence/memory-lazy-2026-11-08/\n?? packages/cli/__tests__/integration/memory-mixed-checkpoints.test.js\n?? packages/cli/test-node/memory-lazy-postings.node-test.mjs",
+  "platform": "win32",
+  "release": "10.0.26200",
+  "synthetic": true,
+  "setupSeeded": true,
+  "realBusinessAcceptance": false,
+  "installedProductAcceptance": false,
+  "profileRetainedLocally": true,
+  "dialogs": [],
+  "stages": [],
+  "artifacts": {
+    "dist/main/index.js": "dcb2219ebf51489196b4bf87d2551854ba4f29f11d66b436ca477306b14dc4b7",
+    "dist/main/task/project-goal-auth-session.js": "c3ff33a0a9b43dceda49ad721a1348506e2c8202e21300c34f726a8c43ac6550",
+    "dist/preload/index.js": "43bc2f1149085b5deec7af3cbccac09c413cc2b2eb1af0c698b60e64f37c69b2",
+    "dist/renderer/index.html": "41d8337c714083c863789372886060dbf612a5fa0c16d23e74e4e4c7f7e65330"
+  },
+  "runnerSha256": "6f35101658e6167824fd6282d4e4649e16d7590925ba150b637fc364fbcfc6d0",
+  "ipcErrors": [],
+  "status": "failed",
+  "error": {
+    "message": "electronApplication.firstWindow: Timeout 180000ms exceeded while waiting for event \"window\"",
+    "stack": "electronApplication.firstWindow: Timeout 180000ms exceeded while waiting for event \"window\"\n    at app.<computed> (E:\\code\\chainlesschain\\.tmp\\product-gui-diagnostic-20261108\\observe-phases.cjs:52:38)\n    at E:\\code\\chainlesschain\\desktop-app-vue\\scripts\\project-goal-native-journey.mjs:145:22"
+  },
+  "diagnostics": null,
+  "finishedAt": "2026-11-08T00:53:02.578Z"
+}

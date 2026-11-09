@@ -1,0 +1,60 @@
+{
+  "auditedAt": "2026-11-08T06:02:19.157Z",
+  "sourceHead": "3116842b0fdc5d5c6c747a404bf37b18fb8206c9",
+  "reportSha256": "ec1bd8fe355c283f72f12b75c550e9bb4cd96901363adb46ef03be7149a49f16",
+  "processExitCode": 0,
+  "samples": 600,
+  "sourceDigestsMatched": true,
+  "allTargetsMet": true,
+  "groups": [
+    {
+      "count": 1000,
+      "mode": "validate-disk",
+      "aborted": 100,
+      "completedBeforeDeadline": 0,
+      "deliveryP95": 2.967,
+      "acknowledgementP95": 1.477
+    },
+    {
+      "count": 1000,
+      "mode": "verified-memory",
+      "aborted": 81,
+      "completedBeforeDeadline": 19,
+      "deliveryP95": 9.318,
+      "acknowledgementP95": 0.135
+    },
+    {
+      "count": 10000,
+      "mode": "validate-disk",
+      "aborted": 100,
+      "completedBeforeDeadline": 0,
+      "deliveryP95": 0.449,
+      "acknowledgementP95": 1.417
+    },
+    {
+      "count": 10000,
+      "mode": "verified-memory",
+      "aborted": 99,
+      "completedBeforeDeadline": 1,
+      "deliveryP95": 1.355,
+      "acknowledgementP95": 0.091
+    },
+    {
+      "count": 100000,
+      "mode": "validate-disk",
+      "aborted": 100,
+      "completedBeforeDeadline": 0,
+      "deliveryP95": 0.693,
+      "acknowledgementP95": 1.444
+    },
+    {
+      "count": 100000,
+      "mode": "verified-memory",
+      "aborted": 100,
+      "completedBeforeDeadline": 0,
+      "deliveryP95": 7.176,
+      "acknowledgementP95": 2.122
+    }
+  ],
+  "boundary": "Local disk-backed listing Stop only. No native IDE, semantic-model cancellation or cross-platform admission."
+}

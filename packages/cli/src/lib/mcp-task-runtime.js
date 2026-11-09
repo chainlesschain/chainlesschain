@@ -17,6 +17,32 @@ function failure(code, message, details = {}) {
   return Object.assign(new Error(message), { code, ...details });
 }
 
+function waitForTaskPoll(ms, signal, leaseSignal) {
+  const delay = Math.max(0, Math.min(60_000, Number(ms) || 0));
+  if (delay === 0) return Promise.resolve();
+  const combined = signal
+    ? AbortSignal.any([leaseSignal, signal])
+    : leaseSignal;
+  if (combined.aborted) return Promise.reject(combined.reason);
+  return new Promise((resolve, reject) => {
+    const abort = () => {
+      clearTimeout(timer);
+      combined.removeEventListener("abort", abort);
+      reject(
+        combined.reason ||
+          new DOMException("The operation was aborted", "AbortError"),
+      );
+    };
+    // The timer is the only successful completion path; remove the listener
+    // before resolving so repeated polling does not retain old closures.
+    const timer = setTimeout(() => {
+      combined.removeEventListener("abort", abort);
+      resolve();
+    }, delay);
+    combined.addEventListener("abort", abort, { once: true });
+  });
+}
+
 function publicRecord(record, projection) {
   const call = projection.callRecovery.records.find(
     (item) => item.ledgerId === record.ledgerId,
@@ -34,6 +60,11 @@ function publicRecord(record, projection) {
     revision: record.revision,
     taskId: record.task?.taskId ?? null,
     remoteStatus: record.task?.status ?? null,
+    pollIntervalMs:
+      Number.isSafeInteger(record.task?.pollInterval) &&
+      record.task.pollInterval >= 0
+        ? record.task.pollInterval
+        : null,
     cancelRequested: record.cancelRequested,
     cancelUnknown: record.cancelUnknown,
     resultSaved: record.result !== null,
@@ -384,6 +415,95 @@ export function createDurableMcpTaskRuntime({
         }
         record = append(record, "observed", { task });
         return publicRecord(record, read());
+      });
+    },
+
+    /**
+     * Opt-in foreground/background tracking for one accepted task. This only
+     * polls and durably delivers the verified result; it never starts a model
+     * turn or injects data into conversation history.
+     */
+    async watch(
+      localId,
+      {
+        intervalMs = null,
+        timeoutMs = 15 * 60 * 1000,
+        signal,
+        deliver = true,
+        onUpdate = null,
+        onDelivery = null,
+      } = {},
+    ) {
+      const requestedInterval = intervalMs == null ? null : Number(intervalMs);
+      const requestedTimeout = Number(timeoutMs);
+      if (
+        (requestedInterval !== null &&
+          (!Number.isSafeInteger(requestedInterval) ||
+            requestedInterval < 0 ||
+            requestedInterval > 60_000)) ||
+        !Number.isSafeInteger(requestedTimeout) ||
+        requestedTimeout < 1 ||
+        requestedTimeout > 24 * 60 * 60 * 1000
+      ) {
+        throw failure(
+          "CC_MCP_TASK_WATCH_OPTIONS_INVALID",
+          "MCP task watch interval/timeout is outside the allowed bounds",
+        );
+      }
+      const started = Date.now();
+      let latest = null;
+      for (;;) {
+        latest = await this.poll(localId, { signal });
+        onUpdate?.(latest);
+        if (latest.resultSaved) break;
+        if (
+          ["completed", "failed", "cancelled"].includes(latest.remoteStatus)
+        ) {
+          latest = await this.result(localId, { signal });
+          onUpdate?.(latest);
+          break;
+        }
+        if (Date.now() - started >= requestedTimeout) {
+          throw failure(
+            "CC_MCP_TASK_WATCH_TIMEOUT",
+            "MCP task did not produce a verified result before the watch timeout",
+            { localId },
+          );
+        }
+        await waitForTaskPoll(
+          requestedInterval ?? latest.pollIntervalMs ?? 1000,
+          signal,
+          lease.signal,
+        );
+      }
+      if (!deliver) return latest;
+      const receipt = await this.deliver(localId);
+      const delivery = read().deliveries.find(
+        (item) =>
+          item.localId === localId && item.deliveryId === receipt.deliveryId,
+      );
+      // Pass the full verified delivery record so consumers retain the
+      // session/local-id binding and the rendered external-reference message.
+      onDelivery?.(receipt, delivery || null);
+      return Object.freeze({ ...receipt, watched: true });
+    },
+
+    /** Start an opt-in timer without detaching it from the session lease. */
+    startTracking(localId, options = {}) {
+      const stopController = new AbortController();
+      const signal = options.signal
+        ? AbortSignal.any([options.signal, stopController.signal])
+        : stopController.signal;
+      const promise = this.watch(localId, { ...options, signal });
+      return Object.freeze({
+        promise,
+        stop() {
+          stopController.abort(
+            Object.assign(new Error("MCP task tracking stopped"), {
+              code: "CC_MCP_TASK_TRACKING_STOPPED",
+            }),
+          );
+        },
       });
     },
 

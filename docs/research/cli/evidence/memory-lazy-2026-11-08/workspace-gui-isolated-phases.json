@@ -1,0 +1,117 @@
+{
+  "schema": "chainlesschain.product-electron-phase-diagnostic/v1",
+  "hostNode": "v22.20.0",
+  "startedAt": "2026-11-08T00:58:04.880Z",
+  "productGuiAcceptance": false,
+  "complete": true,
+  "runnerSha256": "60ef846f10236110835091e3bf8e22a36edd772144599cc6a6163a38b308d1b1",
+  "permanentMemoryArtifactSha256": "c016b60fe19c4bc5b9128ca95a1d40a557a79a23466ce4bd27de5dd0ab46f16b",
+  "events": [
+    {
+      "stage": "launch-requested",
+      "elapsedMs": 444,
+      "timeoutMs": 30000
+    },
+    {
+      "stage": "launch-resolved",
+      "elapsedMs": 1299
+    },
+    {
+      "stage": "evaluate-requested",
+      "elapsedMs": 1303,
+      "invocation": 1
+    },
+    {
+      "stage": "evaluate-resolved",
+      "elapsedMs": 1312,
+      "invocation": 1
+    },
+    {
+      "stage": "evaluate-requested",
+      "elapsedMs": 1313,
+      "invocation": 2
+    },
+    {
+      "stage": "evaluate-resolved",
+      "elapsedMs": 1338,
+      "invocation": 2
+    },
+    {
+      "stage": "firstWindow-requested",
+      "elapsedMs": 1339,
+      "invocation": 1
+    },
+    {
+      "stage": "firstWindow-resolved",
+      "elapsedMs": 50968,
+      "invocation": 1
+    },
+    {
+      "stage": "evaluate-requested",
+      "elapsedMs": 50969,
+      "invocation": 3
+    },
+    {
+      "stage": "evaluate-resolved",
+      "elapsedMs": 50973,
+      "invocation": 3
+    },
+    {
+      "stage": "evaluate-requested",
+      "elapsedMs": 50974,
+      "invocation": 4
+    },
+    {
+      "stage": "evaluate-resolved",
+      "elapsedMs": 50976,
+      "invocation": 4
+    },
+    {
+      "stage": "evaluate-requested",
+      "elapsedMs": 54940,
+      "invocation": 5
+    },
+    {
+      "stage": "evaluate-resolved",
+      "elapsedMs": 54943,
+      "invocation": 5
+    },
+    {
+      "stage": "evaluate-requested",
+      "elapsedMs": 57863,
+      "invocation": 6
+    },
+    {
+      "stage": "evaluate-resolved",
+      "elapsedMs": 57880,
+      "invocation": 6
+    },
+    {
+      "stage": "evaluate-requested",
+      "elapsedMs": 137582,
+      "invocation": 7
+    },
+    {
+      "stage": "evaluate-resolved",
+      "elapsedMs": 137584,
+      "invocation": 7
+    },
+    {
+      "stage": "close-requested",
+      "elapsedMs": 137587,
+      "invocation": 1
+    },
+    {
+      "stage": "close-resolved",
+      "elapsedMs": 137797,
+      "invocation": 1
+    },
+    {
+      "stage": "phase-observer-exit",
+      "elapsedMs": 137800
+    }
+  ],
+  "playwright": "1.61.1",
+  "exitCode": 0,
+  "finishedAt": "2026-11-08T01:00:22.682Z"
+}

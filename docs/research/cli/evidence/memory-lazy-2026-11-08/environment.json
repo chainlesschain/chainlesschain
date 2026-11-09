@@ -1,0 +1,9 @@
+{
+  "capturedAt": "2026-11-08T00:13:17.984Z",
+  "platform": "win32",
+  "release": "10.0.26200",
+  "cpu": "13th Gen Intel(R) Core(TM) i9-13900K",
+  "logicalCpus": 32,
+  "totalMemory": 34118512640,
+  "boundary": "Shared workstation; desktop main and renderer builds overlapped cold/hot measurement. Not an isolated A/B experiment."
+}

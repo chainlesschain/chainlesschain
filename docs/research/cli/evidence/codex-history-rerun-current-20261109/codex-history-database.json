@@ -1,0 +1,232 @@
+{
+  "schema": "chainlesschain.codex-history-probe/v1",
+  "status": "passed",
+  "commitSha": "95a91f29ae01a11732873b7ab13c3c8f3fc6b76d",
+  "platform": "win32",
+  "arch": "x64",
+  "upstream": {
+    "version": "0.167.0",
+    "reported": "codex-cli 0.167.0",
+    "binarySha256": "edfdd48f8b458af0906e507b4cb05217b326c3d6e515e9f024e05e3b8d650f70"
+  },
+  "provider": "synthetic-loopback-responses",
+  "realProviderAcceptance": false,
+  "productionAdmission": false,
+  "processRestarted": true,
+  "threadSource": "vscode",
+  "threadListMode": "state-db-only",
+  "threadListSortKey": "recency_at",
+  "threadCreationTimes": [
+    1794174586,
+    1794174586
+  ],
+  "sameCreatedAtSecond": true,
+  "rolloutScanPaginationVerified": false,
+  "settingsRestored": true,
+  "completedRequestReplayed": false,
+  "threadPages": [
+    {
+      "ids": [
+        "01a1bd23-8cbe-7070-a2d5-22d9c0e615bf"
+      ],
+      "nextCursor": "2026-11-08T21:49:46.145Z|01a1bd23-8cbe-7070-a2d5-22d9c0e615bf"
+    },
+    {
+      "ids": [
+        "01a1bd23-8cbe-7070-a2d5-22cdcc9350e7"
+      ],
+      "nextCursor": null
+    }
+  ],
+  "turnPagesBeforeResume": [
+    {
+      "ids": [
+        "01a1bd23-8d0e-7161-9f9f-8c75204c99fe"
+      ],
+      "nextCursor": null
+    }
+  ],
+  "turnPagesAfterResume": [
+    {
+      "ids": [
+        "01a1bd23-8d0e-7161-9f9f-8c75204c99fe"
+      ],
+      "nextCursor": "{\"requestedThreadId\":\"01a1bd23-8cbe-7070-a2d5-22d9c0e615bf\",\"rolloutOrdinal\":1,\"includeAnchor\":false,\"scope\":{\"kind\":\"turns\"}}"
+    },
+    {
+      "ids": [
+        "01a1bd23-928c-7c33-843b-fd278a1174e5"
+      ],
+      "nextCursor": null
+    }
+  ],
+  "results": [
+    {
+      "threadId": "01a1bd23-8cbe-7070-a2d5-22d9c0e615bf",
+      "turnId": "01a1bd23-8d0e-7161-9f9f-8c75204c99fe",
+      "output": "history-main-1-result"
+    },
+    {
+      "threadId": "01a1bd23-8cbe-7070-a2d5-22cdcc9350e7",
+      "turnId": "01a1bd23-8da2-7623-a9df-7118cc15820e",
+      "output": "history-other-1-result"
+    },
+    {
+      "threadId": "01a1bd23-8cbe-7070-a2d5-22d9c0e615bf",
+      "turnId": "01a1bd23-928c-7c33-843b-fd278a1174e5",
+      "output": "history-main-2-result"
+    }
+  ],
+  "providerRequests": [
+    {
+      "scenario": "history-main-1",
+      "authorization": false,
+      "retainedContext": false
+    },
+    {
+      "scenario": "history-other-1",
+      "authorization": false,
+      "retainedContext": false
+    },
+    {
+      "scenario": "history-main-2",
+      "authorization": false,
+      "retainedContext": true
+    }
+  ],
+  "officialSchema": {
+    "hashes": {
+      "request": "94074a415950787a25e09ae3b4d9de312cc264eb0f021633dfca921d300cd42a",
+      "notification": "6371619bc83dd2c7a3ff348704d514c5be9f0d8e992275a1fa592cf51bfd2c1f",
+      "server-request": "58df585160941977d6e7a0ce458750b0c0d37987ce326fc4c880bf1dfbd3802f",
+      "approval-response": "6d0767113e22f311381809b6b236b0dde2b99b01992879c26bf7b1ea0e003cb7"
+    },
+    "validatedMessages": {
+      "request:initialize": 2,
+      "notification:remoteControl/status/changed": 2,
+      "request:thread/start": 2,
+      "notification:thread/started": 2,
+      "request:turn/start": 3,
+      "notification:warning": 3,
+      "notification:thread/status/changed": 7,
+      "notification:turn/started": 3,
+      "notification:item/started": 6,
+      "notification:item/completed": 6,
+      "notification:thread/tokenUsage/updated": 4,
+      "notification:account/rateLimits/updated": 3,
+      "notification:turn/completed": 3,
+      "request:thread/list": 2,
+      "request:thread/read": 1,
+      "request:thread/resume": 1,
+      "request:thread/turns/list": 3,
+      "notification:thread/goal/cleared": 1
+    }
+  },
+  "scope": "database",
+  "requiredChecks": [
+    "database"
+  ],
+  "unverifiedScopes": [
+    "raw-upstream-default-pagination",
+    "created-at-pagination",
+    "indexed-rollout-recency",
+    "cold-asc",
+    "cold-desc",
+    "cold-direction-order"
+  ],
+  "strictFailures": [],
+  "threadSample": [
+    {
+      "id": "01a1bd23-8cbe-7070-a2d5-22d9c0e615bf",
+      "createdAt": 1794174586
+    },
+    {
+      "id": "01a1bd23-8cbe-7070-a2d5-22cdcc9350e7",
+      "createdAt": 1794174586
+    }
+  ],
+  "historyChecks": {
+    "database": {
+      "status": "verified",
+      "verified": true,
+      "settingsRestored": true,
+      "completedRequestReplayed": false,
+      "threadPages": [
+        {
+          "ids": [
+            "01a1bd23-8cbe-7070-a2d5-22d9c0e615bf"
+          ],
+          "nextCursor": "2026-11-08T21:49:46.145Z|01a1bd23-8cbe-7070-a2d5-22d9c0e615bf"
+        },
+        {
+          "ids": [
+            "01a1bd23-8cbe-7070-a2d5-22cdcc9350e7"
+          ],
+          "nextCursor": null
+        }
+      ],
+      "turnPagesBeforeResume": [
+        {
+          "ids": [
+            "01a1bd23-8d0e-7161-9f9f-8c75204c99fe"
+          ],
+          "nextCursor": null
+        }
+      ],
+      "turnPagesAfterResume": [
+        {
+          "ids": [
+            "01a1bd23-8d0e-7161-9f9f-8c75204c99fe"
+          ],
+          "nextCursor": "{\"requestedThreadId\":\"01a1bd23-8cbe-7070-a2d5-22d9c0e615bf\",\"rolloutOrdinal\":1,\"includeAnchor\":false,\"scope\":{\"kind\":\"turns\"}}"
+        },
+        {
+          "ids": [
+            "01a1bd23-928c-7c33-843b-fd278a1174e5"
+          ],
+          "nextCursor": null
+        }
+      ]
+    },
+    "rawUpstreamQueries": {
+      "status": "not-run"
+    },
+    "rolloutScanRecency": {
+      "status": "not-run",
+      "verified": false
+    },
+    "rolloutRepair": {
+      "status": "not-run",
+      "verified": false,
+      "orderComparison": {
+        "status": "not-run",
+        "verified": false
+      },
+      "cases": {
+        "asc": {
+          "status": "not-run",
+          "verified": false
+        },
+        "desc": {
+          "status": "not-run",
+          "verified": false
+        }
+      }
+    }
+  },
+  "rolloutScanRecencyPaginationVerified": false,
+  "processClosed": [
+    {
+      "code": 0,
+      "signal": null,
+      "stdioForcedClosed": true
+    },
+    {
+      "code": 0,
+      "signal": null,
+      "stdioForcedClosed": true
+    }
+  ],
+  "cleanupErrors": [],
+  "notificationsSha256": "645ff81a4dc8a1ed22456409164f46ff1c2ffec5bf7130608ba06e8477757e1c"
+}

@@ -1,0 +1,8 @@
+{
+  "url": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.181/file/chainlesschain.chainlesschain-ide-0.37.181.vsix",
+  "version": "0.37.181",
+  "recommendedCliVersion": "0.166.145",
+  "sha256": "c7359e2b445874321bf88e389717b295f3f14d9194913f576badb8fed6afda0f",
+  "publicDownloadVerified": true,
+  "officialArtifactParity": "not rerun"
+}

@@ -1,0 +1,46 @@
+{
+  "sourceHead": "3116842b0fdc5d5c6c747a404bf37b18fb8206c9",
+  "artifacts": [
+    {
+      "name": "query-recovery100.json",
+      "bytes": 675022,
+      "sha256": "a791963427bb4a2a335a6c6f8dc88d31b7dcb1aa4ca39b0599ccb0005cff8482"
+    },
+    {
+      "name": "query-live-audit.json",
+      "bytes": 1985,
+      "sha256": "58d68762aad565a6cfbc62f4f3e23e69b38e5c003260b23381198997cded2165"
+    },
+    {
+      "name": "stop100.json",
+      "bytes": 232039,
+      "sha256": "ec1bd8fe355c283f72f12b75c550e9bb4cd96901363adb46ef03be7149a49f16"
+    },
+    {
+      "name": "stop100-audit.json",
+      "bytes": 1556,
+      "sha256": "e422de563a502458510e7ae03d75c64950924c65497245ed3e8eb1ff2c9a7d33"
+    },
+    {
+      "name": "mixed100.json.gz",
+      "bytes": 376467,
+      "sha256": "829aeaa6c5d8edc4a048f2db32008ee61af7876cb8e381f743e1076f5bf2b7c6"
+    },
+    {
+      "name": "mixed100-audit.json",
+      "bytes": 995,
+      "sha256": "0c9ad30675242e040ad7852c3025864efe02c6390da4c1fc23c4c1de37df16a3"
+    },
+    {
+      "name": "compound100.json.gz",
+      "bytes": 208148,
+      "sha256": "10b97e84b7de596bce15062d0edc6087ae5538a9e2d0afcba6bef0cb09d2166a"
+    },
+    {
+      "name": "compound100-audit.json",
+      "bytes": 2448,
+      "sha256": "05e247cf7e502a6ee618ff572939a9a34d31edb0aad1286c05d28bef9781d76e"
+    }
+  ],
+  "boundary": "Archived local Windows fixture evidence only. This verifier does not prove current-source, cross-platform, IDE, semantic quality or production admission."
+}

@@ -1,0 +1,16 @@
+{
+  "schema": "chainlesschain.codex-app-server-static-rerun/v1",
+  "head": "68a5d4b444a7b24596f74ef6280c0a9db4aaa65c",
+  "branch": "main",
+  "remotePushed": false,
+  "command": "npx vitest run __tests__/unit/codex-app-server-adapter.test.js __tests__/unit/codex-app-server-history-probe.test.js __tests__/unit/codex-app-server-archived-replay.test.js __tests__/unit/codex-app-server-official-schema.test.js __tests__/unit/codex-app-server-support.test.js __tests__/unit/codex-app-server-turn-probe.test.js --reporter=dot",
+  "testsPassed": 137,
+  "testsFailed": 0,
+  "testFiles": 6,
+  "limitations": [
+    "not native .167 protocol acceptance",
+    "not Linux/macOS cancellation or recovery",
+    "not real provider admission",
+    "not three-system CI"
+  ]
+}

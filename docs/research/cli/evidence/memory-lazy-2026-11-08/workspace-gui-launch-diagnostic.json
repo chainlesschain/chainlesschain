@@ -1,0 +1,41 @@
+{
+  "schema": "chainlesschain.product-electron-launch-diagnostic/v1",
+  "startedAt": "2026-11-08T00:31:52.844Z",
+  "hostNode": "v22.20.0",
+  "productGuiAcceptance": false,
+  "launchTimeoutUnchanged": true,
+  "complete": true,
+  "events": [
+    {
+      "stage": "electron-launcher-created",
+      "elapsedMs": 446,
+      "pid": 36892
+    },
+    {
+      "stage": "node-debugger-announced",
+      "elapsedMs": 494
+    },
+    {
+      "stage": "cdp-announced",
+      "elapsedMs": 17209
+    },
+    {
+      "stage": "electron-launcher-exit",
+      "elapsedMs": 222970,
+      "code": null,
+      "signal": "SIGTERM"
+    },
+    {
+      "stage": "electron-launcher-close",
+      "elapsedMs": 222982,
+      "code": null,
+      "signal": "SIGTERM"
+    },
+    {
+      "stage": "observer-exit",
+      "elapsedMs": 222984
+    }
+  ],
+  "exitCode": 1,
+  "finishedAt": "2026-11-08T00:35:35.828Z"
+}

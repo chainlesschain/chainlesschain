@@ -1,0 +1,5 @@
+# Codex cold scan evidence: 0.160 and 0.164 (2026-11-09)
+
+These are the original replay and installation-registry receipts recovered from the local worktree. Both zero-turn replays are intentionally preserved as failed evidence: the ascending cold scan found only 1 of 2 expected entries, while `providerRequests` is empty and `turnStartRequests` is zero. The failed state and first-page evidence remain intact; this archive does not turn the cold-scan gap into a pass.
+
+The registry receipts preserve official package integrity, native SHA, and version readback for each tested release. They are public package metadata and contain no credentials. Codex `.167` compatibility and production admission remain separate claims and require their own exact release matrix and cold-scan boundary verification.

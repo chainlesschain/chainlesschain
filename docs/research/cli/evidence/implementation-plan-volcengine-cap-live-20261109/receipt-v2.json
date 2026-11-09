@@ -1,0 +1,175 @@
+{
+  "schema": "chainlesschain.implementation-plan-volcengine-diagnostic/v1",
+  "startedAt": "2026-11-08T19:31:29.985Z",
+  "provider": "volcengine",
+  "model": "deepseek-v4-1-flash-economy-261017",
+  "formalSample": false,
+  "billingVerified": false,
+  "outputUpperBoundVerified": true,
+  "estimatedStopIsHardBudget": false,
+  "requestLimit": 8,
+  "estimatedSpendStopUsd": 0.05,
+  "requests": [
+    {
+      "id": 1,
+      "requestDigest": "sha256:d1cd1a4d32f946b43b0e7c929ba71ba421965dc331202e2a7391ad8f103b8089",
+      "startedAt": "2026-11-08T19:31:30.025Z",
+      "stream": true,
+      "accounting": "estimated",
+      "requestedMaxOutputTokens": 512,
+      "httpStatus": 200,
+      "usage": {
+        "input_tokens": 39,
+        "output_tokens": 20,
+        "cache_read_input_tokens": 0,
+        "service_tier": "default"
+      },
+      "estimatedCostUsd": 0.000059,
+      "outputBoundExceeded": false,
+      "responseDigest": "sha256:e5aacd7f76fa029e5d1985b03fd1b0e698073b226880b87da1fafaef6cb9775e",
+      "finishedAt": "2026-11-08T19:31:31.344Z"
+    },
+    {
+      "id": 2,
+      "requestDigest": "sha256:3024e9d69ab9d7425843a1fe0d185a4ec0b47675e6787f23a6fb8b564b350a19",
+      "startedAt": "2026-11-08T19:31:31.345Z",
+      "stream": false,
+      "accounting": "estimated",
+      "requestedMaxOutputTokens": 1,
+      "httpStatus": 200,
+      "usage": {
+        "input_tokens": 46,
+        "output_tokens": 1,
+        "cache_read_input_tokens": 0,
+        "service_tier": "default"
+      },
+      "estimatedCostUsd": 0.000047,
+      "outputBoundExceeded": false,
+      "responseDigest": "sha256:2ff9e72042c68aca5c10efe8d43f3adb70580af507441d9fab040c7d9e59a0e2",
+      "finishedAt": "2026-11-08T19:31:32.354Z"
+    },
+    {
+      "id": 3,
+      "requestDigest": "sha256:da4f75dcc87e2a2882acf5ca378c753bf563ccef8008c9640129b247ac54599a",
+      "startedAt": "2026-11-08T19:31:32.355Z",
+      "stream": false,
+      "accounting": "estimated",
+      "requestedMaxOutputTokens": 512,
+      "httpStatus": 200,
+      "usage": {
+        "input_tokens": 67,
+        "output_tokens": 40,
+        "cache_read_input_tokens": 512,
+        "service_tier": "default"
+      },
+      "estimatedCostUsd": 0.0001582,
+      "outputBoundExceeded": false,
+      "responseDigest": "sha256:718cd5fb70fda1e153cd39bf9cc6e5019e8f47bbfff89fccee05b4b3693d6523",
+      "finishedAt": "2026-11-08T19:31:33.401Z"
+    },
+    {
+      "id": 4,
+      "requestDigest": "sha256:6ae5972755ad52925ef839b72e6cf1f31d58df8f02d0e62bfcbd8b221337d8e4",
+      "startedAt": "2026-11-08T19:31:33.412Z",
+      "stream": false,
+      "accounting": "estimated",
+      "requestedMaxOutputTokens": 512,
+      "httpStatus": 200,
+      "usage": {
+        "input_tokens": 303,
+        "output_tokens": 52,
+        "cache_read_input_tokens": 0,
+        "service_tier": "default"
+      },
+      "estimatedCostUsd": 0.000355,
+      "outputBoundExceeded": false,
+      "responseDigest": "sha256:1d53e915aba7939feea817b1f7ecb03ab26db5de94365f2ddbcc98dcd50d4873",
+      "finishedAt": "2026-11-08T19:31:34.805Z"
+    },
+    {
+      "id": 5,
+      "requestDigest": "sha256:f716ab656331b0443bb3822d8ecec6b73f0f1b5609238fdde787439cb699e452",
+      "startedAt": "2026-11-08T19:31:34.809Z",
+      "stream": false,
+      "accounting": "estimated",
+      "requestedMaxOutputTokens": 1024,
+      "httpStatus": 200,
+      "usage": {
+        "input_tokens": 83,
+        "output_tokens": 463,
+        "cache_read_input_tokens": 640,
+        "service_tier": "default"
+      },
+      "estimatedCostUsd": 0.00061,
+      "outputBoundExceeded": false,
+      "responseDigest": "sha256:70065b169fdc25d7db89626e3e392b76635d615bc24c435cc4a5c17733059447",
+      "finishedAt": "2026-11-08T19:31:41.379Z"
+    },
+    {
+      "id": 6,
+      "requestDigest": "sha256:3718340251ee8ff1dc6ecbf5b6a0842250c6e99ce7fab46eb368b15da401437b",
+      "startedAt": "2026-11-08T19:31:43.084Z",
+      "stream": true,
+      "accounting": "unknown",
+      "requestedMaxOutputTokens": 64,
+      "errorCode": 20
+    }
+  ],
+  "checks": [
+    {
+      "name": "stream-and-usage",
+      "status": "passed",
+      "deltas": 4
+    },
+    {
+      "name": "provider-output-cap",
+      "status": "passed",
+      "requestedMaxOutputTokens": 1,
+      "observedOutputTokens": 1,
+      "providerStopReason": null
+    },
+    {
+      "name": "read-only-tool-roundtrip",
+      "status": "passed"
+    },
+    {
+      "name": "provider-compaction-fact-retention",
+      "status": "passed",
+      "savedEstimatedTokens": 598
+    },
+    {
+      "name": "stream-stop-without-retry",
+      "status": "passed",
+      "emitted": 0,
+      "abortRequested": true,
+      "signalAborted": true,
+      "stopped": true,
+      "requestCount": 6,
+      "usageUnknown": true,
+      "transportSettledAfterAbort": false
+    }
+  ],
+  "sourceCommit": "67dae5b258eee48a814bff3ab33b67456d6fbcff",
+  "sourceBindings": [
+    {
+      "path": "../src/runtime/agent-core.js",
+      "digest": "sha256:70f87daf74b35da4e7daba7c5ba582bf63d8942fb00a0986fe77cd23b2759192"
+    },
+    {
+      "path": "../src/runtime/provider-stream-state.js",
+      "digest": "sha256:be1c3f7e29e752835a09c70fef427ebe241c91c5c862a8bdf70650c5206e548e"
+    },
+    {
+      "path": "../src/harness/provider-backed-compaction.js",
+      "digest": "sha256:d21bc2192e8ea2695be47bff8b1b77b0d415f5e47497afd7ee8b2087a3dd3e02"
+    },
+    {
+      "path": "../src/lib/llm-pricing.js",
+      "digest": "sha256:c81141f94b62a4cdf051c3801d22493910572a91a873481303b4e515cbc244f6"
+    }
+  ],
+  "knownEstimatedCostUsd": 0.0012292000000000002,
+  "totalEstimatedCostUsd": null,
+  "finishedAt": "2026-11-08T19:31:43.424Z",
+  "passed": true
+}

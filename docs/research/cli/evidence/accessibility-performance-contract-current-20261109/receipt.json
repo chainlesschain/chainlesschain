@@ -1,0 +1,11 @@
+{
+  "schema": "chainlesschain.accessibility-performance-contract-current-head/v1",
+  "sourceCommit": "c98efe3f78c3c6a359375a4d1f101576070a24ee",
+  "command": "npx vitest run __tests__/unit/ide-roadmap-accessibility-performance.test.js --reporter=dot",
+  "passed": 30,
+  "failed": 0,
+  "formalSample": false,
+  "remotePushed": false,
+  "verifiedScope": "deterministic accessibility/performance validators and provenance contracts",
+  "remaining": ["real IDE host accessibility", "screen-reader journey", "upgrade/rollback", "current-HEAD desktop journey"]
+}

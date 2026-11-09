@@ -1,0 +1,10 @@
+{
+  "schema": "cc-ide-host-driver-failure/v1",
+  "phase": "initial",
+  "at": "2026-11-08T18:35:35.311Z",
+  "error": {
+    "name": "Error",
+    "message": "connect ETIMEDOUT 127.0.0.1:53123",
+    "stack": "Error: connect ETIMEDOUT 127.0.0.1:53123\n\tat TCPConnectWrap.afterConnect [as oncomplete] (node:net:2083:16)"
+  }
+}

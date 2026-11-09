@@ -131,6 +131,7 @@ function summaryPrompt(messages, maxChars) {
     `Return exactly one strict JSON object with all keys in this order: ${schema}.`,
     '"objective" must be a string; every other value must be an array of strings.',
     "Preserve constraints, exact file paths, test evidence, unresolved external side effects, blockers, and actionable next steps. Do not use Markdown.",
+    "Keep the JSON concise: use short phrases, avoid repetition, and target no more than 3 items per array so the complete object fits a bounded response.",
     "Conversation history:",
   ].join("\n");
   const historyBudget = Math.max(0, maxChars - instructions.length - 1);

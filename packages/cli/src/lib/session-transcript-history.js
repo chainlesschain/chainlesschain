@@ -16,6 +16,7 @@ import {
 import { createSessionHistoryOrigins } from "./session-history-origins.js";
 import { getDurableSystemMessageProvenance } from "./session-message-provenance.js";
 import { projectToolRoundMessages } from "./session-tool-round.js";
+import { projectSessionInputMessages } from "./session-input-lifecycle.js";
 import {
   BRANCH_HISTORY_SCHEMA,
   BRANCH_HISTORY_SYSTEM_ORIGINS_SCHEMA,
@@ -50,6 +51,8 @@ function eventMessages(event, imported = null) {
     const pair = projectWsTurnMessages(event);
     if (pair) return [pair.user, pair.assistant];
   }
+  if (event.type === "session_input_settled")
+    return projectSessionInputMessages(event) || [];
   return [];
 }
 const displayable = (message) =>

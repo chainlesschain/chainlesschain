@@ -109,6 +109,39 @@ test("projects safe fields and rejects mismatched sessions, unsupported shapes a
   }
   assert.throws(() => parseModelInputReport("not-json", session));
 });
+test("projects bounded per-source mappings without exposing source payloads", () => {
+  const value = report();
+  value.records[0].diagnostic.sourceMapping = {
+    covered: true,
+    reason: "complete",
+    sourceCount: 1,
+    sourcesTruncated: false,
+    protocol: "openai-chat",
+    sources: [
+      {
+        ordinal: 0,
+        status: "mapped",
+        fragments: [
+          {
+            path: "/messages/0",
+            start: null,
+            end: null,
+            digest: hash,
+            bytes: 12,
+            raw: "private source text",
+          },
+        ],
+      },
+    ],
+  };
+  const parsed = parseModelInputReport(JSON.stringify(value), session);
+  assert.equal(parsed.records[0].sourceMapping.sources[0].status, "mapped");
+  assert.equal(parsed.records[0].sourceMapping.sources[0].fragments[0].bytes, 12);
+  assert.doesNotMatch(JSON.stringify(parsed), /private source text|raw/);
+  value.records[0].diagnostic.sourceMapping.sources[0].fragments[0].path =
+    "/unsafe";
+  assert.throws(() => parseModelInputReport(JSON.stringify(value), session));
+});
 test("displays a text-only snapshot for the current session without unknown raw fields", async () => {
   const vscode = ui(),
     calls = [];

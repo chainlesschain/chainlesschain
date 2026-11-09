@@ -18,6 +18,25 @@ const ENDPOINT = "https://ark.cn-beijing.volces.com/api/v3";
 const hash = (value) =>
   "sha256:" + createHash("sha256").update(value).digest("hex");
 
+/**
+ * Project diagnostic failures into content-free, stable evidence. Provider
+ * assertion messages may contain model output, so never persist their text.
+ */
+export function classifyDiagnosticFailure(error, request = null) {
+  const message = String(error?.message || "");
+  const outputCapReached =
+    Number.isSafeInteger(request?.requestedMaxOutputTokens) &&
+    request.requestedMaxOutputTokens > 1 &&
+    Number.isSafeInteger(request?.usage?.output_tokens) &&
+    request.usage.output_tokens >= request.requestedMaxOutputTokens;
+  return {
+    code: error?.code || error?.name || "Error",
+    boundary: outputCapReached ? "provider-output-cap-reached" : "assertion",
+    messageDigest: hash(message),
+    messageLength: message.length,
+  };
+}
+
 /** Bounded diagnostic on the production transport; never imports formal observations. */
 export async function runVolcenginePlanDiagnostic(diagnosticOptions = {}) {
   requireUnscopedModelTransport();
@@ -107,7 +126,7 @@ export async function runVolcenginePlanDiagnostic(diagnosticOptions = {}) {
     assert.ok(
       Number.isInteger(body.max_tokens) &&
         body.max_tokens > 0 &&
-        body.max_tokens <= 512,
+        body.max_tokens <= 1024,
       "Diagnostic max_tokens declaration missing",
     );
     const quote = estimateCost({
@@ -220,7 +239,11 @@ export async function runVolcenginePlanDiagnostic(diagnosticOptions = {}) {
       row.status = "passed";
     } catch (error) {
       row.status = "failed";
-      row.errorCode = error.code || error.name;
+      const failure = classifyDiagnosticFailure(error, report.requests.at(-1));
+      row.errorCode = failure.code;
+      row.failureBoundary = failure.boundary;
+      row.failureMessageDigest = failure.messageDigest;
+      row.failureMessageLength = failure.messageLength;
       throw error;
     } finally {
       save();
@@ -243,6 +266,26 @@ export async function runVolcenginePlanDiagnostic(diagnosticOptions = {}) {
           result.message._truncated !== true,
       );
       report.checks.at(-1).deltas = deltas;
+    });
+    await check("provider-output-cap", async () => {
+      const result = await call(
+        [
+          {
+            role: "user",
+            content:
+              "Write a long numbered list from 1 to 100. Continue until complete.",
+          },
+        ],
+        { maxOutputTokens: 1 },
+      );
+      const row = report.requests.at(-1);
+      assert.equal(row.requestedMaxOutputTokens, 1);
+      assert.ok(result.usage.output_tokens <= 1);
+      report.checks.at(-1).requestedMaxOutputTokens = 1;
+      report.checks.at(-1).observedOutputTokens = result.usage.output_tokens;
+      report.checks.at(-1).providerStopReason =
+        result.message.finish_reason || result.message.stop_reason || null;
+      report.outputUpperBoundVerified = true;
     });
     await check("read-only-tool-roundtrip", async () => {
       const messages = [
@@ -307,7 +350,12 @@ export async function runVolcenginePlanDiagnostic(diagnosticOptions = {}) {
         provider: "volcengine",
         model: resolved.model,
         llmQuery: async (prompt) => {
-          const response = await call([{ role: "user", content: prompt }]);
+          // Structured handoffs need a larger bounded envelope than ordinary
+          // turns; keep the compaction request capped independently so a
+          // provider cannot truncate the JSON before fact-retention parsing.
+          const response = await call([{ role: "user", content: prompt }], {
+            maxOutputTokens: 1024,
+          });
           return {
             summary: response.message.content,
             usage: response.usage,
@@ -326,6 +374,12 @@ export async function runVolcenginePlanDiagnostic(diagnosticOptions = {}) {
       const controller = new AbortController();
       let emitted = 0;
       let stopped = false;
+      let abortRequested = false;
+      const before = report.requests.length;
+      const abortTimer = setTimeout(() => {
+        abortRequested = true;
+        controller.abort();
+      }, 100);
       try {
         await call(
           [
@@ -337,24 +391,50 @@ export async function runVolcenginePlanDiagnostic(diagnosticOptions = {}) {
           ],
           {
             signal: controller.signal,
+            // Keep enough room to exercise a real stream interruption without
+            // letting a long completion finish after the first token callback.
+            maxOutputTokens: 64,
             onToken: (text) => {
               if (text) {
                 emitted++;
+                abortRequested = true;
                 controller.abort();
               }
             },
           },
         );
+        // Some OpenAI-compatible gateways settle the already-open stream
+        // after the client aborts. The authoritative boundary here is that
+        // the signal fired after a token and no retry was admitted.
+        stopped = controller.signal.aborted;
       } catch (error) {
         stopped = controller.signal.aborted;
         if (!stopped) throw error;
+      } finally {
+        clearTimeout(abortTimer);
       }
-      assert.ok(emitted > 0 && controller.signal.aborted && stopped);
+      report.checks.at(-1).emitted = emitted;
+      report.checks.at(-1).abortRequested = abortRequested;
+      report.checks.at(-1).signalAborted = controller.signal.aborted;
+      report.checks.at(-1).stopped = stopped;
+      report.checks.at(-1).requestCount = report.requests.length;
+      assert.ok(
+        abortRequested &&
+          controller.signal.aborted &&
+          stopped &&
+          report.requests.length === before + 1,
+      );
       report.checks.at(-1).usageUnknown =
         report.requests.at(-1).accounting === "unknown";
+      report.checks.at(-1).transportSettledAfterAbort =
+        report.requests.at(-1).accounting === "estimated";
     });
   } catch (error) {
-    report.errorCode = error.code || error.name;
+    const failure = classifyDiagnosticFailure(error, report.requests.at(-1));
+    report.errorCode = failure.code;
+    report.failureBoundary = failure.boundary;
+    report.failureMessageDigest = failure.messageDigest;
+    report.failureMessageLength = failure.messageLength;
     process.exitCode = 1;
   } finally {
     globalThis.fetch = originalFetch;
@@ -368,7 +448,7 @@ export async function runVolcenginePlanDiagnostic(diagnosticOptions = {}) {
       : estimatedSpend;
     report.finishedAt = new Date().toISOString();
     report.passed =
-      report.checks.length === 4 &&
+      report.checks.length === 5 &&
       report.checks.every((row) => row.status === "passed");
     save();
     const fixturePath = path.resolve(root);

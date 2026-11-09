@@ -1,0 +1,12 @@
+{
+  "testFiles": 4,
+  "gradleUiHostVerified": false,
+  "capturedAt": "2026-11-09",
+  "command": "node --test packages/jetbrains-plugin/scripts/conversation-recovery-evidence.test.mjs packages/jetbrains-plugin/scripts/native-transcript-evidence.test.mjs packages/jetbrains-plugin/scripts/verify01-native-task-adapter.test.mjs packages/jetbrains-plugin/scripts/run-ui-host-journey.test.mjs",
+  "sourceCommit": "c642106346e0851146a065621819c5f384d8527e",
+  "realIdeHostVerified": false,
+  "testsPassed": 85,
+  "schema": "chainlesschain.jetbrains-scripted-journey/v1",
+  "productionAdmission": false,
+  "testsFailed": 0
+}

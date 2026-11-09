@@ -1,0 +1,156 @@
+{
+  "schema": "chainlesschain.local-semantic-archived-evidence/v1",
+  "generatedAt": "2026-11-08T06:08:51.406Z",
+  "implementationBaseCommit": "3116842b0fdc5d5c6c747a404bf37b18fb8206c9",
+  "uncommittedImplementation": true,
+  "documentationUpdatedAfterSmoke": true,
+  "measuredSourcesManifest": "measured-source-manifest.json",
+  "artifacts": [
+    {
+      "path": "contract-tests.log",
+      "bytes": 3812,
+      "sha256": "06175cbdfd989134601864c3b34dcd11745906c1456b1f4183e554f3ac05db78"
+    },
+    {
+      "path": "measured-source-manifest.json",
+      "bytes": 4117,
+      "sha256": "52eee29a52e488ad09980d476fe8cdc3e1e1de549a87cdf9256fd51315f8728b"
+    },
+    {
+      "path": "pack-before-documentation.json",
+      "bytes": 195162,
+      "sha256": "f3adbf7fdfb302c6c08a19036be928f3cb1edc7102b49d205af7ccb3fd8eadda"
+    },
+    {
+      "path": "pack-earlier-preserved.json",
+      "bytes": 195162,
+      "sha256": "cbdaefc4ec1107f8d726f8a999cb61a531fdb839bfe039d2be986dc0dd098d2b"
+    },
+    {
+      "path": "pack-final.json",
+      "bytes": 187048,
+      "sha256": "82489b34812ec949f3b9b5a49ad78ddd3a27d060f356fbbfccb1a2f6d2289ece"
+    },
+    {
+      "path": "real-smoke-state.json",
+      "bytes": 8255,
+      "sha256": "112fcbef85a59ebc9e8419683774ae0042d2a907ed189b2e7da5c0f949aba8e4"
+    },
+    {
+      "path": "real-smoke.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "real-smoke.stdout.log",
+      "bytes": 208,
+      "sha256": "fe66759587ba486b7998216e59b76fad87eaceae170109fd0a81aeec0dd1d5bb"
+    },
+    {
+      "path": "verify-evidence.mjs",
+      "bytes": 1965,
+      "sha256": "9199b70337c36b21faba9d05126920d95aba068995608b824dc62e73c932492d"
+    }
+  ],
+  "currentSources": [
+    {
+      "path": ".github/workflows/context-memory-kernel.yml",
+      "bytes": 8151,
+      "sha256": "456749edb31ef28e10d6b010659405545b5dfbdb6b692788c7423c82856fa877"
+    },
+    {
+      "path": "docs/cli/LOCAL_MEMORY_SEMANTIC.md",
+      "bytes": 9530,
+      "sha256": "eb81aa068adacc588d87e9eca4509d5cc5dd6afb68b38b4ea4131ab82369ea92"
+    },
+    {
+      "path": "docs/cli/PROCESS_SPAWN_INVENTORY.generated.md",
+      "bytes": 130598,
+      "sha256": "977ba915ebbe613b6c1079ba52d03739dcb9a76a945b4a71921f758c8324f098"
+    },
+    {
+      "path": "packages/cli/src/lib/context-memory-kernel/local-semantic-source.js",
+      "bytes": 12702,
+      "sha256": "8351c4fae20f6dba18856290052a7e660754903f633413f8c30e6e3b7451b048"
+    },
+    {
+      "path": "packages/cli/src/lib/context-memory-kernel/local-semantic-worker.py",
+      "bytes": 4891,
+      "sha256": "2220631cf020a1d428bbf8d9159b1a4d9a542a8e48b3d53f55902ed90cc45ff9"
+    },
+    {
+      "path": "packages/cli/src/lib/context-memory-kernel/runtime.js",
+      "bytes": 3521,
+      "sha256": "1aaaaba7980ae4284371dc85cd42f8d3823ce845df63b0ee4bceaf1266bca939"
+    },
+    {
+      "path": "packages/cli/src/lib/context-memory-kernel/memory-service.js",
+      "bytes": 23310,
+      "sha256": "22eee2eb0cb3ef972bce135d7ffcd3bf36eb5693ef3a2c8439945810f41cfc05"
+    },
+    {
+      "path": "packages/cli/src/lib/context-memory-kernel/provider-context.js",
+      "bytes": 19871,
+      "sha256": "c8becb901ca6e688e589dc96d67772fc7627a13cd66eb21686a4a93a2f930383"
+    },
+    {
+      "path": "packages/cli/test-node/local-memory-semantic.node-test.mjs",
+      "bytes": 18842,
+      "sha256": "30ecff71a71f442e4cc1a6ea23a3d80d8458a35e69735bce850a666da4e32005"
+    }
+  ],
+  "executablesMatchedToSmoke": [
+    {
+      "path": "packages/cli/src/lib/context-memory-kernel/local-semantic-source.js",
+      "bytes": 12702,
+      "sha256": "8351c4fae20f6dba18856290052a7e660754903f633413f8c30e6e3b7451b048"
+    },
+    {
+      "path": "packages/cli/src/lib/context-memory-kernel/local-semantic-worker.py",
+      "bytes": 4891,
+      "sha256": "2220631cf020a1d428bbf8d9159b1a4d9a542a8e48b3d53f55902ed90cc45ff9"
+    },
+    {
+      "path": "packages/cli/src/lib/context-memory-kernel/runtime.js",
+      "bytes": 3521,
+      "sha256": "1aaaaba7980ae4284371dc85cd42f8d3823ce845df63b0ee4bceaf1266bca939"
+    },
+    {
+      "path": "packages/cli/src/lib/context-memory-kernel/memory-service.js",
+      "bytes": 23310,
+      "sha256": "22eee2eb0cb3ef972bce135d7ffcd3bf36eb5693ef3a2c8439945810f41cfc05"
+    },
+    {
+      "path": "packages/cli/src/lib/context-memory-kernel/provider-context.js",
+      "bytes": 19871,
+      "sha256": "c8becb901ca6e688e589dc96d67772fc7627a13cd66eb21686a4a93a2f930383"
+    },
+    {
+      "path": "packages/cli/test-node/local-memory-semantic.node-test.mjs",
+      "bytes": 18842,
+      "sha256": "30ecff71a71f442e4cc1a6ea23a3d80d8458a35e69735bce850a666da4e32005"
+    }
+  ],
+  "verification": {
+    "contractTestsPassed": 17,
+    "contractTestsFailed": 0,
+    "realModelSmokePassed": true,
+    "smokeExitCode": 0,
+    "threeProductionEntries": true,
+    "realWorkerCountAsserted": 3,
+    "semanticOffControl": true,
+    "semanticEvidenceAsserted": true,
+    "paidProviderCallsRequested": false,
+    "npmPackDryRunOnly": true,
+    "sourceAndWorkerPacked": true
+  },
+  "fullQualityAccepted": false,
+  "performanceAccepted": false,
+  "wholeGapClosed": false,
+  "limits": [
+    "Two-record functional smoke, not a relevance benchmark or interaction SLO",
+    "No exact-source three-OS workflow results claimed",
+    "Raw original evidence preserves original .tmp paths; archived file identities are independently mapped here",
+    "Complete model, corpus, Python dependency closure and embeddings are not archived"
+  ]
+}

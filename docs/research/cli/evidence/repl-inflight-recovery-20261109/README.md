@@ -1,0 +1,4 @@
+# REPL inflight recovery rerun boundary (2026-11-09)
+
+The real CLI/readline/Evolution/JSONL and loopback journey was rerun at source commit `7f8d33453`. The child exited before the first prompt with `owner-only native ACL verification failed`, so no provider request or recovery stage was reached. This is an environment-blocked receipt, not a passing recovery result and not a production failure classification.
+A privileged rerun is also archived in `privileged-rerun.json`. With Windows owner-only ACL available, the real CLI/readline/Evolution/JSONL and loopback journey passed: the original request was SIGKILLed while unsettled, remained unknown, one independent new request was admitted after restart, and the old request was replayed zero times. The earlier `receipt.json` remains the unprivileged sandbox boundary and is intentionally preserved.

@@ -1,0 +1,156 @@
+{
+  "schema": "chainlesschain.cli-ide-gap-completion-audit/v1",
+  "auditDate": "2026-11-09",
+  "branch": "feature/cli-ide-gap-20261109-followup",
+  "remotePushed": true,
+  "plan": "docs/research/cli-ide/plans/cli-ide-codex-claude-gap-review-2026-11-08.md",
+  "overall": "open",
+  "items": {
+    "2": {
+      "status": "partial",
+      "evidence": [
+        "cli/evidence/model-input-composition-20261109",
+        "cli/evidence/usage-attribution-unit-20261109",
+        "cli/evidence/implementation-plan-volcengine-live-20261109",
+        "cli/evidence/context-token-volcengine-live-probe-20261109",
+        "cli/evidence/implementation-plan-volcengine-live-current-20261109",
+        "cli/evidence/implementation-plan-volcengine-live-current2-20261109",
+        "cli/evidence/project-goal-volcengine-live-current-20261109",
+        "cli/evidence/project-goal-volcengine-live-current24-20261109"
+      ],
+      "remaining": ["dual IDE journey"]
+    },
+    "3": {
+      "status": "partial",
+      "evidence": [
+        "cli/evidence/repl-inflight-recovery-20261109",
+        "cli/evidence/lifecycle-recovery-current-20261109",
+        "cli/evidence/repl-inflight-recovery-current-20261109",
+        "cli/evidence/native-price-windows-20261109"
+      ],
+      "remaining": ["dual IDE recovery", "complete cross-entry journey"]
+    },
+    "4": {
+      "status": "partial",
+      "evidence": [
+        "cli/evidence/mcp-task-targeted-20261109",
+        "cli/evidence/repl-inflight-recovery-20261109"
+      ],
+      "remaining": [
+        "third-party service",
+        "model continuation",
+        "dual IDE/desktop",
+        "multiplatform"
+      ]
+    },
+    "5": {
+      "status": "partial",
+      "evidence": [
+        "cli/evidence/context-token-volcengine-live-probe-20261109",
+        "cli/evidence/implementation-plan-volcengine-live-20261109",
+        "cli/evidence/implementation-plan-volcengine-cap-live-20261109",
+        "cli/evidence/volcengine-model-price-20261109",
+        "cli/evidence/implementation-plan-volcengine-live-current2-20261109",
+        "cli/evidence/native-price-windows-20261109"
+      ],
+      "remaining": [
+        "invoice reconciliation",
+        "Volcengine account-attested time-window pricing/FX acceptance",
+        "formal paid admission"
+      ],
+      "scopedNativePricing": {
+        "status": "implemented-and-offline-verified",
+        "sourceCommit": "44f56fe58aee36e6cc097755ce7c4ab3ec94b126",
+        "billingTimeBasis": "host-dispatch only with trusted account evidence",
+        "realAccountAcceptance": false
+      }
+    },
+    "6": {
+      "status": "partial",
+      "evidence": [
+        "cli/evidence/codex-current-head-native-0167-20261109",
+        "cli/evidence/codex-app-server-137-20261109",
+        "cli/evidence/codex-ci-0167-cancelled-20261109",
+        "cli/evidence/ci-tests-42516074674-20261109",
+        "cli/evidence/codex-app-server-static-rerun-current-20261109",
+        "cli/evidence/codex-turn-rerun-current-20261109",
+        "cli/evidence/codex-history-rerun-current-20261109"
+      ],
+      "remaining": [
+        "strict cold scan repair",
+        "three-system CI",
+        "Linux/macOS native cancellation/recovery",
+        "model-change closure"
+      ]
+    },
+    "7": {
+      "status": "partial",
+      "evidence": [
+        "cli/evidence/vscode-live-extension-host-20261109",
+        "cli/evidence/jetbrains-live-host-attempt-20261109",
+        "cli/evidence/jetbrains-scripted-journey-20261109",
+        "cli/evidence/desktop-e2e-ci-42509137812-20261109",
+        "cli/evidence/ide-extensions-ci-42505953777-20261109",
+        "cli/evidence/vscode-live-extension-host-rerun-20261109",
+        "cli/evidence/vscode-bridge-server-direct-20261109",
+        "cli/evidence/vscode-live-extension-host-lockfix-20261109",
+        "cli/evidence/vscode-live-extension-host-selfprobe-20261109",
+        "cli/evidence/vscode-live-extension-host-diagnostic-20261109",
+        "cli/evidence/accessibility-performance-contract-current-20261109",
+        "cli/evidence/ide-extensions-ci-42518446281-20261109",
+        "cli/evidence/vscode-live-extension-host-rerun-current-20261109",
+        "cli/evidence/jetbrains-scripted-journey-rerun-current-20261109",
+        "cli/evidence/project-goal-volcengine-live-current-20261109",
+        "cli/evidence/vscode-electron-loopback-isolation-20261109"
+      ],
+      "remaining": [
+        "VS Code bridge loopback",
+        "current-HEAD IDE/desktop matrix",
+        "full IDE/desktop task journey",
+        "real IDE host accessibility and screen-reader journey",
+        "upgrade/rollback"
+      ]
+    },
+    "8": {
+      "status": "partial",
+      "evidence": [
+        "cli/evidence/memory-semantic-quality-20261109",
+        "cli/evidence/memory-responsiveness-current-20261109",
+        "cli/evidence/memory-responsiveness-rerun-20261109"
+      ],
+      "remaining": [
+        "cross-platform cold/hot/mixed SLO",
+        "multilingual real-user tasks"
+      ]
+    },
+    "9": {
+      "status": "partial",
+      "evidence": [
+        "cli/evidence/usage-attribution-unit-20261109",
+        "cli/evidence/model-input-composition-20261109",
+        "cli/evidence/cross-entry-projection-current-20261109",
+        "cli/evidence/cross-entry-projection-rerun-current-20261109",
+        "cli/evidence/vscode-electron-loopback-isolation-20261109"
+      ],
+      "remaining": [
+        "JetBrains live runtime",
+        "independent JetBrains/desktop failure localization"
+      ],
+      "guidance": {
+        "status": "implemented",
+        "standingInstructions": "AGENTS.md",
+        "historicalInventory": "docs/testing/pm-e2e-history-2026-02-04.md",
+        "releaseConstraintsPreserved": true
+      }
+    }
+  },
+  "completionRule": "Do not promote overall to complete until every item has scope-matching evidence and every remaining gate is closed.",
+  "followup": {
+    "branch": "feature/cli-ide-gap-20261109-followup",
+    "codeCommit": "cc965340c158e15637ee1bf71da3b2e74ed38bf0",
+    "pullRequest": "https://github.com/chainlesschain/chainlesschain/pull/569",
+    "overall": "open",
+    "nativePricingCommit": "44f56fe58aee36e6cc097755ce7c4ab3ec94b126"
+  },
+  "auditedSourceCommit": "44f56fe58aee36e6cc097755ce7c4ab3ec94b126"
+}

@@ -1,0 +1,378 @@
+{
+  "schema": "chainlesschain.memory-query-responsiveness/v1",
+  "measuredAt": "2026-11-08T18:05:08.688Z",
+  "environment": {
+    "node": "v24.12.0",
+    "platform": "win32",
+    "arch": "x64",
+    "cpu": "13th Gen Intel(R) Core(TM) i9-13900K",
+    "osRelease": "10.0.26200"
+  },
+  "sourceDigests": {
+    "../src/lib/context-memory-kernel/segmented-memory-port.js": "sha256:cfe27ba5c0f28d058ba568289c5b2432b1e43c53c3660a431b96b35c0ea1a397",
+    "../src/lib/context-memory-kernel/durable-memory-port.js": "sha256:a59f1e42f7e8126a4f0eb0da581fa84037eae53a3083a135f1d288aaa16db8e1",
+    "../src/lib/context-memory-kernel/memory-query-index.js": "sha256:a2d710dffd179bba6284ae7bc7d33374c0d80e8064d5c2e043cb33af942bb1f7",
+    "../src/lib/context-memory-kernel/memory-service.js": "sha256:22eee2eb0cb3ef972bce135d7ffcd3bf36eb5693ef3a2c8439945810f41cfc05",
+    "../src/lib/context-memory-kernel/memory-query-control.js": "sha256:e3687ae0c03273064eebd3c7160107c83af7402eae39435ba0d80b4320c626bc",
+    "../src/lib/context-memory-kernel/memory-shard-snapshots.js": "sha256:b88e6ccb3b18bf659a81c8ba43ac3df5f52d259c2bccefb4815fa1a6744dc436",
+    "../src/lib/context-memory-kernel/memory-query-bundle.js": "sha256:a31c85af9b44b20db36a02d7ffea39dc462d621ca5124d0983a79a98ddf25309",
+    "../src/lib/with-file-lock.js": "sha256:2f6391d58ca38ecb98fd51a0025adb64439c4ab8b2baadb57842ebfe73604f3f",
+    "../src/lib/secure-file-identity.js": "sha256:d4170c7443c075d89c73478b4fa617d264999fb95f75456b1e1232797092a376",
+    "../../context-memory-kernel/lib/runtime.js": "sha256:8674678d0091486a1cd70cf381ee2555bb515364461e81e19cb035b59830928b",
+    "./memory-query-responsiveness-benchmark.mjs": "sha256:0725e839bda441a378930f266692a9d603e532a83cdce8d5a64ffbd2eebe82ad"
+  },
+  "samplesPerCase": 3,
+  "providerCalls": 0,
+  "scope": "Disk-backed canonical Memory service listing with a 10 ms host Stop timer, authority locking, index validation and selected shard validation.",
+  "limitations": [
+    "Local fixed hardware measurement, not cross-platform admission or a native IDE Stop journey.",
+    "Timers measure event-loop delivery and acknowledgement separately; OS caches are not flushed.",
+    "A query that completes before the Stop deadline requires no cancellation; late successful completion is reported as a failure of responsiveness."
+  ],
+  "target": {
+    "maximumStopDeliveryDelayMs": 500,
+    "maximumStopAcknowledgementMs": 500
+  },
+  "tiers": [
+    {
+      "count": 1000,
+      "modes": {
+        "validate-disk": {
+          "samples": [
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 12.027399999999943,
+              "stopDeliveryDelayMs": 0.6091999999999871,
+              "stopAcknowledgementMs": 1.4181999999999562,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 11.750099999999975,
+              "stopDeliveryDelayMs": 0.29980000000000473,
+              "stopAcknowledgementMs": 1.4502999999999702,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 11.110000000000014,
+              "stopDeliveryDelayMs": 0,
+              "stopAcknowledgementMs": 1.5231999999999744,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            }
+          ],
+          "stopDeliveryDelay": {
+            "samples": 3,
+            "minMs": 0,
+            "p50Ms": 0.3,
+            "p95Ms": 0.609,
+            "p99Ms": 0.609,
+            "maxMs": 0.609
+          },
+          "stopAcknowledgement": {
+            "samples": 3,
+            "minMs": 1.418,
+            "p50Ms": 1.45,
+            "p95Ms": 1.523,
+            "p99Ms": 1.523,
+            "maxMs": 1.523
+          },
+          "acknowledged": 3,
+          "lateSuccessfulCompletion": 0,
+          "targetMet": true,
+          "authorityUnchanged": true
+        },
+        "verified-memory": {
+          "samples": [
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 11.44659999999999,
+              "stopDeliveryDelayMs": 1.3614999999999782,
+              "stopAcknowledgementMs": 0.08510000000001128,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 10.039699999999925,
+              "stopDeliveryDelayMs": 0,
+              "stopAcknowledgementMs": 0.10179999999991196,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 10.908000000000015,
+              "stopDeliveryDelayMs": 0.8351999999999862,
+              "stopAcknowledgementMs": 0.07280000000002929,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            }
+          ],
+          "stopDeliveryDelay": {
+            "samples": 3,
+            "minMs": 0,
+            "p50Ms": 0.835,
+            "p95Ms": 1.361,
+            "p99Ms": 1.361,
+            "maxMs": 1.361
+          },
+          "stopAcknowledgement": {
+            "samples": 3,
+            "minMs": 0.073,
+            "p50Ms": 0.085,
+            "p95Ms": 0.102,
+            "p99Ms": 0.102,
+            "maxMs": 0.102
+          },
+          "acknowledged": 3,
+          "lateSuccessfulCompletion": 0,
+          "targetMet": true,
+          "authorityUnchanged": true
+        }
+      }
+    },
+    {
+      "count": 10000,
+      "modes": {
+        "validate-disk": {
+          "samples": [
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 11.236699999999928,
+              "stopDeliveryDelayMs": 0,
+              "stopAcknowledgementMs": 1.4675999999999476,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 10.771899999999732,
+              "stopDeliveryDelayMs": 0,
+              "stopAcknowledgementMs": 1.3753999999998996,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 12.942499999999654,
+              "stopDeliveryDelayMs": 1.5805999999997766,
+              "stopAcknowledgementMs": 1.3618999999998778,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            }
+          ],
+          "stopDeliveryDelay": {
+            "samples": 3,
+            "minMs": 0,
+            "p50Ms": 0,
+            "p95Ms": 1.581,
+            "p99Ms": 1.581,
+            "maxMs": 1.581
+          },
+          "stopAcknowledgement": {
+            "samples": 3,
+            "minMs": 1.362,
+            "p50Ms": 1.375,
+            "p95Ms": 1.468,
+            "p99Ms": 1.468,
+            "maxMs": 1.468
+          },
+          "acknowledged": 3,
+          "lateSuccessfulCompletion": 0,
+          "targetMet": true,
+          "authorityUnchanged": true
+        },
+        "verified-memory": {
+          "samples": [
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 12.8757999999998,
+              "stopDeliveryDelayMs": 2.724499999999807,
+              "stopAcknowledgementMs": 0.151299999999992,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 11.847099999999955,
+              "stopDeliveryDelayMs": 1.760200000000168,
+              "stopAcknowledgementMs": 0.08689999999978681,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 13.560899999999947,
+              "stopDeliveryDelayMs": 3.5023999999998523,
+              "stopAcknowledgementMs": 0.05850000000009459,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            }
+          ],
+          "stopDeliveryDelay": {
+            "samples": 3,
+            "minMs": 1.76,
+            "p50Ms": 2.724,
+            "p95Ms": 3.502,
+            "p99Ms": 3.502,
+            "maxMs": 3.502
+          },
+          "stopAcknowledgement": {
+            "samples": 3,
+            "minMs": 0.059,
+            "p50Ms": 0.087,
+            "p95Ms": 0.151,
+            "p99Ms": 0.151,
+            "maxMs": 0.151
+          },
+          "acknowledged": 3,
+          "lateSuccessfulCompletion": 0,
+          "targetMet": true,
+          "authorityUnchanged": true
+        }
+      }
+    },
+    {
+      "count": 100000,
+      "modes": {
+        "validate-disk": {
+          "samples": [
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 13.64890000000014,
+              "stopDeliveryDelayMs": 2.1679999999996653,
+              "stopAcknowledgementMs": 1.4809000000004744,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 10.744700000001103,
+              "stopDeliveryDelayMs": 0,
+              "stopAcknowledgementMs": 1.3664000000007945,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 11.715799999999945,
+              "stopDeliveryDelayMs": 0.14129999999931897,
+              "stopAcknowledgementMs": 1.5745000000006257,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            }
+          ],
+          "stopDeliveryDelay": {
+            "samples": 3,
+            "minMs": 0,
+            "p50Ms": 0.141,
+            "p95Ms": 2.168,
+            "p99Ms": 2.168,
+            "maxMs": 2.168
+          },
+          "stopAcknowledgement": {
+            "samples": 3,
+            "minMs": 1.366,
+            "p50Ms": 1.481,
+            "p95Ms": 1.575,
+            "p99Ms": 1.575,
+            "maxMs": 1.575
+          },
+          "acknowledged": 3,
+          "lateSuccessfulCompletion": 0,
+          "targetMet": true,
+          "authorityUnchanged": true
+        },
+        "verified-memory": {
+          "samples": [
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 17.576500000001033,
+              "stopDeliveryDelayMs": 5.955400000000736,
+              "stopAcknowledgementMs": 1.6211000000002969,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 17.23869999999988,
+              "stopDeliveryDelayMs": 5.688199999998687,
+              "stopAcknowledgementMs": 1.5505000000011933,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            },
+            {
+              "outcome": "aborted",
+              "resultCount": null,
+              "scheduledStopMs": 10,
+              "queryMs": 19.1862000000001,
+              "stopDeliveryDelayMs": 7.79870000000119,
+              "stopAcknowledgementMs": 1.3874999999989086,
+              "completedBeforeStopDeadline": false,
+              "lockReleased": true
+            }
+          ],
+          "stopDeliveryDelay": {
+            "samples": 3,
+            "minMs": 5.688,
+            "p50Ms": 5.955,
+            "p95Ms": 7.799,
+            "p99Ms": 7.799,
+            "maxMs": 7.799
+          },
+          "stopAcknowledgement": {
+            "samples": 3,
+            "minMs": 1.387,
+            "p50Ms": 1.551,
+            "p95Ms": 1.621,
+            "p99Ms": 1.621,
+            "maxMs": 1.621
+          },
+          "acknowledged": 3,
+          "lateSuccessfulCompletion": 0,
+          "targetMet": true,
+          "authorityUnchanged": true
+        }
+      }
+    }
+  ],
+  "targetMet": true
+}

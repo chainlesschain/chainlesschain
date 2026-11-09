@@ -181,3 +181,13 @@ docs/research/cli-ide/implementation/evidence/mcp-tasks-20261108/**
 docs/research/cli-ide/implementation/evidence/mcp-task-durable-20261108/**
 docs/research/cli-ide/implementation/evidence/mcp-task-delivery-20261108/**
 docs/research/cli-ide/implementation/evidence/model-input-mapping-20261108/**
+
+# Preserve raw measured Memory evidence bytes bound by manifest.json
+docs/research/cli/evidence/memory-3116842b-2026-11-08/*.json
+# Preserve source-bound local semantic validation receipts and raw pack output.
+docs/cli/evidence/local-memory-semantic-20261108/*.json
+# Preserve raw REPL crash recovery receipts and transcript evidence.
+docs/cli/evidence/repl-inflight-recovery-20261108/raw/**
+docs/cli/evidence/repl-input-durability-post-wire-20261108/raw/**
+docs/cli/evidence/mcp-context-benchmark-20261108/report.json
+docs/research/cli/evidence/real-volcengine-live-20261108/agent-read-file/receipt.json

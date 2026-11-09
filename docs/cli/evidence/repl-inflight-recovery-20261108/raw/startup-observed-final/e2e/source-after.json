@@ -1,0 +1,37 @@
+[
+  {
+    "path": "packages/cli/src/lib/session-model-usage-recovery.js",
+    "bytes": 4327,
+    "sha256": "643758809e1497fc3afc000fdbed2016696dd21578a19b30dd58c1f7f12ca8fa"
+  },
+  {
+    "path": "packages/cli/src/lib/runtime-usage-ledger.js",
+    "bytes": 7151,
+    "sha256": "b35d3ab341ba23ed993b8b9f187a485f0cbd5cf5a8dae082d8c17a1dea8432aa"
+  },
+  {
+    "path": "packages/cli/src/lib/session-host-snapshot.js",
+    "bytes": 14584,
+    "sha256": "db18a49aed28de75688e447b3529bdb910b89916128d65d83075735969514489"
+  },
+  {
+    "path": "packages/cli/src/repl/agent-repl.js",
+    "bytes": 394708,
+    "sha256": "ea1bcb33bc52d418fd8ca356739824f81af87bcbbfb30a76939ee6f87baa2f1b"
+  },
+  {
+    "path": "packages/cli/__tests__/e2e/repl-inflight-recovery-e2e.test.js",
+    "bytes": 16655,
+    "sha256": "5ddbdef9dcd3ed572f701e255ce77b2bff6ecb57392aab44fe73517490b8b999"
+  },
+  {
+    "path": "packages/cli/__tests__/fixtures/repl-inflight-recovery-state.mjs",
+    "bytes": 3889,
+    "sha256": "eb260ddd41628352d99aabc06da7c5402532516070ea3f33cebe871276b36971"
+  },
+  {
+    "path": "packages/cli/test-node/session-model-usage-recovery.node-test.mjs",
+    "bytes": 4615,
+    "sha256": "8edaaa883a5b5b3934dc7cf0e307202e1193fb4f4b8f4cc53fae742c588ddf3f"
+  }
+]

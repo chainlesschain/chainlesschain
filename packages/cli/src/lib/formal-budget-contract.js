@@ -185,6 +185,7 @@ export function validateActivation(config, verifyEvidence, now = Date.now()) {
       contract.cachedMicrosPerMillion <= contract.inputMicrosPerMillion,
       "Cache cannot exceed reserved input price",
     );
+    validateNativePricingWindows(contract);
     requireBudget(
       Array.isArray(contract.responseTiers) &&
         contract.responseTiers.length > 0 &&
@@ -321,7 +322,91 @@ function safeNumber(value) {
   return Number(value);
 }
 const ceil = (n, d) => (n + d - 1n) / d;
-export function quoteNative(contract, usage = null) {
+
+const NATIVE_RATE_FIELDS = [
+  "inputMicrosPerMillion",
+  "cachedMicrosPerMillion",
+  "outputMicrosPerMillion",
+  "fixedFeeMicros",
+];
+
+/** Optional account-attested absolute windows, with a fixed liability ceiling.
+ * The trusted account contract must explicitly establish dispatch-time billing;
+ * public list prices or the client response time cannot establish that rule. */
+export function validateNativePricingWindows(contract) {
+  const present = Object.hasOwn(contract, "pricingWindows");
+  requireBudget(
+    present || !Object.hasOwn(contract, "pricingTimeBasis"),
+    "Pricing time basis requires a complete window schedule",
+  );
+  if (!present) return;
+  requireBudget(
+    contract.pricingTimeBasis === "host-dispatch" &&
+      Array.isArray(contract.pricingWindows) &&
+      contract.pricingWindows.length > 0 &&
+      contract.pricingWindows.length <= 4096,
+    "Account-attested dispatch-time pricing windows required",
+  );
+  const ids = new Set();
+  let boundary = contract.validFrom;
+  for (const window of contract.pricingWindows) {
+    requireBudget(
+      window &&
+        typeof window === "object" &&
+        !Array.isArray(window) &&
+        Object.keys(window).length === 7 &&
+        Object.keys(window).every((key) =>
+          ["id", "validFrom", "validUntil", ...NATIVE_RATE_FIELDS].includes(
+            key,
+          ),
+        ),
+      "Unsupported native price window fields",
+    );
+    label(window.id, "native price window ID");
+    requireBudget(!ids.has(window.id), "Duplicate native price window ID");
+    ids.add(window.id);
+    integer(window.validFrom, "Price window start");
+    integer(window.validUntil, "Price window end", 1);
+    requireBudget(
+      window.validFrom === boundary && window.validUntil > window.validFrom,
+      "Price windows must be ordered, contiguous and non-overlapping",
+    );
+    for (const field of NATIVE_RATE_FIELDS) {
+      integer(window[field], `Price window ${field}`);
+      requireBudget(
+        window[field] <= contract[field],
+        "Native price window exceeds the reserved liability ceiling",
+      );
+    }
+    requireBudget(
+      window.cachedMicrosPerMillion <= window.inputMicrosPerMillion,
+      "Window cache price exceeds input price",
+    );
+    boundary = window.validUntil;
+  }
+  requireBudget(
+    boundary === contract.validUntil,
+    "Price windows must cover the complete contract validity interval",
+  );
+}
+
+export function nativePricingWindowAt(contract, dispatchedAt) {
+  validateNativePricingWindows(contract);
+  if (!Object.hasOwn(contract, "pricingWindows")) return null;
+  integer(dispatchedAt, "Trusted dispatch timestamp");
+  const window = contract.pricingWindows.find(
+    (item) => item.validFrom <= dispatchedAt && dispatchedAt < item.validUntil,
+  );
+  requireBudget(window, "Dispatch falls outside the attested price schedule");
+  return window;
+}
+
+export function quoteNative(contract, usage = null, { dispatchedAt } = {}) {
+  // Reservation always retains the contract's worst-case rates. Settlement
+  // uses the durable dispatch witness, even across restart/window expiry.
+  const rates = usage
+    ? nativePricingWindowAt(contract, dispatchedAt) || contract
+    : contract;
   const input = BigInt(usage?.prompt_tokens ?? contract.maxInputTokens);
   const cached = BigInt(usage?.prompt_tokens_details?.cached_tokens ?? 0);
   const output = usage
@@ -329,11 +414,11 @@ export function quoteNative(contract, usage = null) {
     : BigInt(contract.maxAnswerTokens) + BigInt(contract.maxReasoningTokens);
   return safeNumber(
     ceil(
-      (input - cached) * BigInt(contract.inputMicrosPerMillion) +
-        cached * BigInt(contract.cachedMicrosPerMillion) +
-        output * BigInt(contract.outputMicrosPerMillion),
+      (input - cached) * BigInt(rates.inputMicrosPerMillion) +
+        cached * BigInt(rates.cachedMicrosPerMillion) +
+        output * BigInt(rates.outputMicrosPerMillion),
       1_000_000n,
-    ) + BigInt(contract.fixedFeeMicros),
+    ) + BigInt(rates.fixedFeeMicros),
   );
 }
 export function convertToUsd(nativeMicros, rate) {

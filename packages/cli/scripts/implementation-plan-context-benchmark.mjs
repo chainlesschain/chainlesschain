@@ -19,7 +19,7 @@ const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-context-fixture-"));
 const report = {
   schema: "chainlesschain.implementation-plan-context-measurement/v1",
   measuredAt: new Date().toISOString(),
-  scales: [50, 200, 500],
+  scales: [200, 1000, 5000],
   costBasis: "estimated",
   providerUsageMeasured: false,
   qualityEvaluationCompleted: false,
@@ -27,9 +27,13 @@ const report = {
 };
 try {
   for (const count of report.scales) {
+    // Skill discovery is intentionally capped by the production host file
+    // budget. The 5,000 scale measures MCP tool definitions; skill metadata
+    // remains at the largest safe 1,000-entry fixture.
+    const skillCount = Math.min(count, 1000);
     const directory = path.join(root, String(count));
     fs.mkdirSync(directory);
-    for (let i = 0; i < count; i++) {
+    for (let i = 0; i < skillCount; i++) {
       const skill = path.join(directory, `skill-${i}`);
       fs.mkdirSync(skill);
       fs.writeFileSync(
@@ -51,7 +55,7 @@ try {
       { layer: "workspace", path: directory, exists: true },
     ];
     const skills = loader.loadAll();
-    assert.equal(skills.length, count);
+    assert.equal(skills.length, skillCount);
     const before = loader.getCacheLedger();
     assert.equal(before.bodies.resident, 0);
     const context = {
@@ -62,17 +66,17 @@ try {
     };
     const page = await executeTool("list_skills", {}, context);
     assert.equal(page.count, 20);
-    assert.equal(page.totalCount, count);
+    assert.equal(page.totalCount, skillCount);
     assert.equal(page.hasMore, true);
     const match = await executeTool(
       "list_skills",
       {
-        query: `target${count - 1}`,
+        query: `target${skillCount - 1}`,
       },
       context,
     );
     assert.equal(match.count, 1);
-    assert.equal(match.skills[0].id, `skill-${count - 1}`);
+    assert.equal(match.skills[0].id, `skill-${skillCount - 1}`);
     assert.equal(loader.getCacheLedger().bodies.resident, 0);
     const estimate = (value) =>
       Math.ceil(Buffer.byteLength(JSON.stringify(value), "utf8") / 4);
@@ -134,9 +138,23 @@ try {
     });
     assert.equal(selected.count, 1);
     assert.deepEqual(selected.tools[0].parameters.required, ["field_0"]);
+    const keywordSearch = executeToolSearch(registry, {
+      query: "operation_7",
+      max_results: 5,
+    });
+    const keywordNames = keywordSearch.tools.map((tool) => tool.name);
+    const expectedKeywordTool = "mcp__fixture__operation_7";
+    const syntheticRecallAt5 = keywordNames.includes(expectedKeywordTool) ? 1 : 0;
+    const syntheticNonTargetRate = keywordNames.length
+      ? keywordNames.filter((name) => name !== expectedKeywordTool).length /
+        keywordNames.length
+      : 0;
+    assert.equal(syntheticRecallAt5, 1);
     const tools = describeMcpToolContext(mcp);
     report.tiers.push({
       count,
+      skillCount,
+      mcpToolCount: count,
       skillDescriptors: before.descriptors.resident,
       skillDescriptorEstimatedTokens: before.descriptors.estimatedTokens,
       fullMetadataTokens,
@@ -155,6 +173,11 @@ try {
       mcpFullTokens: tools.fullTokens,
       mcpSavedTokens: tools.savedTokens,
       exactSchemaSelection: true,
+      keywordQuery: "operation_7",
+      keywordResultCount: keywordNames.length,
+      syntheticRecallAt5,
+      syntheticNonTargetRate,
+      misCallRateMeasured: false,
     });
   }
   fs.mkdirSync(path.dirname(path.resolve(values.output)), { recursive: true });

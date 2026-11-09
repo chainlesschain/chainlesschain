@@ -11,8 +11,8 @@ const jetBrainsPending = [
   "uploaded-pending-review",
 ].includes(releaseStatus.jetBrainsPublicationStatus);
 const items = english
-  ? [["Local compute configuration", "Configure an OpenAI-compatible endpoint, API model ID, optional platform key and explicit HTTP consent."], ["Controlled creation requests", "Export untrusted files or use separately authorized v6 pending requests; native creation still needs preview and confirmation."], ["Data-only scenario 0.3.0", "Compose admitted events, evidence and proposals; installation starts no automatic task execution."]]
-  : [["本地算力配置", "显式选择兼容端点、API 模型 ID、可选平台密钥与 HTTP 许可，切换无密钥端点不沿用旧凭据。"], ["受控创建请求", "导出不可信文件或另行授权 v6 待审请求；实际创建仍需原生预览与确认。"], ["数据声明场景 0.3.0", "组合已准入事件、证据和提议，安装不会自动创建或执行任务。"]];
+  ? [["Verified upgrade pairing", "Public CLI .145, Session Core .27 and both IDEs; restart the host and run Doctor after upgrading."], ["Model-input diagnostics and recovery", "Main-source diagnostics distinguish input selection, physical dispatch and independent acceptance; cross-entry journeys remain scoped."], ["Memory, MCP Tasks and pricing", "Main-source task recovery, memory controls and durable price-window accounting retain independent runtime and account acceptance."]]
+  : [["已核对的配套升级", "CLI .145、Session Core .27 与两款 IDE 已公开；升级后重启宿主并运行 Doctor。"], ["模型输入诊断与恢复", "主线区分输入选择、实际发送和独立验收，提供会话恢复与只读诊断；跨入口旅程按证据范围判断。"], ["Memory、MCP Tasks 与费用", "主线增加任务恢复、记忆控制和持久计费窗口；真实宿主与账号验收仍独立进行。"]];
 ---
 
 <section class="py-16 border-t border-line bg-cream" aria-labelledby="source-update-title">
@@ -25,8 +25,8 @@ const items = english
     </h2>
     <p class="mt-4 text-muted leading-relaxed max-w-4xl">
       {english
-        ? `CLI ${releaseStatus.recommendedCliVersion} and Session Core ${releaseStatus.sessionCoreVersion} are public with verified bytes and provenance. Open VSX ${releaseStatus.openVsxVersion} and JetBrains ${releaseStatus.jetBrainsMarketplaceVersion} both recommend this CLI; public payloads were verified against their official builds. Native product ${releaseStatus.productVersion} is independently public.`
-        : `CLI ${releaseStatus.recommendedCliVersion} 与 Session Core ${releaseStatus.sessionCoreVersion} 已公开并完成字节与来源签名核验；Open VSX ${releaseStatus.openVsxVersion} 和 JetBrains ${releaseStatus.jetBrainsMarketplaceVersion} 均推荐该 CLI，公开 payload 与正式构建内容已核验。客户端 ${releaseStatus.productVersion} 已独立公开。`}
+        ? `CLI ${releaseStatus.recommendedCliVersion} and Session Core ${releaseStatus.sessionCoreVersion} are public; npm archive integrity and provenance metadata were read back. Open VSX ${releaseStatus.openVsxVersion} and JetBrains ${releaseStatus.jetBrainsMarketplaceVersion} both recommend this CLI; public archives and pairing were checked; official artifact parity was not rerun in this review. Native product ${releaseStatus.productVersion} is independently public.`
+        : `CLI ${releaseStatus.recommendedCliVersion} 与 Session Core ${releaseStatus.sessionCoreVersion} 已公开，本轮核对 npm 归档完整性与来源元数据；Open VSX ${releaseStatus.openVsxVersion} 和 JetBrains ${releaseStatus.jetBrainsMarketplaceVersion} 均推荐该 CLI，已核对公开下载及配对；本轮未重跑与官方制品的全量一致性比较。客户端 ${releaseStatus.productVersion} 已独立公开。`}
     </p>
     <p class="mt-3 text-sm text-muted">
       {english ? releaseStatus.productCandidateStatusEn : releaseStatus.productCandidateStatusZh}
@@ -42,8 +42,8 @@ const items = english
     )}
     <p class="mt-3 text-sm text-muted">
       {english
-        ? "Unreleased source / PR #539: goal transfer-to-project freezes and backs up a CLI goal, then imports it into a selected native personal project in a paused state. Signed native cancellation enables exact-byte recovery. Matching branch builds are required; public CLI .143 and client .145 do not include it. Windows local reports record 49 files/790 passes; real GUI, Linux/macOS and release CI remain pending."
-        : "未发行源码 / PR #539：goal transfer-to-project 冻结并备份 CLI 目标，经原生确认移交至个人项目，新目标保持暂停；原生签名作废回执用于原字节恢复。需匹配分支构建，公开 CLI .143 与客户端 .145 尚不包含。Windows 本地报告为 49 文件/790 项通过，真实 GUI、Linux/macOS 与发行 CI 待验证。"}
+        ? "Public CLI .145 includes goal transfer-to-project and signed restore-transfer commands. Native import requires a matching newer desktop build and explicit confirmation; imported goals remain paused. Main-source recovery, Memory, MCP Tasks and native price-window fixes have separate evidence and are not all in the public .145 package."
+        : "公开 CLI .145 已包含 goal transfer-to-project 与签名 restore-transfer 命令。原生导入仍需匹配的新桌面构建和显式确认，新目标保持暂停。最新主线的恢复、Memory、MCP Tasks 与持久计费窗口修复分别有源码证据，不能全部归入公开 .145 包。"}
       <a class="text-ember hover:underline" href={releaseStatus.unreleasedGoalTransfer.designUrl}>{english ? " Handoff design ↗" : " 移交设计 ↗"}</a>
     </p>
     <div class="mt-8 grid gap-6 md:grid-cols-3">

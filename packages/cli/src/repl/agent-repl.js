@@ -1,3 +1,4 @@
+import { formatSessionModelUsageRecoveryNotice } from "../lib/session-model-usage-recovery.js";
 import { createPersistedModelInputObserver } from "../lib/session-model-input-diagnostics.js";
 /**
  * Agentic REPL - Claude Code / Codex style
@@ -108,6 +109,10 @@ import {
   persistSideEffectLedger,
 } from "../lib/side-effect-ledger-store.js";
 import { operationIdempotencyKey } from "../lib/idempotency.js";
+import {
+  appendSessionInputAcceptance,
+  appendSessionInputSettlement,
+} from "../lib/session-input-receipt.js";
 import { collectToolResourceIdentifiers } from "../lib/permission-side-effect-center.js";
 import {
   preserveDurableSystemMessageProvenance,
@@ -2300,10 +2305,20 @@ export function prepareReplJsonlResumeCandidate(sessionId, dependencies = {}) {
               "REPL session budget declaration",
             ),
           );
+    const modelUsageRecovery = snapshotReplMessageValue(
+      dataDescriptorValue(
+        stateDescriptors,
+        "modelUsageRecovery",
+        "REPL local usage recovery",
+        { required: false },
+      ) ?? null,
+      "REPL local usage recovery",
+    );
     return brandedFrozenCandidate(REPL_JSONL_RESUME_CANDIDATES, {
       ok: true,
       sessionId,
       sessionBudgetRoot,
+      modelUsageRecovery,
       rebuiltMessages,
       replayMessages: normalizedReplay.replayMessages,
       canonicalSystemMessages: normalizedReplay.canonicalSystemMessages,
@@ -2704,6 +2719,17 @@ export function createReplMcpHostRuntimeManager(dependencies = {}) {
       return current;
     },
   });
+}
+
+/** Canonical-message check used to avoid replaying a settled auto-wake turn. */
+export function hasSettledMcpTaskAutoWake(messages, deliveryId) {
+  if (!Array.isArray(messages) || typeof deliveryId !== "string") return false;
+  return messages.some(
+    (message) =>
+      message?.role === "user" &&
+      typeof message.content === "string" &&
+      message.content.includes(deliveryId),
+  );
 }
 
 /**
@@ -3285,6 +3311,10 @@ async function startAgentReplInWorkspaceOwned(
   let _processingLine = false;
   let _lineSettled = null;
   const _activeBtwCalls = new Set();
+  const _mcpTaskTrackers = new Map();
+  const _mcpTaskAutoWakeQueue = [];
+  let _mcpTaskAutoWakeRunning = false;
+  const _mcpTaskAutoWakeSentinel = "__cc_mcp_task_autowake__";
   const _pendingLines = [];
   const _runtimeLedgerTerminalLatch = createReplRuntimeLedgerTerminalLatch({
     onTrip: (terminalError) => {
@@ -4388,6 +4418,7 @@ async function startAgentReplInWorkspaceOwned(
   // the first prompt turn of a persistable (JSONL) session. This is Critical
   // recovery state: a failure blocks subsequent model/tool turns.
   let _turnBindingProducer = null;
+  let _sessionInputAccepted = null;
   let _turnBindingCriticalError = null;
   // Apply --output-style or the settings.json `outputStyle` default at startup.
   try {
@@ -4910,6 +4941,11 @@ async function startAgentReplInWorkspaceOwned(
           error.code = "CC_REPL_SESSION_RESUME_NOT_PREPARED";
           throw error;
         }
+        const usageRecoveryNotice = formatSessionModelUsageRecoveryNotice(
+          sessionId,
+          prepared.modelUsageRecovery,
+        );
+        if (usageRecoveryNotice) logger.warn(usageRecoveryNotice);
         messages.push(...prepared.canonicalSystemMessages);
         if (_startupReplSideEffects.noticeMessage) {
           messages.push(_startupReplSideEffects.noticeMessage);
@@ -5230,6 +5266,7 @@ async function startAgentReplInWorkspaceOwned(
           "/ide",
           "/init",
           "/mcp",
+          "/mcp-watch",
           "/memory",
           "/microcompact",
           "/model",
@@ -5864,7 +5901,65 @@ async function startAgentReplInWorkspaceOwned(
   // continuation backslash keeps the prompt open; `_mlBuffer` accumulates the
   // pieces and the whole block submits when a line does not continue.
   const _mlBuffer = [];
+  const kickMcpTaskAutoWake = () => {
+    if (
+      _processingLine ||
+      _mcpTaskAutoWakeRunning ||
+      _replClosing ||
+      _mcpTaskAutoWakeQueue.length === 0
+    ) {
+      return;
+    }
+    _mcpTaskAutoWakeRunning = true;
+    _processingLine = true;
+    let settleLine;
+    _lineSettled = new Promise((resolve) => {
+      settleLine = resolve;
+    });
+    void (async () => {
+      try {
+        await handleLine(_mcpTaskAutoWakeSentinel);
+        if (!(await _waitForReplOutput())) return;
+        while (
+          _pendingLines.length &&
+          !_replClosing &&
+          !_runtimeLedgerTerminalLatch.isTripped()
+        ) {
+          const next = _pendingLines.shift();
+          await handleLine(next);
+          if (!(await _waitForReplOutput())) return;
+        }
+      } finally {
+        _processingLine = false;
+        settleLine();
+        _lineSettled = null;
+        _mcpTaskAutoWakeRunning = false;
+        kickMcpTaskAutoWake();
+      }
+    })();
+  };
+  const scheduleMcpTaskAutoWake = (delivery) => {
+    if (process.env.CC_MCP_TASK_AUTOWAKE !== "1" || !delivery?.message) {
+      return false;
+    }
+    if (_mcpTaskAutoWakeQueue.length >= 8) {
+      logger.warn(
+        "[mcp-watch] auto-wake queue is full; delivery remains available in the session",
+      );
+      return false;
+    }
+    _mcpTaskAutoWakeQueue.push(delivery);
+    kickMcpTaskAutoWake();
+    return true;
+  };
   const handleLine = async (input) => {
+    const mcpAutoWakeDelivery =
+      input === _mcpTaskAutoWakeSentinel
+        ? _mcpTaskAutoWakeQueue.shift() || null
+        : null;
+    if (mcpAutoWakeDelivery) {
+      input = `Continue from the verified background MCP task result (deliveryId: ${mcpAutoWakeDelivery.deliveryId}).`;
+    }
     // Backslash continuation — accumulate and re-prompt without firing a turn.
     const _cont = analyzeContinuation(input);
     if (_cont.continued) {
@@ -8803,6 +8898,94 @@ async function startAgentReplInWorkspaceOwned(
     }
 
     // `/mcp` — overview of connected MCP servers' resources + prompts.
+    // `/mcp-watch [local-id]` starts explicit, lease-bound durable task
+    // tracking in this REPL. Delivery remains an external reference event;
+    // it never becomes an implicit user prompt or model instruction.
+    if (trimmed === "/mcp-watch" || trimmed.startsWith("/mcp-watch ")) {
+      try {
+        if (!sessionId || !useJsonl || !_sessionHostLeaseScope?.lease) {
+          throw new Error(
+            "MCP task tracking requires an active canonical session lease",
+          );
+        }
+        const hostMcp = _getReplHostMcp();
+        if (!hostMcp?.mcpClient) {
+          throw new Error("No connected MCP client is available");
+        }
+        const { listDurableMcpTasks, createDurableMcpTaskRuntime } =
+          await import("../lib/mcp-task-runtime.js");
+        const { readMcpTaskJournal } =
+          await import("../lib/mcp-task-journal.js");
+        const requested = trimmed.slice("/mcp-watch".length).trim();
+        const journal = readMcpTaskJournal(sessionId);
+        const settledAutoWake = (record) => {
+          const delivery = journal.deliveries.find(
+            (item) => item.localId === record.localId,
+          );
+          if (!delivery) return false;
+          return hasSettledMcpTaskAutoWake(messages, delivery.deliveryId);
+        };
+        const { records: durableRecords } = listDurableMcpTasks(sessionId);
+        const records = durableRecords.filter(
+          (record) =>
+            (!requested || record.localId === requested) &&
+            !_mcpTaskTrackers.has(record.localId) &&
+            (!record.delivered ||
+              (process.env.CC_MCP_TASK_AUTOWAKE === "1" &&
+                !settledAutoWake(record))),
+        );
+        if (
+          requested &&
+          !records.some((record) => record.localId === requested)
+        ) {
+          throw new Error("No pending durable MCP task matches that local id");
+        }
+        for (const record of records) {
+          const runtime = createDurableMcpTaskRuntime({
+            client: hostMcp.mcpClient,
+            sessionId,
+            lease: _sessionHostLeaseScope.lease,
+          });
+          const tracker = runtime.startTracking(record.localId, {
+            deliver: true,
+            onUpdate: (update) => {
+              logger.verbose(
+                `[mcp-watch] ${record.localId}: ${
+                  update.remoteStatus || update.phase
+                }`,
+              );
+            },
+            onDelivery: (receipt, delivery) => {
+              scheduleMcpTaskAutoWake(delivery);
+              logger.log(
+                chalk.green(
+                  `✓ MCP task ${receipt.localId} delivered as external reference; submit a prompt to continue.`,
+                ),
+              );
+            },
+          });
+          _mcpTaskTrackers.set(record.localId, tracker);
+          void tracker.promise
+            .catch((error) => {
+              if (error?.code !== "CC_MCP_TASK_TRACKING_STOPPED") {
+                logger.warn(
+                  `[mcp-watch] ${record.localId} stopped: ${error.message}`,
+                );
+              }
+            })
+            .finally(() => _mcpTaskTrackers.delete(record.localId));
+        }
+        logger.log(
+          records.length
+            ? `MCP task tracking started for ${records.length} task(s).`
+            : "No pending durable MCP tasks require tracking.",
+        );
+      } catch (error) {
+        logger.error(chalk.red(`/mcp-watch failed: ${error.message}`));
+      }
+      prompt();
+      return;
+    }
     if (trimmed === "/mcp" || trimmed.startsWith("/mcp ")) {
       const mcpClient = _getReplHostMcp()?.mcpClient;
       logger.log(renderMcpSurface(mcpClient));
@@ -9563,6 +9746,13 @@ async function startAgentReplInWorkspaceOwned(
 
     // Add user message (keep the object ref so /note-next can be injected for
     // this turn's model call and then stripped before persistence).
+    if (mcpAutoWakeDelivery?.message) {
+      messages.push({
+        role: "assistant",
+        name: "mcp_task_result",
+        content: mcpAutoWakeDelivery.message.content,
+      });
+    }
     const _userMsg = { role: "user", content: _userMessageContent };
     messages.push(_userMsg);
 
@@ -9691,6 +9881,28 @@ async function startAgentReplInWorkspaceOwned(
     }
 
     try {
+      // Durable REPL input admission is a hard boundary: persist the exact
+      // effective prompt before any provider dispatch. The acceptance event is
+      // intentionally excluded from replay history; only a later settled event
+      // publishes the user/assistant pair. Legacy and non-JSONL sessions keep
+      // their existing best-effort behavior.
+      _sessionInputAccepted = null;
+      if (sessionId && useJsonl) {
+        try {
+          _sessionInputAccepted = appendSessionInputAcceptance(sessionId, {
+            inputId: `repl-${randomUUID()}`,
+            turnId: `${sessionId}:turn-${_turnCount + 1}`,
+            prompt: effectivePrompt,
+          });
+        } catch (error) {
+          const persistenceError = markRuntimeLedgerPersistenceError(error);
+          logger.error(
+            `[recovery] refusing provider dispatch because input acceptance was not persisted: ${persistenceError.message}`,
+          );
+          prompt();
+          return;
+        }
+      }
       process.stdout.write("\n");
       const iterationBudget = new IterationBudget({ owner: sessionId });
       // Bind a cross-session goal (cc goal) into this run, if one resolves.
@@ -10125,24 +10337,49 @@ async function startAgentReplInWorkspaceOwned(
       if (sessionId) {
         try {
           if (useJsonl) {
-            // Append incremental events (user + assistant)
-            appendUserMessage(sessionId, effectivePrompt);
+            // A settled lifecycle event is the only replayable representation
+            // of this REPL turn. The accepted prompt remains private pending
+            // evidence until this append succeeds.
+            if (_sessionInputAccepted) {
+              appendSessionInputSettlement(
+                sessionId,
+                _sessionInputAccepted,
+                effectiveResponse || "",
+              );
+            } else {
+              // This branch is retained for older injected hosts that do not
+              // use the durable input lifecycle.
+              appendUserMessage(sessionId, effectivePrompt);
+            }
             _replCompactPersistence.record({
               role: "user",
               content: effectivePrompt,
             });
-            if (effectiveResponse) {
+            if (effectiveResponse && !_sessionInputAccepted) {
               appendAssistantMessage(sessionId, effectiveResponse);
               _replCompactPersistence.record({
                 role: "assistant",
                 content: effectiveResponse,
               });
             }
+            if (_sessionInputAccepted) {
+              _replCompactPersistence.record({
+                role: "assistant",
+                content: effectiveResponse || "",
+              });
+            }
           } else if (db) {
             saveMessages(db, sessionId, messages);
           }
         } catch (_e) {
-          // Non-critical
+          if (useJsonl && _sessionInputAccepted) {
+            const terminalError = _runtimeLedgerTerminalLatch.trip(
+              markRuntimeLedgerPersistenceError(_e),
+            );
+            if (terminalError) _reportRuntimeLedgerTerminal();
+            throw _e;
+          }
+          // Legacy persistence remains best-effort.
         }
       }
       // Persist the explicit turn-binding table for this settled turn,
@@ -10370,15 +10607,25 @@ async function startAgentReplInWorkspaceOwned(
     } finally {
       _processingLine = false;
       settleLine();
+      kickMcpTaskAutoWake();
       _lineSettled = null;
     }
   });
+
+  // Opt-in restart recovery: with auto-wake enabled, scan the canonical
+  // journal after the line listener is live and resume pending task trackers.
+  if (process.env.CC_MCP_TASK_AUTOWAKE === "1") {
+    setImmediate(() => {
+      if (!_replClosing) rl.emit("line", "/mcp-watch");
+    });
+  }
 
   rl.on("close", async () => {
     if (_replCleanupStarted) return;
     _replCleanupStarted = true;
     _replClosing = true;
     _pendingLines.length = 0;
+    _mcpTaskAutoWakeQueue.length = 0;
     // Do not certify a Run while its model/tool or auxiliary usage settlement
     // is still in flight. EOF during a main turn cancels and leaves it incomplete.
     if (_turnAbort !== null) {
@@ -10391,6 +10638,8 @@ async function startAgentReplInWorkspaceOwned(
       if (_evolutionSession !== null) _replOutputFailure ||= error;
       _turnAbort.abort(error);
     }
+    for (const tracker of _mcpTaskTrackers.values()) tracker.stop();
+    _mcpTaskTrackers.clear();
     _promptInteractions.dispose();
     // Autonomous goals outlive the input line that submitted them. Cancel
     // their next-step execution and wait for any current call to settle too.

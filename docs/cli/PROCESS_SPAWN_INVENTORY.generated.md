@@ -3,8 +3,8 @@
 > Generated from child process call-site scan. Do not edit by hand.
 > Regenerate with `npm run docs:spawn-inventory --workspace=packages/cli`.
 
-Total matches: 854 (runtime: 315, tooling: 502, test: 37).
-Runtime audit: brokered: 219, audited-exemption: 47, non-executable: 49, unreviewed: 0.
+Total matches: 857 (runtime: 316, tooling: 504, test: 37).
+Runtime audit: brokered: 220, audited-exemption: 47, non-executable: 49, unreviewed: 0.
 
 ## Policy
 
@@ -111,6 +111,7 @@ Runtime audit: brokered: 219, audited-exemption: 47, non-executable: 49, unrevie
 | `packages/cli/src/lib/computer-use/control-backend.js` | 13 | `brokered` | call targets ProcessExecutionBroker | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |
 | `packages/cli/src/lib/computer-use/control-backend.js` | 19 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `const res = deps.spawnSync(` |
 | `packages/cli/src/lib/computer-use/control-backend.js` | 150 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `const res = deps.spawnSync(app, args, {` |
+| `packages/cli/src/lib/context-memory-kernel/local-semantic-source.js` | 160 | `brokered` | call targets ProcessExecutionBroker | `const child = executionBroker.spawn(` |
 | `packages/cli/src/lib/delivery-production-adapter.js` | 83 | `brokered` | call targets ProcessExecutionBroker | `return executionBroker.spawnSync(file, args, options);` |
 | `packages/cli/src/lib/doctor-checkup.js` | 68 | `brokered` | call targets ProcessExecutionBroker | `execFileSync: (...args) => executionBroker.execFileSync(...args),` |
 | `packages/cli/src/lib/doctor-checkup.js` | 69 | `brokered` | call targets ProcessExecutionBroker | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |
@@ -586,6 +587,8 @@ Runtime audit: brokered: 219, audited-exemption: 47, non-executable: 49, unrevie
 | `packages/cli/scripts/memory-query-index-benchmark.mjs` | 201 | `sourceHead: execFileSync("git", ["rev-parse", "HEAD"], {` |
 | `packages/cli/scripts/memory-query-index-benchmark.mjs` | 204 | `workingTree: execFileSync(` |
 | `packages/cli/scripts/memory-query-index-benchmark.mjs` | 273 | `const child = spawnSync(` |
+| `packages/cli/scripts/memory-query-index-benchmark.node-test.mjs` | 5 | `import { spawnSync } from "node:child_process";` |
+| `packages/cli/scripts/memory-query-index-benchmark.node-test.mjs` | 41 | `const child = spawnSync(` |
 | `packages/cli/scripts/native-signed-install-gate.mjs` | 18 | `import { spawnSync } from "node:child_process";` |
 | `packages/cli/scripts/native-signed-install-gate.mjs` | 227 | `const result = spawnSync(command, args, {` |
 | `packages/cli/scripts/persistent-capacity-benchmark.mjs` | 12 | `import { execFileSync, spawn } from "node:child_process";` |

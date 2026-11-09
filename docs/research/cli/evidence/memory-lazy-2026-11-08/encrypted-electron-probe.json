@@ -1,0 +1,21 @@
+{
+  "schema": "chainlesschain.encrypted-goal-electron-probe/v1",
+  "passed": false,
+  "platform": "win32",
+  "error": {
+    "message": "Electron probe failed (1/null)",
+    "relatedErrors": [
+      "Error: Failed to open database: The module '\\\\?\\E:\\code\\chainlesschain\\node_modules\\better-sqlite3-multiple-ciphers\\build\\Release\\better_sqlite3.node'"
+    ]
+  },
+  "sources": {
+    "desktop-app-vue/src/main/task/project-goal-native-database.js": "932fc6473e599b7450fcd0cb9aebbb9eb0f13a650a79d88567984d19a3ca9338",
+    "desktop-app-vue/src/main/task/project-goal-ipc.js": "59f10d037d016db145a7f66be1b01ce75b70bed515d7b6c84e1693673ab4628e",
+    "desktop-app-vue/src/main/task/project-goal-monitoring-host.js": "051e075d21bb6e68c75542cb776ed55c8558d7be3a02616874b7e9ac858d6eff",
+    "desktop-app-vue/src/main/database/sqlcipher-wrapper.js": "5f50415f97b7080af43d0c8641fcadc50af2f651d62414ba1974ac3b4ba6fa66",
+    "desktop-app-vue/src/main/task/__tests__/fixtures/project-goal-encrypted-electron.cjs": "9697583674b62e52f24452f4fc01e7ed28e526e53790c342791240b0de352094",
+    "desktop-app-vue/scripts/project-goal-encrypted-electron-probe.mjs": "890ee4a950d33eb9678287cf8660b8a5a6e26e2e8a478c5f5be57cc5eebceb91"
+  },
+  "executable": "E:\\code\\chainlesschain\\node_modules\\electron\\dist\\electron.exe",
+  "profile": "C:\\Users\\admin\\AppData\\Local\\Temp\\cc-encrypted-goal-electron-u4VgDE"
+}

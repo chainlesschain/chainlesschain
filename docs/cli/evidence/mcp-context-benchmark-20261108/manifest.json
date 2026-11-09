@@ -1,0 +1,20 @@
+{
+  "schema": "chainlesschain.mcp-context-benchmark-evidence/v1",
+  "generatedAt": "2026-11-08T12:10:31.708Z",
+  "sourceCommit": "4b7a248597",
+  "report": "docs/cli/evidence/mcp-context-benchmark-20261108/report.json",
+  "artifacts": [
+    {
+      "path": "docs/cli/evidence/mcp-context-benchmark-20261108/report.json",
+      "bytes": 3593,
+      "sha256": "7bff9fd264a238a67df21b44748aa8866703e81a84307fe469cc49b4c4375300"
+    }
+  ],
+  "sources": [
+    {
+      "path": "packages/cli/scripts/implementation-plan-context-benchmark.mjs",
+      "bytes": 7230,
+      "sha256": "7d7df912d40f2363adf40086df5fdb4ef470a5a1380827edb32623f955889bc7"
+    }
+  ]
+}

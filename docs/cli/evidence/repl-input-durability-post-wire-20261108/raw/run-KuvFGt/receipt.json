@@ -1,0 +1,597 @@
+{
+  "schema": "chainlesschain.repl-inflight-crash-journey/v1",
+  "node": "v24.12.0",
+  "platform": "win32",
+  "terminal": "emulated stdin isTTY, not an OS PTY",
+  "transport": "real CLI/readline/Evolution/JSONL and loopback HTTP; no paid provider",
+  "sessionId": "repl-inflight-recovery",
+  "requests": [
+    {
+      "phase": "warmup",
+      "index": 1,
+      "path": "/api/chat",
+      "lastIsWarm": true,
+      "lastIsOld": false,
+      "lastIsNew": false,
+      "containsOld": false,
+      "containsNew": false
+    },
+    {
+      "phase": "held",
+      "index": 2,
+      "path": "/api/chat",
+      "lastIsWarm": false,
+      "lastIsOld": true,
+      "lastIsNew": false,
+      "containsOld": true,
+      "containsNew": false
+    },
+    {
+      "phase": "resume",
+      "index": 3,
+      "path": "/api/chat",
+      "lastIsWarm": false,
+      "lastIsOld": false,
+      "lastIsNew": true,
+      "containsOld": false,
+      "containsNew": true
+    }
+  ],
+  "transportRequests": [
+    {
+      "method": "POST",
+      "path": "/api/chat",
+      "at": "2026-11-08T10:21:56.189Z"
+    },
+    {
+      "method": "POST",
+      "path": "/api/chat",
+      "at": "2026-11-08T10:21:57.155Z"
+    },
+    {
+      "method": "POST",
+      "path": "/api/chat",
+      "at": "2026-11-08T10:21:59.766Z"
+    }
+  ],
+  "stages": [
+    "original-prompt",
+    "warmup-settled",
+    "original-request-received-and-held",
+    "resumed-new-input-settled-or-explicitly-fenced",
+    "resumed-clean-exit"
+  ],
+  "encryptedDatabaseInstallationVerified": false,
+  "completed": true,
+  "beforeHeld": {
+    "fixture": "repl-inflight-recovery",
+    "sessionId": "repl-inflight-recovery",
+    "verified": true,
+    "eventCount": 10,
+    "usage": [
+      {
+        "type": "model_usage_started",
+        "callId": "mdl-d10029cb-e946-48c7-8a10-d317058bac60",
+        "data": {
+          "callId": "mdl-d10029cb-e946-48c7-8a10-d317058bac60",
+          "provider": "ollama",
+          "model": "qwen2.5:7b",
+          "source": "model"
+        }
+      },
+      {
+        "type": "token_usage",
+        "callId": "mdl-d10029cb-e946-48c7-8a10-d317058bac60",
+        "data": {
+          "provider": "ollama",
+          "model": "qwen2.5:7b",
+          "usage": {
+            "input_tokens": 10,
+            "output_tokens": 5,
+            "cache_read_input_tokens": 0,
+            "cache_creation_input_tokens": 0
+          },
+          "callId": "mdl-d10029cb-e946-48c7-8a10-d317058bac60",
+          "contextWindow": 32768
+        }
+      }
+    ],
+    "rawUnsettledCallIds": [],
+    "knownUsage": {
+      "total": {
+        "inputTokens": 10,
+        "outputTokens": 5,
+        "totalTokens": 15,
+        "cacheReadTokens": 0,
+        "cacheCreationTokens": 0,
+        "calls": 1
+      },
+      "byModel": [
+        {
+          "provider": "ollama",
+          "model": "qwen2.5:7b",
+          "inputTokens": 10,
+          "outputTokens": 5,
+          "totalTokens": 15,
+          "cacheReadTokens": 0,
+          "cacheCreationTokens": 0,
+          "calls": 1
+        }
+      ]
+    },
+    "productUsageProjection": {
+      "available": true,
+      "source": "readSessionHostResumeState/modelUsageRecovery",
+      "usage": {
+        "schema": "chainlesschain.local-session-model-usage-recovery/v1",
+        "assurance": "recorded-model-call-ledger-only",
+        "billingComplete": false,
+        "telemetryComplete": true,
+        "retainedCallCount": 0,
+        "unsettledCallIds": [],
+        "unknownCallIds": [],
+        "unknownEvidence": {
+          "byCode": []
+        }
+      },
+      "head": {
+        "hash": "1bd09fd1443d0ba5b2011ed46ad3d18211c4c78e4fa2882ef7998128565f82ba",
+        "eventCount": 10
+      }
+    },
+    "scopedObservabilityProjection": {
+      "available": false,
+      "error": {
+        "code": null,
+        "message": "session repl-inflight-recovery has no observabilityScope authority"
+      }
+    },
+    "messages": [
+      {
+        "role": "user",
+        "content": "REPL_CRASH_WARM_47192"
+      },
+      {
+        "role": "assistant",
+        "content": "REPL_CRASH_SETTLED_RESPONSE"
+      }
+    ]
+  },
+  "beforeKill": {
+    "fixture": "repl-inflight-recovery",
+    "sessionId": "repl-inflight-recovery",
+    "verified": true,
+    "eventCount": 14,
+    "usage": [
+      {
+        "type": "model_usage_started",
+        "callId": "mdl-d10029cb-e946-48c7-8a10-d317058bac60",
+        "data": {
+          "callId": "mdl-d10029cb-e946-48c7-8a10-d317058bac60",
+          "provider": "ollama",
+          "model": "qwen2.5:7b",
+          "source": "model"
+        }
+      },
+      {
+        "type": "token_usage",
+        "callId": "mdl-d10029cb-e946-48c7-8a10-d317058bac60",
+        "data": {
+          "provider": "ollama",
+          "model": "qwen2.5:7b",
+          "usage": {
+            "input_tokens": 10,
+            "output_tokens": 5,
+            "cache_read_input_tokens": 0,
+            "cache_creation_input_tokens": 0
+          },
+          "callId": "mdl-d10029cb-e946-48c7-8a10-d317058bac60",
+          "contextWindow": 32768
+        }
+      },
+      {
+        "type": "model_usage_started",
+        "callId": "mdl-885b6624-d212-42c0-93f2-1d2fc00e5b8a",
+        "data": {
+          "callId": "mdl-885b6624-d212-42c0-93f2-1d2fc00e5b8a",
+          "provider": "ollama",
+          "model": "qwen2.5:7b",
+          "source": "model"
+        }
+      }
+    ],
+    "rawUnsettledCallIds": ["mdl-885b6624-d212-42c0-93f2-1d2fc00e5b8a"],
+    "knownUsage": {
+      "total": {
+        "inputTokens": 10,
+        "outputTokens": 5,
+        "totalTokens": 15,
+        "cacheReadTokens": 0,
+        "cacheCreationTokens": 0,
+        "calls": 1
+      },
+      "byModel": [
+        {
+          "provider": "ollama",
+          "model": "qwen2.5:7b",
+          "inputTokens": 10,
+          "outputTokens": 5,
+          "totalTokens": 15,
+          "cacheReadTokens": 0,
+          "cacheCreationTokens": 0,
+          "calls": 1
+        }
+      ]
+    },
+    "productUsageProjection": {
+      "available": true,
+      "source": "readSessionHostResumeState/modelUsageRecovery",
+      "usage": {
+        "schema": "chainlesschain.local-session-model-usage-recovery/v1",
+        "assurance": "recorded-model-call-ledger-only",
+        "billingComplete": false,
+        "telemetryComplete": false,
+        "retainedCallCount": 1,
+        "unsettledCallIds": ["mdl-885b6624-d212-42c0-93f2-1d2fc00e5b8a"],
+        "unknownCallIds": [],
+        "unknownEvidence": {
+          "byCode": [
+            {
+              "code": "model-usage-unsettled",
+              "count": 1
+            }
+          ]
+        }
+      },
+      "head": {
+        "hash": "e0b3c2530cdd979ef46db3185bdf21fa2e1e52f9d68d4ba9d9270c6e1a024918",
+        "eventCount": 14
+      }
+    },
+    "scopedObservabilityProjection": {
+      "available": false,
+      "error": {
+        "code": null,
+        "message": "session repl-inflight-recovery has no observabilityScope authority"
+      }
+    },
+    "messages": [
+      {
+        "role": "user",
+        "content": "REPL_CRASH_WARM_47192"
+      },
+      {
+        "role": "assistant",
+        "content": "REPL_CRASH_SETTLED_RESPONSE"
+      }
+    ]
+  },
+  "originalCallId": "mdl-885b6624-d212-42c0-93f2-1d2fc00e5b8a",
+  "killRequested": true,
+  "originalExit": {
+    "code": null,
+    "signal": "SIGKILL"
+  },
+  "afterKill": {
+    "fixture": "repl-inflight-recovery",
+    "sessionId": "repl-inflight-recovery",
+    "verified": true,
+    "eventCount": 14,
+    "usage": [
+      {
+        "type": "model_usage_started",
+        "callId": "mdl-d10029cb-e946-48c7-8a10-d317058bac60",
+        "data": {
+          "callId": "mdl-d10029cb-e946-48c7-8a10-d317058bac60",
+          "provider": "ollama",
+          "model": "qwen2.5:7b",
+          "source": "model"
+        }
+      },
+      {
+        "type": "token_usage",
+        "callId": "mdl-d10029cb-e946-48c7-8a10-d317058bac60",
+        "data": {
+          "provider": "ollama",
+          "model": "qwen2.5:7b",
+          "usage": {
+            "input_tokens": 10,
+            "output_tokens": 5,
+            "cache_read_input_tokens": 0,
+            "cache_creation_input_tokens": 0
+          },
+          "callId": "mdl-d10029cb-e946-48c7-8a10-d317058bac60",
+          "contextWindow": 32768
+        }
+      },
+      {
+        "type": "model_usage_started",
+        "callId": "mdl-885b6624-d212-42c0-93f2-1d2fc00e5b8a",
+        "data": {
+          "callId": "mdl-885b6624-d212-42c0-93f2-1d2fc00e5b8a",
+          "provider": "ollama",
+          "model": "qwen2.5:7b",
+          "source": "model"
+        }
+      }
+    ],
+    "rawUnsettledCallIds": ["mdl-885b6624-d212-42c0-93f2-1d2fc00e5b8a"],
+    "knownUsage": {
+      "total": {
+        "inputTokens": 10,
+        "outputTokens": 5,
+        "totalTokens": 15,
+        "cacheReadTokens": 0,
+        "cacheCreationTokens": 0,
+        "calls": 1
+      },
+      "byModel": [
+        {
+          "provider": "ollama",
+          "model": "qwen2.5:7b",
+          "inputTokens": 10,
+          "outputTokens": 5,
+          "totalTokens": 15,
+          "cacheReadTokens": 0,
+          "cacheCreationTokens": 0,
+          "calls": 1
+        }
+      ]
+    },
+    "productUsageProjection": {
+      "available": true,
+      "source": "readSessionHostResumeState/modelUsageRecovery",
+      "usage": {
+        "schema": "chainlesschain.local-session-model-usage-recovery/v1",
+        "assurance": "recorded-model-call-ledger-only",
+        "billingComplete": false,
+        "telemetryComplete": false,
+        "retainedCallCount": 1,
+        "unsettledCallIds": ["mdl-885b6624-d212-42c0-93f2-1d2fc00e5b8a"],
+        "unknownCallIds": [],
+        "unknownEvidence": {
+          "byCode": [
+            {
+              "code": "model-usage-unsettled",
+              "count": 1
+            }
+          ]
+        }
+      },
+      "head": {
+        "hash": "e0b3c2530cdd979ef46db3185bdf21fa2e1e52f9d68d4ba9d9270c6e1a024918",
+        "eventCount": 14
+      }
+    },
+    "scopedObservabilityProjection": {
+      "available": false,
+      "error": {
+        "code": null,
+        "message": "session repl-inflight-recovery has no observabilityScope authority"
+      }
+    },
+    "messages": [
+      {
+        "role": "user",
+        "content": "REPL_CRASH_WARM_47192"
+      },
+      {
+        "role": "assistant",
+        "content": "REPL_CRASH_SETTLED_RESPONSE"
+      }
+    ]
+  },
+  "resumeOutput": "[AppConfig] Configuration loaded\n[DatabaseManager] Using better-sqlite3 (no encryption)\n[DatabaseManager] Database initialized: C:\\Users\\admin\\AppData\\Local\\Temp\\cc-repl-inflight-UdsmiC\\config\\data\\chainlesschain.db\nℹ Resumed JSONL session repl-inflight-recovery (2 messages)\nRecap:\n  1 user / 1 assistant turns\n  last ask  : REPL_CRASH_WARM_47192\n  last reply: REPL_CRASH_SETTLED_RESPONSE\n\nChainlessChain Agent\nModel: qwen2.5:7b  Provider: ollama  CWD: C:\\Users\\admin\\AppData\\Local\\Temp\\cc-repl-inflight-UdsmiC\\workspace\nSession: repl-inflight-recovery\nContext: instinct + memory + notes (DB connected)\nDescribe what you want to do. I can read/write files, run commands, and more.\nType /exit to quit, /help for commands\n\nqwen2.5:7b  ·  ⛁ 0/32.8k (0%)  ·  C:\\Users\\admin\\AppData\\Local\\Temp\\cc-repl-inflight-UdsmiC\\workspace\n> REPL_CRASH_NEW_98264\r\n\n\nREPL_CRASH_SETTLED_RESPONSE\n\n\nSuggested next prompts:\n  1. 基于当前结果继续推进最合适的下一步\nqwen2.5:7b  ·  ⛁ 15/32.8k (0%)  ·  C:\\Users\\admin\\AppData\\Local\\Temp\\cc-repl-inflight-UdsmiC\\workspace  ·  turn 1\n> \n{\"fixture\":\"repl-inflight-bootstrap\",\"stage\":\"fixture-entered\",\"pid\":34796,\"at\":\"2026-11-08T10:21:57.790Z\",\"uptimeMs\":15}\n{\"fixture\":\"repl-inflight-bootstrap\",\"stage\":\"argv-ready-before-cli-import\",\"pid\":34796,\"at\":\"2026-11-08T10:21:57.792Z\",\"uptimeMs\":16}\n{\"fixture\":\"repl-inflight-bootstrap\",\"stage\":\"cli-module-imported\",\"pid\":34796,\"at\":\"2026-11-08T10:21:57.799Z\",\"uptimeMs\":23}\nWarning: sandbox mode is explicitly off; shell commands use policy checks without OS isolation.\n[DatabaseManager] better-sqlite3-multiple-ciphers unusable: The module '\\\\?\\E:\\code\\chainlesschain\\node_modules\\better-sqlite3-multiple-ciphers\\build\\Release\\better_sqlite3.node'\n⚠ [recovery] Session \"repl-inflight-recovery\" has interrupted model request(s) \"mdl-885b6624-d212-42c0-93f2-1d2fc00e5b8a\"; usage and cost remain unknown. Original prompt may not have been saved. Inspect the saved session and reconcile provider usage before explicitly resubmitting; requests are not retried automatically.\n",
+  "recoveryDiagnostics": [
+    "⚠ [recovery] Session \"repl-inflight-recovery\" has interrupted model request(s) \"mdl-885b6624-d212-42c0-93f2-1d2fc00e5b8a\"; usage and cost remain unknown. Original prompt may not have been saved. Inspect the saved session and reconcile provider usage before explicitly resubmitting; requests are not retried automatically."
+  ],
+  "visibleRecoveryNotice": true,
+  "oldPromptPreservedBeforeKill": false,
+  "afterResume": {
+    "fixture": "repl-inflight-recovery",
+    "sessionId": "repl-inflight-recovery",
+    "verified": true,
+    "eventCount": 23,
+    "usage": [
+      {
+        "type": "model_usage_started",
+        "callId": "mdl-d10029cb-e946-48c7-8a10-d317058bac60",
+        "data": {
+          "callId": "mdl-d10029cb-e946-48c7-8a10-d317058bac60",
+          "provider": "ollama",
+          "model": "qwen2.5:7b",
+          "source": "model"
+        }
+      },
+      {
+        "type": "token_usage",
+        "callId": "mdl-d10029cb-e946-48c7-8a10-d317058bac60",
+        "data": {
+          "provider": "ollama",
+          "model": "qwen2.5:7b",
+          "usage": {
+            "input_tokens": 10,
+            "output_tokens": 5,
+            "cache_read_input_tokens": 0,
+            "cache_creation_input_tokens": 0
+          },
+          "callId": "mdl-d10029cb-e946-48c7-8a10-d317058bac60",
+          "contextWindow": 32768
+        }
+      },
+      {
+        "type": "model_usage_started",
+        "callId": "mdl-885b6624-d212-42c0-93f2-1d2fc00e5b8a",
+        "data": {
+          "callId": "mdl-885b6624-d212-42c0-93f2-1d2fc00e5b8a",
+          "provider": "ollama",
+          "model": "qwen2.5:7b",
+          "source": "model"
+        }
+      },
+      {
+        "type": "model_usage_started",
+        "callId": "mdl-b7dee513-e2ef-4bfa-9914-bb35a2684aaa",
+        "data": {
+          "callId": "mdl-b7dee513-e2ef-4bfa-9914-bb35a2684aaa",
+          "provider": "ollama",
+          "model": "qwen2.5:7b",
+          "source": "model"
+        }
+      },
+      {
+        "type": "token_usage",
+        "callId": "mdl-b7dee513-e2ef-4bfa-9914-bb35a2684aaa",
+        "data": {
+          "provider": "ollama",
+          "model": "qwen2.5:7b",
+          "usage": {
+            "input_tokens": 10,
+            "output_tokens": 5,
+            "cache_read_input_tokens": 0,
+            "cache_creation_input_tokens": 0
+          },
+          "callId": "mdl-b7dee513-e2ef-4bfa-9914-bb35a2684aaa",
+          "contextWindow": 32768
+        }
+      }
+    ],
+    "rawUnsettledCallIds": ["mdl-885b6624-d212-42c0-93f2-1d2fc00e5b8a"],
+    "knownUsage": {
+      "total": {
+        "inputTokens": 20,
+        "outputTokens": 10,
+        "totalTokens": 30,
+        "cacheReadTokens": 0,
+        "cacheCreationTokens": 0,
+        "calls": 2
+      },
+      "byModel": [
+        {
+          "provider": "ollama",
+          "model": "qwen2.5:7b",
+          "inputTokens": 20,
+          "outputTokens": 10,
+          "totalTokens": 30,
+          "cacheReadTokens": 0,
+          "cacheCreationTokens": 0,
+          "calls": 2
+        }
+      ]
+    },
+    "productUsageProjection": {
+      "available": true,
+      "source": "readSessionHostResumeState/modelUsageRecovery",
+      "usage": {
+        "schema": "chainlesschain.local-session-model-usage-recovery/v1",
+        "assurance": "recorded-model-call-ledger-only",
+        "billingComplete": false,
+        "telemetryComplete": false,
+        "retainedCallCount": 1,
+        "unsettledCallIds": ["mdl-885b6624-d212-42c0-93f2-1d2fc00e5b8a"],
+        "unknownCallIds": [],
+        "unknownEvidence": {
+          "byCode": [
+            {
+              "code": "model-usage-unsettled",
+              "count": 1
+            }
+          ]
+        }
+      },
+      "head": {
+        "hash": "d960ced5ea3f17f3ba170a85420c0a7940f6ebf572d0af23896e45e6d4b51ca6",
+        "eventCount": 23
+      }
+    },
+    "scopedObservabilityProjection": {
+      "available": false,
+      "error": {
+        "code": null,
+        "message": "session repl-inflight-recovery has no observabilityScope authority"
+      }
+    },
+    "messages": [
+      {
+        "role": "user",
+        "content": "REPL_CRASH_WARM_47192"
+      },
+      {
+        "role": "assistant",
+        "content": "REPL_CRASH_SETTLED_RESPONSE"
+      },
+      {
+        "role": "user",
+        "content": "REPL_CRASH_NEW_98264"
+      },
+      {
+        "role": "assistant",
+        "content": "REPL_CRASH_SETTLED_RESPONSE"
+      }
+    ]
+  },
+  "oldPromptPreservedAfterResume": false,
+  "newProviderRequests": 1,
+  "oldProviderReplays": 0,
+  "resumeDisposition": "new-request-admitted",
+  "resumedExit": {
+    "code": 0,
+    "signal": null
+  },
+  "processes": [
+    {
+      "label": "original",
+      "pid": 29832,
+      "code": null,
+      "signal": "SIGKILL",
+      "spawnRequestedAt": "2026-11-08T10:21:54.139Z",
+      "spawnObservedAt": "2026-11-08T10:21:54.140Z",
+      "closedAt": "2026-11-08T10:21:57.491Z"
+    },
+    {
+      "label": "inspect-before-held",
+      "pid": 23544,
+      "code": 0,
+      "signal": null,
+      "spawnRequestedAt": "2026-11-08T10:21:56.578Z",
+      "spawnObservedAt": "2026-11-08T10:21:56.578Z",
+      "closedAt": "2026-11-08T10:21:56.847Z"
+    },
+    {
+      "label": "inspect-before-kill",
+      "pid": 33436,
+      "code": 0,
+      "signal": null,
+      "spawnRequestedAt": "2026-11-08T10:21:57.174Z",
+      "spawnObservedAt": "2026-11-08T10:21:57.174Z",
+      "closedAt": "2026-11-08T10:21:57.446Z"
+    },
+    {
+      "label": "inspect-after-kill",
+      "pid": 28320,
+      "code": 0,
+      "signal": null,
+      "spawnRequestedAt": "2026-11-08T10:21:57.496Z",
+      "spawnObservedAt": "2026-11-08T10:21:57.496Z",
+      "closedAt": "2026-11-08T10:21:57.754Z"
+    },
+    {
+      "label": "resumed",
+      "pid": 34796,
+      "code": 0,
+      "signal": null,
+      "spawnRequestedAt": "2026-11-08T10:21:57.759Z",
+      "spawnObservedAt": "2026-11-08T10:21:57.759Z",
+      "closedAt": "2026-11-08T10:22:00.692Z"
+    },
+    {
+      "label": "inspect-after-resume",
+      "pid": 22624,
+      "code": 0,
+      "signal": null,
+      "spawnRequestedAt": "2026-11-08T10:22:00.320Z",
+      "spawnObservedAt": "2026-11-08T10:22:00.320Z",
+      "closedAt": "2026-11-08T10:22:00.591Z"
+    }
+  ]
+}

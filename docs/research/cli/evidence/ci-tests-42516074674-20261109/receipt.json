@@ -1,0 +1,25 @@
+{
+  "schema": "chainlesschain.ci-tests-readback/v1",
+  "workflow": "CI Tests",
+  "runId": 42516074674,
+  "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42516074674",
+  "headSha": "cdc8f4590a5bc70bf8e2f38ede6127bf40ee621a",
+  "readOnly": true,
+  "conclusion": "cancelled",
+  "jobs": {
+    "unitWindows": "success",
+    "unitUbuntu": "success",
+    "unitMacOS": "cancelled",
+    "fullTestSuite": "success",
+    "buildWindows": "success",
+    "buildUbuntu": "success",
+    "cliSmokeWindows": "success",
+    "cliSmokeUbuntu": "success",
+    "cliSmokeMacOS": "success"
+  },
+  "limitations": [
+    "not current local HEAD",
+    "macOS unit-test job cancelled",
+    "does not close three-system native cancellation/recovery gate"
+  ]
+}

@@ -1,0 +1,74 @@
+{
+  "fixtureCwds": [
+    {
+      "threadId": "01a18538-e223-7b73-96a9-e705c72ae30c",
+      "cwd": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-codex-history-probe-mPcegf\\workspace",
+      "exists": false,
+      "bytesRewritten": false
+    },
+    {
+      "threadId": "01a18538-e224-7cb0-8c31-4cacda3bf8a8",
+      "cwd": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-codex-history-probe-mPcegf\\workspace",
+      "exists": false,
+      "bytesRewritten": false
+    }
+  ],
+  "receiptHelperSha256": "c254fa36e44fa4ebe1af5f8abb6e68df2ef31932c1b0ba14520642b89505ed4c",
+  "version": "0.164.0",
+  "registry": "https://registry.npmjs.org",
+  "reported": "codex-cli 0.164.0",
+  "launcher": "E:\\code\\chainlesschain\\.worktrees\\codex-cold-scan-evidence\\.tmp\\codex-0.164.0\\node_modules\\@openai\\codex\\bin\\codex.js",
+  "launcherSha256": "61b0194f3bb6534439c8d26a3ed57d0805f84b884588b761795323eeb92fcf70",
+  "nativeBinary": "E:\\code\\chainlesschain\\.worktrees\\codex-cold-scan-evidence\\.tmp\\codex-0.164.0\\node_modules\\@openai\\codex-win32-x64\\vendor\\x86_64-pc-windows-msvc\\bin\\codex.exe",
+  "nativeSha256": "6f267830b029ee25d9339864aa867cd45de9f8fd4c5ea007d2e63c13a0c66d36",
+  "launcherDist": {
+    "shasum": "82693f5ef4b08b724dc1370f1622bc752e5d1bf4",
+    "tarball": "https://registry.npmjs.org/@openai/codex/-/codex-0.164.0.tgz",
+    "fileCount": 3,
+    "integrity": "sha512-TWj7UGyPRe3Pj/A3ddNAxs1te3a/W/xAd+J0LHrrFTmsSfahGMOLF/vn88D3QCIgAT3B1rm1y/Z3NYE0rx6cZQ==",
+    "signatures": [
+      {
+        "sig": "MEUCIQDDVE+pZ9SsWq4O4EJUGLHQTANtgITh8YhuCqVnzVspiwIgFECKMSbZfMv+3WvD7Eqsc3tqO0UxG8HmzIlCkj66wtY=",
+        "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+      },
+      {
+        "sig": "MEUCICCcsls8vQGPLorX8PL0Iis1hnLv1aY3lKb8AzPjHMu3AiEAhAOQffiQUv9lGbZmv2+3CkilbkNmQcYasvWPF1l+aF8=",
+        "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+      }
+    ],
+    "attestations": {
+      "url": "https://registry.npmjs.org/-/npm/v1/attestations/@openai%2fcodex@0.164.0",
+      "provenance": {
+        "predicateType": "https://slsa.dev/provenance/v1"
+      }
+    },
+    "unpackedSize": 13206
+  },
+  "nativeDist": {
+    "shasum": "02badb2d14813501bf1b94de44151670de3232cb",
+    "tarball": "https://registry.npmjs.org/@openai/codex/-/codex-0.164.0-win32-x64.tgz",
+    "fileCount": 47,
+    "integrity": "sha512-urWPhwh9YavuoAPIkmVYKBTtd5OtGVL4Ki0Fb28dhK/Mz6Pt4LSy+gbRrZFz5+RXrw9ubvXuXDCcd8beYcWhDg==",
+    "signatures": [
+      {
+        "sig": "MEUCIFcwNu1NrPCc5I0rtNiTJOD9EiQhZwNh9Ms8qXo4oMj0AiEAuK2O3Bgma4sBojhD+sOg1hU2dcc/z6zv36x4FsVan3w=",
+        "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+      },
+      {
+        "sig": "MEUCIQD1gC2oWHjI/PhwJZyHKLMRPJ/V9r1VASmd+vWUIw303QIgEGRgKs0le0m1t9YSbXWNQpWF1XD8KdlIiyxUY80CNxA=",
+        "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+      }
+    ],
+    "attestations": {
+      "url": "https://registry.npmjs.org/-/npm/v1/attestations/@openai%2fcodex@0.164.0-win32-x64",
+      "provenance": {
+        "predicateType": "https://slsa.dev/provenance/v1"
+      }
+    },
+    "unpackedSize": 483692160
+  },
+  "lockSha256": "2e1928767273742a57d88cbf2d9bbf33623e9b40fcc5bdc2661fe146d81fbf38",
+  "integrityCheck": "npm install verified content integrity; exact package-lock integrity and tarball URLs match official registry metadata",
+  "globalConfigurationChanged": false,
+  "providerRequests": 0
+}

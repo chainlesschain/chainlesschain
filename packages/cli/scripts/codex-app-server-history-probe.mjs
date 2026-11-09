@@ -8,6 +8,7 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  realpathSync,
   writeFileSync,
 } from "node:fs";
 import http from "node:http";
@@ -77,6 +78,9 @@ export function createHistoryCheckRecorder() {
         firstError ||= error;
         failures.push({
           name,
+          ...(getHistoryPagination(error)
+            ? { historyPagination: getHistoryPagination(error) }
+            : {}),
           error: {
             name: error.name,
             message: String(error.message).slice(0, 2000),
@@ -137,6 +141,12 @@ export async function cleanupHistoryResources({ clients, server, failure }) {
   return { closures, cleanupErrors, failure };
 }
 
+const paginationEvidence = new WeakMap();
+
+export function getHistoryPagination(error) {
+  return paginationEvidence.get(error);
+}
+
 export async function collectHistoryPages(
   request,
   method,
@@ -149,37 +159,69 @@ export async function collectHistoryPages(
     ids = new Set(),
     cursors = new Set();
   let cursor;
-  for (let page = 0; page < maxPages; page++) {
-    const result = await request(method, {
-      ...params,
-      ...(cursor ? { cursor } : {}),
-    });
-    assert.ok(Array.isArray(result?.data), "history page must contain data");
-    assert.ok(
-      result.nextCursor === null ||
-        (typeof result.nextCursor === "string" && result.nextCursor.length > 0),
-      "invalid history cursor",
-    );
-    for (const entry of result.data) {
+  let stage = "request";
+  let page = 0;
+  const attempts = [];
+  try {
+    for (; page < maxPages; page++) {
+      const requestParams = structuredClone({
+        ...params,
+        ...(cursor ? { cursor } : {}),
+      });
+      stage = "request";
+      const attempt = { page: page + 1, params: requestParams };
+      attempts.push(attempt);
+      const result = await request(method, structuredClone(requestParams));
+      // Preserve invalid pages before validation without accepting their data.
+      attempt.response = structuredClone(result);
+      stage = "response";
+      assert.ok(Array.isArray(result?.data), "history page must contain data");
       assert.ok(
-        typeof entry?.id === "string" && entry.id.length > 0,
-        "missing history identity",
+        result.nextCursor === null ||
+          (typeof result.nextCursor === "string" &&
+            result.nextCursor.length > 0),
+        "invalid history cursor",
       );
-      assert.ok(!ids.has(entry.id), "duplicate history identity");
-      ids.add(entry.id);
-      data.push(entry);
+      stage = "identity";
+      for (const entry of result.data) {
+        assert.ok(
+          typeof entry?.id === "string" && entry.id.length > 0,
+          "missing history identity",
+        );
+        assert.ok(!ids.has(entry.id), "duplicate history identity");
+        ids.add(entry.id);
+        data.push(entry);
+      }
+      pages.push({
+        ids: result.data.map((entry) => entry.id),
+        nextCursor: result.nextCursor,
+      });
+      if (result.nextCursor === null) return { data, pages };
+      stage = "cursor";
+      assert.ok(result.data.length > 0, "empty nonterminal history page");
+      assert.ok(!cursors.has(result.nextCursor), "repeated history cursor");
+      cursors.add(result.nextCursor);
+      cursor = result.nextCursor;
     }
-    pages.push({
-      ids: result.data.map((entry) => entry.id),
-      nextCursor: result.nextCursor,
+    stage = "bound";
+    throw new Error("history pagination exceeded its bound");
+  } catch (error) {
+    // Retain original error identity/code and strict rejection semantics.
+    const evidence = structuredClone({
+      method,
+      params,
+      data,
+      pages,
+      attempts,
+      failure: { stage, page: Math.min(page + 1, maxPages) },
     });
-    if (result.nextCursor === null) return { data, pages };
-    assert.ok(result.data.length > 0, "empty nonterminal history page");
-    assert.ok(!cursors.has(result.nextCursor), "repeated history cursor");
-    cursors.add(result.nextCursor);
-    cursor = result.nextCursor;
+    if (
+      (typeof error === "object" && error !== null) ||
+      typeof error === "function"
+    )
+      paginationEvidence.set(error, evidence);
+    throw error;
   }
-  throw new Error("history pagination exceeded its bound");
 }
 
 // Observe raw upstream parameters without repairing cursors or changing sort
@@ -215,6 +257,9 @@ export async function observeRawThreadHistory(request, params, expectedIds) {
     return {
       params,
       complete: false,
+      ...(getHistoryPagination(error)
+        ? { historyPagination: getHistoryPagination(error) }
+        : {}),
       error: {
         name: error.name,
         message: String(error.message).slice(0, 2000),
@@ -245,16 +290,19 @@ export function assertCompleteScanHistory(observed) {
 // Only genuine rollouts from this probe's stopped process may enter the new
 // home. Never copy a state DB or follow links out of the isolated fixture.
 export function copyHistoryRollouts(threads, sourceHome, targetHome) {
-  const sourceRoot = toNamespacedPath(resolve(sourceHome));
-  const destinationRoot = toNamespacedPath(resolve(targetHome));
-  assert.notEqual(sourceRoot, destinationRoot, "rollout homes must differ");
-  for (const directory of [sourceRoot, destinationRoot]) {
+  for (const directory of [sourceHome, targetHome]) {
     const stat = lstatSync(directory);
     assert.ok(
       stat.isDirectory() && !stat.isSymbolicLink(),
       "rollout home must be an unlinked directory",
     );
   }
+  // Codex canonicalizes Windows 8.3 aliases (RUNNER~1 -> runneradmin).
+  // Canonicalize only the checked homes: resolving a rollout itself would
+  // hide source symlinks from the component-by-component lstat checks below.
+  const sourceRoot = toNamespacedPath(realpathSync.native(sourceHome));
+  const destinationRoot = toNamespacedPath(realpathSync.native(targetHome));
+  assert.notEqual(sourceRoot, destinationRoot, "rollout homes must differ");
   const copied = [];
   for (const thread of threads) {
     assert.equal(
@@ -811,7 +859,14 @@ export async function runHistoryProbe({
                   request,
                   "thread/list",
                   scanParams,
-                );
+                ).catch((error) => {
+                  repair.firstScan = {
+                    params: scanParams,
+                    complete: false,
+                    historyPagination: getHistoryPagination(error),
+                  };
+                  throw error;
+                });
                 repair.firstScan = { params: scanParams, ...scanned };
                 assert.deepEqual(
                   new Set(scanned.data.map((thread) => thread.id)),

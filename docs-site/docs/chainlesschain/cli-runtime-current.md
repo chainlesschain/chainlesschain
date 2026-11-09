@@ -1,5 +1,13 @@
 # CLI Runtime 当前公开实现与历史记录
 
+## 2026-11-09 当前发行与主线核对
+
+公开组合 **CLI 0.166.145 / Session Core 0.3.27 / Open VSX 0.37.181 / JetBrains 0.4.198**，两款 IDE 推荐 CLI .145。Open VSX 下载突破 **7 万+**（项目方确认）。PC/mobile 仍为 **v5.0.3.145**；源码产品 .146 与 VS Code .182 不作为已发布下载推荐。
+
+主线 `c34a664f42` 完善模型实际输入诊断、REPL 恢复、MCP Tasks、Memory、宿主故障定位和持久计费窗口。它们按各自源码及证据范围判断，不全部归入公开 .145。CLI .145 已含 `goal transfer-to-project`；原生导入需匹配新桌面并显式确认。发行源 CLI CI **75 成功、1 跳过** / Strict Sandbox **6 成功**；文档更新不新增模型任务验收。**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留，历史 **2/4** 等成绩不合并为当前版本成绩。
+
+[当前升级指南](./cli-ide-update-2026-11-09-145)。以下日期与版本段落保留历史范围。
+
 <!-- docs-code-git-sync-2026-10-29 -->
 
 `.130` 将模型 Goal 复查纳入原预算、取消和输出限制，并以当前工作区字节绑定完成证据。公开 `.130` 固定使用 `@chainlesschain/context-memory-kernel@0.1.10`；主分支后续的 kernel `0.1.11`、独立 `verify:` Goal checker、Memory 磁盘取消 / 缓存和 Terra 能力 / 计费改动尚未发布，需另行完成子包发布与精确源码门禁。
@@ -92,14 +100,14 @@ git merge-base --is-ancestor 退出码 1 是合法的 predicateResult:false，�
 
 ## 安装版本怎么选
 
-| 用途                                    | 当前公开版本                                                               | 来源与范围                                                                   |
-| --------------------------------------- | -------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| CLI                                     | 0.166.130                                                                  | 正式源 `f3015e7996`；完整三系统 CLI CI / Strict Sandbox、OIDC 与独立回读通过 |
-| IDE                                     | Open VSX 0.37.168 / JetBrains 0.4.185                                      | 两者推荐 .130，发行源 `f3015e7996`，公共下载已核验                           |
-| 共享服务                                | Session Core 0.3.24 / Memory Kernel 0.1.10 / PDH 0.4.66 / Agent SDK 0.2.16 | 子包版本本轮不变，CLI 使用已公开的精确依赖                                   |
-| Windows / macOS / Linux / Android / iOS | v5.0.3.143                                                                 | 独立冻结源 `036d2b8be2`，22 个公开资产及桌面更新元数据通过回读               |
+| 用途        | 当前公开版本                                                  | 说明                                                      |
+| ----------- | ------------------------------------------------------------- | --------------------------------------------------------- |
+| CLI         | 0.166.145                                                     | 准确源码三系统 CLI CI / Strict Sandbox 及 OIDC 发布已核对 |
+| IDE         | Open VSX 0.37.181 / JetBrains 0.4.198                         | 两者推荐 CLI .145，公共下载已核对                         |
+| 共享服务    | Session Core 0.3.27 / Kernel 0.1.11 / PDH 0.4.66 / SDK 0.2.17 | 子包保持独立版本                                          |
+| PC / mobile | v5.0.3.145                                                    | 独立冻结源与 22 个公开资产；源码 .146 尚不作为公开版推荐  |
 
-安装 `npm i -g chainlesschain@0.166.130 --registry https://registry.npmjs.org`，随后重启宿主，运行 `cc --version` 与 `cc doctor`。实验运行时胶囊与完整 native 任务验收保持独立准入；详见[当前升级指南](./agent-platform-release)。
+安装 `npm i -g chainlesschain@0.166.145 --registry https://registry.npmjs.org`，重启宿主后运行 `cc --version`、`cc doctor`。详见[本轮升级指南](./cli-ide-update-2026-11-09-145)。
 
 ## 核心特性
 

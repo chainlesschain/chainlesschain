@@ -1,0 +1,79 @@
+{
+  "schema": "chainlesschain.native-price-window-evidence/v1",
+  "sourceCommit": "44f56fe58aee36e6cc097755ce7c4ab3ec94b126",
+  "platform": "win32-x64",
+  "nodeVersion": "24.12.0",
+  "scope": "explicit trusted-host budget authority with synthetic account contract and rational FX",
+  "realProvider": false,
+  "accountPriceVerified": false,
+  "invoiceReconciled": false,
+  "paidReady": false,
+  "runtimeCoverageVerified": false,
+  "tests": {
+    "authority": {
+      "passed": 81,
+      "failed": 0,
+      "artifact": "authority-tests.xml"
+    },
+    "allFormalBudgetSuites": {
+      "passed": 234,
+      "failed": 0,
+      "artifact": "budget-tests.xml",
+      "files": [
+        "packages/cli/test-node/formal-budget-android-team-boundary.node-test.mjs",
+        "packages/cli/test-node/formal-budget-authority.test.mjs",
+        "packages/cli/test-node/formal-budget-checkpoint-host.node-test.mjs",
+        "packages/cli/test-node/formal-budget-credential-worker-boundary.node-test.mjs",
+        "packages/cli/test-node/formal-budget-descendant-control.node-test.mjs",
+        "packages/cli/test-node/formal-budget-direct-web-boundary.node-test.mjs",
+        "packages/cli/test-node/formal-budget-frozen-plan.node-test.mjs",
+        "packages/cli/test-node/formal-budget-lineage.node-test.mjs",
+        "packages/cli/test-node/formal-budget-process-broker-boundary.node-test.mjs",
+        "packages/cli/test-node/formal-budget-provider-scope.node-test.mjs",
+        "packages/cli/test-node/formal-budget-registry-boundary.node-test.mjs",
+        "packages/cli/test-node/formal-budget-service-cloud-boundary.node-test.mjs",
+        "packages/cli/test-node/formal-budget-tool-boundary.node-test.mjs",
+        "packages/cli/test-node/formal-budget-worker-network-boundary.node-test.mjs"
+      ]
+    },
+    "egressDiagnosticMemoryBoundaries": {
+      "passed": 37,
+      "failed": 0
+    },
+    "note": "The 81 authority tests are included in the 234; do not add them as independent coverage."
+  },
+  "verified": [
+    "attested contiguous half-open absolute pricing windows and conservative native reservation",
+    "dispatch window chosen after credential await and recorded in the dispatch transaction",
+    "native CNY and pinned rational USD accounting across time boundaries and reopen",
+    "real separate-process SIGKILL and recovery after contract/FX expiry",
+    "expired held requests and new requests remain ineligible for dispatch",
+    "missing/duplicate/malformed price evidence retains complete unknown liability",
+    "dispatch witness persistence failure sends zero provider requests",
+    "original activation witness is required and settlement remains idempotent"
+  ],
+  "sourceAudit": {
+    "command": "node packages/cli/scripts/implementation-plan-budget-egress.mjs --check --include-scripts",
+    "sourceCommit": "44f56fe58aee36e6cc097755ce7c4ab3ec94b126",
+    "sourceTreeDigest": "sha256:1dd5f1a20812cc6092b34a0aa6f02aa7e5db273ca61f9da50459fd5232aee3df",
+    "sourceReviewPassed": true,
+    "candidateFiles": 89,
+    "unclassifiedFiles": 0,
+    "parseErrors": 0,
+    "callChainUnmappedCandidateFiles": 78,
+    "reviewCatalogueDigest": "sha256:cafb8439f757b580cafd0ccff132294fd7714e7847d312bba77c421956364499",
+    "note": "Static source review is not proof of paid runtime or OS/descendant containment."
+  },
+  "sourceHashes": {
+    "packages/cli/src/lib/formal-budget-contract.js": "sha256:674b2772db26f4042a176cf10ee939d3783f9d60a1f0f7c02646db4b666cf199",
+    "packages/cli/src/lib/formal-budget-authority.js": "sha256:bf55e366e2628a4128be9ba689bbfd8e0f4d45b2492e4e7b8d338702447ec522",
+    "packages/cli/src/lib/formal-budget-transport.js": "sha256:f5cea8f86ae332482d8f48ce4eb6df0d4f9ee417313e7737db640efd4728393a",
+    "packages/cli/src/lib/formal-budget-lineage-registry.js": "sha256:fb585688c899d2a07c15fca9145f5e336d4d3207bef657669298f90031e4339e",
+    "packages/cli/test-node/formal-budget-authority.test.mjs": "sha256:fbc89a2d6a593df56e112422df6d21856d28c92bf5636794d01b3cb79a28da18",
+    "packages/cli/scripts/budget-egress-reviewed-sources.json": "sha256:cafb8439f757b580cafd0ccff132294fd7714e7847d312bba77c421956364499"
+  },
+  "artifactHashes": {
+    "authority-tests.xml": "sha256:08e33ac134f5656ba438a6a0349cbd33c0cb092a8d9feac15835597b5c8e88b8",
+    "budget-tests.xml": "sha256:59a8d734ceb467a11ef12fd70af18567b2ef16cd52ce2ed1c6e54ceae4f6195e"
+  }
+}

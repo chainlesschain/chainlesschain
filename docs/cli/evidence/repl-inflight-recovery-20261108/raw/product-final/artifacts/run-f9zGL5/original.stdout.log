@@ -1,0 +1,21 @@
+
+ChainlessChain Agent
+Model: qwen2.5:7b  Provider: ollama  CWD: C:\Users\admin\AppData\Local\Temp\cc-repl-inflight-Vdm96M\workspace
+Session: repl-inflight-recovery
+Context: instinct + memory + notes (DB connected)
+Describe what you want to do. I can read/write files, run commands, and more.
+Type /exit to quit, /help for commands
+
+qwen2.5:7b  ·  ⛁ 0/32.8k (0%)  ·  C:\Users\admin\AppData\Local\Temp\cc-repl-inflight-Vdm96M\workspace
+[1G[0J> [3GREPL_CRASH_WARM_47192
+
+
+REPL_CRASH_SETTLED_RESPONSE
+
+
+Suggested next prompts:
+  1. 基于当前结果继续推进最合适的下一步
+qwen2.5:7b  ·  ⛁ 15/32.8k (0%)  ·  C:\Users\admin\AppData\Local\Temp\cc-repl-inflight-Vdm96M\workspace  ·  turn 1
+[1G[0J> [3GREPL_CRASH_HELD_23861
+
+

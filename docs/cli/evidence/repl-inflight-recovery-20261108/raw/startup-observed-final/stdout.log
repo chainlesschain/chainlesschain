@@ -1,0 +1,14 @@
+
+ChainlessChain Agent
+Model: qwen2.5:7b  Provider: ollama  CWD: C:\Users\admin\AppData\Local\Temp\cc-repl-inflight-DnzsM3\workspace
+Session: repl-inflight-recovery
+Context: instinct + memory + notes (DB connected)
+Describe what you want to do. I can read/write files, run commands, and more.
+Type /exit to quit, /help for commands
+
+qwen2.5:7b  ·  ⛁ 0/32.8k (0%)  ·  C:\Users\admin\AppData\Local\Temp\cc-repl-inflight-DnzsM3\workspace
+[1G[0J> [3G/exit
+
+Goodbye!
+Session repl-infligh parked — resume with: cc session unpark repl-inflight-recovery
+[DatabaseManager] Database closed

@@ -1,0 +1,31 @@
+[AppConfig] Configuration loaded
+[DatabaseManager] Using better-sqlite3 (no encryption)
+[DatabaseManager] Database initialized: C:\Users\admin\AppData\Local\Temp\cc-repl-inflight-eYVPWV\config\data\chainlesschain.db
+ℹ Resumed JSONL session repl-inflight-recovery (2 messages)
+Recap:
+  1 user / 1 assistant turns
+  last ask  : REPL_CRASH_WARM_47192
+  last reply: REPL_CRASH_SETTLED_RESPONSE
+
+ChainlessChain Agent
+Model: qwen2.5:7b  Provider: ollama  CWD: C:\Users\admin\AppData\Local\Temp\cc-repl-inflight-eYVPWV\workspace
+Session: repl-inflight-recovery
+Context: instinct + memory + notes (DB connected)
+Describe what you want to do. I can read/write files, run commands, and more.
+Type /exit to quit, /help for commands
+
+qwen2.5:7b  ·  ⛁ 0/32.8k (0%)  ·  C:\Users\admin\AppData\Local\Temp\cc-repl-inflight-eYVPWV\workspace
+[1G[0J> [3GREPL_CRASH_NEW_98264
+
+
+REPL_CRASH_SETTLED_RESPONSE
+
+
+Suggested next prompts:
+  1. 基于当前结果继续推进最合适的下一步
+qwen2.5:7b  ·  ⛁ 15/32.8k (0%)  ·  C:\Users\admin\AppData\Local\Temp\cc-repl-inflight-eYVPWV\workspace  ·  turn 1
+[1G[0J> [3G/exit
+
+Goodbye!
+Session repl-infligh parked — resume with: cc session unpark repl-inflight-recovery
+[DatabaseManager] Database closed

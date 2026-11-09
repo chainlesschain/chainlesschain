@@ -1,0 +1,25 @@
+{
+  "schema": "chainlesschain.lifecycle-recovery-current-evidence/v1",
+  "sourceCommit": "eb3579908173f2f8f5da8075048c3c12b72282c0",
+  "platform": "win32",
+  "formalSample": false,
+  "remotePushed": false,
+  "suites": [
+    {
+      "name": "compaction-memory-restart-e2e",
+      "command": "npx vitest run --config vitest.e2e.config.js __tests__/e2e/compaction-memory-restart-e2e.test.js --reporter=dot",
+      "passed": 4,
+      "failed": 0,
+      "scope": "independent-process Memory restart and compaction recovery"
+    },
+    {
+      "name": "headless-side-effect-ledger-resume",
+      "command": "npx vitest run --config vitest.config.js __tests__/integration/headless-side-effect-ledger-resume.test.js --reporter=dot",
+      "passed": 12,
+      "failed": 0,
+      "scope": "side-effect ledger persistence, resume, duplicate detection, and interaction recovery"
+    }
+  ],
+  "closedSubgates": ["compaction", "side-effect-idempotence"],
+  "remaining": ["dual-IDE recovery", "concurrent input during restart", "complete cross-entry journey"]
+}

@@ -1,0 +1,6 @@
+{"fixture":"repl-inflight-bootstrap","stage":"fixture-entered","pid":34796,"at":"2026-11-08T10:21:57.790Z","uptimeMs":15}
+{"fixture":"repl-inflight-bootstrap","stage":"argv-ready-before-cli-import","pid":34796,"at":"2026-11-08T10:21:57.792Z","uptimeMs":16}
+{"fixture":"repl-inflight-bootstrap","stage":"cli-module-imported","pid":34796,"at":"2026-11-08T10:21:57.799Z","uptimeMs":23}
+Warning: sandbox mode is explicitly off; shell commands use policy checks without OS isolation.
+[DatabaseManager] better-sqlite3-multiple-ciphers unusable: The module '\\?\E:\code\chainlesschain\node_modules\better-sqlite3-multiple-ciphers\build\Release\better_sqlite3.node'
+⚠ [recovery] Session "repl-inflight-recovery" has interrupted model request(s) "mdl-885b6624-d212-42c0-93f2-1d2fc00e5b8a"; usage and cost remain unknown. Original prompt may not have been saved. Inspect the saved session and reconcile provider usage before explicitly resubmitting; requests are not retried automatically.

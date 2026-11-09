@@ -19,6 +19,10 @@ on:
       - "packages/cli/src/lib/jsonl-session-store.js"
       - "packages/cli/src/lib/doctor-checkup.js"
       - "packages/cli/src/lib/session-host-snapshot.js"
+      - "packages/cli/src/lib/session-model-usage-recovery.js"
+      - "packages/cli/test-node/session-model-usage-recovery.node-test.mjs"
+      - "packages/cli/__tests__/e2e/repl-inflight-recovery-e2e.test.js"
+      - "packages/cli/__tests__/fixtures/repl-inflight-recovery-state.mjs"
       - "packages/cli/src/lib/session-host-lease.js"
       - "packages/cli/src/lib/session-anti-rollback-anchor.js"
       - "packages/cli/src/lib/durable-security-store.js"
@@ -112,6 +116,10 @@ on:
       - "packages/cli/src/lib/jsonl-session-store.js"
       - "packages/cli/src/lib/doctor-checkup.js"
       - "packages/cli/src/lib/session-host-snapshot.js"
+      - "packages/cli/src/lib/session-model-usage-recovery.js"
+      - "packages/cli/test-node/session-model-usage-recovery.node-test.mjs"
+      - "packages/cli/__tests__/e2e/repl-inflight-recovery-e2e.test.js"
+      - "packages/cli/__tests__/fixtures/repl-inflight-recovery-state.mjs"
       - "packages/cli/src/lib/session-host-lease.js"
       - "packages/cli/src/lib/session-anti-rollback-anchor.js"
       - "packages/cli/src/lib/durable-security-store.js"
@@ -241,6 +249,24 @@ jobs:
           npx vitest run
           packages/cli/__tests__/unit/session-host-lease.test.js
           packages/cli/__tests__/unit/session-anti-rollback-anchor.test.js
+
+      - name: Run local model usage recovery contracts
+        run: node --test packages/cli/test-node/session-model-usage-recovery.node-test.mjs
+
+      - name: Run real REPL interrupted request journey
+        working-directory: packages/cli
+        env:
+          CC_REPL_INFLIGHT_ARTIFACT_DIR: ${{ runner.temp }}/repl-inflight-recovery
+        run: npx vitest run --config vitest.e2e.config.js __tests__/e2e/repl-inflight-recovery-e2e.test.js
+
+      - name: Upload REPL interrupted request evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: repl-inflight-recovery-${{ matrix.os }}-${{ env.CC_SESSION_HOST_CONSISTENCY_EXPECTED_SHA }}
+          path: ${{ runner.temp }}/repl-inflight-recovery
+          if-no-files-found: warn
+          retention-days: 30
 
       - name: Run cross-host JSONL consistency gate
         env:

@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人 AI 管理平台
-  tagline: "CLI 0.166.143 / Open VSX 0.37.179 / JetBrains 0.4.196 已公开；本地算力与受控创建请求；客户端 v5.0.3.145 独立发行"
+  tagline: "CLI 0.166.145 / Open VSX 0.37.181 / JetBrains 0.4.198 已公开；下载突破 7 万+；最新源码与公开发行分别核对"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -21,9 +21,9 @@ hero:
 
 features:
   - icon: ⚠️
-    title: CLI .143 本地算力与待审创建
-    details: "两款 IDE 推荐 CLI .143；本地算力平台配置与待审创建请求已公开。客户端 .145 已独立发行，新增原生 v6 创建/模型草稿仍需匹配的新构建。"
-    link: /chainlesschain/cli-ide-update-2026-11-06-143
+    title: CLI .145 配套升级与最新主线
+    details: "两款 IDE 推荐 CLI .145，Open VSX 下载突破 7 万+；输入诊断、恢复、MCP Tasks、Memory 和计费修复按各自源码范围核对。"
+    link: /chainlesschain/cli-ide-update-2026-11-09-145
   - icon: 🔗
     title: CLI / IDE 与桌面目标草稿
     details: "CLI .140 修复损坏工具参数恢复与可信摘要；桌面目标草稿互通仍需匹配客户端构建、显式授权及原生确认，CLI 或插件发布不能替代产品验收。"
@@ -87,11 +87,21 @@ features:
     details: "CLI 与 IDE 的精确提交门禁、公共制品回读、模型任务验收具有不同证据范围。原生产品 .143 已独立公开，五平台构建及 22 个资产通过核验；完整 native review 仍保持 NOT_ADMITTED。"
 ---
 
-## 2026-11-07 未发行源码进展
+## 2026-11-09 当前发行与主线核对
+
+公开组合 **CLI 0.166.145 / Session Core 0.3.27 / Open VSX 0.37.181 / JetBrains 0.4.198**，两款 IDE 推荐 CLI .145。Open VSX 下载突破 **7 万+**（项目方确认）。PC/mobile 仍为 **v5.0.3.145**；源码产品 .146 与 VS Code .182 不作为已发布下载推荐。
+
+主线 `c34a664f42` 完善模型实际输入诊断、REPL 恢复、MCP Tasks、Memory、宿主故障定位和持久计费窗口。它们按各自源码及证据范围判断，不全部归入公开 .145。CLI .145 已含 `goal transfer-to-project`；原生导入需匹配新桌面并显式确认。发行源 CLI CI **75 成功、1 跳过** / Strict Sandbox **6 成功**；文档更新不新增模型任务验收。**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留，历史 **2/4** 等成绩不合并为当前版本成绩。
+
+[本轮升级指南](/chainlesschain/cli-ide-update-2026-11-09-145) · [运行时设计](/design/release-runtime-update-2026-11-09)
+
+以下带日期段落为历史快照。
+
+## 2026-11-07 源码进展（历史，CLI 命令现已进入 .145）
 
 未发行源码进展：PR #539 新增 CLI 目标显式移交到原生个人项目、原字节备份/冻结及签名作废回执恢复。新目标保持暂停，不继承旧权限；需匹配分支的 CLI、Session Core 和桌面构建，公开 .143/.145 尚不包含。 [查看移交设计](/design/cli-goal-transfer-source-2026-11-07)。
 
-## 2026-11-06 当前公开发行
+## 2026-11-06 公开发行快照（历史）
 
 CLI **0.166.143**、Session Core **0.3.26**、Open VSX **0.37.179**、JetBrains **0.4.196** 已公开核验，两个 IDE 均推荐 CLI .143。新增本地算力配置、端点凭据隔离和受控创建请求；客户端 **v5.0.3.145** 独立公开，新增原生 v6 创建与模型草稿仍需匹配的新桌面构建。后文带日期记录保留历史范围。
 

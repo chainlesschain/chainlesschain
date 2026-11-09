@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -110,6 +110,128 @@ describe("model input diagnostics Stop while an observer is pending", () => {
 });
 
 describe("model input diagnostic correlation", () => {
+  it("binds canonical planning, durable signed readback, and governed fetch to one request", async () => {
+    const directory = mkdtempSync(
+      join(tmpdir(), "cc-model-input-composition-"),
+    );
+    const events = [];
+    const dispatches = [];
+    let signedReadback = null;
+    const observe = async (event) => {
+      events.push(event);
+      if (event.phase === "logical-input") {
+        const receipt = {
+          schema: "chainlesschain.model-input-receipt/v1",
+          requestId: event.requestId,
+          attemptId: `${event.requestId}:attempt-1`,
+          logicalDigest: event.logicalDigest,
+          signature: sha(`${event.requestId}:${event.logicalDigest}`),
+        };
+        const receiptPath = join(directory, "receipt.json");
+        writeFileSync(receiptPath, JSON.stringify(receipt), "utf8");
+        signedReadback = JSON.parse(readFileSync(receiptPath, "utf8"));
+      }
+      if (event.phase === "body-prepared") {
+        expect(signedReadback).toMatchObject({ requestId: event.requestId });
+        expect(event.requestId).toBe(signedReadback.requestId);
+        expect(event.attempt).toBe(1);
+        expect(signedReadback.attemptId).toBe(
+          `${event.requestId}:attempt-${event.attempt}`,
+        );
+      }
+    };
+    try {
+      await withModelInputDiagnostics(
+        { onModelInputDiagnostic: observe },
+        async () => {
+          await recordLogicalModelInput({
+            messages: [{ role: "user", content: "composition fixture" }],
+            tools: [],
+            plan: {
+              digest: "sha256:" + "1".repeat(64),
+              selectedItemIds: ["task-1"],
+              selected: [
+                { kind: "message", digest: "sha256:" + "2".repeat(64) },
+              ],
+              dropped: [],
+            },
+          });
+          await withFormalBudgetProviderScope(
+            {
+              runId: "model-input-composition",
+              transport: {
+                createFetch: () => async (_url, init) => {
+                  dispatches.push(JSON.parse(init.body));
+                  await recordModelInputBody(
+                    JSON.stringify(JSON.parse(init.body)),
+                    "governed-fetch-body",
+                  );
+                  return new Response("{}");
+                },
+              },
+            },
+            () =>
+              providerFetch("http://unused.invalid", {
+                body: JSON.stringify({
+                  messages: [{ role: "user", content: "composition fixture" }],
+                }),
+              }),
+          );
+        },
+      );
+      expect(dispatches).toHaveLength(1);
+      expect(events.map((event) => event.phase || event.stage)).toEqual([
+        "logical-input",
+        "body-prepared",
+        "body-prepared",
+      ]);
+      expect(events[1].stage).toBe("adapter-body");
+      expect(events[2].stage).toBe("governed-fetch-body");
+      expect(new Set(events.map((event) => event.requestId))).toEqual(
+        new Set([signedReadback.requestId]),
+      );
+      expect(signedReadback.signature).toBe(
+        sha(`${signedReadback.requestId}:${signedReadback.logicalDigest}`),
+      );
+    } finally {
+      rmSync(directory, { recursive: true, force: true });
+    }
+  });
+
+  it("blocks governed dispatch when the durable signed readback stage fails", async () => {
+    const fetch = vi.fn();
+    const events = [];
+    await expect(
+      withModelInputDiagnostics(
+        {
+          onModelInputDiagnostic: async (event) => {
+            events.push(event);
+            if (event.phase === "logical-input")
+              throw new Error("signed ingress readback unavailable");
+          },
+        },
+        async () => {
+          await recordLogicalModelInput({
+            messages: [{ role: "user", content: "blocked" }],
+            tools: [],
+            plan: { selected: [], dropped: [], selectedItemIds: [] },
+          });
+          await withFormalBudgetProviderScope(
+            {
+              runId: "model-input-composition-failure",
+              transport: { createFetch: () => fetch },
+            },
+            () => providerFetch("http://unused.invalid", { body: "{}" }),
+          );
+        },
+      ),
+    ).rejects.toThrow("signed ingress readback unavailable");
+    expect(fetch).not.toHaveBeenCalled();
+    expect(events.map((event) => event.phase || event.stage)).toEqual([
+      "logical-input",
+    ]);
+  });
+
   it("keeps concurrent request attempts isolated and emits no original content or paths", async () => {
     const groups = [[], []];
     await Promise.all(

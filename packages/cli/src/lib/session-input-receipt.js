@@ -1,8 +1,16 @@
 import { createHash } from "node:crypto";
 import {
   appendAuthorityEventWithVerifiedProjection,
+  appendAuthorityEvent,
   readVerifiedProjection,
 } from "../harness/jsonl-session-store.js";
+import {
+  SESSION_INPUT_ACCEPTED,
+  SESSION_INPUT_SETTLED,
+  createSessionInputAccepted,
+  createSessionInputSettled,
+  createSessionInputLifecycleProjection,
+} from "./session-input-lifecycle.js";
 
 export function validateClientMessageId(value) {
   if (typeof value !== "string" || !/^[a-zA-Z0-9_-]{1,80}$/u.test(value)) {
@@ -107,4 +115,60 @@ export function appendSessionInputWithReceipt(
     if (duplicate) return { ...duplicate, duplicate: true };
     throw error;
   }
+}
+
+export function readSessionInputAcceptance(sessionId, inputId) {
+  const projection = createSessionInputLifecycleProjection();
+  const state = readVerifiedProjection(sessionId, () => projection);
+  const pending = state?.pendingInputs?.find(
+    (item) => item.inputId === inputId,
+  );
+  return pending || null;
+}
+
+/** Persist the accepted prompt in a non-replay event before provider dispatch. */
+export function appendSessionInputAcceptance(
+  sessionId,
+  { inputId, turnId, prompt },
+) {
+  const existing = readSessionInputAcceptance(sessionId, inputId);
+  const accepted = createSessionInputAccepted({ inputId, turnId, prompt });
+  if (existing) {
+    if (
+      existing.turnId !== accepted.turnId ||
+      existing.inputDigest !== accepted.inputDigest
+    )
+      throw new Error("inputId was already accepted for different input");
+    return { ...existing, duplicate: true };
+  }
+  const appended = appendAuthorityEvent(
+    sessionId,
+    SESSION_INPUT_ACCEPTED,
+    accepted,
+  );
+  return {
+    ...accepted,
+    acceptanceHash: appended.hash,
+    duplicate: false,
+  };
+}
+
+/** Publish the complete user/assistant pair as one replayable event. */
+export function appendSessionInputSettlement(sessionId, accepted, response) {
+  const pending = readSessionInputAcceptance(sessionId, accepted?.inputId);
+  if (
+    !pending ||
+    pending.turnId !== accepted?.turnId ||
+    pending.inputDigest !== accepted?.inputDigest ||
+    pending.acceptanceHash !== accepted?.acceptanceHash
+  ) {
+    throw new Error("Settlement does not match the pending accepted input");
+  }
+  const data = createSessionInputSettled(
+    accepted,
+    accepted.acceptanceHash,
+    response,
+  );
+  const appended = appendAuthorityEvent(sessionId, SESSION_INPUT_SETTLED, data);
+  return { ...data, eventHash: appended.hash };
 }

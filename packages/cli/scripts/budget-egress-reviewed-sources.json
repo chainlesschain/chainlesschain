@@ -42,9 +42,9 @@
     },
     {
       "path": "packages/cli/scripts/implementation-plan-volcengine-live.mjs",
-      "digest": "sha256:550ca6ef647df58f4bbb1545725082182d75e90ec83ec9a2f5b86023ebdb539b",
+      "digest": "sha256:a2ed00bc5b08039b610f53690f2074364303e068f45891dac21e159b9e259326",
       "category": "MODEL_REQUEST",
-      "rationale": "Paid model/tool/compaction diagnostic intercepts global fetch and estimates usage. Formal scope rejects before config, receipts, environment or fetch mutation. Estimate stops are not hard limits."
+      "rationale": "Paid model/tool/compaction diagnostic intercepts global fetch and estimates usage. Formal scope rejects before config, receipts, environment or fetch mutation. Estimate stops are not hard limits. 2026-11-09 source review against c939e4cce: the existing eight-request diagnostic envelope now includes an output-cap check with max_tokens=1, a separate 1024-token compaction ceiling, a timed stream abort with exactly one admitted attempt, and content-free error digests. The same fixed Ark endpoint, model identity, global-fetch intercept, explicit confirmLive, no-retry policy, unknown-usage stop and unscoped-entry refusal remain authoritative. Estimated reporting does not reconcile invoices or grant formal paid/native admission."
     },
     {
       "path": "packages/cli/scripts/mcp-lifecycle-profile.mjs",

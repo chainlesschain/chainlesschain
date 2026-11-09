@@ -1,0 +1,38 @@
+{
+  "schema": "chainlesschain.codex-ci-status/v1",
+  "capturedAt": "2026-11-09",
+  "repository": "chainlesschain/chainlesschain",
+  "sourceCommit": "e55e99ca22eda1f202d516e42ef306ee9cf28af6",
+  "runs": {
+    "compatibility": 42428181408,
+    "coldScan": 42428181294
+  },
+  "compatibilityJobs": {
+    "sharedManifest": "success",
+    "adapterContracts": "success",
+    "codex0164Ubuntu": "success",
+    "codex0167Ubuntu": "cancelled",
+    "codex0167Windows": "cancelled",
+    "codex0167MacOS": "cancelled",
+    "exactShaThreePlatformGate": "cancelled"
+  },
+  "coldScanJobs": {
+    "matrix": "cancelled"
+  },
+  "artifacts": [
+    {
+      "name": "codex-real-turns-0.164.0-ubuntu-latest-e55e99ca22eda1f202d516e42ef306ee9cf28af6-1",
+      "id": 13598615945,
+      "digest": "sha256:dcc49125e72e4bebd5ec45d4fd2ec572f3d28c4674663a86f72d70f017ae1b9a",
+      "expired": false
+    },
+    {
+      "name": "codex-app-server-macos-0.150.1-e55e99ca22eda1f202d516e42ef306ee9cf28af6-1",
+      "id": 13598391267,
+      "digest": "sha256:f69c694296451ff1cbf350070635a4ab56668db307739f6200e802a1428ddd40",
+      "expired": false
+    }
+  ],
+  "threeSystem167Verified": false,
+  "productionAdmission": false
+}

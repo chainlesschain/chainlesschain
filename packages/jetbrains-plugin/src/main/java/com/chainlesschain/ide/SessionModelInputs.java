@@ -57,9 +57,12 @@ public record SessionModelInputs(long total, boolean truncated, List<Map<String,
                     if (dropped.containsKey(reason)) reasons.put(reason, count(dropped.get(reason)));
                 }
                 summary.put("dropped", java.util.Collections.unmodifiableMap(reasons));
+                if (plan.containsKey("sources")) summary.putAll(parsePlanningSources(plan));
                 summary.put("projectionCovered", bool(projection.get("covered")));
                 for (String key : List.of("manifestDigest", "projectionDigest", "rulesetDigest"))
                     summary.put(key, hash(projection.get(key), true));
+                if (event.containsKey("sourceMapping"))
+                    summary.put("sourceMapping", parseSourceMapping(event.get("sourceMapping"), "logical-input"));
             } else {
                 Object stage = event.get("stage");
                 require(List.of("adapter-body", "fetch-body", "governed-fetch-body").contains(stage)
@@ -69,6 +72,8 @@ public record SessionModelInputs(long total, boolean truncated, List<Map<String,
                 summary.put("bodyCovered", bool(event.get("bodyCovered")));
                 summary.put("bodyDigest", hash(event.get("bodyDigest"), true));
                 summary.put("bytes", nullableCount(event.get("bytes")));
+                if (event.containsKey("sourceMapping"))
+                    summary.put("sourceMapping", parseSourceMapping(event.get("sourceMapping"), "body-prepared"));
             }
             records.add(java.util.Collections.unmodifiableMap(summary));
         }
@@ -110,5 +115,101 @@ public record SessionModelInputs(long total, boolean truncated, List<Map<String,
                 + "[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}"));
         return (String) value;
     }
+    private static Map<String, Object> parsePlanningSources(Map<?, ?> planning) {
+        require(planning.get("sourceDetailsCovered") instanceof Boolean);
+        List<?> rows = list(planning.get("sources"));
+        require(rows.size() <= 512);
+        long sourceCount = count(planning.get("sourceCount"));
+        boolean truncated = bool(planning.get("sourcesTruncated"));
+        require(sourceCount >= rows.size() && truncated == (sourceCount > rows.size()));
+        List<Map<String, Object>> sources = new ArrayList<>();
+        int ordinal = 0;
+        for (Object raw : rows) {
+            Map<?, ?> source = object(raw);
+            require(count(source.get("ordinal")) == ordinal);
+            require(List.of("system-policy", "tool-schema", "skill", "task-state", "message", "tool-evidence", "memory", "project-rule", "artifact-ref", "unknown").contains(source.get("kind")));
+            require(List.of("selected", "excluded").contains(source.get("disposition")));
+            Object reason = source.get("reason");
+            require(source.get("disposition").equals("selected") ? reason == null : List.of("expired", "scope_denied", "sink_denied", "untrusted_system_policy", "input_budget", "partition_ceiling", "unknown").contains(reason));
+            Map<String, Object> projected = new LinkedHashMap<>();
+            projected.put("ordinal", ordinal++);
+            projected.put("digest", hash(source.get("digest"), true));
+            projected.put("kind", source.get("kind"));
+            projected.put("disposition", source.get("disposition"));
+            projected.put("reason", reason);
+            sources.add(java.util.Collections.unmodifiableMap(projected));
+        }
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("sourceDetailsCovered", planning.get("sourceDetailsCovered"));
+        result.put("sourceCount", sourceCount);
+        result.put("sourcesTruncated", truncated);
+        result.put("sources", List.copyOf(sources));
+        return java.util.Collections.unmodifiableMap(result);
+    }
+    private static Map<String, Object> parseSourceMapping(Object raw, String phase) {
+        Map<?, ?> mapping = object(raw);
+        Object reason = mapping.get("reason");
+        require(mapping.get("covered") instanceof Boolean && List.of("complete", "planning_unbound", "projection_unbound", "mapping_limit", "protocol_unmapped", "body_unavailable", "body_mismatch").contains(reason));
+        boolean covered = bool(mapping.get("covered"));
+        require(covered == "complete".equals(reason));
+        long sourceCount = count(mapping.get("sourceCount"));
+        boolean truncated = bool(mapping.get("sourcesTruncated"));
+        List<?> rows = list(mapping.get("sources"));
+        require(rows.size() <= 512 && sourceCount >= rows.size() && (!covered ? rows.isEmpty() : (!truncated && sourceCount == rows.size())));
+        List<Map<String, Object>> sources = new ArrayList<>();
+        int ordinal = 0;
+        for (Object rawSource : rows) {
+            Map<?, ?> source = object(rawSource);
+            require(count(source.get("ordinal")) == ordinal);
+            Map<String, Object> projected = new LinkedHashMap<>();
+            projected.put("ordinal", ordinal++);
+            if ("logical-input".equals(phase)) {
+                List<?> input = list(source.get("input")), logical = list(source.get("logical"));
+                require(input.size() == logical.size());
+                projected.put("input", slots(input));
+                projected.put("logical", slots(logical));
+                projected.put("changed", nullableBoolean(source.get("changed")));
+                projected.put("redactionTouched", nullableBoolean(source.get("redactionTouched")));
+                projected.put("injectionTouched", nullableBoolean(source.get("injectionTouched")));
+                projected.put("derived", nullableBoolean(source.get("derived")));
+            } else {
+                require(List.of("mapped", "excluded", "omitted").contains(source.get("status")));
+                List<Map<String, Object>> fragments = new ArrayList<>();
+                for (Object rawFragment : list(source.get("fragments"))) {
+                    Map<?, ?> fragment = object(rawFragment);
+                    String path = string(fragment.get("path"));
+                    require(path.matches("/(?:messages/\\d+(?:/content/\\d+)?|input/\\d+|tools/\\d+|system(?:/0/text)?)"));
+                    Object start = fragment.get("start"), end = fragment.get("end");
+                    require((start == null && end == null) || (count(start) <= count(end)));
+                    Map<String, Object> item = new LinkedHashMap<>();
+                    item.put("path", path); item.put("start", start == null ? null : count(start)); item.put("end", end == null ? null : count(end));
+                    item.put("digest", hash(fragment.get("digest"), false)); item.put("bytes", count(fragment.get("bytes")));
+                    fragments.add(java.util.Collections.unmodifiableMap(item));
+                }
+                require("mapped".equals(source.get("status")) ? !fragments.isEmpty() : fragments.isEmpty());
+                projected.put("status", source.get("status"));
+                projected.put("fragments", List.copyOf(fragments));
+            }
+            sources.add(java.util.Collections.unmodifiableMap(projected));
+        }
+        if ("body-prepared".equals(phase)) {
+            Object protocol = mapping.get("protocol");
+            require(protocol == null || List.of("openai-chat", "openai-responses", "anthropic-messages", "ollama-chat").contains(protocol));
+            projectedProtocol(mapping, protocol);
+        }
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("covered", covered); result.put("reason", reason); result.put("sourceCount", sourceCount); result.put("sourcesTruncated", truncated); result.put("sources", List.copyOf(sources));
+        if ("body-prepared".equals(phase)) result.put("protocol", mapping.get("protocol"));
+        return java.util.Collections.unmodifiableMap(result);
+    }
+    private static void projectedProtocol(Map<?, ?> mapping, Object protocol) { /* validation is intentionally side-effect free */ }
+    private static List<Map<String, Object>> slots(List<?> values) {
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Object raw : values) { Map<?, ?> slot = object(raw); require(List.of("message", "tool").contains(slot.get("kind"))); long index = count(slot.get("index")); require(index < 4096); Map<String, Object> item = new LinkedHashMap<>(); item.put("kind", slot.get("kind")); item.put("index", index); item.put("digest", hash(slot.get("digest"), false)); result.add(java.util.Collections.unmodifiableMap(item)); }
+        return List.copyOf(result);
+    }
+    private static List<?> list(Object value) { require(value instanceof List<?>); return (List<?>) value; }
+    private static Boolean nullableBoolean(Object value) { require(value == null || value instanceof Boolean); return (Boolean) value; }
+    private static String string(Object value) { require(value instanceof String); return (String) value; }
     private static void require(boolean valid) { if (!valid) throw new IllegalArgumentException(UNAVAILABLE); }
 }

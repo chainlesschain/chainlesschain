@@ -190,6 +190,9 @@ async function fixture() {
     unavailable: () => {
       missing = true;
     },
+    complete: () => {
+      status = "completed";
+    },
     async closeHost(host) {
       await host.client.disconnectAll();
       host.lease.release();
@@ -247,6 +250,71 @@ describe("durable MCP task auxiliary runtime", () => {
     expect(JSON.stringify(listDurableMcpTasks(f.sessionId))).not.toContain(
       "delivered artifact",
     );
+  });
+
+  it("watches a remote task and delivers its verified result exactly once", async () => {
+    const f = await fixture();
+    const host = await f.open();
+    const accepted = await host.runtime.create("remote", "export", {});
+    const updates = [];
+    const deliveries = [];
+    setTimeout(() => f.complete(), 5);
+    const receipt = await host.runtime.watch(accepted.localId, {
+      intervalMs: 10,
+      timeoutMs: 500,
+      onUpdate: (value) => updates.push(value.remoteStatus),
+      onDelivery: (value, delivery) =>
+        deliveries.push({
+          id: value.deliveryId,
+          sessionId: delivery.sessionId,
+          messageName: delivery.message.name,
+        }),
+    });
+    expect(receipt).toMatchObject({
+      localId: accepted.localId,
+      delivered: true,
+      duplicate: false,
+      watched: true,
+    });
+    expect(updates).toContain("completed");
+    expect(deliveries).toEqual([
+      {
+        id: `mcp-task-delivery:${accepted.localId}`,
+        sessionId: f.sessionId,
+        messageName: "mcp_task_result",
+      },
+    ]);
+    expect((await host.runtime.list()).records[0]).toMatchObject({
+      resultSaved: true,
+      delivered: true,
+      pollIntervalMs: 5000,
+    });
+    const duplicate = await host.runtime.deliver(accepted.localId);
+    expect(duplicate).toMatchObject({ delivered: true, duplicate: true });
+  });
+
+  it("rejects unbounded watch options before contacting the server", async () => {
+    const f = await fixture();
+    const host = await f.open();
+    const accepted = await host.runtime.create("remote", "export", {});
+    await expect(
+      host.runtime.watch(accepted.localId, { intervalMs: 60_001 }),
+    ).rejects.toMatchObject({ code: "CC_MCP_TASK_WATCH_OPTIONS_INVALID" });
+    expect(f.calls("tasks/get")).toHaveLength(0);
+  });
+
+  it("recovers a saved but undelivered result without refetching it", async () => {
+    const f = await fixture();
+    const host = await f.open();
+    const accepted = await host.runtime.create("remote", "export", {});
+    await host.runtime.result(accepted.localId);
+    const resultCallsBefore = f.calls("tasks/result").length;
+    const receipt = await host.runtime.watch(accepted.localId, {
+      intervalMs: 0,
+      timeoutMs: 500,
+    });
+    expect(receipt).toMatchObject({ delivered: true, duplicate: false });
+    expect(f.calls("tasks/result")).toHaveLength(resultCallsBefore);
   });
 
   it.each(["disconnect", "404"])(

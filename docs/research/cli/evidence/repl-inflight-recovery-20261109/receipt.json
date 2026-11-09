@@ -1,0 +1,13 @@
+{
+    "capturedAt":  "2026-11-09",
+    "error":  "owner-only native ACL verification failed",
+    "command":  "npx vitest run --config vitest.e2e.config.js __tests__/e2e/repl-inflight-recovery-e2e.test.js -t \"keeps the old request unknown\"",
+    "sourceCommit":  "7f8d33453",
+    "transportRequests":  0,
+    "childExitCode":  1,
+    "requests":  0,
+    "productionJourneyVerified":  false,
+    "schema":  "chainless.repl-inflight-recovery-evidence/v1",
+    "status":  "ENVIRONMENT_BLOCKED",
+    "stage":  "original-prompt"
+}

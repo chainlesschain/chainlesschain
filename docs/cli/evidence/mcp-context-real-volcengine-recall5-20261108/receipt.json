@@ -1,0 +1,134 @@
+{
+  "schema": "chainlesschain.real-volcengine-mcp-recall5-smoke/v1",
+  "sourceCommit": "c2f8647f0ebab31462a29293ba4607ca7ca7f890",
+  "provider": "volcengine",
+  "model": "deepseek-v4-1-flash-economy-261017",
+  "scale": 200,
+  "credentialPath": "H:\\code\\api\\deepseek.txt",
+  "credentialExposed": false,
+  "responseContentExposed": false,
+  "requests": 10,
+  "queryCount": 5,
+  "recallAt5": 1,
+  "targetExecutionObserved": false,
+  "billingVerified": false,
+  "realMiscallRateMeasured": false,
+  "abComparison": false,
+  "queries": [
+    {
+      "target": 7,
+      "targetTool": "mcp__fixture__operation_7",
+      "searchQuery": "select:mcp__fixture__operation_7",
+      "searchResultCount": 1,
+      "searchToolCallObserved": true,
+      "targetCallObserved": true,
+      "firstUsage": {
+        "input_tokens": 77,
+        "output_tokens": 58,
+        "cache_read_input_tokens": 11392,
+        "service_tier": "default"
+      },
+      "secondUsage": {
+        "input_tokens": 517,
+        "output_tokens": 60,
+        "cache_read_input_tokens": 0,
+        "service_tier": "default"
+      },
+      "responseDigest": "810815cbc9f4bf58082aaced38f95b069b3052941a1b44430e0c40789979147e"
+    },
+    {
+      "target": 42,
+      "targetTool": "mcp__fixture__operation_42",
+      "searchQuery": "select:mcp__fixture__operation_42",
+      "searchResultCount": 1,
+      "searchToolCallObserved": true,
+      "targetCallObserved": true,
+      "firstUsage": {
+        "input_tokens": 77,
+        "output_tokens": 57,
+        "cache_read_input_tokens": 11392,
+        "service_tier": "default"
+      },
+      "secondUsage": {
+        "input_tokens": 516,
+        "output_tokens": 50,
+        "cache_read_input_tokens": 0,
+        "service_tier": "default"
+      },
+      "responseDigest": "4653ce777c0286a72dca004770770db524e60e2bee033ac346972175622070e3"
+    },
+    {
+      "target": 73,
+      "targetTool": "mcp__fixture__operation_73",
+      "searchQuery": "select:mcp__fixture__operation_73",
+      "searchResultCount": 1,
+      "searchToolCallObserved": true,
+      "targetCallObserved": true,
+      "firstUsage": {
+        "input_tokens": 77,
+        "output_tokens": 57,
+        "cache_read_input_tokens": 11392,
+        "service_tier": "default"
+      },
+      "secondUsage": {
+        "input_tokens": 516,
+        "output_tokens": 50,
+        "cache_read_input_tokens": 0,
+        "service_tier": "default"
+      },
+      "responseDigest": "b651d03dc74968f37b8def7327e81dcd15ec78de29b90325208ba8b7ebc477f4"
+    },
+    {
+      "target": 119,
+      "targetTool": "mcp__fixture__operation_119",
+      "searchQuery": "select:mcp__fixture__operation_119",
+      "searchResultCount": 1,
+      "searchToolCallObserved": true,
+      "targetCallObserved": true,
+      "firstUsage": {
+        "input_tokens": 77,
+        "output_tokens": 54,
+        "cache_read_input_tokens": 11392,
+        "service_tier": "default"
+      },
+      "secondUsage": {
+        "input_tokens": 513,
+        "output_tokens": 50,
+        "cache_read_input_tokens": 0,
+        "service_tier": "default"
+      },
+      "responseDigest": "13c92c6f2acf811bcc2333a4a9e88d838aa4a3a43b46061ea3dd7346a10a7154"
+    },
+    {
+      "target": 188,
+      "targetTool": "mcp__fixture__operation_188",
+      "searchQuery": "select:mcp__fixture__operation_188",
+      "searchResultCount": 1,
+      "searchToolCallObserved": true,
+      "targetCallObserved": true,
+      "firstUsage": {
+        "input_tokens": 77,
+        "output_tokens": 95,
+        "cache_read_input_tokens": 11392,
+        "service_tier": "default"
+      },
+      "secondUsage": {
+        "input_tokens": 506,
+        "output_tokens": 62,
+        "cache_read_input_tokens": 0,
+        "service_tier": "default"
+      },
+      "responseDigest": "ceaf7dc4bfe1994b2c9cb8303d6dfca724de66cfe2aa847f8d10a0aaad93e40b"
+    }
+  ],
+  "sourceBindings": [
+    {
+      "path": "packages/cli/src/runtime/agent-core.js",
+      "sha256": "70f87daf74b35da4e7daba7c5ba582bf63d8942fb00a0986fe77cd23b2759192"
+    },
+    {
+      "path": "packages/cli/src/runtime/mcp-tool-search.js",
+      "sha256": "de63c138868a8d52fd3ef0e791e065166250240fb9df2c54611c002e22b50eca"
+    }
+  ]
+}

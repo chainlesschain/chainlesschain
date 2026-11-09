@@ -1,0 +1,32 @@
+{
+  "schema": "chainlesschain.vscode-real-host-rerun/v1",
+  "head": "009a8452b",
+  "releaseCommit": "009a8452b9a3e900166f852e740f47300a95fc5d",
+  "host": {
+    "name": "vscode",
+    "version": "1.145.2",
+    "operatingSystem": "win32",
+    "architecture": "x64",
+    "transport": "local-ide-bridge+vscode-webview-message-dom"
+  },
+  "cliVersion": "0.166.145",
+  "extensionVersion": "0.37.181",
+  "result": "failed",
+  "evidenceComplete": true,
+  "verifiedBeforeFailure": [
+    "fresh profile VSIX install",
+    "VSIX activation",
+    "two workspace roots",
+    "19 commands"
+  ],
+  "failure": {
+    "phase": [],
+    "message": "bridge lockfile absent within 45000ms"
+  },
+  "artifactBundleDigest": "sha256:d5388f00a5e528d1d78db50a945795de079684883851bde4c95cb45633b6ddcf",
+  "limitations": [
+    "Windows only",
+    "bridge lockfile absent before real DOM/multi-window control",
+    "does not cover JetBrains or Linux/macOS hosts"
+  ]
+}

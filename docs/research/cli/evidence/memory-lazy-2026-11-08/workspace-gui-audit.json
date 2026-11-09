@@ -1,0 +1,32 @@
+{
+  "schema": "chainlesschain.native-workspace-journey-audit/v1",
+  "auditedAt": "2026-11-08T01:02:11.223Z",
+  "exitCode": 0,
+  "passed": true,
+  "reportSha256": "ea1da3742e7b62ce159419a867248ca70d2c4b72f943e38551a6326803c6eee0",
+  "realStopObservationMs": 70088,
+  "expectedGuardErrors": [
+    {
+      "channel": "project:goal-model-drafts-list",
+      "message": "Error: GOAL_EXTENSION_NOT_ADMITTED"
+    },
+    {
+      "channel": "project:goal-model-drafts-list",
+      "message": "Error: ACTION_GOAL_NOT_ACTIVE"
+    },
+    {
+      "channel": "project:goal-monitor-check",
+      "message": "Error: GOAL_MONITOR_NOT_ACTIVE"
+    }
+  ],
+  "actualPasswordDidGui": true,
+  "actualNativeConfirmations": 3,
+  "isolatedWorkingDirectory": true,
+  "memoryLifecycleVerified": true,
+  "notificationFlowVerified": true,
+  "quietHoursPersistenceOnly": true,
+  "realBusinessAcceptance": false,
+  "installedProductAcceptance": false,
+  "crossPlatformAcceptance": false,
+  "releaseAdmissionChanged": false
+}

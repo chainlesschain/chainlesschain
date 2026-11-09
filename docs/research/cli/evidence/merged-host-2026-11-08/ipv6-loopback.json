@@ -1,0 +1,47 @@
+{
+  "observedAt": "2026-11-08T05:49:16.781Z",
+  "boundary": "No firewall or host configuration changes. Isolated loopback diagnostic only.",
+  "results": [
+    {
+      "hostRole": "system-node",
+      "host": "127.0.0.1",
+      "node": "v24.12.0",
+      "electron": null,
+      "connected": true,
+      "code": null,
+      "elapsedMs": 17,
+      "processExit": 0
+    },
+    {
+      "hostRole": "system-node",
+      "host": "::1",
+      "node": "v24.12.0",
+      "electron": null,
+      "connected": true,
+      "code": null,
+      "elapsedMs": 17,
+      "processExit": 0
+    },
+    {
+      "hostRole": "downloaded-vscode-1.145.2",
+      "host": "127.0.0.1",
+      "node": "v24.22.1",
+      "electron": "43.8.3",
+      "connected": false,
+      "code": "ETIMEDOUT",
+      "elapsedMs": 326,
+      "processExit": 0
+    },
+    {
+      "hostRole": "downloaded-vscode-1.145.2",
+      "host": "::1",
+      "node": "v24.22.1",
+      "electron": "43.8.3",
+      "connected": false,
+      "code": "ETIMEDOUT",
+      "elapsedMs": 322,
+      "processExit": 0
+    }
+  ],
+  "inference": "Both IPv4 and IPv6 self-connect fail only for the downloaded Code host. IPv6 is not an available bypass. The exact system cause remains unproven."
+}

@@ -1,3 +1,4 @@
+import { createSessionModelUsageRecoveryProjection } from "./session-model-usage-recovery.js";
 import {
   MCP_TASK_DELIVERY_EVENT,
   projectMcpTaskDeliveryMessage,
@@ -33,6 +34,8 @@ import {
 import { createSessionTranscriptStructureProjection } from "./session-transcript-structure.js";
 import { projectToolRoundMessages } from "./session-tool-round.js";
 import { normalizeSessionBudgetRootConfig } from "./session-budget-production-root.js";
+import { projectSessionInputMessages } from "./session-input-lifecycle.js";
+import { createSessionInputLifecycleProjection } from "./session-input-lifecycle.js";
 import {
   createDeferredQuestionEventReducer,
   reduceDeferredQuestionEvents,
@@ -98,6 +101,9 @@ function replayMessagesFromVerifiedEvents(events) {
     } else if (event?.type === "ws_turn") {
       const turn = projectWsTurnMessages(event);
       if (turn) suffix.push(turn.assistant, turn.user);
+    } else if (event?.type === "session_input_settled") {
+      const turn = projectSessionInputMessages(event);
+      if (turn) suffix.push(turn[1], turn[0]);
     }
   }
   suffix.reverse();
@@ -306,6 +312,11 @@ export function projectVerifiedSessionHostSnapshot(sessionId, events) {
     verified: true,
   });
   const deferred = reduceDeferredQuestionEvents(safeEvents, { sessionId });
+  const modelUsage = createSessionModelUsageRecoveryProjection();
+  const inputLifecycle = createSessionInputLifecycleProjection();
+  for (const event of safeEvents) modelUsage.accept(event);
+  for (const event of safeEvents) inputLifecycle.accept(event);
+  const inputRecovery = inputLifecycle.finish();
   return Object.freeze({
     snapshot: projectSessionHostObservation({
       sessionId,
@@ -319,10 +330,14 @@ export function projectVerifiedSessionHostSnapshot(sessionId, events) {
     deferredAnswers: deferred.answers,
     deferredQuestionSequence: deferred.maxSequence,
     sessionBudgetRoot: sessionBudgetRootFromEvents(safeEvents),
+    modelUsageRecovery: modelUsage.finish(),
+    inputRecovery,
   });
 }
 
 function createStreamingSessionHostProjection(sessionId) {
+  const modelUsage = createSessionModelUsageRecoveryProjection();
+  const inputLifecycle = createSessionInputLifecycleProjection();
   let title = "Untitled";
   let lastEventType = null;
   let sessionBudgetRoot = null;
@@ -344,6 +359,8 @@ function createStreamingSessionHostProjection(sessionId) {
         throw new TypeError("Verified session event must be plain JSON data");
       }
       structure.accept(safeEvent);
+      modelUsage.accept(safeEvent);
+      inputLifecycle.accept(safeEvent);
       if (safeEvent.type === "session_start") {
         if (safeEvent.data?.title) title = String(safeEvent.data.title);
         if (Object.hasOwn(safeEvent.data || {}, "sessionBudgetRoot")) {
@@ -373,6 +390,7 @@ function createStreamingSessionHostProjection(sessionId) {
       );
       const recovery = mcpReducer.finish();
       const deferred = deferredQuestionReducer.finish();
+      const inputRecovery = inputLifecycle.finish();
       return Object.freeze({
         snapshot: projectSessionHostProjection({
           sessionId,
@@ -389,6 +407,8 @@ function createStreamingSessionHostProjection(sessionId) {
         deferredAnswers: deferred.answers,
         deferredQuestionSequence: deferred.maxSequence,
         sessionBudgetRoot,
+        modelUsageRecovery: modelUsage.finish(),
+        inputRecovery,
       });
     },
   };

@@ -1,0 +1,60 @@
+{
+  "originalRedDirectory": ".tmp/repl-inflight-red-20261108",
+  "originalFailure": "original-prompt timed out; no provider requests and no recovery window entered",
+  "preflight": "agent.js actual import passed before rerun",
+  "dependencies": [
+    {
+      "name": "ajv",
+      "version": "8.20.0",
+      "junction": "E:\\code\\chainlesschain\\.worktrees\\repl-inflight-recovery-20261108\\packages\\cli\\node_modules\\ajv",
+      "realpath": "E:\\code\\chainlesschain\\packages\\cli\\node_modules\\ajv"
+    },
+    {
+      "name": "argparse",
+      "version": "1.0.10",
+      "junction": "E:\\code\\chainlesschain\\.worktrees\\repl-inflight-recovery-20261108\\packages\\cli\\node_modules\\argparse",
+      "realpath": "E:\\code\\chainlesschain\\packages\\cli\\node_modules\\argparse"
+    },
+    {
+      "name": "chalk",
+      "version": "5.6.2",
+      "junction": "E:\\code\\chainlesschain\\.worktrees\\repl-inflight-recovery-20261108\\packages\\cli\\node_modules\\chalk",
+      "realpath": "E:\\code\\chainlesschain\\packages\\cli\\node_modules\\chalk"
+    },
+    {
+      "name": "js-yaml",
+      "version": "3.15.1",
+      "junction": "E:\\code\\chainlesschain\\.worktrees\\repl-inflight-recovery-20261108\\packages\\cli\\node_modules\\js-yaml",
+      "realpath": "E:\\code\\chainlesschain\\packages\\cli\\node_modules\\js-yaml"
+    },
+    {
+      "name": "json-schema-traverse",
+      "version": "1.0.0",
+      "junction": "E:\\code\\chainlesschain\\.worktrees\\repl-inflight-recovery-20261108\\packages\\cli\\node_modules\\json-schema-traverse",
+      "realpath": "E:\\code\\chainlesschain\\packages\\cli\\node_modules\\json-schema-traverse"
+    },
+    {
+      "name": "sprintf-js",
+      "version": "1.0.3",
+      "junction": "E:\\code\\chainlesschain\\.worktrees\\repl-inflight-recovery-20261108\\packages\\cli\\node_modules\\sprintf-js",
+      "realpath": "E:\\code\\chainlesschain\\packages\\cli\\node_modules\\sprintf-js"
+    },
+    {
+      "name": "undici",
+      "version": "7.30.1",
+      "junction": "E:\\code\\chainlesschain\\.worktrees\\repl-inflight-recovery-20261108\\packages\\cli\\node_modules\\undici",
+      "realpath": "E:\\code\\chainlesschain\\packages\\cli\\node_modules\\undici"
+    }
+  ],
+  "fullyLockedInstallationVerified": false,
+  "sourceFiles": [
+    {
+      "path": "packages/cli/__tests__/e2e/repl-inflight-recovery-e2e.test.js",
+      "sha256": "27f4ee83404e4066457a8f941282ca1c8e164fdec02c995d51f6f7f924ae13bd"
+    },
+    {
+      "path": "packages/cli/__tests__/fixtures/repl-inflight-recovery-state.mjs",
+      "sha256": "21bc00e35adc55ea59ef8a0672e6d167ee874cd4491138dfc51ee0e6b251c995"
+    }
+  ]
+}

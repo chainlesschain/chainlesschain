@@ -1,0 +1,3 @@
+# Codex App Server static compatibility evidence (2026-11-09)
+
+Six current unit suites passed **137/137** at source commit `aba189fc7`, covering adapter behavior, history probing, archived replay, official `.167` schemas, support boundaries, and turn probes. This is static/local compatibility evidence only; it does not claim an exact `.167` native protocol receipt, cancellation/recovery matrix, or three-system CI acceptance.

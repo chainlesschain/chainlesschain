@@ -22,6 +22,155 @@ function digest(value) {
   check(value === null || (typeof value === "string" && HASH.test(value)));
   return value;
 }
+const sourceKinds = new Set([
+  "system-policy",
+  "tool-schema",
+  "skill",
+  "task-state",
+  "message",
+  "tool-evidence",
+  "memory",
+  "project-rule",
+  "artifact-ref",
+  "unknown",
+]);
+const mappingReasons = new Set([
+  "complete",
+  "planning_unbound",
+  "projection_unbound",
+  "mapping_limit",
+  "protocol_unmapped",
+  "body_unavailable",
+  "body_mismatch",
+]);
+const protocols = new Set([
+  "openai-chat",
+  "openai-responses",
+  "anthropic-messages",
+  "ollama-chat",
+]);
+function parseSourceList(planning) {
+  check(typeof planning.sourceDetailsCovered === "boolean");
+  check(Array.isArray(planning.sources) && planning.sources.length <= 512);
+  const sourceCount = number(planning.sourceCount);
+  check(
+    sourceCount >= planning.sources.length &&
+      planning.sourcesTruncated === sourceCount > planning.sources.length,
+  );
+  return {
+    sourceDetailsCovered: planning.sourceDetailsCovered,
+    sourceCount,
+    sourcesTruncated: planning.sourcesTruncated,
+    sources: planning.sources.map((source, index) => {
+      check(source.ordinal === index && sourceKinds.has(source.kind));
+      check(["selected", "excluded"].includes(source.disposition));
+      check(
+        source.disposition === "selected"
+          ? source.reason === null
+          : reasons.includes(source.reason),
+      );
+      return {
+        ordinal: index,
+        digest: digest(source.digest),
+        kind: source.kind,
+        disposition: source.disposition,
+        reason: source.reason,
+      };
+    }),
+  };
+}
+function parseSourceMapping(mapping, phase) {
+  check(
+    mapping &&
+      typeof mapping.covered === "boolean" &&
+      mappingReasons.has(mapping.reason),
+  );
+  check(mapping.covered === (mapping.reason === "complete"));
+  check(
+    Number.isSafeInteger(mapping.sourceCount) &&
+      mapping.sourceCount >= 0 &&
+      Array.isArray(mapping.sources) &&
+      mapping.sources.length <= 512 &&
+      typeof mapping.sourcesTruncated === "boolean",
+  );
+  check(
+    mapping.sourceCount >= mapping.sources.length &&
+      (!mapping.covered ||
+        (!mapping.sourcesTruncated &&
+          mapping.sourceCount === mapping.sources.length)),
+  );
+  const slot = (entry) => {
+    check(
+      entry &&
+        ["message", "tool"].includes(entry.kind) &&
+        Number.isSafeInteger(entry.index) &&
+        entry.index >= 0 &&
+        entry.index < 4096,
+    );
+    return {
+      kind: entry.kind,
+      index: entry.index,
+      digest: digest(entry.digest),
+    };
+  };
+  const sources = mapping.sources.map((source, index) => {
+    check(source.ordinal === index);
+    if (phase === "logical-input") {
+      check(
+        Array.isArray(source.input) &&
+          Array.isArray(source.logical) &&
+          source.input.length === source.logical.length,
+      );
+      return {
+        ordinal: index,
+        input: source.input.map(slot),
+        logical: source.logical.map(slot),
+        changed: source.changed,
+        redactionTouched: source.redactionTouched,
+        injectionTouched: source.injectionTouched,
+        derived: source.derived,
+      };
+    }
+    check(["mapped", "excluded", "omitted"].includes(source.status));
+    check(Array.isArray(source.fragments));
+    return {
+      ordinal: index,
+      status: source.status,
+      fragments: source.fragments.map((fragment) => {
+        check(
+          typeof fragment.path === "string" &&
+            /^\/(?:messages\/\d+(?:\/content\/\d+)?|input\/\d+|tools\/\d+|system(?:\/0\/text)?)$/.test(
+              fragment.path,
+            ),
+        );
+        check(
+          (fragment.start === null && fragment.end === null) ||
+            (Number.isSafeInteger(fragment.start) &&
+              Number.isSafeInteger(fragment.end) &&
+              fragment.start >= 0 &&
+              fragment.end >= fragment.start),
+        );
+        return {
+          path: fragment.path,
+          start: fragment.start,
+          end: fragment.end,
+          digest: digest(fragment.digest),
+          bytes: number(fragment.bytes),
+        };
+      }),
+    };
+  });
+  if (phase === "body-prepared")
+    check(mapping.protocol === null || protocols.has(mapping.protocol));
+  return {
+    covered: mapping.covered,
+    reason: mapping.reason,
+    sourceCount: mapping.sourceCount,
+    sourcesTruncated: mapping.sourcesTruncated,
+    sources,
+    ...(phase === "body-prepared" ? { protocol: mapping.protocol } : {}),
+  };
+}
 function buildModelInputArgs(sessionId) {
   check(
     typeof sessionId === "string" &&
@@ -96,6 +245,11 @@ function parseModelInputReport(text, sessionId) {
         bodyCovered: row.bodyCovered,
         bodyDigest: digest(row.bodyDigest),
         providerAcceptanceVerified: false,
+        ...(row.sourceMapping === undefined
+          ? {}
+          : {
+              sourceMapping: parseSourceMapping(row.sourceMapping, row.phase),
+            }),
       };
     }
     check(row.phase === "logical-input");
@@ -132,8 +286,12 @@ function parseModelInputReport(text, sessionId) {
             .filter((key) => Object.hasOwn(plan.dropped || {}, key))
             .map((key) => [key, number(plan.dropped[key])]),
         ),
+        ...(plan.sources === undefined ? {} : parseSourceList(plan)),
       },
       projection: projectionSummary,
+      ...(row.sourceMapping === undefined
+        ? {}
+        : { sourceMapping: parseSourceMapping(row.sourceMapping, row.phase) }),
     };
   });
   return {

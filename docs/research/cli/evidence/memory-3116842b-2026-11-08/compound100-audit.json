@@ -1,0 +1,87 @@
+{
+  "auditedAt": "2026-11-08T06:35:48.890Z",
+  "sourceHead": "3116842b0fdc5d5c6c747a404bf37b18fb8206c9",
+  "reportSha256": "sha256:7c2b31498194d83da7af56d0a40c382a8b3864da7bef5de9c490f1bf8474ee4f",
+  "processExitCode": 0,
+  "samples": 900,
+  "sourceIdentityHash": "sha256:5190b62a47f75ee0fafdeb09bec068c56ab0bbee9573a39202fac35d4acb94a4",
+  "sourceAndGitStable": true,
+  "cleanupComplete": true,
+  "performanceAccepted": false,
+  "loadContext": "unspecified",
+  "groups": [
+    {
+      "count": 1000,
+      "scenario": "category-narrow",
+      "samples": 100,
+      "p95Ms": 40.53479999999999,
+      "maxEventLoopDelayMs": 32.260095,
+      "peakRssBytes": 92651520
+    },
+    {
+      "count": 1000,
+      "scenario": "tag-narrow",
+      "samples": 100,
+      "p95Ms": 38.324299999999994,
+      "maxEventLoopDelayMs": 32.309247,
+      "peakRssBytes": 92540928
+    },
+    {
+      "count": 1000,
+      "scenario": "cold-continuation",
+      "samples": 100,
+      "p95Ms": 38.26519999999999,
+      "maxEventLoopDelayMs": 18.743295,
+      "peakRssBytes": 92827648
+    },
+    {
+      "count": 10000,
+      "scenario": "category-narrow",
+      "samples": 100,
+      "p95Ms": 87.0803,
+      "maxEventLoopDelayMs": 32.178175,
+      "peakRssBytes": 114692096
+    },
+    {
+      "count": 10000,
+      "scenario": "tag-narrow",
+      "samples": 100,
+      "p95Ms": 84.89900000000003,
+      "maxEventLoopDelayMs": 31.096831,
+      "peakRssBytes": 114630656
+    },
+    {
+      "count": 10000,
+      "scenario": "cold-continuation",
+      "samples": 100,
+      "p95Ms": 86.1115,
+      "maxEventLoopDelayMs": 21.594111,
+      "peakRssBytes": 118050816
+    },
+    {
+      "count": 100000,
+      "scenario": "category-narrow",
+      "samples": 100,
+      "p95Ms": 492.56819999999993,
+      "maxEventLoopDelayMs": 35.487743,
+      "peakRssBytes": 290504704
+    },
+    {
+      "count": 100000,
+      "scenario": "tag-narrow",
+      "samples": 100,
+      "p95Ms": 507.99279999999993,
+      "maxEventLoopDelayMs": 51.412991,
+      "peakRssBytes": 291479552
+    },
+    {
+      "count": 100000,
+      "scenario": "cold-continuation",
+      "samples": 100,
+      "p95Ms": 498.4972,
+      "maxEventLoopDelayMs": 38.502399,
+      "peakRssBytes": 293134336
+    }
+  ],
+  "boundary": "Independent raw entries digest, oracle binding, pagination, version and metric audit. Local Windows shared workstation; full cross-platform, native IDE and semantic quality remain separate."
+}

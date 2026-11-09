@@ -1,0 +1,10 @@
+{
+  "schema": "cc-ide-host-driver-failure/v1",
+  "phase": "initial",
+  "at": "2026-11-08T21:27:41.431Z",
+  "error": {
+    "name": "Error",
+    "message": "bridge lockfile did not appear in C:\\Users\\admin\\AppData\\Local\\Temp\\ccv-HDFEM6\\profile-home\\.chainlesschain\\ide within 45000ms",
+    "stack": "Error: bridge lockfile did not appear in C:\\Users\\admin\\AppData\\Local\\Temp\\ccv-HDFEM6\\profile-home\\.chainlesschain\\ide within 45000ms\n\tat waitForBridgeLock (e:\\code\\chainlesschain\\packages\\vscode-extension\\test\\extension-host\\driver\\smoke.cjs:297:9)\n\tat async runJourney (e:\\code\\chainlesschain\\packages\\vscode-extension\\test\\extension-host\\driver\\smoke.cjs:703:16)\n\tat async run (e:\\code\\chainlesschain\\packages\\vscode-extension\\test\\extension-host\\driver\\smoke.cjs:864:12)"
+  }
+}
