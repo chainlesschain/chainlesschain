@@ -47,6 +47,16 @@
     "jetbrains": "ide-extensions.yml via ide-jetbrains-v0.4.199 after CLI public readback"
   },
   "buildPreparation": {
+    "windowsKernelRunner": "windows-2022 (Visual Studio 2022 supported by the locked native build tool)",
+    "nativeBuildPython": "setup-python 3.12 explicitly selected through NODE_GYP_FORCE_PYTHON",
+    "nativeSqliteLoadProbeRequiredBeforeKernelTests": true,
+    "previousCandidateFailure": {
+      "source": "efe50ead418a563f04a818129b29ca1ea6dddbc6",
+      "run": 42570896444,
+      "job": 129007775526,
+      "scope": "Dependency installation: locked node-gyp cannot discover Visual Studio 2026 on windows-latest; product assertions did not start",
+      "retainedAsFailure": true
+    },
     "kernelMatrixSkipsOnlyUnusedElectronBinary": true,
     "nativeDependencyInstallScriptsRemainEnabled": true,
     "gradleBootstrap": "Pinned official wrapper --version only, at most three attempts; preserve all attempt logs and reject checksum/certificate/build/test failures",
