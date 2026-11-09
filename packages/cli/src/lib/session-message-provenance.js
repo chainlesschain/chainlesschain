@@ -219,6 +219,7 @@ function cloneWithoutWireTag(snapshot) {
 // lookup/deduplication still verifies the original event and digest. Apply this
 // only after the full JSON-safe clone, including for historical checkpoints.
 function conversationMessage(clean) {
+  if (clean) delete clean._cc_mcp_task_continuation;
   if (clean?.role === "user") {
     delete clean.clientMessageId;
     delete clean.inputDigest;
@@ -240,11 +241,11 @@ function validWireTag(value) {
   const snapshot = plainDataSnapshot(value);
   return Boolean(
     snapshot &&
-      snapshot.keys.length === 2 &&
-      snapshot.keys.includes("schema") &&
-      snapshot.keys.includes("kind") &&
-      dataValue(snapshot, "schema") === SESSION_MESSAGE_PROVENANCE_SCHEMA &&
-      DURABLE_KINDS.has(dataValue(snapshot, "kind")),
+    snapshot.keys.length === 2 &&
+    snapshot.keys.includes("schema") &&
+    snapshot.keys.includes("kind") &&
+    dataValue(snapshot, "schema") === SESSION_MESSAGE_PROVENANCE_SCHEMA &&
+    DURABLE_KINDS.has(dataValue(snapshot, "kind")),
   );
 }
 

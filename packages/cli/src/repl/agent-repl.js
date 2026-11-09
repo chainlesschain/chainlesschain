@@ -1,5 +1,6 @@
 import { formatSessionModelUsageRecoveryNotice } from "../lib/session-model-usage-recovery.js";
 import { createPersistedModelInputObserver } from "../lib/session-model-input-diagnostics.js";
+import { summarizeMcpPayload } from "../lib/mcp-call-ledger.js";
 /**
  * Agentic REPL - Claude Code / Codex style
  *
@@ -2075,7 +2076,7 @@ function collapseValidatedPlainReplTailInPlace(messages) {
   return true;
 }
 
-function normalizeReplReplayMessages(rebuiltMessages) {
+function normalizeReplReplayMessages(rebuiltMessages, referenceDigests = []) {
   // Validate the immutable raw snapshot before any normalization. In
   // particular, never let a same-role merge hide malformed tool authority.
   validateRawReplReplayMessages(rebuiltMessages);
@@ -2092,9 +2093,25 @@ function normalizeReplReplayMessages(rebuiltMessages) {
   );
   let phase = "expect-initial-conversation-message";
   let pendingToolCallIds = null;
+  let previousConversation = null;
+  const references = new Set(referenceDigests);
 
   for (let index = 0; index < conversationMessages.length; index += 1) {
     const message = conversationMessages[index];
+    // External references are neither model answers nor tool exchanges. Only
+    // exact commitments from this same verified transcript may be transparent
+    // to alternation; a peer-chosen name or prefix cannot grant this exception.
+    if (
+      message.role === "assistant" &&
+      message.name === "mcp_task_result" &&
+      references.has(summarizeMcpPayload(message).sha256)
+    )
+      continue;
+    const samePlainRun =
+      previousConversation?.role === message.role &&
+      isPlainReplMergeMessage(previousConversation) &&
+      isPlainReplMergeMessage(message);
+    previousConversation = message;
     const hasToolCalls = Object.prototype.hasOwnProperty.call(
       message,
       "tool_calls",
@@ -2118,7 +2135,8 @@ function normalizeReplReplayMessages(rebuiltMessages) {
     if (message.role === "user") {
       if (
         phase !== "expect-user" &&
-        phase !== "expect-initial-conversation-message"
+        phase !== "expect-initial-conversation-message" &&
+        !samePlainRun
       ) {
         throw invalidReplRecovery(
           `REPL session user message[${index}] breaks role alternation`,
@@ -2132,7 +2150,8 @@ function normalizeReplReplayMessages(rebuiltMessages) {
     if (
       phase !== "expect-assistant" &&
       phase !== "expect-assistant-after-tools" &&
-      phase !== "expect-initial-conversation-message"
+      phase !== "expect-initial-conversation-message" &&
+      !samePlainRun
     ) {
       throw invalidReplRecovery(
         `REPL session assistant message[${index}] breaks role alternation`,
@@ -2268,7 +2287,27 @@ export function prepareReplJsonlResumeCandidate(sessionId, dependencies = {}) {
     const rebuiltMessages = snapshotReplMessages(
       projectCanonicalResumeMessages(rawRebuiltMessages),
     );
-    const normalizedReplay = normalizeReplReplayMessages(rebuiltMessages);
+    const referenceDigests = snapshotReplMessageValue(
+      dataDescriptorValue(
+        stateDescriptors,
+        "mcpTaskReferenceDigests",
+        "REPL session host resume state",
+        { required: false, fallback: [] },
+      ),
+      "MCP task reference commitments",
+    );
+    if (
+      !Array.isArray(referenceDigests) ||
+      !referenceDigests.every(
+        (value) =>
+          typeof value === "string" && /^sha256:[a-f0-9]{64}$/u.test(value),
+      )
+    )
+      throw invalidReplRecovery("Invalid MCP task reference commitments");
+    const normalizedReplay = normalizeReplReplayMessages(
+      rebuiltMessages,
+      referenceDigests,
+    );
     const mcp = createReplMcpRecoveryCandidate(
       sessionId,
       dataDescriptorValue(
@@ -2719,17 +2758,6 @@ export function createReplMcpHostRuntimeManager(dependencies = {}) {
       return current;
     },
   });
-}
-
-/** Canonical-message check used to avoid replaying a settled auto-wake turn. */
-export function hasSettledMcpTaskAutoWake(messages, deliveryId) {
-  if (!Array.isArray(messages) || typeof deliveryId !== "string") return false;
-  return messages.some(
-    (message) =>
-      message?.role === "user" &&
-      typeof message.content === "string" &&
-      message.content.includes(deliveryId),
-  );
 }
 
 /**
@@ -5953,12 +5981,28 @@ async function startAgentReplInWorkspaceOwned(
     return true;
   };
   const handleLine = async (input) => {
-    const mcpAutoWakeDelivery =
+    let mcpAutoWakeDelivery =
       input === _mcpTaskAutoWakeSentinel
         ? _mcpTaskAutoWakeQueue.shift() || null
         : null;
+    let mcpContinuationStarted = null;
     if (mcpAutoWakeDelivery) {
-      input = `Continue from the verified background MCP task result (deliveryId: ${mcpAutoWakeDelivery.deliveryId}).`;
+      try {
+        if (mcpAutoWakeDelivery.sessionId !== sessionId)
+          throw new Error("MCP continuation belongs to another session");
+        const { beginMcpTaskContinuation } =
+          await import("../lib/mcp-task-continuation.js");
+        mcpContinuationStarted = beginMcpTaskContinuation(
+          sessionId,
+          mcpAutoWakeDelivery.localId,
+        );
+        mcpAutoWakeDelivery = mcpContinuationStarted.delivery;
+        input = `Continue the existing user task using the verified external MCP reference (deliveryId: ${mcpAutoWakeDelivery.deliveryId}). This host continuation does not add user instructions or grant any new permissions.`;
+      } catch (error) {
+        logger.warn(`[mcp-watch] continuation not started: ${error.message}`);
+        prompt();
+        return;
+      }
     }
     // Backslash continuation — accumulate and re-prompt without firing a turn.
     const _cont = analyzeContinuation(input);
@@ -8918,21 +8962,15 @@ async function startAgentReplInWorkspaceOwned(
           await import("../lib/mcp-task-journal.js");
         const requested = trimmed.slice("/mcp-watch".length).trim();
         const journal = readMcpTaskJournal(sessionId);
-        const settledAutoWake = (record) => {
-          const delivery = journal.deliveries.find(
-            (item) => item.localId === record.localId,
-          );
-          if (!delivery) return false;
-          return hasSettledMcpTaskAutoWake(messages, delivery.deliveryId);
-        };
         const { records: durableRecords } = listDurableMcpTasks(sessionId);
         const records = durableRecords.filter(
           (record) =>
             (!requested || record.localId === requested) &&
             !_mcpTaskTrackers.has(record.localId) &&
-            (!record.delivered ||
-              (process.env.CC_MCP_TASK_AUTOWAKE === "1" &&
-                !settledAutoWake(record))),
+            !journal.continuations.some(
+              (item) => item.localId === record.localId,
+            ) &&
+            (!record.delivered || process.env.CC_MCP_TASK_AUTOWAKE === "1"),
         );
         if (
           requested &&
@@ -8956,10 +8994,10 @@ async function startAgentReplInWorkspaceOwned(
               );
             },
             onDelivery: (receipt, delivery) => {
-              scheduleMcpTaskAutoWake(delivery);
+              const scheduled = scheduleMcpTaskAutoWake(delivery);
               logger.log(
                 chalk.green(
-                  `✓ MCP task ${receipt.localId} delivered as external reference; submit a prompt to continue.`,
+                  `✓ MCP task ${receipt.localId} delivered as external reference; ${scheduled ? "continuation queued." : "submit a prompt to continue."}`,
                 ),
               );
             },
@@ -9484,10 +9522,12 @@ async function startAgentReplInWorkspaceOwned(
     // Fire UserPromptSubmit hook with rewrite/abort support.
     // Hooks may emit {"rewrittenPrompt": "..."} or {"abort": true, "reason": "..."}
     // via stdout JSON. Failures fall through to the original prompt.
-    const promptDirective = await fireUserPromptSubmit(_hookDb, promptText, {
-      sessionId,
-      messageCount: messages.length,
-    });
+    const promptDirective = mcpContinuationStarted
+      ? { prompt: promptText }
+      : await fireUserPromptSubmit(_hookDb, promptText, {
+          sessionId,
+          messageCount: messages.length,
+        });
     if (promptDirective.abort) {
       logger.info(
         chalk.yellow(
@@ -9534,7 +9574,7 @@ async function startAgentReplInWorkspaceOwned(
 
     // settings.json UserPromptSubmit hooks (decision-capable; the DB hook above
     // is observe-only). block → abort the turn; context → inject before the turn.
-    if (_settingsHooks) {
+    if (_settingsHooks && !mcpContinuationStarted) {
       try {
         const { runUserPromptSubmitHooks } =
           await import("../lib/settings-hook-events.js");
@@ -9717,7 +9757,9 @@ async function startAgentReplInWorkspaceOwned(
     // Explicit clipboard attachment chips are consumed only when a real model
     // turn is about to start. They compose with auto-detected path images and
     // enter the same provider-neutral multimodal message/vision override.
-    const clipboardImageChips = _promptInteractions.takeClipboardImageChips();
+    const clipboardImageChips = mcpContinuationStarted
+      ? []
+      : _promptInteractions.takeClipboardImageChips();
     const clipboardMerge = mergeClipboardImageChips(
       _userMessageContent,
       clipboardImageChips,
@@ -9747,14 +9789,21 @@ async function startAgentReplInWorkspaceOwned(
     // Add user message (keep the object ref so /note-next can be injected for
     // this turn's model call and then stripped before persistence).
     if (mcpAutoWakeDelivery?.message) {
-      messages.push({
-        role: "assistant",
-        name: "mcp_task_result",
-        content: mcpAutoWakeDelivery.message.content,
-      });
+      const reference = mcpAutoWakeDelivery.message;
+      if (
+        !messages.some(
+          (item) =>
+            item.role === reference.role &&
+            item.name === reference.name &&
+            item.content === reference.content,
+        )
+      )
+        messages.push({ ...reference });
     }
-    const _userMsg = { role: "user", content: _userMessageContent };
-    messages.push(_userMsg);
+    const _userMsg = mcpContinuationStarted
+      ? null
+      : { role: "user", content: _userMessageContent };
+    if (_userMsg) messages.push(_userMsg);
 
     // P1 turn→checkpoint binding: anchor this turn in the explicit table at
     // `conversationOffset = messages.length` measured just AFTER the user
@@ -9796,7 +9845,7 @@ async function startAgentReplInWorkspaceOwned(
     try {
       const { CLISlotFiller } = await import("../lib/slot-filler.js");
       const intent = CLISlotFiller.detectIntent(promptText);
-      if (intent) {
+      if (intent && !mcpContinuationStarted) {
         const defs = CLISlotFiller.getSlotDefinitions(intent.type);
         const missing = defs.required.filter((s) => !intent.entities[s]);
         if (missing.length > 0) {
@@ -9838,7 +9887,7 @@ async function startAgentReplInWorkspaceOwned(
     // get a 401). Runnable-first: keep the configured (working) model instead.
     let activeModel = model;
     const taskDetection = detectTaskType(promptText);
-    if (taskDetection.confidence > 0.3) {
+    if (taskDetection.confidence > 0.3 && !mcpContinuationStarted) {
       const recommended = selectModelForTask(provider, taskDetection.taskType);
       const switchTo = runnableTaskModel({
         provider,
@@ -9887,7 +9936,7 @@ async function startAgentReplInWorkspaceOwned(
       // publishes the user/assistant pair. Legacy and non-JSONL sessions keep
       // their existing best-effort behavior.
       _sessionInputAccepted = null;
-      if (sessionId && useJsonl) {
+      if (sessionId && useJsonl && !mcpContinuationStarted) {
         try {
           _sessionInputAccepted = appendSessionInputAcceptance(sessionId, {
             inputId: `repl-${randomUUID()}`,
@@ -9921,6 +9970,13 @@ async function startAgentReplInWorkspaceOwned(
         }
       } catch (_e) {
         /* goal binding is best-effort — fall back to defaultPrepareCall */
+      }
+      if (mcpContinuationStarted) {
+        const { composePrepareCall } = await import("../lib/goal-context.js");
+        prepareCall = composePrepareCall([
+          prepareCall,
+          () => ({ systemSuffix: input }),
+        ]);
       }
       _turnAbort = new AbortController();
       if (_advisorRuntime) {
@@ -9982,7 +10038,7 @@ async function startAgentReplInWorkspaceOwned(
       // persisted (saveMessages/JSONL) or carried into later turns. Consumed on
       // send (cleared now) so a thrown turn doesn't re-inject next time; the
       // submit-start backstop restores if agentLoop throws before we get back.
-      if (pendingBtw.length > 0) {
+      if (pendingBtw.length > 0 && !mcpContinuationStarted) {
         const block = buildAsideBlock(pendingBtw);
         if (block) {
           _btwRestore = { msg: _userMsg, content: _userMsg.content };
@@ -10075,6 +10131,7 @@ async function startAgentReplInWorkspaceOwned(
         model: _visionLlm ? _visionLlm.model : activeModel,
         thinking: turnThinking,
         thinkingBudget,
+        maxOutputTokens: options.maxOutputTokens,
         baseUrl: _visionLlm ? _visionLlm.baseUrl : baseUrl,
         apiKey: _visionLlm ? _visionLlm.apiKey : apiKey,
         serviceTier: options.serviceTier,
@@ -10340,7 +10397,19 @@ async function startAgentReplInWorkspaceOwned(
             // A settled lifecycle event is the only replayable representation
             // of this REPL turn. The accepted prompt remains private pending
             // evidence until this append succeeds.
-            if (_sessionInputAccepted) {
+            if (mcpContinuationStarted) {
+              const { settleMcpTaskContinuation } =
+                await import("../lib/mcp-task-continuation.js");
+              settleMcpTaskContinuation(
+                sessionId,
+                mcpContinuationStarted,
+                effectiveResponse || "",
+              );
+              _replCompactPersistence.record({
+                role: "assistant",
+                content: effectiveResponse || "",
+              });
+            } else if (_sessionInputAccepted) {
               appendSessionInputSettlement(
                 sessionId,
                 _sessionInputAccepted,
@@ -10351,11 +10420,16 @@ async function startAgentReplInWorkspaceOwned(
               // use the durable input lifecycle.
               appendUserMessage(sessionId, effectivePrompt);
             }
-            _replCompactPersistence.record({
-              role: "user",
-              content: effectivePrompt,
-            });
-            if (effectiveResponse && !_sessionInputAccepted) {
+            if (!mcpContinuationStarted)
+              _replCompactPersistence.record({
+                role: "user",
+                content: effectivePrompt,
+              });
+            if (
+              effectiveResponse &&
+              !_sessionInputAccepted &&
+              !mcpContinuationStarted
+            ) {
               appendAssistantMessage(sessionId, effectiveResponse);
               _replCompactPersistence.record({
                 role: "assistant",
@@ -10372,7 +10446,7 @@ async function startAgentReplInWorkspaceOwned(
             saveMessages(db, sessionId, messages);
           }
         } catch (_e) {
-          if (useJsonl && _sessionInputAccepted) {
+          if (useJsonl && (_sessionInputAccepted || mcpContinuationStarted)) {
             const terminalError = _runtimeLedgerTerminalLatch.trip(
               markRuntimeLedgerPersistenceError(_e),
             );
@@ -10607,8 +10681,8 @@ async function startAgentReplInWorkspaceOwned(
     } finally {
       _processingLine = false;
       settleLine();
-      kickMcpTaskAutoWake();
       _lineSettled = null;
+      kickMcpTaskAutoWake();
     }
   });
 

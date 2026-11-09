@@ -34,7 +34,12 @@ function emit(value, json) {
             ? "result_saved"
             : record.remoteStatus || record.phase) +
           (record.resultSaved ? "  result saved" : "") +
-          (record.outcomeUnknown ? "  outcome unknown" : ""),
+          (record.outcomeUnknown ? "  outcome unknown" : "") +
+          (record.continuationOutcomeUnknown
+            ? "  continuation outcome unknown"
+            : record.continuationStatus === "settled"
+              ? "  continuation saved"
+              : ""),
       );
     }
   } else if (value.delivered === true) {

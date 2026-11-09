@@ -4,7 +4,10 @@ import assert from "node:assert/strict";
 import { readSessionHostResumeState } from "../../../src/lib/session-host-snapshot.js";
 import { summarizeMcpPayload } from "../../../src/lib/mcp-call-ledger.js";
 import { MCPClient } from "../../../src/harness/mcp-client.js";
-import { startSession } from "../../../src/harness/jsonl-session-store.js";
+import {
+  startSession,
+  appendUserMessage,
+} from "../../../src/harness/jsonl-session-store.js";
 import { acquireSessionHostLease } from "../../../src/lib/session-host-lease.js";
 import { createSecretStore } from "../../../src/lib/secret-store.js";
 import { createDurableMcpTaskRuntime } from "../../../src/lib/mcp-task-runtime.js";
@@ -26,11 +29,14 @@ let lease;
 let client;
 const emit = (value) => process.stdout.write(JSON.stringify(value) + "\n");
 try {
-  if (request.seed)
+  if (request.seed) {
     startSession(request.sessionId, {
       provider: "loopback-fixture",
       model: "none",
     });
+    if (request.userPrompt)
+      appendUserMessage(request.sessionId, request.userPrompt);
+  }
   lease = acquireSessionHostLease(request.sessionId, {
     hostKind: "mcp-tasks-native-probe",
   });

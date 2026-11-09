@@ -45,6 +45,9 @@ function waitForTaskPoll(ms, signal, leaseSignal) {
 }
 
 function publicRecord(record, projection) {
+  const continuation = projection.continuations.find(
+    (item) => item.localId === record.localId,
+  );
   const call = projection.callRecovery.records.find(
     (item) => item.ledgerId === record.ledgerId,
   );
@@ -74,6 +77,8 @@ function publicRecord(record, projection) {
     ),
     callStatus: call?.status ?? null,
     outcomeUnknown: record.task === null && call?.status === "started",
+    continuationStatus: continuation?.phase ?? null,
+    continuationOutcomeUnknown: continuation?.phase === "started",
     expiresAt:
       expiresMs === null ||
       !Number.isFinite(expiresMs) ||

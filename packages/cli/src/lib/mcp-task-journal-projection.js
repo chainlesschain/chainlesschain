@@ -14,6 +14,12 @@ import {
   assertMcpTaskDeliverySource,
   renderMcpTaskDeliveryMessage,
 } from "./mcp-task-delivery-contract.js";
+import {
+  MCP_TASK_CONTINUATION_STARTED,
+  MCP_TASK_CONTINUATION_FIELD,
+  assertMcpTaskContinuationStart,
+  assertMcpTaskContinuationMessage,
+} from "./mcp-task-continuation-contract.js";
 
 export const MCP_TASK_JOURNAL_EVENT = "mcp_task_ledger";
 const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/u;
@@ -267,6 +273,7 @@ export function createMcpTaskJournalProjection(
   if (typeof retainResults !== "boolean") fail("retention options");
   const records = new Map();
   const deliveries = new Map();
+  const continuations = new Map();
   const requestedCalls = createMcpLedgerEventReducer({
     sessionId,
     verified: true,
@@ -280,6 +287,7 @@ export function createMcpTaskJournalProjection(
     sessionId,
     records: [...records.values()],
     deliveries: [...deliveries.values()],
+    continuations: [...continuations.values()],
     callRecovery,
     headHash: callRecovery.headHash,
   });
@@ -313,11 +321,14 @@ export function createMcpTaskJournalProjection(
           event.type === "mcp_call_ledger"
             ? event.data?.record?.sessionId
             : event.type === MCP_TASK_JOURNAL_EVENT ||
-                event.type === MCP_TASK_DELIVERY_EVENT
+                event.type === MCP_TASK_DELIVERY_EVENT ||
+                event.type === MCP_TASK_CONTINUATION_STARTED
               ? event.data?.sessionId
-              : event.type === "system"
-                ? event.data?._cc_fork_authority?.sourceSessionId
-                : null;
+              : event.data?.[MCP_TASK_CONTINUATION_FIELD] !== undefined
+                ? event.data[MCP_TASK_CONTINUATION_FIELD]?.sessionId
+                : event.type === "system"
+                  ? event.data?._cc_fork_authority?.sourceSessionId
+                  : null;
         if (typeof hint === "string" && text(hint)) {
           // A candidate origin must not erase incidents already seen in the
           // generation-less prefix before the first usable identity hint.
@@ -368,6 +379,7 @@ export function createMcpTaskJournalProjection(
         scopes.add(activeSessionId);
         records.clear();
         deliveries.clear();
+        continuations.clear();
         calls = createMcpLedgerEventReducer({
           sessionId: activeSessionId,
           verified: true,
@@ -389,6 +401,39 @@ export function createMcpTaskJournalProjection(
             ...data,
             ...(retainResults ? {} : { message: null }),
             eventHash: event.hash,
+          }),
+        );
+        return;
+      }
+      if (event.type === MCP_TASK_CONTINUATION_STARTED) {
+        const data = assertMcpTaskContinuationStart(
+          event.data,
+          deliveries.get(event.data?.localId),
+          activeSessionId,
+          continuations.get(event.data?.localId),
+        );
+        continuations.set(
+          data.localId,
+          freeze({ ...data, phase: "started", beginEventHash: event.hash }),
+        );
+        return;
+      }
+      if (event.data?.[MCP_TASK_CONTINUATION_FIELD] !== undefined) {
+        if (event.type !== "assistant_message") fail("continuation event type");
+        const localId = event.data[MCP_TASK_CONTINUATION_FIELD]?.localId;
+        const data = assertMcpTaskContinuationMessage(
+          event.data,
+          deliveries.get(localId),
+          activeSessionId,
+          continuations.get(localId),
+        );
+        continuations.set(
+          localId,
+          freeze({
+            ...continuations.get(localId),
+            phase: "settled",
+            outputDigest: data.outputDigest,
+            endEventHash: event.hash,
           }),
         );
         return;

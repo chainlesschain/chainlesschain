@@ -5065,6 +5065,7 @@ export class MCPClient extends EventEmitter {
    */
   _ensureHttpMessageStream(serverName) {
     const entry = this.servers.get(serverName);
+    if (entry?.statelessHttp) return false;
     if (
       !entry?.httpUrl ||
       entry.state !== ServerState.CONNECTED ||

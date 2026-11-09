@@ -20,6 +20,7 @@ import { isProxy } from "node:util/types";
 import {
   MCPClient,
   inferTransport,
+  mcpProtocolVersionField,
   redactMcpUrl,
 } from "../harness/mcp-client.js";
 import { projectRootBase } from "../lib/project-root.cjs";
@@ -361,6 +362,7 @@ function parseMcpServersForSource(raw, { provisionManagedTls = false } = {}) {
       ...(sandboxPolicy ? { sandboxPolicy } : {}),
       url: cfg.url,
       transport: cfg.transport,
+      ...mcpProtocolVersionField(cfg),
       headers:
         cfg.headers && typeof cfg.headers === "object" ? cfg.headers : {},
       ...(Number.isFinite(cfg.maxPayloadBytes)
@@ -713,9 +715,8 @@ export async function setupMcpFromConfig(servers, deps = {}) {
           if (typeof mcpClient.setReconnector === "function") {
             const baseCfg = cfg;
             mcpClient.setReconnector(name, async () => {
-              const { ensureValidToken: reauth } = await import(
-                "../lib/mcp-oauth.js"
-              );
+              const { ensureValidToken: reauth } =
+                await import("../lib/mcp-oauth.js");
               const fresh = await reauth(baseCfg.url, { forceRefresh: true });
               if (!fresh) return null;
               return {
@@ -1120,6 +1121,7 @@ export async function loadRegisteredMcp(rawDb, deps = {}) {
       ...(sandboxPolicy ? { sandboxPolicy } : {}),
       url: r.url,
       transport: r.transport,
+      ...mcpProtocolVersionField(r),
       headers: r.headers,
       ...headersHelperField(r.headersHelper),
       configScope: r.configScope,

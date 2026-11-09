@@ -1,6 +1,10 @@
 import { projectToolRoundMessages } from "./session-tool-round.js";
 import { createMcpTaskJournalProjection } from "./mcp-task-journal-projection.js";
 import { MCP_TASK_DELIVERY_EVENT } from "./mcp-task-delivery-contract.js";
+import {
+  MCP_TASK_CONTINUATION_STARTED,
+  MCP_TASK_CONTINUATION_FIELD,
+} from "./mcp-task-continuation-contract.js";
 /**
  * Streaming structural authority for canonical session transcripts.
  *
@@ -85,7 +89,10 @@ export function createSessionTranscriptStructureProjection(
   return Object.freeze({
     accept(event) {
       headHash = event?.hash || null;
-      hasDelivery ||= event?.type === MCP_TASK_DELIVERY_EVENT;
+      hasDelivery ||=
+        event?.type === MCP_TASK_DELIVERY_EVENT ||
+        event?.type === MCP_TASK_CONTINUATION_STARTED ||
+        event?.data?.[MCP_TASK_CONTINUATION_FIELD] !== undefined;
       if (!taskJournalError && taskJournal) {
         try {
           taskJournal.accept(event);

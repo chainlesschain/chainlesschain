@@ -16,6 +16,10 @@ import {
   writeProjectMcpServer,
   readProjectMcpRows,
 } from "../../src/commands/mcp.js";
+import {
+  parseMcpServers,
+  loadMcpConfig,
+} from "../../src/runtime/mcp-config.js";
 
 const close = [];
 afterEach(async () => {
@@ -109,6 +113,12 @@ describe("opt-in stateless MCP Tasks", () => {
       ),
     ).toBe(true);
     expect(f.requests.every((r) => !r.headers["mcp-session-id"])).toBe(true);
+    f.client.setElicitationHandler(async () => ({ action: "decline" }));
+    await new Promise((done) => setTimeout(done, 20));
+    expect(f.client.servers.get("modern")._httpMessageStream).toBeNull();
+    expect(f.requests.every((request) => request.httpMethod === "POST")).toBe(
+      true,
+    );
     const normal = await f.client.callTool("modern", "work", {});
     expect(normal.content[0].text).toBe("ordinary result");
     const accepted = await f.client.callToolTask("modern", "work", {});
@@ -363,5 +373,26 @@ describe("stateless wire admission and persisted configuration", () => {
       .commands.find((c) => c.name() === "add");
     add.parseOptions(["s", "--url", value.url, "--protocol-version", VERSION]);
     expect(add.opts().protocolVersion).toBe(VERSION);
+  });
+
+  it("retains the protocol through the real agent MCP loader instead of falling back to initialize", async () => {
+    const f = await fixture();
+    const configuration = f.config;
+    const input = { mcpServers: { agent: configuration } };
+    expect(parseMcpServers(input).agent.protocolVersion).toBe(VERSION);
+    const client = new MCPClient();
+    close.push(() => client.disconnectAll());
+    const loaded = await loadMcpConfig("diagnostic-config.json", {
+      readFile: () => JSON.stringify(input),
+      createClient: () => client,
+      writeErr: () => {},
+    });
+    expect(loaded.connected).toContainEqual(
+      expect.objectContaining({ server: "agent" }),
+    );
+    expect(client.servers.get("agent").protocolVersion).toBe(VERSION);
+    expect(f.requests.some((request) => request.method === "initialize")).toBe(
+      false,
+    );
   });
 });
