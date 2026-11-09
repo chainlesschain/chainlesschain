@@ -157,6 +157,9 @@ jobs:
           node --test
           packages/cli/scripts/memory-compound-query-benchmark.node-test.mjs
           packages/cli/scripts/memory-semantic-quality.node-test.mjs
+      - name: Verify Stop delivery ordering
+        if: matrix.scenario == 'stop'
+        run: node --test packages/cli/scripts/memory-query-responsiveness-benchmark.node-test.mjs
       - name: Measure real disk query cancellation
         if: matrix.scenario == 'stop'
         shell: bash

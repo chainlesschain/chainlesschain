@@ -12,6 +12,7 @@ import {
   withinDeadline,
   windowsBatchInvocation,
   preserveFailureDuringCleanup,
+  capturePosixCleanupDiagnostic,
 } from "../lib/verify01-diagnostic-process.mjs";
 
 test("cleanup uncertainty preserves the original host failure and does not retry cleanup", async () => {
@@ -211,6 +212,10 @@ test("owned cleanup terminates an actual descendant process", async (t) => {
   }
   const pid = Number(fs.readFileSync(pidFile, "utf8"));
   process.kill(pid, 0);
+  const beforeCleanup =
+    process.platform === "win32"
+      ? null
+      : capturePosixCleanupDiagnostic(pid, handle.child.pid);
   await stopOwned(handle);
   if (process.platform === "win32") {
     const evidence = JSON.parse(
@@ -246,7 +251,143 @@ test("owned cleanup terminates an actual descendant process", async (t) => {
       alive = false;
     }
   }
+  if (alive && process.platform !== "win32") {
+    try {
+      const diagnostic = JSON.stringify({
+        kind: "verify01-owned-descendant-survivor/v1",
+        beforeCleanup,
+        afterCleanup: capturePosixCleanupDiagnostic(pid, handle.child.pid),
+      });
+      if (Buffer.byteLength(diagnostic) <= 4096)
+        process.stderr.write(`${diagnostic}\n`);
+    } catch {
+      // Diagnostic capture/output cannot replace the original survivor failure.
+    }
+  }
   assert.equal(alive, false, "owned descendant survived cleanup");
+});
+
+test("POSIX survivor diagnostics capture only bounded process state and signal-zero observations", () => {
+  const probes = [];
+  const evidence = capturePosixCleanupDiagnostic(123, 100, {
+    runPs(command, args, options) {
+      assert.equal(command, "/bin/ps");
+      assert.deepEqual(args, [
+        "-p",
+        "123",
+        "-o",
+        "pid=,ppid=,pgid=,stat=,lstart=",
+      ]);
+      assert.equal(options.timeout, 1000);
+      assert.equal(options.maxBuffer, 2048);
+      assert.equal(options.shell, false);
+      assert.deepEqual(options.env, { PATH: "/usr/bin:/bin", LC_ALL: "C" });
+      return {
+        status: 0,
+        stdout: "123 1 100 Z Mon Nov 9 07:21:16 2026\n",
+        stderr: "secret-command --token=private",
+        commandLine: "private",
+      };
+    },
+    probe(target) {
+      probes.push(target);
+      if (target < 0)
+        throw Object.assign(new Error("private-path"), { code: "ESRCH" });
+    },
+  });
+  assert.deepEqual(probes, [123, -100]);
+  assert.equal(evidence.snapshot.state, "Z");
+  assert.equal(
+    evidence.snapshot.startResolution,
+    "POSIX-lstart-seconds-not-unique-identity",
+  );
+  assert.equal(evidence.pidProbe.signal, 0);
+  assert.equal(evidence.groupProbe.errno, "ESRCH");
+  assert.ok(Buffer.byteLength(JSON.stringify(evidence)) < 1024);
+  assert.doesNotMatch(
+    JSON.stringify(evidence),
+    /private|secret-command|commandLine|stderr/,
+  );
+});
+
+test("POSIX survivor diagnostics reject oversized, malformed, multiple, or wrong-identity ps rows without disclosure", () => {
+  for (const stdout of [
+    "private".repeat(400),
+    "123 1 100 S Mon Nov 9 07:21:16 2026 /private/command --token=secret",
+    "124 1 100 S Mon Nov 9 07:21:16 2026",
+    "123 1 100 S Mon Nov 9 07:21:16 2026\n124 1 100 S Mon Nov 9 07:21:16 2026",
+  ]) {
+    const evidence = capturePosixCleanupDiagnostic(123, 100, {
+      runPs: () => ({ status: 0, stdout }),
+      probe: () => {},
+    });
+    assert.equal(evidence.snapshot.available, false);
+    assert.ok(Buffer.byteLength(JSON.stringify(evidence)) < 1024);
+    assert.doesNotMatch(JSON.stringify(evidence), /private|secret/);
+  }
+});
+
+test("POSIX survivor diagnostic failures cannot throw or expose error messages", () => {
+  const error = Object.assign(new Error("secret-command private-path"), {
+    code: "PRIVATE_TOKEN",
+  });
+  const evidence = capturePosixCleanupDiagnostic(123, 100, {
+    runPs: () => {
+      throw error;
+    },
+    probe: () => {
+      throw error;
+    },
+  });
+  assert.equal(evidence.snapshot.available, false);
+  assert.equal(evidence.snapshot.errno, "UNKNOWN");
+  assert.equal(evidence.pidProbe.errno, "UNKNOWN");
+  assert.doesNotMatch(
+    JSON.stringify(evidence),
+    /secret-command|private-path|PRIVATE_TOKEN/,
+  );
+  const changingCode = Object.defineProperty({}, "code", {
+    get() {
+      this.reads = (this.reads || 0) + 1;
+      return this.reads === 1 ? "ESRCH" : "PRIVATE_TOKEN";
+    },
+  });
+  const changingEvidence = capturePosixCleanupDiagnostic(123, 100, {
+    runPs: () => ({ status: 1, stdout: "" }),
+    probe: () => {
+      throw changingCode;
+    },
+  });
+  assert.equal(changingEvidence.pidProbe.errno, "ESRCH");
+  assert.equal(changingEvidence.groupProbe.errno, "UNKNOWN");
+  assert.doesNotMatch(JSON.stringify(changingEvidence), /PRIVATE_TOKEN/);
+  for (const pid of [0, -1, NaN, 2147483648]) {
+    assert.deepEqual(
+      capturePosixCleanupDiagnostic(pid, 100, {
+        runPs: () => assert.fail("invalid PID must not invoke ps"),
+        probe: () => assert.fail("invalid PID must not be probed"),
+      }),
+      { available: false, reason: "invalid-process-id" },
+    );
+  }
+});
+
+test("POSIX survivor diagnostics distinguish absent processes and bounded ps failures", () => {
+  const absent = capturePosixCleanupDiagnostic(123, 100, {
+    runPs: () => ({ status: 1, stdout: "", stderr: "private" }),
+    probe: () => {
+      throw Object.assign(new Error("private"), { code: "ESRCH" });
+    },
+  });
+  assert.deepEqual(absent.snapshot, { available: true, present: false });
+  for (const code of ["ETIMEDOUT", "ENOBUFS"]) {
+    const evidence = capturePosixCleanupDiagnostic(123, 100, {
+      runPs: () => ({ error: { code, message: "private" }, stdout: "private" }),
+      probe: () => {},
+    });
+    assert.equal(evidence.snapshot.errno, code);
+    assert.doesNotMatch(JSON.stringify(evidence), /private/);
+  }
 });
 
 test("Windows batch quoting rejects expansion and command injection", () => {

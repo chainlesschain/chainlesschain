@@ -124,6 +124,11 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
+      - name: Verify npm retry cleanup ordering before installation
+        if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' }}
+        shell: bash
+        run: bash scripts/__tests__/ci-npm-retry.test.sh
+
       - name: Install dependencies
         if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' }}
         working-directory: ./desktop-app-vue

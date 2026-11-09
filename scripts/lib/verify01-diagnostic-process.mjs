@@ -4,6 +4,109 @@ import path from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import { setTimeout as delay } from "node:timers/promises";
 
+// Observation only: never use this coarse ps identity to authorize signalling.
+// Fixed fields exclude command lines, executable names/paths and environments.
+export function capturePosixCleanupDiagnostic(
+  pid,
+  groupPid,
+  { runPs = spawnSync, probe = (target) => process.kill(target, 0) } = {},
+) {
+  const validId = (value) =>
+    Number.isSafeInteger(value) && value > 0 && value <= 2147483647;
+  if (!validId(pid) || !validId(groupPid))
+    return { available: false, reason: "invalid-process-id" };
+  const safeCode = (error) => {
+    try {
+      const code = error?.code;
+      return [
+        "ESRCH",
+        "EPERM",
+        "EACCES",
+        "ENOENT",
+        "ETIMEDOUT",
+        "ENOBUFS",
+        "EIO",
+      ].includes(code)
+        ? code
+        : "UNKNOWN";
+    } catch {
+      return "UNKNOWN";
+    }
+  };
+  const signalZero = (target) => {
+    try {
+      probe(target);
+      return { signal: 0, result: "success", errno: null };
+    } catch (error) {
+      return { signal: 0, result: "error", errno: safeCode(error) };
+    }
+  };
+  let snapshot = { available: false, reason: "snapshot-unavailable" };
+  try {
+    const result = runPs(
+      "/bin/ps",
+      ["-p", String(pid), "-o", "pid=,ppid=,pgid=,stat=,lstart="],
+      {
+        encoding: "utf8",
+        timeout: 1000,
+        maxBuffer: 2048,
+        shell: false,
+        env: { PATH: "/usr/bin:/bin", LC_ALL: "C" },
+      },
+    );
+    const output = result?.stdout;
+    if (result?.error) {
+      snapshot = {
+        available: false,
+        reason: "snapshot-error",
+        errno: safeCode(result.error),
+      };
+    } else if (typeof output !== "string" || Buffer.byteLength(output) > 2048) {
+      snapshot = { available: false, reason: "invalid-or-oversized-output" };
+    } else if (result.status === 1 && !output.trim()) {
+      snapshot = { available: true, present: false };
+    } else if (result.status === 0) {
+      const row = output.match(
+        /^\s*(\d+)\s+(\d+)\s+(\d+)\s+([RSDTtZXIWU][<NLSsl+EXW>]{0,7})\s+((?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2}\s+\d{2}:\d{2}:\d{2}\s+\d{4})\s*$/u,
+      );
+      if (
+        row &&
+        Number(row[1]) === pid &&
+        Number.isSafeInteger(Number(row[2])) &&
+        Number(row[2]) >= 0 &&
+        Number(row[2]) <= 2147483647 &&
+        validId(Number(row[3]))
+      ) {
+        snapshot = {
+          available: true,
+          present: true,
+          pid,
+          parentPid: Number(row[2]),
+          groupPid: Number(row[3]),
+          state: row[4],
+          started: row[5].replace(/\s+/gu, " "),
+          startResolution: "POSIX-lstart-seconds-not-unique-identity",
+        };
+      } else {
+        snapshot = { available: false, reason: "invalid-output" };
+      }
+    }
+  } catch (error) {
+    snapshot = {
+      available: false,
+      reason: "snapshot-error",
+      errno: safeCode(error),
+    };
+  }
+  return {
+    pid,
+    expectedGroupPid: groupPid,
+    snapshot,
+    pidProbe: signalZero(pid),
+    groupProbe: signalZero(-groupPid),
+  };
+}
+
 export function windowsBatchInvocation(command, args) {
   // cmd expands %/! even inside quotes. Refuse shell syntax in operator paths.
   const quote = (value) => {

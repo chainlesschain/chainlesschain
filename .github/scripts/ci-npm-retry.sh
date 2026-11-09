@@ -35,15 +35,20 @@ for i in 1 2 3; do
         echo "::error::Invalid workspace or working directory for retry cleanup"
         exit 1
       fi
+    fi
+    delay=$((i * 15))
+    echo "::warning::npm install attempt $i failed, retrying in ${delay}s..."
+    # Native lifecycle children can finish writing after npm reports failure.
+    # Spend the existing backoff before deleting their partial trees. This is
+    # not proof of quiescence: any cleanup failure below still stops the retry.
+    sleep "$delay"
+    if [ -n "${CI_NPM_RETRY_CLEAN_WORKSPACE:-}" ]; then
       echo "Removing partial workspace dependency trees before retry"
       if ! rm -rf -- "$root/node_modules" "$PWD/node_modules"; then
         echo "::error::Cannot clean partial dependency trees"
         exit 1
       fi
     fi
-    delay=$((i * 15))
-    echo "::warning::npm install attempt $i failed, retrying in ${delay}s..."
-    sleep "$delay"
   fi
 done
 
