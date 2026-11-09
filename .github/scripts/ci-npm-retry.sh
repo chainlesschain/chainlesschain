@@ -27,6 +27,20 @@ for i in 1 2 3; do
     exit 0
   fi
   if [ "$i" -lt 3 ]; then
+    # Opt-in only: callers installing additional packages must retain their
+    # existing tree. npm's workspace root can differ from the current directory.
+    if [ -n "${CI_NPM_RETRY_CLEAN_WORKSPACE:-}" ]; then
+      root="$CI_NPM_RETRY_CLEAN_WORKSPACE"
+      if [ ! -f "$root/package.json" ] || [ ! -f "$PWD/package.json" ]; then
+        echo "::error::Invalid workspace or working directory for retry cleanup"
+        exit 1
+      fi
+      echo "Removing partial workspace dependency trees before retry"
+      if ! rm -rf -- "$root/node_modules" "$PWD/node_modules"; then
+        echo "::error::Cannot clean partial dependency trees"
+        exit 1
+      fi
+    fi
     delay=$((i * 15))
     echo "::warning::npm install attempt $i failed, retrying in ${delay}s..."
     sleep "$delay"

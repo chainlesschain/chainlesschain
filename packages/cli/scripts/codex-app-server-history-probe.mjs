@@ -8,6 +8,7 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  realpathSync,
   writeFileSync,
 } from "node:fs";
 import http from "node:http";
@@ -289,16 +290,19 @@ export function assertCompleteScanHistory(observed) {
 // Only genuine rollouts from this probe's stopped process may enter the new
 // home. Never copy a state DB or follow links out of the isolated fixture.
 export function copyHistoryRollouts(threads, sourceHome, targetHome) {
-  const sourceRoot = toNamespacedPath(resolve(sourceHome));
-  const destinationRoot = toNamespacedPath(resolve(targetHome));
-  assert.notEqual(sourceRoot, destinationRoot, "rollout homes must differ");
-  for (const directory of [sourceRoot, destinationRoot]) {
+  for (const directory of [sourceHome, targetHome]) {
     const stat = lstatSync(directory);
     assert.ok(
       stat.isDirectory() && !stat.isSymbolicLink(),
       "rollout home must be an unlinked directory",
     );
   }
+  // Codex canonicalizes Windows 8.3 aliases (RUNNER~1 -> runneradmin).
+  // Canonicalize only the checked homes: resolving a rollout itself would
+  // hide source symlinks from the component-by-component lstat checks below.
+  const sourceRoot = toNamespacedPath(realpathSync.native(sourceHome));
+  const destinationRoot = toNamespacedPath(realpathSync.native(targetHome));
+  assert.notEqual(sourceRoot, destinationRoot, "rollout homes must differ");
   const copied = [];
   for (const thread of threads) {
     assert.equal(

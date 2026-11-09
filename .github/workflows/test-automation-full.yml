@@ -68,7 +68,9 @@ jobs:
 
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        # VS 2022 is supported by the native dependencies' bundled node-gyp;
+        # windows-latest may select VS 18, which those versions cannot probe.
+        os: [ubuntu-latest, windows-2022]
       fail-fast: false
 
     steps:
@@ -124,6 +126,10 @@ jobs:
         if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' }}
         working-directory: ./desktop-app-vue
         shell: bash
+        env:
+          # npm hoists workspace dependencies to the repository root. Clear
+          # both partial trees after a failed attempt, not just the desktop tree.
+          CI_NPM_RETRY_CLEAN_WORKSPACE: ${{ github.workspace }}
         run: |
           bash "$GITHUB_WORKSPACE/.github/scripts/ci-npm-retry.sh" \
             npm install --legacy-peer-deps
