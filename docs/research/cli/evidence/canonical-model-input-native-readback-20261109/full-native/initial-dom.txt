@@ -1,0 +1,46 @@
+journey:stream
+×
+journey:history-A
+×
+journey:history-B
+×
++
+↗
+Latest messages
+Turn 1, User message
+journey:stream
+Turn 1, Assistant response
+fixture stream complete #1
+/retry
+Turn 2, User message
+journey:stream
+Turn 2, Assistant response
+fixture stream complete #2
+Turn 3, User message
+journey:plan
+opened plan review editor tab
+Turn 3, Assistant response
+fixture plan approve #3
+Turn 4, User message
+journey:permission
+⚠ run_command: npm test -- --fixture [medium] Deterministic host-journey approval
+Approve
+Deny
+✓ approved (ui-host-fixture)
+Turn 4, Assistant response
+fixture permission approved #4
+Turn 5, User message
+journey:stop
+Turn 5, Assistant response
+fixture stop waiting #5
+/stop: interrupt requested; press Stop again to terminate the session
+⏹ interrupted
+ready · 32→12 tokens (cache read 0, cache write 0)
+Draft saved on this device
+Recover saved drafts
+Accepted; see the conversation for its outcome: journey:stop Discard saved input
+Message the agent
+Send
+Plan
+Stop
+New

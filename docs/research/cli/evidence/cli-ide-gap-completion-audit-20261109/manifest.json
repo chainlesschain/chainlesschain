@@ -17,9 +17,24 @@
         "cli/evidence/implementation-plan-volcengine-live-current2-20261109",
         "cli/evidence/project-goal-volcengine-live-current-20261109",
         "cli/evidence/project-goal-volcengine-live-current24-20261109",
-        "cli/evidence/vscode-installed-native-recovery-20261109"
+        "cli/evidence/vscode-installed-native-recovery-20261109",
+        "cli/evidence/canonical-model-input-native-readback-20261109"
       ],
-      "remaining": ["dual IDE journey"]
+      "remaining": ["dual IDE journey"],
+      "scopedRealCanonicalNativeReadback": {
+        "cliCommit": "e691dad7b3879844eed649db45a10e251f9eb343",
+        "vscodeCommit": "d4460f315ff9c2ccc8e5ed8ccc0ded24d6d9d38b",
+        "provider": "volcengine",
+        "model": "deepseek-v4-1-flash-economy-261017",
+        "profile": "explicit opt_in_canary",
+        "mappedSources": 5,
+        "canonicalRecords": 2,
+        "physicalBodyDigestMatchesDiagnostic": true,
+        "installedVsixNativeCommandPassed": true,
+        "ideModelRequests": 0,
+        "taskInitiatedInIde": false,
+        "dualIdeVerified": false
+      }
     },
     "3": {
       "status": "partial",
@@ -30,7 +45,8 @@
         "cli/evidence/native-price-windows-20261109",
         "cli/evidence/mcp-tasks-model-continuation-20261109",
         "cli/evidence/vscode-installed-native-recovery-20261109",
-        "cli/evidence/mcp-tasks-deepseek-continuation-20261109"
+        "cli/evidence/mcp-tasks-deepseek-continuation-20261109",
+        "cli/evidence/canonical-model-input-native-readback-20261109"
       ],
       "remaining": ["dual IDE recovery", "complete cross-entry journey"]
     },
@@ -41,7 +57,8 @@
         "cli/evidence/repl-inflight-recovery-20261109",
         "cli/evidence/mcp-tasks-reference-stateless-20261109",
         "cli/evidence/mcp-tasks-model-continuation-20261109",
-        "cli/evidence/mcp-tasks-deepseek-continuation-20261109"
+        "cli/evidence/mcp-tasks-deepseek-continuation-20261109",
+        "cli/evidence/canonical-model-input-native-readback-20261109"
       ],
       "remaining": [
         "remote production third-party service",
@@ -78,6 +95,19 @@
           "evidence": "cli/evidence/mcp-tasks-model-continuation-20261109"
         },
         "latestRealProvider": {
+          "provider": "volcengine",
+          "model": "deepseek-v4-1-flash-economy-261017",
+          "sourceCommit": "e691dad7b3879844eed649db45a10e251f9eb343",
+          "physicalModelRequests": 1,
+          "repeatedModelDispatches": 0,
+          "continuationStatus": "settled",
+          "promptTokens": 853,
+          "completionTokens": 72,
+          "canonicalSourceMappingCovered": true,
+          "billingVerified": false,
+          "paidReady": false
+        },
+        "previousShadowProfileProvider": {
           "provider": "volcengine",
           "model": "deepseek-v4-1-flash-economy-261017",
           "sourceCommit": "8572855e16412d56dd73662ea0e487627b18e2c4",
@@ -150,7 +180,8 @@
         "cli/evidence/jetbrains-scripted-journey-rerun-current-20261109",
         "cli/evidence/project-goal-volcengine-live-current-20261109",
         "cli/evidence/vscode-electron-loopback-isolation-20261109",
-        "cli/evidence/vscode-installed-native-recovery-20261109"
+        "cli/evidence/vscode-installed-native-recovery-20261109",
+        "cli/evidence/canonical-model-input-native-readback-20261109"
       ],
       "remaining": [
         "VS Code 1.145.2 bridge loopback (installed 1.96.2 separately passed)",
@@ -161,11 +192,11 @@
       ],
       "scopedNativeVscode": {
         "status": "windows-installed-1.96.2-real-dom-passed",
-        "sourceCommit": "dc69b751845b9a264f82c8743566c2b023fc7037",
+        "sourceCommit": "d4460f315ff9c2ccc8e5ed8ccc0ded24d6d9d38b",
         "model": "deterministic fixture",
         "canonicalRecovery": true,
         "needsInputSamples": 100,
-        "needsInputP95Ms": 1936,
+        "needsInputP95Ms": 1437,
         "latestCached1_145_2Accepted": false
       }
     },
@@ -189,7 +220,8 @@
         "cli/evidence/cross-entry-projection-current-20261109",
         "cli/evidence/cross-entry-projection-rerun-current-20261109",
         "cli/evidence/vscode-electron-loopback-isolation-20261109",
-        "cli/evidence/native-ide-runtime-controls-20261109"
+        "cli/evidence/native-ide-runtime-controls-20261109",
+        "cli/evidence/canonical-model-input-native-readback-20261109"
       ],
       "remaining": [
         "JetBrains live runtime",
@@ -207,6 +239,12 @@
         "extensionLoaded": false,
         "gradleLoaded": false,
         "rootCauseIdentified": false
+      },
+      "configuredCliReadback": {
+        "status": "fixed-and-native-verified",
+        "sourceCommit": "d4460f315ff9c2ccc8e5ed8ccc0ded24d6d9d38b",
+        "bridgeDisabled": true,
+        "explicitCliPathHonored": true
       }
     }
   },
@@ -225,7 +263,10 @@
     "mcpContinuationEvidence": "cli/evidence/mcp-tasks-model-continuation-20261109",
     "installedVscodeCommit": "dc69b751845b9a264f82c8743566c2b023fc7037",
     "deepseekContinuationCommit": "8572855e16412d56dd73662ea0e487627b18e2c4",
-    "deepseekContinuationEvidence": "cli/evidence/mcp-tasks-deepseek-continuation-20261109"
+    "deepseekContinuationEvidence": "cli/evidence/mcp-tasks-deepseek-continuation-20261109",
+    "canonicalModelInputReadbackEvidence": "cli/evidence/canonical-model-input-native-readback-20261109",
+    "canonicalMcpProbeCommit": "e691dad7b3879844eed649db45a10e251f9eb343",
+    "configuredCliDiagnosticFixCommit": "d4460f315ff9c2ccc8e5ed8ccc0ded24d6d9d38b"
   },
   "auditedSourceCommit": "44f56fe58aee36e6cc097755ce7c4ab3ec94b126"
 }

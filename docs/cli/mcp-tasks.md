@@ -76,6 +76,8 @@ cc agent --resume <session-id> "Continue using the delivered result."
 
 Windows 的真实 readline、多进程 DPAPI、单次交付与三种崩溃窗口验证见[续跑证据](../research/cli/evidence/mcp-tasks-model-continuation-20261109/README.md)。随后使用本机已配置的火山引擎 DeepSeek 完成[一次真实模型续跑](../research/cli/evidence/mcp-tasks-deepseek-continuation-20261109/README.md)：HTTP 200，输入 862、输出 71 tokens；独立读回确认原会话仅一条用户要求、一次外部参考和一条答案，重启 REPL 未重复派发。此前 OpenAI HTTP 429 的未知用量与未决续跑保持原记录。未宣称 OS PTY、远程生产 MCP、双 IDE、多平台或账单核验通过。
 
+另一次显式启用 canonical 输入规划的[真实模型与原生 IDE 读回](../research/cli/evidence/canonical-model-input-native-readback-20261109/README.md)记录了五个来源的完整逻辑／正文映射，正文摘要与物理 fetch 摘要相同。VS Code 已安装 VSIX 的真实诊断命令通过指定 CLI 只读查询同一会话，未修改日志或重新调用模型。该配置只用于本次进程，默认 shadow 记录仍保持 planning_unbound，不扩大为完整 IDE 发起任务或双 IDE 验收。
+
 fork 保留外部参考及已保存的答案，但不继承父任务或续跑操作权；原有外来 MCP 调用恢复门禁仍可能限制新操作。双 IDE 任务界面及本地 stdio 任务重启恢复仍属于后续工作。原调用未结算时，保守门禁也会限制同会话的新副作用调用。新式续跑的旧版本读取和降级尚未验收。
 
 实现与测试证据见[实施记录](../research/cli-ide/implementation/cli-ide-mcp-task-durable-progress-2026-11-08.md)。

@@ -25,3 +25,5 @@ Windows x64 / Node 24.12.0，官方未修改 Everything 2.2.1 独立进程，生
 随后用户明确允许火山引擎 DeepSeek，并更新了本机 CLI 配置。提交 `8572855e16412d56dd73662ea0e487627b18e2c4` 使用该配置的 `deepseek-v4-1-flash-economy-261017` 完成一次真实续跑：HTTP 200、输入 862／输出 71 tokens（含推理 46）。独立进程验链读回为 settled，一条原用户要求、一次参考、一条答案；重启真实 REPL 没有重复模型派发。原生 CNY 诊断估算采用官方最高档且不换算 FX，未修改生产 USD 未匹配边界；26/26 定向回归通过。详见[真实 DeepSeek 证据](../../cli/evidence/mcp-tasks-deepseek-continuation-20261109/README.md)。
 
 尚需生产远程 MCP 服务、现代输入交互、实际到期/撤权、双 IDE/桌面、多系统及旧版本降级证据。MCP Tasks 条目仍为 partial。后续代码和文档在 [#571](https://github.com/chainlesschain/chainlesschain/pull/571)；准确新提交的 GitHub 矩阵另行核对，历史本地结果不代替发布门禁。
+
+后续 canonical opt-in 旅程在提交 `e691dad7b3879844eed649db45a10e251f9eb343` 完成五个来源的完整逻辑／正文映射，且诊断摘要与真实 fetch 请求相同；853／72 tokens 的新样本不与此前 shadow 样本混合。VS Code 提交 `d4460f315ff9c2ccc8e5ed8ccc0ded24d6d9d38b` 修复关闭 bridge 时诊断命令误用全局 CLI 的问题，并通过真实已安装 VSIX 对该会话的只读命令／编辑器验收；352/352 扩展单测及准确源码的完整原生恢复旅程通过。详见[canonical 输入与 IDE 读回证据](../../cli/evidence/canonical-model-input-native-readback-20261109/README.md)。这仍不是 IDE 发起的完整真实任务或双 IDE 验收。
