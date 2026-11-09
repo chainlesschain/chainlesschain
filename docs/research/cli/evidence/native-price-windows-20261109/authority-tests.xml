@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<testsuites>
+	<testcase name="windowed contracts reject gaps, overlaps, unknown dimensions and unsigned price changes" time="0.007284" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+	<testsuite name="native settlement pins the dispatch window across boundaries and reopen" time="0.043316" disabled="0" errors="0" tests="2" failures="0" skipped="0" hostname="local-windows">
+		<testcase name="9999" time="0.026658" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+		<testcase name="10000" time="0.016354" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+	</testsuite>
+	<testcase name="a dispatched price can settle after contract and FX expiry following restart" time="0.016401" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+	<testcase name="dispatch selects current prices after asynchronous credential preparation" time="0.024761" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+	<testsuite name="missing, duplicate or inconsistent dispatch price evidence retains the full reservation" time="0.093692" disabled="0" errors="0" tests="6" failures="0" skipped="0" hostname="local-windows">
+		<testcase name="0" time="0.015640" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+		<testcase name="1" time="0.015026" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+		<testcase name="2" time="0.016030" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+		<testcase name="3" time="0.015650" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+		<testcase name="4" time="0.014775" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+		<testcase name="5" time="0.015994" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+	</testsuite>
+	<testcase name="a killed dispatch preserves its native price through a separate-process restart after expiry" time="0.149658" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+	<testcase name="failure to persist the dispatch price witness admits no provider request" time="0.014535" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+	<testcase name="an expired held request cannot dispatch after reopen" time="0.012819" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+	<testsuite name="recovery rejects missing, duplicate or mismatched original activation witnesses" time="0.051773" disabled="0" errors="0" tests="4" failures="0" skipped="0" hostname="local-windows">
+		<testcase name="DELETE" time="0.014642" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+		<testcase name="INSERT" time="0.012550" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+		<testcase name="UPDATE" time="0.012201" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+		<testcase name="UPDATE" time="0.012034" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+	</testsuite>
+	<testcase name="activation refuses missing contract, FX, history and untrusted evidence before creating storage" time="0.001409" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+	<testcase name="activation binds exact original lineage and cannot reset existing database" time="0.010561" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+	<testcase name="full output plus reasoning reserved with native currency; reasoning not billed twice" time="0.012154" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+	<testcase name="max_tokens never reduces reasoning/full-contract reservation" time="0.010909" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+	<testcase name="same task initial and only one remediation retain original spend across reopen" time="0.018293" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+	<testcase name="remediation is not a second allowance; over-cap request is rejected before reserve" time="0.012792" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+	<testcase name="historical unknown liability remains halted even if numeric amount is zero" time="0.008964" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+	<testcase name="historical task allocations sum to original $99 and are never reset" time="0.010872" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+	<testcase name="duplicate run resume does not consume remediation and active initial must close" time="0.010583" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+	<testcase name="one physical call ID cannot be redispatched; repeated settlement is idempotent" time="0.013895" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+	<testsuite name="invalid usage/model/tier/cache/reasoning permanently retains the whole reservation" time="0.117567" disabled="0" errors="0" tests="8" failures="0" skipped="0" hostname="local-windows">
+		<testcase name="0" time="0.014016" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+		<testcase name="1" time="0.014172" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+		<testcase name="2" time="0.014339" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+		<testcase name="3" time="0.015891" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+		<testcase name="4" time="0.014477" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+		<testcase name="5" time="0.015137" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+		<testcase name="6" time="0.014581" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+		<testcase name="7" time="0.014308" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+	</testsuite>
+	<testcase name="expired contract/FX cannot admit new dispatch" time="0.010127" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+	<testcase name="reserved body mutation cannot consume dispatch authorization" time="0.010661" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+	<testcase name="multi-completion, thinking override and paid hosted tools fail before reservation" time="0.011684" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+	<testcase name="concurrent separate processes grant exactly one atomic reservation" time="0.352849" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+	<testcase name="real process kill after reserved preserves durable accounting" time="0.140511" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+	<testcase name="real process kill after dispatched preserves durable accounting" time="0.145116" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+	<testcase name="real process kill after settled preserves durable accounting" time="0.141971" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+	<testcase name="SQLite write failure admits no reservation and transport never calls provider" time="0.011919" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+	<testcase name="credential-owning JSON transport reserves before fetch, preserves body, never exposes key" time="0.013636" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+	<testcase name="successful SSE requires complete terminal usage and settles once" time="0.013025" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+	<testsuite name="disconnect, missing usage, redirect/HTTP error never retry and halt next physical request" time="0.057451" disabled="0" errors="0" tests="4" failures="0" skipped="0" hostname="local-windows">
+		<testcase name="disconnect" time="0.014203" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+		<testcase name="missing" time="0.016845" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+		<testcase name="http" time="0.012327" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+		<testcase name="stream-truncated" time="0.013655" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+	</testsuite>
+	<testcase name="tool environment excludes provider keys, homes, runtime injection and ledger authority" time="0.000160" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+	<testcase name="unknown billed usage dimensions halt rather than silently underprice" time="0.013024" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+	<testcase name="rational FX uses upward integer rounding instead of floating point" time="0.012755" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+	<testcase name="corrupt durable storage is not silently replaced or initialized" time="0.008945" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+	<testcase name="verified receipts cannot silently substitute the frozen 18 plus 18 provider strata" time="0.000797" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+	<testsuite name="final dispatch rechecks contract and FX after awaited credential preparation" time="0.026510" disabled="0" errors="0" tests="2" failures="0" skipped="0" hostname="local-windows">
+		<testcase name="contract" time="0.012959" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+		<testcase name="fx" time="0.013336" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+	</testsuite>
+	<testcase name="accounting JSON parser rejects duplicate/escaped keys and nonfinite numbers" time="0.000249" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+	<testsuite name="ambiguous JSON, error envelopes and nonfinite usage never settle" time="0.064863" disabled="0" errors="0" tests="5" failures="0" skipped="0" hostname="local-windows">
+		<testcase name="duplicate" time="0.013089" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+		<testcase name="escapedDuplicate" time="0.012882" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+		<testcase name="errorAndUsage" time="0.013122" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+		<testcase name="errorNull" time="0.012483" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+		<testcase name="nonfinite" time="0.012849" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+	</testsuite>
+	<testsuite name="SSE requires a completed choice and coherent terminal order" time="0.096965" disabled="0" errors="0" tests="7" failures="0" skipped="0" hostname="local-windows">
+		<testcase name="incomplete" time="0.016499" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+		<testcase name="usageOnly" time="0.014746" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+		<testcase name="contentAfterFinish" time="0.013060" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+		<testcase name="duplicateFinish" time="0.012701" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+		<testcase name="unsupportedFinish" time="0.012372" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+		<testcase name="errorAndUsage" time="0.013720" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+		<testcase name="duplicateUsageKey" time="0.013109" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+	</testsuite>
+	<testcase name="noncanonical duplicate settlement restores full liability and halts durably" time="0.014552" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+	<testcase name="unpriced input/output dimensions and oversized serialized input fail before fetch" time="0.010787" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+	<testcase name="inclusive input envelope is mandatory verified contract evidence" time="0.001405" classname="test" file="packages/cli/test-node/formal-budget-authority.test.mjs"/>
+	<!-- tests 81 -->
+	<!-- suites 0 -->
+	<!-- pass 81 -->
+	<!-- fail 0 -->
+	<!-- cancelled 0 -->
+	<!-- skipped 0 -->
+	<!-- todo 0 -->
+	<!-- duration_ms 2000.077 -->
+</testsuites>
