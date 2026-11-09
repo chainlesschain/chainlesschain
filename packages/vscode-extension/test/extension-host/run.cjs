@@ -37,6 +37,7 @@ const {
   waitForFile,
 } = require("./cdp-journey.cjs");
 const { runElectronMainHostJourney } = require("./electron-main-journey.cjs");
+const { collectLoopbackDiagnostic } = require("./loopback-diagnostic.cjs");
 
 const EXTENSION_ID = "chainlesschain.chainlesschain-ide";
 const PACKAGE_ROOT = path.resolve(__dirname, "..", "..");
@@ -1624,6 +1625,7 @@ async function main() {
   let journeyResult = "failed";
   let journeyError = null;
   let evidenceError = null;
+  let vscodeExecutablePath = null;
   try {
     const { downloadAndUnzipVSCode, runTests, runVSCodeCommand } =
       requireTestElectron();
@@ -1658,7 +1660,7 @@ async function main() {
 
     // Reuses the exact version already downloaded by the install command.
     recordHostProgress(progressPath, "download_started");
-    const vscodeExecutablePath = await retryTransientNetworkOperation(
+    vscodeExecutablePath = await retryTransientNetworkOperation(
       () => downloadAndUnzipVSCode(downloadOptions),
       { label: `VS Code ${options.vscodeVersion} executable resolution` },
     );
@@ -1765,6 +1767,17 @@ async function main() {
   } catch (error) {
     journeyError = error;
     recordHostProgress(progressPath, "journey_failed");
+    if (vscodeExecutablePath) {
+      try {
+        await collectHostLoopbackDiagnostics(
+          vscodeExecutablePath,
+          journeyRuntimeDir,
+        );
+      } catch {
+        // Diagnostic failure must never replace the actual host assertion.
+        recordHostProgress(progressPath, "loopback_diagnostic_failed");
+      }
+    }
     dumpFailureDiagnostics(runRoot);
   } finally {
     const diagnosticLogs = findDiagnosticLogs(runRoot);
@@ -1834,8 +1847,58 @@ async function main() {
   if (evidenceError) throw evidenceError;
 }
 
+async function collectHostLoopbackDiagnostics(executable, directory) {
+  fs.mkdirSync(directory, { recursive: true });
+  const baseline = await collectLoopbackDiagnostic();
+  fs.writeFileSync(
+    path.join(directory, "loopback-node.json"),
+    `${JSON.stringify(baseline, null, 2)}\n`,
+    { flag: "wx", mode: 0o600 },
+  );
+  const env = { ELECTRON_RUN_AS_NODE: "1" };
+  for (const key of [
+    "PATH",
+    "Path",
+    "SystemRoot",
+    "WINDIR",
+    "TEMP",
+    "TMP",
+    "TMPDIR",
+  ])
+    if (process.env[key] != null) env[key] = process.env[key];
+  await new Promise((resolve, reject) => {
+    const child = spawn(
+      executable,
+      [
+        path.join(__dirname, "loopback-diagnostic.cjs"),
+        path.join(directory, "loopback-electron.json"),
+      ],
+      { env, windowsHide: true, stdio: "ignore" },
+    );
+    const timer = setTimeout(() => {
+      child.kill();
+      reject(new Error("Host loopback diagnostic timed out"));
+    }, 10_000);
+    child.once("error", (error) => {
+      clearTimeout(timer);
+      reject(error);
+    });
+    child.once("exit", (code, signal) => {
+      clearTimeout(timer);
+      if (code === 0 && !signal) resolve();
+      else reject(new Error("Host loopback diagnostic process failed"));
+    });
+  });
+  // Missing evidence is a diagnostic failure, never a successful baseline.
+  const receipt = JSON.parse(
+    fs.readFileSync(path.join(directory, "loopback-electron.json"), "utf8"),
+  );
+  assert.equal(receipt.schema, baseline.schema);
+}
+
 module.exports = {
   buildProfileArgs,
+  collectHostLoopbackDiagnostics,
   buildExtensionTestLaunchArgs,
   buildExternalCompanionHostLaunchArgs,
   buildHostApiLaunchArgs,

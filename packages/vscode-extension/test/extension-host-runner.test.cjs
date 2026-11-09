@@ -7,6 +7,57 @@ const os = require("node:os");
 const path = require("node:path");
 const { PassThrough, Readable } = require("node:stream");
 const { afterEach, test } = require("node:test");
+const { probeLoopback } = require("./extension-host/loopback-diagnostic.cjs");
+
+test("loopback diagnostics reject non-local targets before creating sockets", async () => {
+  for (const host of ["0.0.0.0", "example.com", "localhost", undefined])
+    await assert.rejects(probeLoopback({ host }), /Only loopback/);
+  await assert.rejects(
+    probeLoopback({ host: "127.0.0.1", timeoutMs: Infinity }),
+    /Invalid loopback deadline/,
+  );
+});
+
+test("loopback diagnostic connects and closes a real IPv4 listener", async () => {
+  const receipt = await probeLoopback({ host: "127.0.0.1" });
+  assert.deepEqual(receipt, {
+    host: "127.0.0.1",
+    listening: true,
+    connected: true,
+    errorCode: null,
+  });
+});
+
+test("host failure diagnostics archive independent runtime receipts without environment", async () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "cc-loopback-test-"));
+  try {
+    await collectHostLoopbackDiagnostics(process.execPath, directory);
+    for (const file of ["loopback-node.json", "loopback-electron.json"]) {
+      const text = fs.readFileSync(path.join(directory, file), "utf8");
+      const receipt = JSON.parse(text);
+      assert.equal(
+        receipt.schema,
+        "chainlesschain.host-loopback-diagnostic/v1",
+      );
+      assert.equal(receipt.extensionLoaded, false);
+      assert.equal(receipt.cases[0].connected, true);
+      assert.equal(receipt.cases.length, 2);
+      assert.deepEqual(Object.keys(receipt).sort(), [
+        "architecture",
+        "cases",
+        "electronVersion",
+        "extensionLoaded",
+        "nodeVersion",
+        "platform",
+        "schema",
+      ]);
+      assert.ok(!text.includes(process.execPath));
+      assert.doesNotMatch(text, /token|password|environment|execPath/iu);
+    }
+  } finally {
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
+});
 const {
   recordHostDriverFailure,
 } = require("./extension-host/driver/failure-receipt.cjs");
@@ -73,6 +124,7 @@ const {
   buildHostInspectorLaunchArgs,
   buildHostPipeLaunchArgs,
   buildProfileArgs,
+  collectHostLoopbackDiagnostics,
   buildHostLaunchArgs,
   createDevToolsEndpointCapture,
   createElectronInspectorEndpointCapture,
