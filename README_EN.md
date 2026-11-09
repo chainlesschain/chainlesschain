@@ -1,12 +1,22 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
-> Release candidate: CLI **0.166.145**, Session Core **0.3.27**, VS Code **0.37.181** and JetBrains **0.4.198** are under validation and are not published. Installation instructions below retain the verified public release. The candidate adds goal transfer/signed rollback and repairs Windows CI long paths and isolated Web panel cache handling.
+## Current release and source progress — 2026-11-09
 
-CLI **0.166.143** and Session Core **0.3.26** are verified public after exact-source three-OS gates, Actions OIDC publication and independent public byte/provenance verification. Open VSX **0.37.179** is public and its VSIX matches the official artifact; JetBrains **0.4.196** is approved, listed and downloadable; all 627 original payload files match the official build. Both recommend CLI **0.166.143**; see the [release record](docs/research/cli/evidence/release143-public/README.md). Immutable release source: `3fa3a4b258bbcb60b23b4298cec375661ad6f410`.
+Public pairing: CLI **0.166.145**, Session Core **0.3.27**, Open VSX **0.37.181**, JetBrains **0.4.198**. Both IDEs recommend CLI **0.166.145**. Open VSX has passed **70K+ downloads**, confirmed by the project owner. Public native clients remain **v5.0.3.145**; product **v5.0.3.146** and VS Code **0.37.182** are source versions, not verified public downloads.
 
-Install `npm i -g chainlesschain@0.166.143 --registry https://registry.npmjs.org`, restart hosts, then run `cc --version` and `cc doctor`. This release adds local compute configuration for LEXDATA/vLLM/SGLang, endpoint credential isolation and controlled pending goal-creation requests. Native creation requires matching desktop support and separate confirmation. Public clients are **v5.0.3.145** from earlier independent sources; new native creation/model drafts need matching newer desktop builds. This release does not republish PC/mobile clients; real IDE/Electron GUI, LEXDATA inference and business-effect acceptance remain separate. [Upgrade guide](docs-site/docs/chainlesschain/cli-ide-update-2026-11-06-143.md) · [Design](docs/design/release-runtime-update-2026-11-06-143.md) · [Previous release record](docs/research/cli/evidence/release142-public/README.md)
+```bash
+npm i -g chainlesschain@0.166.145 --registry https://registry.npmjs.org
+cc --version
+cc doctor
+```
 
-> Unreleased source progress: PR #539 adds explicit CLI-goal handoff to a native personal project, exact-byte backup/freeze and signed cancellation recovery. Imported goals start paused without inherited authority; matching branch builds are required and public .143/.145 do not include it. [Design and validation scope](docs/design/cli-goal-transfer-source-2026-11-07.md).
+Restart CLI / IDE hosts after upgrading. Immutable CLI source: `4e4b421bfb42e524f071c9ad70c2a2a2ce607374`. Exact-source CLI CI: **75 passed, 1 skipped**; Strict Sandbox: **6 passed**. This review checked npm archive integrity, public IDE downloads and pairing; cryptographic provenance verification and full IDE artifact parity were not rerun.
+
+Reviewed `main@c34a664f42` adds or improves model-input diagnostics, in-flight REPL input/recovery, MCP Tasks, Memory queries, host failure isolation, and durable price windows with expired-settlement recovery. These have separate source and validation scopes and are not all included in public CLI .145. That release includes `goal transfer-to-project` / `goal restore-transfer`; native import needs a matching newer desktop build and explicit confirmation. Imported goals start paused.
+
+[Upgrade guide](docs-site/docs/chainlesschain/cli-ide-update-2026-11-09-145.md) · [Design](docs/design/release-runtime-update-2026-11-09.md) · [Public readback](docs/research/cli/evidence/documentation-refresh-20261109/README.md)
+
+Full dual-IDE/Electron GUI journeys, cross-platform recovery and Memory SLOs, account billing and formal paid admission still have open items. **NOT_PAID_READY / NOT_ADMITTED / HOLD** remain. Historical model-task results retain their original versions and cohorts; this documentation update adds no model-task acceptance. Dated sections below retain their historical scope.
 
 <!-- release141-current:start -->
 

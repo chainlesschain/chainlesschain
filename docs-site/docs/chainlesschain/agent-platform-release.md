@@ -1,5 +1,13 @@
 # Agent Platform 发布与升级指南
 
+## 2026-11-09 当前发行与主线核对
+
+公开组合 **CLI 0.166.145 / Session Core 0.3.27 / Open VSX 0.37.181 / JetBrains 0.4.198**，两款 IDE 推荐 CLI .145。Open VSX 下载突破 **7 万+**（项目方确认）。PC/mobile 仍为 **v5.0.3.145**；源码产品 .146 与 VS Code .182 不作为已发布下载推荐。
+
+主线 `c34a664f42` 完善模型实际输入诊断、REPL 恢复、MCP Tasks、Memory、宿主故障定位和持久计费窗口。它们按各自源码及证据范围判断，不全部归入公开 .145。CLI .145 已含 `goal transfer-to-project`；原生导入需匹配新桌面并显式确认。发行源 CLI CI **75 成功、1 跳过** / Strict Sandbox **6 成功**；文档更新不新增模型任务验收。**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留，历史 **2/4** 等成绩不合并为当前版本成绩。
+
+[当前升级指南](./cli-ide-update-2026-11-09-145)。以下日期与版本段落保留历史范围。
+
 ## 当前发行与读取恢复（2026-11-05）
 
 CLI **0.166.142** 已通过 GitHub Actions OIDC 发布；Open VSX **0.37.178** 和 JetBrains **0.4.195** 均已公开，均推荐 CLI **0.166.142**。CLI 公开字节与签名来源、仅 registry 的 `--ignore-scripts` 安装及 Agent capability 启动探测已核验；两款插件公开 payload 与正式构建一致。

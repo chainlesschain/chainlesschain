@@ -1,5 +1,15 @@
 # ChainlessChain 设计文档网站
 
+## 2026-11-09 当前发行与主线核对
+
+公开组合 **CLI 0.166.145 / Session Core 0.3.27 / Open VSX 0.37.181 / JetBrains 0.4.198**，两款 IDE 推荐 CLI .145。Open VSX 下载突破 **7 万+**（项目方确认）。PC/mobile 仍为 **v5.0.3.145**；源码产品 .146 与 VS Code .182 不作为已发布下载推荐。
+
+主线 `c34a664f42` 完善模型实际输入诊断、REPL 恢复、MCP Tasks、Memory、宿主故障定位和持久计费窗口。它们按各自源码及证据范围判断，不全部归入公开 .145。CLI .145 已含 `goal transfer-to-project`；原生导入需匹配新桌面并显式确认。发行源 CLI CI **75 成功、1 跳过** / Strict Sandbox **6 成功**；文档更新不新增模型任务验收。**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留，历史 **2/4** 等成绩不合并为当前版本成绩。
+
+[本轮用户指南](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-11-09-145.html) · [运行时设计](https://design.chainlesschain.com/release-runtime-update-2026-11-09.html)
+
+以下带日期段落保留历史范围；构建和部署方式仍适用。
+
 `design.chainlesschain.com` 的 VitePress 项目。设计权威源位于仓库根 `docs/design/`；本项目 `docs/` 下的对应页面由同步脚本生成，不单独手改副本。
 
 ## 当前设计核对（2026-11-06）

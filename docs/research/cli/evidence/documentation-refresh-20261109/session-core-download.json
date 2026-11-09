@@ -1,0 +1,79 @@
+{
+  "url": "https://registry.npmjs.org/@chainlesschain/session-core/-/session-core-0.3.27.tgz",
+  "sha256": "cabc0792335ae3c424b5080f5575a8083e063de3ae70921435a5d18099b9f0cb",
+  "integrityVerified": true,
+  "version": "0.3.27",
+  "dependencies": {
+    "koffi": "^2.16.3",
+    "@noble/curves": "^1.9.7",
+    "@noble/hashes": "^2.0.1",
+    "@scure/base": "^1.2.6"
+  },
+  "provenanceStatements": [
+    {
+      "_type": "https://in-toto.io/Statement/v0.1",
+      "subject": [
+        {
+          "name": "pkg:npm/%40chainlesschain/session-core@0.3.27",
+          "digest": {
+            "sha512": "14783bb63aac46dc1d50c699f86adde69785cda5e60b36d9322a137e7fd7872dce39fa05115976af26d37585d2607eb252c58fa7c69cb2e6de41e8dc136a5d4a"
+          }
+        }
+      ],
+      "predicateType": "https://github.com/npm/attestation/tree/main/specs/publish/v0.1",
+      "predicate": {
+        "name": "@chainlesschain/session-core",
+        "version": "0.3.27",
+        "registry": "https://registry.npmjs.org"
+      }
+    },
+    {
+      "_type": "https://in-toto.io/Statement/v1",
+      "subject": [
+        {
+          "name": "pkg:npm/%40chainlesschain/session-core@0.3.27",
+          "digest": {
+            "sha512": "14783bb63aac46dc1d50c699f86adde69785cda5e60b36d9322a137e7fd7872dce39fa05115976af26d37585d2607eb252c58fa7c69cb2e6de41e8dc136a5d4a"
+          }
+        }
+      ],
+      "predicateType": "https://slsa.dev/provenance/v1",
+      "predicate": {
+        "buildDefinition": {
+          "buildType": "https://slsa-framework.github.io/github-actions-buildtypes/workflow/v1",
+          "externalParameters": {
+            "workflow": {
+              "ref": "refs/tags/v-npm-0-166-145",
+              "repository": "https://github.com/chainlesschain/chainlesschain",
+              "path": ".github/workflows/npm-publish.yml"
+            }
+          },
+          "internalParameters": {
+            "github": {
+              "event_name": "push",
+              "repository_id": "1107348698",
+              "repository_owner_id": "247070867"
+            }
+          },
+          "resolvedDependencies": [
+            {
+              "uri": "git+https://github.com/chainlesschain/chainlesschain@refs/tags/v-npm-0-166-145",
+              "digest": {
+                "gitCommit": "4e4b421bfb42e524f071c9ad70c2a2a2ce607374"
+              }
+            }
+          ]
+        },
+        "runDetails": {
+          "builder": {
+            "id": "https://github.com/actions/runner/github-hosted"
+          },
+          "metadata": {
+            "invocationId": "https://github.com/chainlesschain/chainlesschain/actions/runs/42495050656/attempts/1"
+          }
+        }
+      }
+    }
+  ],
+  "cryptographicAttestationVerification": "not rerun; see official independent readback workflow"
+}

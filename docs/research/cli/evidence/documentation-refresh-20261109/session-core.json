@@ -1,0 +1,166 @@
+{
+  "checkedAt": "2026-11-09T00:49:39.433297+00:00",
+  "url": "https://registry.npmjs.org/@chainlesschain%2fsession-core/latest",
+  "data": {
+    "bugs": {
+      "url": "https://github.com/chainlesschain/chainlesschain/issues"
+    },
+    "dist": {
+      "shasum": "66985a664ba8a6e604e91b502499499aa228e1ca",
+      "tarball": "https://registry.npmjs.org/@chainlesschain/session-core/-/session-core-0.3.27.tgz",
+      "fileCount": 85,
+      "integrity": "sha512-FHg7tjqsRtwdUMaZ+Grd5peFzaXmCzbZMioTfn/Xhy3OOfoFEVl2rybTdYXSYH6yUsWPp8acsubeQejcE2pdSg==",
+      "signatures": [
+        {
+          "sig": "MEUCICoTrPb0zN7HnqkoCkimq9W7If1g3par/yw7j/k5y2bTAiEAhcYSh2aDyj4fAGufLTJ/dldbM3YV2CB74LxW1x7obEw=",
+          "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+        },
+        {
+          "sig": "MEYCIQDs8UhnPKHvDkMpw7QRUr9TNE79SPIcgzniVLQRTP4mCAIhAK+b/4XdX44iiEIRcG3x5Km552sllNQkyzVU4dIe7atA",
+          "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+        }
+      ],
+      "attestations": {
+        "url": "https://registry.npmjs.org/-/npm/v1/attestations/@chainlesschain%2fsession-core@0.3.27",
+        "provenance": {
+          "predicateType": "https://slsa.dev/provenance/v1"
+        }
+      },
+      "unpackedSize": 1550241
+    },
+    "main": "lib/index.js",
+    "name": "@chainlesschain/session-core",
+    "type": "commonjs",
+    "_from": "file:/home/runner/work/chainlesschain/chainlesschain/release-artifacts/children/chainlesschain-session-core-0.3.27.tgz",
+    "author": {
+      "name": "ChainlessChain Team"
+    },
+    "engines": {
+      "node": ">=18.0.0"
+    },
+    "exports": {
+      ".": "./lib/index.js",
+      "./beta-flags": "./lib/beta-flags.js",
+      "./mcp-policy": "./lib/mcp-policy.js",
+      "./agent-group": "./lib/agent-group.js",
+      "./idle-parker": "./lib/idle-parker.js",
+      "./trace-store": "./lib/trace-store.js",
+      "./envelope-sse": "./lib/envelope-sse.js",
+      "./memory-store": "./lib/memory-store.js",
+      "./nostr-crypto": "./lib/nostr-crypto.js",
+      "./quality-gate": "./lib/quality-gate.js",
+      "./approval-gate": "./lib/approval-gate.js",
+      "./evolution-run": "./lib/evolution-run.js",
+      "./file-adapters": "./lib/file-adapters.js",
+      "./goal-contract": "./lib/goal-contract.js",
+      "./stream-router": "./lib/stream-router.js",
+      "./runtime-claims": "./lib/runtime-claims.js",
+      "./sandbox-policy": "./lib/sandbox-policy.js",
+      "./session-handle": "./lib/session-handle.js",
+      "./goal-repository": "./lib/goal-repository.js",
+      "./private-storage": "./lib/private-storage.js",
+      "./scheduler-store": "./lib/scheduler-store.js",
+      "./session-manager": "./lib/session-manager.js",
+      "./agent-definition": "./lib/agent-definition.js",
+      "./service-envelope": "./lib/service-envelope.js",
+      "./shared-task-list": "./lib/shared-task-list.js",
+      "./audit-data-policy": "./lib/audit-data-policy.js",
+      "./goal-usage-ledger": "./lib/goal-usage-ledger.js",
+      "./scheduler-runtime": "./lib/scheduler-runtime.js",
+      "./scheduler-service": "./lib/scheduler-service.js",
+      "./evolvable-artifact": "./lib/evolvable-artifact.js",
+      "./scheduler-contract": "./lib/scheduler-contract.js",
+      "./agent-bundle-loader": "./lib/agent-bundle-loader.js",
+      "./agent-bundle-schema": "./lib/agent-bundle-schema.js",
+      "./goal-transfer-files": "./lib/goal-transfer-files.js",
+      "./memory-consolidator": "./lib/memory-consolidator.js",
+      "./project-goal-memory": "./lib/project-goal-memory.js",
+      "./project-goal-service": "./lib/project-goal-service.js",
+      "./agent-bundle-resolver": "./lib/agent-bundle-resolver.js",
+      "./project-goal-transfer": "./lib/project-goal-transfer.js",
+      "./project-goal-workflow": "./lib/project-goal-workflow.js",
+      "./scheduler-source-path": "./lib/scheduler-source-path.js",
+      "./goal-evidence-contract": "./lib/goal-evidence-contract.js",
+      "./goal-transfer-contract": "./lib/goal-transfer-contract.js",
+      "./restricted-audit-store": "./lib/restricted-audit-store.js",
+      "./project-goal-completion": "./lib/project-goal-completion.js",
+      "./project-goal-monitoring": "./lib/project-goal-monitoring.js",
+      "./project-risk-evaluation": "./lib/project-risk-evaluation.js",
+      "./business-object-contract": "./lib/business-object-contract.js",
+      "./goal-notification-policy": "./lib/goal-notification-policy.js",
+      "./host-storage-environment": "./lib/host-storage-environment.js",
+      "./skill-invocation-receipt": "./lib/skill-invocation-receipt.js",
+      "./project-goal-draft-imports": "./lib/project-goal-draft-imports.js",
+      "./project-goal-notifications": "./lib/project-goal-notifications.js",
+      "./goal-draft-request-contract": "./lib/goal-draft-request-contract.js",
+      "./project-risk-review-service": "./lib/project-risk-review-service.js",
+      "./structured-evolution-memory": "./lib/structured-evolution-memory.js",
+      "./project-goal-evidence-reader": "./lib/project-goal-evidence-reader.js",
+      "./project-goal-extension-queue": "./lib/project-goal-extension-queue.js",
+      "./project-goal-external-drafts": "./lib/project-goal-external-drafts.js",
+      "./scheduler-authority-resolver": "./lib/scheduler-authority-resolver.js",
+      "./goal-draft-connection-contract": "./lib/goal-draft-connection-contract.js",
+      "./organization-project-authority": "./lib/organization-project-authority.js",
+      "./task-description-action-service": "./lib/task-description-action-service.js",
+      "./goal-extension-proposal-contract": "./lib/goal-extension-proposal-contract.js",
+      "./organization-project-goal-memory": "./lib/organization-project-goal-memory.js",
+      "./organization-task-action-service": "./lib/organization-task-action-service.js",
+      "./organization-project-goal-service": "./lib/organization-project-goal-service.js",
+      "./organization-project-goal-workflow": "./lib/organization-project-goal-workflow.js",
+      "./organization-project-proposal-store": "./lib/organization-project-proposal-store.js",
+      "./organization-project-goal-completion": "./lib/organization-project-goal-completion.js",
+      "./organization-project-goal-monitoring": "./lib/organization-project-goal-monitoring.js",
+      "./organization-project-approval-service": "./lib/organization-project-approval-service.js",
+      "./organization-project-transfer-service": "./lib/organization-project-transfer-service.js",
+      "./organization-project-risk-review-service": "./lib/organization-project-risk-review-service.js"
+    },
+    "license": "MIT",
+    "scripts": {
+      "test": "vitest run",
+      "test:watch": "vitest watch"
+    },
+    "_npmUser": {
+      "name": "GitHub Actions",
+      "email": "npm-oidc-no-reply@github.com",
+      "trustedPublisher": {
+        "id": "github",
+        "oidcConfigId": "96089ffc-4689-4a3e-ac07-d25a8a876c47"
+      }
+    },
+    "homepage": "https://github.com/chainlesschain/chainlesschain#readme",
+    "keywords": ["chainlesschain", "session", "agent", "managed-agents"],
+    "_resolved": "/home/runner/work/chainlesschain/chainlesschain/release-artifacts/children/chainlesschain-session-core-0.3.27.tgz",
+    "_integrity": "sha512-FHg7tjqsRtwdUMaZ+Grd5peFzaXmCzbZMioTfn/Xhy3OOfoFEVl2rybTdYXSYH6yUsWPp8acsubeQejcE2pdSg==",
+    "repository": {
+      "url": "git+https://github.com/chainlesschain/chainlesschain.git",
+      "type": "git",
+      "directory": "packages/session-core"
+    },
+    "_npmVersion": "11.18.0",
+    "description": "Session lifecycle, trace store, agent definition, idle parker — shared by Desktop and CLI (Managed Agents parity)",
+    "directories": {},
+    "maintainers": [
+      {
+        "name": "longfa",
+        "email": "zhanglongfa@chainlesschain.com"
+      }
+    ],
+    "_nodeVersion": "22.14.0",
+    "dependencies": {
+      "koffi": "^2.16.3",
+      "@scure/base": "^1.2.6",
+      "@noble/curves": "^1.9.7",
+      "@noble/hashes": "^2.0.1"
+    },
+    "_hasShrinkwrap": false,
+    "devDependencies": {
+      "vitest": "^4.1.10"
+    },
+    "_npmOperationalInternal": {
+      "tmp": "tmp/session-core_0.3.27_1794158837031_0.05718800099292565",
+      "host": "s3://npm-registry-packages-npm-production"
+    },
+    "_id": "@chainlesschain/session-core@0.3.27",
+    "version": "0.3.27"
+  }
+}

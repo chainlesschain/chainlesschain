@@ -1,12 +1,22 @@
 # ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
-> 发布候选：CLI **0.166.145** / Session Core **0.3.27** / VS Code **0.37.181** / JetBrains **0.4.198** 正在验证，尚未发布；下方安装说明仍指向已核验的公开版本。候选增加目标转移与签名回退，并修复 Windows CI 长路径及受限环境的 Web 面板构建缓存。
+## 2026-11-09 当前发行与源码进展
 
-当前公开 CLI **0.166.143**、Session Core **0.3.26** 已通过准确提交三平台门禁、Actions OIDC 发布及独立公开字节/签名来源核验。Open VSX **0.37.179** 已公开，公开 VSIX 与官方制品一致；JetBrains **0.4.196** 已获批且可下载，627 个原始 payload 文件与官方构建一致。两端均推荐 CLI **0.166.143**，详见[本次发布记录](docs/research/cli/evidence/release143-public/README.md)。准确发行源码为 `3fa3a4b258bbcb60b23b4298cec375661ad6f410`。
+公开安装组合：CLI **0.166.145** / Session Core **0.3.27** / Open VSX **0.37.181** / JetBrains **0.4.198**；两款 IDE 推荐 CLI **0.166.145**。Open VSX 下载已突破 **7 万+**（项目方确认）。公开客户端仍为 **v5.0.3.145**，源码产品 **v5.0.3.146** 与 VS Code **0.37.182** 不作为已发布下载推荐。
 
-安装 `npm i -g chainlesschain@0.166.143 --registry https://registry.npmjs.org`，重启宿主后运行 `cc --version`、`cc doctor`。本批增加力数/vLLM/SGLang 等本地算力配置、端点凭据隔离和待审目标创建请求；原生创建仍需匹配桌面实现与另行确认。当前公开客户端为 **v5.0.3.145**，来自较早独立源码；本批新增原生创建/模型草稿需要匹配的新桌面构建。本次不重发 PC/移动端，真实 IDE/Electron GUI、力数推理及业务效果验收仍独立进行。[升级说明](docs-site/docs/chainlesschain/cli-ide-update-2026-11-06-143.md) · [设计说明](docs/design/release-runtime-update-2026-11-06-143.md) · [上一版发行记录](docs/research/cli/evidence/release142-public/README.md)
+```bash
+npm i -g chainlesschain@0.166.145 --registry https://registry.npmjs.org
+cc --version
+cc doctor
+```
 
-> 未发行源码进展：PR #539 新增 CLI 目标显式移交到原生个人项目、原字节备份/冻结及签名作废回执恢复。新目标保持暂停，不继承旧权限；需匹配分支的 CLI、Session Core 和桌面构建，公开 .143/.145 尚不包含。 [设计与验证边界](docs/design/cli-goal-transfer-source-2026-11-07.md)。
+升级后重启 CLI / IDE 宿主。CLI 不可变发行源为 `4e4b421bfb42e524f071c9ad70c2a2a2ce607374`；CLI CI **75 项通过、1 项跳过**，Strict Sandbox **6 项通过**。本轮下载核对 npm 归档完整性、IDE 公开版本与配对；不声称重跑了来源签名的密码学验证或 IDE 官方制品全量比较。
+
+按 `main@c34a664f42` 核对，主线新增/完善模型实际输入诊断、REPL 运行中追加输入与恢复、MCP Tasks、Memory 查询及宿主故障定位，以及持久计费窗口与过期结算恢复。它们有独立源码和验证范围，不能全部归入公开 CLI .145。CLI .145 已含 `goal transfer-to-project` / `goal restore-transfer`；原生导入需匹配新版桌面端和显式确认，导入目标保持暂停。
+
+[本轮升级指南](docs-site/docs/chainlesschain/cli-ide-update-2026-11-09-145.md) · [设计说明](docs/design/release-runtime-update-2026-11-09.md) · [公开渠道回执](docs/research/cli/evidence/documentation-refresh-20261109/README.md)
+
+双 IDE / Electron 完整 GUI、跨平台恢复与 Memory SLO、真实账号计费及正式付费准入仍有未完成项；**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。历史任务成绩按原版本、平台与样本范围保留，本次文档更新未新增模型任务验收。下文为历史发行记录与产品说明。
 
 <!-- release141-current:start -->
 
