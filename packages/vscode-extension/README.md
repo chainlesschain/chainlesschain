@@ -4,7 +4,7 @@ ChainlessChain agent workspace for VS Code-compatible editors with streaming cha
 
 ## Next release candidate
 
-Source candidate **0.37.182** recommends CLI **`0.166.145`** and pairs with JetBrains **0.4.198**. The extension has not been published. Session Core **0.3.27** and CLI **0.166.145** must pass exact-source gates, OIDC publication and public readback before IDE publication.
+Source candidate **0.37.183** recommends CLI **`0.166.145`** and pairs with JetBrains **0.4.198**. The extension has not been published. Session Core **0.3.27** and CLI **0.166.145** must pass exact-source gates, OIDC publication and public readback before IDE publication.
 
 This candidate adds local OpenAI-compatible compute configuration and explicit task-creation requests. Native creation requires matching desktop support and separate consent/confirmation; this release does not publish clients. LEXDATA real inference and real IDE GUI remain unverified. [Release stages](../../docs/research/cli/evidence/release143-public/README.md).
 
@@ -488,7 +488,7 @@ Checked on 2026-10-20: npm CLI **0.166.107**, Session Core **0.3.20**, Open VSX 
 
 ## Release compatibility
 
-Candidate Open VSX **0.37.182** recommends CLI **`0.166.145`** and pairs with JetBrains **0.4.198** after verified upstream publication. The CLI and IDE use explicit local-platform provider/endpoint/model identity; API keys are optional for platforms that permit keyless access. Exact-source release matrices and public payload checks remain required.
+Candidate Open VSX **0.37.183** recommends CLI **`0.166.145`** and pairs with JetBrains **0.4.198** after verified upstream publication. The CLI and IDE use explicit local-platform provider/endpoint/model identity; API keys are optional for platforms that permit keyless access. Exact-source release matrices and public payload checks remain required.
 
 ### What's new in 0.37.159
 
