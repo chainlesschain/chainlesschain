@@ -618,6 +618,7 @@ describe("CLI release workflow contracts", () => {
       "packages/cli/test-node/verify01-volcengine-generation-recovery.node-test.mjs",
       "packages/cli/test-node/verify01-sol-relative-token-budget.node-test.mjs",
       "packages/jetbrains-plugin/scripts/verify01-native-task-adapter.test.mjs",
+      "scripts/__tests__/verify01-gradle-bootstrap.test.mjs",
     ]);
     expect(
       occurrences(

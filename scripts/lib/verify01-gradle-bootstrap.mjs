@@ -12,12 +12,42 @@ import {
 
 export function isDistributionNetworkFailure(log, distributionUrl) {
   const lines = log.split(/\r?\n/u);
-  return (
-    lines.includes(`Downloading ${distributionUrl}`) &&
-    /java\.net\.(?:SocketException|SocketTimeoutException|ConnectException):[^\r\n]*(?:aborted|reset|timed out|Broken pipe|Connection refused)/iu.test(
+  const version = distributionUrl.match(
+    /^https:\/\/services\.gradle\.org\/distributions\/gradle-(\d+\.\d+(?:\.\d+)?)-bin\.zip$/u,
+  )?.[1];
+  if (
+    !version ||
+    !lines.includes(`Downloading ${distributionUrl}`) ||
+    /PKIX|certificate|checksum|verification failed|AssertionError|^> Task\b|^FAILURE: Build failed/imu.test(
       log,
-    ) &&
-    !/PKIX|certificate|checksum|verification failed/iu.test(log)
+    )
+  )
+    return false;
+  const officialUrls = new Set([
+    distributionUrl,
+    `https://downloads.gradle.org/distributions/gradle-${version}-bin.zip`,
+    `https://github.com/gradle/gradle-distributions/releases/download/v${version.split(".").length === 2 ? `${version}.0` : version}/gradle-${version}-bin.zip`,
+  ]);
+  if (
+    lines.some(
+      (line) =>
+        line.startsWith("Downloading ") &&
+        !officialUrls.has(line.slice("Downloading ".length)),
+    )
+  )
+    return false;
+  const httpErrors = lines.filter((line) =>
+    line.includes("Server returned HTTP response code:"),
+  );
+  if (httpErrors.length)
+    return httpErrors.every((line) => {
+      const failure = line.match(
+        /java\.io\.IOException: Server returned HTTP response code: (502|503|504) for URL: (\S+)\s*$/u,
+      );
+      return failure && officialUrls.has(failure[2]);
+    });
+  return /java\.net\.(?:SocketException|SocketTimeoutException|ConnectException):[^\r\n]*(?:aborted|reset|timed out|Broken pipe|Connection refused)/iu.test(
+    log,
   );
 }
 

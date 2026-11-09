@@ -61,6 +61,9 @@ on:
       - ".github/actions/verify-published-cli/**"
       - "tests/fixtures/ide-roadmap/**"
       - ".github/workflows/ide-extensions.yml"
+      - "scripts/lib/verify01-gradle-bootstrap.mjs"
+      - "scripts/lib/verify01-diagnostic-process.mjs"
+      - "scripts/__tests__/verify01-gradle-bootstrap.test.mjs"
     tags:
       - "ide-vscode-v*"
       - "ide-jetbrains-v*"
@@ -111,6 +114,9 @@ on:
       - ".github/actions/verify-published-cli/**"
       - "tests/fixtures/ide-roadmap/**"
       - ".github/workflows/ide-extensions.yml"
+      - "scripts/lib/verify01-gradle-bootstrap.mjs"
+      - "scripts/lib/verify01-diagnostic-process.mjs"
+      - "scripts/__tests__/verify01-gradle-bootstrap.test.mjs"
   workflow_dispatch:
     inputs:
       publish_vscode_marketplace:
@@ -951,6 +957,11 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y xvfb
+      - name: Bootstrap pinned Gradle distribution before IDE assertions
+        run: >-
+          node scripts/lib/verify01-gradle-bootstrap.mjs
+          --project-dir packages/jetbrains-plugin
+          --artifact-dir packages/jetbrains-plugin/build/reports/ide-journey/gradle-bootstrap-${{ runner.os }}-${{ matrix.ide.version }}
       - name: Run deterministic chat/control/resume journey (Linux)
         if: runner.os == 'Linux'
         run: >-
@@ -1057,6 +1068,22 @@ jobs:
 
       - name: Verify JetBrains release metadata coherence
         run: node scripts/verify-release-metadata.mjs
+
+      - name: Bootstrap pinned Gradle distribution before build assertions
+        id: gradle-bootstrap
+        working-directory: .
+        run: >-
+          node scripts/lib/verify01-gradle-bootstrap.mjs
+          --project-dir packages/jetbrains-plugin
+          --artifact-dir "${{ runner.temp }}/jetbrains-release-gradle-bootstrap"
+
+      - name: Upload Gradle bootstrap evidence
+        if: ${{ always() && steps.gradle-bootstrap.outcome != 'skipped' }}
+        uses: actions/upload-artifact@v6
+        with:
+          name: jetbrains-release-gradle-bootstrap-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/jetbrains-release-gradle-bootstrap/
+          if-no-files-found: error
 
       # Pure-core regression gate: 300+ assertions over the vscode-parity pure
       # layers (PureLogicSmokeMain exits 1 on any failure). Runs before the

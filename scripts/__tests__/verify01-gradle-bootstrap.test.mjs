@@ -90,6 +90,63 @@ test("persistent network failure stops after three attempts and keeps the failur
   assert.equal(f.result().attempts.length, 3);
 });
 
+const redirect =
+  "https://github.com/gradle/gradle-distributions/releases/download/v8.7.0/gradle-8.7-bin.zip";
+const httpFailure = (target = redirect, status = 504) =>
+  `Downloading ${url}\nException in thread "main" java.io.IOException: Server returned HTTP response code: ${status} for URL: ${target}\n`;
+
+test("only exact official pinned distribution HTTP 502/503/504 failures qualify", () => {
+  for (const target of [
+    url,
+    redirect,
+    "https://downloads.gradle.org/distributions/gradle-8.7-bin.zip",
+  ])
+    for (const status of [502, 503, 504])
+      assert.equal(
+        isDistributionNetworkFailure(httpFailure(target, status), url),
+        true,
+      );
+  for (const log of [
+    httpFailure("https://example.com/gradle-8.7-bin.zip"),
+    httpFailure(redirect + "?other=1"),
+    httpFailure(redirect.replace("v8.7.0", "v8.8.0")),
+    httpFailure(redirect.replace("https:", "http:")),
+    httpFailure(redirect, 404),
+    httpFailure().replace(`Downloading ${url}\n`, ""),
+    httpFailure() + "checksum verification failed",
+    httpFailure() + "PKIX certificate validation failed",
+    httpFailure() + "AssertionError: test failed",
+    httpFailure() + "> Task :test FAILED",
+    httpFailure() + "FAILURE: Build failed with an exception.",
+    httpFailure() + httpFailure("https://unknown.test/archive.zip"),
+    httpFailure() + "Downloading https://unknown.test/archive.zip",
+  ])
+    assert.equal(isDistributionNetworkFailure(log, url), false);
+});
+
+test("HTTP retry preserves all failed attempts and never launches a fourth process", async (t) => {
+  const log = httpFailure();
+  const f = fixture(t, [
+    { log, code: 1 },
+    { log, code: 1 },
+    { log, code: 1 },
+  ]);
+  await assert.rejects(prepareGradle(f.options), /exited 1/u);
+  assert.equal(f.calls(), 3);
+  assert.equal(f.result().passed, false);
+  for (const attempt of f.result().attempts) {
+    assert.equal(attempt.retryable, true);
+    assert.equal(
+      fs.readFileSync(
+        path.join(f.options.artifactDir, attempt.logFile),
+        "utf8",
+      ),
+      log,
+    );
+    assert.match(attempt.logSha256, /^[a-f0-9]{64}$/u);
+  }
+});
+
 test("non-network failure is never retried", async (t) => {
   const f = fixture(t, [{ log: "Invalid JAVA_HOME\n", code: 1 }]);
   await assert.rejects(prepareGradle(f.options), /exited 1/u);
