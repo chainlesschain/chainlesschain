@@ -1,0 +1,32 @@
+{
+  "total": 0,
+  "truncated": false,
+  "logicalRecords": 0,
+  "wireRecords": 0,
+  "journalUnchanged": true,
+  "physicalRequests": 3,
+  "bodyMatches": [
+    {
+      "call": 1,
+      "digest": "1cedb5e4e1bc4dc4971e1006fc7137fd596132e907ad9697533e9050fc5384c3",
+      "matches": 0
+    },
+    {
+      "call": 2,
+      "digest": "ff957a5fd20e1d5415496c6ec629f661fc8bfbeb1ba6433bda68a53fdd7794e4",
+      "matches": 0
+    },
+    {
+      "call": 3,
+      "digest": "a8401cfc9be8d32a65ee5c723a2e164a7a7504d6c81371a060333f1c9a7b2991",
+      "matches": 0
+    }
+  ],
+  "sourceMapping": [],
+  "paidReady": false,
+  "rawReportIdentity": {
+    "bytes": 198,
+    "sha256": "cafa9db83d15fd10af2ff61d895e1b186738645b40ffca85f4c0274cdd3db4bb"
+  },
+  "physicalBodyIdentityIsNotCanonicalSourceMapping": true
+}

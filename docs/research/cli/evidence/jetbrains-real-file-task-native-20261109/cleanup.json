@@ -1,0 +1,51 @@
+{
+  "rules": {
+    "source": {
+      "bytes": 2361,
+      "sha256": "2f6e6e4a2b1af17aeb14989e5a8b15b0e0e1ac0daa528a399701faf0a7a1767f"
+    },
+    "profile": "Public",
+    "direction": "Inbound",
+    "localAddress": "127.0.0.1",
+    "remoteAddress": "127.0.0.1",
+    "policyStore": "ActiveStore",
+    "removed": true,
+    "persisted": false,
+    "rules": [
+      {
+        "name": "ChainlessChain-Diagnostic-b5b71e1bcf63435ca78ea54c85423abc",
+        "protocol": "TCP",
+        "executableSha256": "f8dc082a7dedbfd2924c3562405a5a1fd12efd2641808c92e2de819c76a58b7e",
+        "created": true,
+        "removed": true,
+        "persisted": false,
+        "hashUnchanged": true
+      },
+      {
+        "name": "ChainlessChain-Diagnostic-5d8dd7e19865434a990a9f1260ff7514",
+        "protocol": "TCP",
+        "executableSha256": "106540d88dbdd39987cfd52929ec99260990275be26b27724af3b9fe2c517851",
+        "created": true,
+        "removed": true,
+        "persisted": false,
+        "hashUnchanged": true
+      },
+      {
+        "name": "ChainlessChain-Diagnostic-61f798c4da034959ad4cf603db89fb98",
+        "protocol": "UDP",
+        "executableSha256": "f8dc082a7dedbfd2924c3562405a5a1fd12efd2641808c92e2de819c76a58b7e",
+        "created": true,
+        "removed": true,
+        "persisted": false,
+        "hashUnchanged": true
+      }
+    ]
+  },
+  "overallCleanupConfirmed": false,
+  "retainedProcess": {
+    "name": "SGTool.exe",
+    "identity": "Sogou shared input-method daemon",
+    "forcedTermination": false
+  },
+  "originalFailure": "Windows owner exited during graceful shutdown but known descendants remain; tree termination ownership is unavailable"
+}

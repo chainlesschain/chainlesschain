@@ -1,0 +1,28 @@
+{
+  "sourceCommit": "937ceaa3746ba032111ea304b061bc4703118b78",
+  "tests": 16,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "files": [
+    {
+      "name": "TEST-com.chainlesschain.ide.intellij.ChatHistoryViewTest.xml",
+      "bytes": 2124,
+      "sha256": "0193566fad8a757a1150a19ae4603838c88ff1f4ccc6143238a0edc102b9b223",
+      "tests": 11,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "TEST-com.chainlesschain.ide.UiEventDiagnosticsTest.xml",
+      "bytes": 1066,
+      "sha256": "9a4db26617c93482311b0521a0e9ba1e934027473248a376ee1128f7cddde17d",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  ],
+  "scope": "ChatHistoryViewTest 11 and UiEventDiagnosticsTest 5; XML is private, identities retained"
+}

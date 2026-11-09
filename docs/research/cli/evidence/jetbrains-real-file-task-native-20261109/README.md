@@ -1,0 +1,7 @@
+# JetBrains IDE-initiated real file task
+
+Source `171659e7e668276285aa56ac8eadcffcf9ea39e1`, development plugin 0.4.198 (ZIP SHA256 `6efd52b835c0a30a047c3a70bfae88c8a71765ecc90ef25a7419a5121295d632`). This is not Marketplace validation.
+
+[Verification](verification.json) proves genuine UI submission, background/return tabs, real file tools and actual IDE restart. The [synthetic result](synthetic-artifact-projection.json) matches an input-only random nonce and total 59. Four HTTP 200 requests completed before restart; restart made zero new calls. [Physical ledger](physical-ledger.jsonl) retains distinct original/physical body digests: diagnostic max_tokens=1024 changed transport bodies, so canonical physical-body mapping is not claimed. Provider usage was 21,112 input / 255 output tokens; monetary cost was not reconciled and paidReady remains false.
+
+Overall harness **failed** because graceful shutdown left a shared Sogou daemon; no force kill was performed. Model/file/UI assertions passing does not satisfy the cleanup gate. [Cleanup](cleanup.json) records removal of narrow temporary firewall rules; these conditional results do not establish stock-host acceptance. [Wiring](diagnostic-wiring.json) and [immutable source bindings](source-bindings.json) identify the test setup. Private profiles, model bodies/answers, raw CLI protocol, system logs, paths, keys and ZIP are excluded. [Receipt](receipt.json) hashes public bytes after formatting; original private hashes remain separately identified.

@@ -1,0 +1,54 @@
+{
+  "schema": "public-native-evidence-archive/v1",
+  "sourceCommit": "02f892dbe3091f9c41e5655f4d579891108e03b7",
+  "overallHarnessPassed": false,
+  "paidReady": false,
+  "receiptSelfHashExcluded": true,
+  "artifacts": [
+    {
+      "path": "README.md",
+      "bytes": 2798,
+      "sha256": "7b556c2955f4aa8351414ed541fc425a3353e205c20fba14ba013d78c651e637"
+    },
+    {
+      "path": "cleanup-and-conditions.json",
+      "bytes": 2392,
+      "sha256": "0d3b3cb9628efaed351fd45e0d570f039cfd0b7f6449a5071cb29ab611cc9dd7"
+    },
+    {
+      "path": "model-input-boundary.json",
+      "bytes": 790,
+      "sha256": "e82c476e06a88596b7f62aecbe434b287ba13c0a158044417448404ddb28e06a"
+    },
+    {
+      "path": "package-and-source-bindings.json",
+      "bytes": 64913,
+      "sha256": "a011db35c479eb841d6f3990721dece0fa892b0ab8e56da8718ca498e60de7f4"
+    },
+    {
+      "path": "physical-ledger.jsonl",
+      "bytes": 2220,
+      "sha256": "dc9f27e31ad3316eab5cacf91605adb058fca150342db6239854a3ce6af1882b"
+    },
+    {
+      "path": "readonly-native-continuation.json",
+      "bytes": 6092,
+      "sha256": "201c883d60de3d02511b71eaf938065f63173954acbbbdd54611349ba0d34e68"
+    },
+    {
+      "path": "shim-repair.json",
+      "bytes": 1997,
+      "sha256": "4b94ab9878aec110d23dde44e132c8b984a4a578721f91b3d0e4fd0d040dc651"
+    },
+    {
+      "path": "synthetic-artifacts.json",
+      "bytes": 586,
+      "sha256": "d7375f0035bc39de56d46263c702696a87213a7872ad612a736be58ddaa0b9e1"
+    },
+    {
+      "path": "verification.json",
+      "bytes": 1704,
+      "sha256": "b94861d8ffe0702b7bd9111e12796f250b31bc6de907db401d1015cae6563336"
+    }
+  ]
+}

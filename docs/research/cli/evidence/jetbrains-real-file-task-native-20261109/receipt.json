@@ -1,0 +1,46 @@
+{
+  "schema": "public-native-evidence-archive/v1",
+  "sourceCommit": "171659e7e668276285aa56ac8eadcffcf9ea39e1",
+  "paidReady": false,
+  "overallHarnessPassed": false,
+  "scope": "Real model/UI/restart assertions passed; cleanup failed",
+  "artifacts": [
+    {
+      "path": "README.md",
+      "bytes": 1515,
+      "sha256": "4ef85b83d97bfa91d07f2adc86257158cba67decee42de58793c904ffae91f72"
+    },
+    {
+      "path": "cleanup.json",
+      "bytes": 1660,
+      "sha256": "d79a52e99d63e726e9ea305ea801b99bd64a583e65b0da931fc95f043f3f45c7"
+    },
+    {
+      "path": "diagnostic-wiring.json",
+      "bytes": 730,
+      "sha256": "bcbdf6c806398c08b599d6a8cb14456613cc14e91213a3d2370a476a1d50db46"
+    },
+    {
+      "path": "physical-ledger.jsonl",
+      "bytes": 2945,
+      "sha256": "151ed66a87b795d3d1e55acaeb9cbc150bcbcbae9d93dc84e3a30aa0c5766dfb"
+    },
+    {
+      "path": "source-bindings.json",
+      "bytes": 73583,
+      "sha256": "5b75c1e5cf2580983306d34fc0f155e3de3de6976180de0125f33f762c965bfa"
+    },
+    {
+      "path": "synthetic-artifact-projection.json",
+      "bytes": 554,
+      "sha256": "2b6eac6a93e8e03934b6bfb9e4000d50cf586416e7f08132f7eaa03e6b7ee0cd"
+    },
+    {
+      "path": "verification.json",
+      "bytes": 3517,
+      "sha256": "ebd9a88d55a4fdacc0bc1bce964599e8ed77fd8401d5c627f9fe4710267f3580"
+    }
+  ],
+  "receiptSelfHashExcluded": true,
+  "privateRawFilesExcluded": true
+}

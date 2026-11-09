@@ -1,0 +1,15 @@
+{
+  "input": {
+    "nonce": "68531648c666a368298f10481587314f",
+    "amounts": [11, 17, 31],
+    "label": "native-independent-jetbrains"
+  },
+  "output": {
+    "nonce": "68531648c666a368298f10481587314f",
+    "total": 59,
+    "label": "native-independent-jetbrains"
+  },
+  "originalInputSha256": "sha256:405bdffd48f59237e6c242b7d9284f3840435ff742692cb826419b19dca72985",
+  "originalOutputSha256": "sha256:0339200516a7ee8d12c7f0db886c1feacfa238137e0fc724212006c582da1382",
+  "projection": "Parsed synthetic objects; no model answer or raw CLI protocol"
+}

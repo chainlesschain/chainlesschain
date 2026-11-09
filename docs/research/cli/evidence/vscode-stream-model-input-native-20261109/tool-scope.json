@@ -1,0 +1,60 @@
+{
+  "strictOutputArtifactAndSchemaPassed": true,
+  "fullInstructionComplianceAccepted": false,
+  "additionalReadOutsideUserRequestedFiles": true,
+  "additionalReadScope": "Only the actual runtime worklog of this same session within this same workspace",
+  "worklogPathRealpathVerified": true,
+  "worklogOrigin": "Runtime task_worklog init manifest and retained task context; context implementation labels it untrusted historical source data, not instructions",
+  "higherPriorityReadMandateEstablished": false,
+  "scopeDifference": "User prompt constrained other files; the model additionally read the same-session worklog. This is preserved as a scope difference, not waived or scored as full instruction compliance.",
+  "tools": [
+    {
+      "ordinal": 0,
+      "tool": "read_file",
+      "relativePath": ".chainlesschain/sessions/<same-session>/WORKLOG.md",
+      "callId": "call_00_8ragpfi06ztmhp1dm0ve0ga7",
+      "successful": true,
+      "admitted": true,
+      "source": "vscode-extension"
+    },
+    {
+      "ordinal": 1,
+      "tool": "read_file",
+      "relativePath": "task-input.json",
+      "callId": "call_01_ltdxmsekuv63i23svetwf9hw",
+      "successful": true,
+      "admitted": true,
+      "source": "vscode-extension"
+    },
+    {
+      "ordinal": 2,
+      "tool": "write_file",
+      "relativePath": "task-output.json",
+      "callId": "call_00_s34d38yc8r9ijsczl7zntg90",
+      "successful": true,
+      "admitted": true,
+      "source": "vscode-extension"
+    },
+    {
+      "ordinal": 3,
+      "tool": "read_file",
+      "relativePath": "task-output.json",
+      "callId": "call_00_bqrx0zqvyle3orm8trr1524m",
+      "successful": true,
+      "admitted": true,
+      "source": "vscode-extension"
+    }
+  ],
+  "sourceBindings": [
+    {
+      "sourceCommit": "bcce11f6455ad2584a5ce4fed36b5de6de23f2ff",
+      "path": "packages/cli/src/lib/context-memory-kernel/task-worklog-port.js",
+      "sha256": "43bc6787470eee6f60953dd1a49f21b328899b781c536e09ed69b11760bf6395"
+    },
+    {
+      "sourceCommit": "bcce11f6455ad2584a5ce4fed36b5de6de23f2ff",
+      "path": "packages/cli/src/runtime/agent-core.js",
+      "sha256": "38a6a7a8142265c3c33c493bc4d09b94313bc6f67d317007bb5b1671c4a384f4"
+    }
+  ]
+}

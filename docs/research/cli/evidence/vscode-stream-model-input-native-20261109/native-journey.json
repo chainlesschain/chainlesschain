@@ -1,0 +1,111 @@
+{
+  "originalHarnessExitCode": 0,
+  "sessionId": "panel-31c6e5d9-d6b7-4f2f-a991-5ee98b391872",
+  "initialExtensionHostPid": 40152,
+  "nativeRestartIdentityAssertionExecuted": true,
+  "identityAssertionSource": "packages/vscode-extension/test/extension-host/driver/verify01.cjs",
+  "sameProfileAndSavedSession": true,
+  "canonicalSavedRowId": "panel-31c6e5d9-d6b7-4f2f-a991-5ee98b391872:23bbcca5dafedb337aa70c860958cbb96b2814a6c627ca0c7cfe5e7126842163:0",
+  "renderedTextSha256": "3339796e5fab20b720dce1f1f90fb51f5d6387653f7eb92af3b5860ecbe10961",
+  "initialCompletedAt": "2026-11-09T04:47:59.237Z",
+  "restartCompletedAt": "2026-11-09T04:48:05.221Z",
+  "ui": [
+    {
+      "action": "submit",
+      "sampleId": "first-run-native-file-task",
+      "sessionId": "panel-31c6e5d9-d6b7-4f2f-a991-5ee98b391872",
+      "at": "2026-11-09T04:47:39.328Z"
+    },
+    {
+      "action": "background-tab",
+      "sampleId": "first-run-native-file-task",
+      "sessionId": "panel-31c6e5d9-d6b7-4f2f-a991-5ee98b391872",
+      "at": "2026-11-09T04:47:41.173Z"
+    },
+    {
+      "action": "return-tab",
+      "sampleId": "first-run-native-file-task",
+      "sessionId": "panel-31c6e5d9-d6b7-4f2f-a991-5ee98b391872",
+      "at": "2026-11-09T04:47:41.176Z"
+    },
+    {
+      "action": "final-result",
+      "sampleId": "first-run-native-file-task",
+      "sessionId": "panel-31c6e5d9-d6b7-4f2f-a991-5ee98b391872",
+      "at": "2026-11-09T04:47:58.583Z",
+      "resultDigest": "sha256:2b969d08e0c16e25896890b41bdb332ff770df4b68342adb72b94261c1b3c1e7"
+    },
+    {
+      "action": "reload",
+      "sampleId": "first-run-native-file-task",
+      "sessionId": "panel-31c6e5d9-d6b7-4f2f-a991-5ee98b391872",
+      "at": "2026-11-09T04:48:04.769Z"
+    },
+    {
+      "action": "restored-result",
+      "sampleId": "first-run-native-file-task",
+      "sessionId": "panel-31c6e5d9-d6b7-4f2f-a991-5ee98b391872",
+      "at": "2026-11-09T04:48:05.218Z",
+      "resultDigest": "sha256:2b969d08e0c16e25896890b41bdb332ff770df4b68342adb72b94261c1b3c1e7"
+    }
+  ],
+  "originalPrivateCaptures": [
+    {
+      "file": "6650d920-8803-48bc-8459-840e21a75534.ndjson",
+      "bytes": 490590,
+      "sha256": "5ba0521301575344dc072cc72ff97b4df3f9f6b786be99acddbcdaa29033a622"
+    },
+    {
+      "file": "launcher-config.json",
+      "bytes": 1026,
+      "sha256": "f44f7a39ce9cf2b5c16463f12e7b445c31d7e99427e4dae3ab0c44351302777d"
+    },
+    {
+      "file": "physical-model.jsonl",
+      "bytes": 2966,
+      "sha256": "a746c512435a6effe7d225fb4a4363d075a64972590dc22154b49b382139b03f"
+    },
+    {
+      "file": "protocol.json",
+      "bytes": 580633,
+      "sha256": "843a4ed6b436d7988a95c7fd43822842e6978dbdebd994b99470e53e7712e639"
+    },
+    {
+      "file": "terminal.json",
+      "bytes": 1613,
+      "sha256": "fa3f4d51078d9b400f9022ec993346067273e0db8ad850b697f66d2420d3e354"
+    },
+    {
+      "file": "ui.json",
+      "bytes": 1294,
+      "sha256": "c7cc0f0aed7ce1dc0c3b03974d720ea8122d5c0507adc434cb6d09194399602a"
+    },
+    {
+      "file": "ui.ndjson",
+      "bytes": 1099,
+      "sha256": "3556bd9dcd881e922e692c0ee9741801565689d386cbcb64422f7faf7ae95195"
+    },
+    {
+      "file": "vscode-initial.json",
+      "bytes": 28974,
+      "sha256": "07bdc8837239613f344f1bafeba36e95c8b2efd77513c72d6fac0ff04b5d8804"
+    },
+    {
+      "file": "vscode-install.json",
+      "bytes": 641,
+      "sha256": "3cc23036578db38e9eacbda4b2e7074e037ab7c7ae7194218d80c358e47685dd"
+    },
+    {
+      "file": "vscode-restart.json",
+      "bytes": 27182,
+      "sha256": "9e922d4a7e8e736a8dc63719ed858dbfdb022bfe666c1b74b25e0f33e9b70ed5"
+    }
+  ],
+  "processReceipt": {
+    "code": 0,
+    "signal": null,
+    "finishedAt": "2026-11-09T04:48:06.570Z"
+  },
+  "cleanupScope": "Original managed-host harness exited0, both native captures completed and no timeout/failure cleanup was observed. No descendant identity snapshots were recorded; full descendant-tree cleanup is not attested.",
+  "completeDescendantCleanupVerified": false
+}

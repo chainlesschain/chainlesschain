@@ -1,0 +1,133 @@
+{
+  "schema": "history-trace-native-independent-verification/v1",
+  "sourceCommit": "937ceaa3746ba032111ea304b061bc4703118b78",
+  "rootTrackedJetbrainsUnchanged": true,
+  "historyTraceFixVerified": true,
+  "phases": [
+    {
+      "phase": "initial",
+      "captureComplete": true,
+      "rawBytes": 24754,
+      "rawSha256": "f635ceff0be8c27b8da07f39de7a8ba3f32950ef9e6d8914cc5525fd745d917b",
+      "allCaptureFileHashesVerified": true,
+      "rawBinEqualsOriginal": true,
+      "historyRecords": 15,
+      "completeCorrelatedGroups": [
+        {
+          "session": "panel-1794197718684-78935c",
+          "id": "history-996eb13",
+          "stages": [
+            "HISTORY_REQUESTED",
+            "HISTORY_READ_RETURNED",
+            "HISTORY_APPLIED"
+          ]
+        },
+        {
+          "session": "panel-1794197717133-6f8b40",
+          "id": "history-43e3c816",
+          "stages": [
+            "HISTORY_REQUESTED",
+            "HISTORY_READ_RETURNED",
+            "HISTORY_APPLIED"
+          ]
+        },
+        {
+          "session": "panel-1794197717133-6f8b40",
+          "id": "history-693b4413",
+          "stages": [
+            "HISTORY_REQUESTED",
+            "HISTORY_READ_RETURNED",
+            "HISTORY_APPLIED"
+          ]
+        },
+        {
+          "session": "panel-1794197718684-78935c",
+          "id": "history-7b3d6a5",
+          "stages": [
+            "HISTORY_REQUESTED",
+            "HISTORY_READ_RETURNED",
+            "HISTORY_APPLIED"
+          ]
+        },
+        {
+          "session": "panel-1794197717133-6f8b40",
+          "id": "history-3873b4f8",
+          "stages": [
+            "HISTORY_REQUESTED",
+            "HISTORY_READ_RETURNED",
+            "HISTORY_APPLIED"
+          ]
+        }
+      ],
+      "stages": {
+        "HISTORY_REQUESTED": 5,
+        "HISTORY_READ_RETURNED": 5,
+        "HISTORY_APPLIED": 5
+      },
+      "metadataOnlyAllowlistVerified": true,
+      "noRawPromptCursorOrPath": true
+    },
+    {
+      "phase": "restart",
+      "captureComplete": true,
+      "rawBytes": 4815,
+      "rawSha256": "73d1719d145082f0bb39f5fa26afa6aadde930d2ba0e7d0fe45750539de8cbc0",
+      "allCaptureFileHashesVerified": true,
+      "rawBinEqualsOriginal": true,
+      "historyRecords": 20,
+      "completeCorrelatedGroups": [
+        {
+          "session": "panel-1794197708988-a92f08",
+          "id": "history-6fbbbcb2",
+          "stages": [
+            "HISTORY_REQUESTED",
+            "HISTORY_READ_RETURNED",
+            "HISTORY_APPLIED"
+          ]
+        },
+        {
+          "session": "panel-1794197717133-6f8b40",
+          "id": "history-36570da3",
+          "stages": [
+            "HISTORY_REQUESTED",
+            "HISTORY_READ_RETURNED",
+            "HISTORY_APPLIED"
+          ]
+        },
+        {
+          "session": "panel-1794197718684-78935c",
+          "id": "history-13733d45",
+          "stages": [
+            "HISTORY_REQUESTED",
+            "HISTORY_READ_RETURNED",
+            "HISTORY_APPLIED"
+          ]
+        }
+      ],
+      "stages": {
+        "HISTORY_REQUESTED": 7,
+        "HISTORY_READ_FAILED": 1,
+        "HISTORY_READ_RETURNED": 6,
+        "HISTORY_STALE": 3,
+        "HISTORY_APPLIED": 3
+      },
+      "metadataOnlyAllowlistVerified": true,
+      "noRawPromptCursorOrPath": true
+    }
+  ],
+  "originalFullJourneyResult": "failed",
+  "originalFailure": "Shared Sogou daemon retained after initial graceful exit; no force tree termination",
+  "restartOnlyContinuationResult": "passed",
+  "sameCompletedFixtureAndSandboxReused": true,
+  "initialRerun": false,
+  "realModelInvoked": false,
+  "uiAssertionsChanged": false,
+  "temporaryLauncherExitAdaptationExplicit": true,
+  "allOwnTemporaryRulesRemoved": true,
+  "persisted": false,
+  "oldFrozenPluginSha256": "6efd52b835c0a30a047c3a70bfae88c8a71765ecc90ef25a7419a5121295d632",
+  "currentBuiltPluginSha256": "348632ec1873442fa137696f965b91e319e706742abc4772fa019dcf7bf11cab",
+  "verifiedAt": "2026-11-09T04:19:20.255Z",
+  "paidReady": false,
+  "scope": "No-model canonical fixture; initial cleanup failed, separately continued same fixture restart passed. Not a full journey pass."
+}

@@ -1,0 +1,21 @@
+{
+  "input": {
+    "nonce": "5e43086f43249b257c8158b28df2554b",
+    "amounts": [5, 13, 29],
+    "label": "native-unadapted-vscode"
+  },
+  "output": {
+    "nonce": "5e43086f43249b257c8158b28df2554b",
+    "total": 47,
+    "label": "native-unadapted-vscode"
+  },
+  "inputRaw": {
+    "bytes": 130,
+    "sha256": "3464919421144f921fd7869ee28afa0c6a6e6a838335682afc3fae67135c7160"
+  },
+  "outputRaw": {
+    "bytes": 89,
+    "sha256": "b867171d68b25e70ce7fc3b1413828ca7fbc5289b547acfc537d296a724398a2"
+  },
+  "projection": "Parsed synthetic input/output only; no raw prompt or model answer"
+}
