@@ -26,7 +26,8 @@
         "cli/evidence/repl-inflight-recovery-20261109",
         "cli/evidence/lifecycle-recovery-current-20261109",
         "cli/evidence/repl-inflight-recovery-current-20261109",
-        "cli/evidence/native-price-windows-20261109"
+        "cli/evidence/native-price-windows-20261109",
+        "cli/evidence/mcp-tasks-model-continuation-20261109"
       ],
       "remaining": ["dual IDE recovery", "complete cross-entry journey"]
     },
@@ -35,7 +36,8 @@
       "evidence": [
         "cli/evidence/mcp-task-targeted-20261109",
         "cli/evidence/repl-inflight-recovery-20261109",
-        "cli/evidence/mcp-tasks-reference-stateless-20261109"
+        "cli/evidence/mcp-tasks-reference-stateless-20261109",
+        "cli/evidence/mcp-tasks-model-continuation-20261109"
       ],
       "remaining": [
         "remote production third-party service",
@@ -57,6 +59,16 @@
         "modelContinuationVerified": false,
         "multiplatformVerified": false,
         "sourceCommit": "018d64b3b58a32484c1ced91dfd203bcce664954"
+      },
+      "durableModelContinuation": {
+        "status": "implemented-and-windows-synthetic-verified",
+        "sourceCommit": "29243cd1b8c7c45e58abaa3c8b78976e102d90d6",
+        "syntheticCrashScenarios": 3,
+        "singleOriginalUserPreserved": true,
+        "unknownAttemptsNotReplayed": true,
+        "realProviderModelContinuationVerified": false,
+        "latestProviderHttpStatus": 429,
+        "unknownModelCalls": 1
       }
     },
     "5": {
@@ -170,7 +182,9 @@
     "statelessMcpEvidence": "cli/evidence/mcp-tasks-reference-stateless-20261109",
     "previousPullRequest": "https://github.com/chainlesschain/chainlesschain/pull/569",
     "integrationPullRequest": "https://github.com/chainlesschain/chainlesschain/pull/568",
-    "statelessMcpCommit": "018d64b3b58a32484c1ced91dfd203bcce664954"
+    "statelessMcpCommit": "018d64b3b58a32484c1ced91dfd203bcce664954",
+    "mcpContinuationCommit": "29243cd1b8c7c45e58abaa3c8b78976e102d90d6",
+    "mcpContinuationEvidence": "cli/evidence/mcp-tasks-model-continuation-20261109"
   },
   "auditedSourceCommit": "44f56fe58aee36e6cc097755ce7c4ab3ec94b126"
 }

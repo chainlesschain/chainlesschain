@@ -1,0 +1,63 @@
+{
+  "schema": "chainlesschain.mcp-continuation-provider-failure/v1",
+  "sourceCommit": "29243cd1b8c7c45e58abaa3c8b78976e102d90d6",
+  "provider": "openai",
+  "model": "gpt-6.1-sol",
+  "protocol": "openai-responses",
+  "successfulModelContinuationVerified": false,
+  "physicalModelAttempts": 1,
+  "automaticRetries": 0,
+  "billingVerified": false,
+  "costUnknown": true,
+  "outputUpperBoundVerified": false,
+  "paidReady": false,
+  "transport": {
+    "startedAt": "2026-11-09T01:42:13.691Z",
+    "phase": "failed",
+    "requestDigest": "3d75a34ead8c06c17317f2b52f4ba205d494b4160a0a5e89d559f9de401a854b",
+    "userMessages": 1,
+    "originalUserPreserved": true,
+    "externalReferences": 1,
+    "hostSystemContinuation": true,
+    "markerPresent": true,
+    "fabricatedUserContinuation": false,
+    "requestedMaxOutputTokens": 256,
+    "protocol": "openai-responses",
+    "httpStatus": 429,
+    "usage": {},
+    "responseDigest": "9a97258cc1d5a95dd3a24d616ccb673a8ae95f10d8d5c41aede43e9584383523",
+    "responseHasMarker": false
+  },
+  "canonicalReadback": {
+    "verified": true,
+    "sessionId": "continuation-6ea02207-a81a-4b01-9012-fd31bf913a58",
+    "localId": "16641401-1e2a-4707-b427-e4b64dbf9a01",
+    "continuationStatus": "started",
+    "continuationOutcomeUnknown": true,
+    "unknownModelCalls": 1,
+    "realUserMessages": 1,
+    "externalReferences": 1,
+    "assistantAnswers": 0,
+    "beginEventHash": "0389bc0d4e5dc8bdbed3cba20a2309a93664206d58a3444577d407636e2b13c0",
+    "sessionHead": {
+      "hash": "21aae00ad647764c93e362e3e5f1735c217c057f01d0844e8669acd6c6a82b32",
+      "eventCount": 16
+    }
+  },
+  "sourceFiles": {
+    "packages/cli/src/repl/agent-repl.js": "78bd39b9e60fda078ab4db7dcd1ac736f229c08776547d59394a0b21308dbffd",
+    "packages/cli/src/runtime/mcp-config.js": "6f083eedf2bb91971a05ed19536e1530898a6d86bc22ea85bc6db448ecf44ee4",
+    "packages/cli/src/lib/mcp-task-continuation.js": "cdd78e3889add64e715cdeba42f5e895d118c0bb8d987e5b790d6d61f52499e8",
+    "packages/cli/src/lib/mcp-task-continuation-contract.js": "2559e834d0ee2a90202badf594115788a6e2ad7f5c2af3ca3fc595e90fe6c50a",
+    "packages/cli/src/lib/mcp-task-journal-projection.js": "51a232726e46b30a44f3f5b47e0cbef1fed1de2f13b7a93f880da34fbfc77531",
+    "packages/cli/src/lib/mcp-task-runtime.js": "1335707c6734c16836544da341a92900a03e214104e2c5684cb24f97ffd98c2f",
+    "packages/cli/src/commands/mcp-tasks.js": "e180850590ae778adaef480f8e56f8ca3a4e08c098eed41e6c258ec14a582c74",
+    "packages/cli/src/lib/session-transcript-structure.js": "1c4bbc16afac250b4478820a5f38a5dc0cfdc6d6c3f8a20225a3b26a833256d0",
+    "packages/cli/src/lib/session-message-provenance.js": "222f7b90471205f5993d15531d709f81d1e83fa1d158d60b52d718b236455567",
+    "packages/cli/src/lib/session-host-snapshot.js": "3e50558675ec97b2273608f09d6c078d00a8edcf184b0ad64c4f8f35db496082",
+    "packages/cli/src/harness/mcp-client.js": "6e1226d6224de2b0f4a03c6ee0250577c3c834e7b254fd7c5fbd4d6f8aabd0ec",
+    "packages/cli/__tests__/fixtures/mcp-tasks/repl-continuation-child.mjs": "924a4b65a7894d25f38f3260bb0179725b97e54d9fb85033f9d61409039b37ce",
+    "packages/cli/__tests__/fixtures/mcp-tasks/durable-child.mjs": "ccd51eb6b6814590a30461f89877930523e386677456a7da7e536853d3a5360f",
+    "packages/cli/scripts/probe-mcp-task-model-continuation.mjs": "9754f022b9706c20075e2c0c7fa908207bc82c14805a7eb513e158052f573482"
+  }
+}

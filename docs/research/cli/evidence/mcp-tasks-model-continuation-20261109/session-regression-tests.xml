@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="72" failures="0" errors="0" time="55.0317993">
+    <testsuite name="__tests__/unit/agent-session-export.test.js" timestamp="2026-11-09T01:57:37.907Z" hostname="normalized-windows-host" tests="5" failures="0" errors="0" skipped="0" time="0.0042727">
+        <testcase classname="__tests__/unit/agent-session-export.test.js" name="renderAgentSessionMarkdown &gt; renders header meta, turns, tool blocks, compact note and totals" time="0.0022565">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-session-export.test.js" name="renderAgentSessionMarkdown &gt; caps oversized tool payloads and guards embedded fences" time="0.0001948">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-session-export.test.js" name="renderAgentSessionMarkdown &gt; stringifies non-string content (multimodal arrays) and skips unknown types" time="0.0001407">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-session-export.test.js" name="renderAgentSessionMarkdown &gt; handles an empty event list without throwing" time="0.0000949">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-session-export.test.js" name="renderAgentSessionMarkdown &gt; renders one atomic WebSocket turn as an alternating user/assistant pair" time="0.0001512">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/unit/model-egress-closure.test.js" timestamp="2026-11-09T01:57:37.908Z" hostname="normalized-windows-host" tests="4" failures="0" errors="0" skipped="0" time="0.0073848">
+        <testcase classname="__tests__/unit/model-egress-closure.test.js" name="CLI model egress closure &gt; rejects governed-only content-bearing entries before provider transport without ingress" time="0.002681">
+        </testcase>
+        <testcase classname="__tests__/unit/model-egress-closure.test.js" name="CLI model egress closure &gt; does not report an unfinished governed stream as complete" time="0.0003472">
+        </testcase>
+        <testcase classname="__tests__/unit/model-egress-closure.test.js" name="CLI model egress closure &gt; keeps ordinary ask and agent transport available before deployment configuration" time="0.0024774">
+        </testcase>
+        <testcase classname="__tests__/unit/model-egress-closure.test.js" name="CLI model egress closure &gt; keeps learning synthesis provider egress unavailable without a branded ingress" time="0.0004714">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/unit/model-egress-inventory.test.js" timestamp="2026-11-09T01:57:37.909Z" hostname="normalized-windows-host" tests="5" failures="0" errors="0" skipped="0" time="0.3513742">
+        <testcase classname="__tests__/unit/model-egress-inventory.test.js" name="CLI model egress inventory &gt; registers every source file that combines fetch with a model-shaped endpoint" time="0.1023336">
+        </testcase>
+        <testcase classname="__tests__/unit/model-egress-inventory.test.js" name="CLI model egress inventory &gt; keeps direct content-bearing egress behind an authenticated ingress" time="0.001618">
+        </testcase>
+        <testcase classname="__tests__/unit/model-egress-inventory.test.js" name="CLI model egress inventory &gt; keeps raw transports private to audited host-policy callers" time="0.2452686">
+        </testcase>
+        <testcase classname="__tests__/unit/model-egress-inventory.test.js" name="CLI model egress inventory &gt; classifies every endpoint candidate as governed, raw, probe-only, or non-model" time="0.000206">
+        </testcase>
+        <testcase classname="__tests__/unit/model-egress-inventory.test.js" name="CLI model egress inventory &gt; keeps connection probes on fixed non-user prompts" time="0.0003722">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/unit/session-host-consistency-gate.test.js" timestamp="2026-11-09T01:57:37.910Z" hostname="normalized-windows-host" tests="7" failures="0" errors="0" skipped="0" time="17.3092138">
+        <testcase classname="__tests__/unit/session-host-consistency-gate.test.js" name="session host snapshot &gt; gives independent adapters the same content-free projection" time="0.0048491">
+        </testcase>
+        <testcase classname="__tests__/unit/session-host-consistency-gate.test.js" name="session host snapshot &gt; projects read or verification failure without returning raw authority" time="0.0004246">
+        </testcase>
+        <testcase classname="__tests__/unit/session-host-consistency-gate.test.js" name="session host snapshot &gt; projects the canonical session budget root outside the public snapshot" time="0.0007055">
+        </testcase>
+        <testcase classname="__tests__/unit/session-host-consistency-gate.test.js" name="session host snapshot &gt; projects deferred question recovery only in the private resume state" time="0.0009328">
+        </testcase>
+        <testcase classname="__tests__/unit/session-host-consistency-gate.test.js" name="cli session-host consistency gate &gt; emits content-free same-process host agreement and tamper evidence" time="13.8675134">
+        </testcase>
+        <testcase classname="__tests__/unit/session-host-consistency-gate.test.js" name="cli session-host consistency gate &gt; fails before host scenarios when exact-SHA provenance mismatches" time="3.415089">
+        </testcase>
+        <testcase classname="__tests__/unit/session-host-consistency-gate.test.js" name="cli session-host consistency gate &gt; declares a three-platform exact-SHA artifact workflow" time="0.0180698">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/unit/session-input-durability-integration.test.js" timestamp="2026-11-09T01:57:37.911Z" hostname="normalized-windows-host" tests="5" failures="0" errors="0" skipped="0" time="1.0685136">
+        <testcase classname="__tests__/unit/session-input-durability-integration.test.js" name="REPL accepted/settled integration contract &gt; keeps accepted input private until one settled event publishes both messages" time="0.5959423">
+        </testcase>
+        <testcase classname="__tests__/unit/session-input-durability-integration.test.js" name="REPL accepted/settled integration contract &gt; rejects acceptance failure before any provider-like dispatch callback" time="0.0149681">
+        </testcase>
+        <testcase classname="__tests__/unit/session-input-durability-integration.test.js" name="REPL accepted/settled integration contract &gt; keeps pending prompt text out of the public host snapshot" time="0.1305854">
+        </testcase>
+        <testcase classname="__tests__/unit/session-input-durability-integration.test.js" name="REPL accepted/settled integration contract &gt; rejects a settlement with a different turn binding atomically" time="0.1388552">
+        </testcase>
+        <testcase classname="__tests__/unit/session-input-durability-integration.test.js" name="REPL accepted/settled integration contract &gt; rebuilds a settled turn as one pair and clears private pending state" time="0.1836136">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/unit/session-transcript-history.test.js" timestamp="2026-11-09T01:57:37.912Z" hostname="normalized-windows-host" tests="40" failures="0" errors="0" skipped="0" time="35.7041498">
+        <testcase classname="__tests__/unit/session-transcript-history.test.js" name="canonical display history &gt; keeps original row identities and old cursors after summary-from, then rewinds the correct path" time="1.0579145">
+        </testcase>
+        <testcase classname="__tests__/unit/session-transcript-history.test.js" name="canonical display history &gt; keeps original row identities and old cursors after summary-to, then rewinds the correct path" time="0.9551079">
+        </testcase>
+        <testcase classname="__tests__/unit/session-transcript-history.test.js" name="canonical display history &gt; retains repeated summary dependencies through an independent branch, compaction and rewind" time="1.2515753">
+        </testcase>
+        <testcase classname="__tests__/unit/session-transcript-history.test.js" name="canonical display history &gt; preserves pre-compaction display history when a later active suffix is summarized" time="0.8243795">
+        </testcase>
+        <testcase classname="__tests__/unit/session-transcript-history.test.js" name="canonical display history &gt; preserves ancestry when summary-to moves durable systems ahead of its new summary" time="0.6509149">
+        </testcase>
+        <testcase classname="__tests__/unit/session-transcript-history.test.js" name="canonical display history &gt; retains snapshot coverage after a verified summary and later rewind" time="0.4982573">
+        </testcase>
+        <testcase classname="__tests__/unit/session-transcript-history.test.js" name="canonical display history &gt; retains an explicit boundary for a legacy timeline summary" time="0.4562762">
+        </testcase>
+        <testcase classname="__tests__/unit/session-transcript-history.test.js" name="canonical display history &gt; retains an explicit boundary for a wrong-head timeline summary" time="0.4390107">
+        </testcase>
+        <testcase classname="__tests__/unit/session-transcript-history.test.js" name="canonical display history &gt; retains an explicit boundary for a changed-output timeline summary" time="0.4345112">
+        </testcase>
+        <testcase classname="__tests__/unit/session-transcript-history.test.js" name="canonical display history &gt; keeps interrupted archive copies unpublished, recovers the exact prefix and refuses rollback" time="0.6490663">
+        </testcase>
+        <testcase classname="__tests__/unit/session-transcript-history.test.js" name="canonical display history &gt; does not publish a branch when its source changes during the copy" time="0.3250967">
+        </testcase>
+        <testcase classname="__tests__/unit/session-transcript-history.test.js" name="canonical display history &gt; preserves legacy branch idempotency and inherited snapshot coverage" time="0.6405041">
+        </testcase>
+        <testcase classname="__tests__/unit/session-transcript-history.test.js" name="canonical display history &gt; carries truncation through inheritance and keeps escaped text within a page" time="1.1041931">
+        </testcase>
+        <testcase classname="__tests__/unit/session-transcript-history.test.js" name="canonical display history &gt; validates imported completion digests and context origins before returning a page" time="0.3856414">
+        </testcase>
+        <testcase classname="__tests__/unit/session-transcript-history.test.js" name="canonical display history &gt; preserves emoji at archive chunk boundaries" time="0.3988501">
+        </testcase>
+        <testcase classname="__tests__/unit/session-transcript-history.test.js" name="canonical display history &gt; makes a compacted branch independent of its parent, without inheriting execution authority" time="1.421552">
+        </testcase>
+        <testcase classname="__tests__/unit/session-transcript-history.test.js" name="canonical display history &gt; retains summary ancestry across nested branches and a later rewind" time="0.8039903">
+        </testcase>
+        <testcase classname="__tests__/unit/session-transcript-history.test.js" name="canonical display history &gt; expires source capabilities and prevents source writes inside a read projection" time="0.300986">
+        </testcase>
+        <testcase classname="__tests__/unit/session-transcript-history.test.js" name="canonical display history &gt; accepts the shared real CLI history fixture used by the JetBrains reader" time="0.0005669">
+        </testcase>
+        <testcase classname="__tests__/unit/session-transcript-history.test.js" name="canonical display history &gt; shows original messages once when the Kernel replaces them with a derived summary" time="0.3404017">
+        </testcase>
+        <testcase classname="__tests__/unit/session-transcript-history.test.js" name="canonical display history &gt; rejects an empty compaction candidate without changing context or history" time="1.0094494">
+        </testcase>
+        <testcase classname="__tests__/unit/session-transcript-history.test.js" name="canonical display history &gt; keeps real Kernel compaction history, identities and old cursors through later appends" time="1.2610683">
+        </testcase>
+        <testcase classname="__tests__/unit/session-transcript-history.test.js" name="canonical display history &gt; invalidates cursors on rewind and never revives discarded text after another compaction" time="1.1467311">
+        </testcase>
+        <testcase classname="__tests__/unit/session-transcript-history.test.js" name="canonical display history &gt; reconstructs a prefix older than the page buffer and keeps exact original identities" time="7.9769061">
+        </testcase>
+        <testcase classname="__tests__/unit/session-transcript-history.test.js" name="canonical display history &gt; retains pre-summary ancestry, then cuts a second path without resurrecting the first" time="0.750511">
+        </testcase>
+        <testcase classname="__tests__/unit/session-transcript-history.test.js" name="canonical display history &gt; uses indexed provenance to distinguish identical messages across compaction" time="0.8816681">
+        </testcase>
+        <testcase classname="__tests__/unit/session-transcript-history.test.js" name="canonical display history &gt; uses only the replacement snapshot for an invalid prefix {&quot;sourceHead&quot;:&quot;ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff&quot;}" time="1.0310066">
+        </testcase>
+        <testcase classname="__tests__/unit/session-transcript-history.test.js" name="canonical display history &gt; uses only the replacement snapshot for an invalid prefix {&quot;sourceMessageCount&quot;:999}" time="1.0841099">
+        </testcase>
+        <testcase classname="__tests__/unit/session-transcript-history.test.js" name="canonical display history &gt; uses only the replacement snapshot for an invalid prefix {&quot;retainedMessageCount&quot;:-1}" time="1.0512705">
+        </testcase>
+        <testcase classname="__tests__/unit/session-transcript-history.test.js" name="canonical display history &gt; uses only the replacement snapshot for an invalid prefix {&quot;retainedMessageCount&quot;:999}" time="1.0745442">
+        </testcase>
+        <testcase classname="__tests__/unit/session-transcript-history.test.js" name="canonical display history &gt; uses only the replacement snapshot for an invalid prefix {&quot;schema&quot;:&quot;unknown&quot;}" time="1.042522">
+        </testcase>
+        <testcase classname="__tests__/unit/session-transcript-history.test.js" name="canonical display history &gt; keeps snapshot coverage across a later verified rewind" time="1.0120683">
+        </testcase>
+        <testcase classname="__tests__/unit/session-transcript-history.test.js" name="canonical display history &gt; revokes the rescan lease and rejects file changes during replay" time="0.1931943">
+        </testcase>
+        <testcase classname="__tests__/unit/session-transcript-history.test.js" name="canonical display history &gt; isolates full-copy forks and reports snapshot branches without borrowing parent content" time="1.0838986">
+        </testcase>
+        <testcase classname="__tests__/unit/session-transcript-history.test.js" name="canonical display history &gt; treats physical-store-import snapshots as replacement boundaries" time="0.2177874">
+        </testcase>
+        <testcase classname="__tests__/unit/session-transcript-history.test.js" name="canonical display history &gt; treats session-end snapshots as replacement boundaries" time="0.2169457">
+        </testcase>
+        <testcase classname="__tests__/unit/session-transcript-history.test.js" name="canonical display history &gt; treats unknown snapshots as replacement boundaries" time="0.2038833">
+        </testcase>
+        <testcase classname="__tests__/unit/session-transcript-history.test.js" name="canonical display history &gt; falls back to the explicit snapshot when a canonical payload is inconsistent" time="1.0434307">
+        </testcase>
+        <testcase classname="__tests__/unit/session-transcript-history.test.js" name="canonical display history &gt; reads through the command without modifying authority and rejects a forged tail" time="0.3155196">
+        </testcase>
+        <testcase classname="__tests__/unit/session-transcript-history.test.js" name="canonical display history &gt; bounds retained bytes and traverses oversized rows without dropping page identities" time="0.1402957">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/unit/session-transcript-page-store.test.js" timestamp="2026-11-09T01:57:37.915Z" hostname="normalized-windows-host" tests="1" failures="0" errors="0" skipped="0" time="0.2900378">
+        <testcase classname="__tests__/unit/session-transcript-page-store.test.js" name="canonical transcript page reader &gt; uses the verified store and fails on tampered history" time="0.2868198">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/unit/session-transcript-page.test.js" timestamp="2026-11-09T01:57:37.915Z" hostname="normalized-windows-host" tests="5" failures="0" errors="0" skipped="0" time="0.2968526">
+        <testcase classname="__tests__/unit/session-transcript-page.test.js" name="verified transcript page projection &gt; keeps an escaped-text row within the byte budget instead of dropping it" time="0.0336822">
+        </testcase>
+        <testcase classname="__tests__/unit/session-transcript-page.test.js" name="verified transcript page projection &gt; paginates backwards without duplicate or missing messages" time="0.001274">
+        </testcase>
+        <testcase classname="__tests__/unit/session-transcript-page.test.js" name="verified transcript page projection &gt; invalidates old cursors on compact without reviving discarded content" time="0.0006943">
+        </testcase>
+        <testcase classname="__tests__/unit/session-transcript-page.test.js" name="verified transcript page projection &gt; invalidates old cursors on checkpoint_timeline_commit without reviving discarded content" time="0.0002137">
+        </testcase>
+        <testcase classname="__tests__/unit/session-transcript-page.test.js" name="verified transcript page projection &gt; bounds page bytes and per-entry text before retaining history" time="0.2593873">
+        </testcase>
+    </testsuite>
+</testsuites>

@@ -1,0 +1,1605 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="755" failures="0" errors="0" time="66.0790248">
+    <testsuite name="__tests__/unit/agent-mcp-config.test.js" timestamp="2026-11-09T01:53:04.916Z" hostname="normalized-windows-host" tests="71" failures="0" errors="0" skipped="0" time="3.9470525">
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="parseMcpServers &gt; accepts the Claude-Code {mcpServers} shape" time="0.001347">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="parseMcpServers &gt; accepts the {servers} bundle shape and a bare map" time="0.0003337">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="parseMcpServers &gt; skips non-object entries and defaults args/env/headers" time="0.0002023">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="parseMcpServers &gt; preserves only numeric WebSocket payload limits" time="0.0004331">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="parseMcpServers &gt; preserves finite inbound traffic tightenings and rejects text values" time="0.0002246">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="parseMcpServers &gt; preserves finite JSON graph tightenings and rejects text values" time="0.0001701">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="parseMcpServers &gt; preserves finite tool metadata/result tightenings and rejects text values" time="0.0004076">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="parseMcpServers &gt; preserves cwd and a canonical frozen sandbox policy" time="0.000351">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="parseMcpServers &gt; rejects invalid cwd instead of widening an explicit strict server" time="0.0003951">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="parseMcpServers &gt; rejects invalid, accessor, and Proxy sandbox policies without invoking traps" time="0.0004771">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="mcpToolName &gt; namespaces server + tool" time="0.0001101">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="setupMcpFromConfig &gt; enforces managed MCP allow and deny lists" time="0.0002751">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="setupMcpFromConfig &gt; filters before connecting so blocked server commands never spawn" time="0.0014935">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="setupMcpFromConfig &gt; builds tool defs + executor map from connected servers" time="0.0011998">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="setupMcpFromConfig &gt; rejects oversized metadata from an injected client before model wiring" time="0.0004655">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="setupMcpFromConfig &gt; binds tightened result budgets to every projected server tool" time="0.0003311">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="setupMcpFromConfig &gt; defaults parameters when a tool has no inputSchema" time="0.0002696">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="setupMcpFromConfig &gt; logs and skips a server that fails to connect (best-effort)" time="0.0004499">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="setupMcpFromConfig &gt; appends a `cc mcp login` hint when a URL server fails with HTTP 401" time="0.0003846">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="setupMcpFromConfig &gt; surfaces res.toolsError (connected but tools fetch failed) instead of a silent 0-tools, with auth hint on 401" time="0.000298">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="setupMcpFromConfig &gt; a non-auth toolsError is reported without a login hint" time="0.0002361">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="setupMcpFromConfig &gt; mcpAuthHint: returns a `cc mcp login` hint for HTTP 401/403/Unauthorized on a url server" time="0.000187">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="setupMcpFromConfig &gt; mcpAuthHint: returns null for non-auth errors, other HTTP codes, or stdio (no url)" time="0.0001346">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="setupMcpFromConfig &gt; passes deps.sessionId to the client (stdio MCP identity env)" time="0.0003052">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="setupMcpFromConfig &gt; does not call setSessionId when no sessionId is given" time="0.0002068">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="setupMcpFromConfig &gt; injects the discovered OAuth bearer for a url server with no auth header" time="0.0003769">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="setupMcpFromConfig &gt; does NOT inject (or duplicate) a bearer when the caller supplied an auth header in ANY casing" time="0.0002419">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="hasHeaderInsensitive &gt; matches a header name regardless of casing" time="0.0000826">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="hasHeaderInsensitive &gt; returns false for an absent header or a non-object map" time="0.0000814">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="loadMcpConfig &gt; throws on unreadable / invalid JSON" time="0.0007205">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="loadMcpConfig &gt; throws when no servers are present" time="0.000233">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="loadMcpConfig &gt; parses a file and connects via the injected client" time="0.0010631">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="loadMcpConfig &gt; fails fast on an invalid explicit sandbox policy" time="0.000187">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="runAgentHeadless — --mcp-config wiring &gt; threads mcp wiring into the loop options and disconnects at the end" time="1.4726695">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="runAgentHeadless — --mcp-config wiring &gt; dispatches an mcp__server__tool call to mcpClient.callTool (real loop)" time="0.7556755">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="runAgentHeadless — --mcp-config wiring &gt; keeps an oversized MCP result out of stream output and the next model turn" time="0.6812799">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="runAgentHeadless — --mcp-config wiring &gt; fails fast when the config file is bad" time="0.1228659">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="resolvePermissionPromptTool &gt; resolves a loaded mcp tool to {server, tool}" time="0.0002483">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="resolvePermissionPromptTool &gt; throws when no mcp was loaded" time="0.0001919">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="resolvePermissionPromptTool &gt; throws (listing available) when the tool is not loaded" time="0.0001719">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="parsePermissionDecision &gt; allows on JSON {behavior:&apos;allow&apos;} text content" time="0.0002269">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="parsePermissionDecision &gt; denies on {behavior:&apos;deny&apos;}" time="0.0001013">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="parsePermissionDecision &gt; reads a top-level {allow:true} object" time="0.0000853">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="parsePermissionDecision &gt; denies (fail-closed) on isError, empty, or unparseable" time="0.0004723">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="makePermissionPromptConfirmer &gt; calls the MCP tool with {tool_name, input} and returns the verdict" time="0.0014301">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="makePermissionPromptConfirmer &gt; denies on a deny verdict" time="0.0001722">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="makePermissionPromptConfirmer &gt; fails closed when the tool throws" time="0.0004596">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="runAgentHeadless — --permission-prompt-tool wiring &gt; installs an MCP-backed confirmer that routes approvals to the tool" time="0.7513926">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="runAgentHeadless — --permission-prompt-tool wiring &gt; fails fast when the named tool was not loaded" time="0.117735">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="loadRegisteredMcp &gt; returns null without a db" time="0.0003696">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="loadRegisteredMcp &gt; skips one corrupt stored policy without disabling healthy servers" time="0.0040863">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="loadRegisteredMcp &gt; connects auto-connect servers and builds the channels" time="0.000535">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="loadRegisteredMcp &gt; retains registered cwd/runtime semantics and sandbox policy" time="0.0007362">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="loadRegisteredMcp &gt; warns and refuses a registered server with an invalid policy" time="0.0002443">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="loadRegisteredMcp &gt; skips a custom registered row with invalid cwd without widening it" time="0.0007504">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="loadRegisteredMcp &gt; forwards an explicit scope to the persistent config query" time="0.0012964">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="loadRegisteredMcp &gt; uses list() (all servers) when all:true" time="0.0001865">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="loadRegisteredMcp &gt; returns null when no servers are registered" time="0.0001355">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="resolveAgentMcp &gt; threads managed MCP policy into every loader" time="0.0002093">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="resolveAgentMcp &gt; merges --mcp-config + registered into ONE client" time="0.002474">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="resolveAgentMcp &gt; forwards args.sessionId down to the client (stdio MCP identity env)" time="0.0019072">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="resolveAgentMcp &gt; ad-hoc name wins over a registered clash (skip-existing)" time="0.0020594">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="resolveAgentMcp &gt; keeps runtime precedence aligned with local &gt; project &gt; user" time="0.0014452">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="resolveAgentMcp &gt; does not fall back to lower sources after a selected local server fails to connect" time="0.0006403">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="resolveAgentMcp &gt; does not fall back after a selected local server fails execution-authority issuance" time="0.0003743">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="resolveAgentMcp &gt; does not retain failed name reservations across independent resolves that reuse deps" time="0.0007203">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="resolveAgentMcp &gt; keeps a rejected plugin name from falling through to IDE discovery" time="0.0006568">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="resolveAgentMcp &gt; keeps a disabled visible local row from enabling a same-name user auto-connect" time="0.0014931">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="resolveAgentMcp &gt; keeps a corrupt visible local row from enabling a same-name user auto-connect" time="0.0014295">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="resolveAgentMcp &gt; includeRegistered:false skips the registry (file only)" time="0.0022705">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-mcp-config.test.js" name="resolveAgentMcp &gt; still fail-fasts on a bad --mcp-config file" time="0.0005147">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/unit/agent-policy-mcp-config.test.js" timestamp="2026-11-09T01:53:04.927Z" hostname="normalized-windows-host" tests="4" failures="0" errors="0" skipped="0" time="0.0041802">
+        <testcase classname="__tests__/unit/agent-policy-mcp-config.test.js" name="resolveAgentPolicy — mcpConfig &gt; carries overrides.mcpConfig onto the policy" time="0.0019022">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-policy-mcp-config.test.js" name="resolveAgentPolicy — mcpConfig &gt; defaults to null when not provided" time="0.0002442">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-policy-mcp-config.test.js" name="resolveAgentPolicy — mcpConfig &gt; defaults useRegisteredMcp to true, false when --no-mcp" time="0.0001486">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-policy-mcp-config.test.js" name="resolveAgentPolicy — mcpConfig &gt; carries the IDE tri-state onto the policy" time="0.000202">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/unit/agent-repl.test.js" timestamp="2026-11-09T01:53:04.928Z" hostname="normalized-windows-host" tests="152" failures="0" errors="0" skipped="0" time="7.8748829">
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="REPL compact persistence fencing &gt; keeps the REPL terminal after a compaction ledger persistence failure" time="3.2728777">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="REPL compact persistence fencing &gt; brackets a direct REPL tool with one secret-free started/settlement pair" time="0.001699">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="REPL compact persistence fencing &gt; blocks the direct tool and every later call when its started row cannot persist" time="0.0013787">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="REPL compact persistence fencing &gt; settles a failed direct tool, but latches terminal if settlement is lost" time="0.0023417">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="REPL compact persistence fencing &gt; routes both REPL-owned direct tool producers through the strict ledger" time="0.0016317">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="REPL compact persistence fencing &gt; meters a semantic compaction call before spend and returns settled metadata" time="0.001383">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="REPL compact persistence fencing &gt; settles direct model usage into the shared budget after the durable ledger" time="0.0007954">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="REPL compact persistence fencing &gt; durably settles missing compaction usage as unknown" time="0.0004123">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="REPL compact persistence fencing &gt; attaches settled ledger metadata to a compaction provider error" time="0.0004922">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="REPL compact persistence fencing &gt; persists a microcompact checkpoint before replacing live messages" time="0.0023383">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="REPL compact persistence fencing &gt; tracks the known replay and advances it only after a matched compact" time="0.0009383">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="REPL compact persistence fencing &gt; keeps its prior projection when the store rejects an unseen turn" time="0.0003853">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="REPL compact persistence fencing &gt; accounts provider usage and settles CAS before replacing live messages" time="0.0009037">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="REPL compact persistence fencing &gt; counts an already-durable usage settlement locally without appending it twice" time="0.0011393">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="REPL compact persistence fencing &gt; fails closed when a legacy known-usage settlement cannot persist" time="0.0005463">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="REPL compact persistence fencing &gt; counts known usage once but preserves live messages when compact CAS is stale" time="0.0004752">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="REPL compact persistence fencing &gt; does not account, persist, or apply an unknown-usage fallback" time="0.0003898">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="REPL compact persistence fencing &gt; marks an undurable unknown settlement as terminal" time="0.0003984">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl tool execution &gt; read_file tool logic &gt; reads existing file content" time="0.0020746">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl tool execution &gt; read_file tool logic &gt; handles non-existent file" time="0.0007217">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl tool execution &gt; write_file tool logic &gt; creates new file with content" time="0.0015386">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl tool execution &gt; write_file tool logic &gt; creates nested directories" time="0.0022682">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl tool execution &gt; edit_file tool logic &gt; replaces string in file" time="0.0020599">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl tool execution &gt; edit_file tool logic &gt; fails when old_string not found" time="0.002406">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl tool execution &gt; list_dir tool logic &gt; lists directory contents" time="0.0033745">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl module exports &gt; exports startAgentRepl function" time="0.0002378">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl module exports &gt; rejects an unbranded structured memory control plane before startup" time="0.0011374">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl module exports &gt; pauses core event consumption until the REPL output drain settles" time="0.0017773">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl module exports &gt; persists and fences a non-MCP side effect before the core executes it" time="0.0024166">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl module exports &gt; does not resume the core into a side effect when its prewrite fails" time="0.0007164">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl TOOLS definition &gt; includes skill-related tools in TOOLS constant" time="0.3313892">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl TOOLS definition &gt; agent --help includes --session option" time="0.1179135">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="run_code tool logic &gt; Node.js execution &gt; executes Node.js code and returns output" time="0.098304">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="run_code tool logic &gt; Node.js execution &gt; executes Node.js code with JSON output" time="0.0930128">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="run_code tool logic &gt; Node.js execution &gt; captures stderr on syntax error" time="0.087322">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="run_code tool logic &gt; Node.js execution &gt; handles multiline code with calculations" time="0.1040457">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="run_code tool logic &gt; Bash execution &gt; executes bash code and returns output" time="0.0714012">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="run_code tool logic &gt; Bash execution &gt; executes bash with variables and arithmetic" time="0.0599581">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="run_code tool logic &gt; temp file lifecycle &gt; temp file is created and can be cleaned up" time="0.0942103">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="run_code tool logic &gt; timeout behavior &gt; should enforce timeout on long-running scripts" time="1.018019">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="run_code tool logic &gt; output truncation &gt; large output can be truncated to limit" time="0.1176255">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="run_code tool logic &gt; language file extensions &gt; maps python to .py extension" time="0.0011577">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="run_code tool logic &gt; language file extensions &gt; rejects unsupported languages" time="0.0007193">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="run_code tool logic &gt; timeout parameter validation &gt; clamps timeout to valid range (1-300)" time="0.0007601">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="run_code tool logic &gt; result format &gt; success result includes expected fields" time="0.0007668">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="run_code tool logic &gt; result format &gt; error result includes expected fields" time="0.0006651">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-core execution limits (used by agent-repl) &gt; uses IterationBudget for iteration limits" time="0.0022469">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-core execution limits (used by agent-repl) &gt; run_shell defaults to 60000ms through the bounded timeout resolver" time="0.0021634">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-core execution limits (used by agent-repl) &gt; run_shell preserves bounded structured previews for success and failure output" time="0.0256907">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-core execution limits (used by agent-repl) &gt; Anthropic max_tokens consumes the centralized model-aware output budget" time="0.0033662">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-core execution limits (used by agent-repl) &gt; default ollama model should be qwen2.5:7b" time="0.0014986">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-core TOOLS includes run_code (used by agent-repl) &gt; run_code tool is defined in AGENT_TOOLS array" time="0.0023612">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-core TOOLS includes run_code (used by agent-repl) &gt; system prompt includes proactive coding guidance" time="0.0021334">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-core TOOLS includes run_code (used by agent-repl) &gt; formatToolArgs handles run_code" time="0.0024141">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-core TOOLS includes run_code (used by agent-repl) &gt; plan mode treats run_code as high impact" time="0.002385">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-core TOOLS includes run_code (used by agent-repl) &gt; agent-repl imports from agent-core (deduplication)" time="0.0014003">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl thin wrapper contracts &gt; defers an early EPIPE until the graceful close handler is ready" time="0.0014768">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl thin wrapper contracts &gt; waits for active work and closes the owned EvolutionRun before process exit" time="0.0012605">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl thin wrapper contracts &gt; binds every REPL query adapter and the Advisor to the session ingress and meter" time="0.0022547">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl thin wrapper contracts &gt; executeTool wrapper passes host and budget authority to coreExecuteTool" time="0.0011553">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl thin wrapper contracts &gt; agentLoop wrapper iterates coreAgentLoop and handles tool-executing events" time="0.0009726">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl thin wrapper contracts &gt; agentLoop wrapper handles tool-result events (error and success)" time="0.0009566">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl thin wrapper contracts &gt; agentLoop wrapper surfaces ApprovalGate deny recovery hint" time="0.0010204">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl thin wrapper contracts &gt; agentLoop wrapper returns structured result on response-complete" time="0.0010242">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl thin wrapper contracts &gt; threads unreadable and unsettled resume state into the shared MCP recovery guard" time="0.0016056">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl thin wrapper contracts &gt; routes auxiliary MCP and IDE calls through the guarded host client" time="0.0013428">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl thin wrapper contracts &gt; switches the session runtime only after a resume candidate succeeds" time="0.0012808">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl MCP host runtime manager &gt; reuses one controller and ledger so a settlement latch survives turns" time="0.0017369">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl MCP host runtime manager &gt; prepares session switches without replacing the active runtime" time="0.0009664">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl MCP host runtime manager &gt; prefers adhoc MCP, supports bundle fallback, and skips durable DB sinks" time="0.0006799">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl MCP host runtime manager &gt; keeps a non-persistent REPL on the guarded ledger after outcome unknown" time="0.4212437">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl startup resume admission &gt; adopts a verified canonical session before reading feature config" time="0.0015158">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl startup resume admission &gt; acquires the canonical REPL host lease before entering the workspace" time="0.0009135">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl startup resume admission &gt; opens one durable budget root after the host lease and before workspace startup" time="0.0010933">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl startup resume admission &gt; refuses REPL budget declaration drift before entering the workspace" time="0.0019809">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl startup resume admission &gt; writes a normalized budget declaration when creating a REPL JSONL session" time="0.0007153">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl startup resume admission &gt; closes a REPL budget root scope exactly once" time="0.0004641">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl startup resume admission &gt; never downgrades a budgeted JSONL session creation failure to legacy best effort" time="0.000399">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl startup resume admission &gt; refuses an already-exhausted budget before entering the workspace" time="0.001051">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl startup resume admission &gt; refuses a present unverified canonical session before config access" time="0.0004614">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl startup resume admission &gt; reads feature config only after canonical absence is established" time="0.0003222">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl startup resume admission &gt; does not let a thrown own NOT_FOUND code forge canonical absence" time="0.0006619">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl startup resume admission &gt; requires exact null rather than undefined for canonical absence" time="0.0003926">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl startup resume admission &gt; refuses invalid canonical roles before every host startup side effect" time="0.0007016">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl startup resume admission &gt; passes one frozen verified sample across the successful host boundary" time="0.000589">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl startup resume admission &gt; rejects unsafe resume id &quot;../escape&quot; without probing storage or config" time="0.0003104">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl startup resume admission &gt; rejects unsafe resume id &quot;xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx&quot; without probing storage or config" time="0.0002458">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl startup resume admission &gt; rejects unsafe resume id &quot;control\ncharacter&quot; without probing storage or config" time="0.0002334">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl startup resume admission &gt; rejects unsafe resume id &quot;noncanonical-é&quot; without probing storage or config" time="0.000376">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl startup resume admission &gt; rejects unsafe resume id &quot;NUL&quot; without probing storage or config" time="0.0002451">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl startup resume admission &gt; rejects unsafe resume id &quot;alternate:data&quot; without probing storage or config" time="0.0002547">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl startup resume admission &gt; rejects unsafe resume id &quot;trailing.&quot; without probing storage or config" time="0.000301">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl startup resume admission &gt; does not execute a hostile error.code getter while refusing resume" time="0.0005769">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl canonical replay role admission &gt; deterministically normalizes same-role runs across the full history" time="0.0007688">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl canonical replay role admission &gt; drops unmarked and forged system messages at the injected host seam" time="0.0006289">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl canonical replay role admission &gt; keeps every canonical system authority behind the fresh host system" time="0.0022881">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl canonical replay role admission &gt; moves durable migration and checkpoint summaries behind the fresh host before a live turn" time="0.0019255">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl canonical replay role admission &gt; keeps one registered host prefix across two canonical switches and a DB switch" time="0.0018457">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl canonical replay role admission &gt; accepts a real PromptCompressor assistant-first compact without changing authority" time="1.6986794">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl canonical replay role admission &gt; accepts one completely paired multi-tool exchange" time="0.0007482">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl canonical replay role admission &gt; allows a fallback tool-call id to be reused after each batch settles" time="0.0006441">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl canonical replay role admission &gt; refuses &apos;orphan tool result&apos;" time="0.0005193">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl canonical replay role admission &gt; refuses &apos;missing tool result&apos;" time="0.0003895">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl canonical replay role admission &gt; refuses &apos;duplicate tool call id&apos;" time="0.0004114">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl canonical replay role admission &gt; refuses &apos;wrong-role tool calls hidden behind a…&apos;" time="0.0004029">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl canonical replay role admission &gt; refuses &apos;wrong-role tool result id hidden behi…&apos;" time="0.0004429">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl canonical replay role admission &gt; refuses &apos;invalid tool-call shape hidden behind…&apos;" time="0.0003299">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl canonical replay role admission &gt; refuses &apos;non-object tool-call entry&apos;" time="0.0002954">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl canonical replay role admission &gt; refuses &apos;extra authority metadata on a same-us…&apos;" time="0.0003208">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl canonical replay role admission &gt; refuses &apos;forged MCP reference name without a v…&apos;" time="0.0004561">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl canonical replay role admission &gt; rejects an accessor authority field before a same-role merge without invoking it" time="0.0006024">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl MCP recovery resume transaction &gt; reads one verified state and blocks all when its messages are unsafe" time="0.0009268">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl MCP recovery resume transaction &gt; keeps the old session state when target preparation fails" time="0.0003667">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl MCP recovery resume transaction &gt; refuses an unreadable target before commit with ALL-blocking authority" time="0.0004143">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl MCP recovery resume transaction &gt; takes an immutable descriptor snapshot and keeps every exact replay deny" time="0.0016824">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl MCP recovery resume transaction &gt; rejects Proxy and accessor recovery evidence without invoking getters" time="0.0006078">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl MCP recovery resume transaction &gt; rejects a forged unsettled effect outside the recovery protocol enum" time="0.0003293">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl MCP recovery resume transaction &gt; rejects a Proxy prototype without executing any prototype trap" time="0.0002372">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl MCP recovery resume transaction &gt; rejects and consumes an asynchronous loader result" time="0.0003191">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl MCP recovery resume transaction &gt; rejects and consumes an asynchronous formatter result" time="0.0002043">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl MCP recovery resume transaction &gt; rejects a plain thenable without invoking it" time="0.0002946">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl MCP recovery resume transaction &gt; rejects a Proxy Error without invoking its prototype trap" time="0.0002736">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl MCP recovery resume transaction &gt; consumes a rejected native Promise with an own then accessor override" time="0.0004729">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl MCP recovery resume transaction &gt; consumes a rejected native Promise with an own then data override" time="0.0003252">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl MCP recovery resume transaction &gt; safely consumes and restores a rejected native Promise with a configurable hostile accessor constructor" time="0.0005642">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl MCP recovery resume transaction &gt; safely consumes and restores a rejected native Promise with a configurable hostile species constructor" time="0.0003343">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl MCP recovery resume transaction &gt; fails closed without invoking an unsafe non-configurable Promise constructor" time="0.0003948">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl MCP recovery resume transaction &gt; rejects Proxy and accessor rebuild arrays before resume preparation" time="0.0004483">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl MCP recovery resume transaction &gt; turns mismatched single-sample authority into ALL-blocking refusal" time="0.0007174">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl MCP recovery resume transaction &gt; rejects a forged prepared resume candidate before its commit runs" time="0.0001808">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl MCP recovery resume transaction &gt; refuses an unbranded host prefix before mutating live resume state" time="0.0004135">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl MCP recovery resume transaction &gt; atomically rolls the real JSONL resume state back when helper throws" time="0.0010232">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl MCP recovery resume transaction &gt; atomically rolls the real JSONL resume state back when runtime throws" time="0.0006185">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl MCP recovery resume transaction &gt; atomically rolls the real JSONL resume state back when logger throws" time="0.0006287">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl MCP recovery resume transaction &gt; atomically rolls the real DB resume state back when helper throws" time="0.0007746">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl MCP recovery resume transaction &gt; atomically rolls the real DB resume state back when runtime throws" time="0.0007607">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl MCP recovery resume transaction &gt; atomically rolls the real DB resume state back when logger throws" time="0.0007349">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl MCP recovery resume transaction &gt; feeds every exact replay deny into the shared runtime controller" time="0.0030461">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl resume role-alternation wiring (2.1.187 parity) &gt; uses the shared merge primitive behind a strict local tail boundary" time="0.000169">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl resume role-alternation wiring (2.1.187 parity) &gt; declares the one-shot sanitation flag, default off" time="0.0001299">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl resume role-alternation wiring (2.1.187 parity) &gt; arms the flag at every resume site when history ends with a user turn" time="0.0006146">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl resume role-alternation wiring (2.1.187 parity) &gt; seals host systems before startup replay and refreshes both live switch paths" time="0.0003652">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl resume role-alternation wiring (2.1.187 parity) &gt; collapses in place inside the loop wrapper, gated on options.mergeRoles" time="0.0001255">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl resume role-alternation wiring (2.1.187 parity) &gt; does not fold a resumed tail carrying extra authority metadata" time="0.0004627">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl resume role-alternation wiring (2.1.187 parity) &gt; consumes the flag once at the model call and threads mergeRoles through" time="0.0003229">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl context engineering integration &gt; CLIContextEngineering integrates with agent-repl module" time="0.0007888">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl context engineering integration &gt; getBaseSystemPrompt includes cwd" time="0.1293899">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl /btw side-question wiring &gt; imports the pure /btw helpers" time="0.0003547">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl /btw side-question wiring &gt; runs /btw immediately and allows it alongside a main turn" time="0.0007365">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl /btw side-question wiring &gt; queues /note-next guidance and consumes it on send" time="0.0002769">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl /btw side-question wiring &gt; injects before agentLoop and restores after, so the aside never persists" time="0.000474">
+        </testcase>
+        <testcase classname="__tests__/unit/agent-repl.test.js" name="agent-repl /btw side-question wiring &gt; keeps the user-message object ref so the aside can be stripped" time="0.0003912">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/unit/mcp-client-connect-failure-cleanup.test.js" timestamp="2026-11-09T01:53:04.982Z" hostname="normalized-windows-host" tests="3" failures="0" errors="0" skipped="0" time="1.5469456">
+        <testcase classname="__tests__/unit/mcp-client-connect-failure-cleanup.test.js" name="MCPClient stdio — connect-failure cleanup &gt; kills the spawned child and removes its listeners when the handshake fails" time="0.7770922">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-connect-failure-cleanup.test.js" name="MCPClient stdio — connect-failure cleanup &gt; leaves no process to clean up for an http transport failure" time="0.7677326">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-connect-failure-cleanup.test.js" name="MCPClient stdio — connect-failure cleanup &gt; fails an explicit disconnect when the owned tree misses its deadline" time="0.0005553">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/unit/mcp-client-discovery-retry.test.js" timestamp="2026-11-09T01:53:04.983Z" hostname="normalized-windows-host" tests="7" failures="0" errors="0" skipped="0" time="0.0186243">
+        <testcase classname="__tests__/unit/mcp-client-discovery-retry.test.js" name="isTransientMcpError &gt; retries network failures and 5xx, not 4xx / timeouts / dead process" time="0.0013383">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-discovery-retry.test.js" name="MCPClient discovery retry &gt; retries initialize on a transient error then succeeds (short backoff)" time="0.0056625">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-discovery-retry.test.js" name="MCPClient discovery retry &gt; does NOT retry a permanent 4xx and surfaces it" time="0.0013823">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-discovery-retry.test.js" name="MCPClient discovery retry &gt; gives up after the retry budget on persistent transient errors" time="0.0009465">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-discovery-retry.test.js" name="MCPClient discovery retry &gt; 404 names the URL and points at the MCP config" time="0.0006367">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-discovery-retry.test.js" name="MCPClient discovery retry &gt; uses an opted-in fresh capability cache only after a new initialize handshake" time="0.0025113">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-discovery-retry.test.js" name="MCPClient discovery retry &gt; uses bounded stale discovery only for transient tool discovery failures" time="0.004577">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/unit/mcp-client-dispatch-admission.test.js" timestamp="2026-11-09T01:53:04.986Z" hostname="normalized-windows-host" tests="6" failures="0" errors="0" skipped="0" time="0.009185">
+        <testcase classname="__tests__/unit/mcp-client-dispatch-admission.test.js" name="MCP tool dispatch admission &gt; starts the actual stdio write inside the one-shot host admission" time="0.0037257">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-dispatch-admission.test.js" name="MCP tool dispatch admission &gt; starts the actual WebSocket send inside the one-shot host admission" time="0.0007581">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-dispatch-admission.test.js" name="MCP tool dispatch admission &gt; starts the actual HTTP fetch inside the one-shot host admission" time="0.0011423">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-dispatch-admission.test.js" name="MCP tool dispatch admission &gt; does not replay an admitted HTTP tool after a connection reset" time="0.0008814">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-dispatch-admission.test.js" name="MCP tool dispatch admission &gt; rechecks host admission when a confirmed HTTP 401 is retried" time="0.0007497">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-dispatch-admission.test.js" name="MCP tool dispatch admission &gt; cannot send after an admission callback returns without dispatching" time="0.0004274">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/unit/mcp-client-elicitation.test.js" timestamp="2026-11-09T01:53:04.991Z" hostname="normalized-windows-host" tests="15" failures="0" errors="0" skipped="0" time="0.1236954">
+        <testcase classname="__tests__/unit/mcp-client-elicitation.test.js" name="MCP elicitation/create routing &gt; routes a server request to the injected handler" time="0.0079004">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-elicitation.test.js" name="MCP elicitation/create routing &gt; advertises form + URL elicitation on the stable protocol revision" time="0.0019154">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-elicitation.test.js" name="MCP elicitation/create routing &gt; does not advertise or accept URL mode on an older protocol revision" time="0.0027786">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-elicitation.test.js" name="MCP elicitation/create routing &gt; validates URL mode and never returns out-of-band content" time="0.0017856">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-elicitation.test.js" name="MCP elicitation/create routing &gt; emits a structured defer and declines on the wire without a host" time="0.0004807">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-elicitation.test.js" name="MCP elicitation/create routing &gt; declines above the bounded concurrent elicitation capacity" time="0.0003999">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-elicitation.test.js" name="MCP elicitation/create routing &gt; supports event-driven response and fails closed without a host" time="0.0017279">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-elicitation.test.js" name="MCP elicitation/create routing &gt; cancels event-driven elicitations for only the disconnected server" time="0.0006038">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-elicitation.test.js" name="MCP elicitation/create routing &gt; keeps concurrent session-scoped handlers isolated" time="0.0003859">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-elicitation.test.js" name="MCP elicitation/create routing &gt; publishes and acknowledges MCP elicitation in the durable inbox" time="0.0005051">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-elicitation.test.js" name="MCP elicitation/create routing &gt; does not grant URL-flow authority to a hand-built -32042 error" time="0.0006092">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-elicitation.test.js" name="MCP elicitation/create routing &gt; does not lose a URL completion that races explicit host consent" time="0.0004629">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-elicitation.test.js" name="MCP elicitation/create routing &gt; rejects unbranded -32042 batches before prompting" time="0.0003193">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-elicitation.test.js" name="MCP elicitation/create routing &gt; receives URL requests and completion over Streamable HTTP GET/SSE" time="0.0065501">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-elicitation.test.js" name="MCP elicitation/create routing &gt; resumes a closed HTTP message stream with Last-Event-ID" time="0.0954786">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/unit/mcp-client-headers-helper.test.js" timestamp="2026-11-09T01:53:05.009Z" hostname="normalized-windows-host" tests="8" failures="0" errors="0" skipped="0" time="0.043284">
+        <testcase classname="__tests__/unit/mcp-client-headers-helper.test.js" name="MCPClient headersHelper transport lifecycle &gt; runs at initial HTTP connection and overrides static headers case-insensitively" time="0.0094187">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-headers-helper.test.js" name="MCPClient headersHelper transport lifecycle &gt; refreshes once on a tool 401 and retries the operation exactly once" time="0.0050885">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-headers-helper.test.js" name="MCPClient headersHelper transport lifecycle &gt; never reads a non-auth error body that could echo helper credentials" time="0.0019992">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-headers-helper.test.js" name="MCPClient headersHelper transport lifecycle &gt; does not multiply retries when the refreshed credential is also rejected" time="0.0034512">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-headers-helper.test.js" name="MCPClient headersHelper transport lifecycle &gt; does not mint a nested auth retry when reconnect initialize is rejected" time="0.0023462">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-headers-helper.test.js" name="MCPClient headersHelper transport lifecycle &gt; reruns once when initialize itself rejects the first credential" time="0.0022622">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-headers-helper.test.js" name="MCPClient headersHelper transport lifecycle &gt; runs on each SSE stream connection and stops after one auth refresh" time="0.0019211">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-headers-helper.test.js" name="MCPClient headersHelper transport lifecycle &gt; reruns for one WebSocket 401 handshake retry and then stops" time="0.0151973">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/unit/mcp-client-http-body-limit.test.js" timestamp="2026-11-09T01:53:05.013Z" hostname="normalized-windows-host" tests="13" failures="0" errors="0" skipped="0" time="1.6290288">
+        <testcase classname="__tests__/unit/mcp-client-http-body-limit.test.js" name="MCPClient HTTP response body byte limits &gt; rejects a chunked success body without Content-Length before JSON parsing" time="0.0517621">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-http-body-limit.test.js" name="MCPClient HTTP response body byte limits &gt; suppresses and cancels a chunked HTTP 401 error body before its canary" time="0.0093001">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-http-body-limit.test.js" name="MCPClient HTTP response body byte limits &gt; suppresses and cancels a chunked HTTP 404 error body before its canary" time="0.0062145">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-http-body-limit.test.js" name="MCPClient HTTP response body byte limits &gt; suppresses and cancels a chunked HTTP 503 error body before its canary" time="0.7698901">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-http-body-limit.test.js" name="MCPClient HTTP response body byte limits &gt; cancels an unsurfaced headersHelper error body without reading it" time="0.7783335">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-http-body-limit.test.js" name="MCPClient HTTP response body byte limits &gt; cancels a non-auth error body without acquiring a reader or calling text" time="0.0010108">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-http-body-limit.test.js" name="MCPClient HTTP response body byte limits &gt; cancels and releases a finite response reader when reading fails" time="0.0013273">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-http-body-limit.test.js" name="MCPClient HTTP response body byte limits &gt; rejects a success response without a byte reader before text allocation" time="0.0005824">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-http-body-limit.test.js" name="MCPClient HTTP response body byte limits &gt; stops a background SSE stream when its response has no byte reader" time="0.0007035">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-http-body-limit.test.js" name="MCPClient HTTP response body byte limits &gt; keeps the host-owned ceiling for maxBufferChars=0 and cancels before body read" time="0.0036287">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-http-body-limit.test.js" name="MCPClient HTTP response body byte limits &gt; keeps the host-owned ceiling for maxBufferChars=9007199254740991 and cancels before body read" time="0.0026528">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-http-body-limit.test.js" name="MCPClient HTTP response body byte limits &gt; rejects an oversized complete background SSE event by UTF-8 bytes and stops reconnecting" time="0.0008738">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-http-body-limit.test.js" name="MCPClient HTTP response body byte limits &gt; rejects an oversized unterminated background SSE event by UTF-8 bytes and stops reconnecting" time="0.000389">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/unit/mcp-client-http-discard-lifecycle.test.js" timestamp="2026-11-09T01:53:05.021Z" hostname="normalized-windows-host" tests="13" failures="0" errors="0" skipped="0" time="0.1832123">
+        <testcase classname="__tests__/unit/mcp-client-http-discard-lifecycle.test.js" name="MCPClient discarded HTTP response lifecycle &gt; cancels response bodies for notification, server response, and DELETE" time="0.0133069">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-http-discard-lifecycle.test.js" name="MCPClient discarded HTTP response lifecycle &gt; uses a host-owned deadline for requestTimeoutMs=25 capped at 25ms (longRunning=false)" time="0.0017453">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-http-discard-lifecycle.test.js" name="MCPClient discarded HTTP response lifecycle &gt; uses a host-owned deadline for requestTimeoutMs=25 capped at 25ms (longRunning=true)" time="0.0004797">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-http-discard-lifecycle.test.js" name="MCPClient discarded HTTP response lifecycle &gt; uses a host-owned deadline for requestTimeoutMs=0 capped at 30000ms (longRunning=false)" time="0.0004542">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-http-discard-lifecycle.test.js" name="MCPClient discarded HTTP response lifecycle &gt; uses a host-owned deadline for requestTimeoutMs=-1 capped at 30000ms (longRunning=false)" time="0.0003638">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-http-discard-lifecycle.test.js" name="MCPClient discarded HTTP response lifecycle &gt; uses a host-owned deadline for requestTimeoutMs=Infinity capped at 30000ms (longRunning=false)" time="0.0003217">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-http-discard-lifecycle.test.js" name="MCPClient discarded HTTP response lifecycle &gt; uses a host-owned deadline for requestTimeoutMs=60000 capped at 30000ms (longRunning=false)" time="0.0003266">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-http-discard-lifecycle.test.js" name="MCPClient discarded HTTP response lifecycle &gt; projects a server-response deadline with a stable host diagnostic" time="0.0010365">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-http-discard-lifecycle.test.js" name="MCPClient discarded HTTP response lifecycle &gt; drops the controller registry when a non-standard fetch ignores abort" time="0.0003506">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-http-discard-lifecycle.test.js" name="MCPClient discarded HTTP response lifecycle &gt; single-flights disconnect and blocks every late HTTP send" time="0.0104088">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-http-discard-lifecycle.test.js" name="MCPClient discarded HTTP response lifecycle &gt; reaps an initialized notification when connect fails after discovery" time="0.0059918">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-http-discard-lifecycle.test.js" name="MCPClient discarded HTTP response lifecycle &gt; cancels a real chunked response before an unbounded body is sent" time="0.0437103">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-http-discard-lifecycle.test.js" name="MCPClient discarded HTTP response lifecycle &gt; aborts a real HTTP request when the peer never sends headers" time="0.1029362">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/unit/mcp-client-http-request-cancellation.test.js" timestamp="2026-11-09T01:53:05.024Z" hostname="normalized-windows-host" tests="9" failures="0" errors="0" skipped="0" time="0.153615">
+        <testcase classname="__tests__/unit/mcp-client-http-request-cancellation.test.js" name="MCPClient HTTP request cancellation lifecycle &gt; disconnect aborts a longRunning request without reconnect or a late success" time="0.0038916">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-http-request-cancellation.test.js" name="MCPClient HTTP request cancellation lifecycle &gt; disconnect aborts a requestTimeoutMs=0 request without reconnect or a late success" time="0.0005351">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-http-request-cancellation.test.js" name="MCPClient HTTP request cancellation lifecycle &gt; rejects an already-aborted caller before dispatch without leaking its reason" time="0.0003368">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-http-request-cancellation.test.js" name="MCPClient HTTP request cancellation lifecycle &gt; keeps disconnect as the first abort cause when a finite deadline is armed" time="0.0711502">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-http-request-cancellation.test.js" name="MCPClient HTTP request cancellation lifecycle &gt; propagates caller abort after dispatch and sends one independent cancellation" time="0.0011937">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-http-request-cancellation.test.js" name="MCPClient HTTP request cancellation lifecycle &gt; rejects a late success from a fetch adapter that ignores abort" time="0.0004722">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-http-request-cancellation.test.js" name="MCPClient HTTP request cancellation lifecycle &gt; aborts two in-flight POSTs before issuing DELETE with an independent signal" time="0.0005941">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-http-request-cancellation.test.js" name="MCPClient HTTP request cancellation lifecycle &gt; closes a real request when a long-running peer never sends headers" time="0.0460355">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-http-request-cancellation.test.js" name="MCPClient HTTP request cancellation lifecycle &gt; cancels a real chunked JSON body before its canary boundary" time="0.0276402">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/unit/mcp-client-http-response-timeout.test.js" timestamp="2026-11-09T01:53:05.025Z" hostname="normalized-windows-host" tests="4" failures="0" errors="0" skipped="0" time="0.0103778">
+        <testcase classname="__tests__/unit/mcp-client-http-response-timeout.test.js" name="MCPClient finite HTTP response body deadline &gt; terminates a longRunning byte-at-a-time response at an absolute deadline" time="0.0065518">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-http-response-timeout.test.js" name="MCPClient finite HTTP response body deadline &gt; keeps the host ceiling for longRunning=true requestTimeoutMs=0" time="0.0010251">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-http-response-timeout.test.js" name="MCPClient finite HTTP response body deadline &gt; keeps the host ceiling for longRunning=true requestTimeoutMs=60000" time="0.0005715">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-http-response-timeout.test.js" name="MCPClient finite HTTP response body deadline &gt; keeps the host ceiling for longRunning=false requestTimeoutMs=0" time="0.000486">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/unit/mcp-client-http-session-recovery.test.js" timestamp="2026-11-09T01:53:05.028Z" hostname="normalized-windows-host" tests="4" failures="0" errors="0" skipped="0" time="0.1022557">
+        <testcase classname="__tests__/unit/mcp-client-http-session-recovery.test.js" name="MCP HTTP 404 recovery without tool replay &gt; recovers stateful=false and leaves effects unreplayed" time="0.0572206">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-http-session-recovery.test.js" name="MCP HTTP 404 recovery without tool replay &gt; recovers stateful=true and leaves effects unreplayed" time="0.0176369">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-http-session-recovery.test.js" name="MCP HTTP 404 recovery without tool replay &gt; bounds failed reinitialization without tool replay" time="0.010329">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-http-session-recovery.test.js" name="MCP HTTP 404 recovery without tool replay &gt; shares recovery across concurrent failed tool calls" time="0.0154199">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/unit/mcp-client-http-timeout.test.js" timestamp="2026-11-09T01:53:05.029Z" hostname="normalized-windows-host" tests="5" failures="0" errors="0" skipped="0" time="0.1666951">
+        <testcase classname="__tests__/unit/mcp-client-http-timeout.test.js" name="MCPClient HTTP per-call timeout &gt; times out a hung request on a normal (non-longRunning) server" time="0.0570658">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-http-timeout.test.js" name="MCPClient HTTP per-call timeout &gt; aborts a timed-out request and sends one independent cancellation" time="0.0453566">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-http-timeout.test.js" name="MCPClient HTTP per-call timeout &gt; attaches an abort signal and does not cancel completed requests" time="0.0602377">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-http-timeout.test.js" name="MCPClient HTTP per-call timeout &gt; keeps a lifecycle signal for longRunning servers (openDiff deadline exemption)" time="0.0014063">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-http-timeout.test.js" name="MCPClient HTTP per-call timeout &gt; requestTimeoutMs:0 disables only the timeout, not lifecycle cancellation" time="0.0010768">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/unit/mcp-client-inbound-traffic.test.js" timestamp="2026-11-09T01:53:05.031Z" hostname="normalized-windows-host" tests="12" failures="0" errors="0" skipped="0" time="0.0187247">
+        <testcase classname="__tests__/unit/mcp-client-inbound-traffic.test.js" name="MCPClient host-owned inbound traffic budgets &gt; fails stdio at a tightened message rate without replaying pending work" time="0.0048647">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-inbound-traffic.test.js" name="MCPClient host-owned inbound traffic budgets &gt; refills the stdio rolling byte budget and then fails the next burst" time="0.001315">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-inbound-traffic.test.js" name="MCPClient host-owned inbound traffic budgets &gt; refills message tokens so a bounded long-lived stream stays healthy" time="0.0005316">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-inbound-traffic.test.js" name="MCPClient host-owned inbound traffic budgets &gt; does not let config value 0 disable or raise either host ceiling" time="0.0002693">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-inbound-traffic.test.js" name="MCPClient host-owned inbound traffic budgets &gt; does not let config value -1 disable or raise either host ceiling" time="0.000192">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-inbound-traffic.test.js" name="MCPClient host-owned inbound traffic budgets &gt; does not let config value NaN disable or raise either host ceiling" time="0.0001741">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-inbound-traffic.test.js" name="MCPClient host-owned inbound traffic budgets &gt; does not let config value Infinity disable or raise either host ceiling" time="0.0001742">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-inbound-traffic.test.js" name="MCPClient host-owned inbound traffic budgets &gt; does not let config value 9007199254740991 disable or raise either host ceiling" time="0.000158">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-inbound-traffic.test.js" name="MCPClient host-owned inbound traffic budgets &gt; stops background SSE on a message-rate burst before the excess dispatch" time="0.0018263">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-inbound-traffic.test.js" name="MCPClient host-owned inbound traffic budgets &gt; stops background SSE on cumulative bytes without surfacing payload" time="0.0005784">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-inbound-traffic.test.js" name="MCPClient host-owned inbound traffic budgets &gt; closes WebSocket with policy code on a rate burst and fences replay" time="0.0054271">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-inbound-traffic.test.js" name="MCPClient host-owned inbound traffic budgets &gt; closes WebSocket when one text message exhausts cumulative bytes" time="0.0016364">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/unit/mcp-client-json-graph-budget.test.js" timestamp="2026-11-09T01:53:05.032Z" hostname="normalized-windows-host" tests="14" failures="0" errors="0" skipped="0" time="0.0248056">
+        <testcase classname="__tests__/unit/mcp-client-json-graph-budget.test.js" name="MCPClient host-owned JSON object graph budgets &gt; rejects a deep stdio response before JSON.parse dispatch and kills the peer" time="0.0036073">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-json-graph-budget.test.js" name="MCPClient host-owned JSON object graph budgets &gt; keeps the 100000-node host ceiling when config tries to raise it" time="0.008163">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-json-graph-budget.test.js" name="MCPClient host-owned JSON object graph budgets &gt; rejects a deep application/json response with fixed HTTP diagnostics" time="0.001038">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-json-graph-budget.test.js" name="MCPClient host-owned JSON object graph budgets &gt; rejects an oversized request-scoped SSE graph before matching its id" time="0.0005256">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-json-graph-budget.test.js" name="MCPClient host-owned JSON object graph budgets &gt; stops background SSE without dispatch or reconnect on a wide graph" time="0.0014813">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-json-graph-budget.test.js" name="MCPClient host-owned JSON object graph budgets &gt; closes WebSocket with policy code and fences a pending mutation" time="0.0063654">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-json-graph-budget.test.js" name="MCPClient host-owned JSON object graph budgets &gt; does not count brackets, braces, or escaped quotes inside JSON strings" time="0.0004324">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-json-graph-budget.test.js" name="MCPClient host-owned JSON object graph budgets &gt; bounds a directly injected deep graph without recursive traversal" time="0.0002964">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-json-graph-budget.test.js" name="MCPClient host-owned JSON object graph budgets &gt; rejects a Proxy result without executing its traps" time="0.000282">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-json-graph-budget.test.js" name="MCPClient host-owned JSON object graph budgets &gt; does not let config value 0 disable or raise the depth cap" time="0.0003215">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-json-graph-budget.test.js" name="MCPClient host-owned JSON object graph budgets &gt; does not let config value -1 disable or raise the depth cap" time="0.0002034">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-json-graph-budget.test.js" name="MCPClient host-owned JSON object graph budgets &gt; does not let config value NaN disable or raise the depth cap" time="0.0001833">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-json-graph-budget.test.js" name="MCPClient host-owned JSON object graph budgets &gt; does not let config value Infinity disable or raise the depth cap" time="0.0001659">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-json-graph-budget.test.js" name="MCPClient host-owned JSON object graph budgets &gt; does not let config value 9007199254740991 disable or raise the depth cap" time="0.0001574">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/unit/mcp-client-list-changed.test.js" timestamp="2026-11-09T01:53:05.034Z" hostname="normalized-windows-host" tests="8" failures="0" errors="0" skipped="0" time="0.0175983">
+        <testcase classname="__tests__/unit/mcp-client-list-changed.test.js" name="MCPClient list_changed refresh &gt; refetches tools on notifications/tools/list_changed" time="0.0076811">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-list-changed.test.js" name="MCPClient list_changed refresh &gt; refetches resources and templates on notifications/resources/list_changed" time="0.0025506">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-list-changed.test.js" name="MCPClient list_changed refresh &gt; coalesces a notification burst (in-flight + one trailing refetch)" time="0.002196">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-list-changed.test.js" name="MCPClient list_changed refresh &gt; discards a late list result after the server entry is replaced" time="0.0004253">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-list-changed.test.js" name="MCPClient list_changed refresh &gt; blocks old tool calls during refresh and after removal before dispatch" time="0.0017953">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-list-changed.test.js" name="MCPClient list_changed refresh &gt; keeps tool calls blocked across a trailing refresh and a failed refresh" time="0.0006781">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-list-changed.test.js" name="MCPClient list_changed refresh &gt; rejects an old tool name after the connection entry is replaced" time="0.0004186">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-list-changed.test.js" name="MCPClient list_changed refresh &gt; allows a newly advertised tool when tools-changed is emitted" time="0.0002818">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/unit/mcp-client-optional-protocol.test.js" timestamp="2026-11-09T01:53:05.036Z" hostname="normalized-windows-host" tests="5" failures="0" errors="0" skipped="0" time="0.0072071">
+        <testcase classname="__tests__/unit/mcp-client-optional-protocol.test.js" name="MCP optional protocol surface &gt; lists resource templates with owning server" time="0.0017201">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-optional-protocol.test.js" name="MCP optional protocol surface &gt; supports resource subscribe/unsubscribe" time="0.0009318">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-optional-protocol.test.js" name="MCP optional protocol surface &gt; rejects missing resource subscription URIs before dispatch" time="0.0007006">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-optional-protocol.test.js" name="MCP optional protocol surface &gt; supports logging level and completion requests" time="0.0005249">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-optional-protocol.test.js" name="MCP optional protocol surface &gt; surfaces resource updates and log messages as typed events" time="0.0016518">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/unit/mcp-client-process-death.test.js" timestamp="2026-11-09T01:53:05.036Z" hostname="normalized-windows-host" tests="3" failures="0" errors="0" skipped="0" time="0.0156744">
+        <testcase classname="__tests__/unit/mcp-client-process-death.test.js" name="MCPClient stdio — fail fast on process death &gt; rejects an in-flight request when the process closes (no 30s hang)" time="0.0094069">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-process-death.test.js" name="MCPClient stdio — fail fast on process death &gt; rejects an in-flight request when the process errors" time="0.0030034">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-process-death.test.js" name="MCPClient stdio — fail fast on process death &gt; does not throw when the process closes with nothing pending" time="0.0016336">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/unit/mcp-client-roots.test.js" timestamp="2026-11-09T01:53:05.037Z" hostname="normalized-windows-host" tests="8" failures="0" errors="0" skipped="0" time="0.0236535">
+        <testcase classname="__tests__/unit/mcp-client-roots.test.js" name="MCPClient roots capability &gt; advertises roots (listChanged) in the initialize capabilities" time="0.0063994">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-roots.test.js" name="MCPClient roots capability &gt; answers a server roots/list request with the cwd by default" time="0.0019687">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-roots.test.js" name="MCPClient roots capability &gt; answers with explicit roots when configured" time="0.00168">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-roots.test.js" name="MCPClient roots capability &gt; acks a server ping request" time="0.0014384">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-roots.test.js" name="MCPClient roots capability &gt; answers an unknown server request with -32601 instead of silence" time="0.0015155">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-roots.test.js" name="MCPClient roots capability &gt; still emits plain notifications (no id) as before" time="0.0044076">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-roots.test.js" name="MCPClient roots capability &gt; setRoots broadcasts roots/list_changed to connected servers" time="0.0032386">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-roots.test.js" name="MCPClient roots capability &gt; notifyRootsListChanged broadcasts unconditionally (cwd-derived roots)" time="0.0014522">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/unit/mcp-client-rpc-error-sanitization.test.js" timestamp="2026-11-09T01:53:05.039Z" hostname="normalized-windows-host" tests="31" failures="0" errors="0" skipped="0" time="0.0408421">
+        <testcase classname="__tests__/unit/mcp-client-rpc-error-sanitization.test.js" name="MCP JSON-RPC error sanitization &gt; does not expose message/data or let heuristic text trigger reconnect and replay" time="0.0196389">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-rpc-error-sanitization.test.js" name="MCP JSON-RPC error sanitization &gt; applies the same fixed projection to an HTTP 200 SSE error envelope" time="0.0010386">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-rpc-error-sanitization.test.js" name="MCP JSON-RPC error sanitization &gt; does not let a JSON-RPC message manufacture capability-discovery retries" time="0.0032565">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-rpc-error-sanitization.test.js" name="MCP JSON-RPC error sanitization &gt; does not let a JSON-RPC message manufacture an initialize auth refresh" time="0.0011424">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-rpc-error-sanitization.test.js" name="MCP JSON-RPC error sanitization &gt; rejects accessor-backed RPC errors without reading message/data" time="0.0005581">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-rpc-error-sanitization.test.js" name="MCP JSON-RPC error sanitization &gt; rejects a Proxy error payload without executing its traps" time="0.0004979">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-rpc-error-sanitization.test.js" name="MCP JSON-RPC error sanitization &gt; does not execute a nested data Proxy or grant it URL-flow authority" time="0.0008602">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-rpc-error-sanitization.test.js" name="MCP JSON-RPC error sanitization &gt; does not execute a nested elicitation-item Proxy or grant it URL-flow authority" time="0.0003928">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-rpc-error-sanitization.test.js" name="MCP JSON-RPC error sanitization &gt; rejects every pending request before an invalid top-level accessor can hang it" time="0.0003918">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-rpc-error-sanitization.test.js" name="MCP JSON-RPC error sanitization &gt; rejects every pending request before an invalid top-level proxy can hang it" time="0.0002515">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-rpc-error-sanitization.test.js" name="MCP JSON-RPC error sanitization &gt; rejects an HTTP 200 &apos;array envelope&apos; with a stable host error" time="0.0004216">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-rpc-error-sanitization.test.js" name="MCP JSON-RPC error sanitization &gt; rejects an HTTP 200 &apos;wrong protocol version&apos; with a stable host error" time="0.0003553">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-rpc-error-sanitization.test.js" name="MCP JSON-RPC error sanitization &gt; rejects an HTTP 200 &apos;mismatched id&apos; with a stable host error" time="0.0003505">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-rpc-error-sanitization.test.js" name="MCP JSON-RPC error sanitization &gt; rejects an HTTP 200 &apos;result and error together&apos; with a stable host error" time="0.0003171">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-rpc-error-sanitization.test.js" name="MCP JSON-RPC error sanitization &gt; rejects an HTTP 200 &apos;neither result nor error&apos; with a stable host error" time="0.0003112">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-rpc-error-sanitization.test.js" name="MCP JSON-RPC error sanitization &gt; rejects an HTTP 200 &apos;string error code&apos; with a stable host error" time="0.0003992">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-rpc-error-sanitization.test.js" name="MCP JSON-RPC error sanitization &gt; rejects an HTTP 200 &apos;non-string error message&apos; with a stable host error" time="0.0003764">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-rpc-error-sanitization.test.js" name="MCP JSON-RPC error sanitization &gt; replaces malformed HTTP 200 JSON before it can trigger reconnect" time="0.000568">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-rpc-error-sanitization.test.js" name="MCP JSON-RPC error sanitization &gt; replaces malformed initialize JSON before it can refresh authentication" time="0.0008628">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-rpc-error-sanitization.test.js" name="MCP JSON-RPC error sanitization &gt; does not retry discovery after malformed HTTP 200 JSON" time="0.0003502">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-rpc-error-sanitization.test.js" name="MCP JSON-RPC error sanitization &gt; keeps -32042 control data private while preserving one URL-elicitation retry" time="0.0021673">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-rpc-error-sanitization.test.js" name="MCP JSON-RPC error sanitization &gt; does not let a reused id from a &apos;completed generation&apos; authorize another tool retry" time="0.0006585">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-rpc-error-sanitization.test.js" name="MCP JSON-RPC error sanitization &gt; does not let a reused id from a &apos;changed URL&apos; authorize another tool retry" time="0.0006045">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-rpc-error-sanitization.test.js" name="MCP JSON-RPC error sanitization &gt; does not let a reused id from a &apos;different server&apos; authorize another tool retry" time="0.0005554">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-rpc-error-sanitization.test.js" name="MCP JSON-RPC error sanitization &gt; preserves the fixed RPC error when URL resolution fails internally" time="0.0004743">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-rpc-error-sanitization.test.js" name="MCP JSON-RPC error sanitization &gt; fails closed at the URL history cap without evicting completed ids" time="0.0003823">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-rpc-error-sanitization.test.js" name="MCP JSON-RPC error sanitization &gt; rejects a private &apos;oversized&apos; -32042 batch without prompting" time="0.0005176">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-rpc-error-sanitization.test.js" name="MCP JSON-RPC error sanitization &gt; rejects a private &apos;duplicate&apos; -32042 batch without prompting" time="0.0003511">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-rpc-error-sanitization.test.js" name="MCP JSON-RPC error sanitization &gt; rejects a private &apos;non-string-field&apos; -32042 batch without prompting" time="0.0003572">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-rpc-error-sanitization.test.js" name="MCP JSON-RPC error sanitization &gt; rejects a private &apos;oversized-field&apos; -32042 batch without prompting" time="0.0003535">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-rpc-error-sanitization.test.js" name="MCP JSON-RPC error sanitization &gt; rejects a private &apos;control-character-field&apos; -32042 batch without prompting" time="0.000314">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/unit/mcp-client-sandbox-policy.test.js" timestamp="2026-11-09T01:53:05.044Z" hostname="normalized-windows-host" tests="6" failures="0" errors="0" skipped="0" time="0.0262427">
+        <testcase classname="__tests__/unit/mcp-client-sandbox-policy.test.js" name="MCPClient plugin sandbox policy &gt; prioritizes a materialized capsule snapshot contract at spawn" time="0.0094082">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-sandbox-policy.test.js" name="MCPClient plugin sandbox policy &gt; does not let an explicit policy subset weaken the capsule host floor" time="0.004096">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-sandbox-policy.test.js" name="MCPClient plugin sandbox policy &gt; forwards explicit stdio requirements to the process broker boundary" time="0.0026618">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-sandbox-policy.test.js" name="MCPClient plugin sandbox policy &gt; binds public strict policy and cwd to the host workspace before identity preparation" time="0.003945">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-sandbox-policy.test.js" name="MCPClient plugin sandbox policy &gt; rejects a lookalike manifest authority before spawning a strict plugin server" time="0.000885">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-sandbox-policy.test.js" name="MCPClient plugin sandbox policy &gt; keeps legacy stdio spawn options free of sandboxPolicy" time="0.0035072">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/unit/mcp-client-sse-lifecycle.test.js" timestamp="2026-11-09T01:53:05.045Z" hostname="normalized-windows-host" tests="9" failures="0" errors="0" skipped="0" time="0.0109417">
+        <testcase classname="__tests__/unit/mcp-client-sse-lifecycle.test.js" name="MCPClient background SSE lifecycle &gt; does not open a stream for an already-aborted handler owner" time="0.0017146">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-sse-lifecycle.test.js" name="MCPClient background SSE lifecycle &gt; settles locally on owner abort and cancels a late ignored-fetch body" time="0.0013668">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-sse-lifecycle.test.js" name="MCPClient background SSE lifecycle &gt; keeps a shared stream until its final session handler is cleared" time="0.0004264">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-sse-lifecycle.test.js" name="MCPClient background SSE lifecycle &gt; bounds a peer that never sends SSE response headers for requestTimeoutMs=7" time="0.0016542">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-sse-lifecycle.test.js" name="MCPClient background SSE lifecycle &gt; bounds a peer that never sends SSE response headers for requestTimeoutMs=0" time="0.0005587">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-sse-lifecycle.test.js" name="MCPClient background SSE lifecycle &gt; does not time out an idle stream after a complete event" time="0.0019573">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-sse-lifecycle.test.js" name="MCPClient background SSE lifecycle &gt; stops a slow-drip event at the host deadline for requestTimeoutMs=7" time="0.0007829">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-sse-lifecycle.test.js" name="MCPClient background SSE lifecycle &gt; stops a slow-drip event at the host deadline for requestTimeoutMs=0" time="0.0004429">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-sse-lifecycle.test.js" name="MCPClient background SSE lifecycle &gt; stops a slow-drip event at the host deadline for requestTimeoutMs=9007199254740991" time="0.000468">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/unit/mcp-client-stateless.test.js" timestamp="2026-11-09T01:53:05.047Z" hostname="normalized-windows-host" tests="13" failures="0" errors="0" skipped="0" time="0.1795263">
+        <testcase classname="__tests__/unit/mcp-client-stateless.test.js" name="opt-in stateless MCP Tasks &gt; discovers without initialize, sessions or background GET and scopes capabilities per request" time="0.0651184">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-stateless.test.js" name="opt-in stateless MCP Tasks &gt; reads the inline result through tasks/get and binds canonical result metadata" time="0.0167067">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-stateless.test.js" name="opt-in stateless MCP Tasks &gt; observes cancellation separately from acknowledgement and retains completed tasks" time="0.0090823">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-stateless.test.js" name="opt-in stateless MCP Tasks &gt; does not call a cancellation acknowledgement remote termination" time="0.0080834">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-stateless.test.js" name="opt-in stateless MCP Tasks &gt; refuses unsupported list/TTL and absent extension before task dispatch" time="0.0119776">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-stateless.test.js" name="opt-in stateless MCP Tasks &gt; cannot settle an unsolicited task as a synchronous tool result or replay it" time="0.0116653">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-stateless.test.js" name="opt-in stateless MCP Tasks &gt; refuses a pending result and prevents terminal status regression" time="0.0092737">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-stateless.test.js" name="opt-in stateless MCP Tasks &gt; restores only an authenticated server identity on a fresh stateless connection" time="0.0114813">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-stateless.test.js" name="stateless wire admission and persisted configuration &gt; encodes Unicode and reserved sentinel names without header ambiguity" time="0.0003187">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-stateless.test.js" name="stateless wire admission and persisted configuration &gt; rejects conflicting result identities, legacy aliases and incomplete terminal snapshots" time="0.0006438">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-stateless.test.js" name="stateless wire admission and persisted configuration &gt; persists the protocol override through real SQLite upgrades and unrelated updates" time="0.0064172">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-stateless.test.js" name="stateless wire admission and persisted configuration &gt; retains the selected protocol in managed/project configuration and exposes the CLI flag" time="0.0070673">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-stateless.test.js" name="stateless wire admission and persisted configuration &gt; retains the protocol through the real agent MCP loader instead of falling back to initialize" time="0.0199413">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/unit/mcp-client-stdin-error.test.js" timestamp="2026-11-09T01:53:05.049Z" hostname="normalized-windows-host" tests="13" failures="0" errors="0" skipped="0" time="0.0657281">
+        <testcase classname="__tests__/unit/mcp-client-stdin-error.test.js" name="MCPClient stdio — broken stdin pipe doesn&apos;t crash the CLI &gt; attaches an &apos;error&apos; listener to stdin so EPIPE never goes unhandled" time="0.0072709">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-stdin-error.test.js" name="MCPClient stdio — broken stdin pipe doesn&apos;t crash the CLI &gt; rejects in-flight requests and emits server-error on a stdin EPIPE" time="0.00297">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-stdin-error.test.js" name="MCPClient stdio — broken stdin pipe doesn&apos;t crash the CLI &gt; marks the server ERROR after a stdin pipe failure" time="0.0016289">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-stdin-error.test.js" name="MCPClient stdio — runaway buffer is capped &gt; fails the transport when stdout streams past the cap with no newline" time="0.0024778">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-stdin-error.test.js" name="MCPClient stdio — runaway buffer is capped &gt; rejects an oversized complete line before JSON parsing or dispatch" time="0.0030445">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-stdin-error.test.js" name="MCPClient stdio — runaway buffer is capped &gt; counts an unterminated frame by UTF-8 bytes rather than characters" time="0.0037861">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-stdin-error.test.js" name="MCPClient stdio — runaway buffer is capped &gt; does not let maxBufferChars=0 disable or raise the host frame cap" time="0.0115673">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-stdin-error.test.js" name="MCPClient stdio — runaway buffer is capped &gt; does not let maxBufferChars=9007199254740991 disable or raise the host frame cap" time="0.0064625">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-stdin-error.test.js" name="MCPClient stdio — runaway buffer is capped &gt; does not fire when complete newline-terminated lines keep the tail small" time="0.0024233">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-stdin-error.test.js" name="MCPClient stdio — runaway buffer is capped &gt; suppresses stderr content and coalesces bounded diagnostics" time="0.0016161">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-stdin-error.test.js" name="MCPClient stdio — runaway buffer is capped &gt; fails closed when cumulative stderr exceeds its host budget" time="0.0021104">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-stdin-error.test.js" name="MCPClient stdio — runaway buffer is capped &gt; fails after the fixed malformed stdout frame count" time="0.0019814">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-stdin-error.test.js" name="MCPClient stdio — runaway buffer is capped &gt; fails after one bounded malformed frame exhausts the byte budget" time="0.0166807">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/unit/mcp-client-stdio-timeout.test.js" timestamp="2026-11-09T01:53:05.051Z" hostname="normalized-windows-host" tests="6" failures="0" errors="0" skipped="0" time="0.2080993">
+        <testcase classname="__tests__/unit/mcp-client-stdio-timeout.test.js" name="MCPClient stdio per-call timeout (config parity with HTTP) &gt; times out a never-answered call with a tiny requestTimeoutMs" time="0.0900138">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-stdio-timeout.test.js" name="MCPClient stdio per-call timeout (config parity with HTTP) &gt; does not cancel a timed-out initialize handshake" time="0.0474989">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-stdio-timeout.test.js" name="MCPClient stdio per-call timeout (config parity with HTTP) &gt; does not cancel a request whose response arrives before its timeout" time="0.0597329">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-stdio-timeout.test.js" name="MCPClient stdio per-call timeout (config parity with HTTP) &gt; arms a timeout timer by default (regression guard for the 30s default)" time="0.0030995">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-stdio-timeout.test.js" name="MCPClient stdio per-call timeout (config parity with HTTP) &gt; does NOT arm a timer for longRunning servers (exemption)" time="0.0025114">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-stdio-timeout.test.js" name="MCPClient stdio per-call timeout (config parity with HTTP) &gt; requestTimeoutMs:0 disables the timeout (no timer armed)" time="0.0036955">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/unit/mcp-client-tasks.test.js" timestamp="2026-11-09T01:53:05.052Z" hostname="normalized-windows-host" tests="32" failures="0" errors="0" skipped="0" time="0.327032">
+        <testcase classname="__tests__/unit/mcp-client-tasks.test.js" name="experimental MCP Tasks requester over HTTP &gt; negotiates both levels and keeps acceptance distinct from final result" time="0.0551178">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-tasks.test.js" name="experimental MCP Tasks requester over HTTP &gt; does not augment mode=null" time="0.0128194">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-tasks.test.js" name="experimental MCP Tasks requester over HTTP &gt; does not augment mode=forbidden" time="0.0075779">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-tasks.test.js" name="experimental MCP Tasks requester over HTTP &gt; requires server capability even when a tool advertises optional" time="0.006857">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-tasks.test.js" name="experimental MCP Tasks requester over HTTP &gt; rejects augmentation after older protocol negotiation" time="0.0068085">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-tasks.test.js" name="experimental MCP Tasks requester over HTTP &gt; ordinary calls cannot bypass required task mode via options.task" time="0.0078902">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-tasks.test.js" name="experimental MCP Tasks requester over HTTP &gt; unexpected task acceptance never settles ordinary success" time="0.0073687">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-tasks.test.js" name="experimental MCP Tasks requester over HTTP &gt; does not replay after create 404" time="0.0073509">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-tasks.test.js" name="experimental MCP Tasks requester over HTTP &gt; does not replay after create disconnect" time="0.007503">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-tasks.test.js" name="experimental MCP Tasks requester over HTTP &gt; does not replay after create invalid" time="0.0067581">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-tasks.test.js" name="experimental MCP Tasks requester over HTTP &gt; checks independent list capability" time="0.0068995">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-tasks.test.js" name="experimental MCP Tasks requester over HTTP &gt; checks independent cancel capability" time="0.0063198">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-tasks.test.js" name="experimental MCP Tasks requester over HTTP &gt; rejects original task after entry identity change" time="0.0070153">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-tasks.test.js" name="experimental MCP Tasks requester over HTTP &gt; rejects original task after headers identity change" time="0.0070288">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-tasks.test.js" name="experimental MCP Tasks requester over HTTP &gt; rejects original task after session identity change" time="0.0076196">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-tasks.test.js" name="experimental MCP Tasks requester over HTTP &gt; checks original task binding after a query is in flight" time="0.0078453">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-tasks.test.js" name="experimental MCP Tasks requester over HTTP &gt; binds list-discovered IDs without replaying tools" time="0.0074072">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-tasks.test.js" name="experimental MCP Tasks requester over HTTP &gt; rejects final result for a different task" time="0.0075486">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-tasks.test.js" name="experimental MCP Tasks requester over HTTP &gt; does not regress terminal state" time="0.0097004">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-tasks.test.js" name="experimental MCP Tasks requester over HTTP &gt; aborts before dispatch without cancelling a remote task" time="0.0071192">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-tasks.test.js" name="experimental MCP Tasks requester over HTTP &gt; keeps task creation idle timeout outcome unknown" time="0.0359875">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-tasks.test.js" name="experimental MCP Tasks requester over HTTP &gt; keeps a lost cancel acknowledgement uncertain without replaying creation" time="0.0084064">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-tasks.test.js" name="experimental MCP Tasks requester over HTTP &gt; keeps host dispatch admission on the explicit creation path" time="0.00589">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-tasks.test.js" name="experimental MCP Tasks requester over HTTP &gt; does not return to working after a successful final result" time="0.0078028">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-tasks.test.js" name="experimental MCP Tasks requester over HTTP &gt; rejects duplicate list IDs atomically" time="0.0070125">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-tasks.test.js" name="experimental MCP Tasks requester over HTTP &gt; reserves remaining capacity before concurrent creations dispatch" time="0.0494613">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-tasks.test.js" name="experimental MCP Tasks requester over HTTP &gt; denies invalid local parameters before dispatch" time="0.0078935">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-tasks.test.js" name="MCP Tasks strict result and host boundary &gt; rejects malformed final result 0" time="0.0003866">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-tasks.test.js" name="MCP Tasks strict result and host boundary &gt; rejects malformed final result 1" time="0.0000881">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-tasks.test.js" name="MCP Tasks strict result and host boundary &gt; rejects malformed final result 2" time="0.0000595">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-tasks.test.js" name="MCP Tasks strict result and host boundary &gt; rejects accessors without invoking them" time="0.0005567">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-tasks.test.js" name="MCP Tasks strict result and host boundary &gt; guards every task entry point before dispatch or ledger begin" time="0.0009679">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/unit/mcp-client-tool-progress-idle.test.js" timestamp="2026-11-09T01:53:05.056Z" hostname="normalized-windows-host" tests="2" failures="0" errors="0" skipped="0" time="0.0067191">
+        <testcase classname="__tests__/unit/mcp-client-tool-progress-idle.test.js" name="MCP tools/call progress idle watchdog &gt; requests a progress token and renews the deadline from progress notifications" time="0.0042056">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-tool-progress-idle.test.js" name="MCP tools/call progress idle watchdog &gt; cancels a tool with no progress using a stable idle-timeout error" time="0.0010503">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/unit/mcp-client-tools-error.test.js" timestamp="2026-11-09T01:53:05.057Z" hostname="normalized-windows-host" tests="3" failures="0" errors="0" skipped="0" time="0.0104948">
+        <testcase classname="__tests__/unit/mcp-client-tools-error.test.js" name="MCPClient connect — tools/list failure surfacing &gt; reports toolsError when an advertised tools/list fails (still CONNECTED)" time="0.0061512">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-tools-error.test.js" name="MCPClient connect — tools/list failure surfacing &gt; stays quiet (toolsError null) when a server that did NOT advertise tools fails tools/list" time="0.0013397">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-tools-error.test.js" name="MCPClient connect — tools/list failure surfacing &gt; has null toolsError on a normal successful tools/list" time="0.0015559">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/unit/mcp-client-transport-cancellation.test.js" timestamp="2026-11-09T01:53:05.059Z" hostname="normalized-windows-host" tests="6" failures="0" errors="0" skipped="0" time="0.0083077">
+        <testcase classname="__tests__/unit/mcp-client-transport-cancellation.test.js" name="MCPClient ws caller cancellation &gt; rejects an already-aborted tool call before dispatch" time="0.0027279">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-transport-cancellation.test.js" name="MCPClient ws caller cancellation &gt; cancels one dispatched tool call without replaying it" time="0.0020226">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-transport-cancellation.test.js" name="MCPClient ws caller cancellation &gt; removes the caller listener when a resource response wins" time="0.0007873">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-transport-cancellation.test.js" name="MCPClient stdio caller cancellation &gt; rejects an already-aborted tool call before dispatch" time="0.0003127">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-transport-cancellation.test.js" name="MCPClient stdio caller cancellation &gt; cancels one dispatched tool call without replaying it" time="0.000632">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-transport-cancellation.test.js" name="MCPClient stdio caller cancellation &gt; removes the caller listener when a resource response wins" time="0.0003036">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/unit/mcp-client-utf8-split.test.js" timestamp="2026-11-09T01:53:05.061Z" hostname="normalized-windows-host" tests="1" failures="0" errors="0" skipped="0" time="0.0090031">
+        <testcase classname="__tests__/unit/mcp-client-utf8-split.test.js" name="MCPClient stdio — UTF-8 split across stdout chunks &gt; reassembles a multi-byte char split across stdout chunks (no mojibake)" time="0.007557">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/unit/mcp-client-websocket-payload-limit.test.js" timestamp="2026-11-09T01:53:05.062Z" hostname="normalized-windows-host" tests="6" failures="0" errors="0" skipped="0" time="0.0486988">
+        <testcase classname="__tests__/unit/mcp-client-websocket-payload-limit.test.js" name="MCPClient WebSocket host-owned payload limit &gt; propagates a tighter ordinary config-file limit to the socket sink" time="0.0044718">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-websocket-payload-limit.test.js" name="MCPClient WebSocket host-owned payload limit &gt; clamps disabled, invalid, and oversized config before construction" time="0.0035246">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-websocket-payload-limit.test.js" name="MCPClient WebSocket host-owned payload limit &gt; rejects an oversized uncompressed response without dispatch or reconnect" time="0.018435">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-websocket-payload-limit.test.js" name="MCPClient WebSocket host-owned payload limit &gt; rejects an oversized permessage-deflate response without dispatch or reconnect" time="0.0105415">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-websocket-payload-limit.test.js" name="MCPClient WebSocket host-owned payload limit &gt; keeps an isolated peer 1009 direction-neutral and outcome-unknown" time="0.0078675">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-websocket-payload-limit.test.js" name="MCPClient WebSocket host-owned payload limit &gt; maps an unsupported declared payload length to the same stable error" time="0.0015266">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/unit/mcp-client-websocket.test.js" timestamp="2026-11-09T01:53:05.063Z" hostname="normalized-windows-host" tests="9" failures="0" errors="0" skipped="0" time="0.1490008">
+        <testcase classname="__tests__/unit/mcp-client-websocket.test.js" name="MCPClient WebSocket transport contract &gt; recognizes ws/wss as WebSocket rather than HTTP transports" time="0.0011009">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-websocket.test.js" name="MCPClient WebSocket transport contract &gt; performs initialize, discovery, notifications, and tool calls over a real socket" time="0.01913">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-websocket.test.js" name="MCPClient WebSocket transport contract &gt; connects an official type=ws config through the runtime loader" time="0.0133436">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-websocket.test.js" name="MCPClient WebSocket transport contract &gt; rejects a transport/URL scheme mismatch before opening a socket" time="0.0005879">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-websocket.test.js" name="MCPClient WebSocket transport contract &gt; redacts peer close reasons and never replays an outcome-unknown call" time="0.0219658">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-websocket.test.js" name="MCPClient WebSocket transport contract &gt; cancels direct elicitation and URL completion waiters on peer close" time="0.005958">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-websocket.test.js" name="MCPClient WebSocket transport contract &gt; does not leak or replay a tool call after a &apos;malformed JSON text&apos;" time="0.0048195">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-websocket.test.js" name="MCPClient WebSocket transport contract &gt; does not leak or replay a tool call after a &apos;binary frame&apos;" time="0.0045435">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client-websocket.test.js" name="MCPClient WebSocket transport contract &gt; times out an unanswered request with a structured diagnostic" time="0.0758281">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/unit/mcp-client.test.js" timestamp="2026-11-09T01:53:05.064Z" hostname="normalized-windows-host" tests="66" failures="0" errors="0" skipped="0" time="0.0397923">
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; MCPClient &gt; should initialize with empty servers" time="0.0017498">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; MCPClient &gt; should list no tools when no servers connected" time="0.0002642">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; MCPClient &gt; should throw when listing tools for unknown server" time="0.0005093">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; MCPClient &gt; should return false when disconnecting unknown server" time="0.0003351">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; MCPClient &gt; should throw when calling tool on unknown server" time="0.0008253">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; MCPClient &gt; should throw when connecting duplicate server" time="0.0009571">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; MCPClient &gt; should have correct ServerState values" time="0.0001686">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; MCPClient &gt; should emit events" time="0.0001693">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; MCPClient &gt; should disconnect all servers" time="0.0006361">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; MCPClient &gt; should handle _handleMessage for response" time="0.0008299">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; MCPClient &gt; should handle _handleMessage for error response" time="0.000679">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; MCPClient &gt; should handle _handleMessage for notifications" time="0.0002043">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; MCPClient &gt; should parse JSON lines in _handleData" time="0.0004369">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; MCPClient &gt; should buffer incomplete JSON lines" time="0.0001048">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; MCPClient — agent identity env (Claude-Code 2.1.154/2.1.163 parity) &gt; always marks CLAUDECODE + CHAINLESSCHAIN, no session id when none known" time="0.0001953">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; MCPClient — agent identity env (Claude-Code 2.1.154/2.1.163 parity) &gt; constructor sessionId → CC_SESSION_ID + CLAUDE_CODE_SESSION_ID mirror" time="0.0000985">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; MCPClient — agent identity env (Claude-Code 2.1.154/2.1.163 parity) &gt; setSessionId sets then clears" time="0.0000988">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; MCPClient — agent identity env (Claude-Code 2.1.154/2.1.163 parity) &gt; falls back to ambient process.env.CC_SESSION_ID" time="0.0001098">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; MCPClient — agent identity env (Claude-Code 2.1.154/2.1.163 parity) &gt; explicit sessionId wins over ambient env" time="0.0000734">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; MCPServerConfig &gt; should create mcp_servers table" time="0.0003743">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; MCPServerConfig &gt; round-trips a normalized sandbox policy without losing runtimeKind" time="0.002228">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; MCPServerConfig &gt; rejects invalid or accessor-backed sandbox policies before storage" time="0.0003182">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; MCPServerConfig &gt; fails closed when a persisted sandbox policy is corrupt" time="0.0003959">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; MCPServerConfig &gt; fails closed when a persisted strict cwd has a non-text SQLite type" time="0.0002754">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; MCPServerConfig &gt; preserves stored policy on update unless an explicit null clears it" time="0.0007952">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; MCPServerConfig &gt; migrates an existing MCP table with sandbox_policy storage" time="0.0005989">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; MCPServerConfig &gt; should add a server config" time="0.0002067">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; MCPServerConfig &gt; should list all servers" time="0.0053414">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; MCPServerConfig &gt; should remove a server" time="0.0004477">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; MCPServerConfig &gt; should return false when removing non-existent server" time="0.000146">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; MCPServerConfig &gt; should return null for unknown server" time="0.0000564">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; MCPServerConfig &gt; should get auto-connect servers" time="0.000234">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; MCPServerConfig &gt; survives a corrupt args/env cell — one bad row must not take down list()/getAutoConnect()" time="0.0003407">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; MCPServerConfig &gt; should update existing server config" time="0.0001351">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; MCPServerConfig &gt; should handle server config with env" time="0.0001056">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; MCPServerConfig &gt; should default autoConnect to false" time="0.0000851">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; MCPServerConfig &gt; should default args to empty array" time="0.0000919">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; MCPServerConfig &gt; should default env to empty object" time="0.0000799">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; MCPServerConfig &gt; should return empty list when no servers" time="0.000088">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; MCPServerConfig &gt; should return empty auto-connect list when none configured" time="0.0000987">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; inferTransport &gt; returns explicit transport verbatim (lowercased)" time="0.000113">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; inferTransport &gt; derives http from http:// url" time="0.0000563">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; inferTransport &gt; derives https from https:// url" time="0.0000413">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; inferTransport &gt; derives ws / wss from websocket URLs" time="0.000044">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; inferTransport &gt; falls back to stdio when neither transport nor url given" time="0.0000675">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; inferTransport &gt; ignores malformed URLs and falls back to stdio" time="0.0000566">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; isHttpTransport &gt; accepts http, https, sse" time="0.0000986">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; isHttpTransport &gt; rejects stdio and websocket" time="0.0001077">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; MCPServerConfig (url transport) &gt; stores a URL-based server with inferred transport" time="0.0001456">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; MCPServerConfig (url transport) &gt; honors explicit transport field" time="0.000096">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; MCPServerConfig (url transport) &gt; stores a stdio server with transport=&apos;stdio&apos; default" time="0.000094">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; MCPServerConfig (url transport) &gt; rejects config with neither command nor url" time="0.0001357">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; MCPServerConfig (url transport) &gt; round-trips url + transport through list()" time="0.0002312">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; MCPServerConfig (url transport) &gt; round-trips url + transport through getAutoConnect()" time="0.0001381">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; MCPClient HTTP transport &gt; connects over HTTPS, issues initialize, and captures session id" time="0.004109">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; MCPClient HTTP transport &gt; parses a text/event-stream response for a matching id" time="0.0021184">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; MCPClient HTTP transport &gt; throws a readable error on HTTP non-2xx response" time="0.0007207">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; MCPClient HTTP transport &gt; throws a host-generated error on a JSON-RPC error envelope" time="0.0005649">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; MCPClient HTTP transport &gt; rejects HTTP config that is missing a URL" time="0.0003239">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; MCPClient HTTP transport &gt; rejects an HTTP response whose Content-Length exceeds maxBufferChars" time="0.0007454">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; MCPClient HTTP transport &gt; aborts a streaming HTTP body that overflows the cap (no unbounded read)" time="0.0007138">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; MCPClient HTTP transport &gt; rejects stdio config that is missing a command" time="0.000247">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; MCPClient HTTP transport &gt; rejects unsupported transport kinds" time="0.0004445">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; MCPClient HTTP transport &gt; disconnect issues a best-effort DELETE with session id" time="0.0011714">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; MCPClient HTTP transport &gt; callTool on an HTTP server returns the result payload" time="0.0034952">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-client.test.js" name="MCP Client &gt; MCPClient HTTP transport &gt; forwards custom headers on every request" time="0.0008864">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/unit/mcp-config-project.test.js" timestamp="2026-11-09T01:53:05.074Z" hostname="normalized-windows-host" tests="15" failures="0" errors="0" skipped="0" time="0.1571361">
+        <testcase classname="__tests__/unit/mcp-config-project.test.js" name="loadProjectMcp &gt; loads the project-root .mcp.json when run from a subdirectory" time="0.0199918">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-config-project.test.js" name="loadProjectMcp &gt; a cwd-local .mcp.json overrides the root on a name clash (closest wins)" time="0.0174143">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-config-project.test.js" name="loadProjectMcp &gt; lets a valid cwd server replace an invalid same-name root server" time="0.0180834">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-config-project.test.js" name="loadProjectMcp &gt; uses an invalid cwd server as a tombstone over a valid same-name root server" time="0.0157624">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-config-project.test.js" name="loadProjectMcp &gt; reserves a project server when workspace authority cannot be issued" time="0.0018699">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-config-project.test.js" name="loadProjectMcp &gt; returns into unchanged when no .mcp.json exists" time="0.0018629">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-config-project.test.js" name="loadProjectMcp &gt; default-off: does nothing when CC_PROJECT_MCP is unset" time="0.0017405">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-config-project.test.js" name="loadProjectMcp &gt; opt-in can be passed via opts.env without touching process.env" time="0.0091626">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-config-project.test.js" name="loadProjectMcp &gt; a malformed .mcp.json is skipped (best-effort, never throws)" time="0.0018106">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-config-project.test.js" name="loadProjectMcp &gt; retains a canonical sandbox policy on a trusted project server" time="0.0101446">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-config-project.test.js" name="loadProjectMcp &gt; warns and skips a project file containing an invalid policy" time="0.0085806">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-config-project.test.js" name="loadProjectMcp &gt; merges an explicit `into` so --mcp-config / registered win on a clash" time="0.0096292">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-config-project.test.js" name="loadProjectMcp — fingerprint re-trust (gap 2026-07-11) &gt; first use records the fingerprint; a CHANGED file is then refused" time="0.0107343">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-config-project.test.js" name="loadProjectMcp — fingerprint re-trust (gap 2026-07-11) &gt; CC_PROJECT_MCP_TRUST=1 re-trusts the changed file and loads it" time="0.0181652">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-config-project.test.js" name="loadProjectMcp — fingerprint re-trust (gap 2026-07-11) &gt; an unchanged file keeps loading without any prompt" time="0.0102908">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/unit/mcp-config-scopes.test.js" timestamp="2026-11-09T01:53:05.077Z" hostname="normalized-windows-host" tests="37" failures="0" errors="0" skipped="0" time="0.0359684">
+        <testcase classname="__tests__/unit/mcp-config-scopes.test.js" name="cc mcp add scope default &gt; registers an explicit executable-byte trust command" time="0.003557">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-config-scopes.test.js" name="cc mcp add scope default &gt; resolves executable trust against the same canonical strict cwd as connect" time="0.0049397">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-config-scopes.test.js" name="cc mcp add scope default &gt; uses local scope when --scope is omitted" time="0.0008169">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-config-scopes.test.js" name="cc mcp add scope default &gt; parses explicit stdio runtime semantics" time="0.0004951">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-config-scopes.test.js" name="cc mcp add scope default &gt; parses repeatable explicit sandbox boundaries" time="0.0009621">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-config-scopes.test.js" name="cc mcp add scope default &gt; distinguishes omitted, explicit clear, and invalid boundary updates" time="0.0006283">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-config-scopes.test.js" name="cc mcp add scope default &gt; honours an explicit user scope" time="0.0006831">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-config-scopes.test.js" name="cc mcp add scope default &gt; registers the dynamic headers helper option without printing its value" time="0.0003718">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-config-scopes.test.js" name="cc mcp add scope default &gt; keeps the programmatic and legacy default at user scope" time="0.0021003">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-config-scopes.test.js" name="MCP configuration scopes &gt; authorizes a registered stdio row with a one-shot bound capability" time="0.0006896">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-config-scopes.test.js" name="MCP configuration scopes &gt; validates the four public scopes" time="0.0002066">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-config-scopes.test.js" name="MCP configuration scopes &gt; persists headers, scope, source, and project authority" time="0.0003953">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-config-scopes.test.js" name="MCP configuration scopes &gt; normalizes managed sandbox policy without losing runtimeKind" time="0.0002767">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-config-scopes.test.js" name="MCP configuration scopes &gt; fails closed on a corrupt managed sandbox policy" time="0.0000902">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-config-scopes.test.js" name="MCP configuration scopes &gt; fails closed instead of widening a strict server with invalid cwd" time="0.0001528">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-config-scopes.test.js" name="MCP configuration scopes &gt; does not surface local/project rows in an unrelated workspace" time="0.0004092">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-config-scopes.test.js" name="MCP configuration scopes &gt; round-trips and preserves a registered strict cwd until explicitly cleared" time="0.0008415">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-config-scopes.test.js" name="MCP configuration scopes &gt; keeps same-name scopes distinct and applies local &gt; project &gt; user" time="0.0006986">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-config-scopes.test.js" name="MCP configuration scopes &gt; treats a corrupt managed row as a fail-closed tombstone over lower scopes" time="0.000738">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-config-scopes.test.js" name="MCP configuration scopes &gt; treats a corrupt local row as a fail-closed tombstone over lower scopes" time="0.0003503">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-config-scopes.test.js" name="MCP configuration scopes &gt; treats a corrupt project row as a fail-closed tombstone over lower scopes" time="0.0004504">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-config-scopes.test.js" name="MCP configuration scopes &gt; treats a corrupt user row as a fail-closed tombstone over lower scopes" time="0.0002695">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-config-scopes.test.js" name="MCP configuration scopes &gt; does not let a corrupt lower managed &gt; local candidate shadow the valid higher scope" time="0.0003231">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-config-scopes.test.js" name="MCP configuration scopes &gt; does not let a corrupt lower local &gt; project candidate shadow the valid higher scope" time="0.000167">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-config-scopes.test.js" name="MCP configuration scopes &gt; does not let a corrupt lower project &gt; user candidate shadow the valid higher scope" time="0.0001612">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-config-scopes.test.js" name="MCP configuration scopes &gt; ignores corrupt local/project rows outside the active workspace" time="0.0003418">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-config-scopes.test.js" name="MCP configuration scopes &gt; lets a higher autoConnect=false row suppress a lower auto-connect row" time="0.0003">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-config-scopes.test.js" name="MCP configuration scopes &gt; uses the most specific same-scope project and fails closed on corrupt child/tie rows" time="0.0008503">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-config-scopes.test.js" name="MCP configuration scopes &gt; keeps default tombstones while allowing explicit scoped and all-scope inspection" time="0.000335">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-config-scopes.test.js" name="MCP configuration scopes &gt; keeps managed rows read-only" time="0.000197">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-config-scopes.test.js" name="MCP configuration scopes &gt; persists project scope in the shared project-root .mcp.json" time="0.0041843">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-config-scopes.test.js" name="MCP configuration scopes &gt; preserves a hand-written project sandbox policy on CLI-style update" time="0.0025658">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-config-scopes.test.js" name="MCP configuration scopes &gt; refuses to overwrite a corrupt hand-written project sandbox policy" time="0.0014985">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-config-scopes.test.js" name="MCP configuration scopes &gt; refuses to overwrite a project strict server with invalid cwd" time="0.0016034">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-config-scopes.test.js" name="MCP configuration scopes &gt; refuses an untrusted project-file stdio row" time="0.0012947">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-config-scopes.test.js" name="MCP transport doctor diagnostics &gt; accepts a valid WebSocket endpoint" time="0.0001751">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-config-scopes.test.js" name="MCP transport doctor diagnostics &gt; reports malformed and scheme-mismatched URLs structurally" time="0.0001126">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/unit/mcp-config-strict.test.js" timestamp="2026-11-09T01:53:05.081Z" hostname="normalized-windows-host" tests="4" failures="0" errors="0" skipped="0" time="0.0070399">
+        <testcase classname="__tests__/unit/mcp-config-strict.test.js" name="resolveAgentMcp --strict-mcp-config &gt; strict: loads only the --mcp-config file, skips registered + project + IDE" time="0.0019862">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-config-strict.test.js" name="resolveAgentMcp --strict-mcp-config &gt; non-strict: also loads registered + project .mcp.json + IDE" time="0.0023269">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-config-strict.test.js" name="resolveAgentMcp --strict-mcp-config &gt; projectMcp:false skips the project .mcp.json layer" time="0.000965">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-config-strict.test.js" name="resolveAgentMcp --strict-mcp-config &gt; strict with no --mcp-config yields nothing (no MCP at all)" time="0.0003006">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/unit/mcp-managed-scope.test.js" timestamp="2026-11-09T01:53:05.082Z" hostname="normalized-windows-host" tests="3" failures="0" errors="0" skipped="0" time="0.0090774">
+        <testcase classname="__tests__/unit/mcp-managed-scope.test.js" name="managed MCP configuration scope &gt; loads provisioned servers as a highest-precedence read-only source" time="0.0065222">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-managed-scope.test.js" name="managed MCP configuration scope &gt; does nothing when managed settings contain no server block" time="0.0004076">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-managed-scope.test.js" name="managed MCP configuration scope &gt; fails closed on an invalid managed server policy" time="0.0005922">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/unit/mcp-task-cli-connector.test.js" timestamp="2026-11-09T01:53:05.083Z" hostname="normalized-windows-host" tests="9" failures="0" errors="0" skipped="0" time="0.4034101">
+        <testcase classname="__tests__/unit/mcp-task-cli-connector.test.js" name="MCP Tasks real command registration and strict connector &gt; keeps connect failures private, machine readable and lease scoped" time="0.2076485">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-cli-connector.test.js" name="MCP Tasks real command registration and strict connector &gt; keeps database failures private, machine readable and lease scoped" time="0.0959162">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-cli-connector.test.js" name="MCP Tasks real command registration and strict connector &gt; keeps server failures private, machine readable and lease scoped" time="0.0935081">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-cli-connector.test.js" name="MCP HTTPS recovery identity (fake TLS identity, no TLS handshake) &gt; accepts HTTPS while keeping HMAC and live-session binding separate" time="0.0007687">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-cli-connector.test.js" name="MCP HTTPS recovery identity (fake TLS identity, no TLS handshake) &gt; binds tls-material changes using a fake TLS identity snapshot" time="0.0002552">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-cli-connector.test.js" name="MCP HTTPS recovery identity (fake TLS identity, no TLS handshake) &gt; binds tls-name changes using a fake TLS identity snapshot" time="0.0001384">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-cli-connector.test.js" name="MCP HTTPS recovery identity (fake TLS identity, no TLS handshake) &gt; binds tls-verification changes using a fake TLS identity snapshot" time="0.0001223">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-cli-connector.test.js" name="MCP HTTPS recovery identity (fake TLS identity, no TLS handshake) &gt; binds headers changes using a fake TLS identity snapshot" time="0.0001516">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-cli-connector.test.js" name="MCP HTTPS recovery identity (fake TLS identity, no TLS handshake) &gt; binds endpoint changes using a fake TLS identity snapshot" time="0.0001088">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/unit/mcp-task-delivery-contract.test.js" timestamp="2026-11-09T01:53:05.084Z" hostname="normalized-windows-host" tests="16" failures="0" errors="0" skipped="0" time="0.0152862">
+        <testcase classname="__tests__/unit/mcp-task-delivery-contract.test.js" name="MCP task delivery reference contract &gt; binds a labelled external reference without fabricating a tool exchange" time="0.0036419">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-delivery-contract.test.js" name="MCP task delivery reference contract &gt; rejects a changed sessionId binding" time="0.0007288">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-delivery-contract.test.js" name="MCP task delivery reference contract &gt; rejects a changed ledgerId binding" time="0.0003829">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-delivery-contract.test.js" name="MCP task delivery reference contract &gt; rejects a changed sourceEventHash binding" time="0.0002732">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-delivery-contract.test.js" name="MCP task delivery reference contract &gt; rejects a changed resultDigest binding" time="0.0003148">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-delivery-contract.test.js" name="MCP task delivery reference contract &gt; rejects substituted text even when the sender recomputes its own message digest" time="0.0003854">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-delivery-contract.test.js" name="MCP task delivery reference contract &gt; does not deliver before matching started settlement is resolved" time="0.0003319">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-delivery-contract.test.js" name="MCP task delivery reference contract &gt; does not deliver before matching cancelled settlement is resolved" time="0.0002821">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-delivery-contract.test.js" name="MCP task delivery reference contract &gt; does not override an explicit recovery adjudication" time="0.0002963">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-delivery-contract.test.js" name="MCP task delivery reference contract &gt; keeps the full result commitment when Unicode content exceeds the model excerpt" time="0.0049799">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-delivery-contract.test.js" name="MCP task delivery reference contract &gt; rejects source data that has not reached result_saved" time="0.0002969">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-delivery-contract.test.js" name="MCP task delivery reference contract &gt; rejects extra fields and accessors without evaluating them" time="0.0008163">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-delivery-contract.test.js" name="MCP task delivery reference contract &gt; refuses a user carrier" time="0.0002589">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-delivery-contract.test.js" name="MCP task delivery reference contract &gt; refuses a system carrier" time="0.0002226">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-delivery-contract.test.js" name="MCP task delivery reference contract &gt; refuses a tool carrier" time="0.0001613">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-delivery-contract.test.js" name="MCP task delivery reference contract &gt; can check a bounded verification-only record without retaining the full result" time="0.0002627">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/unit/mcp-task-delivery.test.js" timestamp="2026-11-09T01:53:05.086Z" hostname="normalized-windows-host" tests="39" failures="0" errors="0" skipped="0" time="29.1957101">
+        <testcase classname="__tests__/unit/mcp-task-delivery.test.js" name="keeps recovery snapshots immutable while accepting later incidents" time="0.0025101">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-delivery.test.js" name="atomic MCP task delivery into canonical session history &gt; delivers once and returns the same receipt without another event" time="0.7832086">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-delivery.test.js" name="atomic MCP task delivery into canonical session history &gt; serializes concurrent delivery attempts into one committed event" time="0.5874117">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-delivery.test.js" name="atomic MCP task delivery into canonical session history &gt; requires the owning session, existing local ID and an active writer lease" time="0.5951368">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-delivery.test.js" name="atomic MCP task delivery into canonical session history &gt; refuses unsaved, unsettled or mismatched settlement 0" time="0.4560179">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-delivery.test.js" name="atomic MCP task delivery into canonical session history &gt; refuses unsaved, unsettled or mismatched settlement 1" time="0.538592">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-delivery.test.js" name="atomic MCP task delivery into canonical session history &gt; refuses unsaved, unsettled or mismatched settlement 2" time="0.6348371">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-delivery.test.js" name="atomic MCP task delivery into canonical session history &gt; projects one external assistant reference while preserving the actual user" time="0.8492469">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-delivery.test.js" name="atomic MCP task delivery into canonical session history &gt; shows the delivery once in ordinary pagination before and after compaction" time="0.8556586">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-delivery.test.js" name="atomic MCP task delivery into canonical session history &gt; keeps the delivery across compaction and displays it once in history" time="0.860429">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-delivery.test.js" name="atomic MCP task delivery into canonical session history &gt; handles beforeTranscriptAppend failure without a duplicate delivery" time="0.7338622">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-delivery.test.js" name="atomic MCP task delivery into canonical session history &gt; handles afterAntiRollbackPublish failure without a duplicate delivery" time="0.8716753">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-delivery.test.js" name="atomic MCP task delivery into canonical session history &gt; rejects a valid hash-chain delivery with a false source-event binding even in generic reads" time="0.7151307">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-delivery.test.js" name="atomic MCP task delivery into canonical session history &gt; rejects a valid hash-chain delivery with a false result-digest binding even in generic reads" time="0.6731317">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-delivery.test.js" name="atomic MCP task delivery into canonical session history &gt; rejects a valid hash-chain delivery with a false rendered-message binding even in generic reads" time="0.7027691">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-delivery.test.js" name="atomic MCP task delivery into canonical session history &gt; rejects a valid hash-chain delivery with a false local-id binding even in generic reads" time="0.6189921">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-delivery.test.js" name="atomic MCP task delivery into canonical session history &gt; rejects a valid hash-chain delivery with a false session binding even in generic reads" time="0.6611909">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-delivery.test.js" name="atomic MCP task delivery into canonical session history &gt; rejects a second physical delivery event instead of merely hiding it" time="0.7338151">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-delivery.test.js" name="atomic MCP task delivery into canonical session history &gt; forks external reference data without transferring task control or delivery identity" time="0.8773993">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-delivery.test.js" name="atomic MCP task delivery into canonical session history &gt; does not wash away corrupt source call authority at a real fork boundary" time="0.7784805">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-delivery.test.js" name="atomic MCP task delivery into canonical session history &gt; does not wash away corrupt source task authority at a real fork boundary" time="0.760416">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-delivery.test.js" name="atomic MCP task delivery into canonical session history &gt; does not wash away corrupt source duplicate-delivery authority at a real fork boundary" time="0.7173959">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-delivery.test.js" name="atomic MCP task delivery into canonical session history &gt; preserves one external reference through nested forks without inheriting task control" time="1.0128659">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-delivery.test.js" name="atomic MCP task delivery into canonical session history &gt; requires the real fork boundary when legacy source logs lack generation markers" time="0.6873383">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-delivery.test.js" name="atomic MCP task delivery into canonical session history &gt; rejects a corrupt legacy prefix before the first source hint even with a valid fork boundary" time="0.7067574">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-delivery.test.js" name="atomic MCP task delivery into canonical session history &gt; preserves generic inspection of a corrupt old call ledger when no delivery exists" time="0.320772">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-delivery.test.js" name="MCP model continuation authority &gt; confirms a durable begin after its publication acknowledgement is lost" time="0.8183417">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-delivery.test.js" name="MCP model continuation authority &gt; confirms a durable settle after its publication acknowledgement is lost" time="0.8889345">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-delivery.test.js" name="MCP model continuation authority &gt; resumes an adjacent verified external reference and model answer without inventing a user turn" time="2.0134488">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-delivery.test.js" name="MCP model continuation authority &gt; binds one assistant answer to its original delivery without a fabricated user turn" time="1.2823284">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-delivery.test.js" name="MCP model continuation authority &gt; does not admit a continuation before delivery" time="0.5887229">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-delivery.test.js" name="MCP model continuation authority &gt; requires a real user task, not a task artifact alone" time="0.6573428">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-delivery.test.js" name="MCP model continuation authority &gt; holds an ambiguous legacy wake for review without declaring it complete" time="0.7970393">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-delivery.test.js" name="MCP model continuation authority &gt; never automatically replays a started continuation after host takeover" time="0.7702914">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-delivery.test.js" name="MCP model continuation authority &gt; rejects a chain-valid answer with a false beginEventHash in every verified reader" time="0.8526104">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-delivery.test.js" name="MCP model continuation authority &gt; rejects a chain-valid answer with a false deliveryEventHash in every verified reader" time="0.7553878">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-delivery.test.js" name="MCP model continuation authority &gt; rejects a chain-valid answer with a false outputDigest in every verified reader" time="0.8680974">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-delivery.test.js" name="MCP model continuation authority &gt; does not accept an orphan assistant consumption marker without any delivery" time="0.2157068">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-delivery.test.js" name="MCP model continuation authority &gt; preserves an answer in a fork without transferring continuation control" time="0.8880983">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/unit/mcp-task-journal.test.js" timestamp="2026-11-09T01:53:05.095Z" hostname="normalized-windows-host" tests="19" failures="0" errors="0" skipped="0" time="4.5578014">
+        <testcase classname="__tests__/unit/mcp-task-journal.test.js" name="canonical MCP task journal &gt; reopens complete task authority across compaction and old call settlement" time="0.4976907">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-journal.test.js" name="canonical MCP task journal &gt; persists cancelled and unknown acknowledgements without fabricating completion" time="0.3448695">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-journal.test.js" name="canonical MCP task journal &gt; rejects prepared sessionId binding mismatch before appending" time="0.1147679">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-journal.test.js" name="canonical MCP task journal &gt; rejects prepared serverName binding mismatch before appending" time="0.1129388">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-journal.test.js" name="canonical MCP task journal &gt; rejects prepared toolName binding mismatch before appending" time="0.127269">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-journal.test.js" name="canonical MCP task journal &gt; rejects prepared inputDigest binding mismatch before appending" time="0.1235818">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-journal.test.js" name="canonical MCP task journal &gt; rejects prepared ledgerId binding mismatch before appending" time="0.1095519">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-journal.test.js" name="canonical MCP task journal &gt; rejects prepared secretRef binding mismatch before appending" time="0.1025368">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-journal.test.js" name="canonical MCP task journal &gt; rejects duplicate local IDs and two tasks bound to the same started call" time="0.170798">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-journal.test.js" name="canonical MCP task journal &gt; requires a currently started call, not a terminal call" time="0.1681427">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-journal.test.js" name="canonical MCP task journal &gt; rejects skipped revisions, duplicate acceptance and invalid phase transitions" time="0.2385043">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-journal.test.js" name="canonical MCP task journal &gt; binds task IDs and creation identity, then refuses terminal regression" time="0.3477707">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-journal.test.js" name="canonical MCP task journal &gt; saves a matching result exactly once and forbids later observations" time="0.3105576">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-journal.test.js" name="canonical MCP task journal &gt; refuses accessors, unknown fields and oversized data before writing" time="0.293981">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-journal.test.js" name="canonical MCP task journal &gt; fails closed for semantically corrupt task and old-call events" time="0.4768264">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-journal.test.js" name="canonical MCP task journal &gt; refuses a broken physical journal and missing session without bootstrapping" time="0.2144023">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-journal.test.js" name="rejects a foreign-session call even when its event chain is valid" time="0.3040167">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-journal.test.js" name="returns a record only after verified commit at beforeTranscriptAppend" time="0.204641">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-journal.test.js" name="returns a record only after verified commit at afterAntiRollbackPublish" time="0.2491566">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/unit/mcp-task-runtime.test.js" timestamp="2026-11-09T01:53:05.098Z" hostname="normalized-windows-host" tests="20" failures="0" errors="0" skipped="0" time="14.4884786">
+        <testcase classname="__tests__/unit/mcp-task-runtime.test.js" name="durable MCP task auxiliary runtime &gt; recovers acceptance on a new client and saves one final result across compaction" time="0.8518889">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-runtime.test.js" name="durable MCP task auxiliary runtime &gt; watches a remote task and delivers its verified result exactly once" time="0.720807">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-runtime.test.js" name="durable MCP task auxiliary runtime &gt; rejects unbounded watch options before contacting the server" time="0.2992514">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-runtime.test.js" name="durable MCP task auxiliary runtime &gt; bounds the whole watch during a stalled network without cancelling or replaying the remote task" time="1.1813038">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-runtime.test.js" name="durable MCP task auxiliary runtime &gt; bounds the whole watch during a stalled interval without cancelling or replaying the remote task" time="1.3675921">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-runtime.test.js" name="durable MCP task auxiliary runtime &gt; times out behind a queued poll and never dispatches that expired queued request" time="0.8528802">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-runtime.test.js" name="durable MCP task auxiliary runtime &gt; honors caller cancellation between a cached observation and delivery" time="0.7211363">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-runtime.test.js" name="durable MCP task auxiliary runtime &gt; keeps an already-aborted caller authoritative and never publishes a cached result" time="0.656366">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-runtime.test.js" name="durable MCP task auxiliary runtime &gt; recovers a saved but undelivered result without refetching it" time="1.0429864">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-runtime.test.js" name="durable MCP task auxiliary runtime &gt; keeps prepare-only disconnect unknown and blocks both task and ordinary replay" time="0.4624743">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-runtime.test.js" name="durable MCP task auxiliary runtime &gt; keeps prepare-only 404 unknown and blocks both task and ordinary replay" time="0.4150175">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-runtime.test.js" name="durable MCP task auxiliary runtime &gt; rejects changed credentials after restart without task query" time="0.450652">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-runtime.test.js" name="durable MCP task auxiliary runtime &gt; fails closed if the recovery secret was lost" time="0.4440077">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-runtime.test.js" name="durable MCP task auxiliary runtime &gt; does not confuse expired/revoked task errors with effects never executing" time="0.4980699">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-runtime.test.js" name="durable MCP task auxiliary runtime &gt; requires reconciliation before repeating a lost cancellation" time="1.0647388">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-runtime.test.js" name="durable MCP task auxiliary runtime &gt; fences cancellation revoked between journal preparation and the actual send" time="0.5419777">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-runtime.test.js" name="durable MCP task auxiliary runtime &gt; repairs a crash after result_saved without retrieving it again" time="0.7997581">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-runtime.test.js" name="durable MCP task auxiliary runtime &gt; rejects another session&apos;s local task ID" time="0.5315965">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-runtime.test.js" name="durable MCP task auxiliary runtime &gt; does not dispatch when OS secret storage refuses the key" time="0.1438887">
+        </testcase>
+        <testcase classname="__tests__/unit/mcp-task-runtime.test.js" name="durable MCP task auxiliary runtime &gt; routes real CLI commands through the durable service and keeps list offline" time="1.4137976">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/unit/repl-runtime-ledger-terminal.test.js" timestamp="2026-11-09T01:53:05.100Z" hostname="normalized-windows-host" tests="3" failures="0" errors="0" skipped="0" time="0.0053219">
+        <testcase classname="__tests__/unit/repl-runtime-ledger-terminal.test.js" name="REPL runtime-ledger terminal latch &gt; is session-local, trips once, and blocks every later operation" time="0.0017945">
+        </testcase>
+        <testcase classname="__tests__/unit/repl-runtime-ledger-terminal.test.js" name="REPL runtime-ledger terminal latch &gt; meters only durable JSONL sessions and forces local suggestions there" time="0.0002824">
+        </testcase>
+        <testcase classname="__tests__/unit/repl-runtime-ledger-terminal.test.js" name="REPL runtime-ledger terminal latch &gt; routes every direct createChatFn surface and Advisor through one meter" time="0.0017497">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/unit/session-host-streaming-resume.test.js" timestamp="2026-11-09T01:53:05.101Z" hostname="normalized-windows-host" tests="10" failures="0" errors="0" skipped="0" time="0.1455759">
+        <testcase classname="__tests__/unit/session-host-streaming-resume.test.js" name="session host streaming resume &gt; projects a large prefix and compact suffix without requesting an event array" time="0.138957">
+        </testcase>
+        <testcase classname="__tests__/unit/session-host-streaming-resume.test.js" name="session host streaming resume &gt; projects a canonical budget root through the streaming authority" time="0.0012881">
+        </testcase>
+        <testcase classname="__tests__/unit/session-host-streaming-resume.test.js" name="session host streaming resume &gt; fails closed on an invalid streaming budget declaration" time="0.0007404">
+        </testcase>
+        <testcase classname="__tests__/unit/session-host-streaming-resume.test.js" name="session host streaming resume &gt; retains a trusted legacy adapter&apos;s runtime provenance" time="0.0011048">
+        </testcase>
+        <testcase classname="__tests__/unit/session-host-streaming-resume.test.js" name="session host streaming resume &gt; fails closed on a &apos;late&apos; streaming session_start" time="0.0003851">
+        </testcase>
+        <testcase classname="__tests__/unit/session-host-streaming-resume.test.js" name="session host streaming resume &gt; fails closed on a &apos;multiple&apos; streaming session_start" time="0.0002271">
+        </testcase>
+        <testcase classname="__tests__/unit/session-host-streaming-resume.test.js" name="session host streaming resume &gt; does not elevate a custom reader&apos;s forged wire field" time="0.0003539">
+        </testcase>
+        <testcase classname="__tests__/unit/session-host-streaming-resume.test.js" name="session host streaming resume &gt; fails closed on nested hostile resume data without invoking traps" time="0.0003563">
+        </testcase>
+        <testcase classname="__tests__/unit/session-host-streaming-resume.test.js" name="session host streaming resume &gt; fails closed on a hostile legacy event without invoking accessors" time="0.0002288">
+        </testcase>
+        <testcase classname="__tests__/unit/session-host-streaming-resume.test.js" name="session host streaming resume &gt; fails closed on a hostile streaming event without invoking traps" time="0.0003642">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/unit/session-message-provenance.test.js" timestamp="2026-11-09T01:53:05.102Z" hostname="normalized-windows-host" tests="13" failures="0" errors="0" skipped="0" time="0.0070918">
+        <testcase classname="__tests__/unit/session-message-provenance.test.js" name="durable session system-message provenance &gt; keeps input receipts in persisted evidence and excludes only their fields from user conversation projections" time="0.002043">
+        </testcase>
+        <testcase classname="__tests__/unit/session-message-provenance.test.js" name="durable session system-message provenance &gt; round-trips an allowlisted wire tag without exposing it to providers" time="0.0005913">
+        </testcase>
+        <testcase classname="__tests__/unit/session-message-provenance.test.js" name="durable session system-message provenance &gt; accepts runtime authority but drops forged or stale wire fields" time="0.0001736">
+        </testcase>
+        <testcase classname="__tests__/unit/session-message-provenance.test.js" name="durable session system-message provenance &gt; strips runtime microcompact markers from durable projections" time="0.0001567">
+        </testcase>
+        <testcase classname="__tests__/unit/session-message-provenance.test.js" name="durable session system-message provenance &gt; grants wire provenance only through the verified decoder" time="0.0005354">
+        </testcase>
+        <testcase classname="__tests__/unit/session-message-provenance.test.js" name="durable session system-message provenance &gt; rejects non-canonical wire tags and strips them from conversation" time="0.0002229">
+        </testcase>
+        <testcase classname="__tests__/unit/session-message-provenance.test.js" name="durable session system-message provenance &gt; never executes message or tag accessors" time="0.0002155">
+        </testcase>
+        <testcase classname="__tests__/unit/session-message-provenance.test.js" name="durable session system-message provenance &gt; rejects Proxy messages without invoking their traps" time="0.0001022">
+        </testcase>
+        <testcase classname="__tests__/unit/session-message-provenance.test.js" name="durable session system-message provenance &gt; rejects Proxy or accessor message containers without invoking them" time="0.0005497">
+        </testcase>
+        <testcase classname="__tests__/unit/session-message-provenance.test.js" name="durable session system-message provenance &gt; rejects nested Proxy, accessor, and cyclic data without executing it" time="0.0004081">
+        </testcase>
+        <testcase classname="__tests__/unit/session-message-provenance.test.js" name="durable session system-message provenance &gt; skips private host system notices before strict conversation sanitization" time="0.0003265">
+        </testcase>
+        <testcase classname="__tests__/unit/session-message-provenance.test.js" name="durable session system-message provenance &gt; loses runtime authority on generic copies but preserves an explicit trusted clone" time="0.0001673">
+        </testcase>
+        <testcase classname="__tests__/unit/session-message-provenance.test.js" name="durable session system-message provenance &gt; refuses to mark non-system messages" time="0.000096">
+        </testcase>
+    </testsuite>
+</testsuites>

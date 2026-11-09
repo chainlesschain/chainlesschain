@@ -3342,7 +3342,7 @@ async function startAgentReplInWorkspaceOwned(
   const _mcpTaskTrackers = new Map();
   const _mcpTaskAutoWakeQueue = [];
   let _mcpTaskAutoWakeRunning = false;
-  const _mcpTaskAutoWakeSentinel = "__cc_mcp_task_autowake__";
+  const _mcpTaskAutoWakeSentinel = Symbol("mcp-task-auto-wake");
   const _pendingLines = [];
   const _runtimeLedgerTerminalLatch = createReplRuntimeLedgerTerminalLatch({
     onTrip: (terminalError) => {
@@ -5934,6 +5934,8 @@ async function startAgentReplInWorkspaceOwned(
       _processingLine ||
       _mcpTaskAutoWakeRunning ||
       _replClosing ||
+      _mlBuffer.length > 0 ||
+      (_replRl?.line || "").length > 0 ||
       _mcpTaskAutoWakeQueue.length === 0
     ) {
       return;

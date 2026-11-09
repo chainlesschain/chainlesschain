@@ -634,6 +634,63 @@ describe("atomic MCP task delivery into canonical session history", () => {
 });
 
 describe("MCP model continuation authority", () => {
+  it.each(["begin", "settle"])(
+    "confirms a durable %s after its publication acknowledgement is lost",
+    async (stage) => {
+      const f = await fixture();
+      await invoke(f.sessionId, f.localId);
+      let started =
+        stage === "settle"
+          ? beginMcpTaskContinuation(f.sessionId, f.localId)
+          : null;
+      const previous = process.env.CC_SESSION_SCALE_FAULT_INJECTION;
+      process.env.CC_SESSION_SCALE_FAULT_INJECTION = "1";
+      let faulted = false;
+      _sessionScaleFaultHooks.afterAntiRollbackPublish = ({ type }) => {
+        if (
+          type ===
+          (stage === "begin"
+            ? "mcp_task_continuation_started"
+            : "assistant_message")
+        ) {
+          faulted = true;
+          _sessionScaleFaultHooks.afterAntiRollbackPublish = null;
+          throw Object.assign(new Error("lost continuation acknowledgement"), {
+            code: "EIO",
+          });
+        }
+      };
+      try {
+        if (stage === "begin")
+          started = beginMcpTaskContinuation(f.sessionId, f.localId);
+        else settleMcpTaskContinuation(f.sessionId, started, "saved once");
+        expect(faulted).toBe(true);
+        const continuation = readMcpTaskJournal(f.sessionId).continuations[0];
+        expect(continuation.phase).toBe(
+          stage === "begin" ? "started" : "settled",
+        );
+        expect(
+          readEvents(f.sessionId).filter(
+            (event) => event.type === "mcp_task_continuation_started",
+          ),
+        ).toHaveLength(1);
+        expect(() =>
+          beginMcpTaskContinuation(f.sessionId, f.localId),
+        ).toThrow();
+        if (stage === "settle")
+          expect(
+            messages(f.sessionId).filter(
+              (item) => item.content === "saved once",
+            ),
+          ).toHaveLength(1);
+      } finally {
+        _sessionScaleFaultHooks.afterAntiRollbackPublish = null;
+        if (previous === undefined)
+          delete process.env.CC_SESSION_SCALE_FAULT_INJECTION;
+        else process.env.CC_SESSION_SCALE_FAULT_INJECTION = previous;
+      }
+    },
+  );
   it("resumes an adjacent verified external reference and model answer without inventing a user turn", async () => {
     const f = await fixture();
     await invoke(f.sessionId, f.localId);

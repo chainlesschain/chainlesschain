@@ -1,0 +1,67 @@
+{
+  "schema": "chainlesschain.mcp-continuation-evidence/v1",
+  "coreCommit": "29243cd1b8c7c45e58abaa3c8b78976e102d90d6",
+  "executionBaseCommit": "29243cd1b8c7c45e58abaa3c8b78976e102d90d6",
+  "sourceKind": "byte-bound Windows candidate including private queue/input guards",
+  "platform": "win32",
+  "node": "v24.12.0",
+  "pullRequest": "https://github.com/chainlesschain/chainlesschain/pull/571",
+  "overall": "partial",
+  "syntheticScenarios": 3,
+  "realProviderModelContinuationVerified": false,
+  "latestLiveAttempt": {
+    "provider": "openai",
+    "model": "gpt-6.1-sol",
+    "protocol": "openai-responses",
+    "httpStatus": 429,
+    "attempts": 1,
+    "usageVerified": false,
+    "costUnknown": true
+  },
+  "validation": {
+    "testFiles": 46,
+    "passed": 755,
+    "failed": 0,
+    "skipped": 0,
+    "referencePublishedFilesMatched": 59,
+    "egressSourceReviewPassed": true,
+    "egressCandidates": 89,
+    "callChainUnmapped": 78,
+    "multiOsCiVerified": false,
+    "additionalSessionEgressChecks": {
+      "testFiles": 8,
+      "passed": 72,
+      "failed": 0
+    }
+  },
+  "paidReady": false,
+  "sourceFiles": {
+    "packages/cli/src/repl/agent-repl.js": "d4bcf9c00889af5941246b39683637852485e2f7311ea0e86d27162b48218b2d",
+    "packages/cli/src/runtime/mcp-config.js": "6f083eedf2bb91971a05ed19536e1530898a6d86bc22ea85bc6db448ecf44ee4",
+    "packages/cli/src/lib/mcp-task-continuation.js": "cdd78e3889add64e715cdeba42f5e895d118c0bb8d987e5b790d6d61f52499e8",
+    "packages/cli/src/lib/mcp-task-continuation-contract.js": "2559e834d0ee2a90202badf594115788a6e2ad7f5c2af3ca3fc595e90fe6c50a",
+    "packages/cli/src/lib/mcp-task-journal-projection.js": "51a232726e46b30a44f3f5b47e0cbef1fed1de2f13b7a93f880da34fbfc77531",
+    "packages/cli/src/lib/mcp-task-runtime.js": "1335707c6734c16836544da341a92900a03e214104e2c5684cb24f97ffd98c2f",
+    "packages/cli/src/commands/mcp-tasks.js": "e180850590ae778adaef480f8e56f8ca3a4e08c098eed41e6c258ec14a582c74",
+    "packages/cli/src/lib/session-transcript-structure.js": "1c4bbc16afac250b4478820a5f38a5dc0cfdc6d6c3f8a20225a3b26a833256d0",
+    "packages/cli/src/lib/session-message-provenance.js": "222f7b90471205f5993d15531d709f81d1e83fa1d158d60b52d718b236455567",
+    "packages/cli/src/lib/session-host-snapshot.js": "3e50558675ec97b2273608f09d6c078d00a8edcf184b0ad64c4f8f35db496082",
+    "packages/cli/src/harness/mcp-client.js": "6e1226d6224de2b0f4a03c6ee0250577c3c834e7b254fd7c5fbd4d6f8aabd0ec",
+    "packages/cli/__tests__/fixtures/mcp-tasks/repl-continuation-child.mjs": "924a4b65a7894d25f38f3260bb0179725b97e54d9fb85033f9d61409039b37ce",
+    "packages/cli/__tests__/fixtures/mcp-tasks/durable-child.mjs": "ccd51eb6b6814590a30461f89877930523e386677456a7da7e536853d3a5360f",
+    "packages/cli/scripts/probe-mcp-task-model-continuation.mjs": "9754f022b9706c20075e2c0c7fa908207bc82c14805a7eb513e158052f573482",
+    "packages/cli/__tests__/unit/mcp-task-delivery.test.js": "b842b7ff92619ca6fa97c6117fa9d3aef8acff8bbc7b453006c5cdc0bc6eaf16",
+    "packages/cli/__tests__/unit/mcp-client-stateless.test.js": "767916900e0b86e582529222c7a7bc2ad5a43fdd4742fe552aac75dcbdeac721",
+    "packages/cli/__tests__/unit/agent-repl.test.js": "fcd280f135aeb8a4aff6209e2ab8ef4de4952acd6ea9208c277f0e5cb4e99107",
+    "packages/cli/scripts/budget-egress-reviewed-sources.json": "4daa15fee6db1e50442c77237f8d2d0a0054da50b6d0ce8efefa1a0c0a84c04e"
+  },
+  "artifacts": {
+    "after-response-transport.json": "de14168e0d34ce94628535b9b99dd19ade45447ccfea34938f0e1d0883726158",
+    "before-dispatch-transport.json": "5c49282d13c063d65f552405b1afe9faebbd8489428862016c27eabfabb4818d",
+    "completed-transport.json": "ad64d7f5927db537d32b0845503c9ab2c4aacf3aba4ef19603e02a7bdf2421aa",
+    "openai-http429.json": "b21aeb5016931e0295810068cd6a6ce4ee1eda66ae3a1403bd75799f8e1febf2",
+    "regression-tests.xml": "9ee040e828348c6a6a14fdf9866407aa1e485b7f1636bd0cea4ebf5731aca309",
+    "synthetic.json": "c7b54426774b41251eb76cd6181862a3ed22f0cc59d7d92ba6cd41ab484fe86b",
+    "session-regression-tests.xml": "d12d6b1c9f4bde04522aeee5927c19bd6f11f685dd0cb12eb672da6060dd66a4"
+  }
+}
