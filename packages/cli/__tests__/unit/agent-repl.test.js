@@ -1325,27 +1325,54 @@ describe("agent-core execution limits (used by agent-repl)", () => {
     }
   });
 
-  it("Anthropic max_tokens consumes the centralized model-aware output budget", () => {
-    const content = readFileSync(agentCorePath, "utf8");
-    expect(content).toMatch(
-      /const anthropicOutputBudget = resolveAgentOutputBudget\(\{[\s\S]*?provider: "anthropic",[\s\S]*?model: effModel,[\s\S]*?maxOutputTokens: options\.maxOutputTokens,[\s\S]*?\}\);/,
+  it("Anthropic max_tokens consumes the centralized model-aware output budget", async () => {
+    const { chatWithTools } = await import("../helpers/test-model-egress.js");
+    const fetch = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            content: [{ type: "text", text: "ok" }],
+            usage: { input_tokens: 2, output_tokens: 1 },
+            stop_reason: "end_turn",
+          }),
+          { headers: { "Content-Type": "application/json" } },
+        ),
     );
-    expect(content).toContain(
-      "max_tokens: anthropicOutputBudget.requestMaxOutputTokens",
-    );
-    expect(
-      resolveAgentOutputBudget({
-        provider: "anthropic",
-        model: "claude-sonnet-4-6",
-      }).requestMaxOutputTokens,
-    ).toBe(8192);
-    expect(
-      resolveAgentOutputBudget({
-        provider: "anthropic",
-        model: "claude-opus-4-6",
-        maxOutputTokens: 30000,
-      }).requestMaxOutputTokens,
-    ).toBe(16384);
+    vi.stubGlobal("fetch", fetch);
+    try {
+      for (const [model, maxOutputTokens, expected] of [
+        ["claude-sonnet-4-6", undefined, 8192],
+        ["claude-opus-4-6", 30000, 16384],
+      ]) {
+        const onProviderCallStart = vi.fn();
+        await chatWithTools(
+          [{ role: "user", content: "Reply with one word." }],
+          {
+            provider: "anthropic",
+            model,
+            maxOutputTokens,
+            apiKey: "unit-test-only",
+            cwd: tmpdir(),
+            thinking: false,
+            onProviderCallStart,
+          },
+        );
+        const body = JSON.parse(fetch.mock.calls.at(-1)[1].body);
+        expect(body.model).toBe(model);
+        expect(body.max_tokens).toBe(expected);
+        expect(body.max_tokens).toBe(
+          resolveAgentOutputBudget({
+            provider: "anthropic",
+            model,
+            maxOutputTokens,
+          }).requestMaxOutputTokens,
+        );
+        expect(onProviderCallStart).toHaveBeenCalledOnce();
+      }
+      expect(fetch).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it("default ollama model should be qwen2.5:7b", () => {
