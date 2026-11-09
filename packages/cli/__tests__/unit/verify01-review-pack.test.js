@@ -48,6 +48,24 @@ vi.mock("node:child_process", async (importOriginal) => {
 });
 
 describe("operator acceptance pack", () => {
+  it("probes the lockfile-resolved CLI SQLite driver without mutating npm dependencies", () => {
+    const runtime = fs.readFileSync(
+      new URL("../../scripts/verify01-review-runtime.mjs", import.meta.url),
+      "utf8",
+    );
+    expect(runtime).toContain(
+      'createRequire("/workspace/packages/cli/package.json")',
+    );
+    expect(runtime).toContain('resolve("better-sqlite3/package.json")');
+    expect(runtime).toContain('resolve("prebuild-install/bin.js")');
+    expect(runtime).toContain('Database=cliRequire("better-sqlite3")');
+    expect(runtime).not.toContain('"better-sqlite3@11.10.0"');
+    expect(runtime).not.toContain('"/workspace/node_modules/better-sqlite3"');
+    expect(runtime).not.toContain(
+      '"/workspace/packages/cli/node_modules/better-sqlite3"',
+    );
+  });
+
   it("keeps cleanup within the outer task budget and a watchdog in the container", () => {
     const now = 1000000;
     expect(reviewStageDeadline(now)).toBe(now + 600000);

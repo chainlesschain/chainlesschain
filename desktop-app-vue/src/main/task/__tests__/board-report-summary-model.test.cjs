@@ -57,7 +57,9 @@ function loadManager() {
 }
 let managerModule;
 async function setup(handler, options = {}) {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "cc-summary-model-"));
+  const directory = fs.realpathSync.native(
+    fs.mkdtempSync(path.join(os.tmpdir(), "cc-summary-model-")),
+  );
   const f = fixture(path.join(directory, "vault.sqlite"));
   f.native.exec(
     "UPDATE team_reports SET yesterday_work='Source text for real ingress' WHERE id='report-1'",
@@ -152,7 +154,10 @@ async function setup(handler, options = {}) {
       await new Promise((resolve) => server.close(resolve));
       f.close();
       const resolved = path.resolve(directory);
-      assert.equal(path.dirname(resolved), path.resolve(os.tmpdir()));
+      assert.equal(
+        path.dirname(resolved),
+        fs.realpathSync.native(path.resolve(os.tmpdir())),
+      );
       assert.ok(path.basename(resolved).startsWith("cc-summary-model-"));
       fs.rmSync(resolved, { recursive: true, force: true });
     },
