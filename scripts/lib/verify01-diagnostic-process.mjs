@@ -63,9 +63,11 @@ function windowsProcessSnapshot(deadline = Date.now() + 30000) {
     throw cleanupUnconfirmed(
       "Windows identity snapshot cleanup deadline exceeded",
     );
+  // ExecutablePath is diagnostic context only. Do not query command lines;
+  // PID plus CreationDate remains the process-lifetime identity.
   // Avoid one PowerShell pipeline invocation per process. Preserve the same
   // projected CIM identities and fail closed when creation time is unavailable.
-  const script = `$ErrorActionPreference='Stop'; $rows=@(foreach($p in (Get-CimInstance -Query 'SELECT ProcessId, ParentProcessId, Name, CreationDate FROM Win32_Process')) { [pscustomobject]@{pid=[int]$p.ProcessId;parentPid=[int]$p.ParentProcessId;name=$p.Name;created=if($null -eq $p.CreationDate){$null}else{$p.CreationDate.ToUniversalTime().Ticks.ToString()}} }); ConvertTo-Json -InputObject $rows -Compress`;
+  const script = `$ErrorActionPreference='Stop'; $rows=@(foreach($p in (Get-CimInstance -Query 'SELECT ProcessId, ParentProcessId, Name, CreationDate, ExecutablePath FROM Win32_Process')) { [pscustomobject]@{pid=[int]$p.ProcessId;parentPid=[int]$p.ParentProcessId;name=$p.Name;executablePath=$p.ExecutablePath;created=if($null -eq $p.CreationDate){$null}else{$p.CreationDate.ToUniversalTime().Ticks.ToString()}} }); ConvertTo-Json -InputObject $rows -Compress`;
   const result = spawnSync(
     path.join(
       process.env.SystemRoot || "C:\\Windows",
