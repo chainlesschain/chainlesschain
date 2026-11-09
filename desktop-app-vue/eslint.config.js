@@ -18,6 +18,8 @@ module.exports = [
       "coverage/**",
       "browser-extension/**",
       "src/main/remote/browser-extension/**",
+      // Generated SDK bytes are checked by sync-agent-sdk.mjs.
+      "src/main/vendor/agent-sdk/**",
       "scripts/**",
     ],
   },

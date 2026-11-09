@@ -28,6 +28,7 @@ const EVENT_FIELDS = new Set([
   "fromState",
   "toState",
   "previousRevision",
+  "previousRecordDigest",
   "revision",
   "recordDigest",
   "at",
@@ -282,6 +283,8 @@ class NativeSqliteMemoryPort {
     )
       fail("Stored event lineage mismatch");
     if (revision === 1) {
+      if (event.previousRecordDigest !== undefined)
+        fail("Unexpected correction metadata");
       if (
         event.fromState !== null ||
         !["active", "candidate"].includes(event.toState) ||
@@ -291,7 +294,36 @@ class NativeSqliteMemoryPort {
             : "memory.candidate.created")
       )
         fail("Invalid stored initial event");
+    } else if (event.type === "memory.corrected") {
+      if (
+        !["active", "reinforced"].includes(event.fromState) ||
+        event.toState !== event.fromState ||
+        event.successorMemoryId !== undefined ||
+        !/^sha256:[a-f0-9]{64}$/.test(event.previousRecordDigest)
+      )
+        fail("Invalid stored correction event");
+      // Bind the immediate predecessor without recursively walking an unbounded history.
+      const previousRow = this.#db
+        .prepare(
+          "SELECT event_json FROM context_memory_sqlite_events WHERE scope_key = ? AND memory_id = ? AND revision = ?",
+        )
+        .get(this.#key, memoryId, revision - 1);
+      const previous = previousRow && JSON.parse(previousRow.event_json);
+      if (previous)
+        verifyDigest(
+          previous,
+          "chainlesschain.native-memory-event-projection/v1",
+        );
+      if (
+        !previous ||
+        previous.memoryId !== memoryId ||
+        previous.revision !== revision - 1 ||
+        previous.recordDigest !== event.previousRecordDigest
+      )
+        fail("Correction previous digest mismatch");
     } else {
+      if (event.previousRecordDigest !== undefined)
+        fail("Unexpected correction metadata");
       assertTransition(event.fromState, event.toState);
       if (event.type !== `memory.${event.toState}`)
         fail("Invalid stored transition event");
@@ -336,6 +368,8 @@ class NativeSqliteMemoryPort {
     )
       fail("Memory event does not match record lineage");
     if (!current) {
+      if (event.previousRecordDigest !== undefined)
+        fail("Unexpected correction metadata");
       if (
         !["active", "candidate"].includes(record.state) ||
         record.createdAt !== record.updatedAt ||
@@ -347,8 +381,19 @@ class NativeSqliteMemoryPort {
       )
         fail("Invalid initial memory event");
     } else {
-      if (event.type !== `memory.${record.state}`)
+      const correcting = event.type === "memory.corrected";
+      if (
+        correcting
+          ? event.previousRecordDigest !== current.digest
+          : event.previousRecordDigest !== undefined ||
+            event.type !== `memory.${record.state}`
+      )
         fail("Invalid memory transition event");
+      if (
+        correcting &&
+        (event.reason !== undefined || event.successorMemoryId !== undefined)
+      )
+        fail("Correction event must contain only correction lineage");
       if (record.state === "superseded") {
         const successor = this.#record(event.successorMemoryId);
         if (
@@ -359,7 +404,8 @@ class NativeSqliteMemoryPort {
           fail("Successor must be an existing memory in the same scope");
       }
       const command = {
-        type: COMMANDS[record.state],
+        type: correcting ? "correct" : COMMANDS[record.state],
+        ...(correcting ? { content: record.content } : {}),
         expectedRevision: current.revision,
         at: event.at,
         ...(event.authority === undefined
@@ -373,7 +419,7 @@ class NativeSqliteMemoryPort {
           ? { deletionFence: record.deletionFence }
           : {}),
       };
-      if (record.state === "reinforced")
+      if (record.state === "reinforced" && !correcting)
         Object.assign(command, {
           confidenceDelta: record.confidence - current.confidence,
           importance: record.importance,

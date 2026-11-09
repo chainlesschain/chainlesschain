@@ -126,6 +126,7 @@ function publicError(error) {
       "legacy_writer_fenced",
       "scope_denied",
       "replica_tombstone_fenced",
+      "memory_correction_content_ref_unsupported",
     ].includes(error?.code)
   ) {
     return new JsonRpcError(

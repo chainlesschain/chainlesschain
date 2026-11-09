@@ -40,6 +40,13 @@ public final class ContextMemoryProjection {
             updateRevision(lastRecall);
             return lastRecall != null;
         }
+        if (type == AgentStreamEventType.MEMORY_CORRECTED) {
+            Object id = event.get("memory_id");
+            if (id == null) return false;
+            memories.remove(String.valueOf(id));
+            lastRecall = null;
+            return true;
+        }
         if (type == AgentStreamEventType.MEMORY_PURGED) {
             Object id = event.get("memory_id");
             if (id != null) memories.remove(String.valueOf(id));

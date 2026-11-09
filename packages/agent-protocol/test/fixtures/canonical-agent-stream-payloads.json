@@ -1,5 +1,43 @@
 [
   {
+    "name": "memory correction carries predecessor metadata and stream envelope",
+    "valid": true,
+    "value": {
+      "type": "memory.corrected",
+      "memory_id": "memory-1",
+      "revision": 2,
+      "previous_revision": 1,
+      "previous_record_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "record_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "seq": 3,
+      "trace_id": "trace:memory-correction"
+    }
+  },
+  {
+    "name": "memory correction cannot omit its predecessor identity",
+    "valid": false,
+    "value": {
+      "type": "memory.corrected",
+      "memory_id": "memory-1",
+      "revision": 2,
+      "previous_revision": 1,
+      "record_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    }
+  },
+  {
+    "name": "memory correction notifications do not carry memory bodies",
+    "valid": false,
+    "value": {
+      "type": "memory.corrected",
+      "memory_id": "memory-1",
+      "revision": 2,
+      "previous_revision": 1,
+      "previous_record_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "record_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "record": { "content": "old or new private memory" }
+    }
+  },
+  {
     "name": "terminal result references both canonical messages",
     "valid": true,
     "value": {

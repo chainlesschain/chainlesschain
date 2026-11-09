@@ -6,7 +6,9 @@
 import chalk from "chalk";
 import path from "node:path";
 import { logger } from "../lib/logger.js";
+import { numericOption } from "../lib/cli-numeric.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
+import { withQuietStdout } from "../runtime/quiet-stdout.js";
 import { parseEditorCommand } from "./config.js";
 import { executionBroker } from "../lib/process-execution-broker/index.js";
 import {
@@ -69,15 +71,28 @@ export function openMemoryEditor(editor, filePath, deps = _deps) {
   });
 }
 
-async function resolveCanonicalMemory(ctx) {
+async function resolveCanonicalMemory(ctx, { migrateLegacy = true } = {}) {
   const { createCliCanonicalMemoryService } =
     await import("../lib/context-memory-kernel/index.js");
   const legacyDb = ctx?.db?.getDatabase?.() || null;
   const service = createCliCanonicalMemoryService({ legacyDb });
-  if (service.decision.canonical && ctx?.db) {
+  if (migrateLegacy && service.decision.canonical && ctx?.db) {
     await service.migrateLegacyEntries(exportMemory(ctx.db.getDatabase()));
   }
   return service;
+}
+
+async function prepareMemoryCommand(program, options, resolution) {
+  const setup = async () => {
+    const ctx = await bootstrap({ verbose: program.opts().verbose });
+    return { ctx, service: await resolveCanonicalMemory(ctx, resolution) };
+  };
+  return options.json ? withQuietStdout(setup) : setup();
+}
+
+async function shutdownMemoryCommand(options) {
+  if (options.json) await withQuietStdout(shutdown);
+  else await shutdown();
 }
 
 async function resolveScopedMemory() {
@@ -323,8 +338,7 @@ export function registerMemoryCommand(program) {
     .option("--json", "Output as JSON")
     .action(async (text, options) => {
       try {
-        const ctx = await bootstrap({ verbose: program.opts().verbose });
-        const service = await resolveCanonicalMemory(ctx);
+        const { ctx, service } = await prepareMemoryCommand(program, options);
         if (!ctx.db && !service.decision.canonical) {
           logger.error("Database not available");
           process.exit(1);
@@ -353,11 +367,121 @@ export function registerMemoryCommand(program) {
             `Memory added: ${chalk.gray(entry.id.slice(0, 12))} [${chalk.cyan(entry.category)}]`,
           );
         }
-
-        await shutdown();
       } catch (err) {
         logger.error(`Failed: ${err.message}`);
-        process.exit(1);
+        process.exitCode = 1;
+      } finally {
+        await shutdownMemoryCommand(options);
+      }
+    });
+
+  memory
+    .command("inspect")
+    .description(
+      "Read one canonical memory's current content, revision and digest",
+    )
+    .argument("<id>", "Exact canonical memory ID")
+    .option("--json", "Output as JSON")
+    .action(async (id, options) => {
+      try {
+        const { service } = await prepareMemoryCommand(program, options, {
+          migrateLegacy: false,
+        });
+        if (!service.decision.canonical)
+          throw new Error("Memory inspection requires canonical memory mode");
+        const entry = await service.inspect(id);
+        if (!entry)
+          throw Object.assign(new Error("Memory entry not found"), {
+            code: "CONTEXT_MEMORY_NOT_FOUND",
+          });
+        if (options.json) console.log(JSON.stringify(entry, null, 2));
+        else {
+          logger.log(`${entry.id} revision ${entry.revision} [${entry.state}]`);
+          logger.log(entry.digest);
+          logger.log(entry.content);
+        }
+      } catch (error) {
+        if (options.json)
+          console.log(
+            JSON.stringify({
+              error: {
+                code: error.code || "MEMORY_INSPECTION_FAILED",
+                message: error.message,
+              },
+            }),
+          );
+        else logger.error(`Failed: ${error.message}`);
+        process.exitCode = 1;
+      } finally {
+        await shutdownMemoryCommand(options);
+      }
+    });
+
+  memory
+    .command("correct")
+    .description(
+      "Replace one canonical memory's content at the inspected revision",
+    )
+    .argument("<id>", "Exact canonical memory ID")
+    .argument("<text>", "Corrected content")
+    .requiredOption(
+      "--expected-revision <n>",
+      "Revision returned by memory inspect",
+    )
+    .option("--reason <text>", "Reason for the correction")
+    .option("--json", "Output as JSON")
+    .action(async (id, text, options) => {
+      try {
+        const expectedRevision = numericOption(options.expectedRevision, {
+          name: "--expected-revision",
+          integer: true,
+          min: 1,
+          max: Number.MAX_SAFE_INTEGER,
+        });
+        const { service } = await prepareMemoryCommand(program, options, {
+          migrateLegacy: false,
+        });
+        if (!service.decision.canonical)
+          throw new Error("Memory correction requires canonical memory mode");
+        const entry = await service.correct(id, {
+          content: text,
+          expectedRevision,
+          reason: options.reason,
+        });
+        if (options.json) console.log(JSON.stringify(entry, null, 2));
+        else
+          logger.success(
+            `Memory corrected: ${entry.id} revision ${entry.revision}`,
+          );
+      } catch (error) {
+        const published = error.code === "CONTEXT_MEMORY_COMMIT_PUBLISHED";
+        if (options.json)
+          console.log(
+            JSON.stringify({
+              error: {
+                code: error.code || "MEMORY_CORRECTION_FAILED",
+                message: error.message,
+              },
+              noAutomaticReplay: true,
+              ...(published
+                ? {
+                    committed: true,
+                    storeRevision: error.storeRevision,
+                    durability: error.durability,
+                    cleanupComplete: error.cleanupComplete,
+                  }
+                : {}),
+            }),
+          );
+        else {
+          logger.error(`Failed: ${error.message}`);
+          logger.info(
+            "Read the current memory with memory inspect before deciding whether to submit another correction.",
+          );
+        }
+        process.exitCode = published ? 2 : 1;
+      } finally {
+        await shutdownMemoryCommand(options);
       }
     });
 
