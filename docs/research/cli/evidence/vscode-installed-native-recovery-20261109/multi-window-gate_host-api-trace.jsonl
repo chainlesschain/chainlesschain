@@ -1,0 +1,8 @@
+{"phase":"initial","stage":"installed-vsix-discovered","at":"2026-11-09T02:12:51.750Z","extensionVersion":"0.37.182"}
+{"phase":"initial","stage":"vsix-activated","at":"2026-11-09T02:12:52.992Z"}
+{"phase":"initial","stage":"automatic-completion-contract-verified","at":"2026-11-09T02:12:52.992Z","defaultEnabled":false,"p50SloMs":2000,"p95SloMs":5000}
+{"phase":"initial","stage":"commands-verified","at":"2026-11-09T02:12:52.994Z","commandCount":19}
+{"phase":"initial","stage":"bridge-verified","at":"2026-11-09T02:12:52.996Z"}
+{"phase":"initial","stage":"multi-window-verified","at":"2026-11-09T02:12:56.416Z"}
+{"phase":"initial","stage":"view-command-dispatched","at":"2026-11-09T02:12:56.449Z"}
+{"phase":"initial","stage":"phase-completed","at":"2026-11-09T02:12:56.453Z"}

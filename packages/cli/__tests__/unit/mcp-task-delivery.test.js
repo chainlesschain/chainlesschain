@@ -31,6 +31,12 @@ const { appendMcpTaskJournalEvent, readMcpTaskJournal } =
   await import("../../src/lib/mcp-task-journal.js");
 const { deliverMcpTaskResult } =
   await import("../../src/lib/mcp-task-delivery.js");
+const { beginMcpTaskContinuation, settleMcpTaskContinuation } =
+  await import("../../src/lib/mcp-task-continuation.js");
+const { listDurableMcpTasks } =
+  await import("../../src/lib/mcp-task-runtime.js");
+const { MCP_TASK_CONTINUATION_FIELD, createMcpTaskContinuationMessage } =
+  await import("../../src/lib/mcp-task-continuation-contract.js");
 const { createMcpTaskDeliveryData, MCP_TASK_DELIVERY_EVENT } =
   await import("../../src/lib/mcp-task-delivery-contract.js");
 const { readSessionTranscriptHistory } =
@@ -81,10 +87,10 @@ const deliveries = (sessionId) =>
     (event) => event.type === MCP_TASK_DELIVERY_EVENT,
   );
 
-function session() {
+function session({ user = true } = {}) {
   const sessionId = "delivery-" + randomUUID();
   startSession(sessionId, { provider: "fixture", model: "fixture" });
-  appendUserMessage(sessionId, USER);
+  if (user) appendUserMessage(sessionId, USER);
   const lease = acquireSessionHostLease(sessionId, {
     hostKind: "mcp-task-delivery-test",
   });
@@ -95,8 +101,9 @@ async function fixture({
   save = true,
   settle = true,
   settlementResult = null,
+  user = true,
 } = {}) {
-  const base = session();
+  const base = session({ user });
   const { sessionId } = base;
   const ledger = createMcpCallLedger({
     sink: createSessionMcpLedgerSink(sessionId),
@@ -623,5 +630,260 @@ describe("atomic MCP task delivery into canonical session history", () => {
     expect(readSessionTranscriptHistory(f.sessionId).messages[0].text).toBe(
       USER,
     );
+  });
+});
+
+describe("MCP model continuation authority", () => {
+  it.each(["begin", "settle"])(
+    "confirms a durable %s after its publication acknowledgement is lost",
+    async (stage) => {
+      const f = await fixture();
+      await invoke(f.sessionId, f.localId);
+      let started =
+        stage === "settle"
+          ? beginMcpTaskContinuation(f.sessionId, f.localId)
+          : null;
+      const previous = process.env.CC_SESSION_SCALE_FAULT_INJECTION;
+      process.env.CC_SESSION_SCALE_FAULT_INJECTION = "1";
+      let faulted = false;
+      _sessionScaleFaultHooks.afterAntiRollbackPublish = ({ type }) => {
+        if (
+          type ===
+          (stage === "begin"
+            ? "mcp_task_continuation_started"
+            : "assistant_message")
+        ) {
+          faulted = true;
+          _sessionScaleFaultHooks.afterAntiRollbackPublish = null;
+          throw Object.assign(new Error("lost continuation acknowledgement"), {
+            code: "EIO",
+          });
+        }
+      };
+      try {
+        if (stage === "begin")
+          started = beginMcpTaskContinuation(f.sessionId, f.localId);
+        else settleMcpTaskContinuation(f.sessionId, started, "saved once");
+        expect(faulted).toBe(true);
+        const continuation = readMcpTaskJournal(f.sessionId).continuations[0];
+        expect(continuation.phase).toBe(
+          stage === "begin" ? "started" : "settled",
+        );
+        expect(
+          readEvents(f.sessionId).filter(
+            (event) => event.type === "mcp_task_continuation_started",
+          ),
+        ).toHaveLength(1);
+        expect(() =>
+          beginMcpTaskContinuation(f.sessionId, f.localId),
+        ).toThrow();
+        if (stage === "settle")
+          expect(
+            messages(f.sessionId).filter(
+              (item) => item.content === "saved once",
+            ),
+          ).toHaveLength(1);
+      } finally {
+        _sessionScaleFaultHooks.afterAntiRollbackPublish = null;
+        if (previous === undefined)
+          delete process.env.CC_SESSION_SCALE_FAULT_INJECTION;
+        else process.env.CC_SESSION_SCALE_FAULT_INJECTION = previous;
+      }
+    },
+  );
+  it("resumes an adjacent verified external reference and model answer without inventing a user turn", async () => {
+    const f = await fixture();
+    await invoke(f.sessionId, f.localId);
+    const started = beginMcpTaskContinuation(f.sessionId, f.localId);
+    settleMcpTaskContinuation(f.sessionId, started, "answer after reference");
+    const { prepareReplJsonlResumeCandidate } =
+      await import("../../src/repl/agent-repl.js");
+    const prepared = prepareReplJsonlResumeCandidate(f.sessionId);
+    expect(prepared.ok).toBe(true);
+    expect(
+      prepared.conversationMessages.filter((item) => item.role === "user"),
+    ).toHaveLength(1);
+    expect(prepared.conversationMessages.at(-1)).toEqual({
+      role: "assistant",
+      content: "answer after reference",
+    });
+  });
+  it("binds one assistant answer to its original delivery without a fabricated user turn", async () => {
+    const f = await fixture();
+    const delivered = await invoke(f.sessionId, f.localId);
+    appendUserMessage(
+      f.sessionId,
+      `A genuine quoted ID: ${delivered.deliveryId}`,
+    );
+    const started = beginMcpTaskContinuation(f.sessionId, f.localId);
+    expect(started).toMatchObject({
+      phase: "started",
+      deliveryEventHash: delivered.eventHash,
+    });
+    expect(readMcpTaskJournal(f.sessionId).continuations[0].phase).toBe(
+      "started",
+    );
+    expect(listDurableMcpTasks(f.sessionId).records[0]).toMatchObject({
+      continuationStatus: "started",
+      continuationOutcomeUnknown: true,
+    });
+    const settled = settleMcpTaskContinuation(
+      f.sessionId,
+      started,
+      "actual model answer",
+    );
+    expect(settled).toMatchObject({
+      phase: "settled",
+      beginEventHash: started.beginEventHash,
+    });
+    expect(listDurableMcpTasks(f.sessionId).records[0]).toMatchObject({
+      continuationStatus: "settled",
+      continuationOutcomeUnknown: false,
+    });
+    expect(messages(f.sessionId)).toEqual([
+      { role: "user", content: USER },
+      started.delivery.message,
+      { role: "user", content: `A genuine quoted ID: ${delivered.deliveryId}` },
+      { role: "assistant", content: "actual model answer" },
+    ]);
+    expect(
+      readEvents(f.sessionId).filter(
+        (e) =>
+          e.type === "assistant_message" && e.data[MCP_TASK_CONTINUATION_FIELD],
+      ),
+    ).toHaveLength(1);
+    expect(() => beginMcpTaskContinuation(f.sessionId, f.localId)).toThrow(
+      expect.objectContaining({
+        code: "CC_MCP_TASK_CONTINUATION_ALREADY_STARTED",
+      }),
+    );
+    expect(() =>
+      settleMcpTaskContinuation(f.sessionId, started, "duplicate"),
+    ).toThrow();
+    appendCompactEvent(f.sessionId, { messages: messages(f.sessionId) });
+    expect(readMcpTaskJournal(f.sessionId).continuations[0].phase).toBe(
+      "settled",
+    );
+    expect(messages(f.sessionId).at(-1)).toEqual({
+      role: "assistant",
+      content: "actual model answer",
+    });
+    const { prepareReplJsonlResumeCandidate } =
+      await import("../../src/repl/agent-repl.js");
+    expect(prepareReplJsonlResumeCandidate(f.sessionId)).toMatchObject({
+      ok: true,
+    });
+  });
+
+  it("does not admit a continuation before delivery", async () => {
+    const f = await fixture();
+    expect(() => beginMcpTaskContinuation(f.sessionId, f.localId)).toThrow(
+      expect.objectContaining({
+        code: "CC_MCP_TASK_CONTINUATION_DELIVERY_REQUIRED",
+      }),
+    );
+    expect(readMcpTaskJournal(f.sessionId).continuations).toEqual([]);
+  });
+
+  it("requires a real user task, not a task artifact alone", async () => {
+    const f = await fixture({ user: false });
+    await invoke(f.sessionId, f.localId);
+    expect(() => beginMcpTaskContinuation(f.sessionId, f.localId)).toThrow(
+      expect.objectContaining({
+        code: "CC_MCP_TASK_CONTINUATION_USER_TASK_REQUIRED",
+      }),
+    );
+    expect(readMcpTaskJournal(f.sessionId).continuations).toEqual([]);
+  });
+
+  it("holds an ambiguous legacy wake for review without declaring it complete", async () => {
+    const f = await fixture();
+    const delivered = await invoke(f.sessionId, f.localId);
+    appendUserMessage(
+      f.sessionId,
+      `Continue from the verified background MCP task result (deliveryId: ${delivered.deliveryId}).`,
+    );
+    expect(() => beginMcpTaskContinuation(f.sessionId, f.localId)).toThrow(
+      expect.objectContaining({
+        code: "CC_MCP_TASK_CONTINUATION_LEGACY_REVIEW_REQUIRED",
+      }),
+    );
+    expect(readMcpTaskJournal(f.sessionId).continuations).toEqual([]);
+  });
+
+  it("never automatically replays a started continuation after host takeover", async () => {
+    const f = await fixture();
+    await invoke(f.sessionId, f.localId);
+    const started = beginMcpTaskContinuation(f.sessionId, f.localId);
+    f.lease.release();
+    expect(() =>
+      settleMcpTaskContinuation(f.sessionId, started, "late result"),
+    ).toThrow(
+      expect.objectContaining({
+        code: "CC_MCP_TASK_CONTINUATION_LEASE_REQUIRED",
+      }),
+    );
+    leases.push(
+      acquireSessionHostLease(f.sessionId, {
+        hostKind: "mcp-continuation-resumed",
+      }),
+    );
+    expect(() => beginMcpTaskContinuation(f.sessionId, f.localId)).toThrow(
+      expect.objectContaining({
+        code: "CC_MCP_TASK_CONTINUATION_ALREADY_STARTED",
+      }),
+    );
+    expect(readMcpTaskJournal(f.sessionId).continuations[0].phase).toBe(
+      "started",
+    );
+    expect(messages(f.sessionId)).toHaveLength(2);
+  });
+
+  it.each(["beginEventHash", "deliveryEventHash", "outputDigest"])(
+    "rejects a chain-valid answer with a false %s in every verified reader",
+    async (field) => {
+      const f = await fixture();
+      await invoke(f.sessionId, f.localId);
+      const started = beginMcpTaskContinuation(f.sessionId, f.localId);
+      const message = structuredClone(
+        createMcpTaskContinuationMessage(started, "forged"),
+      );
+      message[MCP_TASK_CONTINUATION_FIELD][field] =
+        field === "outputDigest" ? "sha256:" + "b".repeat(64) : "b".repeat(64);
+      appendEvent(f.sessionId, "assistant_message", message);
+      expect(() => messages(f.sessionId)).toThrow();
+      expect(() => readMcpTaskJournal(f.sessionId)).toThrow();
+      expect(() => readSessionTranscriptHistory(f.sessionId)).toThrow();
+    },
+  );
+
+  it("does not accept an orphan assistant consumption marker without any delivery", () => {
+    const f = session();
+    appendEvent(f.sessionId, "assistant_message", {
+      role: "assistant",
+      content: "orphan",
+      [MCP_TASK_CONTINUATION_FIELD]: {},
+    });
+    expect(() => messages(f.sessionId)).toThrow();
+  });
+
+  it("preserves an answer in a fork without transferring continuation control", async () => {
+    const { forkSession } =
+      await import("../../src/harness/jsonl-session-store.js");
+    const f = await fixture();
+    await invoke(f.sessionId, f.localId);
+    const started = beginMcpTaskContinuation(f.sessionId, f.localId);
+    settleMcpTaskContinuation(f.sessionId, started, "completed answer");
+    const fork = forkSession(f.sessionId);
+    const targetId = typeof fork === "string" ? fork : fork.id;
+    expect(readMcpTaskJournal(targetId)).toMatchObject({
+      records: [],
+      deliveries: [],
+      continuations: [],
+    });
+    expect(messages(targetId)).toContainEqual({
+      role: "assistant",
+      content: "completed answer",
+    });
   });
 });

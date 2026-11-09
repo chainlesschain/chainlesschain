@@ -1,0 +1,39 @@
+Sessions Workbench
+Filter sessions
+Refresh
+Focus View
+Recovery dry-run
+Group
+Ungrouped
+Move selected
+Create
+Rename
+Delete
+5 of 5 sessions
+Delivery flow
+Select state…
+
+Select a CLI delivery-flow state snapshot. No delivery action is available while disconnected.
+
+Sessions (5)
+select	status	session	activity	actions
+	needs_input waiting approval	WORKFLOW Workflow ui-workbench-workflow
+workflow:ui-workbench-workflow · [INSTALLED_VSCODE_DIRECTORY]
+owner local-user · input input
+	2026-08-06	Peek
+	blocked waiting approval	TEAM Team run ui-workbench-team
+team:ui-workbench-team
+owner team-coordinator:team:ui-workbench-team · input adjudication (1)
+	2026-08-06
+	working	REMOTE Remote control ui-workbench-remote
+remote:ui-workbench-remote
+owner remote-peer:ui-host-peer · artifacts 1 · workbench-result.md · PR #88 merged · remote online
+		PeekStop
+	done	BACKGROUND Workbench lifecycle fixture
+background:ui-workbench-background · [INSTALLED_VSCODE_DIRECTORY]
+owner local-user:ui-host-fixture · artifacts 1 · workbench-result.md · PR #88 merged
+	2026-08-06	DispatchPeek
+	stopped	LOCAL Workbench saved session
+local:ui-workbench-session · [INSTALLED_VSCODE_DIRECTORY]
+owner local-user · artifacts 1 · workbench-result.md · PR #88 merged
+	2026-08-06	DispatchPeek

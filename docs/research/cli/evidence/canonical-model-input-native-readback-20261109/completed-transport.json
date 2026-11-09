@@ -1,0 +1,46 @@
+{
+  "attempts": [
+    {
+      "startedAt": "2026-11-09T02:36:36.061Z",
+      "phase": "captured",
+      "requestDigest": "d15c29c2d6625a2a9889114d4eee0b1a0db7624d56674f85f28d0b3d84b0a367",
+      "userMessages": 1,
+      "originalUserPreserved": true,
+      "externalReferences": 1,
+      "hostSystemContinuation": true,
+      "markerPresent": true,
+      "fabricatedUserContinuation": false,
+      "requestedMaxOutputTokens": 256,
+      "diagnosticEstimate": {
+        "currency": "CNY",
+        "amount": 0.0069152,
+        "inputPerMillion": 1.6,
+        "outputPerMillion": 6.4,
+        "source": "https://docs.volcengine.com/docs/ark/model-pricing?lang=zh&redirect=1",
+        "verifiedAt": "2026-11-09",
+        "windowAssumption": "maximum published peak rate; no cache discount",
+        "inputBasis": "UTF-8 request bytes as conservative token proxy",
+        "requestedMaxOutputTokens": 256,
+        "maximumDiagnosticEstimate": 0.05,
+        "accountBillingVerified": false,
+        "financialCeilingVerified": false,
+        "paidReady": false
+      },
+      "protocol": "chat-completions",
+      "httpStatus": 200,
+      "usage": {
+        "completion_tokens": 72,
+        "prompt_tokens": 853,
+        "total_tokens": 925,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 48
+        }
+      },
+      "responseDigest": "f742b36b620139e199ddc4ddefb40d9c1948bb53085a2f5ca48c3eb76c93dc97",
+      "responseHasMarker": true
+    }
+  ]
+}

@@ -8,6 +8,8 @@ const STATES = new Set([
   "cancelled",
 ]);
 const RELATED_TASK = "io.modelcontextprotocol/related-task";
+export const MCP_TASKS_EXTENSION = "io.modelcontextprotocol/tasks";
+export const MCP_STATELESS_PROTOCOL_VERSION = "2026-07-28";
 
 export function mcpTaskError(code, message, dispatched = false) {
   return Object.assign(new Error(message), {
@@ -31,6 +33,17 @@ function record(value) {
 }
 
 export function requireMcpTaskCapability(entry, operation) {
+  if (entry?.protocolVersion === MCP_STATELESS_PROTOCOL_VERSION) {
+    if (
+      operation !== "list" &&
+      record(entry.capabilities?.extensions?.[MCP_TASKS_EXTENSION])
+    )
+      return;
+    throw mcpTaskError(
+      "CC_MCP_TASK_UNSUPPORTED",
+      "MCP task extension operation was not discovered",
+    );
+  }
   const tasks = entry?.capabilities?.tasks;
   const capability =
     operation === "call"
@@ -57,6 +70,17 @@ export function requireMcpToolTaskMode(entry, toolName, augmented) {
       "CC_MCP_TASK_SUPPORT_INVALID",
       "MCP tool has invalid task support metadata",
     );
+  }
+  if (entry?.protocolVersion === MCP_STATELESS_PROTOCOL_VERSION) {
+    if (augmented) {
+      requireMcpTaskCapability(entry, "call");
+      if (mode === "forbidden")
+        throw mcpTaskError(
+          "CC_MCP_TASK_FORBIDDEN",
+          "MCP tool forbids task execution",
+        );
+    }
+    return;
   }
   if (augmented) {
     requireMcpTaskCapability(entry, "call");

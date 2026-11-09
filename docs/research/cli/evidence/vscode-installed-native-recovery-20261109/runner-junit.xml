@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<testsuites>
+	<testcase name="loopback diagnostics reject non-local targets before creating sockets" time="0.001123" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="loopback diagnostic connects and closes a real IPv4 listener" time="0.021328" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="host failure diagnostics archive independent runtime receipts without environment" time="0.151919" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="host driver preserves the first failure receipt without capturing surrounding state" time="0.002945" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="transient VS Code download failures retry without broadening the allowlist" time="0.000463" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="non-network VS Code host failures remain fail-closed" time="0.000169" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="extension-host runner accepts an explicit evidence directory" time="0.000843" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="extension-host runner resolves the downloaded host's exact version" time="0.002495" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="configured host requires an exact matching distribution and native CLI" time="0.003394" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="configured CLI preserves literal arguments and rejects failed or hung processes" time="0.427905" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="host version resolves from the test-electron Windows archive directory" time="0.002521" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="fresh host profile root stays within the macOS Unix-socket budget" time="0.001339" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="host phases share installed extensions but isolate user-data profiles" time="0.000599" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="native crash diagnostics use a local per-phase directory outside immutable evidence" time="0.000423" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="real host fixture opens an ordered two-root workspace with shared settings" time="0.002097" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="real host fixture creates an isolated companion-window workspace" time="0.001395" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="companion host launch reuses the isolated profile in a new window" time="0.000459" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="multi-window lock selection binds distinct exact workspace identities" time="0.002694" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="multi-window evidence requires simultaneous distinct sanitized identities" time="0.002323" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="host-ready evidence binds the exact ordered multi-root workspace" time="0.003555" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="host progress journal survives before immutable evidence exists" time="0.001529" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="completed hosts need no managed shutdown after CDP settles" time="0.000197" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="hung hosts are shut down after the CDP deadline" time="0.010783" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="activation-ready failures force a bounded managed-host shutdown" time="0.014786" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="diagnostic discovery is limited to release-relevant host logs" time="0.004559" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="real-DOM host phase is loopback-only and keeps the fresh profile args" time="0.000959" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="host-API launch keeps the real extension-test profile without CDP" time="0.000443" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="external companion launch uses a distinct real VS Code profile" time="0.000461" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="multi-window gate uses a dedicated host-API profile and explicit contract" time="0.002901" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="non-Windows multi-window gate orchestrates two bounded real hosts" time="0.003999" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="macOS multi-window gate retries a primary activation timeout once" time="0.128012" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="macOS DOM relay launches without a debugger transport" time="0.104856" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="release real-host journeys use one main-world DOM relay on every OS" time="0.000186" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="macOS fallback driver exposes one fixed command and deduplicates the journey" time="0.000428" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="macOS real-DOM host uses the loopback Electron inspector" time="0.000651" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="CDP pipe transport frames browser commands with NUL delimiters" time="0.000640" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="pipe host launch inherits Chromium's FD 3/4 contract" time="0.000438" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="managed host launch owns bounded process termination" time="0.000390" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="host-API evidence proves both fresh host launches in order" time="0.005450" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="captures only the expected loopback DevTools browser endpoint" time="0.001254" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="captures only the expected loopback Electron inspector endpoint" time="0.000489" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="Electron inspector client evaluates and captures the real WebContents" time="0.000230" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="Electron inspector scan bounds stalled WebContents probes" time="1.506779" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="CDP websocket handshake binds its Origin to the loopback endpoint" time="0.000273" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="browser discovery inspects renderable targets and excludes workers" time="0.000085" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="workbench discovery attaches through the browser Target domain" time="0.000312" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="CDP child sessions preserve flattened target identity" time="0.000299" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="CDP workbench actions accept the real main-world prompt before polling" time="0.030219" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="CDP workbench dialog acceptance fails closed on non-transient errors" time="0.000211" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="CDP websocket failures retain the handshake diagnostic" time="0.000235" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="host phase signals are phase-scoped and reject unknown phases" time="0.000548" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="host ready is not blocked by VS Code's pending chat focus promise" time="0.000205" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="pending activity reveal settlement defers to the downstream host proof" time="0.014320" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="macOS host activation targets the outer app bundle without a shell" time="0.000419" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="macOS DOM relay can require the real chat focus command to settle" time="0.000241" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="fixture CLI wrappers are isolated and cannot overwrite an existing shim" time="0.001947" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="journey results are atomic, phase-bound, and fail closed" time="0.001188" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="raw DOM and protocol evidence must prove every control and restart step" time="0.017587" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="JetBrains release hosts use the platform-required Java 21 toolchain" time="0.001299" classname="test" file="packages\vscode-extension\test\release-workflow-contract.test.cjs"/>
+	<testcase name="every IDE gate checks out and records the exact source commit" time="0.000528" classname="test" file="packages\vscode-extension\test\release-workflow-contract.test.cjs"/>
+	<testcase name="JetBrains host matrix gates both original controls and canonical Stop recovery" time="0.000281" classname="test" file="packages\vscode-extension\test\release-workflow-contract.test.cjs"/>
+	<testcase name="VS Code channel credentials are checked before their immutable publishes" time="0.000239" classname="test" file="packages\vscode-extension\test\release-workflow-contract.test.cjs"/>
+	<testcase name="one immutable VSIX candidate gates every release host and publisher" time="0.000774" classname="test" file="packages\vscode-extension\test\release-workflow-contract.test.cjs"/>
+	<testcase name="IDE release tags are isolated and manual Marketplace backfill is tag-bound" time="0.000488" classname="test" file="packages\vscode-extension\test\release-workflow-contract.test.cjs"/>
+	<testcase name="VS Code host gates pin macOS Intel and share the main-world relay" time="0.001492" classname="test" file="packages\vscode-extension\test\release-workflow-contract.test.cjs"/>
+	<!-- tests 65 -->
+	<!-- suites 0 -->
+	<!-- pass 65 -->
+	<!-- fail 0 -->
+	<!-- cancelled 0 -->
+	<!-- skipped 0 -->
+	<!-- todo 0 -->
+	<!-- duration_ms 3167.1952 -->
+</testsuites>

@@ -12,6 +12,17 @@ test("uses the unambiguous CLI name before asynchronous resolution completes", (
   assert.equal(getResolvedCli(), "chainlesschain");
 });
 
+test("explicit active CLI paths win before bridge startup and over a cached global binary", () => {
+  const { getResolvedCli, setResolvedCli } = freshCliBinary();
+  const configured = "C:\\isolated profile\\read-session.cmd";
+  assert.equal(getResolvedCli(configured), configured);
+  setResolvedCli("old-global-cli");
+  assert.equal(getResolvedCli(configured), configured);
+  assert.equal(getResolvedCli("cc"), "old-global-cli");
+  assert.equal(getResolvedCli(""), "old-global-cli");
+  assert.equal(getResolvedCli("   "), "old-global-cli");
+});
+
 test("prefers the long npm bin over a shadowing cc executable", async () => {
   const { resolveCliBinary } = freshCliBinary();
   const probes = [];

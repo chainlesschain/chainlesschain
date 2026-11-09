@@ -38,6 +38,10 @@ const {
 } = require("./cdp-journey.cjs");
 const { runElectronMainHostJourney } = require("./electron-main-journey.cjs");
 const { collectLoopbackDiagnostic } = require("./loopback-diagnostic.cjs");
+const {
+  resolveConfiguredRuntime,
+  runConfiguredVsCodeCommand,
+} = require("./configured-runtime.cjs");
 
 const EXTENSION_ID = "chainlesschain.chainlesschain-ide";
 const PACKAGE_ROOT = path.resolve(__dirname, "..", "..");
@@ -66,6 +70,7 @@ function usage() {
     "Options:",
     "  --vsix <path>              Packaged VSIX (default: current versioned VSIX, then chainlesschain-ide.vsix)",
     "  --vscode-version <value>   stable, insiders, or an exact version (default: stable)",
+    "  --vscode-executable <path> Installed native executable (requires exact --vscode-version)",
     "  --work-dir <path>          Parent for fresh profiles and diagnostic logs",
     "  --artifact-dir <path>      Immutable journey evidence output directory",
     "  --release-commit <sha>     Exact source commit represented by the evidence",
@@ -86,6 +91,7 @@ function parseArgs(argv) {
   const options = {
     vsix: defaultVsixPath(),
     vscodeVersion: "stable",
+    vscodeExecutable: null,
     workDir: null,
     artifactDir: null,
     releaseCommit: null,
@@ -101,6 +107,9 @@ function parseArgs(argv) {
       i += 1;
     } else if (arg === "--vscode-version") {
       options.vscodeVersion = takeValue(argv, i, arg);
+      i += 1;
+    } else if (arg === "--vscode-executable") {
+      options.vscodeExecutable = takeValue(argv, i, arg);
       i += 1;
     } else if (arg === "--work-dir") {
       options.workDir = takeValue(argv, i, arg);
@@ -1570,6 +1579,9 @@ async function main() {
     fs.readFileSync(path.join(PACKAGE_ROOT, "package.json"), "utf8"),
   );
   const expectedVersion = extensionManifest.version;
+  const configuredRuntime = options.vscodeExecutable
+    ? resolveConfiguredRuntime(options.vscodeExecutable, options.vscodeVersion)
+    : null;
   const runRoot = makeFreshRunRoot(options.workDir);
   const extensionsDir = path.join(runRoot, "extensions");
   const profileHome = path.join(runRoot, "profile-home");
@@ -1596,6 +1608,13 @@ async function main() {
   );
   for (const dir of [extensionsDir, profileHome, journeyRuntimeDir]) {
     fs.mkdirSync(dir, { recursive: true });
+  }
+  if (configuredRuntime) {
+    fs.writeFileSync(
+      path.join(journeyRuntimeDir, "configured-vscode-runtime.json"),
+      `${JSON.stringify(configuredRuntime.receipt, null, 2)}\n`,
+      { flag: "wx", mode: 0o600 },
+    );
   }
   const fixture = createFixtureCli(
     runRoot,
@@ -1629,13 +1648,18 @@ async function main() {
   try {
     const { downloadAndUnzipVSCode, runTests, runVSCodeCommand } =
       requireTestElectron();
+    const runCommand = configuredRuntime
+      ? (args) => runConfiguredVsCodeCommand(configuredRuntime, args)
+      : (args) => runVSCodeCommand(args, downloadOptions);
     recordHostProgress(progressPath, "install_started");
     const install = await retryTransientNetworkOperation(
       () =>
-        runVSCodeCommand(
-          [...installProfileArgs, "--install-extension", vsixPath, "--force"],
-          downloadOptions,
-        ),
+        runCommand([
+          ...installProfileArgs,
+          "--install-extension",
+          vsixPath,
+          "--force",
+        ]),
       { label: `VS Code ${options.vscodeVersion} download/install` },
     );
     recordHostProgress(progressPath, "install_completed");
@@ -1649,10 +1673,11 @@ async function main() {
     recordHostProgress(progressPath, "list_started");
     const listed = await retryTransientNetworkOperation(
       () =>
-        runVSCodeCommand(
-          [...installProfileArgs, "--list-extensions", "--show-versions"],
-          downloadOptions,
-        ),
+        runCommand([
+          ...installProfileArgs,
+          "--list-extensions",
+          "--show-versions",
+        ]),
       { label: `VS Code ${options.vscodeVersion} extension listing` },
     );
     assertInstalled(listed.stdout, expectedVersion);
@@ -1660,14 +1685,18 @@ async function main() {
 
     // Reuses the exact version already downloaded by the install command.
     recordHostProgress(progressPath, "download_started");
-    vscodeExecutablePath = await retryTransientNetworkOperation(
-      () => downloadAndUnzipVSCode(downloadOptions),
-      { label: `VS Code ${options.vscodeVersion} executable resolution` },
-    );
+    vscodeExecutablePath =
+      configuredRuntime?.executablePath ||
+      (await retryTransientNetworkOperation(
+        () => downloadAndUnzipVSCode(downloadOptions),
+        { label: `VS Code ${options.vscodeVersion} executable resolution` },
+      ));
     hostVersion = await resolveVsCodeHostVersion(
       vscodeExecutablePath,
       options.vscodeVersion,
     );
+    if (configuredRuntime)
+      assert.equal(hostVersion, configuredRuntime.receipt.version);
     recordHostProgress(progressPath, "download_completed");
     if (!hostApiMode) {
       recordHostProgress(progressPath, "multi_window_started");

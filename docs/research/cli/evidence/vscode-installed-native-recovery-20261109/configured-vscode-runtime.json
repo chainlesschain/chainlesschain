@@ -1,0 +1,7 @@
+{
+  "schema": "chainlesschain.configured-vscode-runtime/v1",
+  "selection": "explicit-installed-executable",
+  "version": "1.96.2",
+  "executableSha256": "7619853d89007778e29aa077b7b0e89b88b1715fcda75845ecdb2e5b7decd271",
+  "manifestSha256": "f7a7f4587e3230faa67ccb87ff5e5a08f347655a4c1a4b61376bf5d7dd789b43"
+}

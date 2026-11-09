@@ -1043,8 +1043,7 @@ class ChatViewProvider {
     const configured = this.vscode.workspace
       .getConfiguration("chainlesschain.cli")
       .get("path");
-    if (configured && configured !== "cc") return configured;
-    return require("../cli-binary").getResolvedCli();
+    return require("../cli-binary").getResolvedCli(configured);
   }
 
   /** Stable token for host-side async work that belongs to the current
@@ -2475,14 +2474,12 @@ class ChatViewProvider {
           }
           if (code !== 0 || signal || current.turnActive) {
             this._pauseLoopForSessionReview(conv.id);
-            if (
-              !(
-                reportedSessionStop &&
-                code === 1 &&
-                !signal &&
-                !current.turnActive
-              )
-            ) {
+            if (!(
+              reportedSessionStop &&
+              code === 1 &&
+              !signal &&
+              !current.turnActive
+            )) {
               const safeSignal = boundedErrorCode(signal);
               const exitCode = Number.isSafeInteger(code) ? code : "unknown";
               this._postFrom(conv.id, {

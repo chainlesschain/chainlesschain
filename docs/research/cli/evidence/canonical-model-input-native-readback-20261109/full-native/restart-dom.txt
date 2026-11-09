@@ -1,0 +1,33 @@
+journey:stream
+×
+journey:history-A
+×
+journey:history-B
+×
++
+↗
+Latest messages
+LLM configuration could not be read. Check CLI diagnostics and the configuration file before changing saved settings or re-entering the API key.
+journey:stream
+fixture stream complete #1
+journey:stream
+fixture stream complete #2
+journey:plan
+fixture plan approve #3
+journey:permission
+fixture permission approved #4
+journey:stop
+Turn 1, User message
+journey:resume
+resumed previous conversation (9 messages)
+Turn 1, Assistant response
+fixture stream complete #6
+ready · 32→12 tokens (cache read 0, cache write 0)
+Draft saved on this device
+Recover saved drafts
+Accepted; see the conversation for its outcome: journey:resume Discard saved input
+Message the agent
+Send
+Plan
+Stop
+New

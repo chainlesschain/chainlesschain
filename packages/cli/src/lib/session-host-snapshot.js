@@ -332,12 +332,20 @@ export function projectVerifiedSessionHostSnapshot(sessionId, events) {
     sessionBudgetRoot: sessionBudgetRootFromEvents(safeEvents),
     modelUsageRecovery: modelUsage.finish(),
     inputRecovery,
+    mcpTaskReferenceDigests: Object.freeze([
+      ...new Set(
+        safeEvents
+          .filter((event) => event.type === MCP_TASK_DELIVERY_EVENT)
+          .map((event) => event.data.messageDigest),
+      ),
+    ]),
   });
 }
 
 function createStreamingSessionHostProjection(sessionId) {
   const modelUsage = createSessionModelUsageRecoveryProjection();
   const inputLifecycle = createSessionInputLifecycleProjection();
+  const mcpTaskReferenceDigests = new Set();
   let title = "Untitled";
   let lastEventType = null;
   let sessionBudgetRoot = null;
@@ -359,6 +367,8 @@ function createStreamingSessionHostProjection(sessionId) {
         throw new TypeError("Verified session event must be plain JSON data");
       }
       structure.accept(safeEvent);
+      if (safeEvent.type === MCP_TASK_DELIVERY_EVENT)
+        mcpTaskReferenceDigests.add(safeEvent.data.messageDigest);
       modelUsage.accept(safeEvent);
       inputLifecycle.accept(safeEvent);
       if (safeEvent.type === "session_start") {
@@ -409,6 +419,7 @@ function createStreamingSessionHostProjection(sessionId) {
         sessionBudgetRoot,
         modelUsageRecovery: modelUsage.finish(),
         inputRecovery,
+        mcpTaskReferenceDigests: Object.freeze([...mcpTaskReferenceDigests]),
       });
     },
   };

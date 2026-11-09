@@ -1,0 +1,12 @@
+{
+  "phase": "initial",
+  "mode": "host-api",
+  "hostArchitecture": "x64",
+  "extensionPath": "E:\\code\\chainlesschain\\.tmp\\gap-installed-vscode-native\\ccv-z8zrZK\\extensions\\chainlesschain.chainlesschain-ide-0.37.182",
+  "workspaceDir": "E:\\code\\chainlesschain\\.tmp\\gap-installed-vscode-native\\ccv-z8zrZK\\workspace-primary",
+  "workspaceFolders": [
+    "E:\\code\\chainlesschain\\.tmp\\gap-installed-vscode-native\\ccv-z8zrZK\\workspace-primary",
+    "E:\\code\\chainlesschain\\.tmp\\gap-installed-vscode-native\\ccv-z8zrZK\\workspace-secondary"
+  ],
+  "readyAt": "2026-11-09T02:12:56.450Z"
+}

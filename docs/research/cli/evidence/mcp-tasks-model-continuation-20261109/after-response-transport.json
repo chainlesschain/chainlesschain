@@ -1,0 +1,24 @@
+{
+  "attempts": [
+    {
+      "startedAt": "2026-11-09T01:50:19.760Z",
+      "phase": "captured",
+      "requestDigest": "296d6fece9ef5382eb29f8418191c1e231d345fcae959c1eb0221e04a0fd7c20",
+      "userMessages": 1,
+      "originalUserPreserved": true,
+      "externalReferences": 1,
+      "hostSystemContinuation": true,
+      "markerPresent": true,
+      "fabricatedUserContinuation": false,
+      "requestedMaxOutputTokens": 256,
+      "protocol": "ollama-chat",
+      "httpStatus": 200,
+      "usage": {
+        "prompt_eval_count": 200,
+        "eval_count": 10
+      },
+      "responseDigest": "b782df7c66afde09cb084d0b20589170f2d28990c6c154855a552d6e2f7f161d",
+      "responseHasMarker": true
+    }
+  ]
+}

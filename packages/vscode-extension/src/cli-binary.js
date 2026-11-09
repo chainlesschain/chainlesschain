@@ -17,8 +17,14 @@ function setResolvedCli(bin) {
   if (bin && typeof bin === "string") _resolved = bin;
 }
 
-/** The resolved binary, or the unambiguous npm bin until resolution completes. */
-function getResolvedCli() {
+/** Explicit active path, then resolved binary, then the unambiguous npm bin. */
+function getResolvedCli(configuredPath) {
+  if (
+    typeof configuredPath === "string" &&
+    configuredPath.trim() &&
+    configuredPath !== "cc"
+  )
+    return configuredPath;
   return _resolved || "chainlesschain";
 }
 
