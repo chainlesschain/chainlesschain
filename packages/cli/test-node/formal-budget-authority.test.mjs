@@ -7,7 +7,10 @@ import { fileURLToPath } from "node:url";
 import { spawn, fork } from "node:child_process";
 import { createRequire } from "node:module";
 import { FormalBudgetAuthority } from "../src/lib/formal-budget-authority.js";
-import { evidenceDigest } from "../src/lib/formal-budget-contract.js";
+import {
+  evidenceDigest,
+  validateActivation,
+} from "../src/lib/formal-budget-contract.js";
 import {
   createFormalBudgetTransport,
   formalBudgetTaskEnvironment,
@@ -70,6 +73,294 @@ function settle(a, callId = "call-1", receipt = response()) {
   a.markDispatched(callId, body);
   return a.settle(callId, receipt);
 }
+
+function addPricingWindows(cfg) {
+  const contract = cfg.contracts[0];
+  contract.pricingTimeBasis = "host-dispatch";
+  contract.pricingWindows = [
+    {
+      id: "offpeak",
+      validFrom: contract.validFrom,
+      validUntil: NOW + 10_000,
+      inputMicrosPerMillion: 500_000,
+      cachedMicrosPerMillion: 50_000,
+      outputMicrosPerMillion: 500_000,
+      fixedFeeMicros: 0,
+    },
+    {
+      id: "peak",
+      validFrom: NOW + 10_000,
+      validUntil: contract.validUntil,
+      inputMicrosPerMillion: 1_000_000,
+      cachedMicrosPerMillion: 100_000,
+      outputMicrosPerMillion: 1_000_000,
+      fixedFeeMicros: 0,
+    },
+  ];
+}
+
+test("windowed contracts reject gaps, overlaps, unknown dimensions and unsigned price changes", () => {
+  const mutations = [
+    (c) => {
+      c.pricingWindows = [];
+    },
+    (c) => {
+      c.pricingTimeBasis = "response";
+    },
+    (c) => {
+      c.pricingWindows[0].validUntil--;
+    },
+    (c) => {
+      c.pricingWindows[0].validUntil++;
+    },
+    (c) => {
+      c.pricingWindows[0].validFrom--;
+    },
+    (c) => {
+      c.pricingWindows[1].validUntil--;
+    },
+    (c) => {
+      c.pricingWindows[1].id = "offpeak";
+    },
+    (c) => {
+      c.pricingWindows.reverse();
+    },
+    (c) => {
+      c.pricingWindows[0].inputMicrosPerMillion = 1_000_001;
+    },
+    (c) => {
+      c.pricingWindows[0].cachedMicrosPerMillion = 500_001;
+    },
+    (c) => {
+      c.pricingWindows[0].outputMicrosPerMillion = -1;
+    },
+    (c) => {
+      c.pricingWindows[0].fixedFeeMicros = 1;
+    },
+    (c) => {
+      c.pricingWindows[0].validFrom += 0.5;
+    },
+    (c) => {
+      c.pricingWindows[0].currency = "USD";
+    },
+  ];
+  for (const change of mutations) {
+    const cfg = config();
+    addPricingWindows(cfg);
+    change(cfg.contracts[0]);
+    attest(cfg);
+    assert.throws(() => validateActivation(cfg, verifyFixtureEvidence, NOW));
+  }
+  const cfg = config();
+  addPricingWindows(cfg);
+  attest(cfg);
+  cfg.contracts[0].pricingWindows[0].outputMicrosPerMillion = 499_999;
+  assert.throws(() => validateActivation(cfg, verifyFixtureEvidence, NOW), {
+    code: "CC_BUDGET_EVIDENCE_REQUIRED",
+  });
+});
+
+test("native settlement pins the dispatch window across boundaries and reopen", async (t) => {
+  for (const [offset, expectedNative] of [
+    [9999, 46],
+    [10_000, 92],
+  ]) {
+    await t.test(String(offset), (sub) => {
+      let now = NOW;
+      const { a, open } = fixture(sub, addPricingWindows, () => now);
+      start(a);
+      assert.equal(reserve(a).reservedNativeMicros, 3000);
+      now = NOW + offset;
+      a.markDispatched("call-1", body);
+      a.close();
+      now = NOW + 20_000;
+      const reopened = open();
+      const receipt = response();
+      // Provider-created timestamps and task-supplied price claims are not
+      // allowed to replace the trusted dispatch witness.
+      receipt.created = Math.floor((NOW + 99_000) / 1000);
+      receipt.nativePricing = { windowId: "other", dispatchedAt: NOW };
+      const cost = reopened.settle("call-1", receipt);
+      assert.equal(cost.costNativeMicros, expectedNative);
+      assert.equal(cost.costUsdMicros, expectedNative / 2);
+      assert.equal(reopened.settle("call-1", receipt).duplicate, true);
+      assert.equal(reopened.status().exposureUsdMicros, expectedNative / 2);
+    });
+  }
+});
+
+test("a dispatched price can settle after contract and FX expiry following restart", (t) => {
+  let now = NOW;
+  const { a, open } = fixture(t, addPricingWindows, () => now);
+  start(a);
+  reserve(a);
+  a.markDispatched("call-1", body);
+  a.close();
+  now = NOW + 200_000;
+  const reopened = open();
+  assert.equal(reopened.settle("call-1", response()).costNativeMicros, 46);
+  assert.throws(() => reserve(reopened, "new-call"), {
+    code: "CC_BUDGET_EXPIRED",
+  });
+});
+
+test("dispatch selects current prices after asynchronous credential preparation", async (t) => {
+  let now = NOW;
+  const { a } = fixture(t, addPricingWindows, () => now);
+  start(a);
+  const transport = createFormalBudgetTransport({
+    authority: a,
+    credentialProvider: async () => {
+      now = NOW + 10_000;
+      return "fixture-only";
+    },
+    fetchImpl: async () => {
+      now = NOW + 20_000;
+      return new Response(JSON.stringify(response()));
+    },
+  });
+  const result = await transport.dispatch({
+    runId: "initial",
+    callId: "crossed",
+    body,
+  });
+  assert.equal(result.cost.costNativeMicros, 92);
+});
+
+test("missing, duplicate or inconsistent dispatch price evidence retains the full reservation", async (t) => {
+  const mutations = [
+    "DELETE FROM event WHERE kind='dispatch'",
+    "INSERT INTO event(kind,body) SELECT kind,body FROM event WHERE kind='dispatch'",
+    "UPDATE event SET body=json_remove(body,'$.nativePricing') WHERE kind='dispatch'",
+    "UPDATE event SET body=json_set(body,'$.nativePricing.windowId','peak') WHERE kind='dispatch'",
+    "UPDATE event SET body=json_set(body,'$.nativePricing.dispatchedAt',null) WHERE kind='dispatch'",
+    "UPDATE event SET body=json_set(body,'$.nativePricing.unknownDimension',1) WHERE kind='dispatch'",
+  ];
+  for (const [index, sql] of mutations.entries())
+    await t.test(String(index), (sub) => {
+      const { a, open, descriptor } = fixture(sub, addPricingWindows);
+      start(a);
+      reserve(a);
+      a.markDispatched("call-1", body);
+      const Database = createRequire(import.meta.url)("better-sqlite3");
+      const db = new Database(descriptor.filename);
+      try {
+        db.exec(sql);
+      } finally {
+        db.close();
+      }
+      assert.throws(() => a.settle("call-1", response()), {
+        code: "CC_BUDGET_UNKNOWN_USAGE",
+      });
+      a.close();
+      const reopened = open();
+      assert.equal(reopened.status().exposureUsdMicros, 1500);
+      assert.equal(reopened.status().pending[0].state, "unknown");
+      assert.throws(() => reserve(reopened, "another"), {
+        code: "CC_BUDGET_HALTED",
+      });
+    });
+});
+
+test("a killed dispatch preserves its native price through a separate-process restart after expiry", async (t) => {
+  let now = NOW;
+  const { a, open, descriptorFile } = fixture(t, addPricingWindows, () => now);
+  start(a);
+  a.close();
+  const child = fork(
+    path.join(directory, "formal-budget-child.mjs"),
+    ["crash-dispatched", descriptorFile, "crash-call"],
+    { windowsHide: true, stdio: ["ignore", "ignore", "pipe", "ipc"] },
+  );
+  t.after(() => {
+    if (child.exitCode === null) child.kill();
+  });
+  await new Promise((resolve, reject) => {
+    child.once("message", resolve);
+    child.once("error", reject);
+    child.once("exit", (code) =>
+      reject(new Error(`Premature dispatch worker exit ${code}`)),
+    );
+  });
+  const stopped = new Promise((resolve) => child.once("exit", resolve));
+  child.kill("SIGKILL");
+  await stopped;
+  now = NOW + 200_000;
+  const reopened = open();
+  assert.equal(reopened.status().exposureUsdMicros, 1500);
+  const cost = reopened.settle("crash-call", response());
+  assert.equal(cost.costNativeMicros, 46);
+  assert.equal(cost.costUsdMicros, 23);
+  assert.equal(reopened.settle("crash-call", response()).duplicate, true);
+  assert.throws(() => reserve(reopened, "must-not-replay"), {
+    code: "CC_BUDGET_EXPIRED",
+  });
+});
+
+test("failure to persist the dispatch price witness admits no provider request", async (t) => {
+  const { a, descriptor } = fixture(t, addPricingWindows);
+  start(a);
+  const Database = createRequire(import.meta.url)("better-sqlite3");
+  const db = new Database(descriptor.filename);
+  try {
+    db.exec(
+      "CREATE TRIGGER deny_price_witness BEFORE INSERT ON event WHEN NEW.kind='dispatch' BEGIN SELECT RAISE(ABORT,'price witness unavailable'); END;",
+    );
+  } finally {
+    db.close();
+  }
+  let fetches = 0;
+  const transport = createFormalBudgetTransport({
+    authority: a,
+    credentialProvider: async () => "fixture-only",
+    fetchImpl: async () => {
+      fetches++;
+      return new Response(JSON.stringify(response()));
+    },
+  });
+  await assert.rejects(
+    transport.dispatch({ runId: "initial", callId: "unrecorded", body }),
+  );
+  assert.equal(fetches, 0);
+  assert.equal(a.status().exposureUsdMicros, 1500);
+  assert.equal(a.status().pending[0].state, "unknown");
+});
+
+test("an expired held request cannot dispatch after reopen", (t) => {
+  let now = NOW;
+  const { a, open } = fixture(t, addPricingWindows, () => now);
+  start(a);
+  reserve(a);
+  a.close();
+  now = NOW + 200_000;
+  const reopened = open();
+  assert.throws(() => reopened.markDispatched("call-1", body), {
+    code: "CC_BUDGET_EXPIRED",
+  });
+  assert.equal(reopened.status().pending[0].state, "held");
+  assert.equal(reopened.status().exposureUsdMicros, 1500);
+});
+
+test("recovery rejects missing, duplicate or mismatched original activation witnesses", async (t) => {
+  for (const sql of [
+    "DELETE FROM event WHERE kind='initialized'",
+    "INSERT INTO event(kind,body) SELECT kind,body FROM event WHERE kind='initialized'",
+    "UPDATE event SET body=json_set(body,'$.activationDigest','mismatched') WHERE kind='initialized'",
+    "UPDATE event SET body=json_set(body,'$.at',null) WHERE kind='initialized'",
+  ])
+    await t.test(sql.split(" ")[0], (sub) => {
+      const { a, open, descriptor } = fixture(sub, addPricingWindows);
+      a.close();
+      const Database = createRequire(import.meta.url)("better-sqlite3");
+      const db = new Database(descriptor.filename);
+      try {
+        db.exec(sql);
+      } finally {
+        db.close();
+      }
+      assert.throws(open);
+    });
+});
 
 test("activation refuses missing contract, FX, history and untrusted evidence before creating storage", (t) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-budget-activation-"));
