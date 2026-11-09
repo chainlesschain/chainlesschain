@@ -55,7 +55,8 @@
         "singleOriginalSessionDelivery": true,
         "remoteProductionServiceVerified": false,
         "modelContinuationVerified": false,
-        "multiplatformVerified": false
+        "multiplatformVerified": false,
+        "sourceCommit": "018d64b3b58a32484c1ced91dfd203bcce664954"
       }
     },
     "5": {
@@ -163,10 +164,13 @@
   "followup": {
     "branch": "feature/cli-ide-gap-20261109-followup",
     "codeCommit": "cc965340c158e15637ee1bf71da3b2e74ed38bf0",
-    "pullRequest": "https://github.com/chainlesschain/chainlesschain/pull/569",
+    "pullRequest": "https://github.com/chainlesschain/chainlesschain/pull/571",
     "overall": "open",
     "nativePricingCommit": "44f56fe58aee36e6cc097755ce7c4ab3ec94b126",
-    "statelessMcpEvidence": "cli/evidence/mcp-tasks-reference-stateless-20261109"
+    "statelessMcpEvidence": "cli/evidence/mcp-tasks-reference-stateless-20261109",
+    "previousPullRequest": "https://github.com/chainlesschain/chainlesschain/pull/569",
+    "integrationPullRequest": "https://github.com/chainlesschain/chainlesschain/pull/568",
+    "statelessMcpCommit": "018d64b3b58a32484c1ced91dfd203bcce664954"
   },
   "auditedSourceCommit": "44f56fe58aee36e6cc097755ce7c4ab3ec94b126"
 }

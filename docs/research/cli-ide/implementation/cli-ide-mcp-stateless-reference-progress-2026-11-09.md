@@ -28,4 +28,4 @@
 
 脚本、回执、JUnit、源码摘要和原包核验见[证据目录](../../cli/evidence/mcp-tasks-reference-stateless-20261109/README.md)。新诊断脚本动态加载指定安装的参考服务，不在静态网络扫描候选集中；这一扫描边界不能当作无网络行为的证明。对已修改 MCP transport 的分类逐项复核后刷新摘要，审计仍为 89 个候选、0 未分类、0 解析错误，78 个调用链尚未映射，`paidReady:false`。
 
-尚需远程第三方生产服务、真实模型续跑、现代输入交互、实际到期/撤权、双 IDE/桌面及多平台证据。旧源码提交 52a24ee 的 GitHub 矩阵已取消且三个系统测试跳过；取消不是通过。本批新提交的 CI 另行按准确 SHA 核对，未发布任何包。
+尚需远程第三方生产服务、真实模型续跑、现代输入交互、实际到期/撤权、双 IDE/桌面及多平台证据。旧源码提交 52a24ee 的 GitHub 矩阵已取消且三个系统测试跳过；取消不是通过。维护者已确认该旧提交整合进 [#568](https://github.com/chainlesschain/chainlesschain/pull/568) 后关闭 #569。新增源码提交为 `018d64b3b58a32484c1ced91dfd203bcce664954`，另建后续 [#571](https://github.com/chainlesschain/chainlesschain/pull/571)，保留原关闭状态和整合交接。本批 CI 按新 PR 的准确 SHA 核对，未发布任何包。

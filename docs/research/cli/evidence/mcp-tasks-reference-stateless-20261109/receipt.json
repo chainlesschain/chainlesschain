@@ -272,5 +272,7 @@
   "artifacts": {
     "regression-tests.xml": "c673eccd3da78884025ce7486cdfe1bea9b9cd131a18032de226b9d30df64915",
     "reference-package.json": "a0476f9ddd5c46eee95749d638ba7c4ea0cdcec17d98bd80608bd83d59010ef3"
-  }
+  },
+  "sourceCommit": "018d64b3b58a32484c1ced91dfd203bcce664954",
+  "pullRequest": "https://github.com/chainlesschain/chainlesschain/pull/571"
 }
