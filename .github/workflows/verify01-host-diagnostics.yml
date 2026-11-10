@@ -1,9 +1,19 @@
 name: VERIFY01 Host Diagnostics
+run-name: >-
+  ${{ github.event_name == 'workflow_dispatch' && inputs.descendant_repetitions != 0
+      && format('Owned-descendant investigation ({0} rounds, diagnostic only)', inputs.descendant_repetitions)
+      || 'VERIFY01 Host Diagnostics' }}
 
 # Real installed IDEs with a deterministic, keyless peer. These checks do not
 # consume the 36+9 formal samples, attest public installation, or publish.
 on:
   workflow_dispatch:
+    inputs:
+      descendant_repetitions:
+        description: "Diagnostic only: 1..100 macOS descendant checks; 0 runs the full host workflow"
+        type: number
+        required: false
+        default: 0
   pull_request:
     paths:
       - "packages/vscode-extension/**"
@@ -12,6 +22,8 @@ on:
       - "tests/fixtures/ide-roadmap/**"
       - "scripts/lib/verify01-*.mjs"
       - "scripts/__tests__/verify01-*.test.mjs"
+      - "scripts/diagnostics/owned-descendant-campaign.mjs"
+      - "scripts/__tests__/owned-descendant-campaign.test.mjs"
       - "package-lock.json"
       - ".github/workflows/verify01-host-diagnostics.yml"
   push:
@@ -23,6 +35,8 @@ on:
       - "tests/fixtures/ide-roadmap/**"
       - "scripts/lib/verify01-*.mjs"
       - "scripts/__tests__/verify01-*.test.mjs"
+      - "scripts/diagnostics/owned-descendant-campaign.mjs"
+      - "scripts/__tests__/owned-descendant-campaign.test.mjs"
       - "package-lock.json"
       - ".github/workflows/verify01-host-diagnostics.yml"
 
@@ -30,7 +44,44 @@ permissions:
   contents: read
 
 jobs:
+  descendant-reproduction:
+    name: macOS owned-descendant reproduction (diagnostic only)
+    if: github.event_name == 'workflow_dispatch' && inputs.descendant_repetitions != 0
+    runs-on: macos-15-intel
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact diagnostic source
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+      - name: Verify campaign failure handling
+        run: node --test scripts/__tests__/owned-descendant-campaign.test.mjs
+      - name: Repeat the original assertion and stop on the first failure
+        timeout-minutes: 10
+        shell: bash
+        env:
+          REPETITIONS: ${{ inputs.descendant_repetitions }}
+          EXPECTED_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          node scripts/diagnostics/owned-descendant-campaign.mjs \
+            --rounds "$REPETITIONS" \
+            --output "$RUNNER_TEMP/owned-descendant-campaign"
+      - name: Retain every completed round and the first failure
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: owned-descendant-diagnostic-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/owned-descendant-campaign/
+          if-no-files-found: error
+          retention-days: 90
+
   vscode-package:
+    if: github.event_name != 'workflow_dispatch' || inputs.descendant_repetitions == 0
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -80,6 +131,7 @@ jobs:
           scripts/__tests__/verify01-cold-evidence.test.mjs
           scripts/__tests__/verify01-cold-boundaries.test.mjs
           scripts/__tests__/verify01-init-gate.test.mjs
+          scripts/__tests__/owned-descendant-campaign.test.mjs
           packages/vscode-extension/test/verify01-diagnostic.test.cjs
           packages/vscode-extension/test/verify01-config.test.cjs
       - name: Install Linux virtual display
