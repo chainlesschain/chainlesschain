@@ -296,6 +296,37 @@ describe("bounded Codex history pagination", () => {
       ),
     ).resolves.toEqual({ data: [], pages: [{ ids: [], nextCursor: null }] });
   });
+  it("accepts pages exactly at the requested limit", async () => {
+    const first = { data: [{ id: "a" }, { id: "b" }], nextCursor: "next" };
+    const second = { data: [{ id: "c" }, { id: "d" }], nextCursor: null };
+    const request = vi
+      .fn()
+      .mockResolvedValueOnce(first)
+      .mockResolvedValueOnce(second);
+    await expect(
+      collectHistoryPages(request, "thread/list", { limit: 2 }),
+    ).resolves.toEqual({
+      data: [...first.data, ...second.data],
+      pages: [
+        { ids: ["a", "b"], nextCursor: "next" },
+        { ids: ["c", "d"], nextCursor: null },
+      ],
+    });
+    expect(request).toHaveBeenCalledTimes(2);
+  });
+  it("does not impose a page-size limit when none was requested", async () => {
+    const data = [{ id: "a" }, { id: "b" }];
+    await expect(
+      collectHistoryPages(
+        async () => ({ data, nextCursor: null }),
+        "thread/list",
+        {},
+      ),
+    ).resolves.toEqual({
+      data,
+      pages: [{ ids: ["a", "b"], nextCursor: null }],
+    });
+  });
   it("preserves database and recency filters with an opaque identity cursor for tied threads", async () => {
     const cursor = "2026-10-28T00:00:00Z|thread-a";
     const request = vi
@@ -690,6 +721,53 @@ describe("failed history pagination evidence", () => {
     useStateDbOnly: false,
     sourceKinds: ["appServer"],
   };
+  it.each([
+    ["first terminal page", "created_at", false],
+    ["subsequent page", "updated_at", true],
+  ])(
+    "retains an oversized %s without accepting its identities",
+    async (_label, sortKey, hasFirstPage) => {
+      const query = { ...params, sortKey };
+      const first = { data: [{ id: "a" }], nextCursor: "next" };
+      const oversized = {
+        data: [{ id: "b" }, { id: "c" }],
+        nextCursor: hasFirstPage ? "later" : null,
+      };
+      const request = vi.fn();
+      if (hasFirstPage) request.mockResolvedValueOnce(first);
+      request
+        .mockResolvedValueOnce(oversized)
+        .mockResolvedValueOnce({ data: [{ id: "d" }], nextCursor: null });
+      const checks = createHistoryCheckRecorder();
+      await checks.check("cold-asc:first-scan", () =>
+        collectHistoryPages(request, "thread/list", query),
+      );
+      expect(() => checks.assertPassed()).toThrow(
+        /history page exceeds requested limit/,
+      );
+      const failedPage = hasFirstPage ? 2 : 1;
+      expect(request).toHaveBeenCalledTimes(failedPage);
+      const evidence = checks.failures[0].historyPagination;
+      expect(evidence.failure).toEqual({ stage: "response", page: failedPage });
+      expect(evidence.data).toEqual(hasFirstPage ? first.data : []);
+      expect(evidence.pages).toEqual(
+        hasFirstPage ? [{ ids: ["a"], nextCursor: "next" }] : [],
+      );
+      expect(evidence.attempts).toEqual([
+        ...(hasFirstPage ? [{ page: 1, params: query, response: first }] : []),
+        {
+          page: failedPage,
+          params: hasFirstPage ? { ...query, cursor: "next" } : query,
+          response: oversized,
+        },
+      ]);
+      oversized.data[0].id = "mutated-after-failure";
+      expect(evidence.attempts[failedPage - 1].response.data[0].id).toBe("b");
+      expect(
+        JSON.parse(JSON.stringify(checks.failures))[0].historyPagination,
+      ).toEqual(evidence);
+    },
+  );
   it.each([
     [
       "cursor",
