@@ -1,0 +1,8 @@
+{
+  "phase": "during",
+  "at": "2026-11-09T03:11:42.479Z",
+  "host": "127.0.0.1",
+  "port": 50434,
+  "connected": true,
+  "nonceAck": true
+}

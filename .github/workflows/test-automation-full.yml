@@ -124,6 +124,14 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
+      - name: Verify npm retry cleanup ordering before installation
+        if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' }}
+        shell: bash
+        run: bash scripts/__tests__/ci-npm-retry.test.sh
+
+      - uses: ./.github/actions/setup-linux-canvas
+        if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' && runner.os == 'Linux' }}
+
       - name: Install dependencies
         if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' }}
         working-directory: ./desktop-app-vue
@@ -135,6 +143,11 @@ jobs:
         run: |
           bash "$GITHUB_WORKSPACE/.github/scripts/ci-npm-retry.sh" \
             npm install --legacy-peer-deps
+
+      - name: Verify native canvas loads before comprehensive tests
+        if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' && runner.os == 'Linux' }}
+        working-directory: ./desktop-app-vue
+        run: node -e "require('canvas').createCanvas(1, 1).toBuffer('image/png')"
 
       # The integration suite launches BrowserEngine against the real bundled
       # Playwright Chromium. npm installs the driver but intentionally does not

@@ -608,6 +608,31 @@ describe("DesktopAppServerPilot", () => {
     ).not.toThrow();
   });
 
+  it("evicts the previous body and recall after a correction notification", () => {
+    const pilot = new DesktopAppServerPilot({ ClientClass: FakePilotClient });
+    pilot.client.emit("notification", {
+      method: "memory/event",
+      params: {
+        type: "memory.activated",
+        memory_id: "memory-1",
+        record: { memoryId: "memory-1", content: "obsolete" },
+      },
+    });
+    pilot.client.emit("notification", {
+      method: "memory/event",
+      params: {
+        type: "memory.recalled",
+        result: { results: ["obsolete"] },
+      },
+    });
+    pilot.client.emit("notification", {
+      method: "memory/event",
+      params: { type: "memory.corrected", memory_id: "memory-1", revision: 2 },
+    });
+    expect(pilot.status.contextMemory.memories).toEqual([]);
+    expect(pilot.status.contextMemory.lastRecall).toBeNull();
+  });
+
   it("projects canonical Context/Memory events without becoming a writer", () => {
     const pilot = new DesktopAppServerPilot({ ClientClass: FakePilotClient });
     const plan = { planId: "plan-1", memoryRevision: 7 };

@@ -12,6 +12,7 @@ on:
       - "packages/cli/__tests__/unit/process-ownership*.test.js"
       - "packages/cli/__tests__/integration/process-ownership-cgroup-recovery.test.js"
       - ".github/workflows/process-ownership-recovery.yml"
+      - ".github/actions/setup-linux-canvas/action.yml"
   push:
     branches: [main, "feature/**"]
     paths:
@@ -23,6 +24,7 @@ on:
       - "packages/cli/__tests__/unit/process-ownership*.test.js"
       - "packages/cli/__tests__/integration/process-ownership-cgroup-recovery.test.js"
       - ".github/workflows/process-ownership-recovery.yml"
+      - ".github/actions/setup-linux-canvas/action.yml"
 
 permissions:
   contents: read
@@ -48,7 +50,10 @@ jobs:
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: "22.12.0"
+      - uses: ./.github/actions/setup-linux-canvas
       - uses: ./.github/actions/setup-node-deps
+      - name: Verify native canvas loads before recovery assertions
+        run: node -e "require('canvas').createCanvas(1, 1).toBuffer('image/png')"
       - name: Build the exact-source native launch supervisor
         shell: bash
         run: |

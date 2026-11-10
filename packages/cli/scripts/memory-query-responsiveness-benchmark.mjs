@@ -46,6 +46,10 @@ export async function measureMemoryStop(port, { delayMs = 10 } = {}) {
     outcome = "aborted";
   }
   const settledAt = performance.now();
+  // The timer's deadline is not the delivery of the host Stop. Capture the
+  // actual signal state before waiting for the timer, including early timers.
+  const completedBeforeStopDelivery =
+    outcome === "completed" && !controller.signal.aborted;
   await delivered;
   assert.equal(
     fs.existsSync(`${port.filePath}.lock`),
@@ -56,13 +60,46 @@ export async function measureMemoryStop(port, { delayMs = 10 } = {}) {
     outcome,
     resultCount,
     scheduledStopMs: delayMs,
+    deliveredStopMs: deliveredAt - started,
     queryMs: settledAt - started,
     stopDeliveryDelayMs: Math.max(0, deliveredAt - started - delayMs),
     stopAcknowledgementMs:
       outcome === "aborted" ? Math.max(0, settledAt - deliveredAt) : null,
     completedBeforeStopDeadline:
       outcome === "completed" && settledAt - started <= delayMs,
+    completedBeforeStopDelivery,
     lockReleased: true,
+  };
+}
+
+export function summarizeMemoryStopSamples(values) {
+  return {
+    samples: values,
+    stopDeliveryDelay: summarizeDurations(
+      values.map((v) => v.stopDeliveryDelayMs),
+    ),
+    stopAcknowledgement: summarizeDurations(
+      values
+        .filter((v) => v.stopAcknowledgementMs !== null)
+        .map((v) => v.stopAcknowledgementMs),
+    ),
+    acknowledged: values.filter((v) => v.outcome === "aborted").length,
+    lateSuccessfulCompletion: values.filter(
+      (v) => v.outcome === "completed" && !v.completedBeforeStopDeadline,
+    ).length,
+    completedBeforeStopDelivery: values.filter(
+      (v) => v.completedBeforeStopDelivery,
+    ).length,
+    successfulCompletionAfterStopDelivery: values.filter(
+      (v) => v.outcome === "completed" && !v.completedBeforeStopDelivery,
+    ).length,
+    targetMet: values.every(
+      (v) =>
+        (v.completedBeforeStopDelivery || v.outcome === "aborted") &&
+        v.stopDeliveryDelayMs <= 500 &&
+        (v.stopAcknowledgementMs ?? 0) <= 500,
+    ),
+    authorityUnchanged: true,
   };
 }
 
@@ -115,7 +152,7 @@ export async function runMemoryResponsivenessBenchmark({
     limitations: [
       "Local fixed hardware measurement, not cross-platform admission or a native IDE Stop journey.",
       "Timers measure event-loop delivery and acknowledgement separately; OS caches are not flushed.",
-      "A query that completes before the Stop deadline requires no cancellation; late successful completion is reported as a failure of responsiveness.",
+      "A query that completes before host Stop delivery requires no cancellation; successful completion after delivery fails responsiveness. The nominal deadline and lateSuccessfulCompletion remain separate timing diagnostics, not cancellation acknowledgements.",
     ],
     target: {
       maximumStopDeliveryDelayMs: 500,
@@ -141,28 +178,7 @@ export async function runMemoryResponsivenessBenchmark({
           original,
           "query cancellation changed authority generation",
         );
-        modes[queryIndexCacheMode] = {
-          samples: values,
-          stopDeliveryDelay: summarizeDurations(
-            values.map((v) => v.stopDeliveryDelayMs),
-          ),
-          stopAcknowledgement: summarizeDurations(
-            values
-              .filter((v) => v.stopAcknowledgementMs !== null)
-              .map((v) => v.stopAcknowledgementMs),
-          ),
-          acknowledged: values.filter((v) => v.outcome === "aborted").length,
-          lateSuccessfulCompletion: values.filter(
-            (v) => v.outcome === "completed" && !v.completedBeforeStopDeadline,
-          ).length,
-          targetMet: values.every(
-            (v) =>
-              (v.completedBeforeStopDeadline || v.outcome === "aborted") &&
-              v.stopDeliveryDelayMs <= 500 &&
-              (v.stopAcknowledgementMs ?? 0) <= 500,
-          ),
-          authorityUnchanged: true,
-        };
+        modes[queryIndexCacheMode] = summarizeMemoryStopSamples(values);
       }
       report.tiers.push({ count, modes });
       process.stderr.write(

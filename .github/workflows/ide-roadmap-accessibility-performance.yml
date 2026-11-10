@@ -4,7 +4,11 @@ on:
   pull_request:
     paths:
       - ".github/workflows/ide-roadmap-accessibility-performance.yml"
+      - "scripts/lib/verify01-gradle-bootstrap.mjs"
+      - "scripts/lib/verify01-diagnostic-process.mjs"
+      - "scripts/__tests__/verify01-gradle-bootstrap.test.mjs"
       - ".github/actions/setup-node-deps/action.yml"
+      - ".github/actions/setup-linux-canvas/action.yml"
       - "packages/cli/scripts/ide-roadmap-accessibility-performance.mjs"
       - "packages/cli/scripts/ide-input-performance-profile.mjs"
       - "packages/cli/scripts/verify-ide-roadmap-accessibility-performance.mjs"
@@ -65,7 +69,11 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/ide-roadmap-accessibility-performance.yml"
+      - "scripts/lib/verify01-gradle-bootstrap.mjs"
+      - "scripts/lib/verify01-diagnostic-process.mjs"
+      - "scripts/__tests__/verify01-gradle-bootstrap.test.mjs"
       - ".github/actions/setup-node-deps/action.yml"
+      - ".github/actions/setup-linux-canvas/action.yml"
       - "packages/cli/scripts/ide-roadmap-accessibility-performance.mjs"
       - "packages/cli/scripts/ide-input-performance-profile.mjs"
       - "packages/cli/scripts/verify-ide-roadmap-accessibility-performance.mjs"
@@ -199,11 +207,16 @@ jobs:
           set -euo pipefail
           mkdir -p "$CC_P2_ARTIFACT_DIR"
           printf '{"schema":"chainlesschain.accessibility-performance-bootstrap.v1","releaseCommit":"%s","operatingSystem":"%s"}\n' "$ACCESSIBILITY_PERFORMANCE_COMMIT" "${{ matrix.suffix }}" > "$CC_P2_ARTIFACT_DIR/bootstrap.json"
+      - uses: ./.github/actions/setup-linux-canvas
+        if: runner.os == 'Linux'
       - name: Install exact-checkout workspace dependencies
         # The CLI now depends on unpublished first-party workspaces such as the
         # context-memory kernel. A standalone --prefix install incorrectly asks
         # the public registry for those packages, so use the repository lockfile.
         uses: ./.github/actions/setup-node-deps
+      - name: Verify native canvas loads before host assertions
+        if: runner.os == 'Linux'
+        run: node -e "require('canvas').createCanvas(1, 1).toBuffer('image/png')"
       - name: Install exact Playwright Chromium
         shell: pwsh
         run: |
@@ -289,6 +302,22 @@ jobs:
         run: >-
           CC_SESSION_RUNTIME_OUTPUT="$CC_P2_ARTIFACT_DIR/session-runtime-retention.json"
           npm run test:cli-session-runtime
+      - name: Make Gradle wrapper executable
+        if: runner.os != 'Windows'
+        run: chmod +x packages/jetbrains-plugin/gradlew
+      - name: Bootstrap pinned Gradle distribution before native measurements
+        id: gradle-bootstrap
+        run: >-
+          node scripts/lib/verify01-gradle-bootstrap.mjs
+          --project-dir packages/jetbrains-plugin
+          --artifact-dir "${{ runner.temp }}/accessibility-performance-gradle-bootstrap"
+      - name: Upload Gradle bootstrap evidence
+        if: ${{ always() && steps.gradle-bootstrap.outcome != 'skipped' && steps.gradle-bootstrap.outcome != '' }}
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: accessibility-performance-gradle-bootstrap-${{ matrix.suffix }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/accessibility-performance-gradle-bootstrap/
+          if-no-files-found: error
       - name: Measure JetBrains native Swing product surfaces
         shell: pwsh
         working-directory: packages/jetbrains-plugin

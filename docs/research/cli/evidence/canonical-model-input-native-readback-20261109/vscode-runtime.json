@@ -1,0 +1,13 @@
+{
+  "schema": "chainlesschain.configured-vscode-runtime/v1",
+  "selection": "explicit-installed-executable",
+  "version": "1.96.2",
+  "executableSha256": "7619853d89007778e29aa077b7b0e89b88b1715fcda75845ecdb2e5b7decd271",
+  "manifestSha256": "f7a7f4587e3230faa67ccb87ff5e5a08f347655a4c1a4b61376bf5d7dd789b43",
+  "vsixSha256": "b1e06bc8898aac9619c09646be17bad68b643a657372c1a5cc35c2539a467a1e",
+  "actualCanonicalCli": true,
+  "readOnlyCliProcesses": 5,
+  "blockedCommands": 0,
+  "modelRequestsPermitted": false,
+  "journalUnchanged": true
+}

@@ -1,0 +1,217 @@
+{
+  "schema": "chainlesschain.canonical-model-input-native-evidence/v1",
+  "sourceBindings": [
+    {
+      "commit": "e691dad7b3879844eed649db45a10e251f9eb343",
+      "files": {
+        "packages/cli/src/repl/agent-repl.js": "d4bcf9c00889af5941246b39683637852485e2f7311ea0e86d27162b48218b2d",
+        "packages/cli/src/runtime/mcp-config.js": "6f083eedf2bb91971a05ed19536e1530898a6d86bc22ea85bc6db448ecf44ee4",
+        "packages/cli/src/lib/mcp-task-continuation.js": "cdd78e3889add64e715cdeba42f5e895d118c0bb8d987e5b790d6d61f52499e8",
+        "packages/cli/src/lib/mcp-task-continuation-contract.js": "2559e834d0ee2a90202badf594115788a6e2ad7f5c2af3ca3fc595e90fe6c50a",
+        "packages/cli/src/lib/mcp-task-journal-projection.js": "51a232726e46b30a44f3f5b47e0cbef1fed1de2f13b7a93f880da34fbfc77531",
+        "packages/cli/src/lib/mcp-task-runtime.js": "1335707c6734c16836544da341a92900a03e214104e2c5684cb24f97ffd98c2f",
+        "packages/cli/src/commands/mcp-tasks.js": "e180850590ae778adaef480f8e56f8ca3a4e08c098eed41e6c258ec14a582c74",
+        "packages/cli/src/lib/session-transcript-structure.js": "1c4bbc16afac250b4478820a5f38a5dc0cfdc6d6c3f8a20225a3b26a833256d0",
+        "packages/cli/src/lib/session-message-provenance.js": "222f7b90471205f5993d15531d709f81d1e83fa1d158d60b52d718b236455567",
+        "packages/cli/src/lib/session-host-snapshot.js": "3e50558675ec97b2273608f09d6c078d00a8edcf184b0ad64c4f8f35db496082",
+        "packages/cli/src/harness/mcp-client.js": "6e1226d6224de2b0f4a03c6ee0250577c3c834e7b254fd7c5fbd4d6f8aabd0ec",
+        "packages/cli/__tests__/fixtures/mcp-tasks/repl-continuation-child.mjs": "0192f63f2934a0c74bf9b198fd33cca0393770adf1f3f5f7500ec613f98f0640",
+        "packages/cli/__tests__/fixtures/mcp-tasks/durable-child.mjs": "ccd51eb6b6814590a30461f89877930523e386677456a7da7e536853d3a5360f",
+        "packages/cli/scripts/probe-mcp-task-model-continuation.mjs": "b5715cdf92b13f902e5794c63b4f93b854556765e1a7d43807112978b9f2fc70",
+        "packages/cli/scripts/lib/model-continuation-probe-admission.mjs": "3ae8157c215124592be93183b2456f3a2799da2d49dcdc53b599633ed29dc16d",
+        "packages/cli/src/lib/session-model-input-diagnostics.js": "d0619cce147b1eaae01b6e6c45efe0ee737e7ccc3ae481e4b0299c3eedca78ca",
+        "packages/cli/src/lib/model-input-source-mapping.js": "4dab3515af9f7c1b083dd6c1bbbefdd25fea344c60f59101dce903f4c6c80cb1",
+        "packages/cli/src/lib/context-memory-kernel/provider-context.js": "c8becb901ca6e688e589dc96d67772fc7627a13cd66eb21686a4a93a2f930383",
+        "packages/cli/src/lib/context-memory-kernel/authority.js": "0c6175aeb522b229876527fd62ca897aa9132bb1d965db5b6463d25a26895c84"
+      }
+    },
+    {
+      "commit": "d4460f315ff9c2ccc8e5ed8ccc0ded24d6d9d38b",
+      "files": {
+        "packages/vscode-extension/src/cli-binary.js": "af7fd35b214a68bc0a1880eca2bce7ebb8bb0b80d10c9b9617290376693a9bd1",
+        "packages/vscode-extension/src/chat/chat-view.js": "5cf622b3d433adcf96230d1e4ec007ac353079a250259aec9c713644c16dc072",
+        "packages/vscode-extension/src/extension.js": "38bcb3ced0681907d992da415425008bbeec01b8054047ff55034ef115348e76",
+        "packages/vscode-extension/src/model-input-diagnostics.js": "9eae306768cde706cfad01df88859aa1d9c085693e81c593c64e45e4339c6971",
+        "packages/vscode-extension/src/chat/introspect-commands.js": "cbadc3d5e7a347428ee2706eede4fb7f7b3e9cf7c1267ad553e20814fcec69c6",
+        "packages/vscode-extension/src/hardened-env.js": "4579cee63bcd65bb0e67469f0064145d0da93bcac163fc09abb2786e1b467f4b",
+        "packages/vscode-extension/test/cli-binary.test.cjs": "11e7d858f56eab82ec0d454f832d45cadd5f99141a11e99e2bf102500ed3320e",
+        "packages/vscode-extension/test/canonical-model-input-host.test.cjs": "2c8585ca828d194439e082d9ae32087436667c8a30d5de8f2602c7af02ed1ea2",
+        "packages/vscode-extension/test/extension-host/canonical-model-input-contract.cjs": "a4815a4e0e9575f61f07ac4517311b6b836061c65c6ffddfe67e9bed98683438",
+        "packages/vscode-extension/test/extension-host/driver/canonical-model-input-diagnostics.cjs": "2fb1c761a6cf5a03ae72d95bca769f4924d33c3c516943b0d14c4807871d19ff",
+        "packages/vscode-extension/test/extension-host/run-canonical-model-input-diagnostics.cjs": "e4f7e7f99c3a1956b2d05af43f0c4a6389a0ab8767e4d247af7ffd3c0ff261f3",
+        "packages/vscode-extension/test/extension-host/configured-runtime.cjs": "6c6882094a4c50d630e956b909d5fd0bdaeb06d1f6270657946ed62470342360",
+        "packages/vscode-extension/package.json": "e21eeac6dc068b40dbadb76b6221f2846bda10abbd4ddfd362fe615f921cacb1",
+        "packages/vscode-extension/README.md": "b72a7bce4b42b002bb8c88043754e1ef91f346be1c139b14cf76d2caacf6b8fd",
+        "packages/vscode-extension/test/extension-host/run.cjs": "5d7f6a46a69fc1245ef93c45dbdde9d18994ad46e6bec028327b97a202c99417",
+        "packages/vscode-extension/test/extension-host/cdp-journey.cjs": "31d467277d6eee1f7ecbe5551ae20e318d9ead0363b692a1ab106e64e388cfd0",
+        "packages/vscode-extension/test/extension-host/driver/smoke.cjs": "328c26ef85e7d87b5b1f7152b9184ac064a99b6c1fc3c9fb3873957fadff0283",
+        "packages/vscode-extension/test/extension-host/driver/dom-relay-journey.cjs": "0c107fc9af38a555d3b29951a6c85c4d742027215a3d68efe507a729bf68d314",
+        "packages/vscode-extension/test/extension-host/driver/conversation-recovery.cjs": "659e88e3dadb4e76feda2eb8e1e8e58070351a9e8867b51047585fd29a92eab7",
+        "packages/vscode-extension/test/extension-host/driver/multi-window.cjs": "e8f81fa95df40e66e9e442a168207d932ea5581ae5ff958526f04b9b2af2ace7"
+      }
+    }
+  ],
+  "provider": "volcengine",
+  "model": "deepseek-v4-1-flash-economy-261017",
+  "canonicalContextProfile": {
+    "stage": "opt_in_canary",
+    "explicitOptIn": true,
+    "globalDefaultsChanged": false
+  },
+  "realModel": {
+    "physicalRequests": 1,
+    "httpStatus": 200,
+    "usage": {
+      "completion_tokens": 72,
+      "prompt_tokens": 853,
+      "total_tokens": 925,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 48
+      }
+    },
+    "repeatedDispatchesAfterRestart": 0
+  },
+  "canonical": {
+    "ok": true,
+    "phase": "settled",
+    "assistantAnswers": 1,
+    "externalReferences": 1,
+    "realUserMessages": 1,
+    "beginEventHash": "f97839ac8f73dd681593a84cdbc18068e070d6b5280d359b60d15898eaf252d0",
+    "endEventHash": "beb2ce3a7daaaf0a61fc7b3b4b41bc74ab0bec7d3e56355093c5394b2c2fce58",
+    "outputDigest": "sha256:35ba678f0887b005e803de4ea8d72a72b126746ab880893921ceba8f9ecb171b",
+    "modelInputDiagnostics": {
+      "records": 2,
+      "sourceCount": 5,
+      "planningDigest": "sha256:16ae01f4ef29384a8df6ee774a19ecb8dd2f011753aea39a126c941f880fd153",
+      "bodyDigest": "d15c29c2d6625a2a9889114d4eee0b1a0db7624d56674f85f28d0b3d84b0a367",
+      "logicalMappingCovered": true,
+      "bodyMappingCovered": true
+    }
+  },
+  "ide": {
+    "schema": "chainlesschain.canonical-model-input-vscode-native/v1",
+    "status": "passed",
+    "scope": "installed-vsix-production-deep-link-registered-command-real-canonical-cli-and-editor",
+    "vscodeVersion": "1.96.2",
+    "extensionVersion": "0.37.182",
+    "realCanonicalSessionCliRead": true,
+    "realCanonicalSessionJourney": false,
+    "readOnly": true,
+    "journalUnchanged": true,
+    "recordCount": 2,
+    "planningCovered": true,
+    "sourceMappingCovered": true,
+    "bodyCovered": true,
+    "documentBytes": 8432,
+    "documentDigest": "52eb9b9f42499dd899ca0820c627887d8a0247b3b0d066587746b00c2c6082b8",
+    "journalDigest": "3ab18a669ebfa8393f920f5aad51ceb34e092bfc071cb5ef40c3f19e524bd2cf",
+    "modelInvokedByIde": false
+  },
+  "runtime": {
+    "schema": "chainlesschain.configured-vscode-runtime/v1",
+    "selection": "explicit-installed-executable",
+    "version": "1.96.2",
+    "executableSha256": "7619853d89007778e29aa077b7b0e89b88b1715fcda75845ecdb2e5b7decd271",
+    "manifestSha256": "f7a7f4587e3230faa67ccb87ff5e5a08f347655a4c1a4b61376bf5d7dd789b43",
+    "vsixSha256": "b1e06bc8898aac9619c09646be17bad68b643a657372c1a5cc35c2539a467a1e",
+    "actualCanonicalCli": true,
+    "readOnlyCliProcesses": 5,
+    "blockedCommands": 0,
+    "modelRequestsPermitted": false,
+    "journalUnchanged": true
+  },
+  "modelInputSourceRecords": 2,
+  "mappedSources": 5,
+  "signedAgentEvolutionProjectionVerified": false,
+  "diagnosticsWereGeneratedByIde": false,
+  "ideModelRequests": 0,
+  "taskInitiatedInIde": false,
+  "dualIdeJourneyVerified": false,
+  "terminal": "stdin TTY emulation; real readline, not an OS PTY",
+  "productionRemoteMcpVerified": false,
+  "multiplatformVerified": false,
+  "paidReady": false,
+  "tests": {
+    "extensionUnit": {
+      "passed": 352,
+      "failed": 0,
+      "testFiles": 41
+    },
+    "canonicalSyntheticCrashScenarios": 3
+  },
+  "artifactHashes": {
+    "live.json": "0db87a041c3d67b712fac8d32644f1b0b4a09a6640207f03cf90025589f2b7d2",
+    "completed-transport.json": "f92e5a509d1b6d20ae55961821dd4358839d53a97ad5ac29fdd045e17ef7ffde",
+    "synthetic.json": "cde934eb5f2f5572aeb4460bbfeb96ac334a08feb9504012342c274d389ae0c8",
+    "vscode-host.json": "ed4c2ae52ec5ae783199c88f121aba42be3f38a2d09a35e23eb16c08fa4c0552",
+    "vscode-runtime.json": "d4a81e7268734e81a998e438de85244972995e587a5e0c137e2ce5f693e6fe69",
+    "model-inputs.json": "47c944854a7c2d6561fdcf251049e47a8949ce806d8c18f0ac18bd95da24cc87",
+    "cli-reads.jsonl": "ace004c0a17fcfbe3959be2260c42a8c126fffec069351e053ad469182ae51c9",
+    "vscode-unit-junit.xml": "8d5f417eda91853bc309a3bc299f3c5ac2a60b80bfdd56fe73c7b28c3d781b74",
+    "failure-boundaries.json": "2e244dd4ddd9b8fad3bc243eab7f411bbb449c27bc3ad03f95670d4d6bfeebe5",
+    "full-native/cdp-journey.jsonl": "1d2bb3ece95b36e71f213e50adada3307f7a9a18a6d59aab27d849f088154b13",
+    "full-native/conversation-recovery-initial.json": "1a3772b517f70aa58fc38ebd39f2c07d0109ad4a65e18ce0b48026bc5c8b61a3",
+    "full-native/conversation-recovery-restart.json": "5917d23de10215e22784ad124e51055d20ee342eff1a7af894a19d9303dfbab1",
+    "full-native/initial-dom.txt": "f6817d67b017fc47e446f9eaa21401fd348a4b3fafea053390b1cedd1b2b78ea",
+    "full-native/initial-workbench-dom.txt": "aa573b637fcf7ed1824e1b700b5e3e30f20d19c2afbfb998f9c4b107bea34005",
+    "full-native/restart-dom.txt": "4b33896ae4122b86cdc18e572a1976c5a231090f0ee94acc09537a8f9dc45c7d",
+    "full-native/restart-workbench-dom.txt": "aa573b637fcf7ed1824e1b700b5e3e30f20d19c2afbfb998f9c4b107bea34005",
+    "full-native/multi-window-evidence.json": "172926293f190dc349a59b1f1beaa883f6e1707764873ac7b259dbb156686834"
+  },
+  "archiveScope": "metadata-only canonical CLI report, source-bound receipts and relative JUnit paths; private session configuration, profiles, vaults, request/answer text and VSIX excluded",
+  "fullNativeRecovery": {
+    "sourceCommit": "d4460f315ff9c2ccc8e5ed8ccc0ded24d6d9d38b",
+    "host": {
+      "name": "vscode",
+      "version": "1.96.2",
+      "operatingSystem": "win32",
+      "architecture": "x64",
+      "transport": "local-ide-bridge+vscode-webview-message-dom"
+    },
+    "result": "passed",
+    "exitCode": 0,
+    "originalEvidenceComplete": true,
+    "originalEvidenceDigest": "sha256:4078cf78b1f6d4083deb7c8a8953abb81826d47309950cfc4a762279c2bc76fb",
+    "originalArtifactBundleDigest": "sha256:69db49e7303f92c92583d81f04882ead42356b64ae8c8e0e458826d31fb54aac",
+    "vsixSha256": "sha256:b1e06bc8898aac9619c09646be17bad68b643a657372c1a5cc35c2539a467a1e",
+    "model": "deterministic fixture",
+    "commands": 19,
+    "workspaceRoots": 2,
+    "simultaneousWindows": 2,
+    "canonicalHistoryTextImageDraftRestart": true,
+    "responsiveness": {
+      "at": "2026-11-09T02:47:48.338Z",
+      "phase": "initial",
+      "metric": "needs-input-visible-summary",
+      "samples": 100,
+      "minLatencyMs": 539,
+      "maxLatencyMs": 1615,
+      "p95LatencyMs": 1437,
+      "thresholdMs": 2000,
+      "warmupSamples": 1,
+      "measurementStartedAt": "2026-11-09T02:45:30.949Z",
+      "measurementCompletedAt": "2026-11-09T02:47:48.338Z",
+      "networkCondition": "loopback fixture; no external network",
+      "transport": "installed-vsix-webview-production-route",
+      "runnerEnvironment": "local",
+      "runnerName": null,
+      "runnerOS": "win32",
+      "runnerArch": "x64",
+      "runnerImageOS": null,
+      "runnerImageVersion": null
+    },
+    "publicArchiveIsSubset": true
+  },
+  "packagedSourceVerification": {
+    "sourceCommit": "d4460f315ff9c2ccc8e5ed8ccc0ded24d6d9d38b",
+    "payloadsVerified": 184,
+    "byteExactPayloads": 182,
+    "normalizedMarkdownFiles": ["readme.md", "changelog.md"],
+    "licenseFilenameNormalization": "LICENSE to LICENSE.txt",
+    "vsixSha256": "b1e06bc8898aac9619c09646be17bad68b643a657372c1a5cc35c2539a467a1e"
+  }
+}

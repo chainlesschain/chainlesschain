@@ -8,6 +8,9 @@ on:
     paths:
       - ".github/workflows/context-memory-*.yml"
       - ".github/actions/setup-node-deps/action.yml"
+      - "scripts/lib/verify01-gradle-bootstrap.mjs"
+      - "scripts/lib/verify01-diagnostic-process.mjs"
+      - "scripts/__tests__/verify01-gradle-bootstrap.test.mjs"
       - "packages/context-memory-kernel/**"
       - "packages/agent-protocol/**"
       - "packages/agent-sdk/**"
@@ -30,6 +33,9 @@ on:
     paths:
       - ".github/workflows/context-memory-*.yml"
       - ".github/actions/setup-node-deps/action.yml"
+      - "scripts/lib/verify01-gradle-bootstrap.mjs"
+      - "scripts/lib/verify01-diagnostic-process.mjs"
+      - "scripts/__tests__/verify01-gradle-bootstrap.test.mjs"
       - "packages/context-memory-kernel/**"
       - "packages/agent-protocol/**"
       - "packages/agent-sdk/**"
@@ -68,12 +74,18 @@ jobs:
         include:
           - os: ubuntu-latest
             platform: linux
-          - os: windows-latest
+          # The locked Electron node-gyp fork supports VS2022, not VS2026.
+          # Keep a native Windows build rather than skipping SQLite scripts.
+          - os: windows-2022
             platform: windows
           - os: macos-latest
             platform: macos
     env:
       CONTEXT_MEMORY_CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      # This Node-only matrix aliases Electron to a mock in the Desktop Vitest
+      # config; it never launches Electron. Retain native dependency install
+      # scripts (including SQLite), and skip only the unused Electron binary.
+      ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
     steps:
       - name: Enable Windows long paths before checkout
         if: runner.os == 'Windows'
@@ -93,8 +105,16 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - uses: actions/setup-python@v6
+        id: kernel-python
         with:
           python-version: "3.12"
+
+      - name: Bind native builds to the selected Python
+        shell: bash
+        env:
+          KERNEL_PYTHON: ${{ steps.kernel-python.outputs.python-path }}
+        run: |
+          node --input-type=module -e 'import {appendFileSync,realpathSync} from "node:fs"; const python=realpathSync(process.env.KERNEL_PYTHON); if (/[\r\n]/u.test(python)) throw new Error("Invalid Python executable"); appendFileSync(process.env.GITHUB_ENV, "NODE_GYP_FORCE_PYTHON=" + python + "\n");'
 
       - uses: actions/setup-java@v5
         with:
@@ -102,6 +122,18 @@ jobs:
           java-version: "21"
 
       - uses: ./.github/actions/setup-node-deps
+
+      - name: Require a loadable native SQLite driver for this Node runtime
+        run: >-
+          node --input-type=module -e 'import {createRequire} from "node:module";
+          import path from "node:path";
+          const require=createRequire(path.resolve("packages/context-memory-kernel/package.json"));
+          const Database=require("better-sqlite3");
+          const db=new Database(":memory:");
+          try { const version=db.prepare("SELECT sqlite_version() AS version").get().version;
+          console.log(JSON.stringify({node:process.version,abi:process.versions.modules,sqlite:version,
+          driver:require("better-sqlite3/package.json").version,python:process.env.NODE_GYP_FORCE_PYTHON})); }
+          finally { db.close(); }'
 
       - name: Verify canonical Kernel, inventory, privacy, and release evidence
         run: npm --prefix packages/context-memory-kernel test
@@ -144,6 +176,16 @@ jobs:
           PYTHONPATH: src
         run: python -m unittest discover -s tests
 
+      - name: Make Gradle wrapper executable
+        if: runner.os != 'Windows'
+        run: chmod +x packages/jetbrains-plugin/gradlew
+
+      - name: Bootstrap pinned Gradle distribution before projection tests
+        run: >-
+          node scripts/lib/verify01-gradle-bootstrap.mjs
+          --project-dir packages/jetbrains-plugin
+          --artifact-dir "${{ runner.temp }}/context-memory-gradle-bootstrap"
+
       - name: Verify JetBrains canonical projection (Windows)
         if: runner.os == 'Windows'
         working-directory: packages/jetbrains-plugin
@@ -174,12 +216,14 @@ jobs:
           --output "${{ runner.temp }}/context-memory-benchmark-${{ matrix.platform }}.json"
 
       - uses: actions/upload-artifact@v6
+        if: always()
         with:
           name: context-memory-${{ matrix.platform }}-${{ env.CONTEXT_MEMORY_CANDIDATE_SHA }}-${{ github.run_attempt }}
           path: |
             ${{ runner.temp }}/context-memory-soak-${{ matrix.platform }}.json
             ${{ runner.temp }}/context-memory-writer-probe-${{ matrix.platform }}.json
             ${{ runner.temp }}/context-memory-benchmark-${{ matrix.platform }}.json
+            ${{ runner.temp }}/context-memory-gradle-bootstrap/
             packages/jetbrains-plugin/build/test-results/test/
           if-no-files-found: error
           retention-days: 30

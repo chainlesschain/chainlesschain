@@ -1,0 +1,364 @@
+<?xml version="1.0" encoding="utf-8"?>
+<testsuites>
+	<testcase name="capability manifest is derived from registered tools" time="0.000812" classname="test" file="packages\vscode-extension\src\ide-capabilities.test.js"/>
+	<testcase name="missing optional tools do not imply unsupported capabilities" time="0.000107" classname="test" file="packages\vscode-extension\src\ide-capabilities.test.js"/>
+	<testcase name="first-run onboarding distinguishes an unset provider from unreadable configuration" time="0.001027" classname="test" file="packages\vscode-extension\test\agent-initialization.test.cjs"/>
+	<testcase name="a failed config probe reports fixed guidance without leaking its diagnostic" time="0.000163" classname="test" file="packages\vscode-extension\test\agent-initialization.test.cjs"/>
+	<testcase name="a view closing during onboarding delivery cannot reject panel initialization" time="0.000157" classname="test" file="packages\vscode-extension\test\agent-initialization.test.cjs"/>
+	<testcase name="late onboarding results are ignored after the view or connection changes" time="0.000186" classname="test" file="packages\vscode-extension\test\agent-initialization.test.cjs"/>
+	<testcase name="global connection changes report every affected running conversation" time="0.000726" classname="test" file="packages\vscode-extension\test\agent-initialization.test.cjs"/>
+	<testcase name="a conversation model switch preserves running work and restarts only its idle child" time="0.004402" classname="test" file="packages\vscode-extension\test\agent-initialization.test.cjs"/>
+	<testcase name="closing and reopening a tab retains its model without spawning a child" time="0.000416" classname="test" file="packages\vscode-extension\test\agent-initialization.test.cjs"/>
+	<testcase name="model overrides and resets survive tab restore without changing another conversation" time="0.000299" classname="test" file="packages\vscode-extension\test\agent-initialization.test.cjs"/>
+	<testcase name="invalid model input cannot mutate the selection or leak its text in a diagnostic" time="0.000258" classname="test" file="packages\vscode-extension\test\agent-initialization.test.cjs"/>
+	<testcase name="a context response from the previous model cannot overwrite the new child's indicator" time="0.004395" classname="test" file="packages\vscode-extension\test\agent-initialization.test.cjs"/>
+	<testcase name="pending approvals and prepared inputs retain their original child during a model change" time="0.000517" classname="test" file="packages\vscode-extension\test\agent-initialization.test.cjs"/>
+	<testcase name="context queries follow the running model until the selected model is launched" time="0.002229" classname="test" file="packages\vscode-extension\test\agent-initialization.test.cjs"/>
+	<testcase name="ChatView pauses recurring input on persistence or unknown acceptance and retains completed tool views" time="0.003159" classname="test" file="packages\vscode-extension\test\agent-initialization.test.cjs"/>
+	<testcase name="ChatView successful and ordinary-error turns keep the explicit loop active" time="0.000647" classname="test" file="packages\vscode-extension\test\agent-initialization.test.cjs"/>
+	<testcase name="ChatView pauses recurring input on abnormal close and exposes exit diagnostics" time="0.001889" classname="test" file="packages\vscode-extension\test\agent-initialization.test.cjs"/>
+	<testcase name="ChatView a clean close after a result permits the next scheduled turn" time="0.000595" classname="test" file="packages\vscode-extension\test\agent-initialization.test.cjs"/>
+	<testcase name="ChatView compaction failure pauses input and preserves its cause through expected exit" time="0.001100" classname="test" file="packages\vscode-extension\test\agent-initialization.test.cjs"/>
+	<testcase name="ChatView still reports crashes after an earlier session failure" time="0.001023" classname="test" file="packages\vscode-extension\test\agent-initialization.test.cjs"/>
+	<testcase name="ChatView a paused loop cannot dispatch an already-preparing durable input" time="0.000552" classname="test" file="packages\vscode-extension\test\agent-initialization.test.cjs"/>
+	<testcase name="ChatView persistence diagnostics do not leak through setup or mode failure channels" time="0.000303" classname="test" file="packages\vscode-extension\test\agent-initialization.test.cjs"/>
+	<testcase name="ChatView stale or other-session failures cannot pause the current loop" time="0.000404" classname="test" file="packages\vscode-extension\test\agent-initialization.test.cjs"/>
+	<testcase name="ChatView unknown durable write pauses a loop without resending" time="0.000344" classname="test" file="packages\vscode-extension\test\agent-initialization.test.cjs"/>
+	<testcase name="doctor observes the active child and discards stale generation capabilities" time="0.000127" classname="test" file="packages\vscode-extension\test\agent-initialization.test.cjs"/>
+	<testcase name="a cold agent can initialize after the former 15-second limit and dispatch once" time="0.000219" classname="test" file="packages\vscode-extension\test\agent-initialization.test.cjs"/>
+	<testcase name="a failed durable pipe write remains unknown and is not reported as dispatched" time="0.000134" classname="test" file="packages\vscode-extension\test\agent-initialization.test.cjs"/>
+	<testcase name="an initialization failure before waiter registration rejects saved input immediately" time="0.000227" classname="test" file="packages\vscode-extension\test\agent-initialization.test.cjs"/>
+	<testcase name="a failed live child is stopped before a retry starts a new child" time="0.000407" classname="test" file="packages\vscode-extension\test\agent-initialization.test.cjs"/>
+	<testcase name="one explicit resend waits for failed child exit and replacement init" time="0.000370" classname="test" file="packages\vscode-extension\test\agent-initialization.test.cjs"/>
+	<testcase name="a retry keeps its draft when failed child termination is unconfirmed" time="0.000221" classname="test" file="packages\vscode-extension\test\agent-initialization.test.cjs"/>
+	<testcase name="startup reports missing CLI process without dispatching the saved input" time="0.000158" classname="test" file="packages\vscode-extension\test\agent-initialization.test.cjs"/>
+	<testcase name="startup reports rejected provider credentials without dispatching the saved input" time="0.000087" classname="test" file="packages\vscode-extension\test\agent-initialization.test.cjs"/>
+	<testcase name="startup reports unsupported provider endpoint without dispatching the saved input" time="0.000152" classname="test" file="packages\vscode-extension\test\agent-initialization.test.cjs"/>
+	<testcase name="init timeout keeps the draft and a late init never dispatches it" time="0.000236" classname="test" file="packages\vscode-extension\test\agent-initialization.test.cjs"/>
+	<testcase name="a resend after init timeout starts a new child and only sends after its init" time="0.000371" classname="test" file="packages\vscode-extension\test\agent-initialization.test.cjs"/>
+	<testcase name="vendored Agent SDK matches the current source and generated output" time="5.468675" classname="test" file="packages\vscode-extension\test\agent-sdk-vendor.test.cjs"/>
+	<testcase name="Desktop and VS Code ship byte-identical shared Agent SDK clients" time="0.002907" classname="test" file="packages\vscode-extension\test\agent-sdk-vendor.test.cjs"/>
+	<testcase name="IDE CI reruns when the SDK or canonical protocol changes" time="0.000288" classname="test" file="packages\vscode-extension\test\agent-sdk-vendor.test.cjs"/>
+	<testcase name="VS Code production mapper admits only generated Agent event types" time="0.000386" classname="test" file="packages\vscode-extension\test\agent-sdk-vendor.test.cjs"/>
+	<testcase name="VS Code preserves causal-equivalent projections across interleavings" time="0.023149" classname="test" file="packages\vscode-extension\test\agent-sdk-vendor.test.cjs"/>
+	<testcase name="VS Code persistence errors retain only bounded protocol codes and fixed phases" time="0.000398" classname="test" file="packages\vscode-extension\test\agent-sdk-vendor.test.cjs"/>
+	<testcase name="VS Code rejects unbounded error codes and arbitrary phase prose without coercion" time="0.000299" classname="test" file="packages\vscode-extension\test\agent-sdk-vendor.test.cjs"/>
+	<testcase name="VS Code ordinary errors keep actionable reasons and optional bounded codes" time="0.000210" classname="test" file="packages\vscode-extension\test\agent-sdk-vendor.test.cjs"/>
+	<testcase name="VS Code replays the canonical ApprovalDecision conformance fixture" time="0.037640" classname="test" file="packages\vscode-extension\test\agent-sdk-vendor.test.cjs"/>
+	<testcase name="VS Code emits schema-valid, least-privilege approval responses" time="0.000618" classname="test" file="packages\vscode-extension\test\agent-sdk-vendor.test.cjs"/>
+	<testcase name="VS Code retains bounded CLI approval grants and resolution scope" time="0.000148" classname="test" file="packages\vscode-extension\test\agent-sdk-vendor.test.cjs"/>
+	<testcase name="agent session preserves UTF-8 split across stdout and stderr chunks" time="0.002115" classname="test" file="packages\vscode-extension\test\agent-session-utf8.test.cjs"/>
+	<testcase name="agent session discards an oversized stderr line through its newline" time="0.002556" classname="test" file="packages\vscode-extension\test\agent-session-utf8.test.cjs"/>
+	<testcase name="agent session blocks input after a pipe failure and still drains the final receipt" time="0.000489" classname="test" file="packages\vscode-extension\test\agent-session-utf8.test.cjs"/>
+	<testcase name="agent spawn errors preserve only bounded machine codes" time="0.001106" classname="test" file="packages\vscode-extension\test\agent-session-utf8.test.cjs"/>
+	<testcase name="agent session refuses input after stdin.end before the process closes" time="0.000515" classname="test" file="packages\vscode-extension\test\agent-session-utf8.test.cjs"/>
+	<testcase name="agent session refuses input after signal exit before stdio closes" time="0.000302" classname="test" file="packages\vscode-extension\test\agent-session-utf8.test.cjs"/>
+	<testcase name="VS Code displays the exact binding and returns only requested turn permissions" time="0.001280" classname="test" file="packages\vscode-extension\test\app-server-approval-review.test.cjs"/>
+	<testcase name="VS Code dismissal, expiry, and oversized reviews fail closed" time="0.000300" classname="test" file="packages\vscode-extension\test\app-server-approval-review.test.cjs"/>
+	<testcase name="VS Code rechecks expiry after the modal decision" time="0.000210" classname="test" file="packages\vscode-extension\test\app-server-approval-review.test.cjs"/>
+	<testcase name="native structured review preserves order, validates fields and submits typed values without storing secrets" time="0.040303" classname="test" file="packages\vscode-extension\test\app-server-elicitation-review.test.cjs"/>
+	<testcase name="native choices and Back preserve exact values and multi-select edits" time="0.037046" classname="test" file="packages\vscode-extension\test\app-server-elicitation-review.test.cjs"/>
+	<testcase name="partially typed schema fields recover only on an exact bound reissue" time="0.368135" classname="test" file="packages\vscode-extension\test\app-server-elicitation-review.test.cjs"/>
+	<testcase name="storage failure prevents submit and explicit retry does not double-submit" time="0.016533" classname="test" file="packages\vscode-extension\test\app-server-elicitation-review.test.cjs"/>
+	<testcase name="abort while reading or saving cannot reopen a dialog or return an answer" time="0.015335" classname="test" file="packages\vscode-extension\test\app-server-elicitation-review.test.cjs"/>
+	<testcase name="unknown schemas return a parsed object explicitly and never persist raw JSON" time="0.013586" classname="test" file="packages\vscode-extension\test\app-server-elicitation-review.test.cjs"/>
+	<testcase name="URL review uses an immutable HTTPS target and aborts before opening a stale request" time="0.001490" classname="test" file="packages\vscode-extension\test\app-server-elicitation-review.test.cjs"/>
+	<testcase name="native requests queue whole reviews and canceled waiting requests never create controls" time="0.028504" classname="test" file="packages\vscode-extension\test\app-server-elicitation-review.test.cjs"/>
+	<testcase name="pilot stops old native callbacks and ignores old-client confirmation after replacement" time="0.001686" classname="test" file="packages\vscode-extension\test\app-server-pilot.test.cjs"/>
+	<testcase name="ready after transport restart grants a fresh native request generation" time="0.000299" classname="test" file="packages\vscode-extension\test\app-server-pilot.test.cjs"/>
+	<testcase name="VS Code pilot uses the shared fixed-capability client lazily" time="0.000474" classname="test" file="packages\vscode-extension\test\app-server-pilot.test.cjs"/>
+	<testcase name="VS Code pilot fails closed when no reviewed request handler exists" time="0.000115" classname="test" file="packages\vscode-extension\test\app-server-pilot.test.cjs"/>
+	<testcase name="VS Code pilot forwards canonical events and contains host errors" time="0.000277" classname="test" file="packages\vscode-extension\test\app-server-pilot.test.cjs"/>
+	<testcase name="native callback values await matching server resolution and duplicate requests cannot reopen authority" time="0.001359" classname="test" file="packages\vscode-extension\test\app-server-question-lifecycle.test.cjs"/>
+	<testcase name="owner exit revokes an open callback even when its handler ignores cancellation" time="0.000224" classname="test" file="packages\vscode-extension\test\app-server-question-lifecycle.test.cjs"/>
+	<testcase name="turn completion archives blocking reviews, retains deferred reviews, and interrupt revokes both" time="0.000729" classname="test" file="packages\vscode-extension\test\app-server-question-lifecycle.test.cjs"/>
+	<testcase name="expired and reused question identities cannot be reported as confirmed" time="0.001151" classname="test" file="packages\vscode-extension\test\app-server-question-lifecycle.test.cjs"/>
+	<testcase name="duplicate live requests share one review and request objects are detached before the callback" time="0.000262" classname="test" file="packages\vscode-extension\test\app-server-question-lifecycle.test.cjs"/>
+	<testcase name="MCP presentation and password changes invalidate an already open native review" time="0.002767" classname="test" file="packages\vscode-extension\test\app-server-question-lifecycle.test.cjs"/>
+	<testcase name="VS Code returns the exact selected value for a blocking question" time="0.001132" classname="test" file="packages\vscode-extension\test\app-server-question-review.test.cjs"/>
+	<testcase name="native partially entered text survives host replacement, but requires explicit accept" time="0.046114" classname="test" file="packages\vscode-extension\test\app-server-question-review.test.cjs"/>
+	<testcase name="native cancellation archives selected values and filter without automatically restoring authority" time="0.026990" classname="test" file="packages\vscode-extension\test\app-server-question-review.test.cjs"/>
+	<testcase name="native save failures block acceptance and password answers are never persisted" time="0.026982" classname="test" file="packages\vscode-extension\test\app-server-question-review.test.cjs"/>
+	<testcase name="VS Code cancellation is null and deferred free text does not trap focus" time="0.000289" classname="test" file="packages\vscode-extension\test\app-server-question-review.test.cjs"/>
+	<testcase name="native questions without workspace storage still close immediately on owner cancellation" time="0.012659" classname="test" file="packages\vscode-extension\test\app-server-question-review.test.cjs"/>
+	<testcase name="accepts strict v3 incident and runtime controls" time="0.003464" classname="test" file="packages\vscode-extension\test\automation-center.test.cjs"/>
+	<testcase name="accepts the released v2 pair without v3 controls" time="0.001408" classname="test" file="packages\vscode-extension\test\automation-center.test.cjs"/>
+	<testcase name="fails closed on mismatched schemas and malformed incident envelopes" time="0.000954" classname="test" file="packages\vscode-extension\test\automation-center.test.cjs"/>
+	<testcase name="requires canonical flow incidents and controls" time="0.000222" classname="test" file="packages\vscode-extension\test\automation-center.test.cjs"/>
+	<testcase name="rechecks exact incident and runtime revisions before execution" time="0.000858" classname="test" file="packages\vscode-extension\test\automation-center.test.cjs"/>
+	<testcase name="rejects duplicate, unknown, malformed, and boundary-crossing controls" time="0.000926" classname="test" file="packages\vscode-extension\test\automation-center.test.cjs"/>
+	<testcase name="native readback permits only selected-session diagnostic/history queries" time="0.000783" classname="test" file="packages\vscode-extension\test\canonical-model-input-host.test.cjs"/>
+	<testcase name="real readback child refuses inference before launching the CLI" time="4.295337" classname="test" file="packages\vscode-extension\test\canonical-model-input-host.test.cjs"/>
+	<testcase name="native session handoff binds the exact canonical journal and omits extra fields" time="0.003193" classname="test" file="packages\vscode-extension\test\canonical-model-input-host.test.cjs"/>
+	<testcase name="uses the unambiguous CLI name before asynchronous resolution completes" time="0.039724" classname="test" file="packages\vscode-extension\test\cli-binary.test.cjs"/>
+	<testcase name="explicit active CLI paths win before bridge startup and over a cached global binary" time="0.000443" classname="test" file="packages\vscode-extension\test\cli-binary.test.cjs"/>
+	<testcase name="prefers the long npm bin over a shadowing cc executable" time="0.001151" classname="test" file="packages\vscode-extension\test\cli-binary.test.cjs"/>
+	<testcase name="still falls back to a valid cc alias when the long name is unavailable" time="0.000469" classname="test" file="packages\vscode-extension\test\cli-binary.test.cjs"/>
+	<testcase name="uses the extension release recommendation for the startup CLI nudge" time="0.000616" classname="test" file="packages\vscode-extension\test\cli-version-check.test.cjs"/>
+	<testcase name="does not nudge when the installed CLI matches the recommendation" time="0.000130" classname="test" file="packages\vscode-extension\test\cli-version-check.test.cjs"/>
+	<testcase name="consumes the shared projection/action/result fixture fail closed" time="0.001397" classname="test" file="packages\vscode-extension\test\delivery-workflow.test.cjs"/>
+	<testcase name="renders the complete delivery path, failure mapping and immutable evidence" time="0.000799" classname="test" file="packages\vscode-extension\test\delivery-workflow.test.cjs"/>
+	<testcase name="controller requests and settles only through exact delivery-step bindings" time="0.002754" classname="test" file="packages\vscode-extension\test\delivery-workflow.test.cjs"/>
+	<testcase name="revision and result/effect changes invalidate confirmations before step" time="0.001103" classname="test" file="packages\vscode-extension\test\delivery-workflow.test.cjs"/>
+	<testcase name="load and confirmation failures clear stale actions but retain the selected path" time="0.000498" classname="test" file="packages\vscode-extension\test\delivery-workflow.test.cjs"/>
+	<testcase name="builds legacy and CAS-bound CLI argv without any provider command" time="0.000850" classname="test" file="packages\vscode-extension\test\delivery-workflow.test.cjs"/>
+	<testcase name="profile rejects partial deployment, relative paths, arbitrary environment injection and invalid JSON" time="0.003379" classname="test" file="packages\vscode-extension\test\evolution-workbench-profile.test.cjs"/>
+	<testcase name="profile uses a separate process, reuses unchanged configuration and closes on switch/disposal" time="0.002612" classname="test" file="packages\vscode-extension\test\evolution-workbench-profile.test.cjs"/>
+	<testcase name="Evolution Workbench notices ship with Simplified Chinese localization" time="0.001036" classname="test" file="packages\vscode-extension\test\evolution-workbench-view.test.cjs"/>
+	<testcase name="Evolution Workbench explains an unavailable CLI deployment without issuing RPC" time="0.000645" classname="test" file="packages\vscode-extension\test\evolution-workbench-view.test.cjs"/>
+	<testcase name="Evolution Workbench rejects an available deployment without list capability" time="0.000563" classname="test" file="packages\vscode-extension\test\evolution-workbench-view.test.cjs"/>
+	<testcase name="unavailable Workbench offers setup without calling Workbench RPC" time="0.000275" classname="test" file="packages\vscode-extension\test\evolution-workbench-view.test.cjs"/>
+	<testcase name="Evolution Workbench explains how to enable a disabled App Server pilot" time="0.000196" classname="test" file="packages\vscode-extension\test\evolution-workbench-view.test.cjs"/>
+	<testcase name="Evolution Workbench honors a read-only method capability" time="0.000399" classname="test" file="packages\vscode-extension\test\evolution-workbench-view.test.cjs"/>
+	<testcase name="Evolution Workbench IDE shows verified details without a writer" time="0.000201" classname="test" file="packages\vscode-extension\test\evolution-workbench-view.test.cjs"/>
+	<testcase name="Evolution Workbench IDE binds a pending review to exact packet and reason" time="0.000247" classname="test" file="packages\vscode-extension\test\evolution-workbench-view.test.cjs"/>
+	<testcase name="Evolution Workbench IDE rolls active content back only to an approved target" time="0.000328" classname="test" file="packages\vscode-extension\test\evolution-workbench-view.test.cjs"/>
+	<testcase name="Evolution Workbench IDE rejects an unverified projection before UI actions" time="0.000560" classname="test" file="packages\vscode-extension\test\evolution-workbench-view.test.cjs"/>
+	<testcase name="loopback diagnostics reject non-local targets before creating sockets" time="0.001333" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="loopback diagnostic connects and closes a real IPv4 listener" time="0.025386" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="host failure diagnostics archive independent runtime receipts without environment" time="2.065959" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="host driver preserves the first failure receipt without capturing surrounding state" time="0.012178" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="transient VS Code download failures retry without broadening the allowlist" time="0.001151" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="non-network VS Code host failures remain fail-closed" time="0.000562" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="extension-host runner accepts an explicit evidence directory" time="0.001744" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="extension-host runner resolves the downloaded host's exact version" time="0.009520" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="configured host requires an exact matching distribution and native CLI" time="0.009948" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="configured CLI preserves literal arguments and rejects failed or hung processes" time="2.141444" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="host version resolves from the test-electron Windows archive directory" time="0.001605" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="fresh host profile root stays within the macOS Unix-socket budget" time="0.001053" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="host phases share installed extensions but isolate user-data profiles" time="0.000634" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="native crash diagnostics use a local per-phase directory outside immutable evidence" time="0.000478" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="real host fixture opens an ordered two-root workspace with shared settings" time="0.003589" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="real host fixture creates an isolated companion-window workspace" time="0.001718" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="companion host launch reuses the isolated profile in a new window" time="0.000503" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="multi-window lock selection binds distinct exact workspace identities" time="0.002942" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="multi-window evidence requires simultaneous distinct sanitized identities" time="0.003368" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="host-ready evidence binds the exact ordered multi-root workspace" time="0.004912" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="host progress journal survives before immutable evidence exists" time="0.001631" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="completed hosts need no managed shutdown after CDP settles" time="0.000203" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="hung hosts are shut down after the CDP deadline" time="0.008099" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="activation-ready failures force a bounded managed-host shutdown" time="0.012930" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="diagnostic discovery is limited to release-relevant host logs" time="0.003121" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="real-DOM host phase is loopback-only and keeps the fresh profile args" time="0.000540" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="host-API launch keeps the real extension-test profile without CDP" time="0.000538" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="external companion launch uses a distinct real VS Code profile" time="0.000525" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="multi-window gate uses a dedicated host-API profile and explicit contract" time="0.003200" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="non-Windows multi-window gate orchestrates two bounded real hosts" time="0.004528" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="macOS multi-window gate retries a primary activation timeout once" time="0.132749" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="macOS DOM relay launches without a debugger transport" time="0.106440" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="release real-host journeys use one main-world DOM relay on every OS" time="0.000158" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="macOS fallback driver exposes one fixed command and deduplicates the journey" time="0.000402" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="macOS real-DOM host uses the loopback Electron inspector" time="0.000668" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="CDP pipe transport frames browser commands with NUL delimiters" time="0.000653" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="pipe host launch inherits Chromium's FD 3/4 contract" time="0.000442" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="managed host launch owns bounded process termination" time="0.000375" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="host-API evidence proves both fresh host launches in order" time="0.006960" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="captures only the expected loopback DevTools browser endpoint" time="0.001342" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="captures only the expected loopback Electron inspector endpoint" time="0.000486" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="Electron inspector client evaluates and captures the real WebContents" time="0.000210" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="Electron inspector scan bounds stalled WebContents probes" time="1.512270" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="CDP websocket handshake binds its Origin to the loopback endpoint" time="0.000225" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="browser discovery inspects renderable targets and excludes workers" time="0.000080" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="workbench discovery attaches through the browser Target domain" time="0.000326" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="CDP child sessions preserve flattened target identity" time="0.000300" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="CDP workbench actions accept the real main-world prompt before polling" time="0.031312" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="CDP workbench dialog acceptance fails closed on non-transient errors" time="0.000343" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="CDP websocket failures retain the handshake diagnostic" time="0.000280" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="host phase signals are phase-scoped and reject unknown phases" time="0.000723" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="host ready is not blocked by VS Code's pending chat focus promise" time="0.000334" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="pending activity reveal settlement defers to the downstream host proof" time="0.014132" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="macOS host activation targets the outer app bundle without a shell" time="0.000374" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="macOS DOM relay can require the real chat focus command to settle" time="0.000149" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="fixture CLI wrappers are isolated and cannot overwrite an existing shim" time="0.002114" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="journey results are atomic, phase-bound, and fail closed" time="0.001302" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="raw DOM and protocol evidence must prove every control and restart step" time="0.019235" classname="test" file="packages\vscode-extension\test\extension-host-runner.test.cjs"/>
+	<testcase name="generated turn-end UI displays safe error codes and phases as plain text" time="0.003082" classname="test" file="packages\vscode-extension\test\host-dom-relay.test.cjs"/>
+	<testcase name="host mode selection uses a fixed permission-mode allowlist" time="0.000600" classname="test" file="packages\vscode-extension\test\host-dom-relay.test.cjs"/>
+	<testcase name="recovery evidence rejects missing restart proof, duplicate rows, foreground completion and replayed drafts" time="0.021291" classname="test" file="packages\vscode-extension\test\host-dom-relay.test.cjs"/>
+	<testcase name="host DOM relay is token-gated and only accepts fixed semantic actions" time="0.000653" classname="test" file="packages\vscode-extension\test\host-dom-relay.test.cjs"/>
+	<testcase name="streaming evidence rejects forged timing summaries and missing selection/parse proof" time="0.022877" classname="test" file="packages\vscode-extension\test\host-dom-relay.test.cjs"/>
+	<testcase name="streaming stage timings exclude stream frames and retain DOM/selection overhead" time="0.001882" classname="test" file="packages\vscode-extension\test\host-dom-relay.test.cjs"/>
+	<testcase name="stream profile replaces a Chromium collapsed caret and restores it after cancelling queued frames" time="0.001163" classname="test" file="packages\vscode-extension\test\host-dom-relay.test.cjs"/>
+	<testcase name="stream profile fails closed when the target prefix was not actually selected" time="0.000629" classname="test" file="packages\vscode-extension\test\host-dom-relay.test.cjs"/>
+	<testcase name="stream profile fails closed when visibility is lost during sampling" time="0.000656" classname="test" file="packages\vscode-extension\test\host-dom-relay.test.cjs"/>
+	<testcase name="stream profile bounds a suspended renderer before modifying the transcript" time="0.000635" classname="test" file="packages\vscode-extension\test\host-dom-relay.test.cjs"/>
+	<testcase name="stream profile frame deadline cleans up after sampling starts" time="0.000637" classname="test" file="packages\vscode-extension\test\host-dom-relay.test.cjs"/>
+	<testcase name="a late animation callback cannot sample after the deadline ahead of an overdue timer" time="0.000640" classname="test" file="packages\vscode-extension\test\host-dom-relay.test.cjs"/>
+	<testcase name="chat HTML keeps the relay inert without a valid launch token" time="0.003734" classname="test" file="packages\vscode-extension\test\host-dom-relay.test.cjs"/>
+	<testcase name="image DOM actions require the exact token and request identity before dispatch" time="0.001875" classname="test" file="packages\vscode-extension\test\host-dom-relay.test.cjs"/>
+	<testcase name="generated stream relay authenticates cancellation and prevents overlapping measurements" time="0.001275" classname="test" file="packages\vscode-extension\test\host-dom-relay.test.cjs"/>
+	<testcase name="finishing an image read immediately replaces the stale saved indication with saving" time="0.000844" classname="test" file="packages\vscode-extension\test\host-dom-relay.test.cjs"/>
+	<testcase name="text-only or stale image ACKs cannot authorize unvalidated image previews" time="0.000661" classname="test" file="packages\vscode-extension\test\host-dom-relay.test.cjs"/>
+	<testcase name="attachment evidence hashes rendered bytes without exporting sources or hiding decode failures" time="0.007045" classname="test" file="packages\vscode-extension\test\host-dom-relay.test.cjs"/>
+	<testcase name="chat composer gives the input and controls separate responsive rows" time="0.000349" classname="test" file="packages\vscode-extension\test\host-dom-relay.test.cjs"/>
+	<testcase name="chat HTML accepts agent activity before routing every known event" time="0.000221" classname="test" file="packages\vscode-extension\test\host-dom-relay.test.cjs"/>
+	<testcase name="conversation manager retains and resolves multiple interactive cards" time="0.000299" classname="test" file="packages\vscode-extension\test\host-dom-relay.test.cjs"/>
+	<testcase name="ChatViewProvider rehydrates questions and preserves approval bindings" time="0.002938" classname="test" file="packages\vscode-extension\test\host-dom-relay.test.cjs"/>
+	<testcase name="VS Code settles approvals against the shared HumanTask conformance fixture" time="0.033535" classname="test" file="packages\vscode-extension\test\host-dom-relay.test.cjs"/>
+	<testcase name="VS Code rolls back a local approval reservation when transport rejects it" time="0.000275" classname="test" file="packages\vscode-extension\test\host-dom-relay.test.cjs"/>
+	<testcase name="chat HTML exposes keyboard and screen-reader semantics" time="0.001258" classname="test" file="packages\vscode-extension\test\host-dom-relay.test.cjs"/>
+	<testcase name="transcript announcements are classified, whitespace-normalized, and bounded" time="0.000195" classname="test" file="packages\vscode-extension\test\host-dom-relay.test.cjs"/>
+	<testcase name="chat transcript retains only the newest 800 of 2,000 message nodes" time="0.000490" classname="test" file="packages\vscode-extension\test\host-dom-relay.test.cjs"/>
+	<testcase name="64 MiB transcript entries retain bounded head and tail with a visible marker" time="0.000585" classname="test" file="packages\vscode-extension\test\host-dom-relay.test.cjs"/>
+	<testcase name="first tab activation preserves a bootstrap prompt for retry" time="0.000335" classname="test" file="packages\vscode-extension\test\host-dom-relay.test.cjs"/>
+	<testcase name="ChatViewProvider correlates a token-authenticated DOM response" time="0.000438" classname="test" file="packages\vscode-extension\test\host-dom-relay.test.cjs"/>
+	<testcase name="ChatViewProvider reveals a suspended relay view once and reports readiness state" time="0.000139" classname="test" file="packages\vscode-extension\test\host-dom-relay.test.cjs"/>
+	<testcase name="stream profile relay has a fixed bounded deadline, authenticated progress and cancellation" time="0.000656" classname="test" file="packages\vscode-extension\test\host-dom-relay.test.cjs"/>
+	<testcase name="disposing a diagnostic relay sends profile cancellation before rejecting" time="0.000177" classname="test" file="packages\vscode-extension\test\host-dom-relay.test.cjs"/>
+	<testcase name="stream profile driver preserves warmup and failed-case diagnostics without starting another case" time="0.002336" classname="test" file="packages\vscode-extension\test\host-dom-relay.test.cjs"/>
+	<testcase name="token-gated fresh Webviews do not self-reload during cold startup" time="0.000194" classname="test" file="packages\vscode-extension\test\host-dom-relay.test.cjs"/>
+	<testcase name="DOM relay driver produces the same auditable phase ledger and snapshots" time="0.033385" classname="test" file="packages\vscode-extension\test\host-dom-relay.test.cjs"/>
+	<testcase name="ARM64 host reruns download the successful producer's immutable candidate" time="0.181976" classname="test" file="packages\vscode-extension\test\ide-arm64-validation.test.cjs"/>
+	<testcase name="a complete 11-cell IDE ARM64 evidence set produces one immutable aggregate" time="0.190194" classname="test" file="packages\vscode-extension\test\ide-arm64-validation.test.cjs"/>
+	<testcase name="the IDE ARM64 aggregate rejects a missing matrix cell" time="0.012638" classname="test" file="packages\vscode-extension\test\ide-arm64-validation.test.cjs"/>
+	<testcase name="the IDE ARM64 aggregate uses the newest evidence for a failed-job rerun" time="0.022201" classname="test" file="packages\vscode-extension\test\ide-arm64-validation.test.cjs"/>
+	<testcase name="the IDE ARM64 aggregate rejects a self-consistent wrong architecture" time="0.018507" classname="test" file="packages\vscode-extension\test\ide-arm64-validation.test.cjs"/>
+	<testcase name="the IDE ARM64 aggregate rejects a nonexistent Windows compatibility cell" time="0.017843" classname="test" file="packages\vscode-extension\test\ide-arm64-validation.test.cjs"/>
+	<testcase name="the IDE ARM64 aggregate rehashes path-backed host artifacts" time="0.020187" classname="test" file="packages\vscode-extension\test\ide-arm64-validation.test.cjs"/>
+	<testcase name="the JetBrains host runner accepts exact four-component IDE versions" time="0.104697" classname="test" file="packages\vscode-extension\test\ide-arm64-validation.test.cjs"/>
+	<testcase name="the ARM64 workflow binds exact hosts, versions, and aggregate evidence" time="0.023411" classname="test" file="packages\vscode-extension\test\ide-arm64-validation.test.cjs"/>
+	<testcase name="test\ide-doctor.test.cjs" time="1.551312" classname="test" file="packages\vscode-extension\test\ide-doctor.test.cjs"/>
+	<testcase name="cross-process upserts retain every session" time="2.738140" classname="test" file="packages\vscode-extension\test\ide-session-index.test.cjs"/>
+	<testcase name="a busy index lock fails closed without writing" time="0.002026" classname="test" file="packages\vscode-extension\test\ide-session-index.test.cjs"/>
+	<testcase name="a corrupt index is preserved instead of replaced" time="0.001784" classname="test" file="packages\vscode-extension\test\ide-session-index.test.cjs"/>
+	<testcase name="admits exactly 40 million decoded pixels including the APNG fallback" time="0.072338" classname="test" file="packages\vscode-extension\test\image-decode-budget.test.cjs"/>
+	<testcase name="rejects an APNG whose fallback alone pushes total decoded pixels over budget" time="0.045359" classname="test" file="packages\vscode-extension\test\image-decode-budget.test.cjs"/>
+	<testcase name="LLM setup keeps the API key out of argv and uses the resolved CLI" time="0.005871" classname="test" file="packages\vscode-extension\test\llm-config.test.cjs"/>
+	<testcase name="ordinary config writes never include the API key" time="0.000436" classname="test" file="packages\vscode-extension\test\llm-config.test.cjs"/>
+	<testcase name="overridden config roots never read credentials from the default user profile" time="0.000323" classname="test" file="packages\vscode-extension\test\llm-config.test.cjs"/>
+	<testcase name="onboarding reads an existing provider even while the CLI is unavailable, without exposing the key" time="0.000956" classname="test" file="packages\vscode-extension\test\llm-config.test.cjs"/>
+	<testcase name="only an authoritative unset provider is classified as unconfigured" time="0.000468" classname="test" file="packages\vscode-extension\test\llm-config.test.cjs"/>
+	<testcase name="onboarding does not call a repairing CLI fallback for corrupt or unreadable files" time="0.000480" classname="test" file="packages\vscode-extension\test\llm-config.test.cjs"/>
+	<testcase name="overridden roots use the CLI's read-only capability diagnostic and preserve the override" time="0.000405" classname="test" file="packages\vscode-extension\test\llm-config.test.cjs"/>
+	<testcase name="a missing file may use a valid CLI diagnostic without a model request" time="0.000236" classname="test" file="packages\vscode-extension\test\llm-config.test.cjs"/>
+	<testcase name="failed, unsupported and malformed CLI diagnostics never mean unconfigured" time="0.000436" classname="test" file="packages\vscode-extension\test\llm-config.test.cjs"/>
+	<testcase name="test\lockfile-acl.test.cjs" time="2.507422" classname="test" file="packages\vscode-extension\test\lockfile-acl.test.cjs"/>
+	<testcase name="keeps the checked-in Marketplace overview coherent with the release manifests" time="0.058840" classname="test" file="packages\vscode-extension\test\marketplace-overview.test.cjs"/>
+	<testcase name="checks neutral source pairing without declaring a new public release" time="0.001545" classname="test" file="packages\vscode-extension\test\marketplace-overview.test.cjs"/>
+	<testcase name="neutral pairing still checks exact source versions and public history" time="0.002689" classname="test" file="packages\vscode-extension\test\marketplace-overview.test.cjs"/>
+	<testcase name="neutral pairing cannot mix candidate declarations, duplicate headings or hidden declarations" time="0.001707" classname="test" file="packages\vscode-extension\test\marketplace-overview.test.cjs"/>
+	<testcase name="neutral pairing rejects duplicate declarations and downgrades from public versions" time="0.001118" classname="test" file="packages\vscode-extension\test\marketplace-overview.test.cjs"/>
+	<testcase name="keeps the public recommendation independent from a newer source candidate" time="0.000450" classname="test" file="packages\vscode-extension\test\marketplace-overview.test.cjs"/>
+	<testcase name="checks an unpublished IDE candidate separately from the current public pairing" time="0.000790" classname="test" file="packages\vscode-extension\test\marketplace-overview.test.cjs"/>
+	<testcase name="accepts an already published CLI for an unpublished IDE candidate" time="0.000570" classname="test" file="packages\vscode-extension\test\marketplace-overview.test.cjs"/>
+	<testcase name="rejects a candidate whose versions differ from the extension manifest" time="0.000579" classname="test" file="packages\vscode-extension\test\marketplace-overview.test.cjs"/>
+	<testcase name="rejects a candidate recommendation that differs from the extension manifest" time="0.000632" classname="test" file="packages\vscode-extension\test\marketplace-overview.test.cjs"/>
+	<testcase name="rejects a candidate section that claims the IDE is already published" time="0.000433" classname="test" file="packages\vscode-extension\test\marketplace-overview.test.cjs"/>
+	<testcase name="rejects a candidate heading duplicated, moved after Current release, or hidden in a fence" time="0.000510" classname="test" file="packages\vscode-extension\test\marketplace-overview.test.cjs"/>
+	<testcase name="requires the current public pair to agree with its release metadata" time="0.000388" classname="test" file="packages\vscode-extension\test\marketplace-overview.test.cjs"/>
+	<testcase name="does not infer the current public pair from a historical release" time="0.000388" classname="test" file="packages\vscode-extension\test\marketplace-overview.test.cjs"/>
+	<testcase name="rejects a recommendation newer than the checked-out source candidate" time="0.000345" classname="test" file="packages\vscode-extension\test\marketplace-overview.test.cjs"/>
+	<testcase name="rejects README metadata that drifts from the declared recommendation" time="0.000396" classname="test" file="packages\vscode-extension\test\marketplace-overview.test.cjs"/>
+	<testcase name="allows historical release references outside the current overview" time="0.000346" classname="test" file="packages\vscode-extension\test\marketplace-overview.test.cjs"/>
+	<testcase name="rejects historical tags inside the current status block" time="0.000380" classname="test" file="packages\vscode-extension\test\marketplace-overview.test.cjs"/>
+	<testcase name="requires a nonempty current release status marker" time="0.000269" classname="test" file="packages\vscode-extension\test\marketplace-overview.test.cjs"/>
+	<testcase name="uses the canonical read-only CLI view and rejects command-line injection IDs" time="0.001995" classname="test" file="packages\vscode-extension\test\model-input-diagnostics.test.cjs"/>
+	<testcase name="projects safe fields and rejects mismatched sessions, unsupported shapes and forged confidence" time="0.001438" classname="test" file="packages\vscode-extension\test\model-input-diagnostics.test.cjs"/>
+	<testcase name="projects bounded per-source mappings without exposing source payloads" time="0.002423" classname="test" file="packages\vscode-extension\test\model-input-diagnostics.test.cjs"/>
+	<testcase name="displays a text-only snapshot for the current session without unknown raw fields" time="0.000797" classname="test" file="packages\vscode-extension\test\model-input-diagnostics.test.cjs"/>
+	<testcase name="never dispatches without an active session and treats empty records as unavailable coverage" time="0.000329" classname="test" file="packages\vscode-extension\test\model-input-diagnostics.test.cjs"/>
+	<testcase name="suppresses stale results after a session switch" time="0.000267" classname="test" file="packages\vscode-extension\test\model-input-diagnostics.test.cjs"/>
+	<testcase name="never displays stdout or stderr from failed, old or malformed CLI output" time="0.000429" classname="test" file="packages\vscode-extension\test\model-input-diagnostics.test.cjs"/>
+	<testcase name="contributes an actual command wired to the active conversation" time="0.064028" classname="test" file="packages\vscode-extension\test\model-input-diagnostics.test.cjs"/>
+	<testcase name="rechecks session ownership after asynchronously creating the document" time="0.000501" classname="test" file="packages\vscode-extension\test\model-input-diagnostics.test.cjs"/>
+	<testcase name="native executable queries preserve exact argv without batch-shell escaping" time="2.198521" classname="test" file="packages\vscode-extension\test\model-input-diagnostics.test.cjs"/>
+	<testcase name="rejects a foreign-session ACK even when request and mode match" time="0.004215" classname="test" file="packages\vscode-extension\test\permission-mode-state.test.cjs"/>
+	<testcase name="accepts the same ACK when it belongs to the current session" time="0.000384" classname="test" file="packages\vscode-extension\test\permission-mode-state.test.cjs"/>
+	<testcase name="test\pr-status-view.test.cjs" time="2.474710" classname="test" file="packages\vscode-extension\test\pr-status-view.test.cjs"/>
+	<testcase name="test\preview.test.cjs" time="2.476849" classname="test" file="packages\vscode-extension\test\preview.test.cjs"/>
+	<testcase name="UI result binds session, role, raw source and rendered text on one row" time="0.000748" classname="test" file="packages\vscode-extension\test\protocol-capture.test.cjs"/>
+	<testcase name="active protocol reader tolerates only a final incomplete line" time="0.004595" classname="test" file="packages\vscode-extension\test\protocol-capture.test.cjs"/>
+	<testcase name="captures actual pipe input/output and drained exit with a retained descriptor" time="2.223416" classname="test" file="packages\vscode-extension\test\protocol-capture.test.cjs"/>
+	<testcase name="capture refuses relative directories and directory junctions" time="0.001790" classname="test" file="packages\vscode-extension\test\protocol-capture.test.cjs"/>
+	<testcase name="terminal reader rejects selecting one success from multiple results" time="0.000203" classname="test" file="packages\vscode-extension\test\protocol-capture.test.cjs"/>
+	<testcase name="live launcher rejects expired deadlines and profiles inside candidate workspace" time="0.002625" classname="test" file="packages\vscode-extension\test\protocol-capture.test.cjs"/>
+	<testcase name="JetBrains release hosts use the platform-required Java 21 toolchain" time="0.111297" classname="test" file="packages\vscode-extension\test\release-workflow-contract.test.cjs"/>
+	<testcase name="every IDE gate checks out and records the exact source commit" time="0.000725" classname="test" file="packages\vscode-extension\test\release-workflow-contract.test.cjs"/>
+	<testcase name="JetBrains host matrix gates both original controls and canonical Stop recovery" time="0.000331" classname="test" file="packages\vscode-extension\test\release-workflow-contract.test.cjs"/>
+	<testcase name="VS Code channel credentials are checked before their immutable publishes" time="0.000269" classname="test" file="packages\vscode-extension\test\release-workflow-contract.test.cjs"/>
+	<testcase name="one immutable VSIX candidate gates every release host and publisher" time="0.001012" classname="test" file="packages\vscode-extension\test\release-workflow-contract.test.cjs"/>
+	<testcase name="IDE release tags are isolated and manual Marketplace backfill is tag-bound" time="0.000582" classname="test" file="packages\vscode-extension\test\release-workflow-contract.test.cjs"/>
+	<testcase name="VS Code host gates pin macOS Intel and share the main-world relay" time="0.010665" classname="test" file="packages\vscode-extension\test\release-workflow-contract.test.cjs"/>
+	<testcase name="LAN consent can only be configured at machine scope" time="0.000875" classname="test" file="packages\vscode-extension\test\remote-control-host.test.cjs"/>
+	<testcase name="LAN exposure is emitted only for a strict explicit opt-in" time="0.000820" classname="test" file="packages\vscode-extension\test\remote-control-host.test.cjs"/>
+	<testcase name="direct pairing is fail-closed unless CLI explicitly reports LAN exposure" time="0.001914" classname="test" file="packages\vscode-extension\test\remote-control-host.test.cjs"/>
+	<testcase name="VS Code defaults to loopback and does not offer a phone QR" time="0.009353" classname="test" file="packages\vscode-extension\test\remote-control-host.test.cjs"/>
+	<testcase name="VS Code passes --allow-lan only when its setting is true" time="0.000962" classname="test" file="packages\vscode-extension\test\remote-control-host.test.cjs"/>
+	<testcase name="shared runtime fixture covers every user-facing outcome" time="0.000940" classname="test" file="packages\vscode-extension\test\runtime-compatibility.test.cjs"/>
+	<testcase name="shared runtime fixture: ready above floor" time="0.000402" classname="test" file="packages\vscode-extension\test\runtime-compatibility.test.cjs"/>
+	<testcase name="shared runtime fixture: ready exactly at floor and trust unknown" time="0.000124" classname="test" file="packages\vscode-extension\test\runtime-compatibility.test.cjs"/>
+	<testcase name="shared runtime fixture: bridge stopped degrades" time="0.000072" classname="test" file="packages\vscode-extension\test\runtime-compatibility.test.cjs"/>
+	<testcase name="shared runtime fixture: restricted workspace degrades" time="0.000066" classname="test" file="packages\vscode-extension\test\runtime-compatibility.test.cjs"/>
+	<testcase name="shared runtime fixture: outdated CLI requires repair" time="0.000069" classname="test" file="packages\vscode-extension\test\runtime-compatibility.test.cjs"/>
+	<testcase name="shared runtime fixture: missing CLI requires repair and preserves bridge reason" time="0.000046" classname="test" file="packages\vscode-extension\test\runtime-compatibility.test.cjs"/>
+	<testcase name="shared runtime fixture: shadowed compiler is not accepted as cc" time="0.000050" classname="test" file="packages\vscode-extension\test\runtime-compatibility.test.cjs"/>
+	<testcase name="shared runtime fixture: version alone does not prove runtime readiness" time="0.000069" classname="test" file="packages\vscode-extension\test\runtime-compatibility.test.cjs"/>
+	<testcase name="shared runtime fixture: initializing session is unconfirmed" time="0.000114" classname="test" file="packages\vscode-extension\test\runtime-compatibility.test.cjs"/>
+	<testcase name="shared runtime fixture: receipt degradation" time="0.000080" classname="test" file="packages\vscode-extension\test\runtime-compatibility.test.cjs"/>
+	<testcase name="shared runtime fixture: pending approval acknowledgement" time="0.000056" classname="test" file="packages\vscode-extension\test\runtime-compatibility.test.cjs"/>
+	<testcase name="shared runtime fixture: missing approval acknowledgement" time="0.000183" classname="test" file="packages\vscode-extension\test\runtime-compatibility.test.cjs"/>
+	<testcase name="token-gated Workbench relay exposes only fixed rendered-DOM semantics" time="0.004793" classname="test" file="packages\vscode-extension\test\sessions-view-delivery.test.cjs"/>
+	<testcase name="Workbench open-state probe tracks panel disposal" time="0.000246" classname="test" file="packages\vscode-extension\test\sessions-view-delivery.test.cjs"/>
+	<testcase name="Workbench page names controls, regions and loading state" time="0.000189" classname="test" file="packages\vscode-extension\test\sessions-view-delivery.test.cjs"/>
+	<testcase name="ready handshake routes exact revision/effect-bound delivery actions" time="0.001678" classname="test" file="packages\vscode-extension\test\sessions-view-delivery.test.cjs"/>
+	<testcase name="stale revision recheck routes no step and removes rendered actions" time="0.000638" classname="test" file="packages\vscode-extension\test\sessions-view-delivery.test.cjs"/>
+	<testcase name="refresh failure clears stale actions while preserving a retry path" time="0.000443" classname="test" file="packages\vscode-extension\test\sessions-view-delivery.test.cjs"/>
+	<testcase name="a late initial projection cannot overwrite a newer explicit refresh" time="0.008111" classname="test" file="packages\vscode-extension\test\sessions-view-refresh.test.cjs"/>
+	<testcase name="disposing a panel prevents its pending read from publishing rows" time="0.000982" classname="test" file="packages\vscode-extension\test\sessions-view-refresh.test.cjs"/>
+	<testcase name="periodic refresh waits for the action's existing canonical refresh" time="0.009517" classname="test" file="packages\vscode-extension\test\sessions-view-refresh.test.cjs"/>
+	<testcase name="a read started before dispatch cannot overwrite the post-mutation revision" time="0.002424" classname="test" file="packages\vscode-extension\test\sessions-view-refresh.test.cjs"/>
+	<testcase name="a timer during the post-mutation read does not queue a redundant read" time="0.001787" classname="test" file="packages\vscode-extension\test\sessions-view-refresh.test.cjs"/>
+	<testcase name="an old pending action cannot suppress or refresh a reopened panel" time="0.001766" classname="test" file="packages\vscode-extension\test\sessions-view-refresh.test.cjs"/>
+	<testcase name="deployment admission remains distinct from runtime verification and old CLI output" time="0.000689" classname="test" file="packages\vscode-extension\test\settings-panels.test.cjs"/>
+	<testcase name="deployment webview renders literal diagnostics and clears readiness on an older response" time="0.123915" classname="test" file="packages\vscode-extension\test\settings-panels.test.cjs"/>
+	<testcase name="deployment panel forwards admission and refreshes older CLI responses without invoking remediation" time="0.013110" classname="test" file="packages\vscode-extension\test\settings-panels.test.cjs"/>
+	<testcase name="Workbench panel negotiates capabilities and rejects stale UI approval" time="0.001290" classname="test" file="packages\vscode-extension\test\settings-panels.test.cjs"/>
+	<testcase name="Workbench unavailable panel exposes configuration without Workbench calls" time="0.000351" classname="test" file="packages\vscode-extension\test\settings-panels.test.cjs"/>
+	<testcase name="Workbench bounds startup, enables retry and ignores a late previous connection" time="0.012072" classname="test" file="packages\vscode-extension\test\settings-panels.test.cjs"/>
+	<testcase name="Workbench replays loading state to a reloaded webview and bounds a stalled list" time="0.000834" classname="test" file="packages\vscode-extension\test\settings-panels.test.cjs"/>
+	<testcase name="Workbench reads and reviews candidates beyond the first CLI page" time="0.002012" classname="test" file="packages\vscode-extension\test\settings-panels.test.cjs"/>
+	<testsuite name="Workbench rejects missing, repeated or changing CLI pages before showing candidates" time="0.003257" disabled="0" errors="0" tests="6" failures="0" skipped="0" hostname="DESKTOP-TFPBTD2">
+		<testcase name="missing" time="0.000445" classname="test" file="packages\vscode-extension\test\settings-panels.test.cjs"/>
+		<testcase name="duplicate" time="0.000524" classname="test" file="packages\vscode-extension\test\settings-panels.test.cjs"/>
+		<testcase name="digest" time="0.000425" classname="test" file="packages\vscode-extension\test\settings-panels.test.cjs"/>
+		<testcase name="governance" time="0.000380" classname="test" file="packages\vscode-extension\test\settings-panels.test.cjs"/>
+		<testcase name="count" time="0.000666" classname="test" file="packages\vscode-extension\test\settings-panels.test.cjs"/>
+		<testcase name="oversized" time="0.000284" classname="test" file="packages\vscode-extension\test\settings-panels.test.cjs"/>
+	</testsuite>
+	<testcase name="custom relays require a scoped key, allow arbitrary model aliases, and reject malformed endpoints" time="0.000524" classname="test" file="packages\vscode-extension\test\settings-panels.test.cjs"/>
+	<testcase name="LLM webview preserves saved aliases and applies recommendations only on preset selection" time="0.111397" classname="test" file="packages\vscode-extension\test\settings-panels.test.cjs"/>
+	<testcase name="LLM panel never returns an existing or newly submitted key to the webview" time="0.000880" classname="test" file="packages\vscode-extension\test\settings-panels.test.cjs"/>
+	<testcase name="LLM panel reports unconfirmed writes when a successful CLI exit reads back old configuration" time="0.000267" classname="test" file="packages\vscode-extension\test\settings-panels.test.cjs"/>
+	<testcase name="atomic LLM configuration travels over stdin, including script entrypoints" time="0.000467" classname="test" file="packages\vscode-extension\test\settings-panels.test.cjs"/>
+	<testcase name="skill entry loads a read-only catalog before any search or prompt" time="0.000550" classname="test" file="packages\vscode-extension\test\settings-panels.test.cjs"/>
+	<testcase name="skill catalog rejects malformed or oversized output" time="0.003215" classname="test" file="packages\vscode-extension\test\settings-panels.test.cjs"/>
+	<testcase name="workbench never reports refreshed success after a failed post-review read" time="0.000426" classname="test" file="packages\vscode-extension\test\settings-panels.test.cjs"/>
+	<testcase name="Skill Retrieval IDE builds only the fixed read-only CLI command" time="0.000995" classname="test" file="packages\vscode-extension\test\skill-retrieval-view.test.cjs"/>
+	<testcase name="Skill Retrieval IDE command is contributed, registered, and localized" time="0.218118" classname="test" file="packages\vscode-extension\test\skill-retrieval-view.test.cjs"/>
+	<testcase name="Skill Retrieval IDE uses the runner's bounded large-result buffer" time="0.000680" classname="test" file="packages\vscode-extension\test\skill-retrieval-view.test.cjs"/>
+	<testcase name="Skill Retrieval IDE rejects drift and duplicate candidate evidence" time="0.000735" classname="test" file="packages\vscode-extension\test\skill-retrieval-view.test.cjs"/>
+	<testcase name="Skill Retrieval IDE accepts v2 environment classifications and keeps v1 readable" time="0.000257" classname="test" file="packages\vscode-extension\test\skill-retrieval-view.test.cjs"/>
+	<testcase name="Skill Retrieval IDE accepts only witnessed bounded outcome indexes" time="0.000239" classname="test" file="packages\vscode-extension\test\skill-retrieval-view.test.cjs"/>
+	<testcase name="Skill Retrieval IDE explicitly validates vector authority evidence" time="0.000879" classname="test" file="packages\vscode-extension\test\skill-retrieval-view.test.cjs"/>
+	<testcase name="Skill Retrieval IDE inspects canonical evidence without executing a Skill" time="0.000338" classname="test" file="packages\vscode-extension\test\skill-retrieval-view.test.cjs"/>
+	<testcase name="Skill Retrieval IDE visibly abstains on canonical conflicts" time="0.000174" classname="test" file="packages\vscode-extension\test\skill-retrieval-view.test.cjs"/>
+	<testcase name="Team Monitor projects CLI 0.166.3 collaboration without private data" time="0.001413" classname="test" file="packages\vscode-extension\test\team-monitor-collaboration.test.cjs"/>
+	<testcase name="Team Monitor fails an invalid collaboration projection closed" time="0.000725" classname="test" file="packages\vscode-extension\test\team-monitor-collaboration.test.cjs"/>
+	<testcase name="live launcher accepts exactly the panel's permission modes without rewriting them" time="0.002247" classname="test" file="packages\vscode-extension\test\verify01-config.test.cjs"/>
+	<testcase name="invalid CLI permission alias fails before VSIX lookup, host launch, or capture creation" time="0.002483" classname="test" file="packages\vscode-extension\test\verify01-config.test.cjs"/>
+	<testcase name="diagnostic supervisor preserves real successful exit" time="1.105762" classname="test" file="packages\vscode-extension\test\verify01-diagnostic.test.cjs"/>
+	<testcase name="outer deadline requests bounded orderly IPC cleanup and remains failed" time="0.566261" classname="test" file="packages\vscode-extension\test\verify01-diagnostic.test.cjs"/>
+	<testcase name="unresponsive launcher is force-cleaned after bounded cancellation" time="2.989539" classname="test" file="packages\vscode-extension\test\verify01-diagnostic.test.cjs"/>
+	<testcase name="budget failure persists actual terminal and rejects before invoking an unresolved UI wait" time="0.002982" classname="test" file="packages\vscode-extension\test\verify01-terminal-outcome.test.cjs"/>
+	<testcase name="budget marker alone remains pending; system end makes missing result fail closed" time="0.000222" classname="test" file="packages\vscode-extension\test\verify01-terminal-outcome.test.cjs"/>
+	<testcase name="success still awaits real UI rendering before entering the existing recovery path" time="0.002374" classname="test" file="packages\vscode-extension\test\verify01-terminal-outcome.test.cjs"/>
+	<testcase name="missing terminal remains pending, malformed and duplicate terminal results reject" time="0.000778" classname="test" file="packages\vscode-extension\test\verify01-terminal-outcome.test.cjs"/>
+	<!-- tests 352 -->
+	<!-- suites 0 -->
+	<!-- pass 352 -->
+	<!-- fail 0 -->
+	<!-- cancelled 0 -->
+	<!-- skipped 0 -->
+	<!-- todo 0 -->
+	<!-- duration_ms 8191.4564 -->
+</testsuites>

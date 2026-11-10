@@ -216,6 +216,15 @@ const REASON_MARKER = " [storage_reason: ";
 const MARKER = " [storage_cause_codes: ";
 const STAGE_MARKER = " [storage_stage: ";
 const FAILURE_STAGES = new WeakMap();
+const FAILURE_CLOCK_WINDOWS = new WeakMap();
+const CLOCK_WINDOW_FIELDS = [
+  "windowSize",
+  "backwardCount",
+  "expiredCount",
+  "minRemainingMs",
+  "maxReadAgeMs",
+  "elapsedMs",
+];
 const ARTIFACT_TYPES = new Set([
   "source-evidence",
   "model-projection",
@@ -327,6 +336,76 @@ export function storageFailureCauseSuffix(error) {
 function ownData(value, key) {
   const descriptor = Object.getOwnPropertyDescriptor(value, key);
   return descriptor && "value" in descriptor ? descriptor.value : undefined;
+}
+
+/** Numeric observations only; this neither adjudicates nor renews a lease. */
+export function recordStorageFailureClockWindow(error, observation) {
+  try {
+    if (
+      error === null ||
+      typeof error !== "object" ||
+      types.isProxy(error) ||
+      ownData(error, "code") !== "CC_EVOLUTION_ARTIFACT_EXPIRED" ||
+      ownData(error, "message") !==
+        "artifact authority expired before ledger history release" ||
+      observation === null ||
+      typeof observation !== "object" ||
+      types.isProxy(observation) ||
+      Reflect.ownKeys(observation).length !== CLOCK_WINDOW_FIELDS.length
+    )
+      return error;
+    const safe = {};
+    for (const field of CLOCK_WINDOW_FIELDS) {
+      const value = ownData(observation, field);
+      const count = field === "windowSize" || field.endsWith("Count");
+      if (
+        count
+          ? !Number.isSafeInteger(value) || value < 0
+          : value !== null &&
+            (typeof value !== "number" ||
+              !Number.isFinite(value) ||
+              Math.abs(value) > Number.MAX_SAFE_INTEGER ||
+              (field === "elapsedMs" && value < 0))
+      )
+        return error;
+      safe[field] = value;
+    }
+    if (
+      safe.windowSize < 1 ||
+      safe.backwardCount > safe.windowSize ||
+      safe.expiredCount > safe.windowSize ||
+      safe.backwardCount + safe.expiredCount < 1
+    )
+      return error;
+    FAILURE_CLOCK_WINDOWS.set(error, Object.freeze(safe));
+  } catch {
+    // Diagnostics cannot replace the original exception.
+  }
+  return error;
+}
+
+/** Follow only bounded own-data causes; never read arbitrary error metadata. */
+export function storageFailureClockWindow(error) {
+  try {
+    const seen = new Set();
+    let current = error;
+    for (let depth = 0; depth < MAX_CAUSES; depth++) {
+      if (
+        current === null ||
+        typeof current !== "object" ||
+        types.isProxy(current) ||
+        seen.has(current)
+      )
+        break;
+      seen.add(current);
+      const observation = FAILURE_CLOCK_WINDOWS.get(current);
+      if (observation) return observation;
+      current = ownData(current, "cause");
+    }
+  } catch {
+    // Observation must never change the original error or exit outcome.
+  }
+  return null;
 }
 
 /** Preserve the original error; retain only an allow-listed branch token. */

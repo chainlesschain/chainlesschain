@@ -25,5 +25,6 @@ export {
   isTransientMcpError,
   SUPPORTED_MCP_PROTOCOL_VERSIONS,
   assertSupportedMcpProtocolVersion,
+  mcpProtocolVersionField,
   _deps,
 } from "../harness/mcp-client.js";

@@ -98,6 +98,44 @@ function extractYamlScript(workflow, anchor) {
   return scriptLines.join("\n");
 }
 
+test("native accessibility bootstrap retains download evidence before unchanged assertions", () => {
+  const workflow = fs.readFileSync(
+    path.join(
+      repoRoot,
+      ".github/workflows/ide-roadmap-accessibility-performance.yml",
+    ),
+    "utf8",
+  );
+  const bootstrap = workflow.indexOf(
+    "name: Bootstrap pinned Gradle distribution",
+  );
+  const upload = workflow.indexOf("name: Upload Gradle bootstrap evidence");
+  const measurements = workflow.indexOf(
+    "name: Measure JetBrains native Swing product surfaces",
+  );
+  assert.ok(bootstrap > 0 && upload > bootstrap && measurements > upload);
+  assert.match(
+    workflow.slice(bootstrap, upload),
+    /verify01-gradle-bootstrap\.mjs/u,
+  );
+  assert.match(workflow.slice(upload, measurements), /always\(\)/u);
+  assert.match(
+    workflow.slice(upload, measurements),
+    /if-no-files-found: error/u,
+  );
+  const assertions = workflow.slice(
+    measurements,
+    workflow.indexOf("name: Measure VS Code index"),
+  );
+  assert.match(assertions, /gradlew\.bat test --tests/u);
+  assert.match(assertions, /\.\/gradlew test --tests/u);
+  assert.match(
+    assertions,
+    /if \(\$LASTEXITCODE -ne 0\) \{ exit \$LASTEXITCODE \}/u,
+  );
+  assert.doesNotMatch(assertions, /continue-on-error|retry/iu);
+});
+
 test("CLI CI cancels superseded branch and PR matrices without rerunning release tags", () => {
   const workflow = fs.readFileSync(
     path.join(repoRoot, ".github", "workflows", "cli-ci.yml"),
@@ -1975,6 +2013,137 @@ test("auto-fix command is diagnostic-only and fails when no safe fix exists", as
     ),
   );
   assert.deepEqual(reportAfterRetry, report);
+});
+
+test("Agent Team soak installs the standalone CLI without desktop downloads", () => {
+  const workflow = fs
+    .readFileSync(
+      path.join(repoRoot, ".github/workflows/cli-team-soak.yml"),
+      "utf8",
+    )
+    .replace(/\r\n/g, "\n");
+  const install = workflow
+    .split(/^ {6}- /m)
+    .find((step) =>
+      step.startsWith(
+        "name: Install packages/cli production dependencies standalone\n",
+      ),
+    );
+  assert.ok(
+    install,
+    "Soak must install the CLI's own production dependency tree",
+  );
+  assert.match(install, /^ {8}working-directory: \.\/packages\/cli$/m);
+  assert.match(install, /^ {8}shell: bash$/m);
+  assert.match(
+    install,
+    /^ {8}run: bash "\$GITHUB_WORKSPACE\/\.github\/scripts\/ci-install-cli-production-deps\.sh"$/m,
+  );
+  assert.doesNotMatch(workflow, /uses: \.\/\.github\/actions\/setup-node-deps/);
+  assert.doesNotMatch(
+    workflow,
+    /ignore-scripts|ONNXRUNTIME|ELECTRON_SKIP|continue-on-error/,
+  );
+  for (const script of [
+    "ci-install-cli-production-deps.sh",
+    "ci-npm-retry.sh",
+  ]) {
+    assert.ok(workflow.includes(`- ".github/scripts/${script}"`));
+  }
+  const orderedSteps = [
+    "name: Canonicalize Windows system temporary directory",
+    "name: Install packages/cli production dependencies standalone",
+    "name: Bind installed source to exact soak commit",
+    "name: Run managed-process probe and deterministic Agent contract soak",
+  ].map((name) => workflow.indexOf(name));
+  assert.ok(orderedSteps.every((index) => index >= 0));
+  assert.deepEqual(
+    orderedSteps,
+    [...orderedSteps].sort((a, b) => a - b),
+  );
+  for (const contract of [
+    "os: [ubuntu-latest, windows-latest, macos-latest]",
+    "CC_TEAM_SOAK_DURATION_MINUTES: ${{ github.event_name == 'pull_request' && '0.25' || inputs.duration_minutes || '120' }}",
+    "CC_TEAM_SOAK_MAX_ROUNDS: ${{ github.event_name == 'pull_request' && '1' || '' }}",
+    "CC_TEAM_SOAK_EXPECTED_SHA: ${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}",
+    'CC_TEAM_SOAK_WORKERS: "2"',
+    "CC_TEAM_SOAK_TASKS: ${{ github.event_name == 'pull_request' && '5' || '8' }}",
+    'CC_TEAM_SOAK_CRASHES: "2"',
+    'CC_TEAM_SOAK_TTL_MS: "120000"',
+    'CC_TEAM_SOAK_MAX_RSS_MB: "1024"',
+    'CC_TEAM_SOAK_MAX_RSS_GROWTH_MB: "256"',
+    "CC_TEAM_SOAK_REQUIRE_MANAGED_AGENT: ${{ matrix.os == 'windows-latest' && 'true' || 'false' }}",
+    "run: npm run test:cli-team-soak",
+    'git hash-object --no-filters "${cli_bin}"',
+    'git hash-object --no-filters "${soak_script}"',
+  ])
+    assert.ok(workflow.includes(contract), `Lost soak contract: ${contract}`);
+});
+
+test("Agent Team soak preserves canonical Windows TEMP before standalone installation", (t) => {
+  const workflow = fs
+    .readFileSync(
+      path.join(repoRoot, ".github/workflows/cli-team-soak.yml"),
+      "utf8",
+    )
+    .replace(/\r\n/g, "\n");
+  const step = workflow
+    .split(/^ {6}- /m)
+    .find((candidate) =>
+      candidate.startsWith(
+        "name: Canonicalize Windows system temporary directory\n",
+      ),
+    );
+  assert.ok(
+    step,
+    "Standalone installation must preserve canonical Windows TEMP",
+  );
+  assert.match(step, /^ {8}if: runner\.os == 'Windows'$/m);
+  assert.match(step, /^ {8}shell: pwsh$/m);
+  const script = step.match(/node --input-type=module -e '([^\n]+)'/)?.[1];
+  assert.ok(script);
+  const sharedAction = fs.readFileSync(
+    path.join(repoRoot, ".github/actions/setup-node-deps/action.yml"),
+    "utf8",
+  );
+  assert.equal(
+    script,
+    sharedAction.match(/node --input-type=module -e '([^\r\n]+)'/)?.[1],
+  );
+  const directory = fs.mkdtempSync(
+    path.join(os.tmpdir(), "cc-soak-temp-contract-"),
+  );
+  t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
+  const physical = path.join(directory, "physical");
+  const alias = path.join(directory, "alias");
+  const environmentFile = path.join(directory, "github-env");
+  fs.mkdirSync(physical);
+  fs.symlinkSync(
+    physical,
+    alias,
+    process.platform === "win32" ? "junction" : "dir",
+  );
+  const result = spawnSync(
+    process.execPath,
+    ["--input-type=module", "-e", script],
+    {
+      encoding: "utf8",
+      windowsHide: true,
+      env: {
+        ...process.env,
+        TEMP: alias,
+        TMP: alias,
+        TMPDIR: alias,
+        GITHUB_ENV: environmentFile,
+      },
+    },
+  );
+  assert.equal(result.status, 0, result.error?.message || result.stderr);
+  const canonical = fs.realpathSync.native(physical);
+  assert.equal(
+    fs.readFileSync(environmentFile, "utf8"),
+    `TEMP=${canonical}\nTMP=${canonical}\n`,
+  );
 });
 
 test("standalone CLI dependency install vendors exact checkout packages", () => {

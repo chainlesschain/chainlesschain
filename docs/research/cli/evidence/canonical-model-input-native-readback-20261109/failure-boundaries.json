@@ -1,0 +1,27 @@
+{
+  "schema": "chainlesschain.canonical-native-diagnostic-boundaries/v1",
+  "initialHarnessMetadataRead": {
+    "result": "failed",
+    "reason": "Driver initially treated the UI projection as nested diagnostic records; actual UI comparison passed before metadata TypeError",
+    "modelRequestsByIde": 0
+  },
+  "beforeProductionFix": {
+    "result": "failed",
+    "sourceCommit": "e691dad7b3879844eed649db45a10e251f9eb343",
+    "reason": "Bridge disabled; registered model-input command ignored explicit CLI path and used the unresolved global fallback. Readback guard found no second selected-CLI diagnostic query.",
+    "guardPassed": false
+  },
+  "fullUnitInitial": {
+    "result": "failed",
+    "passed": 351,
+    "failed": 1,
+    "reason": "Existing Marketplace candidate README said 0.37.181 while manifest was 0.37.182; candidate-only metadata aligned, no published version claim changed"
+  },
+  "afterFix": {
+    "result": "passed",
+    "sourceCommit": "d4460f315ff9c2ccc8e5ed8ccc0ded24d6d9d38b",
+    "selectedCliProcesses": 5,
+    "blockedCommands": 0,
+    "modelRequestsByIde": 0
+  }
+}

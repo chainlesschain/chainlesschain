@@ -1,6 +1,7 @@
 package com.chainlesschain.ide;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
@@ -23,6 +24,18 @@ class ContextMemoryProjectionTest {
     private static final Set<String> CONFORMANCE_SURFACES = Set.of(
             "cli-js", "desktop-js", "app-server", "typescript-sdk", "python-sdk",
             "vscode", "jetbrains");
+
+    @Test
+    void correctionEvictsPreviousBodyAndRecallWithoutInventingReplacement() {
+        ContextMemoryProjection projection = new ContextMemoryProjection();
+        assertTrue(projection.accept(Map.of("type", "memory.activated",
+                "memory_id", "memory-1", "record", Map.of("content", "obsolete"))));
+        assertTrue(projection.accept(Map.of("type", "memory.recalled",
+                "result", Map.of("results", List.of("obsolete")))));
+        assertTrue(projection.accept(Map.of("type", "memory.corrected", "memory_id", "memory-1")));
+        assertEquals(List.of(), projection.snapshot().get("memories"));
+        assertNull(projection.snapshot().get("lastRecall"));
+    }
 
     private static Path fixturePath() {
         Path sibling = Path.of("..", "context-memory-kernel", "fixtures",

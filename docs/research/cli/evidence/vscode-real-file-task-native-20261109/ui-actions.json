@@ -1,0 +1,40 @@
+[
+  {
+    "action": "submit",
+    "sampleId": "first-run-native-file-task",
+    "sessionId": "panel-87940053-4ed8-4113-adb5-e43fc9c3a7b5",
+    "at": "2026-11-09T03:42:21.136Z"
+  },
+  {
+    "action": "background-tab",
+    "sampleId": "first-run-native-file-task",
+    "sessionId": "panel-87940053-4ed8-4113-adb5-e43fc9c3a7b5",
+    "at": "2026-11-09T03:42:55.834Z"
+  },
+  {
+    "action": "return-tab",
+    "sampleId": "first-run-native-file-task",
+    "sessionId": "panel-87940053-4ed8-4113-adb5-e43fc9c3a7b5",
+    "at": "2026-11-09T03:42:55.838Z"
+  },
+  {
+    "action": "final-result",
+    "sampleId": "first-run-native-file-task",
+    "sessionId": "panel-87940053-4ed8-4113-adb5-e43fc9c3a7b5",
+    "at": "2026-11-09T03:43:06.820Z",
+    "resultDigest": "sha256:0255a16b07ec4df02ce541ed92da063c046324cb4ce2f47f001aaec0260be8d9"
+  },
+  {
+    "action": "reload",
+    "sampleId": "first-run-native-file-task",
+    "sessionId": "panel-87940053-4ed8-4113-adb5-e43fc9c3a7b5",
+    "at": "2026-11-09T03:43:13.870Z"
+  },
+  {
+    "action": "restored-result",
+    "sampleId": "first-run-native-file-task",
+    "sessionId": "panel-87940053-4ed8-4113-adb5-e43fc9c3a7b5",
+    "at": "2026-11-09T03:43:14.706Z",
+    "resultDigest": "sha256:0255a16b07ec4df02ce541ed92da063c046324cb4ce2f47f001aaec0260be8d9"
+  }
+]

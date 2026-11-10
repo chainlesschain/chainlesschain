@@ -1,0 +1,9 @@
+{
+  "phase": "before",
+  "at": "2026-11-09T03:27:48.988Z",
+  "host": "127.0.0.1",
+  "port": 55305,
+  "connected": false,
+  "nonceAck": false,
+  "error": "ETIMEDOUT"
+}

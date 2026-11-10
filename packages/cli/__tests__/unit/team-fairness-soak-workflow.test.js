@@ -43,6 +43,42 @@ describe("Team fairness soak workflow contract", () => {
     expect(workflow).not.toContain("|| github.sha");
   });
 
+  it("uses standalone CLI dependencies in both jobs and preserves canonical Windows scratch paths", () => {
+    const workflow = workflowSource();
+    expect(workflow).not.toContain("uses: ./.github/actions/setup-node-deps");
+    expect(
+      workflow.match(
+        /name: Install packages\/cli production dependencies standalone/gu,
+      ),
+    ).toHaveLength(2);
+    expect(
+      workflow.match(/working-directory: \.\/packages\/cli/gu),
+    ).toHaveLength(2);
+    expect(
+      workflow.match(
+        /run: bash "\$GITHUB_WORKSPACE\/\.github\/scripts\/ci-install-cli-production-deps\.sh"/gu,
+      ),
+    ).toHaveLength(2);
+    expect(workflow.match(/node-version: "22\.12\.0"/gu)).toHaveLength(2);
+    expect(workflow).toContain(
+      '".github/scripts/ci-install-cli-production-deps.sh"',
+    );
+    expect(workflow).toContain('".github/scripts/ci-npm-retry.sh"');
+    expect(workflow).toContain('"packages/cli/package.json"');
+    const platformJob = workflow.split("  fairness-soak-aggregate:")[0];
+    expect(platformJob).toMatch(
+      /name: Canonicalize Windows system temporary directory\n\s+if: runner.os == 'Windows'\n\s+shell: pwsh/u,
+    );
+    expect(platformJob).toContain("realpathSync.native(tmpdir())");
+    expect(platformJob).toContain("TEMP=${root}\\nTMP=${root}\\n");
+    expect(platformJob.indexOf("realpathSync.native(tmpdir())")).toBeLessThan(
+      platformJob.indexOf("name: Install packages/cli"),
+    );
+    expect(workflow).not.toMatch(
+      /--ignore-scripts|ONNXRUNTIME|CUDA|continue-on-error/u,
+    );
+  });
+
   it("requires and aggregates the complete same-SHA three-host matrix", () => {
     const workflow = workflowSource();
     expect(workflow).toContain(

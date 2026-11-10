@@ -1,0 +1,11 @@
+{
+  "schema": "chainlesschain.mcp-continuation-preflight/v1",
+  "sourceCommit": "dc69b751845b9a264f82c8743566c2b023fc7037",
+  "provider": "volcengine",
+  "model": "deepseek-v4-1-flash-economy-261017",
+  "physicalModelDispatches": 0,
+  "transportAttemptFileCreated": false,
+  "result": "failed-before-model-dispatch",
+  "boundary": "existing diagnostic required a matched fixed-USD estimate; exact model remains unmatched in the application estimator",
+  "privateFailureExcluded": true
+}

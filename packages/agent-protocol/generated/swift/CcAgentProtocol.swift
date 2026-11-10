@@ -3,7 +3,7 @@ import Foundation
 
 public let ccAgentProtocolVersion = 1
 public let ccAgentProtocolMinimumVersion = 1
-public let ccAgentProtocolSchemaDigest = "sha256:b60343886bd59da73620ff808df78b806d8ddb95ebd31aace3ad3e9884b3558c"
+public let ccAgentProtocolSchemaDigest = "sha256:13fdae9baac062cde437e58fdb058ebb15fc9eaf88de281a3fca175418d16b1b"
 public indirect enum JSONValue: Codable, Sendable {
     case null
     case bool(Bool)
@@ -88,6 +88,7 @@ public enum AgentStreamEventType: String, Codable, Sendable {
     case memoryDeleted = "memory.deleted"
     case memoryPurged = "memory.purged"
     case memoryRecalled = "memory.recalled"
+    case memoryCorrected = "memory.corrected"
 }
 
 public enum ContextMemoryScope: String, Codable, Sendable {
@@ -2875,49 +2876,6 @@ public struct MemoryProposalRequest: Codable, Sendable {
     }
 }
 
-public struct MemoryDecisionRequest: Codable, Sendable {
-    public let memoryId: String
-    public let type: String
-    public let expectedRevision: Int
-    public let confidenceDelta: Double?
-    public let importance: Double?
-    public let evidenceRefs: [ContextMemorySourceRef]?
-    public let tags: [String]?
-    public let summary: String?
-    public let successorMemoryId: String?
-    public let reason: String?
-    public let authority: String?
-    public let at: String?
-
-    public init(
-        memoryId: String,
-        type: String,
-        expectedRevision: Int,
-        confidenceDelta: Double? = nil,
-        importance: Double? = nil,
-        evidenceRefs: [ContextMemorySourceRef]? = nil,
-        tags: [String]? = nil,
-        summary: String? = nil,
-        successorMemoryId: String? = nil,
-        reason: String? = nil,
-        authority: String? = nil,
-        at: String? = nil
-    ) {
-        self.memoryId = memoryId
-        self.type = type
-        self.expectedRevision = expectedRevision
-        self.confidenceDelta = confidenceDelta
-        self.importance = importance
-        self.evidenceRefs = evidenceRefs
-        self.tags = tags
-        self.summary = summary
-        self.successorMemoryId = successorMemoryId
-        self.reason = reason
-        self.authority = authority
-        self.at = at
-    }
-}
-
 public struct MemoryDeletionRequest: Codable, Sendable {
     public let requestId: String
     public let subject: String
@@ -3556,6 +3514,120 @@ public struct TaskCheckpoint: Codable, Sendable {
     }
 }
 
+public struct MemoryCorrectionRequest: Codable, Sendable {
+    public let memoryId: String
+    public let type: String
+    public let expectedRevision: Int
+    public let content: String
+    public let reason: String?
+    public let authority: String?
+    public let at: String?
+
+    public init(
+        memoryId: String,
+        type: String,
+        expectedRevision: Int,
+        content: String,
+        reason: String? = nil,
+        authority: String? = nil,
+        at: String? = nil
+    ) {
+        self.memoryId = memoryId
+        self.type = type
+        self.expectedRevision = expectedRevision
+        self.content = content
+        self.reason = reason
+        self.authority = authority
+        self.at = at
+    }
+}
+
+public struct MemoryDecisionRequest: Codable, Sendable {
+    public let memoryId: String
+    public let type: String
+    public let expectedRevision: Int
+    public let confidenceDelta: Double?
+    public let importance: Double?
+    public let evidenceRefs: [ContextMemorySourceRef]?
+    public let tags: [String]?
+    public let summary: String?
+    public let successorMemoryId: String?
+    public let reason: String?
+    public let authority: String?
+    public let at: String?
+
+    public init(
+        memoryId: String,
+        type: String,
+        expectedRevision: Int,
+        confidenceDelta: Double? = nil,
+        importance: Double? = nil,
+        evidenceRefs: [ContextMemorySourceRef]? = nil,
+        tags: [String]? = nil,
+        summary: String? = nil,
+        successorMemoryId: String? = nil,
+        reason: String? = nil,
+        authority: String? = nil,
+        at: String? = nil
+    ) {
+        self.memoryId = memoryId
+        self.type = type
+        self.expectedRevision = expectedRevision
+        self.confidenceDelta = confidenceDelta
+        self.importance = importance
+        self.evidenceRefs = evidenceRefs
+        self.tags = tags
+        self.summary = summary
+        self.successorMemoryId = successorMemoryId
+        self.reason = reason
+        self.authority = authority
+        self.at = at
+    }
+}
+
+public struct AgentMemoryCorrectedStreamEvent: Codable, Sendable {
+    public let type: AgentStreamEventType
+    public let operation_id: String?
+    public let request_id: String?
+    public let session_id: String?
+    public let memory_id: String
+    public let revision: Int
+    public let record_digest: String
+    public let previous_revision: Int
+    public let previous_record_digest: String
+    public let seq: Int?
+    public let trace_id: String?
+
+    public init(
+        type: AgentStreamEventType,
+        operation_id: String? = nil,
+        request_id: String? = nil,
+        session_id: String? = nil,
+        memory_id: String,
+        revision: Int,
+        record_digest: String,
+        previous_revision: Int,
+        previous_record_digest: String,
+        seq: Int? = nil,
+        trace_id: String? = nil
+    ) {
+        self.type = type
+        self.operation_id = operation_id
+        self.request_id = request_id
+        self.session_id = session_id
+        self.memory_id = memory_id
+        self.revision = revision
+        self.record_digest = record_digest
+        self.previous_revision = previous_revision
+        self.previous_record_digest = previous_record_digest
+        self.seq = seq
+        self.trace_id = trace_id
+    }
+}
+
+// Legacy constructor remains lifecycle-only; corrections use MemoryCorrectionRequest.
+public typealias MemoryLifecycleDecisionRequest = MemoryDecisionRequest
+
 public enum AgentStreamEventPayload: Codable, Sendable {
     case approvalRequest(AgentApprovalRequestStreamEvent)
     case approvalResolved(AgentApprovalResolvedStreamEvent)
@@ -3609,6 +3681,7 @@ public enum AgentStreamEventPayload: Codable, Sendable {
     case memoryDeleted(AgentMemoryDeletedStreamEvent)
     case memoryPurged(AgentMemoryPurgedStreamEvent)
     case memoryRecalled(AgentMemoryRecalledStreamEvent)
+    case memoryCorrected(AgentMemoryCorrectedStreamEvent)
 
     private enum CodingKeys: String, CodingKey {
         case type
@@ -3669,6 +3742,7 @@ public enum AgentStreamEventPayload: Codable, Sendable {
         case .memoryDeleted: self = .memoryDeleted(try AgentMemoryDeletedStreamEvent(from: decoder))
         case .memoryPurged: self = .memoryPurged(try AgentMemoryPurgedStreamEvent(from: decoder))
         case .memoryRecalled: self = .memoryRecalled(try AgentMemoryRecalledStreamEvent(from: decoder))
+        case .memoryCorrected: self = .memoryCorrected(try AgentMemoryCorrectedStreamEvent(from: decoder))
         }
     }
 
@@ -3726,6 +3800,7 @@ public enum AgentStreamEventPayload: Codable, Sendable {
         case .memoryDeleted(let event): try event.encode(to: encoder)
         case .memoryPurged(let event): try event.encode(to: encoder)
         case .memoryRecalled(let event): try event.encode(to: encoder)
+        case .memoryCorrected(let event): try event.encode(to: encoder)
         }
     }
 }

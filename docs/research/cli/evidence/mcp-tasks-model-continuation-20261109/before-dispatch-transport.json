@@ -1,0 +1,17 @@
+{
+  "attempts": [
+    {
+      "startedAt": "2026-11-09T01:50:08.155Z",
+      "phase": "started",
+      "requestDigest": "a0669baab50d6c1b9f0b8e7fc039a17e203a4e4a9ee11ce6db364fad8dff6311",
+      "userMessages": 1,
+      "originalUserPreserved": true,
+      "externalReferences": 1,
+      "hostSystemContinuation": true,
+      "markerPresent": true,
+      "fabricatedUserContinuation": false,
+      "requestedMaxOutputTokens": 256,
+      "protocol": "ollama-chat"
+    }
+  ]
+}

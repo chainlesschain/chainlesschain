@@ -75,6 +75,249 @@ function redigest(event) {
   event.digest = canonicalDigest(event, event.schema);
 }
 
+test("reference-backed correction preserves the external deletion target without a commit", async (t) => {
+  const { port } = fixture(t);
+  const content = new InMemoryContentPort();
+  const contentRef = await content.put("original external body");
+  const kernel = new ContextMemoryKernel({
+    memoryPort: port,
+    reconciliationPort: port,
+    contentPort: content,
+    clock: CLOCK,
+  });
+  const { record } = await kernel.proposeMemory(input({ contentRef }));
+  await assert.rejects(
+    kernel.decideMemory({
+      memoryId: record.memoryId,
+      type: "correct",
+      expectedRevision: 1,
+      content: "replacement",
+    }),
+    { code: "memory_correction_content_ref_unsupported" },
+  );
+  assert.deepEqual(port.read(record.memoryId), record);
+  assert.equal(port.getRevision(), 1);
+  assert.equal(port.readEvent(record.memoryId, 2), null);
+  assert.equal(
+    (await content.get(contentRef)).toString(),
+    "original external body",
+  );
+  const receipt = await kernel.deleteMemory(deletion(record));
+  assert.equal(receipt.status, "purged");
+  assert.ok(receipt.stores.some((entry) => entry.store === contentRef.store));
+  await assert.rejects(content.get(contentRef), {
+    code: "content_unavailable",
+  });
+});
+
+test("native commit rejects a forged correction that drops an external content reference", async (t) => {
+  const { port, kernel } = fixture(t);
+  const content = new InMemoryContentPort();
+  const contentRef = await content.put("original external body");
+  const { record } = await kernel.proposeMemory(input({ contentRef }));
+  // Forge a digest-valid mutation as an external caller could, rather than
+  // relying on the normal reducer to enforce the unsupported-operation guard.
+  const inline = { ...record };
+  delete inline.contentRef;
+  delete inline.digest;
+  const mutation = applyMemoryCommand(
+    normalizeMemoryRecord(inline),
+    {
+      type: "correct",
+      expectedRevision: 1,
+      content: "replacement",
+    },
+    { clock: CLOCK },
+  );
+  mutation.event.previousRecordDigest = record.digest;
+  redigest(mutation.event);
+  assert.throws(() => port.commit(mutation, 1), {
+    code: "memory_correction_content_ref_unsupported",
+  });
+  assert.deepEqual(port.read(record.memoryId), record);
+  assert.equal(port.getRevision(), 1);
+  assert.equal(port.readEvent(record.memoryId, 2), null);
+  assert.equal(
+    (await content.get(contentRef)).toString(),
+    "original external body",
+  );
+});
+
+test("correction commits one identity with body-free lineage and survives reopen", async (t) => {
+  const dir = mkdtempSync(join(tmpdir(), "memory-correct-"));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const file = join(dir, "memory.db");
+  const first = fixture(t, { file });
+  const initial = await first.kernel.proposeMemory(
+    input({
+      summary: "old summary",
+    }),
+  );
+  const corrected = await first.kernel.decideMemory({
+    memoryId: initial.record.memoryId,
+    type: "correct",
+    expectedRevision: 1,
+    content: "Use the corrected rule",
+    reason: "old sensitive wording",
+  });
+  assert.equal(corrected.record.state, "active");
+  assert.equal(corrected.record.summary, undefined);
+  assert.equal(corrected.record.contentRef, undefined);
+  for (const key of [
+    "scope",
+    "scopeId",
+    "allowedSinks",
+    "sensitivity",
+    "retentionPolicy",
+    "category",
+    "createdAt",
+  ])
+    assert.deepEqual(corrected.record[key], initial.record[key]);
+  assert.equal(corrected.event.previousRecordDigest, initial.record.digest);
+  assert.equal(corrected.receipt.previousRecordDigest, initial.record.digest);
+  assert.equal(corrected.event.reason, undefined);
+  assert.equal(corrected.event.content, undefined);
+  await assert.rejects(
+    first.kernel.decideMemory({
+      memoryId: initial.record.memoryId,
+      type: "correct",
+      expectedRevision: 1,
+      content: "stale retry",
+    }),
+    /revision/,
+  );
+  first.db.close();
+  const second = fixture(t, { file });
+  assert.equal(
+    second.port.read(initial.record.memoryId).content,
+    "Use the corrected rule",
+  );
+  const event = second.port.readEvent(initial.record.memoryId, 2);
+  assert.equal(event.type, "memory.corrected");
+  assert.equal(event.previousRecordDigest, initial.record.digest);
+  assert.equal(second.port.getRevision(), 2);
+  assert.equal(second.port.query({ scopeAdmissions: [SCOPE] }).length, 1);
+  second.db.close();
+});
+
+test("correction CAS across SQLite owners and forged stored predecessor fail closed", async (t) => {
+  const dir = mkdtempSync(join(tmpdir(), "memory-correct-cas-"));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const file = join(dir, "memory.db");
+  const first = fixture(t, { file });
+  const second = fixture(t, { file });
+  const { record } = await first.kernel.proposeMemory(input());
+  const stale = applyMemoryCommand(
+    second.port.read(record.memoryId),
+    {
+      type: "correct",
+      expectedRevision: 1,
+      content: "losing update",
+    },
+    { clock: CLOCK },
+  );
+  await first.kernel.decideMemory({
+    memoryId: record.memoryId,
+    type: "correct",
+    expectedRevision: 1,
+    content: "winning update",
+  });
+  assert.equal(second.port.commit(stale, 1).ok, false);
+  assert.equal(second.port.getRevision(), 2);
+  const event = second.port.readEvent(record.memoryId, 2);
+  event.previousRecordDigest = `sha256:${"0".repeat(64)}`;
+  delete event.digest;
+  event.digest = canonicalDigest(
+    event,
+    "chainlesschain.native-memory-event-projection/v1",
+  );
+  second.db
+    .prepare(
+      "UPDATE context_memory_sqlite_events SET event_json=? WHERE revision=2",
+    )
+    .run(JSON.stringify(event));
+  assert.throws(
+    () => second.port.readEvent(record.memoryId, 2),
+    /previous digest/,
+  );
+  first.db.close();
+  second.db.close();
+});
+
+test("correction rejects forged lineage and metadata expansion before commit", async (t) => {
+  const { port, kernel } = fixture(t);
+  const { record } = await kernel.proposeMemory(input());
+  const command = { type: "correct", expectedRevision: 1, content: "New rule" };
+  for (const extra of [
+    { allowedSinks: ["*"] },
+    { summary: "stale" },
+    { confidenceDelta: 1 },
+    { successorMemoryId: "other" },
+  ])
+    assert.throws(
+      () => applyMemoryCommand(record, { ...command, ...extra }),
+      /unknown|unsupported/i,
+    );
+  assert.throws(
+    () =>
+      applyMemoryCommand(record, {
+        type: "reinforce",
+        expectedRevision: 1,
+        content: "ignored?",
+      }),
+    /unknown|unsupported/i,
+  );
+  for (const change of [
+    (m) => {
+      m.event.previousRecordDigest = `sha256:${"0".repeat(64)}`;
+    },
+    (m) => {
+      m.event.successorMemoryId = "other";
+    },
+    (m) => {
+      m.record = normalizeMemoryRecord({
+        ...m.record,
+        digest: undefined,
+        allowedSinks: ["*"],
+      });
+      m.event.recordDigest = m.record.digest;
+    },
+  ]) {
+    const mutation = applyMemoryCommand(record, command, { clock: CLOCK });
+    change(mutation);
+    redigest(mutation.event);
+    assert.throws(() => port.commit(mutation, 1));
+    assert.equal(port.read(record.memoryId).revision, 1);
+  }
+  const reinforced = await kernel.decideMemory({
+    memoryId: record.memoryId,
+    type: "reinforce",
+    expectedRevision: 1,
+  });
+  const corrected = await kernel.decideMemory({
+    memoryId: record.memoryId,
+    type: "correct",
+    expectedRevision: 2,
+    content: "New rule",
+  });
+  assert.equal(corrected.record.state, "reinforced");
+  assert.equal(corrected.record.confidence, reinforced.record.confidence);
+  await kernel.decideMemory({
+    memoryId: record.memoryId,
+    type: "archive",
+    expectedRevision: 3,
+  });
+  await assert.rejects(
+    kernel.decideMemory({
+      memoryId: record.memoryId,
+      type: "correct",
+      expectedRevision: 4,
+      content: "resurrect",
+    }),
+    /only active/,
+  );
+});
+
 test("native records, scoped revisions and precise events survive reopen", async (t) => {
   const root = resolve(tmpdir());
   const dir = mkdtempSync(join(root, "kernel-native-memory-"));

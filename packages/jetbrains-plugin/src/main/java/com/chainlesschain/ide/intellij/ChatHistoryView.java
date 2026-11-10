@@ -3,6 +3,8 @@ package com.chainlesschain.ide.intellij;
 import com.chainlesschain.ide.SessionTranscriptPage;
 import com.chainlesschain.ide.SessionTranscriptChanges;
 import com.chainlesschain.ide.SessionHistoryReader;
+import com.chainlesschain.ide.UiEventDiagnostics;
+import com.chainlesschain.ide.UiEventDiagnostics.Stage;
 import javax.swing.*;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
@@ -50,6 +52,16 @@ final class ChatHistoryView {
     private record Result(SessionTranscriptPage page, String cursor, boolean more, boolean baseline) {}
     private record Request(String sessionId, String cursor, long revision, long epoch,
                            Object owner, boolean explicit, boolean incremental, int batch, AtomicBoolean cancelled) {}
+
+    /** Correlate real history work without exposing cursors, paths or message text. */
+    private static java.util.Map<String, Object> diagnosticEvent(Request request) {
+        return java.util.Map.of("type", "session-history",
+                "kind", request.incremental() ? "changes" : "page",
+                "id", "history-" + Integer.toHexString(System.identityHashCode(request)));
+    }
+    private static void observeHistory(Stage stage, Request request, Throwable failure) {
+        UiEventDiagnostics.record(stage, diagnosticEvent(request), request.owner(), request.sessionId(), failure);
+    }
 
     ChatHistoryView(ChatTranscript live, Supplier<String> sessionId, BooleanSupplier active,
                     boolean known, Loader loader) {
@@ -129,11 +141,14 @@ final class ChatHistoryView {
         cancel();
         Request next = new Request(sessionId.get(), query, revision, epoch, owner.get(), explicit, incremental, batch, new AtomicBoolean());
         request = next; pending = false; status.setText(" Loading saved conversation…"); updateControls();
+        observeHistory(Stage.HISTORY_REQUESTED, next, null);
         try {
             worker.execute(() -> {
                 Result result = null; Exception failure = null;
                 try {
-                    if (next.cancelled().get()) return;
+                    if (next.cancelled().get()) {
+                        observeHistory(Stage.HISTORY_STALE, next, null); return;
+                    }
                     if (next.incremental()) {
                         try {
                             SessionTranscriptChanges changes = loader.changes(next.sessionId(), next.cursor(), next.cancelled()::get);
@@ -146,18 +161,29 @@ final class ChatHistoryView {
                         SessionTranscriptPage page = loader.read(next.sessionId(), next.cursor(), next.cancelled()::get);
                         result = new Result(page, page.syncCursor(), false, true);
                     }
-                } catch (Exception error) { failure = error; }
+                    observeHistory(Stage.HISTORY_READ_RETURNED, next, null);
+                } catch (Exception error) {
+                    observeHistory(Stage.HISTORY_READ_FAILED, next, error); failure = error;
+                }
                 Result captured = result; Exception error = failure;
-                SwingUtilities.invokeLater(() -> finish(next, captured, error));
+                SwingUtilities.invokeLater(() -> UiEventDiagnostics.observeFailure(
+                        Stage.HISTORY_APPLY_FAILED, diagnosticEvent(next), next.owner(), next.sessionId(),
+                        () -> finish(next, captured, error)));
             });
-        } catch (RuntimeException error) { finish(next, null, error); }
+        } catch (RuntimeException error) {
+            observeHistory(Stage.HISTORY_SCHEDULE_FAILED, next, error); finish(next, null, error);
+        }
     }
     private void finish(Request next, Result result, Exception error) {
-        if (disposed || request != next || next.cancelled().get()) return;
+        if (disposed || request != next || next.cancelled().get()) {
+            observeHistory(Stage.HISTORY_STALE, next, null); return;
+        }
         if (epoch != next.epoch() || owner.get() != next.owner() || !Objects.equals(sessionId.get(), next.sessionId())) {
+            observeHistory(Stage.HISTORY_STALE, next, null);
             cancel(); pending = true; updateControls(); return;
         }
         if (revision != next.revision() || active.getAsBoolean()) {
+            observeHistory(Stage.HISTORY_STALE, next, null);
             cancel();
             pending = true; status.setText(" New live output arrived; saved history will refresh when idle.");
             updateControls();
@@ -173,6 +199,7 @@ final class ChatHistoryView {
         }
         if (next.incremental() || next.cursor() == null) {
             if (!live.mergeHistory(page, result.baseline())) {
+                observeHistory(Stage.HISTORY_DEFERRED, next, null);
                 deferred = result;
                 status.setText(" Saved update waits for your text selection to finish.");
                 updateControls(); return;
@@ -194,6 +221,7 @@ final class ChatHistoryView {
                 + " of " + page.totalMessages();
         status.setText(" " + (page.snapshotBoundary() ? "History begins at a saved snapshot · " : "") + range);
         status.setToolTipText(status.getText()); updateControls();
+        observeHistory(Stage.HISTORY_APPLIED, next, null);
         if (result.more()) {
             if (next.batch() < 7) load(null, next.explicit(), next.batch() + 1);
             else status.setText(" More saved messages are available; select Latest to continue loading.");

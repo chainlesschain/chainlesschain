@@ -1,0 +1,37 @@
+{
+  "tasks": [
+    "> Task :checkKotlinGradlePluginConfigurationErrors",
+    "> Task :generatePluginMetadata",
+    "> Task :initializeIntellijPlatformPlugin",
+    "> Task :patchPluginXml",
+    "> Task :processResources",
+    "> Task :processTestResources",
+    "> Task :generateManifest",
+    "> Task :compileKotlin",
+    "> Task :compileJava",
+    "> Task :classes",
+    "> Task :instrumentCode SKIPPED",
+    "> Task :compileTestKotlin NO-SOURCE",
+    "> Task :compileTestJava",
+    "> Task :testClasses",
+    "> Task :instrumentTestCode SKIPPED",
+    "> Task :smokeTest",
+    "> Task :jar",
+    "> Task :composedJar",
+    "> Task :prepareTestSandbox",
+    "> Task :prepareTest",
+    "> Task :test",
+    "> Task :prepareSandbox",
+    "> Task :buildSearchableOptions",
+    "> Task :prepareJarSearchableOptions",
+    "> Task :jarSearchableOptions",
+    "> Task :buildPlugin"
+  ],
+  "smoke": {
+    "passed": 1455,
+    "failed": 0
+  },
+  "junitExecuted": 1028,
+  "actionableTasksExecuted": 20,
+  "bytecodeInstrumentation": "disabled by existing build.gradle.kts, not changed for this diagnostic"
+}

@@ -1,0 +1,284 @@
+{
+  "schema": "cc-ide-conversation-recovery/v3",
+  "phase": "initial",
+  "original": {
+    "id": "conv-1",
+    "title": "journey:stream",
+    "selected": true
+  },
+  "backgroundAt": "2026-11-09T03:19:21.164Z",
+  "foregroundReturnAt": "2026-11-09T03:19:26.191Z",
+  "backgroundCompletedAt": "2026-11-09T03:19:26.182Z",
+  "a": {
+    "id": "conv-2",
+    "draft": "unsent draft A 中文😀",
+    "savedRows": [
+      {
+        "id": "panel-1ff2de0d-1ccd-4436-9867-8c92493225be:4d1d7f7406720b40237858f9af54b084f42f19daa09b7d373e3d6843ed042dde:0",
+        "text": "journey:history-A",
+        "source": {
+          "text": "journey:history-A",
+          "role": "user",
+          "streaming": false,
+          "saved": false
+        }
+      },
+      {
+        "id": "panel-1ff2de0d-1ccd-4436-9867-8c92493225be:3b900f91f2c47d062ed73048445ef6007ea213a6d1792aae2ce2e9649f8023a2:0",
+        "text": "canonical answer A",
+        "source": {
+          "text": "canonical answer A",
+          "role": "assistant",
+          "streaming": false,
+          "saved": false
+        }
+      },
+      {
+        "id": "panel-1ff2de0d-1ccd-4436-9867-8c92493225be:e594cc76158d6968f6de9c388b5b5b60eccf034a4a7e4e8c7c2fb9c3b91dfaf1:0",
+        "text": "journey:history-A",
+        "source": {
+          "text": "journey:history-A",
+          "role": "user",
+          "streaming": false,
+          "saved": false
+        }
+      },
+      {
+        "id": "panel-1ff2de0d-1ccd-4436-9867-8c92493225be:87779f9dce039673191423a6581801cbc057fbe454e25c7ab65c25b2f3134c1e:0",
+        "text": "canonical answer A",
+        "source": {
+          "text": "canonical answer A",
+          "role": "assistant",
+          "streaming": false,
+          "saved": false
+        }
+      }
+    ]
+  },
+  "b": {
+    "id": "conv-3",
+    "draft": "unsent draft B 中文😀",
+    "savedRows": [
+      {
+        "id": "panel-67dab4e8-6895-4128-a09f-2ddf03335d99:b6d260fe1ca566a0c13d0c6eeeee6eba6b6d0849da5770707afdb6c7a89b730e:0",
+        "text": "journey:history-B",
+        "source": {
+          "text": "journey:history-B",
+          "role": "user",
+          "streaming": false,
+          "saved": false
+        }
+      },
+      {
+        "id": "panel-67dab4e8-6895-4128-a09f-2ddf03335d99:92ad6fbc5838e8b891080987302fa21cda40696f020cc7ebe70889c6bbcbfa67:0",
+        "text": "canonical answer B",
+        "source": {
+          "text": "canonical answer B",
+          "role": "assistant",
+          "streaming": false,
+          "saved": false
+        }
+      }
+    ]
+  },
+  "model": "deterministic fixture",
+  "persistence": "production canonical store and actual CLI command",
+  "images": {
+    "a": {
+      "inputText": "unsent draft A 中文😀",
+      "attachmentChips": ["📷 image 1×"],
+      "attachments": [
+        {
+          "sha256": "d90caacd75c54f9a63ab5ba5ef32d2710dd660141fa52325fdd8f5b4f7c11e33",
+          "mime": "image/png",
+          "bytes": 70,
+          "naturalWidth": 1,
+          "naturalHeight": 1,
+          "decodedFrames": 1,
+          "decodeSource": "isolated-image-decoder",
+          "previewWidth": 40,
+          "previewHeight": 40,
+          "loaded": true
+        }
+      ],
+      "draftStatus": "Draft saved on this deviceRecover saved draftsAccepted; see the conversation for its outcome: journey:history-A Discard saved input"
+    },
+    "b": {
+      "inputText": "unsent draft B 中文😀",
+      "attachmentChips": ["📷 image 1×"],
+      "attachments": [
+        {
+          "sha256": "ef1955ae757c8b966c83248350331bd3a30f658ced11f387f8ebf05ab3368629",
+          "mime": "image/gif",
+          "bytes": 42,
+          "naturalWidth": 1,
+          "naturalHeight": 1,
+          "decodedFrames": 1,
+          "decodeSource": "isolated-image-decoder",
+          "previewWidth": 40,
+          "previewHeight": 40,
+          "loaded": true
+        }
+      ],
+      "draftStatus": "Draft saved on this deviceRecover saved draftsAccepted; see the conversation for its outcome: journey:history-B Discard saved input"
+    },
+    "tabSwitch": {
+      "a": {
+        "inputText": "unsent draft A 中文😀",
+        "attachmentChips": ["📷 image 1×"],
+        "attachments": [
+          {
+            "sha256": "d90caacd75c54f9a63ab5ba5ef32d2710dd660141fa52325fdd8f5b4f7c11e33",
+            "mime": "image/png",
+            "bytes": 70,
+            "naturalWidth": 1,
+            "naturalHeight": 1,
+            "decodedFrames": 1,
+            "decodeSource": "isolated-image-decoder",
+            "previewWidth": 40,
+            "previewHeight": 40,
+            "loaded": true
+          }
+        ],
+        "draftStatus": "Draft saved on this deviceRecover saved draftsAccepted; see the conversation for its outcome: journey:history-A Discard saved input"
+      },
+      "b": {
+        "inputText": "unsent draft B 中文😀",
+        "attachmentChips": ["📷 image 1×"],
+        "attachments": [
+          {
+            "sha256": "ef1955ae757c8b966c83248350331bd3a30f658ced11f387f8ebf05ab3368629",
+            "mime": "image/gif",
+            "bytes": 42,
+            "naturalWidth": 1,
+            "naturalHeight": 1,
+            "decodedFrames": 1,
+            "decodeSource": "isolated-image-decoder",
+            "previewWidth": 40,
+            "previewHeight": 40,
+            "loaded": true
+          }
+        ],
+        "draftStatus": "Draft saved on this deviceRecover saved draftsAccepted; see the conversation for its outcome: journey:history-B Discard saved input"
+      }
+    },
+    "rejected": [
+      {
+        "fixture": "unsupported",
+        "via": "paste",
+        "feedbackText": "journey:stream\n×\njourney:history-A\n×\njourney:history-B\n×\n+\n↗\nLatest messages\nTurn 1, User message\njourney:history-A\nTurn 1, Assistant response\nchecking history fixture\n\nread_file: fixture.txt\ncanonical answer A\nTurn 2, User message\njourney:history-A\nTurn 2, Assistant response\nchecking history fixture\n\nread_file: fixture.txt\ncanonical answer A\nUse PNG, JPEG, GIF or WebP images.\nready · 32→12 tokens (cache read 0, cache write 0)\nDraft saved on this device\nRecover saved drafts\nAccepted; see the conversation for its outcome: journey:history-A Discard saved input\n📷 image 1×\nMessage the agent\nSend\nPlan\nStop\nNew",
+        "inputText": "unsent draft A 中文😀",
+        "attachmentChips": ["📷 image 1×"],
+        "attachments": [
+          {
+            "sha256": "d90caacd75c54f9a63ab5ba5ef32d2710dd660141fa52325fdd8f5b4f7c11e33",
+            "mime": "image/png",
+            "bytes": 70,
+            "naturalWidth": 1,
+            "naturalHeight": 1,
+            "decodedFrames": 1,
+            "decodeSource": "isolated-image-decoder",
+            "previewWidth": 40,
+            "previewHeight": 40,
+            "loaded": true
+          }
+        ],
+        "draftStatus": "Draft saved on this deviceRecover saved draftsAccepted; see the conversation for its outcome: journey:history-A Discard saved input"
+      },
+      {
+        "fixture": "oversized",
+        "via": "drop",
+        "feedbackText": "journey:stream\n×\njourney:history-A\n×\njourney:history-B\n×\n+\n↗\nLatest messages\nTurn 1, User message\njourney:history-A\nTurn 1, Assistant response\nchecking history fixture\n\nread_file: fixture.txt\ncanonical answer A\nTurn 2, User message\njourney:history-A\nTurn 2, Assistant response\nchecking history fixture\n\nread_file: fixture.txt\ncanonical answer A\nUse PNG, JPEG, GIF or WebP images.\nImages must total at most 20 MiB per message.\nready · 32→12 tokens (cache read 0, cache write 0)\nDraft saved on this device\nRecover saved drafts\nAccepted; see the conversation for its outcome: journey:history-A Discard saved input\n📷 image 1×\nMessage the agent\nSend\nPlan\nStop\nNew",
+        "inputText": "unsent draft A 中文😀",
+        "attachmentChips": ["📷 image 1×"],
+        "attachments": [
+          {
+            "sha256": "d90caacd75c54f9a63ab5ba5ef32d2710dd660141fa52325fdd8f5b4f7c11e33",
+            "mime": "image/png",
+            "bytes": 70,
+            "naturalWidth": 1,
+            "naturalHeight": 1,
+            "decodedFrames": 1,
+            "decodeSource": "isolated-image-decoder",
+            "previewWidth": 40,
+            "previewHeight": 40,
+            "loaded": true
+          }
+        ],
+        "draftStatus": "Draft saved on this deviceRecover saved draftsAccepted; see the conversation for its outcome: journey:history-A Discard saved input"
+      },
+      {
+        "fixture": "malformed",
+        "via": "paste",
+        "feedbackText": "journey:stream\n×\njourney:history-A\n×\njourney:history-B\n×\n+\n↗\nLatest messages\nTurn 1, User message\njourney:history-A\nTurn 1, Assistant response\nchecking history fixture\n\nread_file: fixture.txt\ncanonical answer A\nTurn 2, User message\njourney:history-A\nTurn 2, Assistant response\nchecking history fixture\n\nread_file: fixture.txt\ncanonical answer A\nUse PNG, JPEG, GIF or WebP images.\nImages must total at most 20 MiB per message.\nready · 32→12 tokens (cache read 0, cache write 0)\nDraft could not be saved: Image 2: Unsupported or malformed image header; use PNG, JPEG, GIF or WebP\nRecover saved drafts\nAccepted; see the conversation for its outcome: journey:history-A Discard saved input\n📷 image 1×📷 image 2×Checking image frames…\nMessage the agent\nSend\nPlan\nStop\nNew",
+        "inputText": "unsent draft A 中文😀",
+        "attachmentChips": ["📷 image 1×", "📷 image 2×"],
+        "attachments": [],
+        "draftStatus": "Draft could not be saved: Image 2: Unsupported or malformed image header; use PNG, JPEG, GIF or WebPRecover saved draftsAccepted; see the conversation for its outcome: journey:history-A Discard saved input"
+      },
+      {
+        "fixture": "count-limit",
+        "via": "paste",
+        "feedbackText": "journey:stream\n×\njourney:history-A\n×\njourney:history-B\n×\n+\n↗\nLatest messages\nTurn 1, User message\njourney:history-A\nTurn 1, Assistant response\nchecking history fixture\n\nread_file: fixture.txt\ncanonical answer A\nTurn 2, User message\njourney:history-A\nTurn 2, Assistant response\nchecking history fixture\n\nread_file: fixture.txt\ncanonical answer A\nUse PNG, JPEG, GIF or WebP images.\nImages must total at most 20 MiB per message.\nAttach at most 4 images per message.\nready · 32→12 tokens (cache read 0, cache write 0)\nDraft saved on this device\nRecover saved drafts\nAccepted; see the conversation for its outcome: journey:history-A Discard saved input\n📷 image 1×📷 image 2×📷 image 3×📷 image 4×\nMessage the agent\nSend\nPlan\nStop\nNew",
+        "inputText": "unsent draft A 中文😀",
+        "attachmentChips": [
+          "📷 image 1×",
+          "📷 image 2×",
+          "📷 image 3×",
+          "📷 image 4×"
+        ],
+        "attachments": [
+          {
+            "sha256": "d90caacd75c54f9a63ab5ba5ef32d2710dd660141fa52325fdd8f5b4f7c11e33",
+            "mime": "image/png",
+            "bytes": 70,
+            "naturalWidth": 1,
+            "naturalHeight": 1,
+            "decodedFrames": 1,
+            "decodeSource": "isolated-image-decoder",
+            "previewWidth": 40,
+            "previewHeight": 40,
+            "loaded": true
+          },
+          {
+            "sha256": "d90caacd75c54f9a63ab5ba5ef32d2710dd660141fa52325fdd8f5b4f7c11e33",
+            "mime": "image/png",
+            "bytes": 70,
+            "naturalWidth": 1,
+            "naturalHeight": 1,
+            "decodedFrames": 1,
+            "decodeSource": "isolated-image-decoder",
+            "previewWidth": 40,
+            "previewHeight": 40,
+            "loaded": true
+          },
+          {
+            "sha256": "d90caacd75c54f9a63ab5ba5ef32d2710dd660141fa52325fdd8f5b4f7c11e33",
+            "mime": "image/png",
+            "bytes": 70,
+            "naturalWidth": 1,
+            "naturalHeight": 1,
+            "decodedFrames": 1,
+            "decodeSource": "isolated-image-decoder",
+            "previewWidth": 40,
+            "previewHeight": 40,
+            "loaded": true
+          },
+          {
+            "sha256": "d90caacd75c54f9a63ab5ba5ef32d2710dd660141fa52325fdd8f5b4f7c11e33",
+            "mime": "image/png",
+            "bytes": 70,
+            "naturalWidth": 1,
+            "naturalHeight": 1,
+            "decodedFrames": 1,
+            "decodeSource": "isolated-image-decoder",
+            "previewWidth": 40,
+            "previewHeight": 40,
+            "loaded": true
+          }
+        ],
+        "draftStatus": "Draft saved on this deviceRecover saved draftsAccepted; see the conversation for its outcome: journey:history-A Discard saved input"
+      }
+    ]
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "schema": "independent-jetbrains-journey-verification/v1",
+  "journeyId": "jetbrains-canonical-conversation-recovery",
+  "result": "passed",
+  "exitCode": 0,
+  "elapsedMs": 150277,
+  "artifactCount": 45,
+  "allArtifactBytesAndHashesMatch": true,
+  "artifactBundleDigest": "sha256:d783424cdc31f66438ea52c1355f4896addcf2ba26810bc22c1d35dd98e575d2",
+  "artifactBundleDigestVerified": true,
+  "evidenceDigest": "sha256:5d8d47241a2faf3a09c8dc39245a7e39ab69abeef7f14322482d02acf6a9834a",
+  "evidenceDigestVerified": true,
+  "temporaryRulesRemoved": true,
+  "persisted": false,
+  "scope": "temporary exact Java Public loopback firewall rules; fixture only; not unconditional platform/release acceptance",
+  "diagnosticCaptureWarning": true,
+  "source": {
+    "startCommit": "63538f8d83bc9f100e6ac6432ce84fc88bf87961",
+    "finishRepositoryCommit": "63538f8d83bc9f100e6ac6432ce84fc88bf87961",
+    "verificationRepositoryCommit": "f59598281ad636b848ca120c5ecfcb52d079857c",
+    "journeyRecordedCommit": "63538f8d83bc9f100e6ac6432ce84fc88bf87961",
+    "repositoryFastForwardDuringThisRun": false,
+    "relatedCommittedPathsUnchanged": true,
+    "mainSourceResourcesCompared": 198,
+    "mainSourceResourcesChanged": [],
+    "harnessHash": "bd2e7431d93b25281e6927838dc8cdb952ad55b1e3aafc321f3f3233ee3aa560"
+  },
+  "rules": [
+    {
+      "name": "ChainlessChain-Diagnostic-022c5114854845728facb91f60165c35",
+      "protocol": "TCP",
+      "sha256": "f8dc082a7dedbfd2924c3562405a5a1fd12efd2641808c92e2de819c76a58b7e",
+      "removed": true
+    },
+    {
+      "name": "ChainlessChain-Diagnostic-96e8ca71baa748c0811a0ac3108ae2bf",
+      "protocol": "TCP",
+      "sha256": "106540d88dbdd39987cfd52929ec99260990275be26b27724af3b9fe2c517851",
+      "removed": true
+    },
+    {
+      "name": "ChainlessChain-Diagnostic-e474d825beee45af8283cfd0e9cc60a9",
+      "protocol": "UDP",
+      "sha256": "f8dc082a7dedbfd2924c3562405a5a1fd12efd2641808c92e2de819c76a58b7e",
+      "removed": true
+    }
+  ]
+}

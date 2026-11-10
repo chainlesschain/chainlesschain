@@ -2,6 +2,13 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.184] - canonical Memory correction and retained diagnostics (2026-11-09)
+
+- Recommend CLI 0.166.146 and pair with JetBrains 0.4.199 after verified Agent Protocol 0.1.13, Agent SDK 0.2.18, Context/Memory Kernel 0.1.12 and CLI publication.
+- Invalidate cached Memory rows and recall projections on revision-checked corrections; notifications contain predecessor identities without Memory bodies.
+- Retain model-input diagnostics during stream sessions and the JetBrains restored tool trace.
+- Require exact-source host matrices and public artifact readback. Full lifecycle, multilingual quality and paid admission remain incomplete.
+
 ## [0.37.181] - Memory authority and diagnostics release candidate (2026-11-08)
 
 - Recommend CLI 0.166.145 and pair with JetBrains 0.4.198 after verified Session Core 0.3.27 and CLI publication.

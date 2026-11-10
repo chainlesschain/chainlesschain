@@ -9,6 +9,7 @@
 import path from "node:path";
 import fs from "node:fs";
 import { randomUUID } from "node:crypto";
+import { InvalidArgumentError } from "commander";
 import { createAgentRuntimeFactory } from "../runtime/runtime-factory.js";
 import {
   captureAgentEvolutionRuntimeComposition,
@@ -25,7 +26,10 @@ import {
 import { resolveImages, resolveVisionLlm } from "../lib/image-input.js";
 import { resolveLlmConnection } from "../lib/llm-connection-resolution.js";
 import { loadConfig } from "../lib/config-manager.js";
-import { resolveModelCapabilityProfile } from "../lib/model-capabilities.js";
+import {
+  resolveAgentOutputBudget,
+  resolveModelCapabilityProfile,
+} from "../lib/model-capabilities.js";
 import { captureUnattendedActionPolicy } from "../lib/unattended-action-policy.js";
 import {
   assertSandboxCapabilities,
@@ -316,6 +320,18 @@ export function registerAgentCommand(program, dependencies = {}) {
         resolveModelCapabilityProfile({
           contextMemoryModelWindowTokens: value,
         }).contextWindowTokens,
+    )
+    .option(
+      "--max-output-tokens <tokens>",
+      "Maximum provider output tokens per agent-loop request (positive safe integer)",
+      (value) => {
+        try {
+          return resolveAgentOutputBudget({ maxOutputTokens: value })
+            .requestMaxOutputTokens;
+        } catch {
+          throw new InvalidArgumentError("expected a positive safe integer");
+        }
+      },
     )
     .option(
       "--provider <provider>",
@@ -1698,6 +1714,7 @@ export function registerAgentCommand(program, dependencies = {}) {
             contextMemoryModelWindowTokens: options.contextWindow,
             thinking,
             thinkingBudget,
+            maxOutputTokens: options.maxOutputTokens,
             provider: options.provider,
             baseUrl: options.baseUrl,
             apiKey: options.apiKey,
@@ -2008,6 +2025,7 @@ export function registerAgentCommand(program, dependencies = {}) {
           visionModel: options.visionModel,
           thinking,
           thinkingBudget,
+          maxOutputTokens: options.maxOutputTokens,
           provider: visionLlm.provider || options.provider,
           baseUrl: visionLlm.baseUrl || options.baseUrl,
           apiKey: visionLlm.apiKey || options.apiKey,
@@ -2279,6 +2297,7 @@ export function registerAgentCommand(program, dependencies = {}) {
         visionModel: options.visionModel,
         thinking,
         thinkingBudget,
+        maxOutputTokens: options.maxOutputTokens,
         provider: options.provider,
         baseUrl: options.baseUrl,
         apiKey: options.apiKey,

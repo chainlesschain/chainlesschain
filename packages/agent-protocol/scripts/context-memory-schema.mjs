@@ -5,7 +5,11 @@ import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const repositoryRoot = resolve(root, "..", "..");
-export const protocolSchemaPath = resolve(root, "schema", "cc-agent-protocol.schema.json");
+export const protocolSchemaPath = resolve(
+  root,
+  "schema",
+  "cc-agent-protocol.schema.json",
+);
 export const contextMemorySchemaPath = resolve(
   repositoryRoot,
   "packages",
@@ -34,6 +38,7 @@ export const contextMemoryLifecycleEvents = Object.freeze([
   "memory.candidate.created",
   "memory.activated",
   "memory.reinforced",
+  "memory.corrected",
   "memory.superseded",
   "memory.expired",
   "memory.deleted",
@@ -57,7 +62,11 @@ function transformNode(value) {
   if (!value || typeof value !== "object") return value;
   const output = {};
   for (const [key, child] of Object.entries(value)) {
-    if (key === "$ref" && typeof child === "string" && child.startsWith("#/$defs/")) {
+    if (
+      key === "$ref" &&
+      typeof child === "string" &&
+      child.startsWith("#/$defs/")
+    ) {
       output[key] = `#/$defs/${mappedName(child.slice("#/$defs/".length))}`;
     } else {
       output[key] = transformNode(child);
@@ -82,7 +91,7 @@ function streamDefinitionName(type) {
     .join("")}StreamEvent`;
 }
 
-function lifecycleStreamDefinition(type) {
+function lifecycleStreamDefinition(type, envelopeProperties) {
   const properties = {
     type: { const: type },
     operation_id: { $ref: "#/$defs/ContextMemoryIdentifier" },
@@ -113,13 +122,27 @@ function lifecycleStreamDefinition(type) {
     properties.result = { $ref: "#/$defs/MemoryRecallResult" };
   } else {
     required.push("memory_id", "revision", "record_digest");
-    if (type === "memory.purged") {
+    if (type === "memory.corrected") {
+      required.push("previous_revision", "previous_record_digest");
+      properties.previous_revision = { type: "integer", minimum: 1 };
+      properties.previous_record_digest = {
+        $ref: "#/$defs/ContextMemoryDigest",
+      };
+      for (const key of ["seq", "trace_id"])
+        properties[key] = structuredClone(envelopeProperties[key]);
+      delete properties.reason_code;
+    } else if (type === "memory.purged") {
       properties.receipt = { $ref: "#/$defs/MemoryDeletionReceipt" };
     } else {
       properties.record = { $ref: "#/$defs/MemoryRecord" };
     }
   }
-  return { type: "object", required, properties };
+  return {
+    type: "object",
+    required,
+    properties,
+    ...(type === "memory.corrected" ? { additionalProperties: false } : {}),
+  };
 }
 
 function appendUnique(values, additions) {
@@ -132,7 +155,11 @@ function appendUnique(values, additions) {
   }
 }
 
-export function composeContextMemoryProtocolSchema(protocolSchema, contextMemorySchema, contextMemoryText) {
+export function composeContextMemoryProtocolSchema(
+  protocolSchema,
+  contextMemorySchema,
+  contextMemoryText,
+) {
   const next = structuredClone(protocolSchema);
   const sourceDigest = `sha256:${createHash("sha256").update(contextMemoryText).digest("hex")}`;
   appendUnique(next["x-cc-protocol"].features, ["context_memory_kernel"]);
@@ -141,29 +168,37 @@ export function composeContextMemoryProtocolSchema(protocolSchema, contextMemory
     schemaVersion: contextMemorySchema["x-cc-context-memory"].version,
     sourceDigest,
     methods: Object.fromEntries(
-      Object.entries(contextMemoryMethods).map(([method, [request, response]]) => [
-        method,
-        { request, response },
-      ]),
+      Object.entries(contextMemoryMethods).map(
+        ([method, [request, response]]) => [method, { request, response }],
+      ),
     ),
     lifecycleEvents: [...contextMemoryLifecycleEvents],
   };
 
-  Object.assign(next.$defs, protocolContextMemoryDefinitions(contextMemorySchema));
+  Object.assign(
+    next.$defs,
+    protocolContextMemoryDefinitions(contextMemorySchema),
+  );
   const eventTypes = next.$defs.AgentStreamEventType.enum;
   appendUnique(eventTypes, contextMemoryLifecycleEvents);
   const eventPayloads = next.$defs.AgentStreamEventPayload.oneOf;
   const payloadReferences = new Set(eventPayloads.map((entry) => entry.$ref));
   for (const type of contextMemoryLifecycleEvents) {
     const name = streamDefinitionName(type);
-    next.$defs[name] = lifecycleStreamDefinition(type);
+    next.$defs[name] = lifecycleStreamDefinition(
+      type,
+      next.$defs.AgentStreamEventEnvelope.properties,
+    );
     const reference = `#/$defs/${name}`;
-    if (!payloadReferences.has(reference)) eventPayloads.push({ $ref: reference });
+    if (!payloadReferences.has(reference))
+      eventPayloads.push({ $ref: reference });
   }
 
   const clientVariants = next.$defs.ClientRequest.allOf[1].oneOf;
   const typedMethods = new Set(
-    clientVariants.map((branch) => branch?.properties?.method?.const).filter(Boolean),
+    clientVariants
+      .map((branch) => branch?.properties?.method?.const)
+      .filter(Boolean),
   );
   for (const [method, [request]] of Object.entries(contextMemoryMethods)) {
     if (typedMethods.has(method)) continue;
@@ -175,11 +210,16 @@ export function composeContextMemoryProtocolSchema(protocolSchema, contextMemory
       },
     });
   }
-  appendUnique(next.$defs.ServerNotification.properties.method.enum, ["context/event", "memory/event"]);
+  appendUnique(next.$defs.ServerNotification.properties.method.enum, [
+    "context/event",
+    "memory/event",
+  ]);
   return next;
 }
 
-export function synchronizeContextMemoryProtocolSchema({ checkOnly = false } = {}) {
+export function synchronizeContextMemoryProtocolSchema({
+  checkOnly = false,
+} = {}) {
   const protocolText = readFileSync(protocolSchemaPath, "utf8");
   const contextMemoryText = readFileSync(contextMemorySchemaPath, "utf8");
   const desired = composeContextMemoryProtocolSchema(
@@ -190,13 +230,24 @@ export function synchronizeContextMemoryProtocolSchema({ checkOnly = false } = {
   const desiredText = `${JSON.stringify(desired, null, 2)}\n`;
   if (protocolText === desiredText) return { stale: false, schema: desired };
   if (checkOnly) {
-    throw new Error("Agent Protocol context/memory schema projection is stale; run npm run context-memory:sync");
+    throw new Error(
+      "Agent Protocol context/memory schema projection is stale; run npm run context-memory:sync",
+    );
   }
   writeFileSync(protocolSchemaPath, desiredText, "utf8");
   return { stale: true, schema: desired };
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const result = synchronizeContextMemoryProtocolSchema({ checkOnly: process.argv.includes("--check") });
-  console.error(result.stale ? `Wrote ${protocolSchemaPath}` : "Context/Memory protocol projection is current");
+if (
+  process.argv[1] &&
+  resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+) {
+  const result = synchronizeContextMemoryProtocolSchema({
+    checkOnly: process.argv.includes("--check"),
+  });
+  console.error(
+    result.stale
+      ? `Wrote ${protocolSchemaPath}`
+      : "Context/Memory protocol projection is current",
+  );
 }

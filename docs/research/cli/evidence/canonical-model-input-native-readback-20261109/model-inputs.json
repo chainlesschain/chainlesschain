@@ -1,0 +1,307 @@
+{
+  "schema": "chainlesschain.session-model-inputs/v1",
+  "sessionId": "continuation-adc78574-3881-4a04-a4bd-84f9b89200bc",
+  "total": 2,
+  "truncated": false,
+  "records": [
+    {
+      "eventHash": "7c1e56fafb40dcd4751e10e1592f497956da19916b0369af1581dd97600adc6a",
+      "diagnostic": {
+        "schema": "chainlesschain.model-input-diagnostic/v1",
+        "requestId": "5f416711-d000-4c6b-8eb8-a9cf6345113a",
+        "usageCallId": "mdl-3c7e1381-b925-48ae-963e-edfb00bd60af",
+        "billingVerified": false,
+        "phase": "logical-input",
+        "logicalDigest": "360e0568d609ea71342fdb65418d9ec6b95a0a60119c67345ab842b54d97651c",
+        "sourceMapping": {
+          "covered": true,
+          "reason": "complete",
+          "sourceCount": 5,
+          "sourcesTruncated": false,
+          "sources": [
+            {
+              "ordinal": 0,
+              "input": [
+                {
+                  "kind": "message",
+                  "index": 1,
+                  "digest": "18d5793b52a591ca918527aaf5dd915852c026374175d742454df2d2a2b49647"
+                }
+              ],
+              "logical": [
+                {
+                  "kind": "message",
+                  "index": 1,
+                  "digest": "18d5793b52a591ca918527aaf5dd915852c026374175d742454df2d2a2b49647"
+                }
+              ],
+              "changed": false,
+              "redactionTouched": null,
+              "injectionTouched": null,
+              "derived": false
+            },
+            {
+              "ordinal": 1,
+              "input": [
+                {
+                  "kind": "message",
+                  "index": 0,
+                  "digest": "d1935477ec2cf89840e2aea46a3e7c4358052584b8e6516a24084f7703b5110b"
+                }
+              ],
+              "logical": [
+                {
+                  "kind": "message",
+                  "index": 0,
+                  "digest": "d1935477ec2cf89840e2aea46a3e7c4358052584b8e6516a24084f7703b5110b"
+                }
+              ],
+              "changed": false,
+              "redactionTouched": null,
+              "injectionTouched": null,
+              "derived": false
+            },
+            {
+              "ordinal": 2,
+              "input": [
+                {
+                  "kind": "message",
+                  "index": 3,
+                  "digest": "693ca95dbada00f2047d401fd0f766285397e9c3de2a757bcf2cd11f7dc2d17f"
+                }
+              ],
+              "logical": [
+                {
+                  "kind": "message",
+                  "index": 3,
+                  "digest": "693ca95dbada00f2047d401fd0f766285397e9c3de2a757bcf2cd11f7dc2d17f"
+                }
+              ],
+              "changed": false,
+              "redactionTouched": null,
+              "injectionTouched": null,
+              "derived": false
+            },
+            {
+              "ordinal": 3,
+              "input": [
+                {
+                  "kind": "message",
+                  "index": 4,
+                  "digest": "97ceb32419c1b4a8e6e2fe3abe46fdd87a596445a6bf30867e636a0b02da4b13"
+                }
+              ],
+              "logical": [
+                {
+                  "kind": "message",
+                  "index": 4,
+                  "digest": "97ceb32419c1b4a8e6e2fe3abe46fdd87a596445a6bf30867e636a0b02da4b13"
+                }
+              ],
+              "changed": false,
+              "redactionTouched": null,
+              "injectionTouched": null,
+              "derived": false
+            },
+            {
+              "ordinal": 4,
+              "input": [
+                {
+                  "kind": "message",
+                  "index": 2,
+                  "digest": "0698032e84dcf23ff497e4617d2b6d454186668998e7b688412a8ef34a187584"
+                }
+              ],
+              "logical": [
+                {
+                  "kind": "message",
+                  "index": 2,
+                  "digest": "0698032e84dcf23ff497e4617d2b6d454186668998e7b688412a8ef34a187584"
+                }
+              ],
+              "changed": false,
+              "redactionTouched": null,
+              "injectionTouched": null,
+              "derived": false
+            }
+          ]
+        },
+        "bytes": 3236,
+        "messageCount": 5,
+        "toolCount": 0,
+        "messages": [
+          {
+            "role": "system",
+            "digest": "d1935477ec2cf89840e2aea46a3e7c4358052584b8e6516a24084f7703b5110b",
+            "bytes": 166
+          },
+          {
+            "role": "user",
+            "digest": "18d5793b52a591ca918527aaf5dd915852c026374175d742454df2d2a2b49647",
+            "bytes": 159
+          },
+          {
+            "role": "assistant",
+            "digest": "0698032e84dcf23ff497e4617d2b6d454186668998e7b688412a8ef34a187584",
+            "bytes": 2002
+          },
+          {
+            "role": "system",
+            "digest": "693ca95dbada00f2047d401fd0f766285397e9c3de2a757bcf2cd11f7dc2d17f",
+            "bytes": 435
+          },
+          {
+            "role": "system",
+            "digest": "97ceb32419c1b4a8e6e2fe3abe46fdd87a596445a6bf30867e636a0b02da4b13",
+            "bytes": 444
+          }
+        ],
+        "planning": {
+          "covered": true,
+          "digest": "sha256:16ae01f4ef29384a8df6ee774a19ecb8dd2f011753aea39a126c941f880fd153",
+          "selectedCount": 5,
+          "dropped": {},
+          "sourceDetailsCovered": true,
+          "sourceCount": 5,
+          "sourcesTruncated": false,
+          "sources": [
+            {
+              "ordinal": 0,
+              "digest": "sha256:6e5ff4d91a7f6b6ad5a4608179b3cbfb636ec5582d271593015c70cbc132aaa7",
+              "kind": "task-state",
+              "disposition": "selected",
+              "reason": null
+            },
+            {
+              "ordinal": 1,
+              "digest": "sha256:10eb29bf39d2d14f6512146dac08785f1f42d790ef9fdb032e17f4cf96c960f2",
+              "kind": "system-policy",
+              "disposition": "selected",
+              "reason": null
+            },
+            {
+              "ordinal": 2,
+              "digest": "sha256:6741225e467d219c4a65a6690dc8ab61a3a7186b9167376b5f302f45d0ded743",
+              "kind": "system-policy",
+              "disposition": "selected",
+              "reason": null
+            },
+            {
+              "ordinal": 3,
+              "digest": "sha256:6a947b061a19e7764502ffe572b94b5e44fdd411a07525225b96aec652d65ece",
+              "kind": "system-policy",
+              "disposition": "selected",
+              "reason": null
+            },
+            {
+              "ordinal": 4,
+              "digest": "sha256:ad080afad0ff3a576f1c643efa13c699893696d78d3079792eb5aaded8923035",
+              "kind": "message",
+              "disposition": "selected",
+              "reason": null
+            }
+          ]
+        },
+        "projection": {
+          "covered": false,
+          "manifestDigest": null,
+          "projectionDigest": null,
+          "rulesetDigest": null,
+          "redactionCount": null,
+          "injectionCount": null
+        }
+      }
+    },
+    {
+      "eventHash": "7ef1a1f9913323f0635d0aa5569eafb0ac1ababebcc2fb45da6a26a2aafeb4b5",
+      "diagnostic": {
+        "schema": "chainlesschain.model-input-diagnostic/v1",
+        "requestId": "5f416711-d000-4c6b-8eb8-a9cf6345113a",
+        "usageCallId": "mdl-3c7e1381-b925-48ae-963e-edfb00bd60af",
+        "billingVerified": false,
+        "phase": "body-prepared",
+        "attempt": 1,
+        "stage": "fetch-body",
+        "bodyCovered": true,
+        "bodyDigest": "d15c29c2d6625a2a9889114d4eee0b1a0db7624d56674f85f28d0b3d84b0a367",
+        "bytes": 3298,
+        "providerAcceptanceVerified": false,
+        "sourceMapping": {
+          "covered": true,
+          "reason": "complete",
+          "sourceCount": 5,
+          "sourcesTruncated": false,
+          "sources": [
+            {
+              "ordinal": 0,
+              "status": "mapped",
+              "fragments": [
+                {
+                  "path": "/messages/1",
+                  "start": null,
+                  "end": null,
+                  "digest": "18d5793b52a591ca918527aaf5dd915852c026374175d742454df2d2a2b49647",
+                  "bytes": 159
+                }
+              ]
+            },
+            {
+              "ordinal": 1,
+              "status": "mapped",
+              "fragments": [
+                {
+                  "path": "/messages/0",
+                  "start": null,
+                  "end": null,
+                  "digest": "d1935477ec2cf89840e2aea46a3e7c4358052584b8e6516a24084f7703b5110b",
+                  "bytes": 166
+                }
+              ]
+            },
+            {
+              "ordinal": 2,
+              "status": "mapped",
+              "fragments": [
+                {
+                  "path": "/messages/3",
+                  "start": null,
+                  "end": null,
+                  "digest": "693ca95dbada00f2047d401fd0f766285397e9c3de2a757bcf2cd11f7dc2d17f",
+                  "bytes": 435
+                }
+              ]
+            },
+            {
+              "ordinal": 3,
+              "status": "mapped",
+              "fragments": [
+                {
+                  "path": "/messages/4",
+                  "start": null,
+                  "end": null,
+                  "digest": "97ceb32419c1b4a8e6e2fe3abe46fdd87a596445a6bf30867e636a0b02da4b13",
+                  "bytes": 444
+                }
+              ]
+            },
+            {
+              "ordinal": 4,
+              "status": "mapped",
+              "fragments": [
+                {
+                  "path": "/messages/2",
+                  "start": null,
+                  "end": null,
+                  "digest": "0698032e84dcf23ff497e4617d2b6d454186668998e7b688412a8ef34a187584",
+                  "bytes": 2002
+                }
+              ]
+            }
+          ],
+          "protocol": "openai-chat"
+        }
+      }
+    }
+  ],
+  "billingVerified": false
+}

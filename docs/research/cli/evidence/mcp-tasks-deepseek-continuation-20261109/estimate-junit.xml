@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="26" failures="0" errors="0" time="0.0122701">
+    <testsuite name="__tests__/unit/llm-pricing.test.js" timestamp="2026-11-09T02:22:19.381Z" hostname="DESKTOP-TFPBTD2" tests="23" failures="0" errors="0" skipped="0" time="0.0079864">
+        <testcase classname="__tests__/unit/llm-pricing.test.js" name="llm-pricing — pricing term validation &gt; accepts every built-in model&apos;s request pricing terms" time="0.0015827">
+        </testcase>
+        <testcase classname="__tests__/unit/llm-pricing.test.js" name="llm-pricing — pricing term validation &gt; still rejects unknown tiers and invalid paid-tier multipliers" time="0.0005966">
+        </testcase>
+        <testcase classname="__tests__/unit/llm-pricing.test.js" name="llm-pricing — lookupRate &gt; treats local providers as free" time="0.0003413">
+        </testcase>
+        <testcase classname="__tests__/unit/llm-pricing.test.js" name="llm-pricing — lookupRate &gt; matches the most specific pattern first (gpt-4o-mini before gpt-4o)" time="0.000221">
+        </testcase>
+        <testcase classname="__tests__/unit/llm-pricing.test.js" name="llm-pricing — lookupRate &gt; is case-insensitive on provider and model" time="0.000124">
+        </testcase>
+        <testcase classname="__tests__/unit/llm-pricing.test.js" name="llm-pricing — lookupRate &gt; resolves the GPT-5 family without shadowing (5.5 not caught by 5)" time="0.0004356">
+        </testcase>
+        <testcase classname="__tests__/unit/llm-pricing.test.js" name="llm-pricing — lookupRate &gt; uses current Opus pricing ($5/$25) and prices Fable 5 / Opus 4.x snapshots" time="0.0003336">
+        </testcase>
+        <testcase classname="__tests__/unit/llm-pricing.test.js" name="llm-pricing — lookupRate &gt; prices Doubao Seed 2.0 above the generic seed fallback" time="0.0001146">
+        </testcase>
+        <testcase classname="__tests__/unit/llm-pricing.test.js" name="llm-pricing — lookupRate &gt; prices the DeepSeek V4 models used by protected quality evals" time="0.0001104">
+        </testcase>
+        <testcase classname="__tests__/unit/llm-pricing.test.js" name="llm-pricing — lookupRate &gt; returns null for an unknown provider or model" time="0.0001327">
+        </testcase>
+        <testcase classname="__tests__/unit/llm-pricing.test.js" name="llm-pricing — estimateCost &gt; computes input/output cost from MTok rates" time="0.0002802">
+        </testcase>
+        <testcase classname="__tests__/unit/llm-pricing.test.js" name="llm-pricing — estimateCost &gt; preserves sub-microdollar charges for hard budget decisions" time="0.0000929">
+        </testcase>
+        <testcase classname="__tests__/unit/llm-pricing.test.js" name="llm-pricing — estimateCost &gt; local model costs nothing but is matched+free" time="0.0000608">
+        </testcase>
+        <testcase classname="__tests__/unit/llm-pricing.test.js" name="llm-pricing — estimateCost &gt; unknown model → unmatched, zero cost (never guessed)" time="0.0000541">
+        </testcase>
+        <testcase classname="__tests__/unit/llm-pricing.test.js" name="llm-pricing — priceRollup &gt; sums priced rows and lists unpriced ones separately" time="0.0002832">
+        </testcase>
+        <testcase classname="__tests__/unit/llm-pricing.test.js" name="llm-pricing — priceRollup &gt; handles an empty aggregate" time="0.0000723">
+        </testcase>
+        <testcase classname="__tests__/unit/llm-pricing.test.js" name="llm-pricing — priceRollup &gt; threads a custom table through priceRollup" time="0.0002216">
+        </testcase>
+        <testcase classname="__tests__/unit/llm-pricing.test.js" name="llm-pricing — mergePricing (config overrides) &gt; adds a brand-new provider rate usable by lookupRate" time="0.000147">
+        </testcase>
+        <testcase classname="__tests__/unit/llm-pricing.test.js" name="llm-pricing — mergePricing (config overrides) &gt; normalizes a mixed-case provider key so the override applies" time="0.0002538">
+        </testcase>
+        <testcase classname="__tests__/unit/llm-pricing.test.js" name="llm-pricing — mergePricing (config overrides) &gt; a user entry replaces a built-in pattern of the same match" time="0.0002098">
+        </testcase>
+        <testcase classname="__tests__/unit/llm-pricing.test.js" name="llm-pricing — mergePricing (config overrides) &gt; skips malformed override entries without throwing" time="0.0001397">
+        </testcase>
+        <testcase classname="__tests__/unit/llm-pricing.test.js" name="llm-pricing — mergePricing (config overrides) &gt; rejects negative and Infinity rates (a price can&apos;t be &lt; 0 or unbounded)" time="0.0001831">
+        </testcase>
+        <testcase classname="__tests__/unit/llm-pricing.test.js" name="llm-pricing — mergePricing (config overrides) &gt; returns the base table untouched when overrides are absent/invalid" time="0.0002125">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/unit/model-continuation-probe-admission.test.js" timestamp="2026-11-09T02:22:19.384Z" hostname="DESKTOP-TFPBTD2" tests="3" failures="0" errors="0" skipped="0" time="0.0042837">
+        <testcase classname="__tests__/unit/model-continuation-probe-admission.test.js" name="bounded continuation diagnostic estimates &gt; keeps published peak CNY separate from unmatched application USD" time="0.0016436">
+        </testcase>
+        <testcase classname="__tests__/unit/model-continuation-probe-admission.test.js" name="bounded continuation diagnostic estimates &gt; rejects unknown identities, unsafe bounds and the native estimate stop" time="0.0008173">
+        </testcase>
+        <testcase classname="__tests__/unit/model-continuation-probe-admission.test.js" name="bounded continuation diagnostic estimates &gt; retains existing matched USD estimates and their separate stop" time="0.0003158">
+        </testcase>
+    </testsuite>
+</testsuites>

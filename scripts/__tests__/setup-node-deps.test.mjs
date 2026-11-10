@@ -5,6 +5,45 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import test from "node:test";
 
+test("Linux host jobs install canvas prerequisites before npm and load the native module", () => {
+  for (const name of [
+    "process-ownership-recovery",
+    "ide-roadmap-accessibility-performance",
+    "test-automation-full",
+  ]) {
+    const workflow = fs.readFileSync(
+      new URL(`../../.github/workflows/${name}.yml`, import.meta.url),
+      "utf8",
+    );
+    const setup = workflow.indexOf(
+      "- uses: ./.github/actions/setup-linux-canvas",
+    );
+    assert(setup >= 0, `${name}: missing native prerequisites`);
+    const install = workflow.indexOf(
+      name === "test-automation-full"
+        ? "- name: Install dependencies"
+        : "uses: ./.github/actions/setup-node-deps",
+      setup,
+    );
+    assert(install > setup, `${name}: prerequisites must precede npm`);
+    assert(
+      workflow.indexOf(
+        "require('canvas').createCanvas(1, 1).toBuffer('image/png')",
+        install,
+      ) > install,
+      `${name}: verify real native loading after npm`,
+    );
+    if (name !== "test-automation-full") {
+      assert.equal(
+        workflow.split('".github/actions/setup-linux-canvas/action.yml"')
+          .length - 1,
+        2,
+        `${name}: action changes must trigger both push and PR checks`,
+      );
+    }
+  }
+});
+
 const action = fs
   .readFileSync(
     new URL(

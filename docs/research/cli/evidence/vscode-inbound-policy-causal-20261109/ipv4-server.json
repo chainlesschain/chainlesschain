@@ -1,0 +1,24 @@
+{
+  "events": [
+    {
+      "event": "bound",
+      "at": "2026-11-09T03:11:36.629Z",
+      "pid": 904,
+      "port": 50434
+    },
+    {
+      "event": "accept",
+      "at": "2026-11-09T03:11:42.480Z",
+      "pid": 904
+    },
+    {
+      "event": "nonce",
+      "at": "2026-11-09T03:11:42.480Z",
+      "pid": 904
+    }
+  ],
+  "exit": {
+    "code": null,
+    "signal": "SIGTERM"
+  }
+}

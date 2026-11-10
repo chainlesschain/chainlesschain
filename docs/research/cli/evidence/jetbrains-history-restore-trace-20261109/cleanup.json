@@ -1,0 +1,90 @@
+{
+  "initial": {
+    "source": {
+      "bytes": 2362,
+      "sha256": "73261d58d265a152d0357eba084d470d42d01e6c3bb6e894cf5ee6ce87463f89"
+    },
+    "profile": "Public",
+    "direction": "Inbound",
+    "localAddress": "127.0.0.1",
+    "remoteAddress": "127.0.0.1",
+    "policyStore": "ActiveStore",
+    "removed": true,
+    "persisted": false,
+    "rules": [
+      {
+        "name": "ChainlessChain-Diagnostic-5cd83b6a9879429cbc82a44cb80ccc1f",
+        "protocol": "TCP",
+        "executableSha256": "f8dc082a7dedbfd2924c3562405a5a1fd12efd2641808c92e2de819c76a58b7e",
+        "created": true,
+        "removed": true,
+        "persisted": false,
+        "hashUnchanged": true
+      },
+      {
+        "name": "ChainlessChain-Diagnostic-9639728efcc341a3878d343322414684",
+        "protocol": "TCP",
+        "executableSha256": "106540d88dbdd39987cfd52929ec99260990275be26b27724af3b9fe2c517851",
+        "created": true,
+        "removed": true,
+        "persisted": false,
+        "hashUnchanged": true
+      },
+      {
+        "name": "ChainlessChain-Diagnostic-b2f05d1e129c4c70bf396b801cbdd50a",
+        "protocol": "UDP",
+        "executableSha256": "f8dc082a7dedbfd2924c3562405a5a1fd12efd2641808c92e2de819c76a58b7e",
+        "created": true,
+        "removed": true,
+        "persisted": false,
+        "hashUnchanged": true
+      }
+    ]
+  },
+  "restart": {
+    "source": {
+      "bytes": 2362,
+      "sha256": "0e135110a7c6f46ab4acabf1185b8cc678924c06457466a6d9aaf2860afbf767"
+    },
+    "profile": "Public",
+    "direction": "Inbound",
+    "localAddress": "127.0.0.1",
+    "remoteAddress": "127.0.0.1",
+    "policyStore": "ActiveStore",
+    "removed": true,
+    "persisted": false,
+    "rules": [
+      {
+        "name": "ChainlessChain-Diagnostic-a5b32460856b42afb89463513d45ab13",
+        "protocol": "TCP",
+        "executableSha256": "f8dc082a7dedbfd2924c3562405a5a1fd12efd2641808c92e2de819c76a58b7e",
+        "created": true,
+        "removed": true,
+        "persisted": false,
+        "hashUnchanged": true
+      },
+      {
+        "name": "ChainlessChain-Diagnostic-f9c3284f68db4e83bda49ff46f4f1c9f",
+        "protocol": "TCP",
+        "executableSha256": "106540d88dbdd39987cfd52929ec99260990275be26b27724af3b9fe2c517851",
+        "created": true,
+        "removed": true,
+        "persisted": false,
+        "hashUnchanged": true
+      },
+      {
+        "name": "ChainlessChain-Diagnostic-76d2365e25c5435c8f7649872480401a",
+        "protocol": "UDP",
+        "executableSha256": "f8dc082a7dedbfd2924c3562405a5a1fd12efd2641808c92e2de819c76a58b7e",
+        "created": true,
+        "removed": true,
+        "persisted": false,
+        "hashUnchanged": true
+      }
+    ]
+  },
+  "initialProcessCleanupConfirmed": false,
+  "sharedSogouDaemonForcedTermination": false,
+  "restartProcessCleanupConfirmed": true,
+  "forceTreeTerminationAllowed": false
+}

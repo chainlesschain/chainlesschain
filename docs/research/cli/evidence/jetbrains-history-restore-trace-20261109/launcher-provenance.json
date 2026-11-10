@@ -1,0 +1,49 @@
+{
+  "rootSourceCommit": "937ceaa3746ba032111ea304b061bc4703118b78",
+  "originalHarnessSha256": "bd2e7431d93b25281e6927838dc8cdb952ad55b1e3aafc321f3f3233ee3aa560",
+  "privateHarnessSha256": "f7dd9589303010eaca04c83578d6f40fea07010e69355c6b3a8372123c911783",
+  "diffSha256": "f22f9a6ebb5068b682db19797855c210690b9771609846efe537402280defbde",
+  "frozenOldPluginSha256": "6efd52b835c0a30a047c3a70bfae88c8a71765ecc90ef25a7419a5121295d632",
+  "adaptation": "imports/paths and graceful-only teardown; capture finally executes even if cleanup fails, then original cleanup exception rethrown",
+  "rootTrackedSourceChanged": false,
+  "uiRecoveryAssertionsChanged": false,
+  "forceTreeTerminationAllowed": false,
+  "outerDeadlineForceTreeTerminationAllowed": false,
+  "continuation": {
+    "sourceCommit": "937ceaa3746ba032111ea304b061bc4703118b78",
+    "adaptation": "Exports the same graceful-only cleanup for a restart-only continuation of the existing completed fixture. UI assertions and production sources unchanged. Original full journey remains failed.",
+    "schema": "restart-continuation-provenance/v1",
+    "files": [
+      {
+        "sha256": "1d94f23b6cb81bf2e35b11faeea67bdcd1918bbb1b466e61b5b3a6fcdf9916ce",
+        "path": "private-harness.mjs"
+      },
+      {
+        "sha256": "79b0099504023fcabc1ede14d735cc9af0fe8d333aea78ecd0f20c175ffacb0a",
+        "path": "task.mjs"
+      },
+      {
+        "sha256": "97fe35d4468161d3c78ca6b58f66a22549d1b0394e8b273c32d6a1b5e2e78d16",
+        "path": "run.cjs"
+      },
+      {
+        "sha256": "cee307998d4b2d2071ddfe0b3854c13f903bd8fd78270fb8b176e42dec79dedf",
+        "path": "run.ps1"
+      },
+      {
+        "sha256": "0eb0cbc91fd0b48485da530bbc6985df2203c836f4220834548786a19cb7ab2c",
+        "path": "prepare.cjs"
+      },
+      {
+        "sha256": "c5fb4112848ff28018b1507d0c4f71a3ec0806c60a4fd7bb5a4dc1e471398d1a",
+        "path": "launcher-export.patch"
+      }
+    ],
+    "parentPrivateHarnessSha256": "f7dd9589303010eaca04c83578d6f40fea07010e69355c6b3a8372123c911783"
+  },
+  "originalDiff": {
+    "bytes": 5648,
+    "sha256": "f22f9a6ebb5068b682db19797855c210690b9771609846efe537402280defbde"
+  },
+  "publicDiff": "launcher-adaptation.patch replaces machine-specific repository roots with <REPO_ROOT>; original private diff SHA retained"
+}

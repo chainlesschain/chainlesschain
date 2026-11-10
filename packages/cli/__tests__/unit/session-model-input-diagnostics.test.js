@@ -164,6 +164,68 @@ it("persists diagnostics from the headless host's real loop options", async () =
   ).toBe(emitted.requestId);
 });
 
+it("reads stream-input model diagnostics from the real canonical journal after exit", async () => {
+  await import("../helpers/test-model-egress.js");
+  const { runAgentHeadlessStream } =
+    await import("../../src/runtime/headless-stream.js");
+  const {
+    withModelInputDiagnostics,
+    recordLogicalModelInput,
+    recordModelInputBody,
+  } = await import("../../src/lib/model-input-diagnostics.js");
+  const id = "diagnostic-stream-journal";
+  const physicalBody = JSON.stringify({
+    messages: [{ role: "user", content: "synthetic-private-input" }],
+    max_tokens: 37,
+  });
+  const result = await runAgentHeadlessStream(
+    {
+      sessionId: id,
+      cwd: workspace,
+      settingsHooks: {},
+      useRegisteredMcp: false,
+      expandFileRefs: false,
+    },
+    {
+      input: (async function* () {
+        yield JSON.stringify({ text: "synthetic-private-input" }) + "\n";
+      })(),
+      bootstrap: async () => ({ db: null }),
+      getApprovalGate: async () => null,
+      writeOut() {},
+      writeErr() {},
+      agentLoop: async function* (_, options) {
+        await withModelInputDiagnostics(options, async () => {
+          await recordLogicalModelInput({
+            messages: [{ role: "user", content: "synthetic-private-input" }],
+            tools: [],
+          });
+          await recordModelInputBody(physicalBody, "fetch-body");
+        });
+        yield { type: "response-complete", content: "done" };
+        yield { type: "run-ended", reason: "complete" };
+      },
+    },
+  );
+  expect(result.exitCode, JSON.stringify(result)).toBe(0);
+  const before = readEvents(id);
+  const report = readSessionModelInputDiagnostics(id);
+  const { createHash } = await import("node:crypto");
+  expect(report.total).toBe(2);
+  expect(report.records.map((x) => x.diagnostic.phase)).toEqual([
+    "logical-input",
+    "body-prepared",
+  ]);
+  expect(report.records[0].diagnostic.requestId).toBe(
+    report.records[1].diagnostic.requestId,
+  );
+  expect(report.records[1].diagnostic.bodyDigest).toBe(
+    createHash("sha256").update(physicalBody).digest("hex"),
+  );
+  expect(JSON.stringify(report)).not.toContain("synthetic-private-input");
+  expect(readEvents(id)).toEqual(before);
+});
+
 it("persists diagnostics from the REPL wrapper into its session ledger", async () => {
   const { agentLoop } = await import("../../src/repl/agent-repl.js");
   const id = "diagnostic-repl";

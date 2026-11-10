@@ -2,6 +2,14 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
 
+## Release candidate 0.166.146
+
+Source candidate **0.166.146** pairs with VS Code/Open VSX **0.37.184** and JetBrains **0.4.199**. It requires Context/Memory Kernel **0.1.12**; the companion public protocol/SDK candidates are **0.1.13 / 0.2.18**. Session Core remains **0.3.27**. These versions are not public until their exact-source gates and registry/Marketplace readbacks succeed. The verified public combination below remains the installation recommendation until then.
+
+After publication is verified, install `npm i -g chainlesschain@0.166.146 --registry https://registry.npmjs.org`, restart CLI/IDE hosts, then run `cc --version` and `cc doctor`.
+
+This candidate adds canonical `memory inspect` and revision-checked `memory correct`, body-free correction notifications, persisted stream model-input diagnostics and restored JetBrains tool traces. A correction conflicts on a stale revision; an error after durable publication exits 2 and must be inspected without automatic replay. SQLite stores that contain correction events require the newer reader. Explicit output-token limits and durable MCP continuation retain their documented scope. Natural-language multilingual retrieval, complete lifecycle/platform acceptance, billing reconciliation and paid admission remain incomplete. This batch plans PC/mobile **v5.0.3.146** as its final candidate stage after public verification of child npm packages, CLI and VS Code. The user authorized this client stage after a successful JetBrains .199 upload while Marketplace review is pending; pending is not public availability. Product builds and public assets must then pass their own release checks. Public PC/mobile clients remain **v5.0.3.145** until those checks succeed.
+
 ## Public CLI 0.166.145 / verified IDE pairing
 
 Public versions checked 2026-11-09: Session Core **0.3.27**, CLI **0.166.145**, Open VSX **0.37.181**, JetBrains **0.4.198**. Both IDEs recommend CLI .145. Open VSX passed **70K+ downloads** (owner-confirmed milestone). Source VS Code .182 is separate from public .181.
@@ -403,6 +411,41 @@ cc agent process-ownership recover <execution-id> --timeout-ms 5000 --json
 ```
 
 Recovery verifies the exact persisted cgroup, stops it, and clears quarantine only after confirmed cleanup. It never resumes the task; Windows/macOS reject this Linux-specific operation. Windows native evaluation keeps wall-time, capability/admission and failed-cleanup evidence; diagnostics and CLI release checks do not qualify a formal effect experiment.
+
+### Correcting canonical Memory (source candidate)
+
+Inspect the exact record before replacing an incorrect fact or updating an
+existing rule:
+
+```bash
+cc memory inspect <memory-id> --json
+cc memory correct <memory-id> "Corrected content" --expected-revision 1 --json
+```
+
+Use the revision returned by `inspect`. Correction keeps the memory ID and its
+scope, sensitivity, sinks and retention policy, increments the revision, and
+clears the old summary. Only active or reinforced records without a `contentRef`
+can be corrected; correction does not restore archived or deleted memory.
+Reference-backed records are rejected with
+`memory_correction_content_ref_unsupported` until durable content reconciliation
+is supported. This refusal leaves the original record and reference unchanged,
+so a later authorized deletion still has the external-content cleanup target.
+Adding another entry is a separate operation and does not automatically replace
+an earlier rule.
+
+A concurrent edit rejects the stale revision. The command never refreshes that
+revision or retries an uncertain write. Read the current record again before
+deciding on another edit; a conflict alone does not prove that your edit committed.
+Exit code2 with `CONTEXT_MEMORY_COMMIT_PUBLISHED` means the new version was
+published but maintenance failed; the JSON retains durability and cleanup status.
+The correction event keeps predecessor/new digests and revisions, not old content
+or the free-form reason. Existing source metadata describes provenance history,
+not independent verification of the corrected fact.
+
+These commands require canonical mode and the updated kernel. They are not part
+of the currently published CLI. Older SQLite readers reject correction events;
+mixed-version and downgrade acceptance remain unverified. The change adds no
+semantic-quality, paid-admission or publication claim.
 
 ### Memory pagination (public 0.166.88)
 
@@ -994,6 +1037,12 @@ chainlesschain agent --provider openai  # Reads the stored credential
 Built-in tools (19): `read_file`, `write_file`, `edit_file`, `edit_file_hashed`, `notebook_edit`, `run_shell`, `check_shell`, `git`, `search_files`, `list_dir`, `run_skill`, `list_skills`, `run_code`, `spawn_sub_agent`, `web_fetch`, `web_search`, `todo_write`, `ask_user_question`, `search_sessions`
 
 For gateways with a smaller context allowance, use `cc agent --context-window 32768 -p "your task"`. This operator-declared planning window accepts integers from 1024 to 16777216 and applies to interactive, headless and streamed sessions. It does not change the model's official capabilities, output cap or turn budget. Token planning does not guarantee a serialized request fits a gateway's byte limit; verify the actual request size for that gateway.
+
+In the source candidate, `cc agent --max-output-tokens 1024 -p "your task"` requests an output cap for each main agent/tool-loop model request. The same option applies to interactive and IDE stream-json sessions and is retained when a background launch is reconstructed. It accepts a positive safe integer; omit it to retain existing provider defaults. Provider-specific limits still apply. Auxiliary compaction/advisor budgets, total session tokens, time, invoicing and paid-production admission remain separate.
+
+Background profiles carrying this option use version 2 so older readers reject them instead of silently dropping the cap. Existing uncapped version 1 profiles retain their format and fingerprints.
+
+Anthropic legacy manual thinking needs an output cap above 1024 tokens. An incompatible combination is rejected before the provider request; the CLI preserves your cap and thinking setting. Choose a larger cap or explicitly disable thinking. See the [provider's manual-thinking budget rules](https://platform.claude.com/docs/en/build-with-claude/extended-thinking#budget-rules-and-tuning).
 
 **Search first, then read the relevant source.** Use `web_search` with keywords when no URL is known. It returns source links and bounded snippets (`maxResults`, default 8; `maxSnippetChars`, default 2000). The configured provider is respected; `auto` selects an available API key or keyless DuckDuckGo. Captcha, authentication, rate-limit and network failures are errors, never a claim that no sources exist. Configure `.chainlesschain/config.json:webSearch` with an available provider if keyless search is blocked.
 

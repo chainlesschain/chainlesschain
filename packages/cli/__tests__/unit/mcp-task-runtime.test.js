@@ -44,6 +44,11 @@ async function fixture() {
   let createFailure = null;
   let cancelFailure = false;
   let missing = false;
+  let blockPolls = false;
+  let observeFirstPoll;
+  const firstPoll = new Promise((resolve) => {
+    observeFirstPoll = resolve;
+  });
   const task = () => ({
     taskId: "remote:opaque/task",
     status,
@@ -71,6 +76,8 @@ async function fixture() {
     for await (const chunk of req) chunks.push(chunk);
     const message = JSON.parse(Buffer.concat(chunks).toString());
     requests.push(message);
+    if (message.method === "tasks/get") observeFirstPoll();
+    if (message.method === "tasks/get" && blockPolls) return;
     if (message.id == null) {
       res.writeHead(202).end();
       return;
@@ -181,6 +188,10 @@ async function fixture() {
     task,
     result,
     calls: (method) => requests.filter((item) => item.method === method),
+    waitForFirstPoll: () => firstPoll,
+    blockPolls: (value) => {
+      blockPolls = value;
+    },
     createFails: (value) => {
       createFailure = value;
     },
@@ -301,6 +312,121 @@ describe("durable MCP task auxiliary runtime", () => {
       host.runtime.watch(accepted.localId, { intervalMs: 60_001 }),
     ).rejects.toMatchObject({ code: "CC_MCP_TASK_WATCH_OPTIONS_INVALID" });
     expect(f.calls("tasks/get")).toHaveLength(0);
+  });
+
+  it.each(["network", "interval"])(
+    "bounds the whole watch during a stalled %s without cancelling or replaying the remote task",
+    async (stage) => {
+      const f = await fixture();
+      const host = await f.open();
+      const accepted = await host.runtime.create("remote", "export", {});
+      f.blockPolls(stage === "network");
+      const started = Date.now();
+      let observeUpdate;
+      const updated = new Promise((resolve) => {
+        observeUpdate = resolve;
+      });
+      // Keep the 100ms whole-watch budget, but advance its timer only after
+      // the intended stalled phase is observed. Real filesystem/HTTP setup
+      // under load must not turn this into a pre-dispatch timeout test.
+      vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+      try {
+        const outcome = host.runtime
+          .watch(accepted.localId, {
+            intervalMs: 60_000,
+            timeoutMs: 100,
+            onUpdate: observeUpdate,
+          })
+          .then(
+            (value) => ({ value }),
+            (error) => ({ error }),
+          );
+        const phase = stage === "network" ? f.waitForFirstPoll() : updated;
+        expect(
+          await Promise.race([
+            phase.then(() => "observed"),
+            outcome.then(() => "settled-before-phase"),
+          ]),
+        ).toBe("observed");
+        await vi.advanceTimersByTimeAsync(100);
+        expect((await outcome).error).toMatchObject({
+          code: "CC_MCP_TASK_WATCH_TIMEOUT",
+        });
+      } finally {
+        vi.useRealTimers();
+      }
+      expect(Date.now() - started).toBeLessThan(2000);
+      expect(f.calls("tasks/get")).toHaveLength(1);
+      expect(f.calls("tools/call")).toHaveLength(1);
+      expect(f.calls("tasks/cancel")).toHaveLength(0);
+      expect(host.runtime.list().records[0]).toMatchObject({
+        remoteStatus: "working",
+        resultSaved: false,
+        delivered: false,
+      });
+      f.blockPolls(false);
+      f.complete();
+      expect(
+        await host.runtime.watch(accepted.localId, { timeoutMs: 1000 }),
+      ).toMatchObject({ delivered: true });
+      expect(f.calls("tools/call")).toHaveLength(1);
+    },
+    10_000,
+  );
+
+  it("times out behind a queued poll and never dispatches that expired queued request", async () => {
+    const f = await fixture();
+    const host = await f.open();
+    const accepted = await host.runtime.create("remote", "export", {});
+    f.blockPolls(true);
+    const prior = new AbortController();
+    const pending = host.runtime.poll(accepted.localId, {
+      signal: prior.signal,
+    });
+    const observed = pending.catch(() => {});
+    await vi.waitFor(() => expect(f.calls("tasks/get")).toHaveLength(1));
+    await expect(
+      host.runtime.watch(accepted.localId, { timeoutMs: 100 }),
+    ).rejects.toMatchObject({ code: "CC_MCP_TASK_WATCH_TIMEOUT" });
+    expect(f.calls("tasks/get")).toHaveLength(1);
+    prior.abort();
+    await observed;
+    f.blockPolls(false);
+    expect(await host.runtime.poll(accepted.localId)).toMatchObject({
+      remoteStatus: "working",
+    });
+    expect(f.calls("tasks/get")).toHaveLength(2);
+    expect(f.calls("tools/call")).toHaveLength(1);
+  });
+
+  it("honors caller cancellation between a cached observation and delivery", async () => {
+    const f = await fixture();
+    const host = await f.open();
+    const accepted = await host.runtime.create("remote", "export", {});
+    await host.runtime.result(accepted.localId);
+    const controller = new AbortController();
+    const reason = new Error("stop before publishing");
+    await expect(
+      host.runtime.watch(accepted.localId, {
+        signal: controller.signal,
+        onUpdate: () => controller.abort(reason),
+      }),
+    ).rejects.toBe(reason);
+    expect(host.runtime.list().records[0].delivered).toBe(false);
+  });
+
+  it("keeps an already-aborted caller authoritative and never publishes a cached result", async () => {
+    const f = await fixture();
+    const host = await f.open();
+    const accepted = await host.runtime.create("remote", "export", {});
+    await host.runtime.result(accepted.localId);
+    const controller = new AbortController();
+    const reason = new Error("caller stopped tracking");
+    controller.abort(reason);
+    await expect(
+      host.runtime.watch(accepted.localId, { signal: controller.signal }),
+    ).rejects.toBe(reason);
+    expect(host.runtime.list().records[0].delivered).toBe(false);
   });
 
   it("recovers a saved but undelivered result without refetching it", async () => {

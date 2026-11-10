@@ -1,0 +1,26 @@
+{
+  "schema": "bounded-standard-gradle/v1",
+  "tasks": ["smokeTest", "test", "buildPlugin"],
+  "args": [
+    "/d",
+    "/c",
+    "gradlew.bat",
+    "smokeTest",
+    "test",
+    "buildPlugin",
+    "--offline",
+    "--no-daemon",
+    "--stacktrace",
+    "--no-configuration-cache",
+    "-Dorg.gradle.java.installations.auto-detect=false",
+    "-Dorg.gradle.java.installations.auto-download=false",
+    "-Dorg.gradle.java.installations.paths=[cached SDK/JDK]/jdk-21.0.13+9"
+  ],
+  "childPid": 37364,
+  "startedAt": "2026-11-09T03:28:59.103Z",
+  "timeoutMs": 240000,
+  "diagnosticFirewallCondition": true,
+  "exitCode": 0,
+  "signal": null,
+  "finishedAt": "2026-11-09T03:31:26.136Z"
+}

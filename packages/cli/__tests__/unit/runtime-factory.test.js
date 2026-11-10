@@ -10,10 +10,27 @@ describe("runtime-factory", () => {
     vi.resetModules();
   });
 
-  it("creates agent runtime with config-backed defaults", async () => {
-    const { createAgentRuntimeFactory } = await import(
-      "../../src/runtime/runtime-factory.js"
+  it("carries an explicit output cap through the interactive policy into the REPL", async () => {
+    const { createAgentRuntimeFactory } =
+      await import("../../src/runtime/runtime-factory.js");
+    const startAgentRepl = vi.fn().mockResolvedValue(undefined);
+    const runtime = createAgentRuntimeFactory({
+      config: {},
+      deps: { startAgentRepl },
+    }).createAgentRuntime({
+      provider: "ollama",
+      model: "unit-model",
+      maxOutputTokens: 37,
+    });
+    await runtime.startAgentSession();
+    expect(startAgentRepl).toHaveBeenCalledWith(
+      expect.objectContaining({ maxOutputTokens: 37 }),
     );
+  });
+
+  it("creates agent runtime with config-backed defaults", async () => {
+    const { createAgentRuntimeFactory } =
+      await import("../../src/runtime/runtime-factory.js");
 
     const factory = createAgentRuntimeFactory({
       config: {
@@ -38,9 +55,8 @@ describe("runtime-factory", () => {
   });
 
   it("prefers explicit overrides over config values", async () => {
-    const { createAgentRuntimeFactory } = await import(
-      "../../src/runtime/runtime-factory.js"
-    );
+    const { createAgentRuntimeFactory } =
+      await import("../../src/runtime/runtime-factory.js");
 
     const factory = createAgentRuntimeFactory({
       config: {
@@ -70,9 +86,8 @@ describe("runtime-factory", () => {
   });
 
   it("creates server runtime with normalized server policy", async () => {
-    const { createAgentRuntimeFactory } = await import(
-      "../../src/runtime/runtime-factory.js"
-    );
+    const { createAgentRuntimeFactory } =
+      await import("../../src/runtime/runtime-factory.js");
 
     const runtime = createAgentRuntimeFactory({
       config: {},
@@ -99,9 +114,8 @@ describe("runtime-factory", () => {
   });
 
   it("creates ui runtime with normalized ui policy", async () => {
-    const { createAgentRuntimeFactory } = await import(
-      "../../src/runtime/runtime-factory.js"
-    );
+    const { createAgentRuntimeFactory } =
+      await import("../../src/runtime/runtime-factory.js");
 
     const runtime = createAgentRuntimeFactory({ config: {} }).createUiRuntime({
       port: 18810,
@@ -178,9 +192,8 @@ describe("runtime-factory", () => {
 
   it("passes only a branded policy memory writer into the agent REPL", async () => {
     const { AgentRuntime } = await import("../../src/runtime/agent-runtime.js");
-    const { createStructuredMemoryPolicyReceiptWriter } = await import(
-      "../../src/lib/evolution/structured-memory-policy-receipt-writer.js"
-    );
+    const { createStructuredMemoryPolicyReceiptWriter } =
+      await import("../../src/lib/evolution/structured-memory-policy-receipt-writer.js");
     const startAgentRepl = vi.fn().mockResolvedValue(undefined);
     const writer = createStructuredMemoryPolicyReceiptWriter({
       descriptor: {

@@ -4,9 +4,11 @@ on:
   pull_request:
     paths:
       - ".github/workflows/cli-team-fairness-soak.yml"
-      - ".github/actions/setup-node-deps/action.yml"
+      - ".github/scripts/ci-install-cli-production-deps.sh"
+      - ".github/scripts/ci-npm-retry.sh"
       - "package.json"
       - "package-lock.json"
+      - "packages/cli/package.json"
       - "packages/session-core/**"
       - "packages/cli/src/lib/agent-team/task-lease.js"
       - "packages/cli/src/lib/agent-team/team-runner.js"
@@ -73,7 +75,16 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
 
-      - uses: ./.github/actions/setup-node-deps
+      - name: Canonicalize Windows system temporary directory
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          node --input-type=module -e 'import { appendFileSync, realpathSync } from "node:fs"; import { tmpdir } from "node:os"; const root = realpathSync.native(tmpdir()); if (/[\r\n]/u.test(root)) throw new Error("Invalid system temporary directory"); appendFileSync(process.env.GITHUB_ENV, `TEMP=${root}\nTMP=${root}\n`);'
+
+      - name: Install packages/cli production dependencies standalone
+        working-directory: ./packages/cli
+        shell: bash
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/ci-install-cli-production-deps.sh"
 
       - name: Run sustained high-priority and scope-conflict fairness soak
         env:
@@ -127,7 +138,10 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
 
-      - uses: ./.github/actions/setup-node-deps
+      - name: Install packages/cli production dependencies standalone
+        working-directory: ./packages/cli
+        shell: bash
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/ci-install-cli-production-deps.sh"
 
       - name: Download complete three-platform fairness evidence
         uses: actions/download-artifact@v7

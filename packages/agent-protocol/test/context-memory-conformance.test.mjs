@@ -139,6 +139,25 @@ test("fixed Context/Memory methods validate typed params and reject missing para
   );
 });
 
+test("memory decisions retain strict lifecycle and correction wire variants", () => {
+  const validate = (params) =>
+    validateProtocolMessage({
+      jsonrpc: "2.0",
+      id: "memory-decision",
+      method: "memory/decide",
+      params,
+    }).ok;
+  const legacy = { memoryId: "memory-1", type: "archive", expectedRevision: 1 };
+  const correction = { ...legacy, type: "correct", content: "replacement" };
+  assert.equal(validate(legacy), true);
+  assert.equal(validate(correction), true);
+  assert.equal(validate({ ...legacy, content: "not a correction" }), false);
+  assert.equal(validate({ ...correction, confidenceDelta: 0.1 }), false);
+  const { content, ...missingContent } = correction;
+  assert.equal(validate(missingContent), false);
+  assert.equal(validate({ ...correction, allowedSinks: ["*"] }), false);
+});
+
 test("generated public validators accept canonical Kernel values", () => {
   const contextItem = item();
   const plan = planContext(planRequest());

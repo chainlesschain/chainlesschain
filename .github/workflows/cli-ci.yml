@@ -6,6 +6,9 @@ on:
     paths:
       - ".github/workflows/_scoped-docs-check.yml"
       - "scripts/ci/scoped-docs-check.mjs"
+      - "scripts/lib/verify01-gradle-bootstrap.mjs"
+      - "scripts/lib/verify01-diagnostic-process.mjs"
+      - "scripts/__tests__/verify01-gradle-bootstrap.test.mjs"
       - "packages/cli/**"
       - "packages/web-panel/**"
       - "packages/locales/seed/**"
@@ -68,6 +71,9 @@ on:
     paths:
       - ".github/workflows/_scoped-docs-check.yml"
       - "scripts/ci/scoped-docs-check.mjs"
+      - "scripts/lib/verify01-gradle-bootstrap.mjs"
+      - "scripts/lib/verify01-diagnostic-process.mjs"
+      - "scripts/__tests__/verify01-gradle-bootstrap.test.mjs"
       - "packages/cli/**"
       - "packages/web-panel/**"
       - "packages/locales/seed/**"
@@ -233,6 +239,7 @@ jobs:
           packages/cli/test-node/verify01-volcengine-generation-recovery.node-test.mjs
           packages/cli/test-node/verify01-sol-relative-token-budget.node-test.mjs
           packages/jetbrains-plugin/scripts/verify01-native-task-adapter.test.mjs
+          scripts/__tests__/verify01-gradle-bootstrap.test.mjs
 
   pdh-native-tests:
     needs: [docs-scope]

@@ -105,6 +105,7 @@ jobs:
               storageFailureCauseCodes,
               storageFailureReason,
               storageFailureStage,
+              storageFailureClockWindow,
             } = await import(pathToFileURL(path.join(
               process.env.GITHUB_WORKSPACE,
               "packages/cli/src/lib/storage-failure-cause-codes.js",
@@ -196,6 +197,7 @@ jobs:
                       codes,
                       reason,
                       stage,
+                      clockWindow: storageFailureClockWindow(error),
                       artifactGuardLine: artifactGuardLine(frames),
                       r140IndexFailures: indexFailures(error),
                     });

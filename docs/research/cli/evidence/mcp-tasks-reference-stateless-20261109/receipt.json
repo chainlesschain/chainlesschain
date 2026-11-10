@@ -1,0 +1,278 @@
+{
+  "schema": "chainlesschain.mcp-reference-task-acceptance/v1",
+  "at": "2026-11-09T00:59:57.628Z",
+  "platform": "win32",
+  "arch": "x64",
+  "node": "v24.12.0",
+  "server": {
+    "name": "@modelcontextprotocol/server-everything",
+    "version": "2.2.1",
+    "transportSha256": "0edca3b3ae7eba7a9b1f5974889854951ae346236422e53606443154797e5b57",
+    "taskSha256": "9e196852d4ceae99b29ba47a1a4697656a1ead8f56f364ece6ef8d417d0d866f"
+  },
+  "sourceFiles": {
+    "packages/cli/src/harness/mcp-client.js": "84c889a4b353e678d669f9a02d39675e5c53ae76218d0249a23c7bc71fa8b056",
+    "packages/cli/src/lib/mcp-stateless-protocol.js": "d1f28608b88b07e87cc61093a6b004b226350bbb1435980ca2055b4899e0294d",
+    "packages/cli/src/lib/mcp-tasks.js": "23e92c8c11fbd27981227ab85e3b2281bfe06f7f4a8d967a6206b791db14cc49",
+    "packages/cli/src/lib/mcp-task-runtime.js": "24e57ae1ba1c9aa0a7cfe1193e2a0a6db333eec6d2a45450c542bdc7ee2c71e5",
+    "packages/cli/__tests__/fixtures/mcp-tasks/durable-child.mjs": "cf8371bb65671ba6ddec0da1e728dc8479a79396e96d86180cdd34067d6fe766",
+    "packages/cli/scripts/probe-mcp-task-reference.mjs": "aade7db53fd2d8b01c8e63a668ed6652eb93f363d8430bfbb50d95ee7cf465a3",
+    "packages/cli/src/commands/mcp.js": "15a150e2ad7a4fff6f270f1e98e679fdfb731aa12057c7fed96a0f3d691f04d1",
+    "packages/cli/__tests__/unit/mcp-client-stateless.test.js": "5d55e2f6ffaede2eea44f31a8484560a11a503aaf6b20dfacdcdfa87d72c5bd2",
+    "packages/cli/__tests__/unit/mcp-task-runtime.test.js": "d459262423edb1bd23f96c7e17d349bf10aaf044c9754da0feaaf59993a1fcfe",
+    "packages/cli/scripts/budget-egress-reviewed-sources.json": "06fef1941a0b439f1fc0174171996099584b162813ecde841248d1461a8cabc6",
+    "packages/cli/src/constants.js": "14739a9132c080f35dd991ac757cb0ef97291fc55e5d23e77e62678657866638",
+    "packages/cli/package.json": "a7153d00f8eefd014dda663d3bf61283a3614598452ffbc89eb4126e965dfedd",
+    "packages/cli/scripts/probe-mcp-task-durable.mjs": "037470702d10f7da98b6fe9f0a5cd58d1dbc23f90d29f35ce13817d22ad0690f"
+  },
+  "scope": {
+    "independentUnmodifiedReference": true,
+    "separateServerProcess": true,
+    "forcedClientTermination": true,
+    "osSecretStore": "windows-dpapi",
+    "canonicalDeliveryVerified": true,
+    "duplicateDeliveryIdempotent": true,
+    "cancellationObserved": true,
+    "remoteProductionService": false,
+    "modelContinuationVerified": false,
+    "expiryVerified": false,
+    "revocationVerified": false,
+    "multiplatformVerified": false,
+    "inputRequestsVerified": false,
+    "paidReady": false
+  },
+  "stats": {
+    "methods": {
+      "server/discover": 6,
+      "tools/list": 6,
+      "resources/list": 6,
+      "resources/templates/list": 6,
+      "prompts/list": 6,
+      "tools/call": 2,
+      "tasks/get": 8,
+      "tasks/cancel": 1
+    },
+    "httpMethods": {
+      "POST": 41
+    },
+    "sessionHeaders": 0
+  },
+  "checkpoints": [
+    {
+      "action": "create",
+      "receipt": {
+        "ok": true,
+        "result": {
+          "localId": "f7465f73-adac-4403-b2b6-eb74279f62bf",
+          "sessionId": "reference-35a8fe27-8b2a-484b-9c22-2440e2005494",
+          "serverName": "official-everything",
+          "toolName": "simulate-research-query",
+          "phase": "accepted",
+          "revision": 1,
+          "taskId": "31d8b136-9057-484e-a5e2-4a94f4552054",
+          "remoteStatus": "working",
+          "pollIntervalMs": 1000,
+          "cancelRequested": false,
+          "cancelUnknown": false,
+          "resultSaved": false,
+          "delivered": false,
+          "callStatus": "started",
+          "outcomeUnknown": false,
+          "expiresAt": "2026-11-09T01:04:47.950Z"
+        },
+        "pid": 46980,
+        "backend": "dpapi"
+      },
+      "forcedTermination": true,
+      "exit": {
+        "code": null,
+        "signal": "SIGKILL"
+      }
+    },
+    {
+      "action": "watch",
+      "receipt": {
+        "ok": true,
+        "result": {
+          "sessionId": "reference-35a8fe27-8b2a-484b-9c22-2440e2005494",
+          "localId": "f7465f73-adac-4403-b2b6-eb74279f62bf",
+          "deliveryId": "mcp-task-delivery:f7465f73-adac-4403-b2b6-eb74279f62bf",
+          "eventHash": "616b81845a91a7beec80662f5235b07f894dd2c4b84ed2232451d603845618c2",
+          "messageDigest": "sha256:93571b738f4d43bebdc525faae1c6dfc33b4fef2db7b63ad6175d7ed81986e9b",
+          "delivered": true,
+          "duplicate": false,
+          "watched": true
+        },
+        "pid": 35984,
+        "backend": "dpapi"
+      },
+      "forcedTermination": false,
+      "exit": {
+        "code": 0,
+        "signal": null
+      }
+    },
+    {
+      "action": "deliver",
+      "receipt": {
+        "ok": true,
+        "result": {
+          "sessionId": "reference-35a8fe27-8b2a-484b-9c22-2440e2005494",
+          "localId": "f7465f73-adac-4403-b2b6-eb74279f62bf",
+          "deliveryId": "mcp-task-delivery:f7465f73-adac-4403-b2b6-eb74279f62bf",
+          "eventHash": "616b81845a91a7beec80662f5235b07f894dd2c4b84ed2232451d603845618c2",
+          "messageDigest": "sha256:93571b738f4d43bebdc525faae1c6dfc33b4fef2db7b63ad6175d7ed81986e9b",
+          "delivered": true,
+          "duplicate": true
+        },
+        "pid": 38736,
+        "backend": "dpapi"
+      },
+      "forcedTermination": false,
+      "exit": {
+        "code": 0,
+        "signal": null
+      }
+    },
+    {
+      "action": "verify-delivery",
+      "receipt": {
+        "ok": true,
+        "result": {
+          "sessionId": "reference-35a8fe27-8b2a-484b-9c22-2440e2005494",
+          "localId": "f7465f73-adac-4403-b2b6-eb74279f62bf",
+          "deliveryId": "mcp-task-delivery:f7465f73-adac-4403-b2b6-eb74279f62bf",
+          "eventHash": "616b81845a91a7beec80662f5235b07f894dd2c4b84ed2232451d603845618c2",
+          "messageDigest": "sha256:93571b738f4d43bebdc525faae1c6dfc33b4fef2db7b63ad6175d7ed81986e9b",
+          "hostRevision": "sha256:4937228ae031baca6f6181fe967da52c590b129f3bd3f7a2b4a47ee182c1352f",
+          "canonicalMessages": 1,
+          "assistantReferences": 1,
+          "userMessages": 0,
+          "toolMessages": 0
+        },
+        "pid": 44152,
+        "backend": "dpapi"
+      },
+      "forcedTermination": false,
+      "exit": {
+        "code": 0,
+        "signal": null
+      }
+    },
+    {
+      "action": "create",
+      "receipt": {
+        "ok": true,
+        "result": {
+          "localId": "7541cb9c-77ed-4435-94d3-958a0cca48e8",
+          "sessionId": "reference-cancel-1d3c63f7-395d-4df1-843b-20da2df1ef48",
+          "serverName": "official-everything",
+          "toolName": "simulate-research-query",
+          "phase": "accepted",
+          "revision": 1,
+          "taskId": "6f84d258-2cd9-4f82-a26d-83e398d45ed2",
+          "remoteStatus": "working",
+          "pollIntervalMs": 1000,
+          "cancelRequested": false,
+          "cancelUnknown": false,
+          "resultSaved": false,
+          "delivered": false,
+          "callStatus": "started",
+          "outcomeUnknown": false,
+          "expiresAt": "2026-11-09T01:04:55.694Z"
+        },
+        "pid": 45156,
+        "backend": "dpapi"
+      },
+      "forcedTermination": false,
+      "exit": {
+        "code": 0,
+        "signal": null
+      }
+    },
+    {
+      "action": "cancel",
+      "receipt": {
+        "ok": true,
+        "result": {
+          "localId": "7541cb9c-77ed-4435-94d3-958a0cca48e8",
+          "sessionId": "reference-cancel-1d3c63f7-395d-4df1-843b-20da2df1ef48",
+          "serverName": "official-everything",
+          "toolName": "simulate-research-query",
+          "phase": "observed",
+          "revision": 3,
+          "taskId": "6f84d258-2cd9-4f82-a26d-83e398d45ed2",
+          "remoteStatus": "cancelled",
+          "pollIntervalMs": 1000,
+          "cancelRequested": true,
+          "cancelUnknown": false,
+          "resultSaved": false,
+          "delivered": false,
+          "callStatus": "started",
+          "outcomeUnknown": false,
+          "expiresAt": "2026-11-09T01:04:55.694Z"
+        },
+        "pid": 13636,
+        "backend": "dpapi"
+      },
+      "forcedTermination": false,
+      "exit": {
+        "code": 0,
+        "signal": null
+      }
+    }
+  ],
+  "parentCommit": "c34a664f426f8ff1c026d21a25bf8d3fd2f6f959",
+  "validation": {
+    "testFiles": 42,
+    "passed": 563,
+    "failed": 0,
+    "junitNormalized": true,
+    "eslint": "passed",
+    "prettier": "passed",
+    "commandHelpAndManifest": "passed",
+    "egress": {
+      "candidates": 89,
+      "unclassified": 0,
+      "parseErrors": 0,
+      "sourceReviewPassed": true,
+      "callChainUnmapped": 78,
+      "paidReady": false
+    },
+    "multiOsCiVerified": false,
+    "egressInventoryClosureTests": {
+      "passed": 9,
+      "failed": 0,
+      "files": 2
+    },
+    "legacyNativeFixture": {
+      "passed": true,
+      "scope": {
+        "osSecretStore": "windows-dpapi",
+        "transport": "loopback-http",
+        "deliveryCrashRecovery": true,
+        "canonicalHostResume": true,
+        "workerConnectsForEveryAction": true,
+        "offlineProductCliVerified": true,
+        "modelContinuationVerified": false
+      },
+      "counts": {
+        "initialize": 10,
+        "tools/list": 10,
+        "resources/list": 10,
+        "resources/templates/list": 10,
+        "prompts/list": 10,
+        "tools/call": 2,
+        "tasks/get": 1,
+        "tasks/result": 2
+      },
+      "checkpointCount": 12
+    }
+  },
+  "artifacts": {
+    "regression-tests.xml": "c673eccd3da78884025ce7486cdfe1bea9b9cd131a18032de226b9d30df64915",
+    "reference-package.json": "a0476f9ddd5c46eee95749d638ba7c4ea0cdcec17d98bd80608bd83d59010ef3"
+  },
+  "sourceCommit": "018d64b3b58a32484c1ced91dfd203bcce664954",
+  "pullRequest": "https://github.com/chainlesschain/chainlesschain/pull/571"
+}

@@ -1,2 +1,4 @@
 # Files with HTML in JS strings that confuse prettier's Vue parser
 src/renderer/components/projects/ExcelEditor.vue
+# Generated SDK bytes are copied and hash-checked by sync-agent-sdk.mjs.
+src/main/vendor/agent-sdk/**

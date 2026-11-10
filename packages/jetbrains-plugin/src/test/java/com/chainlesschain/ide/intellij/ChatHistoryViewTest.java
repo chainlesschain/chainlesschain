@@ -1,11 +1,17 @@
 package com.chainlesschain.ide.intellij;
 
 import com.chainlesschain.ide.SessionTranscriptPage;
+import com.chainlesschain.ide.MiniJson;
+import com.chainlesschain.ide.UiEventDiagnostics;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import javax.swing.*;
 import java.awt.Component;
 import java.awt.Container;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Map;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executor;
@@ -37,6 +43,58 @@ class ChatHistoryViewTest {
     }
     private static JButton button(ChatHistoryView view, String text) {
         return components(view.component(), JButton.class).stream().filter(b -> text.equals(b.getAccessibleContext().getAccessibleName())).findFirst().orElseThrow();
+    }
+
+    @Test void readOnlyRestoreRecordsActualHistoryBoundariesWithoutMessageContent(@TempDir Path temporary) throws Exception {
+        String previous = System.getProperty(UiEventDiagnostics.PROPERTY);
+        Path capture = temporary.toRealPath();
+        System.setProperty(UiEventDiagnostics.PROPERTY, capture.toString());
+        try {
+            Worker worker = new Worker(); ChatTranscript[] transcript = new ChatTranscript[1];
+            edt(() -> {
+                transcript[0] = new ChatTranscript();
+                ChatHistoryView view = new ChatHistoryView(transcript[0], () -> "saved-1", () -> false, true,
+                        (sid, cursor, cancelled) -> page(sid, "private saved answer", "private cursor"), worker);
+                view.onSelected();
+            });
+            worker.next();
+            assertTrue(transcript[0].pane().getText().contains("private saved answer"));
+            List<String> lines = Files.readAllLines(capture.resolve("host-events.jsonl"));
+            List<Map<?, ?>> events = lines.stream().<Map<?, ?>>map(line -> (Map<?, ?>) MiniJson.parse(line)).toList();
+            assertEquals(List.of("HISTORY_REQUESTED", "HISTORY_READ_RETURNED", "HISTORY_APPLIED"),
+                    events.stream().map(event -> event.get("stage")).toList());
+            assertEquals(1, events.stream().map(event -> event.get("id")).distinct().count());
+            assertTrue(events.stream().allMatch(event -> "saved-1".equals(event.get("session"))));
+            String text = String.join("\n", lines);
+            assertFalse(text.contains("private")); assertFalse(text.contains(capture.toString()));
+        } finally {
+            if (previous == null) System.clearProperty(UiEventDiagnostics.PROPERTY);
+            else System.setProperty(UiEventDiagnostics.PROPERTY, previous);
+        }
+    }
+
+    @Test void historyFailureAndCancelledReadCannotClaimSuccessfulRestore(@TempDir Path temporary) throws Exception {
+        String previous = System.getProperty(UiEventDiagnostics.PROPERTY);
+        Path capture = temporary.toRealPath();
+        System.setProperty(UiEventDiagnostics.PROPERTY, capture.toString());
+        try {
+            Worker worker = new Worker(); ChatHistoryView[] view = new ChatHistoryView[1];
+            edt(() -> {
+                view[0] = new ChatHistoryView(new ChatTranscript(), () -> "saved-1", () -> false, true,
+                        (sid, cursor, cancelled) -> { throw new IOException("private failure message"); }, worker);
+                view[0].onSelected();
+            });
+            worker.next();
+            edt(() -> { view[0].onSelected(); view[0].dispose(); });
+            worker.next();
+            String text = Files.readString(capture.resolve("host-events.jsonl"));
+            assertTrue(text.contains("HISTORY_READ_FAILED")); assertTrue(text.contains("java.io.IOException"));
+            assertTrue(text.contains("HISTORY_STALE")); assertFalse(text.contains("HISTORY_APPLIED"));
+            assertFalse(text.contains("HISTORY_READ_RETURNED")); assertFalse(text.contains("private failure"));
+        } finally {
+            if (previous == null) System.clearProperty(UiEventDiagnostics.PROPERTY);
+            else System.setProperty(UiEventDiagnostics.PROPERTY, previous);
+        }
     }
 
     @Test void restoresTwoIndependentTabsAndBackgroundFinalTextOffEdt() throws Exception {

@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import {
   canonicalDigest,
+  assertContextMemoryDefinition,
   createMemoryCandidate,
   normalizeMemoryRecord,
 } from "@chainlesschain/context-memory-kernel";
@@ -600,6 +601,32 @@ export class CliCanonicalMemoryService {
       entries: recalled.results.map((result) =>
         publicEntry(result.record, result.relevance),
       ),
+    };
+  }
+
+  async inspect(memoryId) {
+    assertContextMemoryDefinition("Identifier", memoryId);
+    const record = await this.runtime.memoryPort.read(memoryId);
+    return record ? publicEntry(record) : null;
+  }
+
+  async correct(memoryId, { content, expectedRevision, reason } = {}) {
+    if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 1) {
+      throw new TypeError("expectedRevision must be a positive safe integer");
+    }
+    // The caller's revision is never refreshed or replayed after a conflict or
+    // an uncertain commit. The Kernel owns the single-record atomic transition.
+    const mutation = await this.runtime.kernel.decideMemory({
+      memoryId,
+      type: "correct",
+      content,
+      expectedRevision,
+      authority: "cli-user-correction",
+      ...(reason === undefined ? {} : { reason }),
+    });
+    return {
+      ...publicEntry(mutation.record),
+      receipt: mutation.receipt,
     };
   }
 

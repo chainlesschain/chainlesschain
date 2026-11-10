@@ -3,7 +3,7 @@ package com.chainlesschain.agent.protocol.generated
 
 const val CC_AGENT_PROTOCOL_VERSION: Int = 1
 const val CC_AGENT_PROTOCOL_MIN_VERSION: Int = 1
-const val CC_AGENT_PROTOCOL_SCHEMA_DIGEST: String = "sha256:b60343886bd59da73620ff808df78b806d8ddb95ebd31aace3ad3e9884b3558c"
+const val CC_AGENT_PROTOCOL_SCHEMA_DIGEST: String = "sha256:13fdae9baac062cde437e58fdb058ebb15fc9eaf88de281a3fca175418d16b1b"
 typealias JSONValue = Any?
 
 enum class AgentStreamEventType(val wireValue: String) {
@@ -58,7 +58,8 @@ enum class AgentStreamEventType(val wireValue: String) {
     MEMORY_EXPIRED("memory.expired"),
     MEMORY_DELETED("memory.deleted"),
     MEMORY_PURGED("memory.purged"),
-    MEMORY_RECALLED("memory.recalled");
+    MEMORY_RECALLED("memory.recalled"),
+    MEMORY_CORRECTED("memory.corrected");
 
     companion object {
         fun fromWireValue(value: String): AgentStreamEventType? =
@@ -1085,21 +1086,6 @@ data class MemoryProposalRequest(
     val supersedes: List<String>? = null
 )
 
-data class MemoryDecisionRequest(
-    val memoryId: String,
-    val type: String,
-    val expectedRevision: Long,
-    val confidenceDelta: Double? = null,
-    val importance: Double? = null,
-    val evidenceRefs: List<ContextMemorySourceRef>? = null,
-    val tags: List<String>? = null,
-    val summary: String? = null,
-    val successorMemoryId: String? = null,
-    val reason: String? = null,
-    val authority: String? = null,
-    val at: String? = null
-)
-
 data class MemoryDeletionRequest(
     val requestId: String,
     val subject: String,
@@ -1325,6 +1311,48 @@ data class TaskCheckpoint(
     val state: JSONValue,
     val digest: String
 )
+
+data class MemoryCorrectionRequest(
+    val memoryId: String,
+    val type: String,
+    val expectedRevision: Long,
+    val content: String,
+    val reason: String? = null,
+    val authority: String? = null,
+    val at: String? = null
+)
+
+data class MemoryDecisionRequest(
+    val memoryId: String,
+    val type: String,
+    val expectedRevision: Long,
+    val confidenceDelta: Double? = null,
+    val importance: Double? = null,
+    val evidenceRefs: List<ContextMemorySourceRef>? = null,
+    val tags: List<String>? = null,
+    val summary: String? = null,
+    val successorMemoryId: String? = null,
+    val reason: String? = null,
+    val authority: String? = null,
+    val at: String? = null
+)
+
+data class AgentMemoryCorrectedStreamEvent(
+    val type: AgentStreamEventType,
+    val operation_id: String? = null,
+    val request_id: String? = null,
+    val session_id: String? = null,
+    val memory_id: String,
+    val revision: Long,
+    val record_digest: String,
+    val previous_revision: Long,
+    val previous_record_digest: String,
+    val seq: Long? = null,
+    val trace_id: String? = null
+) : AgentStreamEventPayload
+
+// Legacy constructor remains lifecycle-only; corrections use MemoryCorrectionRequest.
+typealias MemoryLifecycleDecisionRequest = MemoryDecisionRequest
 
 sealed interface ApprovalDecision {
     data object AcceptOnce : ApprovalDecision

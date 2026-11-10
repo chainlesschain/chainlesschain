@@ -62,8 +62,14 @@ Public subpath exports:
 - `@chainlesschain/agent-protocol/generated/kotlin` — generated Kotlin source.
 - `@chainlesschain/agent-protocol/generated/swift` — generated Swift source.
 
+The native bindings retain the published `MemoryDecisionRequest` constructor
+for lifecycle decisions. `MemoryLifecycleDecisionRequest` aliases that same
+Kotlin class or Swift struct; content corrections use `MemoryCorrectionRequest`.
+These types encode the original wire fields without a union wrapper. The
+`memory/decide` schema still validates the two mutually exclusive request forms.
+
 The package version and the protocol version are separate. The current npm
-package release candidate is `0.1.12`; the embedded wire protocol is version
+package release candidate is `0.1.13`; the embedded wire protocol is version
 `1` and declares its
 minimum compatible protocol version in `x-cc-protocol`.
 

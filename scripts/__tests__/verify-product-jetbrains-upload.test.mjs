@@ -5,21 +5,26 @@ import {
   REVIEW_EXCEPTIONS,
   allowsReviewException,
   verifyUploadAuthority,
+  selectOfficialUploadRun,
+  verifyUploadAttempts,
 } from "../verify-product-jetbrains-upload.mjs";
 
 function fixture(exception = REVIEW_EXCEPTION) {
+  const source = exception.source || "b".repeat(40);
+  const runId = exception.runId || 42699999999;
   return {
     productVersion: exception.productVersion,
     version: exception.version,
     cliVersion: exception.cliVersion,
-    tagSha: exception.source,
+    tagSha: source,
+    ...(exception.sourceTag ? { npmTagSha: source } : {}),
     run: {
-      id: exception.runId,
+      id: runId,
       repository: { full_name: exception.repository },
       path: ".github/workflows/ide-extensions.yml",
       event: "push",
       head_branch: exception.tag,
-      head_sha: exception.source,
+      head_sha: source,
       status: "completed",
       conclusion: "success",
       run_attempt: 1,
@@ -27,7 +32,9 @@ function fixture(exception = REVIEW_EXCEPTION) {
     jobs: [
       {
         id: 123,
-        run_id: exception.runId,
+        run_id: runId,
+        head_sha: source,
+        run_attempt: 1,
         name: "JetBrains plugin (build + publish)",
         status: "completed",
         conclusion: "success",
@@ -66,7 +73,7 @@ for (const [name, mutate] of [
   [
     "another product",
     (f) => {
-      f.productVersion = "v5.0.3.146";
+      f.productVersion = "v5.0.3.147";
     },
   ],
   [
@@ -178,4 +185,152 @@ test("keeps all other product releases on the normal public verification path", 
     allowsReviewException("v5.0.3.144", "0.4.193", "0.166.139"),
     false,
   );
+});
+
+const product146 = REVIEW_EXCEPTIONS.find(
+  (entry) => entry.productVersion === "v5.0.3.146",
+);
+test("product146 binds its official upload to the immutable npm and IDE tag source", () => {
+  const f = fixture(product146);
+  assert.equal(selectOfficialUploadRun({ ...f, runs: [f.run] }).id, f.run.id);
+  const result = verifyUploadAuthority(f);
+  assert.equal(result.uploadVerified, true);
+  assert.equal(result.tag, "ide-jetbrains-v0.4.199");
+  for (const npmTagSha of [undefined, "a".repeat(40)]) {
+    assert.throws(() =>
+      selectOfficialUploadRun({ ...f, npmTagSha, runs: [f.run] }),
+    );
+    assert.throws(() => verifyUploadAuthority({ ...f, npmTagSha }));
+  }
+});
+
+for (const [field, value] of [
+  ["event", "pull_request"],
+  ["event", "workflow_dispatch"],
+  ["path", ".github/workflows/cli-ci.yml"],
+  ["head_branch", "main"],
+  ["head_sha", "a".repeat(40)],
+  ["status", "in_progress"],
+  ["conclusion", "failure"],
+]) {
+  test(`product146 cannot discover a run with ${field}=${value}`, () => {
+    const f = fixture(product146);
+    f.run[field] = value;
+    assert.throws(() => selectOfficialUploadRun({ ...f, runs: [f.run] }));
+  });
+}
+test("product146 refuses absent or ambiguous uploads and listing-only success", () => {
+  const f = fixture(product146);
+  for (const runs of [[], [f.run, { ...f.run, id: f.run.id + 1 }]])
+    assert.throws(() => selectOfficialUploadRun({ ...f, runs }));
+  f.jobs[0].name = "JetBrains Marketplace (post-publish verification)";
+  assert.throws(() => verifyUploadAuthority(f));
+});
+
+test("product146 retains attempt1 upload proof after attempt2 reruns only the listing", async () => {
+  const f = fixture(product146);
+  f.run.run_attempt = 2;
+  const requested = [];
+  const result = await verifyUploadAttempts(f, async (attempt) => {
+    requested.push(attempt);
+    return attempt === 1
+      ? f.jobs
+      : [
+          {
+            name: "JetBrains Marketplace (post-publish verification)",
+            status: "completed",
+            conclusion: "success",
+          },
+        ];
+  });
+  assert.deepEqual(requested, [2, 1]);
+  assert.equal(result.runId, f.run.id);
+  assert.equal(result.runAttempt, 2);
+  assert.equal(result.uploadAttempt, 1);
+});
+
+for (const [name, mutate] of [
+  [
+    "wrong run",
+    (job) => {
+      job.run_id++;
+    },
+  ],
+  [
+    "wrong source",
+    (job) => {
+      job.head_sha = "a".repeat(40);
+    },
+  ],
+  [
+    "wrong attempt",
+    (job) => {
+      job.run_attempt = 2;
+    },
+  ],
+  [
+    "failed upload",
+    (job) => {
+      job.conclusion = "failure";
+    },
+  ],
+  [
+    "skipped upload",
+    (job) => {
+      job.conclusion = "skipped";
+    },
+  ],
+  [
+    "failed publish",
+    (job) => {
+      job.steps[0].conclusion = "failure";
+    },
+  ],
+  [
+    "skipped publish",
+    (job) => {
+      job.steps[0].conclusion = "skipped";
+    },
+  ],
+]) {
+  test(`product146 rejects historical proof with ${name}`, async () => {
+    const f = fixture(product146);
+    f.run.run_attempt = 2;
+    mutate(f.jobs[0]);
+    await assert.rejects(
+      verifyUploadAttempts(f, async (attempt) => (attempt === 1 ? f.jobs : [])),
+    );
+  });
+}
+test("product146 cannot stitch attempts or skip a later failed upload", async () => {
+  const f = fixture(product146);
+  f.run.run_attempt = 2;
+  const later = structuredClone(f.jobs);
+  later[0].run_attempt = 2;
+  later[0].steps[0].conclusion = "skipped";
+  const requested = [];
+  await assert.rejects(
+    verifyUploadAttempts(f, async (attempt) => {
+      requested.push(attempt);
+      return attempt === 2 ? later : f.jobs;
+    }),
+  );
+  assert.deepEqual(requested, [2]);
+  await assert.rejects(verifyUploadAttempts(f, async () => []));
+});
+test("historical product144 and145 remain restricted to the current pinned attempt", async () => {
+  for (const exception of REVIEW_EXCEPTIONS.filter(
+    (entry) => !entry.sourceTag,
+  )) {
+    const f = fixture(exception);
+    f.run.run_attempt = 2;
+    const requested = [];
+    await assert.rejects(
+      verifyUploadAttempts(f, async (attempt) => {
+        requested.push(attempt);
+        return [];
+      }),
+    );
+    assert.deepEqual(requested, [2]);
+  }
 });

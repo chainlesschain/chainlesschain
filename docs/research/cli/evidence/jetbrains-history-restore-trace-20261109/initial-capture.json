@@ -1,0 +1,68 @@
+{
+  "phase": "initial",
+  "complete": true,
+  "originalRawSha256": "f635ceff0be8c27b8da07f39de7a8ba3f32950ef9e6d8914cc5525fd745d917b",
+  "originalRawBytes": 24754,
+  "publicProjection": "Only HISTORY_* records, JSONL normalized to LF; public SHA differs from full original host trace",
+  "files": [
+    {
+      "path": "host-events.jsonl.bin",
+      "bytes": 24754,
+      "sha256": "f635ceff0be8c27b8da07f39de7a8ba3f32950ef9e6d8914cc5525fd745d917b",
+      "originalBytes": true
+    },
+    {
+      "path": "idea-001.log.bin",
+      "bytes": 88952,
+      "sha256": "b11b407b8b6e6f476cf491c3c0bb46b788c57101b305d60f71637564b82a49bf",
+      "originalBytes": true
+    }
+  ],
+  "correlatedGroups": [
+    {
+      "session": "panel-1794197718684-78935c",
+      "id": "history-996eb13",
+      "stages": [
+        "HISTORY_REQUESTED",
+        "HISTORY_READ_RETURNED",
+        "HISTORY_APPLIED"
+      ]
+    },
+    {
+      "session": "panel-1794197717133-6f8b40",
+      "id": "history-43e3c816",
+      "stages": [
+        "HISTORY_REQUESTED",
+        "HISTORY_READ_RETURNED",
+        "HISTORY_APPLIED"
+      ]
+    },
+    {
+      "session": "panel-1794197717133-6f8b40",
+      "id": "history-693b4413",
+      "stages": [
+        "HISTORY_REQUESTED",
+        "HISTORY_READ_RETURNED",
+        "HISTORY_APPLIED"
+      ]
+    },
+    {
+      "session": "panel-1794197718684-78935c",
+      "id": "history-7b3d6a5",
+      "stages": [
+        "HISTORY_REQUESTED",
+        "HISTORY_READ_RETURNED",
+        "HISTORY_APPLIED"
+      ]
+    },
+    {
+      "session": "panel-1794197717133-6f8b40",
+      "id": "history-3873b4f8",
+      "stages": [
+        "HISTORY_REQUESTED",
+        "HISTORY_READ_RETURNED",
+        "HISTORY_APPLIED"
+      ]
+    }
+  ]
+}

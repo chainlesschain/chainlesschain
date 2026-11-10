@@ -1,0 +1,55 @@
+2026-11-09 11:31:14,655 [    327]   WARN - c.i.o.u.r.overrides - Conflicting registry key definition for key kotlin.mpp.tests.force.gradle: it was defined by plugin org.jetbrains.kotlin but redefined by plugin org.jetbrains.kotlin. Consider adding overrides="true" for one of the plugins, see the documentation for com.intellij.openapi.util.registry.RegistryKeyBean.overrides for more details.
+2026-11-09 11:31:16,406 [   2078]   WARN - #c.i.i.s.p.i.BundledSharedIndexProvider - Bundled shared index is not found at: [cached SDK/JDK]\gradle-home\caches\transforms-4\dbb682d26f44c694592b06df4c7b2971\transformed\ideaIC-2024.2-win\jdk-shared-indexes
+2026-11-09 11:31:19,493 [   5165]   WARN - #c.i.i.u.UIThemeBean - Unknown field: CombinedDiff
+2026-11-09 11:31:19,512 [   5184]   WARN - #c.i.i.u.UIThemeBean - Unknown field: BlockBorder
+ERROR: Unexpected end-of-input in VALUE_STRING
+ at [Source: REDACTED (`StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION` disabled); line: 1, column: 332097] (through reference chain: java.util.HashSet[11425])
+com.fasterxml.jackson.databind.JsonMappingException: Unexpected end-of-input in VALUE_STRING
+ at [Source: REDACTED (`StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION` disabled); line: 1, column: 332097] (through reference chain: java.util.HashSet[11425])
+	at com.fasterxml.jackson.databind.JsonMappingException.wrapWithPath(JsonMappingException.java:402)
+	at com.fasterxml.jackson.databind.JsonMappingException.wrapWithPath(JsonMappingException.java:373)
+	at com.fasterxml.jackson.databind.deser.std.CollectionDeserializer._deserializeFromArray(CollectionDeserializer.java:381)
+	at com.fasterxml.jackson.databind.deser.std.CollectionDeserializer.deserialize(CollectionDeserializer.java:246)
+	at com.fasterxml.jackson.databind.deser.std.CollectionDeserializer.deserialize(CollectionDeserializer.java:30)
+	at com.fasterxml.jackson.databind.deser.DefaultDeserializationContext.readRootValue(DefaultDeserializationContext.java:342)
+	at com.fasterxml.jackson.databind.ObjectMapper._readMapAndClose(ObjectMapper.java:4905)
+	at com.fasterxml.jackson.databind.ObjectMapper.readValue(ObjectMapper.java:3893)
+	at com.intellij.ide.plugins.marketplace.MarketplaceRequests.parseXmlIds(MarketplaceRequests.kt:709)
+	at com.intellij.ide.plugins.marketplace.MarketplaceRequests.access$parseXmlIds(MarketplaceRequests.kt:66)
+	at com.intellij.ide.plugins.marketplace.MarketplaceRequests$getMarketplacePlugins$1.invoke(MarketplaceRequests.kt:320)
+	at com.intellij.ide.plugins.marketplace.MarketplaceRequests$getMarketplacePlugins$1.invoke(MarketplaceRequests.kt:320)
+	at com.intellij.ide.plugins.marketplace.MarketplaceRequests$Companion.readOrUpdateFile$lambda$10(MarketplaceRequests.kt:243)
+	at com.intellij.util.io.HttpRequests.doProcess(HttpRequests.java:529)
+	at com.intellij.util.io.HttpRequests.process(HttpRequests.java:511)
+	at com.intellij.util.io.HttpRequests$RequestBuilderImpl.connect(HttpRequests.java:340)
+	at com.intellij.ide.plugins.marketplace.MarketplaceRequests$Companion.readOrUpdateFile(MarketplaceRequests.kt:223)
+	at com.intellij.ide.plugins.marketplace.MarketplaceRequests.getMarketplacePlugins(MarketplaceRequests.kt:315)
+	at com.intellij.openapi.updateSettings.impl.UpdateChecker.findUpdatesInJetBrainsRepository(UpdateChecker.kt:381)
+	at com.intellij.openapi.updateSettings.impl.UpdateChecker.updateDescriptorsForInstalledPlugins$lambda$6(UpdateChecker.kt:238)
+	at com.intellij.openapi.application.impl.AnyThreadWriteThreadingSupport$executeOnPooledThread$1.run(AnyThreadWriteThreadingSupport.kt:134)
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:572)
+	at com.intellij.util.concurrency.ContextCallable.call(ContextCallable.java:32)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
+	at com.intellij.util.concurrency.ContextRunnable.run(ContextRunnable.java:27)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.util.concurrent.Executors$PrivilegedThreadFactory$1$1.run(Executors.java:735)
+	at java.base/java.util.concurrent.Executors$PrivilegedThreadFactory$1$1.run(Executors.java:732)
+	at java.base/java.security.AccessController.doPrivileged(AccessController.java:400)
+	at java.base/java.util.concurrent.Executors$PrivilegedThreadFactory$1.run(Executors.java:732)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+Caused by: com.fasterxml.jackson.core.io.JsonEOFException: Unexpected end-of-input in VALUE_STRING
+ at [Source: REDACTED (`StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION` disabled); line: 1, column: 332097]
+	at com.fasterxml.jackson.core.base.ParserMinimalBase._reportInvalidEOF(ParserMinimalBase.java:585)
+	at com.fasterxml.jackson.core.base.ParserMinimalBase._reportInvalidEOF(ParserMinimalBase.java:566)
+	at com.fasterxml.jackson.core.json.UTF8StreamJsonParser._loadMoreGuaranteed(UTF8StreamJsonParser.java:2457)
+	at com.fasterxml.jackson.core.json.UTF8StreamJsonParser._finishString2(UTF8StreamJsonParser.java:2540)
+	at com.fasterxml.jackson.core.json.UTF8StreamJsonParser._finishAndReturnString(UTF8StreamJsonParser.java:2520)
+	at com.fasterxml.jackson.core.json.UTF8StreamJsonParser.getValueAsString(UTF8StreamJsonParser.java:337)
+	at com.fasterxml.jackson.databind.deser.std.StdDeserializer._deserializeFromString(StdDeserializer.java:262)
+	at com.fasterxml.jackson.databind.deser.BeanDeserializerBase.deserializeFromString(BeanDeserializerBase.java:1588)
+	at com.fasterxml.jackson.databind.deser.BeanDeserializer._deserializeOther(BeanDeserializer.java:197)
+	at com.fasterxml.jackson.databind.deser.BeanDeserializer.deserialize(BeanDeserializer.java:187)
+	at com.fasterxml.jackson.databind.deser.std.CollectionDeserializer._deserializeFromArray(CollectionDeserializer.java:361)
+	... 29 more
+2026-11-09 11:31:23,109 [   8781]   WARN - #c.i.u.j.JBCefApp - JCEF is manually disabled in headless env via 'ide.browser.jcef.headless.enabled=false'

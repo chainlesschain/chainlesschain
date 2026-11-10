@@ -1,0 +1,113 @@
+{
+  "schema": "chainlesschain.native-java-runtime-controls/v1",
+  "startedAt": "2026-11-09T02:23:42.878Z",
+  "platform": "win32",
+  "architecture": "x64",
+  "sourceSha256": "21de38de656fceb289f41d880bb1330abc90463e69379d3168a8da08a5eccbbd",
+  "extensionLoaded": false,
+  "gradleLoaded": false,
+  "cases": [
+    {
+      "label": "java-1",
+      "executableSha256": "98faae63862435e6cd6eed53e83a3d97558e29096a361e02fe644cd4ba14dcb4",
+      "exitCode": 0,
+      "errorCode": null,
+      "probe": {
+        "schema": "chainlesschain.java-loopback-control/v1",
+        "version": "11.0.29",
+        "extensionLoaded": false,
+        "cases": [
+          {
+            "host": "127.0.0.1",
+            "listening": true,
+            "connected": false,
+            "error": "ConnectException"
+          },
+          {
+            "host": "::1",
+            "listening": true,
+            "connected": false,
+            "error": "ConnectException"
+          }
+        ]
+      }
+    },
+    {
+      "label": "java-2",
+      "executableSha256": "c7aeff9fa312cea9463badab325a7439f1b6ef6db65b5793646a56e0de5733c2",
+      "exitCode": 0,
+      "errorCode": null,
+      "probe": {
+        "schema": "chainlesschain.java-loopback-control/v1",
+        "version": "17.0.18",
+        "extensionLoaded": false,
+        "cases": [
+          {
+            "host": "127.0.0.1",
+            "listening": true,
+            "connected": false,
+            "error": "ConnectException"
+          },
+          {
+            "host": "::1",
+            "listening": true,
+            "connected": false,
+            "error": "ConnectException"
+          }
+        ]
+      }
+    },
+    {
+      "label": "java-3",
+      "executableSha256": "106540d88dbdd39987cfd52929ec99260990275be26b27724af3b9fe2c517851",
+      "exitCode": 0,
+      "errorCode": null,
+      "probe": {
+        "schema": "chainlesschain.java-loopback-control/v1",
+        "version": "21.0.3",
+        "extensionLoaded": false,
+        "cases": [
+          {
+            "host": "127.0.0.1",
+            "listening": true,
+            "connected": false,
+            "error": "ConnectException"
+          },
+          {
+            "host": "::1",
+            "listening": true,
+            "connected": false,
+            "error": "ConnectException"
+          }
+        ]
+      }
+    },
+    {
+      "label": "java-4",
+      "executableSha256": "f8dc082a7dedbfd2924c3562405a5a1fd12efd2641808c92e2de819c76a58b7e",
+      "exitCode": 0,
+      "errorCode": null,
+      "probe": {
+        "schema": "chainlesschain.java-loopback-control/v1",
+        "version": "21.0.13",
+        "extensionLoaded": false,
+        "cases": [
+          {
+            "host": "127.0.0.1",
+            "listening": true,
+            "connected": false,
+            "error": "ConnectException"
+          },
+          {
+            "host": "::1",
+            "listening": true,
+            "connected": false,
+            "error": "ConnectException"
+          }
+        ]
+      }
+    }
+  ],
+  "finishedAt": "2026-11-09T02:23:52.744Z",
+  "runnerSha256": "9c3188e87b444ce97971136e843a2fa805025eac7df393c52de432cb67e0ffc1"
+}

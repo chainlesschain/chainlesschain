@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "result": "passed",
+  "observedAt": "2026-11-09T02:12:56.410Z",
+  "primary": {
+    "port": 55653,
+    "pid": 37460,
+    "workspaceDigest": "f4c328ce97f4f5abd4af06f2aa7323557267d8d0a45125b18309248dc634d462",
+    "rootCount": 2
+  },
+  "companion": {
+    "port": 55675,
+    "pid": 13452,
+    "workspaceDigest": "d0da247c725543c8d1f343486bc74ed4c38084ccc429722e8a02a3a1b5d298cd",
+    "rootCount": 1
+  },
+  "simultaneousListening": true,
+  "distinctBridgeTokens": true
+}

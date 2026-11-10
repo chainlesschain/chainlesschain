@@ -1,0 +1,19 @@
+{
+  "schema": "chainlesschain.canonical-model-input-vscode-native/v1",
+  "status": "passed",
+  "scope": "installed-vsix-production-deep-link-registered-command-real-canonical-cli-and-editor",
+  "vscodeVersion": "1.96.2",
+  "extensionVersion": "0.37.182",
+  "realCanonicalSessionCliRead": true,
+  "realCanonicalSessionJourney": false,
+  "readOnly": true,
+  "journalUnchanged": true,
+  "recordCount": 2,
+  "planningCovered": true,
+  "sourceMappingCovered": true,
+  "bodyCovered": true,
+  "documentBytes": 8432,
+  "documentDigest": "52eb9b9f42499dd899ca0820c627887d8a0247b3b0d066587746b00c2c6082b8",
+  "journalDigest": "3ab18a669ebfa8393f920f5aad51ceb34e092bfc071cb5ef40c3f19e524bd2cf",
+  "modelInvokedByIde": false
+}

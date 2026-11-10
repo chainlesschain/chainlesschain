@@ -1,0 +1,50 @@
+[
+  {
+    "sourceFile": "021-host-capture-initial_capture-status.json",
+    "schema": "chainlesschain.ui-host-capture/v1",
+    "complete": true,
+    "scope": "Metadata event trace and original IDE log bytes after this host phase stopped",
+    "files": [
+      {
+        "path": "host-events.jsonl.bin",
+        "source": "host-events.jsonl",
+        "bytes": 78774,
+        "sha256": "ea67c7760eb76d1b8609254c45506caec206a663f70ecc6141791feccc324107",
+        "originalBytes": true
+      },
+      {
+        "path": "idea-001.log.bin",
+        "source": "IC-2024.2/log_runIdeForUiTests/idea.log",
+        "bytes": 103636,
+        "sha256": "fb044e0e7dfb960e78306c5075095e523dd1e71c2cba99b72c284eba09942555",
+        "originalBytes": true
+      }
+    ],
+    "failures": [],
+    "failureDetails": []
+  },
+  {
+    "sourceFile": "025-host-capture-restart_capture-status.json",
+    "schema": "chainlesschain.ui-host-capture/v1",
+    "complete": true,
+    "scope": "Metadata event trace and original IDE log bytes after this host phase stopped",
+    "files": [
+      {
+        "path": "host-events.jsonl.bin",
+        "source": "host-events.jsonl",
+        "bytes": 2344,
+        "sha256": "fd083ad8a2145514768bb8fb72b61be07f449cc440d18a51ecad09bba294860e",
+        "originalBytes": true
+      },
+      {
+        "path": "idea-001.log.bin",
+        "source": "IC-2024.2/log_runIdeForUiTests/idea.log",
+        "bytes": 162694,
+        "sha256": "df01fa4d80f5e3d565e3574c980d5819fd630f84ed5ede7171e659d361af9dc3",
+        "originalBytes": true
+      }
+    ],
+    "failures": [],
+    "failureDetails": []
+  }
+]

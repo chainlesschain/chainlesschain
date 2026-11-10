@@ -49,6 +49,36 @@ function capture(argv) {
 }
 
 describe("background launch profile", () => {
+  it("preserves an explicit per-request output cap across durable background argv", () => {
+    const profile = capture(["agent", "--max-output-tokens", "1024"]);
+    expect(profile.budget.maxOutputTokens).toBe(1024);
+    expect(profile.version).toBe(2);
+    const downgraded = structuredClone(profile);
+    downgraded.version = 1;
+    expect(() => normalizeBackgroundLaunchProfile(downgraded)).toThrow(
+      /version/,
+    );
+    const argv = buildArgvFromBackgroundLaunchProfile(profile);
+    expect(argv[argv.indexOf("--max-output-tokens") + 1]).toBe("1024");
+    expect(capture(argv).budget.maxOutputTokens).toBe(1024);
+    const removed = structuredClone(profile);
+    delete removed.budget.maxOutputTokens;
+    expect(
+      assessBackgroundLaunchProfileCompatibility(profile, removed).reasons,
+    ).toContain("budget-loosened");
+    const increased = structuredClone(profile);
+    increased.budget.maxOutputTokens = 2048;
+    expect(
+      assessBackgroundLaunchProfileCompatibility(profile, increased).reasons,
+    ).toContain("budget-loosened");
+    expect(normalizeBackgroundLaunchProfile(removed).budget).not.toHaveProperty(
+      "maxOutputTokens",
+    );
+    expect(
+      canonicalBackgroundLaunchProfileJson(capture(["agent"])),
+    ).not.toContain("maxOutputTokens");
+    expect(capture(["agent"]).version).toBe(1);
+  });
   it("refuses to capture an ephemeral profile that resume cannot preserve", () => {
     expect(() =>
       capture(["agent", "--ephemeral", "--session", "ephemeral-session"]),

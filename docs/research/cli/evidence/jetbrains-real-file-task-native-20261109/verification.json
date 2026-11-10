@@ -1,0 +1,76 @@
+{
+  "schema": "independent-jetbrains-real-file-task-verification/v1",
+  "overallHarnessPassed": false,
+  "originalHarnessExitCode": 1,
+  "originalCleanupUnconfirmed": true,
+  "originalCleanupFailure": "Windows owner exited during graceful shutdown but known descendants remain; tree termination ownership is unavailable",
+  "modelTaskPassed": true,
+  "independentFileVerificationPassed": true,
+  "task": {
+    "amounts": [11, 17, 31],
+    "total": 59,
+    "nonceWasNotInPrompt": true,
+    "nonceMatches": true,
+    "exactOutputKeysVerified": true,
+    "inputSha256": "sha256:405bdffd48f59237e6c242b7d9284f3840435ff742692cb826419b19dca72985",
+    "outputSha256": "sha256:0339200516a7ee8d12c7f0db886c1feacfa238137e0fc724212006c582da1382"
+  },
+  "nativeUiTaskAndRestartAssertionsPassed": true,
+  "uiActions": [
+    "submit",
+    "background-tab",
+    "return-tab",
+    "final-result",
+    "reload",
+    "restored-result"
+  ],
+  "initialIdePid": "27852",
+  "restartedIdePid": "20752",
+  "sameProfileAndSession": true,
+  "restoredChildRunning": false,
+  "protocol": {
+    "records": 24,
+    "rawGenerations": 1,
+    "userInputs": 1,
+    "rawCaptureDigests": {
+      "action-1.json": "sha256:5e7201c8698eda2886de92b47d5d12f5f753cfbd99e39fbd3ac20649f313db2f",
+      "action-2.json": "sha256:1195713bd93111b92cea12f9ebeb1e2e3b8b5fe6ac41f12f5a5e199632855450",
+      "action-3.json": "sha256:f023995a2d5d6d46662f0b3c8dcf3decdf0113c6a72fec5c78170b82164a63a2",
+      "action-4.json": "sha256:4599a21bdd6ee55692e939b1e131394d7f4d871e19e73fe8a4d92c0290834e2c",
+      "action-5.json": "sha256:0d97e08ebdfc6895a54f74c482ec0555560dd379bfe80393606d042c25fbb4ae",
+      "action-6.json": "sha256:d514e46d1f065a48e943688f0fde1979b4676aa706130f6b61fe7f39dcdbe966",
+      "installed-plugin.json": "sha256:d00de1c9be77cc6a79149a75691fd15e6ca10ab14562620c8af99475aa346e3f",
+      "protocol-376a94e8-601e-4b2d-b7a6-46adbea693fe.jsonl": "sha256:4b45b08bd466fd82ab10ad581ec12ae30c4ffce16c7337ba51b67dda4670b5c0",
+      "protocol.json": "sha256:0cbedc62714f541ceb7654342c441944435a2703002ec0513b0c12561788c4c9",
+      "restart-state.json": "sha256:04b2e630691061421104acf72edfdcb9a48afe8901bff676c4bf1839d9accbbd",
+      "restored-snapshot.json": "sha256:7fb957ebdd25d60253c58f6dd91ce9acf34f3a15531cdca3d3201e624c31db78",
+      "ui-initial.json": "sha256:408e86eb1cfa222288e5f369f1c188056fff6fe3f1603a5e610d97b74d95b388",
+      "ui.json": "sha256:971a83d979f87ac296411f4aaa9340541b7b0e6581fb9c0f3bf766018aeec19b"
+    }
+  },
+  "physicalModel": {
+    "model": "deepseek-v4-1-flash-economy-261017",
+    "requests": 4,
+    "responsesHttp200": 4,
+    "restartRequests": 0,
+    "duplicateRequestNumbers": 0,
+    "providerReportedUsage": {
+      "input": 21112,
+      "output": 255
+    },
+    "physicalLedgerSha256": "sha256:151ed66a87b795d3d1e55acaeb9cbc150bcbcbae9d93dc84e3a30aa0c5766dfb",
+    "diagnosticOutputCap": 1024,
+    "bodyChanged": true,
+    "canonicalPhysicalBodyMappingClaimed": false
+  },
+  "artifactOrigin": "locally Gradle-built development plugin; not Marketplace validation",
+  "pluginSha256": "sha256:6efd52b835c0a30a047c3a70bfae88c8a71765ecc90ef25a7419a5121295d632",
+  "adapterSourceUnchanged": true,
+  "temporaryRulesRemoved": true,
+  "persisted": false,
+  "verifiedAt": "2026-11-09T04:07:33.471Z",
+  "sourceCommit": "171659e7e668276285aa56ac8eadcffcf9ea39e1",
+  "paidReady": false,
+  "costAcceptancePassed": false,
+  "overallAcceptance": "partial: actual IDE-initiated model/file/restart assertions passed; cleanup gate failed"
+}

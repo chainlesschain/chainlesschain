@@ -275,3 +275,7 @@ docs/cli/evidence/mcp-context-real-volcengine-recall5-20261108/receipt.json -tex
 docs/cli/evidence/mcp-context-real-volcengine-ab3-20261108/receipt.json -text !eol -whitespace
 # Preserve the bounded real MCP host round-trip receipt byte-for-byte.
 docs/cli/evidence/mcp-context-real-volcengine-host-roundtrip-20261108/receipt.json -text !eol -whitespace
+# Preserve the executed cross-runtime worker, including its captured CRLF bytes.
+docs/research/cli/evidence/vscode-inbound-policy-causal-20261109/probe-peer.cjs.source.txt -text !eol -whitespace
+# Unified-diff blank context lines must retain their leading space.
+docs/research/cli/evidence/jetbrains-history-restore-trace-20261109/launcher-adaptation.patch whitespace=-blank-at-eol

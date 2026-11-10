@@ -1,0 +1,19 @@
+{
+  "schema": "chainlesschain.temporary-native-host-rule/v1",
+  "name": "ChainlessChain-Diagnostic-e85a1662175e4642b50b8fca88c40725",
+  "created": true,
+  "removed": true,
+  "persisted": false,
+  "policyStore": "ActiveStore",
+  "profile": "Public",
+  "direction": "Inbound",
+  "protocol": "TCP",
+  "localAddress": "127.0.0.1",
+  "remoteAddress": "127.0.0.1",
+  "localPorts": "Any (IDE allocates ephemeral ports)",
+  "exeSha256": "51dfee70fd38d8cc3e204f9a304f6fb6700dfa5147223c59d8c37e8176fb9b64",
+  "startedAt": "2026-11-09T03:16:10.3016074Z",
+  "nativeExitCode": 0,
+  "exeHashAfter": "51dfee70fd38d8cc3e204f9a304f6fb6700dfa5147223c59d8c37e8176fb9b64",
+  "finishedAt": "2026-11-09T03:19:55.1888281Z"
+}

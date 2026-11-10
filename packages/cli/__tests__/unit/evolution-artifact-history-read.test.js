@@ -2,6 +2,8 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { createHash } from "node:crypto";
+import { performance } from "node:perf_hooks";
+import * as storageDiagnostics from "../../src/lib/storage-failure-cause-codes.js";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ArtifactStore } from "../../src/lib/artifact-store.js";
 import {
@@ -41,6 +43,7 @@ function fixture(options = {}) {
     calls: 0,
     signatures: 0,
     now: config.clock(),
+    clockCalls: 0,
     onResolve: null,
     firstLeaseMs: null,
   };
@@ -48,7 +51,10 @@ function fixture(options = {}) {
     artifactStore: result.store,
     tenantId: "bytes-artifacts",
     audience: "bytes-runtime",
-    now: () => hooks.now,
+    now: () => {
+      hooks.clockCalls += 1;
+      return hooks.now;
+    },
     ...config.artifactAuthority,
     currentAuthorityResolver: {
       resolve(request) {
@@ -165,18 +171,123 @@ describe("sealed evolution artifact history", () => {
   it("rechecks every lease after the final index read before releasing history", () => {
     const f = fixture();
     f.hooks.firstLeaseMs = 1;
+    vi.spyOn(performance, "now").mockReturnValue(100);
     const opens = countOpens(f.store._indexFile(), (count) => {
       // Only the first item's lease expires; the later 128 remain valid.
       if (count === 2) f.hooks.now += 1;
     });
-    expect(() => f.read(f.requests(129))).toThrowError(
-      expect.objectContaining({
-        code: EVOLUTION_ARTIFACT_EXPIRED_CODE,
-        message: "artifact authority expired before ledger history release",
-      }),
+    let failure, released;
+    try {
+      released = f.read(f.requests(129));
+    } catch (error) {
+      failure = error;
+    }
+    expect(failure).toMatchObject({
+      code: EVOLUTION_ARTIFACT_EXPIRED_CODE,
+      message: "artifact authority expired before ledger history release",
+    });
+    expect(released).toBeUndefined();
+    expect(storageDiagnostics.storageFailureReason(failure)).toBe(
+      "history-clock-window",
     );
+    expect(
+      storageDiagnostics.storageFailureClockWindow(
+        new Error("outer", { cause: failure }),
+      ),
+    ).toEqual({
+      windowSize: 129,
+      backwardCount: 0,
+      expiredCount: 1,
+      minRemainingMs: 0,
+      maxReadAgeMs: 1,
+      elapsedMs: 0,
+    });
     expect(opens()).toBe(2);
     expect(f.hooks.calls).toBe(129);
+    expect(f.hooks.clockCalls).toBe(129 * 5 + 1);
+  });
+
+  it("distinguishes a backward final clock without releasing any history", () => {
+    const f = fixture();
+    vi.spyOn(performance, "now").mockReturnValue(100);
+    countOpens(f.store._indexFile(), (count) => {
+      if (count === 2) f.hooks.now -= 1;
+    });
+    let failure, released;
+    try {
+      released = f.read(f.requests(129));
+    } catch (error) {
+      failure = error;
+    }
+    expect(released).toBeUndefined();
+    expect(failure.code).toBe(EVOLUTION_ARTIFACT_EXPIRED_CODE);
+    expect(storageDiagnostics.storageFailureReason(failure)).toBe(
+      "history-clock-window",
+    );
+    expect(storageDiagnostics.storageFailureClockWindow(failure)).toEqual({
+      windowSize: 129,
+      backwardCount: 129,
+      expiredCount: 0,
+      minRemainingMs: 60_001,
+      maxReadAgeMs: -1,
+      elapsedMs: 0,
+    });
+    expect(f.hooks.clockCalls).toBe(129 * 5 + 1);
+  });
+
+  it("preserves the identical rejection when recording its diagnostic throws", () => {
+    const f = fixture();
+    countOpens(f.store._indexFile(), (count) => {
+      if (count === 2) f.hooks.now -= 1;
+    });
+    let observedError;
+    vi.spyOn(
+      storageDiagnostics,
+      "recordStorageFailureClockWindow",
+    ).mockImplementation((error) => {
+      observedError = error;
+      throw new Error("private observer failure");
+    });
+    let failure, released;
+    try {
+      released = f.read(f.requests(1));
+    } catch (error) {
+      failure = error;
+    }
+    expect(released).toBeUndefined();
+    expect(observedError).toBeDefined();
+    expect(failure).toBe(observedError);
+    expect(failure.code).toBe(EVOLUTION_ARTIFACT_EXPIRED_CODE);
+    expect(storageDiagnostics.storageFailureReason(failure)).toBe(
+      "history-clock-window",
+    );
+    expect(f.hooks.clockCalls).toBe(6);
+  });
+
+  it("keeps window evidence when the optional monotonic clock is unavailable", () => {
+    const f = fixture();
+    countOpens(f.store._indexFile(), (count) => {
+      if (count === 2) f.hooks.now -= 1;
+    });
+    vi.spyOn(performance, "now").mockImplementation(() => {
+      throw new Error("optional timer failed");
+    });
+    let failure;
+    try {
+      f.read(f.requests(1));
+    } catch (error) {
+      failure = error;
+    }
+    expect(failure.code).toBe(EVOLUTION_ARTIFACT_EXPIRED_CODE);
+    expect(storageDiagnostics.storageFailureClockWindow(failure)).toMatchObject(
+      {
+        windowSize: 1,
+        backwardCount: 1,
+        expiredCount: 0,
+        elapsedMs: null,
+      },
+    );
+    expect(f.hooks.clockCalls).toBe(6);
   });
 
   it("withholds results and normalizes a held-directory identity failure at final release", () => {

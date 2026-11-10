@@ -1,0 +1,8 @@
+{
+  "runs": 2,
+  "pairsEach": 18,
+  "consistent": true,
+  "passingEach": 12,
+  "listenerBindsEach": 18,
+  "failedClientCodes": ["ETIMEDOUT"]
+}

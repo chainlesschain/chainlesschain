@@ -1,0 +1,31 @@
+# MCP 模型续跑的持久凭据与恢复（2026-11-09）
+
+对应差距复核第 3、4 项。核心实现提交为 `29243cd1b8c7c45e58abaa3c8b78976e102d90d6`，随后补充私有唤醒标记和输入草稿等待。真实模型续跑已在 Windows／火山引擎 DeepSeek 上通过一次受限旅程；整项目标保持 open。
+
+## 修复的实际问题
+
+原自动唤醒用用户文本是否包含 deliveryId 判断是否已完成，还会把宿主“继续处理”提示保存为用户消息。现在消费状态来自所属会话的验链记录；用户引用 ID 不能充当完成证据。开始记录绑定 sessionId、localId、交付事件哈希及正文摘要。最终答案与消费绑定同处一个 assistant_message 事件，缺失、伪造、重复或跨会话凭据均拒绝。开始后的崩溃、取消、撤销写租约或保存失败保持未决，不自动重发。
+
+宿主续跑提示通过 prepareCall 临时附加 systemSuffix，不写入用户历史；原外部参考只放入一次。模型消费元数据从会话重建、checkpoint 和 provider 消息中移除。fork 可以保留答案与参考，但清除操作权。历史旧式宿主用户提示只触发保守核对，不能证明已消费。
+
+完整 REPL 验证还复现并修复三个接线问题：Agent MCP 配置加载器丢弃 protocolVersion；连接后的 elicitation handler 注册错误启动旧式 GET 流；外部参考与模型答案相邻，导致重启时报角色交替错误。恢复校验只对同一验链样本提供的精确交付摘要放宽“普通对话交替”规则，工具调用配对和伪造消息名称仍被拒绝。
+
+任务列表独立显示 continuationStatus / continuationOutcomeUnknown；结果已交付不等于模型已读取。REPL 继续使用原权限、模型用量日志与会话租约，并透传显式 maxOutputTokens。自动队列使用私有 Symbol，避免把用户输入的魔法字符串当作控制消息；有多行缓冲或正在输入的草稿时等待。
+
+## 验证与限制
+
+Windows x64 / Node 24.12.0，官方未修改 Everything 2.2.1 独立进程，生产 startAgentRepl/readline、真实 DPAPI 与验链日志。输入终端由管道模拟，不是 OS PTY。模型替身的三个旅程分别为：正常保存答案后重启；模型派发前强杀；收到模型响应但尚未保存结果时强杀。三者均没有重复模型派发。正常旅程恰有一条真实用户要求、一条外部参考和一条模型替身答案；两处强杀继续保持 started。
+
+新增回归覆盖丢失发布 ACK 后的读回确认、伪造来源/输出摘要、孤立消费标记、租约释放、真实用户文本引用、旧式未知唤醒、相邻角色恢复和 fork。最终主回归 **755/755，46 文件**；另外会话读取、导出、输入持久化、宿主合同和出站边界 **72/72，8 文件**。JUnit 以[证据目录](../../cli/evidence/mcp-tasks-model-continuation-20261109/README.md)为准，子集不可与总数重复相加。Bash 用例在本机需把 Git for Windows 的 bin 放到 PATH，避免误选未安装发行版的 WSL；没有跳过这些测试。
+
+首次真实尝试的配置为 OpenAI / gpt-6.1-sol。沿已有 Responses 路由发出一次受限请求，保留原用户要求与一次外部参考，未创建伪用户消息；provider 返回 HTTP 429，没有有效 usage 或答案。原始失败保持失败：独立读取确认续跑仍 started、未知模型请求 1 条、模型答案 0 条。没有自动重试，也不把费用计为零。此前火山配置检查及一次探针格式检查在物理模型派发前拒绝，不能累计成成功请求。
+
+官方 [GPT-6.1 Sol 页面](https://developers.openai.com/api/docs/models/gpt-6.1-sol)说明工具调用使用 Responses；本批复用现有路由，没有更换用户配置或增加模型。256 是请求参数，不能证明 provider 执行了硬上限。单次诊断的公开价格估算停止条件不是账号计费保证；真实账单、账号价格与正式付费准入仍未核对，`paidReady:false`。
+
+随后用户明确允许火山引擎 DeepSeek，并更新了本机 CLI 配置。提交 `8572855e16412d56dd73662ea0e487627b18e2c4` 使用该配置的 `deepseek-v4-1-flash-economy-261017` 完成一次真实续跑：HTTP 200、输入 862／输出 71 tokens（含推理 46）。独立进程验链读回为 settled，一条原用户要求、一次参考、一条答案；重启真实 REPL 没有重复模型派发。原生 CNY 诊断估算采用官方最高档且不换算 FX，未修改生产 USD 未匹配边界；26/26 定向回归通过。详见[真实 DeepSeek 证据](../../cli/evidence/mcp-tasks-deepseek-continuation-20261109/README.md)。
+
+尚需生产远程 MCP 服务、现代输入交互、实际到期/撤权、双 IDE/桌面、多系统及旧版本降级证据。MCP Tasks 条目仍为 partial。后续代码和文档在 [#571](https://github.com/chainlesschain/chainlesschain/pull/571)；准确新提交的 GitHub 矩阵另行核对，历史本地结果不代替发布门禁。
+
+后续 canonical opt-in 旅程在提交 `e691dad7b3879844eed649db45a10e251f9eb343` 完成五个来源的完整逻辑／正文映射，且诊断摘要与真实 fetch 请求相同；853／72 tokens 的新样本不与此前 shadow 样本混合。VS Code 提交 `d4460f315ff9c2ccc8e5ed8ccc0ded24d6d9d38b` 修复关闭 bridge 时诊断命令误用全局 CLI 的问题，并通过真实已安装 VSIX 对该会话的只读命令／编辑器验收；352/352 扩展单测及准确源码的完整原生恢复旅程通过。详见[canonical 输入与 IDE 读回证据](../../cli/evidence/canonical-model-input-native-readback-20261109/README.md)。这仍不是 IDE 发起的完整真实任务或双 IDE 验收。
+
+JetBrains 后续在提交 `ae2372cd82c4d1ca870378c202da7f41366006dc` 使用当前源码重新编译开发插件，并通过原生已注册动作读取同一真实模型会话，九次受限只读 CLI 调用与 VS Code 的 canonical journal 摘要一致。参见[原生 JetBrains 证据](../../cli/evidence/jetbrains-canonical-native-readback-20261109/README.md)。这补齐双 IDE 的诊断读回子门，不等于双 IDE 发起完整任务、标准 Gradle 或跨系统验收。

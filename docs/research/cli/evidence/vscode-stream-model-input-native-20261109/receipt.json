@@ -1,0 +1,58 @@
+{
+  "schema": "public-native-evidence-archive/v1",
+  "sourceCommit": "bcce11f6455ad2584a5ce4fed36b5de6de23f2ff",
+  "paidReady": false,
+  "receiptSelfHashExcluded": true,
+  "artifacts": [
+    {
+      "path": "README.md",
+      "bytes": 3168,
+      "sha256": "12146c4f49c65cf7d71728c7ad21836edd95215da2e191d7725c4901cc652a50"
+    },
+    {
+      "path": "canonical-source-mapping.json",
+      "bytes": 271941,
+      "sha256": "dbe98feb41a169823bce12cac4768c31b6f87639e2015eb9a1ebdd1d8e3050ba"
+    },
+    {
+      "path": "conditions.json",
+      "bytes": 916,
+      "sha256": "596443dd523a1b409cdbd5b01fbffeb9c5824f67a83550e9fc3e8f9255b5bcc8"
+    },
+    {
+      "path": "integration-tests.json",
+      "bytes": 463,
+      "sha256": "30212d8f7d603f9513233e7e92751f1fd7a8f22323ae3d3b6dad323b715ae44b"
+    },
+    {
+      "path": "native-journey.json",
+      "bytes": 3988,
+      "sha256": "c9d53bac22b12acd21a88b740fbaba413357b0a958ad7ecc0e7f6afa57dbb1db"
+    },
+    {
+      "path": "physical-ledger.jsonl",
+      "bytes": 2966,
+      "sha256": "a746c512435a6effe7d225fb4a4363d075a64972590dc22154b49b382139b03f"
+    },
+    {
+      "path": "source-and-package-bindings.json",
+      "bytes": 95769,
+      "sha256": "9feead9816aa4a2949d25084976fc90bcc7a4881cb4dbeb1c4770f97a73eac8a"
+    },
+    {
+      "path": "synthetic-artifacts.json",
+      "bytes": 519,
+      "sha256": "1cf8c95579b16c1aa0c6f6d06fb115fe28a8a75a1093426f42b4009bd743e0e4"
+    },
+    {
+      "path": "tool-scope.json",
+      "bytes": 2214,
+      "sha256": "41cd87fbb08bf4319366e0a8de75859c7366979bfaa3c96fc49b6a70d78087fe"
+    },
+    {
+      "path": "verification.json",
+      "bytes": 1775,
+      "sha256": "382fc069dc328f74c085f4005bfb9980d1ed8e1c7841d40d82f2f48c0bedc786"
+    }
+  ]
+}

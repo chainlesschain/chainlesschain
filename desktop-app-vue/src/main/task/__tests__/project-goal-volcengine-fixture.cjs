@@ -75,8 +75,10 @@ async function createFixture({
   mode = "success",
   confirm = true,
 } = {}) {
-  const directory = fs.mkdtempSync(
-    path.join(os.tmpdir(), "cc-goal-volcengine-"),
+  // Evidence storage requires physical ancestors; macOS exposes /var through
+  // a symlink to /private/var. Use the physical name for every fixture path.
+  const directory = fs.realpathSync.native(
+    fs.mkdtempSync(path.join(os.tmpdir(), "cc-goal-volcengine-")),
   );
   const db = new Database(path.join(directory, "project.sqlite"));
   const actor = "did:chainless:synthetic-reviewer",

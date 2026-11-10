@@ -1,5 +1,8 @@
 import fs from "node:fs";
-import { randomUUID } from "node:crypto";
+import {
+  checkpointWorkerFailure,
+  publishSyntheticCheckpoint,
+} from "./formal-budget-checkpoint-fixture.mjs";
 import { FormalBudgetAuthority } from "../src/lib/formal-budget-authority.js";
 import { FormalBudgetLineageRegistry } from "../src/lib/formal-budget-lineage-registry.js";
 import { NOW, body, verifyFixtureEvidence } from "./formal-budget-fixture.mjs";
@@ -18,16 +21,7 @@ if (input.checkpointFile) {
         (c) => c.head.lineage_id !== checkpoint.head.lineage_id,
       );
       heads.push(checkpoint);
-      // Readers in a second process must see a whole synthetic checkpoint.
-      const temporary = `${input.checkpointFile}.${process.pid}.${randomUUID()}.tmp`;
-      const fd = fs.openSync(temporary, "wx");
-      try {
-        fs.writeFileSync(fd, JSON.stringify(heads));
-        fs.fsyncSync(fd);
-      } finally {
-        fs.closeSync(fd);
-      }
-      fs.renameSync(temporary, input.checkpointFile);
+      publishSyntheticCheckpoint(input.checkpointFile, heads);
       return { durable: true, checkpointDigest };
     },
   };
@@ -58,7 +52,7 @@ try {
   authority.reserve({ runId: "initial", callId: process.argv[3], body });
   process.send?.({ ok: true });
 } catch (error) {
-  process.send?.({ ok: false, code: error.code || error.name });
+  process.send?.(checkpointWorkerFailure(error));
 } finally {
   authority?.close();
   registry?.close();

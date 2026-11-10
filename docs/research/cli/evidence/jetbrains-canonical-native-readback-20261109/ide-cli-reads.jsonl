@@ -1,0 +1,9 @@
+{"allowed":true,"args":["--version"]}
+{"allowed":true,"args":["--version"]}
+{"allowed":true,"args":["--version"]}
+{"allowed":true,"args":["session","show","--json","--model-inputs","--limit","50","--","continuation-adc78574-3881-4a04-a4bd-84f9b89200bc"]}
+{"allowed":true,"args":["session","show","--json","--history","--page-size","50","--","continuation-adc78574-3881-4a04-a4bd-84f9b89200bc"]}
+{"allowed":true,"args":["--version"]}
+{"allowed":true,"args":["--version"]}
+{"allowed":true,"args":["llm","capabilities","--json"]}
+{"allowed":true,"args":["llm","capabilities","--json"]}

@@ -1,0 +1,19 @@
+{
+  "sourceCommit": "bcce11f6455ad2584a5ce4fed36b5de6de23f2ff",
+  "observerFixCommit": "39d95352e7089b4c0bf9e6fe5503a870cac5480a",
+  "files": 6,
+  "tests": 207,
+  "failures": 0,
+  "errors": 0,
+  "includedTests": {
+    "observer": 111,
+    "thinking": 26,
+    "history": 17,
+    "storage": 53
+  },
+  "earlier111NotAdditional": true,
+  "rawJunitIdentity": {
+    "bytes": 50304,
+    "sha256": "1b7c68855c3c605418b4a6b9fd0ce9df7fff3b0dd79c8a5870195069ed5c0de6"
+  }
+}

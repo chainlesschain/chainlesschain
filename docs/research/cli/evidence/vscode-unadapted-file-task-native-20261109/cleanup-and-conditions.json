@@ -1,0 +1,56 @@
+{
+  "rules": [
+    {
+      "schema": "chainlesschain.temporary-real-native-task-rule/v1",
+      "name": "ChainlessChain-Diagnostic-30549072a50145638b0a29debcd6f967",
+      "created": true,
+      "removed": true,
+      "persisted": false,
+      "policyStore": "ActiveStore",
+      "profile": "Public",
+      "direction": "Inbound",
+      "protocol": "TCP",
+      "localAddress": "127.0.0.1",
+      "remoteAddress": "127.0.0.1",
+      "localPorts": "Any (IDE allocates ephemeral ports)",
+      "exeSha256": "51dfee70fd38d8cc3e204f9a304f6fb6700dfa5147223c59d8c37e8176fb9b64",
+      "startedAt": "2026-11-09T04:36:52.7313350Z",
+      "nativeExitCode": 1,
+      "exeHashAfter": "51dfee70fd38d8cc3e204f9a304f6fb6700dfa5147223c59d8c37e8176fb9b64",
+      "finishedAt": "2026-11-09T04:42:02.0058797Z",
+      "rawReceiptIdentity": {
+        "bytes": 775,
+        "sha256": "438db3103276ca7837ab501dc52408d6beeec7e2c3d524130b141e96473958f0"
+      }
+    },
+    {
+      "schema": "chainlesschain.temporary-native-host-rule/v1",
+      "name": "ChainlessChain-Diagnostic-bf99129c87ee499b918e6cb35e55a40e",
+      "created": true,
+      "removed": true,
+      "persisted": false,
+      "policyStore": "ActiveStore",
+      "profile": "Public",
+      "direction": "Inbound",
+      "protocol": "TCP",
+      "localAddress": "127.0.0.1",
+      "remoteAddress": "127.0.0.1",
+      "localPorts": "Any (IDE allocates ephemeral ports)",
+      "exeSha256": "51dfee70fd38d8cc3e204f9a304f6fb6700dfa5147223c59d8c37e8176fb9b64",
+      "startedAt": "2026-11-09T04:42:53.0897704Z",
+      "nativeExitCode": 0,
+      "exeHashAfter": "51dfee70fd38d8cc3e204f9a304f6fb6700dfa5147223c59d8c37e8176fb9b64",
+      "finishedAt": "2026-11-09T04:43:14.9458431Z",
+      "rawReceiptIdentity": {
+        "bytes": 770,
+        "sha256": "c1cc8ea5edc4a0a6438a85095f654482c1794def6c5da4fe3f1a478051b20875"
+      }
+    }
+  ],
+  "originalProcessCleanupConfirmed": false,
+  "originalProcessCleanupFailure": "Owned VS Code process-tree cleanup failed (128)",
+  "continuationProcessCleanupScope": "Managed Code owner exited with code0 and no Code process command line retained this isolated profile after each phase. Descendant identity snapshots were not captured; this is not complete descendant-tree cleanup attestation.",
+  "completeDescendantCleanupVerified": false,
+  "sharedImeForceKilled": false,
+  "privateProfileSettingsRestored": true
+}
