@@ -2,6 +2,13 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.185] - bounded Remote-SSH container bootstrap candidate (2026-11-10)
+
+- Retain CLI 0.166.146 pairing and the existing extension payload behavior.
+- Keep the pinned container's official Ubuntu sources and native package verification, with finite APT connection/read timeouts, retries and IPv4 transport.
+- Stop on failed index refresh or package installation, record each bootstrap phase separately, and retain the original ten-minute total bootstrap deadline.
+- Candidate only: all VS Code host, Remote-SSH and browser evidence gates plus public artifact readback remain required before publication. The earlier 0.37.184 tag and failed infrastructure attempts remain unchanged.
+
 ## [0.37.184] - canonical Memory correction and retained diagnostics (2026-11-09)
 
 - Recommend CLI 0.166.146 and pair with JetBrains 0.4.199 after verified Agent Protocol 0.1.13, Agent SDK 0.2.18, Context/Memory Kernel 0.1.12 and CLI publication.
