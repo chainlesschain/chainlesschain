@@ -1,8 +1,12 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
-Release candidate: CLI **0.166.146**, VS Code **0.37.184**, JetBrains **0.4.199**, preceded by Protocol **0.1.13**, Agent SDK **0.2.18** and Memory Kernel **0.1.12**. Exact-source platform gates and public readback are pending. The planned order is child packages → CLI → IDE extensions → PC/mobile **v5.0.3.146**, verifying each stage before the next. CLI and VS Code must be publicly verified; the user authorized the client stage after a successful JetBrains .199 upload while Marketplace review is pending. Pending review does not establish public availability. PC/mobile .146 remains a candidate; the verified public installation below remains current. This adds explicit Memory corrections and diagnostic recovery; multilingual quality, full lifecycle and paid admission remain incomplete.
+CLI **0.166.146**, Protocol **0.1.13**, Agent SDK **0.2.18** and Memory Kernel **0.1.12** are public through [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/42758119265); public npm versions are verified. Release source: `daafda2cf7790580467dae8ce006ceaa1285d3b4`. The official workflow passed exact-source gates, registry byte/provenance checks and registry-only child installation. Session Core remains **0.3.27**.
 
-## Current release and source progress — 2026-11-09
+Paired VS Code/Open VSX **0.37.184** and JetBrains **0.4.199** tag releases are still running; public availability is not yet verified. The last verified public IDEs remain **0.37.181 / 0.4.198**, with CLI .145 recommendation metadata. PC/mobile **v5.0.3.146** remains a candidate; public clients remain **v5.0.3.145**. The client stage requires public CLI/VS Code verification and a successful official JetBrains .199 upload. The user permits pending JetBrains review after that upload; pending does not mean public. Client builds and public assets still require five-platform verification.
+
+Install the public CLI with `npm i -g chainlesschain@0.166.146 --registry https://registry.npmjs.org`, restart CLI/IDE hosts, then run `cc --version` and `cc doctor`. Multilingual quality, full lifecycle and paid admission remain incomplete; **NOT_PAID_READY / NOT_ADMITTED / HOLD** remain.
+
+## Historical public pairing and source review — 2026-11-09
 
 Public pairing: CLI **0.166.145**, Session Core **0.3.27**, Open VSX **0.37.181**, JetBrains **0.4.198**. Both IDEs recommend CLI **0.166.145**. Open VSX has passed **70K+ downloads**, confirmed by the project owner. Public native clients remain **v5.0.3.145**; product **v5.0.3.146** and VS Code **0.37.182** are source versions, not verified public downloads.
 

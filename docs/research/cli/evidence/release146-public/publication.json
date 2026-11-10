@@ -1,0 +1,72 @@
+{
+  "schema": "chainlesschain.cli-release-publication/v1",
+  "observedAt": "2026-11-10T05:28:28Z",
+  "state": "npm-public-ide-in-progress-clients-pending",
+  "releaseSource": "daafda2cf7790580467dae8ce006ceaa1285d3b4",
+  "documentationBase": "c337e14c406046260b8f99fa33beff42c5142d77",
+  "npm": {
+    "tag": "v-npm-0-166-146",
+    "workflow": ".github/workflows/npm-publish.yml",
+    "runId": 42758119265,
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/42758119265",
+    "event": "push",
+    "headSha": "daafda2cf7790580467dae8ce006ceaa1285d3b4",
+    "status": "completed",
+    "conclusion": "success",
+    "authentication": "GitHub Actions OIDC Trusted Publishing",
+    "publicVersionQueries": {
+      "registry": "https://registry.npmjs.org",
+      "chainlesschain": "0.166.146",
+      "@chainlesschain/agent-protocol": "0.1.13",
+      "@chainlesschain/context-memory-kernel": "0.1.12",
+      "@chainlesschain/agent-sdk": "0.2.18",
+      "allSucceeded": true
+    },
+    "officialWorkflowVerification": {
+      "exactSourceCliCiAndStrictSandbox": "success",
+      "registryBytesAndSignedProvenance": "success",
+      "registryOnlyChildDependencyInstallation": "success",
+      "localCryptographicVerificationRerunForThisDocumentationUpdate": false
+    },
+    "installation": "npm i -g chainlesschain@0.166.146 --registry https://registry.npmjs.org"
+  },
+  "ide": {
+    "source": "daafda2cf7790580467dae8ce006ceaa1285d3b4",
+    "vscode": {
+      "version": "0.37.184",
+      "tag": "ide-vscode-v0.37.184",
+      "runId": 42761723088,
+      "status": "in_progress",
+      "publicAvailabilityVerified": false,
+      "previousVerifiedPublicVersion": "0.37.181"
+    },
+    "jetbrains": {
+      "version": "0.4.199",
+      "tag": "ide-jetbrains-v0.4.199",
+      "runId": 42761723143,
+      "status": "in_progress",
+      "uploadVerified": false,
+      "publicAvailabilityVerified": false,
+      "previousVerifiedPublicVersion": "0.4.198",
+      "reviewPendingAllowedForClientStageOnlyAfterVerifiedOfficialUpload": true
+    }
+  },
+  "clients": {
+    "candidate": "v5.0.3.146",
+    "previousVerifiedPublicVersion": "v5.0.3.145",
+    "publishedByThisBatch": false,
+    "requires": [
+      "Verified public CLI and child npm packages",
+      "Verified public VS Code/Open VSX release",
+      "Successful official JetBrains 0.4.199 upload; user-authorized Marketplace review may remain pending without claiming public availability",
+      "Successful five-platform product builds and public asset verification"
+    ]
+  },
+  "limits": {
+    "multilingualQualityAccepted": false,
+    "completeLifecycleAndPlatformAcceptance": false,
+    "paidReady": false,
+    "modelTaskAcceptanceAddedByPublication": false,
+    "historicalCandidateReceiptPreserved": "../release146-candidate/receipt.json"
+  }
+}

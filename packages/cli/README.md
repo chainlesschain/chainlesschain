@@ -2,15 +2,17 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
 
-## Release candidate 0.166.146
+## Public CLI 0.166.146 / IDE publication in progress
 
-Source candidate **0.166.146** pairs with VS Code/Open VSX **0.37.184** and JetBrains **0.4.199**. It requires Context/Memory Kernel **0.1.12**; the companion public protocol/SDK candidates are **0.1.13 / 0.2.18**. Session Core remains **0.3.27**. These versions are not public until their exact-source gates and registry/Marketplace readbacks succeed. The verified public combination below remains the installation recommendation until then.
+CLI **0.166.146**, Context/Memory Kernel **0.1.12**, Protocol **0.1.13** and Agent SDK **0.2.18** are public. Session Core remains **0.3.27**. Immutable source `daafda2cf7790580467dae8ce006ceaa1285d3b4` passed the [official Actions OIDC publication](https://github.com/chainlesschain/chainlesschain/actions/runs/42758119265), including exact-source CLI CI / Strict Sandbox gates, public registry bytes/provenance and registry-only child installation. Public npm version queries also succeeded. [Publication receipt](../../docs/research/cli/evidence/release146-public/publication.json).
 
-After publication is verified, install `npm i -g chainlesschain@0.166.146 --registry https://registry.npmjs.org`, restart CLI/IDE hosts, then run `cc --version` and `cc doctor`.
+Install `npm i -g chainlesschain@0.166.146 --registry https://registry.npmjs.org`, restart CLI/IDE hosts, then run `cc --version` and `cc doctor`.
 
-This candidate adds canonical `memory inspect` and revision-checked `memory correct`, body-free correction notifications, persisted stream model-input diagnostics and restored JetBrains tool traces. A correction conflicts on a stale revision; an error after durable publication exits 2 and must be inspected without automatic replay. SQLite stores that contain correction events require the newer reader. Explicit output-token limits and durable MCP continuation retain their documented scope. Natural-language multilingual retrieval, complete lifecycle/platform acceptance, billing reconciliation and paid admission remain incomplete. This batch plans PC/mobile **v5.0.3.146** as its final candidate stage after public verification of child npm packages, CLI and VS Code. The user authorized this client stage after a successful JetBrains .199 upload while Marketplace review is pending; pending is not public availability. Product builds and public assets must then pass their own release checks. Public PC/mobile clients remain **v5.0.3.145** until those checks succeed.
+Paired VS Code/Open VSX **0.37.184** and JetBrains **0.4.199** tag workflows are still running; neither new IDE version is recorded as public yet. The last verified public IDEs remain **0.37.181 / 0.4.198**, both recommending CLI .145. PC/mobile **v5.0.3.146** remains the final candidate stage after public CLI/VS Code verification and the successful official JetBrains .199 upload. The user permits pending JetBrains review after that upload; pending is not public availability. Client builds and public assets still require five-platform verification. Public PC/mobile remains **v5.0.3.145** until then.
 
-## Public CLI 0.166.145 / verified IDE pairing
+This release adds canonical `memory inspect` and revision-checked `memory correct`, body-free correction notifications and persisted stream model-input diagnostics. Restored JetBrains tool traces belong to the paired IDE candidate. A correction conflicts on a stale revision; an error after durable publication exits 2 and must be inspected without automatic replay. SQLite stores that contain correction events require the newer reader. Explicit output-token limits and durable MCP continuation retain their documented scope. Natural-language multilingual retrieval, complete lifecycle/platform acceptance, billing reconciliation and paid admission remain incomplete. **NOT_PAID_READY / NOT_ADMITTED / HOLD** remain.
+
+## Historical public CLI 0.166.145 / verified IDE pairing
 
 Public versions checked 2026-11-09: Session Core **0.3.27**, CLI **0.166.145**, Open VSX **0.37.181**, JetBrains **0.4.198**. Both IDEs recommend CLI .145. Open VSX passed **70K+ downloads** (owner-confirmed milestone). Source VS Code .182 is separate from public .181.
 
