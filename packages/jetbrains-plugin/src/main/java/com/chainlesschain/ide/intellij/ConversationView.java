@@ -1529,9 +1529,14 @@ final class ConversationView {
                 && !sendInFlight && !turnActive;
     }
 
-    /** Opt-in observations only: preserve the chooser's own close/focus/callback ordering. */
+    /** Anchor to the visible conversation; lifecycle observations remain opt-in. */
     private void showRewindChooser(IPopupChooserBuilder<String> builder, Object trace,
             String kind, String sid, List<String> labels) {
+        if (!isRewindCurrent(sid) || !root.isShowing()) {
+            recordRewindPopup(Stage.POPUP_STALE, trace, kind, sid,
+                    -1, labels.size(), null, null);
+            return;
+        }
         boolean observing = !System.getProperty(UiEventDiagnostics.PROPERTY, "").isBlank();
         int[] selectedIndex = {-1};
         if (observing) builder.setItemSelectedCallback(label -> {
@@ -1552,7 +1557,7 @@ final class ConversationView {
         });
         recordRewindPopup(Stage.POPUP_CREATED, trace, kind, sid,
                 selectedIndex[0], labels.size(), popup, null);
-        popup.showCenteredInCurrentWindow(project);
+        popup.showInCenterOf(root);
         recordRewindPopup(Stage.POPUP_SHOW_RETURNED, trace, kind, sid,
                 selectedIndex[0], labels.size(), popup, null);
     }
