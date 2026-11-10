@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人 AI 管理平台
-  tagline: "CLI 0.166.145 / Open VSX 0.37.181 / JetBrains 0.4.198 已公开；下载突破 7 万+；最新源码与公开发行分别核对"
+  tagline: "CLI 0.166.146 / Open VSX 0.37.185 / JetBrains 0.4.199 已公开；客户端公开版仍为 v5.0.3.145"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -21,9 +21,9 @@ hero:
 
 features:
   - icon: ⚠️
-    title: CLI .145 配套升级与最新主线
-    details: "两款 IDE 推荐 CLI .145，Open VSX 下载突破 7 万+；输入诊断、恢复、MCP Tasks、Memory 和计费修复按各自源码范围核对。"
-    link: /chainlesschain/cli-ide-update-2026-11-09-145
+    title: CLI .146 与双 IDE 当前公开组合
+    details: "CLI .146 / Open VSX .185 / JetBrains .199 已公开，两款 IDE 推荐 CLI .146；客户端 .146 尚未完整发行，公开下载仍为 .145。"
+    link: /chainlesschain/cli-ide-update-2026-11-10-146
   - icon: 🔗
     title: CLI / IDE 与桌面目标草稿
     details: "CLI .140 修复损坏工具参数恢复与可信摘要；桌面目标草稿互通仍需匹配客户端构建、显式授权及原生确认，CLI 或插件发布不能替代产品验收。"
@@ -74,7 +74,7 @@ features:
     link: /chainlesschain/desktop-model-governance
   - icon: 🧑‍💻
     title: IDE Bridge 当前公开配对
-    details: "Open VSX .176 公开并推荐 CLI .140；JetBrains .193 已上传待公开核验，商店公开版 .192 仍推荐 CLI .139。Microsoft Marketplace 暂缓。"
+    details: "Open VSX .185 与已审核公开的 JetBrains .199 均推荐 CLI .146；VS Code 官方编辑器可安装公开 VSIX，Microsoft Marketplace 仍未发布。"
     link: /chainlesschain/ide-plugin
   - icon: 🔐
     title: 安全优先
@@ -84,10 +84,24 @@ features:
     details: 公开版支持规范化实体与投影意图同事务保存、KG/BM25 独立确认、分批恢复与退休临时 consumer 回执维护；未知运行投递仍受保护，当前宿主没有连接向量目的地。
   - icon: 🧪
     title: 发布证据分层
-    details: "CLI 与 IDE 的精确提交门禁、公共制品回读、模型任务验收具有不同证据范围。原生产品 .143 已独立公开，五平台构建及 22 个资产通过核验；完整 native review 仍保持 NOT_ADMITTED。"
+    details: "CLI 与 IDE 的精确提交门禁、公共制品回读、模型任务验收具有不同证据范围。客户端公开版仍为 .145，.146 的 Android bundle 对齐与整体发行仍待完成；完整 native review 保持 NOT_ADMITTED。"
 ---
 
-## 2026-11-09 当前发行与主线核对
+## 2026-11-10 当前公开发行
+
+公开组合为 **CLI 0.166.146 / Session Core 0.3.27 / Open VSX 0.37.185 / JetBrains 0.4.199**，两款 IDE 均推荐 CLI .146。Protocol **0.1.13**、Memory Kernel **0.1.12** 和 Agent SDK **0.2.18** 已公开。JetBrains .199 已完成市场审核，不再作为待审版本记录。
+
+```bash
+npm i -g chainlesschain@0.166.146 --registry https://registry.npmjs.org
+cc --version
+cc doctor
+```
+
+客户端公开版仍为 **v5.0.3.145**；**v5.0.3.146** 的 Android 内置 CLI 版本核验未通过，bundle 刷新启动及其他平台构建成功不代表整个产品已公开。发行与 CI 不增加模型任务通过数，**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。
+
+[11-10 安装、升级与客户端状态](/chainlesschain/cli-ide-update-2026-11-10-146) · [各渠道发行记录](/chainlesschain/agent-platform-release)
+
+## 历史公开组合与主线核对（2026-11-09）
 
 公开组合 **CLI 0.166.145 / Session Core 0.3.27 / Open VSX 0.37.181 / JetBrains 0.4.198**，两款 IDE 推荐 CLI .145。Open VSX 下载突破 **7 万+**（项目方确认）。PC/mobile 仍为 **v5.0.3.145**；源码产品 .146 与 VS Code .182 不作为已发布下载推荐。
 

@@ -1,5 +1,9 @@
 # 110. Agent Platform 发布与运行时边界设计
 
+> **2026-11-10 当前核对**：CLI **0.166.146**、Protocol **0.1.13**、Kernel **0.1.12**、SDK **0.2.18**、Open VSX **0.37.185** 与 JetBrains **0.4.199** 已公开；Session Core 保持 **0.3.27**。CLI/JetBrains 来源 `daafda2cf`，VS Code 来源 `2ae832f90`，不要求各产品独立发行都复用同一 SHA。各自准确源码门禁和公开回读仍必须完成。PC/mobile 当前公开 **v5.0.3.145**；.146 尚待 Android bundle CLI 版本修复和公开资产核验。详见[本轮设计](../release-runtime-update-2026-11-10.md)。
+
+本轮主线 `6338e6a1b` 的 Memory revision/CAS、内容保留保护、原生请求兼容与持久 MCP 续接不替代真实模型验收；#591 只加强冷扫描诊断，#572 尚未修复。#593 的 rewind 弹窗锚定修复已合入，但不在公开 JetBrains .199 的 `daafda2cf` 来源内。**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保持不变。以下日期段落保留历史发行范围。
+
 > 2026-10-27 当前公开：CLI **0.166.127**、Open VSX **0.37.165**、JetBrains **0.4.182**，产品 **v5.0.3.142**；各自精确提交与完整回读见[本轮设计](../release-runtime-update-2026-10-27.md)。自进化可选开启，完整恢复摘要继承严格证据校验。累计 **32/45**、**13** 项未完成，未新增模型任务验收；**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。下方日期记录为历史。
 
 > 2026-10-23 当前核对：CLI **0.166.117**、Open VSX **0.37.159** 和 JetBrains **0.4.176** 均已公开，两个 IDE 均推荐 CLI `.117`。Session Core **0.3.22**、Personal Data Hub **0.4.66** 已先行发布。新增代码输入兼容、独立图片预算、完整 JSON 预览和异常退出工具轮次结算；本轮未新增真实模型任务验收，自动晋升继续 **HOLD**。

@@ -11,8 +11,8 @@ const jetBrainsPending = [
   "uploaded-pending-review",
 ].includes(releaseStatus.jetBrainsPublicationStatus);
 const items = english
-  ? [["Verified upgrade pairing", "Public CLI .145, Session Core .27 and both IDEs; restart the host and run Doctor after upgrading."], ["Model-input diagnostics and recovery", "Main-source diagnostics distinguish input selection, physical dispatch and independent acceptance; cross-entry journeys remain scoped."], ["Memory, MCP Tasks and pricing", "Main-source task recovery, memory controls and durable price-window accounting retain independent runtime and account acceptance."]]
-  : [["已核对的配套升级", "CLI .145、Session Core .27 与两款 IDE 已公开；升级后重启宿主并运行 Doctor。"], ["模型输入诊断与恢复", "主线区分输入选择、实际发送和独立验收，提供会话恢复与只读诊断；跨入口旅程按证据范围判断。"], ["Memory、MCP Tasks 与费用", "主线增加任务恢复、记忆控制和持久计费窗口；真实宿主与账号验收仍独立进行。"]];
+  ? [["Verified upgrade pairing", "Public CLI .146, Session Core .27 and both IDEs; restart the host and run Doctor after upgrading."], ["Model-input diagnostics and recovery", "Published CLI diagnostics distinguish input selection, physical dispatch and independent acceptance; cross-entry journeys remain scoped."], ["Memory, MCP Tasks and pricing", "Revision-checked Memory correction, durable MCP continuation and explicit output caps retain their documented runtime and acceptance limits."]]
+  : [["已核对的配套升级", "CLI .146、Session Core .27 与两款 IDE 已公开；升级后重启宿主并运行 Doctor。"], ["模型输入诊断与恢复", "公开 CLI 区分输入选择、实际发送和独立验收，提供会话恢复与只读诊断；跨入口旅程按证据范围判断。"], ["Memory、MCP Tasks 与费用", "本版提供受修订校验的 Memory 修正、持久 MCP 续跑及显式输出上限；真实宿主与模型验收仍分别记录。"]];
 ---
 
 <section class="py-16 border-t border-line bg-cream" aria-labelledby="source-update-title">
@@ -42,8 +42,8 @@ const items = english
     )}
     <p class="mt-3 text-sm text-muted">
       {english
-        ? "Public CLI .145 includes goal transfer-to-project and signed restore-transfer commands. Native import requires a matching newer desktop build and explicit confirmation; imported goals remain paused. Main-source recovery, Memory, MCP Tasks and native price-window fixes have separate evidence and are not all in the public .145 package."
-        : "公开 CLI .145 已包含 goal transfer-to-project 与签名 restore-transfer 命令。原生导入仍需匹配的新桌面构建和显式确认，新目标保持暂停。最新主线的恢复、Memory、MCP Tasks 与持久计费窗口修复分别有源码证据，不能全部归入公开 .145 包。"}
+        ? "Public CLI .146 includes goal transfer-to-project and signed restore-transfer commands. Native import requires a matching newer desktop build and explicit confirmation; imported goals remain paused. The .146 release adds Memory corrections and durable continuation; later main-only diagnostics and native-client acceptance remain separately scoped."
+        : "公开 CLI .146 已包含 goal transfer-to-project 与签名 restore-transfer 命令。原生导入仍需匹配的新桌面构建和显式确认，新目标保持暂停。本版公开 Memory 修正与持久续跑；后续仅主线的诊断变化和原生客户端验收仍单独记录。"}
       <a class="text-ember hover:underline" href={releaseStatus.unreleasedGoalTransfer.designUrl}>{english ? " Handoff design ↗" : " 移交设计 ↗"}</a>
     </p>
     <div class="mt-8 grid gap-6 md:grid-cols-3">
@@ -89,8 +89,8 @@ const items = english
     </p>
     <p class="mt-3 text-sm text-muted">
       {english
-        ? `No new .143 model-task acceptance; two prior synthetic drafts used 1,176 tokens with unknown cost. Volcengine corrected .140 round: generation39/45, strict24/45; historical36/45,9 remaining, including verify-06 candidate-only qualification. Sol original frozen41/45, cross-version45/45 and separate repaired four2/4 remain distinct. NOT_PAID_READY / NOT_ADMITTED / HOLD remain. Microsoft Marketplace is deferred.`
-        : `本次 .143 未新增模型任务验收；此前两项合成草稿共 1176 tokens，费用未知。火山 .140 修正轮生成39/45、严格24/45；历史累计36/45、剩9，保留 verify-06 仅候选通过的限定。Sol 原冻结41/45、跨版本45/45、独立修正四项2/4分别保留。NOT_PAID_READY / NOT_ADMITTED / HOLD 保留，Microsoft Marketplace 暂缓。`}
+        ? `No new .146 model-task acceptance; two prior synthetic drafts used 1,176 tokens with unknown cost. Volcengine corrected .140 round: generation39/45, strict24/45; historical36/45,9 remaining, including verify-06 candidate-only qualification. Sol original frozen41/45, cross-version45/45 and separate repaired four2/4 remain distinct. NOT_PAID_READY / NOT_ADMITTED / HOLD remain. Microsoft Marketplace is deferred.`
+        : `本次 .146 未新增模型任务验收；此前两项合成草稿共 1176 tokens，费用未知。火山 .140 修正轮生成39/45、严格24/45；历史累计36/45、剩9，保留 verify-06 仅候选通过的限定。Sol 原冻结41/45、跨版本45/45、独立修正四项2/4分别保留。NOT_PAID_READY / NOT_ADMITTED / HOLD 保留，Microsoft Marketplace 暂缓。`}
     </p>
     <div class="mt-6 flex flex-wrap gap-4">
       <a class="btn-ghost" href={`https://open-vsx.org/api/chainlesschain/chainlesschain-ide/${releaseStatus.openVsxVersion}/file/chainlesschain.chainlesschain-ide-${releaseStatus.openVsxVersion}.vsix`}>{english ? "Download VSIX" : "下载 VSIX"} {releaseStatus.openVsxVersion} ↗</a>

@@ -8,7 +8,7 @@
 > 状态：**Phase 0 / 1 / 2 / 3 + 4a + 5a + 5b + 5c 完成**；**项目模式（`--project`）Phase 2a / 2b / 3a / 3b 完成**；Phase 4b（macOS / Windows 代码签名）未启动；Phase 5d（delta）未启动
 > 关联版本：ChainlessChain v5.0.2.49 / CLI 0.156.6
 
-> **2026-10-03 实施补充**：当前公开 CLI 为 **0.166.84**；`b776be5fc8` 的 standalone Linux 修复属于后续开发提交，尚未公开发布。以下原阶段记录保留历史范围，当前验收见 [CLI / IDE 共享状态](../research/cli-ide/plans/cli-ide-gap-implementation-2026-09-27.md)。
+> **2026-10-03 实施补充**：当前公开 CLI 为 **0.166.84**；`b776be5fc8` 的 standalone Linux 修复属于后续开发提交，尚未公开发布。以下原阶段记录保留历史范围，当前验收见 [CLI / IDE 共享状态](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli-ide/plans/cli-ide-gap-implementation-2026-09-27.md)。
 
 ---
 
@@ -1070,7 +1070,7 @@ v0.2 期间抓出并修掉的典型症状，遇到时的定位方式：
 
 **产出**：
 
-- [x] `cc pack` 命令骨架（[packages/cli/src/commands/pack.js](../../packages/cli/src/commands/pack.js)）
+- [x] `cc pack` 命令骨架（[packages/cli/src/commands/pack.js](https://github.com/chainlesschain/chainlesschain/blob/main/packages/cli/src/commands/pack.js)）
 - [x] 8 个 packer 子模块（precheck / web-panel-builder / config-template-builder / native-prebuild-collector / pkg-config-generator / pkg-runner / manifest-writer / smoke-runner）
 - [x] `--dry-run` 能跑完 phase 1-5 不调 pkg
 

@@ -1,12 +1,12 @@
 # Agent Platform 发布与升级指南
 
-## 2026-11-10 CLI .146 已公开，IDE 与客户端待核验
+## 2026-11-10 CLI / IDE 已公开，客户端仍待完整发行
 
 CLI **0.166.146**、Protocol **0.1.13**、Agent SDK **0.2.18** 和 Memory Kernel **0.1.12** 已通过 [GitHub Actions OIDC 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/42758119265)，公开 npm 版本已核验。发行源码为 `daafda2cf7790580467dae8ce006ceaa1285d3b4`；官方工作流已完成准确源码门禁、公开字节与来源验证、仅 registry 的子包依赖安装。Session Core 保持 **0.3.27**。
 
-配套 VS Code/Open VSX **0.37.184**、JetBrains **0.4.199** 的标签发布仍在运行，尚未确认公开；已核验公开 IDE 仍为 **0.37.181 / 0.4.198**，它们的推荐标记仍为 CLI .145。PC/mobile **v5.0.3.146** 仍为候选，公开客户端保持 **v5.0.3.145**。须在 CLI 与 VS Code 公开核验及 JetBrains .199 官方上传成功后进入客户端阶段；用户允许 JetBrains 审核中继续，但待审不等于公开。客户端还须完成五平台构建和公开资产核验。
+配套 Open VSX **0.37.185** 与 JetBrains **0.4.199** 均已公开核验，两端推荐 CLI **0.166.146**。VS Code 兼容编辑器可通过 Open VSX 或版本化 VSIX 安装；Microsoft Marketplace 仍未发布。PC/mobile **v5.0.3.146** 尚未完整发行，公开客户端仍为 **v5.0.3.145**；Android 内置 CLI 版本对齐和全部产品资产核验完成前，不推荐 .146 客户端下载。IDE 发布、其他平台构建成功或 Android bundle 刷新任务启动，都不等于客户端已公开。
 
-安装公开 CLI：`npm i -g chainlesschain@0.166.146 --registry https://registry.npmjs.org`，重启 CLI / IDE 宿主后运行 `cc --version`、`cc doctor`。本次发行不扩大多语质量、完整生命周期或付费准入结论；**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。
+安装公开 CLI：`npm i -g chainlesschain@0.166.146 --registry https://registry.npmjs.org`，重启 CLI / IDE 宿主后运行 `cc --version`、`cc doctor`。[11-10 安装与升级指南](./cli-ide-update-2026-11-10-146)列出渠道、准确源码和客户端限制。本次发行不扩大多语质量、完整生命周期或付费准入结论；**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。
 
 ## 历史公开组合与主线核对（2026-11-09）
 

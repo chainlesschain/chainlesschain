@@ -95,11 +95,11 @@ Laya 只接受 loopback 地址；TypeSafe 与通用 System One 接受 HTTPS 或 
 
 [Laya 官方代码](https://github.com/NandhaKishorM/laya)与 [Hugging Face 权重](https://huggingface.co/convaiinnovations/laya)采用 Apache-2.0。根目录英文模型约 421M 参数、512 tokens；[多语言模型](https://huggingface.co/convaiinnovations/laya-multilingual)约 322M 参数、默认 1024 tokens，包含中文。不同语言和模型版本需要各自评测，不沿用 Jev 的效果结论。
 
-第三方 [laya-serve](https://github.com/stiermid/laya-serve) 可暴露兼容端点，但默认后端为 `fake`，必须显式设置 `LAYA_SERVE_BACKEND=laya`，并通过 Uvicorn 绑定 `127.0.0.1`。用户指南采用预加载权重以避开首请求加载成本；[本地冒烟](../../research/agents/jev-laya-local-probe-2026-09-23.md)使用 `LAYA_SERVE_PRELOAD=false`，证明预加载不是协议必需条件。其 Router 自动选择语言；服务 model 别名不能作为实际载入权重的证明。首次运行下载依赖和权重，离线运行需准备本地缓存。
+第三方 [laya-serve](https://github.com/stiermid/laya-serve) 可暴露兼容端点，但默认后端为 `fake`，必须显式设置 `LAYA_SERVE_BACKEND=laya`，并通过 Uvicorn 绑定 `127.0.0.1`。用户指南采用预加载权重以避开首请求加载成本；[本地冒烟](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/agents/jev-laya-local-probe-2026-09-23.md)使用 `LAYA_SERVE_PRELOAD=false`，证明预加载不是协议必需条件。其 Router 自动选择语言；服务 model 别名不能作为实际载入权重的证明。首次运行下载依赖和权重，离线运行需准备本地缓存。
 
 CLI 的字符级有界摘要不等于满足模型的 token 上限。较长中文任务和五个候选可能被上游截断，需要在真实模型上检查保留信息、候选召回、概率校准和延迟。开发时增加 timeout 不能视为已满足正式评测门槛。当前没有把 Laya 上游 benchmark 作为本项目验证结果。
 
-[2026-09-23 本地真实权重冒烟记录](../../research/agents/jev-laya-local-probe-2026-09-23.md)显示：完整 CLI `state` 中的英文候选元数据会使短中文任务被上游 Router 判为英文，载入英文 checkpoint。此 CPU 环境的完整请求热路径约 7–11 秒；仅中文任务文本能触发多语言权重，但改变了 CLI 请求格式，单题结果也不能证明质量。服务返回的模型标签不区分这两种实际权重。默认 800 ms 截止因此仍应失败闭合，不能据此启用 `suggest`。
+[2026-09-23 本地真实权重冒烟记录](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/agents/jev-laya-local-probe-2026-09-23.md)显示：完整 CLI `state` 中的英文候选元数据会使短中文任务被上游 Router 判为英文，载入英文 checkpoint。此 CPU 环境的完整请求热路径约 7–11 秒；仅中文任务文本能触发多语言权重，但改变了 CLI 请求格式，单题结果也不能证明质量。服务返回的模型标签不区分这两种实际权重。默认 800 ms 截止因此仍应失败闭合，不能据此启用 `suggest`。
 
 ## 6. 请求与响应绑定
 
@@ -223,9 +223,9 @@ CLI 的离线 benchmark 报告 `v2` 同时保留逐题结果、分母/错误数�
 
 ## 11. 相关文档
 
-- [可行性研究与评测方案](../../research/agents/jev-decision-layer-feasibility-2026-09-22.md)
-- [Laya 本地真实权重联调记录](../../research/agents/jev-laya-local-probe-2026-09-23.md)
-- [Jev、Laya 与本地模型决策层用户指南](../../../docs-site/docs/chainlesschain/jev-decision-layer.md)
+- [可行性研究与评测方案](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/agents/jev-decision-layer-feasibility-2026-09-22.md)
+- [Laya 本地真实权重联调记录](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/agents/jev-laya-local-probe-2026-09-23.md)
+- [Jev、Laya 与本地模型决策层用户指南](https://docs.chainlesschain.com/chainlesschain/jev-decision-layer.html)
 - [模块 106：Agent Kernel](106_Agent_Kernel设计.md)
 - [模块 110：发布与证据边界](110-agent-platform-release-boundaries.md)
 - [模块 112：受治理 Skill 演进](112-governed-skill-evolution-design.md)

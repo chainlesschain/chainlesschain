@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 系统设计文档
-  tagline: "CLI 0.166.145 / Open VSX 0.37.181 / JetBrains 0.4.198 已公开；下载突破 7 万+；最新源码与公开发行分别核对"
+  tagline: "CLI 0.166.146 / Open VSX 0.37.185 / JetBrains 0.4.199 已公开；PC/mobile 当前公开 .145，.146 构建与制品仍待核验"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -22,8 +22,8 @@ hero:
 features:
   - icon: 🛡️
     title: 主线 Runtime 与发行边界
-    details: "输入、执行、独立验收和费用分开核对；公开 CLI .145 / IDE 配对与最新主线分别记录，原生入口仍需匹配桌面实现。"
-    link: /release-runtime-update-2026-11-09
+    details: "公开 CLI .146 / IDE .185/.199 与主线分别记录；Memory 修正、MCP 续接、诊断恢复和原生入口按各自证据范围判断。"
+    link: /release-runtime-update-2026-11-10
   - icon: 🏢
     title: 组织目标、授权记忆与站内通知（主线）
     details: 历史产品 .140 已包含显式巡检、多级审批、独立验收、共享记忆与授权通知；当前 .145 独立发行，记忆不自动注入模型。
@@ -41,8 +41,8 @@ features:
     details: 覆盖知识库、社交、交易、AI引擎、安全、企业、去中心化基础设施、Web3、低代码平台、自进化AI、CLI分发系统、CLI高级功能、AI媒体创作、AI文档创作、Web管理界面、Personal Data Hub、iOS Phase 1-6、远程操控 Plan A/B/C、MTC v0.11 联邦等全部子系统的详细设计
 
   - icon: 🏗️
-    title: Agent Platform .140 与验收边界
-    details: CLI .140 精确提交三平台门禁与公开包核验通过；.140 全量复测最终成绩未核验，历史 .138 2/4 与原冻结项目 41/45 单列。NOT_PAID_READY、NOT_ADMITTED、HOLD 保留。
+    title: Agent Platform .146 与验收边界
+    details: CLI .146 和两款 IDE 已公开；本轮文档不新增模型任务验收，历史各轮成绩分开保留。NOT_PAID_READY、NOT_ADMITTED、HOLD 不变。
     link: /cli-runtime-current
   - icon: 📝
     title: IDE 任务记录与新会话交接
@@ -61,7 +61,7 @@ features:
 
   - icon: 🧠
     title: Context/Memory Kernel
-    details: 模块 108 定义统一上下文预算、压缩状态机、记忆生命周期、删除对账与跨端 authority；CLI 固定 Kernel 0.1.11，产品面仍按各自 writer/cutover 证据判断
+    details: 模块 108 定义统一上下文预算、压缩状态机、记忆生命周期、删除对账与跨端 authority；CLI .146 固定 Kernel 0.1.12，显式修正受 revision/CAS 与外部内容保留保护
     link: /modules/m108-context-memory-kernel
 
   - icon: 🔐
@@ -81,7 +81,15 @@ features:
     details: RBAC权限、SOC2合规、SCIM用户配置、DLP数据防泄漏、SIEM安全信息管理
 ---
 
-## 2026-11-09 当前发行与主线核对
+## 2026-11-10 当前发行与主线核对
+
+公开组合 **CLI 0.166.146 / Protocol 0.1.13 / Kernel 0.1.12 / SDK 0.2.18 / Session Core 0.3.27 / Open VSX 0.37.185 / JetBrains 0.4.199**，两款 IDE 推荐 CLI .146。JetBrains .199 已获 Marketplace 批准并列出。CLI/JetBrains 来源 `daafda2cf` 与 VS Code 来源 `2ae832f90` 分别核验；旧 VS Code .184 标签和失败证据保留。
+
+PC/mobile 当前公开 **v5.0.3.145**，**.146 尚未公开**：Android bundle 仍携带 CLI .145，需要修复并完成制品回读；其他平台构建成功不等于整批发布。主线 `6338e6a1b` 包含 Memory canonical correction、revision/CAS 与内容保留保护、原生请求类型兼容、持久 MCP 续接、输出上限和诊断恢复。#591 仅收紧 Codex 分页 probe，#572 上游缺陷未修复；#593 的 rewind 弹窗可见会话锚定修复已合入，但公开 JetBrains .199 仍来自 `daafda2cf`，不包含这项后续源码修复。
+
+本轮未新增真实模型验收，历史各轮成绩分别保留，**NOT_PAID_READY / NOT_ADMITTED / HOLD** 不变。[本轮设计与发行证据](/release-runtime-update-2026-11-10)。
+
+## 2026-11-09 发行与主线核对（历史）
 
 公开组合 **CLI 0.166.145 / Session Core 0.3.27 / Open VSX 0.37.181 / JetBrains 0.4.198**，两款 IDE 推荐 CLI .145。Open VSX 下载突破 **7 万+**（项目方确认）。PC/mobile 仍为 **v5.0.3.145**；源码产品 .146 与 VS Code .182 不作为已发布下载推荐。
 

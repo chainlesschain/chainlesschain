@@ -1,10 +1,12 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+## Current public release — 2026-11-10
+
 CLI **0.166.146**, Protocol **0.1.13**, Agent SDK **0.2.18** and Memory Kernel **0.1.12** are public through [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/42758119265); public npm versions are verified. Release source: `daafda2cf7790580467dae8ce006ceaa1285d3b4`. The official workflow passed exact-source gates, registry byte/provenance checks and registry-only child installation. Session Core remains **0.3.27**.
 
-Paired VS Code/Open VSX **0.37.184** and JetBrains **0.4.199** tag releases are still running; public availability is not yet verified. The last verified public IDEs remain **0.37.181 / 0.4.198**, with CLI .145 recommendation metadata. PC/mobile **v5.0.3.146** remains a candidate; public clients remain **v5.0.3.145**. The client stage requires public CLI/VS Code verification and a successful official JetBrains .199 upload. The user permits pending JetBrains review after that upload; pending does not mean public. Client builds and public assets still require five-platform verification.
+Open VSX **0.37.185** and JetBrains **0.4.199** are publicly verified, and both recommend CLI **0.166.146**. Install the VS Code extension through Open VSX or the versioned VSIX; the Microsoft Marketplace channel remains unpublished. PC/mobile **v5.0.3.146** is not fully released; public clients remain **v5.0.3.145**. Android's bundled CLI version and the complete product asset checks still block the new client release. Successful IDE publication, other platform builds or an Android bundle refresh do not establish public client availability.
 
-Install the public CLI with `npm i -g chainlesschain@0.166.146 --registry https://registry.npmjs.org`, restart CLI/IDE hosts, then run `cc --version` and `cc doctor`. Multilingual quality, full lifecycle and paid admission remain incomplete; **NOT_PAID_READY / NOT_ADMITTED / HOLD** remain.
+Install the public CLI with `npm i -g chainlesschain@0.166.146 --registry https://registry.npmjs.org`, restart CLI/IDE hosts, then run `cc --version` and `cc doctor`. The [November 10 upgrade guide](docs-site/docs/chainlesschain/cli-ide-update-2026-11-10-146.md) records channel evidence, source identities and client limits. Multilingual quality, full lifecycle and paid admission remain incomplete; **NOT_PAID_READY / NOT_ADMITTED / HOLD** remain.
 
 ## Historical public pairing and source review — 2026-11-09
 

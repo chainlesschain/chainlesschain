@@ -1,9 +1,10 @@
 ---
+import releaseStatus from "../data/release-status.json";
 import '../styles/global.css';
 import SiteHeader from '../components/SiteHeader.astro';
 import SiteFooter from '../components/SiteFooter.astro';
 import rootPkg from '../../../package.json';
-const PRODUCT_VERSION_BARE = rootPkg.productVersion.replace(/^v/, '');
+const PRODUCT_VERSION_BARE = releaseStatus.productVersion.replace(/^v/, '');
 
 const {
   title = 'ChainlessChain 无链之链 — 让数据主权回归个人，AI效率触手可及',

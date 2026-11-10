@@ -383,8 +383,8 @@ Debugger 是 Renderer 侧只读投影，不持有 writer authority。消息与 A
 
 ## 18. 相关文档
 
-- [Graph Kernel 用户指南](../../../docs-site/docs/chainlesschain/cli-graph-kernel.md)
-- [GraphRun 观测子指南](../../../docs-site/docs/chainlesschain/cli-team-graph.md)
+- [Graph Kernel 用户指南](https://docs.chainlesschain.com/chainlesschain/cli-graph-kernel.html)
+- [GraphRun 观测子指南](https://docs.chainlesschain.com/chainlesschain/cli-team-graph.html)
 - [CC App Server 设计](./104_CC_App_Server设计.md)
 - [Agent 平台化方案](./103_Agent_SDK平台化方案.md)
-- [Agent Team 用户指南](../../../docs-site/docs/chainlesschain/cli-team.md)
+- [Agent Team 用户指南](https://docs.chainlesschain.com/chainlesschain/cli-team.html)
