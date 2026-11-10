@@ -260,7 +260,7 @@ SQLite store 使用 `node:sqlite`，只有运行时能力存在时才能选择�
 
 ## 15. 相关文档
 
-- [CC App Server 用户指南](../../../docs-site/docs/chainlesschain/cli-app-server.md)
+- [CC App Server 用户指南](https://docs.chainlesschain.com/chainlesschain/cli-app-server.html)
 - [Agent 平台化方案](./103_Agent_SDK平台化方案.md)
-- [Agent SDK 用户指南](../../../docs-site/docs/chainlesschain/agent-sdk.md)
-- [GraphRun 观测与评估](../../../docs-site/docs/chainlesschain/cli-team-graph.md)
+- [Agent SDK 用户指南](https://docs.chainlesschain.com/chainlesschain/agent-sdk.html)
+- [GraphRun 观测与评估](https://docs.chainlesschain.com/chainlesschain/cli-team-graph.html)

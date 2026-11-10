@@ -4,7 +4,7 @@
 >
 > 适用范围：`packages/cli/src/commands/record-replay.js`、`packages/cli/src/lib/record-replay/`、ProcessExecutionBroker 接线、测试与发布旅程
 >
-> 用户文档：[Record & Replay → Skill](../../features/record-replay-skill-user-guide.md)
+> 用户文档：[Record & Replay → Skill](https://docs.chainlesschain.com/chainlesschain/record-replay-skill.html)
 
 ## 1. 概述（背景与决策）
 

@@ -114,7 +114,7 @@ this._fetchPostLikes.bind(this),
 
 ## 4. Android 端验证
 
-Android 12 类全部在 [`SyncManager.kt::ResourceType`](../../android-app/core-p2p/src/main/java/com/chainlesschain/android/core/p2p/sync/SyncManager.kt) enum 内 declared。**push 路径**通过 `core-p2p/.../sync/DefaultSyncDataApplier.kt` + `feature-knowledge/.../KnowledgeSyncApplierImpl.kt` 等模块实现。
+Android 12 类全部在 [`SyncManager.kt::ResourceType`](https://github.com/chainlesschain/chainlesschain/blob/main/android-app/core-p2p/src/main/java/com/chainlesschain/android/core/p2p/sync/SyncManager.kt) enum 内 declared。**push 路径**通过 `core-p2p/.../sync/DefaultSyncDataApplier.kt` + `feature-knowledge/.../KnowledgeSyncApplierImpl.kt` 等模块实现。
 
 **v1.1 W5 验证项**（不在本 commit scope，留给后续 W5 验收）:
 - [ ] CONVERSATION：Android `ConversationEntity` push 路径走通（grep `ResourceType.CONVERSATION` 在 SyncManager 推送侧）

@@ -159,9 +159,9 @@ cc team graph eval <run-id> --thresholds '{"deadlocked":{"max":0}}'
 
 ## 11. 相关文档
 
-- [Agent SDK 用户指南](../../../docs-site/docs/chainlesschain/agent-sdk.md)
-- [CC App Server / WebSocket 服务](../../../docs-site/docs/chainlesschain/cli-serve.md)
-- [GraphRun 观测与评估](../../../docs-site/docs/chainlesschain/cli-team-graph.md)
+- [Agent SDK 用户指南](https://docs.chainlesschain.com/chainlesschain/agent-sdk.html)
+- [CC App Server / WebSocket 服务](https://docs.chainlesschain.com/chainlesschain/cli-serve.html)
+- [GraphRun 观测与评估](https://docs.chainlesschain.com/chainlesschain/cli-team-graph.html)
 - [CLI Runtime 当前实现](../cli-runtime-current.md)
-- [Agent Protocol](../../../packages/agent-sdk/docs/PROTOCOL.md)
+- [Agent Protocol](https://github.com/chainlesschain/chainlesschain/blob/main/packages/agent-sdk/docs/PROTOCOL.md)
 - [107 单一协议 Schema 与自动代码生成](./107_单一协议Schema与自动代码生成.md)

@@ -1,8 +1,9 @@
 ---
+import releaseStatus from "../data/release-status.json";
 import BaseLayout from '../layouts/BaseLayout.astro';
 import rootPkg from '../../../package.json';
 
-const PRODUCT_VERSION = rootPkg.productVersion;
+const PRODUCT_VERSION = releaseStatus.productVersion;
 
 const milestones = [
   { date: '2025', title: '公司成立', body: '厦门自贸区落地 · 等保三级 · ICP 备案完成' },
@@ -10,7 +11,7 @@ const milestones = [
   { date: '2026 Q1', title: 'v3.0', body: '多模态 Agent · Pipeline Orchestrator · NL Programming' },
   { date: '2026 Q1 晚', title: 'v4.0', body: 'Agent Federation · Android 28 Skills · Deep Agents Deploy' },
   { date: '2026-04', title: 'v5.0.2.x', body: '139 技能 / CLI 109 命令 · V2 治理表面 220+ · 14,800+ 测试' },
-  { date: '2026-05', title: PRODUCT_VERSION, body: 'Web Shell 默认 · MTC v0.11 跨联邦 · Web Panel 中英双语' },
+  { date: '2026-11', title: PRODUCT_VERSION, body: 'Web Shell 默认 · MTC v0.11 跨联邦 · Web Panel 中英双语' },
 ];
 ---
 <BaseLayout

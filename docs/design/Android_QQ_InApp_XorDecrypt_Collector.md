@@ -2,13 +2,13 @@
 
 > **状态**: 设计 v0.1 — 2026-05-22。Scaffold + 真 DbExtractor + 真 XorDecryptor + JS adapter snapshot 模式 已 land；真机 E2E 待做（Phase 13.5.6，需 root QQ 设备）。
 >
-> **谁该读**：(1) 想接通 `HubLocalScreen.kt` "QQ" 卡的工程师 (2) 评估 Magisk-root 用户群体范围 (3) 维护 [`packages/personal-data-hub/lib/adapters/messaging-qq/`](../../packages/personal-data-hub/lib/adapters/messaging-qq/) 桌面侧 adapter 的人
+> **谁该读**：(1) 想接通 `HubLocalScreen.kt` "QQ" 卡的工程师 (2) 评估 Magisk-root 用户群体范围 (3) 维护 [`packages/personal-data-hub/lib/adapters/messaging-qq/`](https://github.com/chainlesschain/chainlesschain/tree/main/packages/personal-data-hub/lib/adapters/messaging-qq) 桌面侧 adapter 的人
 
 ---
 
 ## 0. 为什么需要这个
 
-桌面侧 [`packages/personal-data-hub/lib/adapters/messaging-qq/`](../../packages/personal-data-hub/lib/adapters/messaging-qq/) 已经把"从 adb pull 出来的 QQ DB + IMEI → XOR-decrypt → ingest"这条路打通了（其实只到了 v0.5 placeholder——这次 v0.2 同时升级了它的 snapshot mode）。但和 WeChat 同样有桌面端依赖问题：
+桌面侧 [`packages/personal-data-hub/lib/adapters/messaging-qq/`](https://github.com/chainlesschain/chainlesschain/tree/main/packages/personal-data-hub/lib/adapters/messaging-qq) 已经把"从 adb pull 出来的 QQ DB + IMEI → XOR-decrypt → ingest"这条路打通了（其实只到了 v0.5 placeholder——这次 v0.2 同时升级了它的 snapshot mode）。但和 WeChat 同样有桌面端依赖问题：
 
 1. 用户必须在桌面侧 `adb backup com.tencent.mobileqq`
 2. 知道并输入 IMEI
@@ -163,7 +163,7 @@ Android in-APK 路径让用户**直接在手机点"同步"按钮**就能把 QQ �
 ## 8. 相关
 
 - WeChat 同形：[`Android_WeChat_InApp_Frida_Collector.md`](./Android_WeChat_InApp_Frida_Collector.md)
-- 桌面 adapter（refactored this commit）：[`packages/personal-data-hub/lib/adapters/messaging-qq/index.js`](../../packages/personal-data-hub/lib/adapters/messaging-qq/index.js)
+- 桌面 adapter（refactored this commit）：[`packages/personal-data-hub/lib/adapters/messaging-qq/index.js`](https://github.com/chainlesschain/chainlesschain/blob/main/packages/personal-data-hub/lib/adapters/messaging-qq/index.js)
 - sjqz 参考实现：`C:\code\sjqz\src\mobile_forensics\parsers\qq.py`
 - 内存 trap 记录：`memory/android_qq_collector_phase_13_5.md`（写于 v0.2 land 时）
 

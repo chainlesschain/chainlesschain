@@ -1,7 +1,7 @@
 # Android Local Terminal — CI 构建 + Bundle 后续设计
 
 > 状态：📐 设计中（2026-05-18）
-> 关联：[`Android_Local_Terminal.md`](Android_Local_Terminal.md) Phase 5 / [`local-terminal-bundle.yml`](../../.github/workflows/local-terminal-bundle.yml)
+> 关联：[`Android_Local_Terminal.md`](Android_Local_Terminal.md) Phase 5 / [`local-terminal-bundle.yml`](https://github.com/chainlesschain/chainlesschain/blob/main/.github/workflows/local-terminal-bundle.yml)
 > 前置：Phase 0-4 已落地，Phase 4 真机 verified（commit `ebf27fc9c`）
 
 ## 0. 为什么需要这份 doc

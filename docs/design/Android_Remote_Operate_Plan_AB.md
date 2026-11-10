@@ -82,7 +82,7 @@ onMessage: (msg) => {
 
 ## 4. Plan B — STUN/TURN 部署
 
-部署文档另见 [signaling-relay-and-turn-deploy](../../../memory/...)。要点：
+部署文档另见 `signaling-relay-and-turn-deploy`（仅本地备忘，仓库未收录）。要点：
 
 ### 4.1 coturn 容器（`/opt/cc-turn/` on VPS 47.111.5.128）
 

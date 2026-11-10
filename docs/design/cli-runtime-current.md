@@ -1,6 +1,14 @@
 # CLI Runtime 当前架构与实现
 
-## 2026-11-07 未发行源码进展
+## 2026-11-10 当前公开范围与主线
+
+按 `main@6338e6a1b` 核对：CLI **0.166.146** / Agent Protocol **0.1.13** / Context-Memory Kernel **0.1.12** / Agent SDK **0.2.18** 已公开，Session Core 保持 **0.3.27**。Open VSX **0.37.185** 与已批准列出的 JetBrains **0.4.199** 均推荐 CLI .146；VS Code 发行来源 `2ae832f90` 与 CLI/JetBrains 来源 `daafda2cf` 分别保留。PC/mobile 当前公开 **v5.0.3.145**；.146 仍待修复 Android bundle 携带旧 CLI .145 的问题并完成公开资产核验，其他构建成功不构成发布声明。
+
+本轮运行时包括 Memory 显式 canonical correction、revision/CAS 冲突保护及外部 contentRef 保留拒绝、原生请求类型兼容、MCP 持久结果续接、跨入口输出上限和诊断恢复。Memory 外部内容替换、完整生命周期和多语言真实任务仍有边界。PR #591 仅加强 Codex 分页响应诊断，#572 上游冷扫描缺陷仍未修复；#593 的 rewind 弹窗可见会话锚定修复已合入主线，但未进入来自 `daafda2cf` 的公开 JetBrains .199。详见[本轮设计与发行证据](./release-runtime-update-2026-11-10.md)。
+
+本轮未新增真实模型任务验收；历史成绩按原来源分别保留，**NOT_PAID_READY / NOT_ADMITTED / HOLD** 不变。下方日期记录均为历史快照，较早“当前”“未发行”描述只适用于其记录时点。
+
+## 2026-11-07 未发行源码进展（历史）
 
 未发行源码进展：PR #539 新增 CLI 目标显式移交到原生个人项目、原字节备份/冻结及签名作废回执恢复。新目标保持暂停，不继承旧权限；需匹配分支的 CLI、Session Core 和桌面构建，公开 .143/.145 尚不包含。 [移交与签名回退设计](./cli-goal-transfer-source-2026-11-07.md)。
 

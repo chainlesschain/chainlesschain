@@ -33,9 +33,9 @@ Phase 14 不在手机本地复刻 vault — vault 留桌面（SQLCipher + 主密
 ✅ **已就位**：
 
 - **桌面侧**：
-  - `personal-data-hub-ipc.js` 21 个 colon-style 通道（[`desktop-app-vue/src/main/ipc/personal-data-hub-ipc.js`](../../desktop-app-vue/src/main/ipc/personal-data-hub-ipc.js)）
-  - `personal-data-hub-protocol.js` 21 个 dot-style WS 主题（[`packages/cli/src/gateways/ws/personal-data-hub-protocol.js`](../../packages/cli/src/gateways/ws/personal-data-hub-protocol.js)）
-  - `mobile-skill-whitelist.js` 现成 pattern 路由 + ApprovalUI 路由（[`desktop-app-vue/src/main/remote/handlers/mobile-skill-whitelist.js`](../../desktop-app-vue/src/main/remote/handlers/mobile-skill-whitelist.js)）
+  - `personal-data-hub-ipc.js` 21 个 colon-style 通道（[`desktop-app-vue/src/main/ipc/personal-data-hub-ipc.js`](https://github.com/chainlesschain/chainlesschain/blob/main/desktop-app-vue/src/main/ipc/personal-data-hub-ipc.js)）
+  - `personal-data-hub-protocol.js` 21 个 dot-style WS 主题（[`packages/cli/src/gateways/ws/personal-data-hub-protocol.js`](https://github.com/chainlesschain/chainlesschain/blob/main/packages/cli/src/gateways/ws/personal-data-hub-protocol.js)）
+  - `mobile-skill-whitelist.js` 现成 pattern 路由 + ApprovalUI 路由（[`desktop-app-vue/src/main/remote/handlers/mobile-skill-whitelist.js`](https://github.com/chainlesschain/chainlesschain/blob/main/desktop-app-vue/src/main/remote/handlers/mobile-skill-whitelist.js)）
 - **Android 侧**：
   - `SeedRegistry.kt` 已含 `personal-data-hub` namespace + 21 method 元数据（Phase 14.0 ✅）— 含每个 method 的 `name` / `description` / `paramCount` / `paramSummary` / `returnTypeHint` / `riskOverride` / `requiresApprovalOverride`
   - `RemoteCommandClient.invoke(namespace:, method:, params:)`（Phase 6 范式，复用 0 改动）
@@ -584,10 +584,10 @@ enum class SkillTab(
 ## 10. 参考
 
 - 父文档：[`Personal_Data_Hub_Architecture.md`](./Personal_Data_Hub_Architecture.md)（PDH 主架构 + Phase 0-13 完整路线图）
-- 桌面端 IPC：[`desktop-app-vue/src/main/ipc/personal-data-hub-ipc.js`](../../desktop-app-vue/src/main/ipc/personal-data-hub-ipc.js)
-- 桌面端 WS：[`packages/cli/src/gateways/ws/personal-data-hub-protocol.js`](../../packages/cli/src/gateways/ws/personal-data-hub-protocol.js)
-- 桌面端 mobile-skill-whitelist：[`desktop-app-vue/src/main/remote/handlers/mobile-skill-whitelist.js`](../../desktop-app-vue/src/main/remote/handlers/mobile-skill-whitelist.js)
-- Android `SeedRegistry`（含 Phase 14.0 21 method 元数据）：[`android-app/app/src/main/java/com/chainlesschain/android/remote/registry/SeedRegistry.kt`](../../android-app/app/src/main/java/com/chainlesschain/android/remote/registry/SeedRegistry.kt#L386)
+- 桌面端 IPC：[`desktop-app-vue/src/main/ipc/personal-data-hub-ipc.js`](https://github.com/chainlesschain/chainlesschain/blob/main/desktop-app-vue/src/main/ipc/personal-data-hub-ipc.js)
+- 桌面端 WS：[`packages/cli/src/gateways/ws/personal-data-hub-protocol.js`](https://github.com/chainlesschain/chainlesschain/blob/main/packages/cli/src/gateways/ws/personal-data-hub-protocol.js)
+- 桌面端 mobile-skill-whitelist：[`desktop-app-vue/src/main/remote/handlers/mobile-skill-whitelist.js`](https://github.com/chainlesschain/chainlesschain/blob/main/desktop-app-vue/src/main/remote/handlers/mobile-skill-whitelist.js)
+- Android `SeedRegistry`（含 Phase 14.0 21 method 元数据）：[`android-app/app/src/main/java/com/chainlesschain/android/remote/registry/SeedRegistry.kt`](https://github.com/chainlesschain/chainlesschain/blob/main/android-app/app/src/main/java/com/chainlesschain/android/remote/registry/SeedRegistry.kt#L386)
 - 同构样板：
   - [`iOS_Phase_5_AI_Chat_Skill.md`](./iOS_Phase_5_AI_Chat_Skill.md) — iOS 远程 AI Chat skill，模式同
   - [`iOS_Phase_4_Notification_Skill.md`](./iOS_Phase_4_Notification_Skill.md) — events fan-out 模式参考

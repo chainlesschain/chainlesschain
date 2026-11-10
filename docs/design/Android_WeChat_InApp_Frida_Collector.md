@@ -8,7 +8,7 @@
 
 ## 0. 为什么需要这个
 
-桌面侧 [`packages/personal-data-hub/lib/adapters/wechat/`](../../packages/personal-data-hub/lib/adapters/wechat/) 已经把"从 adb pull 出来的本地文件解密 + ingest"这条路打通了，但**用户体验上**有断点：
+桌面侧 [`packages/personal-data-hub/lib/adapters/wechat/`](https://github.com/chainlesschain/chainlesschain/tree/main/packages/personal-data-hub/lib/adapters/wechat) 已经把"从 adb pull 出来的本地文件解密 + ingest"这条路打通了，但**用户体验上**有断点：
 
 1. 用户必须在桌面侧装好 cc + Node 22 LTS + 跑 `cc ui` + 接 USB
 2. WeChat 数据采集前要 `adb shell su -c "tar -czf ..."` + `adb pull` 整目录
@@ -343,7 +343,7 @@ scaffold + UI swap 这次 land 后，**v0.1 PASS = 满足下列**：
 - **桌面侧 frida setup** → [`Adapter_WeChat_SQLCipher_Frida_Setup.md`](./Adapter_WeChat_SQLCipher_Frida_Setup.md)
 - **桌面侧 E2E runbook** → [`Personal_Data_Hub_Phase_12_9_WeChat_RealDevice_E2E_Runbook.md`](./Personal_Data_Hub_Phase_12_9_WeChat_RealDevice_E2E_Runbook.md)
 - **桌面侧 E2E 准备包** → [`Personal_Data_Hub_Phase_12_9_WeChat_E2E_PrepKit.md`](./Personal_Data_Hub_Phase_12_9_WeChat_E2E_PrepKit.md)
-- **Bilibili Android pattern (参考实现)** → [`packages/personal-data-hub/lib/adapters/social-bilibili/`](../../packages/personal-data-hub/lib/adapters/social-bilibili/) + [`android-app/.../pdh/social/bilibili/`](../../android-app/app/src/main/java/com/chainlesschain/android/pdh/social/bilibili/)
+- **Bilibili Android pattern (参考实现)** → [`packages/personal-data-hub/lib/adapters/social-bilibili/`](https://github.com/chainlesschain/chainlesschain/tree/main/packages/personal-data-hub/lib/adapters/social-bilibili) + [`android-app/.../pdh/social/bilibili/`](https://github.com/chainlesschain/chainlesschain/tree/main/android-app/app/src/main/java/com/chainlesschain/android/pdh/social/bilibili)
 - **PDH Android Standalone (架构上下文)** → [`Personal_Data_Hub_Android_Standalone_Cc.md`](./Personal_Data_Hub_Android_Standalone_Cc.md)
 
 ## 附录：规范章节补全（v5.0.3.108）

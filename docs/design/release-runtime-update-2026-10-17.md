@@ -4,7 +4,7 @@
 
 截至主线 `ef26f20b28`，公开 npm CLI 为 **0.166.104**，Open VSX 为 **0.37.149**，JetBrains Marketplace 为 **0.4.166**；两个 IDE 均推荐 CLI 0.166.104。CLI 与 VS Code 的发行源码为 `93792f6520`，JetBrains 标签源码为 `4c3e5cfd56`。Agent SDK **0.2.15** 已先于 CLI 发布；Session Core **0.3.19**、Context/Memory Kernel **0.1.10**、Personal Data Hub **0.4.65** 沿用各自的独立版本。桌面、Android 和 iOS 安装包仍是独立的 **v5.0.3.140** 发行，不能从 CLI 或 IDE 的公开状态推断原生安装包已更新。
 
-本轮 [CLI OIDC 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/39012587904/attempts/2)、[Open VSX 公开回读](https://github.com/chainlesschain/chainlesschain/actions/runs/39014016230/attempts/2)和 [JetBrains 宿主及市场工作流](https://github.com/chainlesschain/chainlesschain/actions/runs/39020301946)均成功。JetBrains 公开 API 为 `ready`、`approve:true`、`listed:true`、`hidden:false`，公开 ZIP 已下载并校验完整性。Microsoft Marketplace 尚未发行。准确提交及制品证据见[发布准入记录](../research/cli/evidence/implementation-plan-2026-10-15/formal-paid-release-gate/README.md)。
+本轮 [CLI OIDC 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/39012587904/attempts/2)、[Open VSX 公开回读](https://github.com/chainlesschain/chainlesschain/actions/runs/39014016230/attempts/2)和 [JetBrains 宿主及市场工作流](https://github.com/chainlesschain/chainlesschain/actions/runs/39020301946)均成功。JetBrains 公开 API 为 `ready`、`approve:true`、`listed:true`、`hidden:false`，公开 ZIP 已下载并校验完整性。Microsoft Marketplace 尚未发行。准确提交及制品证据见[发布准入记录](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/implementation-plan-2026-10-15/formal-paid-release-gate/README.md)。
 
 ## 会话预算与恢复
 

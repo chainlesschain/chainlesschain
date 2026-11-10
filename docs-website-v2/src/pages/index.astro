@@ -7,7 +7,8 @@ import pdhCatalog from '../../../docs/internal/pdh-app-data-catalog.json';
 import releaseSizes from '../data/release-sizes.json';
 import releaseStatus from '../data/release-status.json';
 
-const PRODUCT_VERSION = rootPkg.productVersion;
+const PRODUCT_VERSION = releaseStatus.productVersion;
+const SOURCE_PRODUCT_VERSION = rootPkg.productVersion;
 const PDH_VERSION = releaseStatus.personalDataHubVersion;
 const PDH_ADAPTER_COUNT = pdhCatalog.count;
 // Use the verified release-status snapshot for visible CLI versions. The
@@ -150,7 +151,7 @@ const badges = [
           <span class="block mt-1">跨版本累计，包含修复源码后的补测；原冻结项目 41/45 单独保留。</span>
         </p>
         <p class="animate-fade-in-delay-3 mt-5 text-sm text-muted max-w-3xl">
-          CLI {CLI_VERSION} 包含本地算力配置、显式目标移交与 Memory 权威修复。原生创建与模型草稿需要匹配的新桌面构建；文档更新不新增模型任务验收。Kernel 0.1.11 / 当前公开客户端 {releaseStatus.productVersion}。<a class="text-ember hover:underline" href={releaseStatus.upgradeGuide}>查看升级指南 →</a>
+          CLI {CLI_VERSION} 包含本地算力配置、显式目标移交与 Memory 权威修复。原生创建与模型草稿需要匹配的新桌面构建；文档更新不新增模型任务验收。Kernel {releaseStatus.contextMemoryKernelVersion} / 当前公开客户端 {releaseStatus.productVersion}。<a class="text-ember hover:underline" href={releaseStatus.upgradeGuide}>查看升级指南 →</a>
         </p>
         <p class="mt-3 text-xs text-muted leading-relaxed max-w-3xl">
           Open VSX {VSCODE_VERSION} 已公开核验，推荐 CLI {releaseStatus.openVsxRecommendedCliVersion}。JetBrains {JETBRAINS_VERSION} 已获商店批准并公开列出，推荐 CLI {releaseStatus.jetBrainsRecommendedCliVersion}；已核对公开归档可下载。CLI 归档完整性及准确提交的三平台 CLI CI / Strict Sandbox 已核对；本轮未重跑 IDE 官方制品全量比较。独立的 <a class="text-ember hover:underline" href={`https://github.com/chainlesschain/chainlesschain/releases/tag/${releaseStatus.productVersion}`}>{releaseStatus.productVersion} 产品发行</a>包含桌面三平台安装包、Android APK/AAB 与签名 iOS ad-hoc IPA。文档核对基线为 {SOURCE_HEAD_COMMIT}；Microsoft Marketplace 尚未发行。
@@ -726,7 +727,7 @@ const badges = [
     <div class="container-wide">
       <div class="max-w-3xl mb-14">
         <div class="chip mb-6">下载</div>
-        <h2 class="text-display-md md:text-5xl leading-tight">三端同源 · 当前主线 {PRODUCT_VERSION}</h2>
+        <h2 class="text-display-md md:text-5xl leading-tight">三端同源 · 当前主线 {SOURCE_PRODUCT_VERSION}</h2>
         <p class="mt-4 text-muted">桌面与 Android 当前可下载版本：{DOWNLOAD_VERSION}</p>
       </div>
       <div class="grid md:grid-cols-3 gap-6">
