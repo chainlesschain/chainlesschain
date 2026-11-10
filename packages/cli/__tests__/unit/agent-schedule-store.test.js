@@ -571,18 +571,31 @@ describe("AgentScheduleStore", () => {
       expect(plain.jitterMs).toBe(0);
     });
 
-    it("due() defers a jittered entry until its per-entry offset elapses", () => {
-      // dueAt == clock, so with no jitter it would fire immediately.
-      const j = store.scheduleWakeup({
-        prompt: "j",
-        delayMs: 0,
-        jitterMs: 5000,
-      });
-      const offset = jitterOffsetMs(j.id, 5000);
-      expect(offset).toBeGreaterThan(0); // this id draws a real offset
-      expect(store.due(null, clock)).toHaveLength(0); // jittered into the future
-      expect(store.due(null, clock + offset).map((e) => e.id)).toEqual([j.id]);
-    });
+    it.each([
+      { id: "jitter-fixture-0", offset: 1826 },
+      { id: "jitter-fixture-4907", offset: 0 },
+    ])(
+      "due() applies the deterministic offset for entry $id",
+      ({ id, offset }) => {
+        // dueAt == clock, so with no jitter it would fire immediately. Persist
+        // a fixed ID so this exercises the same stored-entry path every run.
+        const scheduled = store.scheduleWakeup({
+          prompt: "j",
+          delayMs: 0,
+          jitterMs: 5000,
+        });
+        const fixture = { ...scheduled, id };
+        store._writeAll("wakeup", [fixture]);
+
+        expect(jitterOffsetMs(id, 5000)).toBe(offset);
+        // Zero is valid in [0, jitterMs); the same lower/upper boundary checks
+        // cover both immediate and delayed entries.
+        expect(store.due(null, clock + offset - 1)).toHaveLength(0);
+        expect(
+          store.due(null, clock + offset).map((entry) => entry.id),
+        ).toEqual([id]);
+      },
+    );
 
     it("due() with jitterMs 0 fires exactly at the base time (byte-identical)", () => {
       const q = store.scheduleWakeup({ prompt: "q", delayMs: 0, jitterMs: 0 });
