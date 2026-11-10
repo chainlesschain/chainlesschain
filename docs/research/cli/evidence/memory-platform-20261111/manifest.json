@@ -1,0 +1,166 @@
+{
+  "schema": "chainlesschain.memory-platform-receipts/v1",
+  "hostedRunId": 42722731666,
+  "hostedSourceCommit": "daafda2cf7790580467dae8ce006ceaa1285d3b4",
+  "hostedSamplesPerCase": 11,
+  "hostedEvent": "pull_request",
+  "records": [
+    {
+      "path": "raw/memory-compound-macos-latest.json.gz",
+      "kind": "compound",
+      "runner": "macos",
+      "matchedSourceCommit": "daafda2cf7790580467dae8ce006ceaa1285d3b4",
+      "rawSha256": "3df467509488f93896953fbf8cd973ceabbb93304031e73a278885439b9b320f",
+      "archiveSha256": "d964a2f85a145849ad129259d03bb96120e7c6b59732fe978266947b6cac3124",
+      "artifactId": 13724010830,
+      "upstreamZipDigestNotLocallyRecomputed": "sha256:7a81a4210a62247b50cea24c9a3167a8f43bc2f3ab9888f9904780c35fd4b805"
+    },
+    {
+      "path": "raw/memory-compound-ubuntu-latest.json.gz",
+      "kind": "compound",
+      "runner": "ubuntu",
+      "matchedSourceCommit": "daafda2cf7790580467dae8ce006ceaa1285d3b4",
+      "rawSha256": "bee1746cf2e4ae154325de3b04e89f94e24076396dc3e7728c17640c2de5f24d",
+      "archiveSha256": "f441a9218dff558f756a7bde60b82faa00fa8e36d626d022d370bb7714be86bc",
+      "artifactId": 13725489973,
+      "upstreamZipDigestNotLocallyRecomputed": "sha256:ad8db25c37762694b40318f625424369f7306f911e794e9b180edae2f17f1813"
+    },
+    {
+      "path": "raw/memory-compound-windows-latest.json.gz",
+      "kind": "compound",
+      "runner": "windows",
+      "matchedSourceCommit": "daafda2cf7790580467dae8ce006ceaa1285d3b4",
+      "rawSha256": "3007e88835453a119718d79c15cb9a9cfb182cea24cadb6787abfdf739bfcea3",
+      "archiveSha256": "f77e855bf7ea06ea96cd60986a7d00106788d566fc865f1d6a8d82ba7a50ece9",
+      "artifactId": 13724198204,
+      "upstreamZipDigestNotLocallyRecomputed": "sha256:4f402904bbcbf3baca6c40ebba33ae9fab0e4bff4d173c845fc04837ea55aa5a"
+    },
+    {
+      "path": "raw/memory-file-identity.json.gz",
+      "kind": "file-identity",
+      "runner": "",
+      "matchedSourceCommit": "daafda2cf7790580467dae8ce006ceaa1285d3b4",
+      "rawSha256": "b907153eb2c96fa17aaa95a64fcda55e1752c68c7b910189a32104d02c7fd165",
+      "archiveSha256": "49837ee95dd9279635dab01bb945c9d833b38cde58f45f76578ab5896377abd3",
+      "artifactId": 13723744508,
+      "upstreamZipDigestNotLocallyRecomputed": "sha256:c4f5212ec6df49049e92023a72cae520a5c693ebcc6da4b58a5f25a16cfab70c"
+    },
+    {
+      "path": "raw/memory-mixed-macos-latest.json.gz",
+      "kind": "mixed",
+      "runner": "macos",
+      "matchedSourceCommit": "daafda2cf7790580467dae8ce006ceaa1285d3b4",
+      "rawSha256": "775cdab060f6090e93d123fe64cdfe79f344d04372e1b861715ccf0f2f28e1d1",
+      "archiveSha256": "02fbb0bb034162f20c835ae18184a5d8f9434ebbfcaebe70b5553f6dae412fdb",
+      "artifactId": 13726991397,
+      "upstreamZipDigestNotLocallyRecomputed": "sha256:0bcd516e759612e87b7b0197a044a716f2bea0fe175336d9566ebf8f2f957237"
+    },
+    {
+      "path": "raw/memory-mixed-ubuntu-latest.json.gz",
+      "kind": "mixed",
+      "runner": "ubuntu",
+      "matchedSourceCommit": "daafda2cf7790580467dae8ce006ceaa1285d3b4",
+      "rawSha256": "1031f0279c4e98415fa944648e62850dfc14c00d60118b33a953bfe18339ea5a",
+      "archiveSha256": "db1f0df68de2fad7a79b27cbae7374d89a7ec47b952b10fabfd0890c640eceb6",
+      "artifactId": 13726178206,
+      "upstreamZipDigestNotLocallyRecomputed": "sha256:f4a0ab832ad5e46cb0b0c4cb2cecbda4b8a09b631d75a89ffc52720f5d9f094d"
+    },
+    {
+      "path": "raw/memory-mixed-windows-latest.json.gz",
+      "kind": "mixed",
+      "runner": "windows",
+      "matchedSourceCommit": "daafda2cf7790580467dae8ce006ceaa1285d3b4",
+      "rawSha256": "e7423349ec81339b91bcfe8059c86c004b30226818d512b5d2cf3b7427a7c83c",
+      "archiveSha256": "a85e57defda37821e9e0f4d13154d3f5d8cb7df648d0699d67968190fb124523",
+      "artifactId": 13723409047,
+      "upstreamZipDigestNotLocallyRecomputed": "sha256:44ae141ca481b7778983029c3328d6ce1455c11b5caa64df39bd61c49fb0b69f"
+    },
+    {
+      "path": "raw/memory-query-index-macos-latest.json.gz",
+      "kind": "query-index",
+      "runner": "macos",
+      "matchedSourceCommit": "daafda2cf7790580467dae8ce006ceaa1285d3b4",
+      "rawSha256": "4ab67bb573eea668b864e19a2fb3f39ba257e3f68e3d6a0a9649d21546ed8cc3",
+      "archiveSha256": "26130433b6d31d9bd75b0057083a185ba1da32fa51ad64dcd4e08134cdbdf144",
+      "artifactId": 13723782351,
+      "upstreamZipDigestNotLocallyRecomputed": "sha256:89dd071ddcaf3cbc1543c40d4125d4a7cbce1b7808309af34c4305999c0a19e6"
+    },
+    {
+      "path": "raw/memory-query-index-ubuntu-latest.json.gz",
+      "kind": "query-index",
+      "runner": "ubuntu",
+      "matchedSourceCommit": "daafda2cf7790580467dae8ce006ceaa1285d3b4",
+      "rawSha256": "0becb6386d8fced045ebb494fcdaa3812e13a3211f3ef82edf9c7a3e9a8735da",
+      "archiveSha256": "0a49191ccfe1ca13679f2a8648124054ae4c8ccad77818867ab85f55e2167c94",
+      "artifactId": 13726835760,
+      "upstreamZipDigestNotLocallyRecomputed": "sha256:6db212d3f89c918d9f11313702c565f9c37b8b6e5f737c73cbbae63191bb1d4b"
+    },
+    {
+      "path": "raw/memory-query-index-windows-latest.json.gz",
+      "kind": "query-index",
+      "runner": "windows",
+      "matchedSourceCommit": "daafda2cf7790580467dae8ce006ceaa1285d3b4",
+      "rawSha256": "2fab04a28cce510d3394f9e7edcb446a3314baa78456425e584267e095745959",
+      "archiveSha256": "391a5665f87619fa006f9d06b937d1d60084cef30e94a0a33476315f540ada47",
+      "artifactId": 13724252434,
+      "upstreamZipDigestNotLocallyRecomputed": "sha256:4301e8f7711a057997f37f309582cca6bbe85ecdb3d243cd1bd7ddd4179afebc"
+    },
+    {
+      "path": "raw/memory-stop-macos-latest.json.gz",
+      "kind": "stop",
+      "runner": "macos",
+      "matchedSourceCommit": "daafda2cf7790580467dae8ce006ceaa1285d3b4",
+      "rawSha256": "84169b6fdba7a68fa15f03282a02ab39b8a1f45c6ed21da17fa170069b916f66",
+      "archiveSha256": "fa139f434217f029066724af420ee9d798652dc930a751f3e804bda332994448",
+      "artifactId": 13723574023,
+      "upstreamZipDigestNotLocallyRecomputed": "sha256:98e5b3c786ac3c440b7d3fa6f198fa2630eeab6fd240bc8262f9e5a77f6cbf48"
+    },
+    {
+      "path": "raw/memory-stop-ubuntu-latest.json.gz",
+      "kind": "stop",
+      "runner": "ubuntu",
+      "matchedSourceCommit": "daafda2cf7790580467dae8ce006ceaa1285d3b4",
+      "rawSha256": "eeb38763a63859d27873934ef8d50d966df693bb03355e12bcb7de1c18e4cd5f",
+      "archiveSha256": "3db4db2ae181436857438426c4114f8a02ad850b16768964e430939968288412",
+      "artifactId": 13724215954,
+      "upstreamZipDigestNotLocallyRecomputed": "sha256:84084134bb09ded198711564f86547e26d390d1f7e05c0509d68242d257c08cf"
+    },
+    {
+      "path": "raw/memory-stop-windows-latest.json.gz",
+      "kind": "stop",
+      "runner": "windows",
+      "matchedSourceCommit": "daafda2cf7790580467dae8ce006ceaa1285d3b4",
+      "rawSha256": "dddb2a86bcabdf2ed4c16ca07a6e1245ae22263a5abfc061d991e641d90a7eb8",
+      "archiveSha256": "b2de6315d4c234a53107845f326fc07f968690f348ae67836628c08d76c80b5b",
+      "artifactId": 13722881901,
+      "upstreamZipDigestNotLocallyRecomputed": "sha256:310c1b511b4868ff2fb00dad325b53df2c34b1e5ece67cadba382b754e0c2ede"
+    },
+    {
+      "path": "raw/local-stop-100-failed.json.gz",
+      "kind": "stop",
+      "runner": "local-windows",
+      "matchedSourceCommit": "6338e6a1b1310af6a6164d799ab544ed0bc15668",
+      "executionBaseCommit": "ed53ce6527f3bbca5f5e6148a3f0ffc389e7f3fd",
+      "executionWorkingTree": "benchmark and regression overlays identical to main 6338e6a1b1",
+      "rawSha256": "abc4823b2f4553daa04de36fb4aaa2f2ed367be487a478e12e17b3efdaa310d3",
+      "archiveSha256": "474e11ed7680da16ce986aa9e02d9fb616456d9c2643c9a12c5c826c3ab6d98e",
+      "exitCode": 1
+    }
+  ],
+  "full100SampleMatrixRunId": 42850534026,
+  "full100SampleMatrixSource": "6338e6a1b1310af6a6164d799ab544ed0bc15668",
+  "full100SampleMatrixStateAtArchive": "queued",
+  "full100SampleMatrixAccepted": false,
+  "paidReady": false,
+  "fullDependencyClosureVerified": false,
+  "metadata": [
+    {
+      "path": "artifacts.json",
+      "sha256": "be5de2b6e99bc70bfb9dc2b1d12fa815b817fea254c533d2e4b66083a48dccbc"
+    },
+    {
+      "path": "jobs.json",
+      "sha256": "2c6781cf465fcb8574d5a6e8d65d3eabd2795bb97a1efb4958bb7a67dda1028e"
+    }
+  ]
+}
