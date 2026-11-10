@@ -4,11 +4,11 @@ ChainlessChain agent workspace for VS Code-compatible editors with streaming cha
 
 ## Next release candidate
 
-Source candidate **0.37.185** recommends public CLI **`0.166.146`** and pairs with JetBrains **0.4.199**. The extension candidate is not published; the earlier **0.37.184** tag and its failed infrastructure attempts remain unchanged. Agent Protocol **0.1.13**, Agent SDK **0.2.18**, Context/Memory Kernel **0.1.12** and CLI **0.166.146** completed [Actions OIDC publication and public registry verification](https://github.com/chainlesschain/chainlesschain/actions/runs/42758119265). Session Core remains **0.3.27**.
+Source candidate **0.37.185** recommends CLI **`0.166.146`** and pairs with JetBrains **0.4.199**. The extension has not been published; the earlier **0.37.184** tag and its failed infrastructure attempts remain unchanged. Agent Protocol **0.1.13**, Agent SDK **0.2.18**, Context/Memory Kernel **0.1.12** and CLI **0.166.146** completed [Actions OIDC publication and public registry verification](https://github.com/chainlesschain/chainlesschain/actions/runs/42758119265). Session Core remains **0.3.27**.
 
 This candidate hardens the Remote-SSH container bootstrap with finite official-source APT acquisition timeouts and retries, strict failure handling and separate phase diagnostics within the original ten-minute deadline. Extension behavior is unchanged. Exact-source VS Code host, Remote-SSH and browser evidence gates and public artifact readback remain required. Native client publication and business acceptance remain separate release stages.
 
-## Previous verified IDE pairing
+## Current release
 
 <!-- release181-status -->
 
@@ -20,7 +20,7 @@ Open VSX version **0.37.181** pairs with public CLI `0.166.145`.
 | Recommended CLI           | **`chainlesschain@0.166.145`**; verified public npm package    |
 | Base bridge compatibility | `cc >= 0.162.190`; individual features can require a newer CLI |
 
-These older verified IDEs recommend CLI `0.166.145`; using `@0.166.145` selects that historical pairing. CLI `0.166.146` is now public for the new candidate pairing above.
+These verified IDEs recommend CLI `0.166.145`. Using `@0.166.145` selects this IDE pairing. CLI `0.166.146` is now public for the new candidate pairing above.
 Install `npm i -g chainlesschain@0.166.145 --registry https://registry.npmjs.org`, restart the host, then run `cc --version` and `cc doctor`.
 The immutable extension tag is `ide-vscode-v0.37.181`.
 Download [chainlesschain-ide-0.37.181.vsix](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.181/file/chainlesschain.chainlesschain-ide-0.37.181.vsix).
