@@ -176,6 +176,12 @@ export async function collectHistoryPages(
       attempt.response = structuredClone(result);
       stage = "response";
       assert.ok(Array.isArray(result?.data), "history page must contain data");
+      if (Number.isInteger(requestParams.limit) && requestParams.limit > 0) {
+        assert.ok(
+          result.data.length <= requestParams.limit,
+          "history page exceeds requested limit",
+        );
+      }
       assert.ok(
         result.nextCursor === null ||
           (typeof result.nextCursor === "string" &&
