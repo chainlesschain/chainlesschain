@@ -20,7 +20,7 @@ Open VSX version **0.37.181** pairs with public CLI `0.166.145`.
 | Recommended CLI           | **`chainlesschain@0.166.145`**; verified public npm package    |
 | Base bridge compatibility | `cc >= 0.162.190`; individual features can require a newer CLI |
 
-These verified IDEs recommend CLI `0.166.145`. Using `@0.166.145` selects this IDE pairing. CLI `0.166.146` is now public for the new candidate pairing above.
+These verified IDEs recommend CLI `0.166.145`. Using `@0.166.145` selects this verified pairing. CLI `0.166.146` is now public for the new candidate pairing above.
 Install `npm i -g chainlesschain@0.166.145 --registry https://registry.npmjs.org`, restart the host, then run `cc --version` and `cc doctor`.
 The immutable extension tag is `ide-vscode-v0.37.181`.
 Download [chainlesschain-ide-0.37.181.vsix](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.181/file/chainlesschain.chainlesschain-ide-0.37.181.vsix).
