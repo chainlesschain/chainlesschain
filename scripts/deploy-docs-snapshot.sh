@@ -168,7 +168,7 @@ curl --resolve docs.chainlesschain.com:443:127.0.0.1 -fsSL --max-time 30 https:/
 curl --resolve design.chainlesschain.com:443:127.0.0.1 -fsSL --max-time 30 https://design.chainlesschain.com/release-runtime-update-2026-11-10.html -o "$prefix-origin-design.html"
 curl --resolve www.chainlesschain.com:443:127.0.0.1 -fsSL --max-time 30 https://www.chainlesschain.com/ -o "$prefix-origin-www.html"
 for site in docs design www; do
-  for version in 0.166.145 0.37.181 0.4.198; do
+  for version in 0.166.146 0.37.185 0.4.199; do
     grep -Fq "$version" "$prefix-origin-$site.html"
   done
   grep -Fq 'NOT_PAID_READY' "$prefix-origin-$site.html"
