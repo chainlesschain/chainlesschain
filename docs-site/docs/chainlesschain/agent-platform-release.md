@@ -1,8 +1,14 @@
 # Agent Platform 发布与升级指南
 
-待发布候选为 CLI **0.166.146**、VS Code/Open VSX **0.37.184**、JetBrains **0.4.199** 和 PC/mobile **v5.0.3.146**。计划先发布并公开核验 Protocol **0.1.13**、Agent SDK **0.2.18**、Memory Kernel **0.1.12** 等子包、CLI 和 VS Code，再进入 PC/mobile .146 阶段。用户已允许在 JetBrains .199 官方发布上传成功、仍待市场审核时进入客户端阶段；待审状态不得记为公开可用。每个阶段须通过准确提交的对应门禁；客户端还须完成五平台构建及公开资产核验。所有新版本仍为候选，以下已核验公开组合继续作为安装推荐。
+## 2026-11-10 CLI .146 已公开，IDE 与客户端待核验
 
-## 2026-11-09 当前发行与主线核对
+CLI **0.166.146**、Protocol **0.1.13**、Agent SDK **0.2.18** 和 Memory Kernel **0.1.12** 已通过 [GitHub Actions OIDC 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/42758119265)，公开 npm 版本已核验。发行源码为 `daafda2cf7790580467dae8ce006ceaa1285d3b4`；官方工作流已完成准确源码门禁、公开字节与来源验证、仅 registry 的子包依赖安装。Session Core 保持 **0.3.27**。
+
+配套 VS Code/Open VSX **0.37.184**、JetBrains **0.4.199** 的标签发布仍在运行，尚未确认公开；已核验公开 IDE 仍为 **0.37.181 / 0.4.198**，它们的推荐标记仍为 CLI .145。PC/mobile **v5.0.3.146** 仍为候选，公开客户端保持 **v5.0.3.145**。须在 CLI 与 VS Code 公开核验及 JetBrains .199 官方上传成功后进入客户端阶段；用户允许 JetBrains 审核中继续，但待审不等于公开。客户端还须完成五平台构建和公开资产核验。
+
+安装公开 CLI：`npm i -g chainlesschain@0.166.146 --registry https://registry.npmjs.org`，重启 CLI / IDE 宿主后运行 `cc --version`、`cc doctor`。本次发行不扩大多语质量、完整生命周期或付费准入结论；**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。
+
+## 历史公开组合与主线核对（2026-11-09）
 
 公开组合 **CLI 0.166.145 / Session Core 0.3.27 / Open VSX 0.37.181 / JetBrains 0.4.198**，两款 IDE 推荐 CLI .145。Open VSX 下载突破 **7 万+**（项目方确认）。PC/mobile 仍为 **v5.0.3.145**；源码产品 .146 与 VS Code .182 不作为已发布下载推荐。
 
