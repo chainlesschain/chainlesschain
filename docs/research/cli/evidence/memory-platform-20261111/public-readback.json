@@ -1,0 +1,122 @@
+{
+  "cli": {
+    "name": "chainlesschain",
+    "version": "0.166.146",
+    "bytes": 9626722,
+    "integrity": "sha512-cnINOOTUIlmHETsBtDHsz7s2EaE1NPeGn1CsSLjzVtwYyQ01A77CF00bLhBiZZXSRKqGqF3YeF0MLkyjIo1MSQ=="
+  },
+  "children": [
+    {
+      "name": "@chainlesschain/agent-protocol",
+      "version": "0.1.13",
+      "bytes": 43793,
+      "integrity": "sha512-22QMsbr4ZUw9s1Ll98jUP7P/FCExYjDSnvJZkUtkBHq24bC5xOdtq6eON4X8/Y7iVNUhZ++rzjxnMLE/KzgvqQ=="
+    },
+    {
+      "name": "@chainlesschain/agent-sdk",
+      "version": "0.2.18",
+      "bytes": 90570,
+      "integrity": "sha512-VqTqzKFtHLLVPaGzyrJ8E5253HHOBc98aSJs7oXmxHbCkgvsmLGfZcVOd5xaQgRyfs4MJVf6/I/p2BguE6T4yw=="
+    },
+    {
+      "name": "@chainlesschain/context-memory-kernel",
+      "version": "0.1.12",
+      "bytes": 52880,
+      "integrity": "sha512-Q0OCkJwJYgPxmUqpBTU3OdVpqlSoXtep8Q9b2dngYXRMSrBbxCqqafCZqi8/9PdEsRWnelwRAJjlF5rhiAHDKg=="
+    },
+    {
+      "name": "@chainlesschain/core-config",
+      "version": "0.1.2",
+      "bytes": 3991,
+      "integrity": "sha512-6Qc4oxojh4G5OindihhupQDlEvHij9kOEkxLoqZEt/V4HTCOpaDFJUkIq1zzTrgm/qdEBpgq1L4Jlwm6s74Hpg=="
+    },
+    {
+      "name": "@chainlesschain/core-db",
+      "version": "0.1.5",
+      "bytes": 10302,
+      "integrity": "sha512-3vjD+llIhaNAe4ePYP+fySOPCgHBwJzMIo5tdVkJ7uI2ngTrK2VkODvvPXVskjUN5+2uTQH/RMWGre+OaNquiA=="
+    },
+    {
+      "name": "@chainlesschain/core-env",
+      "version": "0.1.2",
+      "bytes": 2600,
+      "integrity": "sha512-H5BwptqoaVqAnlGKubyYMHc5WNlSrctZag/0VU30FwHpkeNqS43CTr9tsOCSO8+KCdWe2eko1Zr8BFeF2svj0Q=="
+    },
+    {
+      "name": "@chainlesschain/core-infra",
+      "version": "0.1.1",
+      "bytes": 3482,
+      "integrity": "sha512-DwhqG9zLbPPcKVo68QBEVLboRjXUA71u+rX86MHIBMmOr/8NabrisEsnr3AJ61FkFjdVDSVUxEk6XDoAwOMLpA=="
+    },
+    {
+      "name": "@chainlesschain/core-mtc",
+      "version": "0.2.3",
+      "bytes": 38297,
+      "integrity": "sha512-xm6gZoJ8HqOFih1b5RlNPyQWNGRxokWq/hsV1oVTuCnNsxRmihTrxx40h10APiOKtKYPAEFDvMHcBfTEsB5tlA=="
+    },
+    {
+      "name": "@chainlesschain/core-multisig",
+      "version": "0.1.4",
+      "bytes": 13952,
+      "integrity": "sha512-5YSmIQa1DRZYnCOeByb0Z8+vcrL8Qg62AMciK6YJQYwrjEiFwtdjhQ3GbQCcpepW1CvtGDiwrdyG5ufBYDwLxg=="
+    },
+    {
+      "name": "@chainlesschain/personal-data-hub",
+      "version": "0.4.66",
+      "bytes": 891631,
+      "integrity": "sha512-RPcCHVIWcy0ytI+XtbrIxFVCJ8IJCvfKoF0ukI27iTypLv3kcGUX7PuVGH1KAg+F1C9rbRHozzGGPIw+FEt13Q=="
+    },
+    {
+      "name": "@chainlesschain/session-core",
+      "version": "0.3.27",
+      "bytes": 332929,
+      "integrity": "sha512-FHg7tjqsRtwdUMaZ+Grd5peFzaXmCzbZMioTfn/Xhy3OOfoFEVl2rybTdYXSYH6yUsWPp8acsubeQejcE2pdSg=="
+    },
+    {
+      "name": "@chainlesschain/shared-logger",
+      "version": "0.1.1",
+      "bytes": 4058,
+      "integrity": "sha512-owHSbZT79tYkkZEgaMoP5iuS6iuNqzmyya/TIp6ChFlQ7Ws87oBN0xlBlV1mo6cxpge/5jDMDLgH1TCzy0ZhHg=="
+    }
+  ],
+  "openVsx": {
+    "version": "0.37.185",
+    "recommendedCli": "0.166.146",
+    "bytes": 771186,
+    "sha256": "e97debe56b01e62291d9d48f56029e2ab1e31ba90a0cac6e1dbfafeadb7543b2"
+  },
+  "jetbrains": {
+    "version": "0.4.199",
+    "approved": true,
+    "listed": true,
+    "bytes": 1611574,
+    "sha256": "d81bdcfa72127a3a62dbdaceda0586fdd68b9bca87164eb91fa8cda4d0dcdd91"
+  },
+  "schema": "chainlesschain.cli-ide-public-readback/v1",
+  "observedAt": "2026-11-10T23:03:44.684717+00:00",
+  "releasedByThisBatch": false,
+  "releaseWorkflows": {
+    "npm": {
+      "runId": 42758119265,
+      "source": "daafda2cf7790580467dae8ce006ceaa1285d3b4",
+      "tag": "v-npm-0-166-146",
+      "exactSourceGate": "success",
+      "publish": "success",
+      "authentication": "OIDC Trusted Publishing"
+    },
+    "openVsx": {
+      "runId": 42819326161,
+      "source": "2ae832f9054ac834b06d00a38ce1a95038ff43bb",
+      "tag": "ide-vscode-v0.37.185",
+      "publish": "success"
+    },
+    "jetbrains": {
+      "runId": 42761723143,
+      "source": "daafda2cf7790580467dae8ce006ceaa1285d3b4",
+      "tag": "ide-jetbrains-v0.4.199",
+      "publish": "success",
+      "postPublishVerification": "success"
+    }
+  },
+  "paidReady": false
+}

@@ -160,19 +160,21 @@ def audit_report(report, kind, commit):
     return {"samplesPerCase": samples, "observations": total, "complete": True}
 
 
-def main():
-    manifest = read_json(HERE / "manifest.json")
-    require(len(manifest["records"]) == 14, "missing original reports")
+def audit_archive(directory, expected_samples, include_local, bindings):
+    manifest = read_json(directory / "manifest.json")
+    require(manifest["hostedSamplesPerCase"] == expected_samples, "archive sample scale")
+    require(len(manifest["records"]) == 13 + int(include_local), "missing original reports")
     for entry in manifest["metadata"]:
-        require(sha((HERE / entry["path"]).read_bytes()) == entry["sha256"], "metadata bytes")
-    jobs = read_json(HERE / "jobs.json")["jobs"]
-    require(len(jobs) == 12 and all(j["conclusion"] == "success" for j in jobs), "hosted job verdicts")
-    artifacts = {a["id"]: a for a in read_json(HERE / "artifacts.json")["artifacts"]}
+        require(sha((directory / entry["path"]).read_bytes()) == entry["sha256"], "metadata bytes")
+    jobs = read_json(directory / "jobs.json")["jobs"]
+    require(len(jobs) == 12 and all(j["conclusion"] == "success" and j["run_id"] == manifest["hostedRunId"] for j in jobs), "hosted job verdicts")
+    artifacts = {a["id"]: a for a in read_json(directory / "artifacts.json")["artifacts"]}
     require(len(artifacts) == 13, "missing hosted artifacts")
-    bindings, summaries = {}, []
+    require(set(artifacts) == {r["artifactId"] for r in manifest["records"] if "artifactId" in r}, "artifact coverage")
+    summaries = []
     for entry in manifest["records"]:
-        path = (HERE / entry["path"]).resolve()
-        require(path.is_relative_to(HERE), "unsafe archive path")
+        path = (directory / entry["path"]).resolve()
+        require(path.is_relative_to(directory), "unsafe archive path")
         compressed = path.read_bytes()
         require(sha(compressed) == entry["archiveSha256"], "archive bytes: " + entry["path"])
         raw = gzip.decompress(compressed)
@@ -180,18 +182,27 @@ def main():
         report = json.loads(raw)
         if "artifactId" in entry:
             artifact = artifacts[entry["artifactId"]]
-            require(artifact["workflow_run"]["head_sha"] == entry["matchedSourceCommit"], "artifact source")
+            require(artifact["workflow_run"]["head_sha"] == entry["matchedSourceCommit"] == manifest["hostedSourceCommit"], "artifact source")
             require(artifact["workflow_run"]["id"] == manifest["hostedRunId"], "artifact run")
             require(artifact["digest"] == entry["upstreamZipDigestNotLocallyRecomputed"], "upstream digest metadata")
             if entry["kind"] != "file-identity":
-                require(report.get("samplesPerCase", report.get("samples", report.get("roundsPerTier"))) == 11, "hosted sample scale")
+                require(report.get("samplesPerCase", report.get("samples", report.get("roundsPerTier"))) == expected_samples, "hosted sample scale")
         result = audit_report(report, entry["kind"], entry["matchedSourceCommit"])
+        if entry["kind"] == "stop":
+            require(result["targetMet"] == ("artifactId" in entry), "Stop verdict differs from recorded outcome")
         for name, digest in source_bindings(report, entry["kind"]).items():
             digest = digest.removeprefix("sha256:")
             key = (entry["matchedSourceCommit"], name)
             require(key not in bindings or bindings[key] == digest, f"conflicting source bytes: {key}")
             bindings[key] = digest
-        summaries.append({"record": entry["path"], **result})
+        summaries.append({"record": path.relative_to(HERE).as_posix(), **result})
+    return summaries
+
+
+def main():
+    bindings = {}
+    summaries = audit_archive(HERE, 11, True, bindings)
+    summaries += audit_archive(HERE / "full-100", 100, False, bindings)
     count = verify_git_bindings(bindings)
     print(json.dumps({"recordsVerified": len(summaries), "sourceByteBindingsVerified": count,
                       "summaries": summaries, "fullDependencyClosureVerified": False,
