@@ -5,6 +5,7 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 const { test } = require("node:test");
+const { spawnSync } = require("node:child_process");
 
 const repositoryRoot = path.resolve(__dirname, "../../..");
 const runner = require("./remote-ssh-container/run.cjs");
@@ -12,6 +13,133 @@ const runner = require("./remote-ssh-container/run.cjs");
 function read(relativePath) {
   return fs.readFileSync(path.join(repositoryRoot, relativePath), "utf8");
 }
+
+function runBootstrapShell(t, failStage = "", exitCode = 100) {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-ssh-bootstrap-"));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const trace = path.join(root, "commands.txt");
+  const bash =
+    process.platform === "win32" ? "C:/Program Files/Git/bin/bash.exe" : "bash";
+  const fixture = `
+apt-get() {
+  printf '%s\\n' "apt-get $*" >> "$BOOTSTRAP_TRACE"
+  case "$*" in *' update') stage=apt-update ;; *) stage=apt-install ;; esac
+  if [[ "$BOOTSTRAP_FAIL" = "$stage" ]]; then return "$BOOTSTRAP_EXIT"; fi
+}
+useradd() {
+  printf '%s\\n' useradd >> "$BOOTSTRAP_TRACE"
+  if [[ "$BOOTSTRAP_FAIL" = remote-user ]]; then return "$BOOTSTRAP_EXIT"; fi
+}
+mkdir() { printf '%s\\n' mkdir >> "$BOOTSTRAP_TRACE"; }
+`;
+  const calls = [];
+  const output = [];
+  let error;
+  try {
+    runner.bootstrapRemoteContainer("isolated-fixture", [], {
+      command(binary, args, options) {
+        assert.equal(binary, "docker");
+        assert.deepEqual(args.slice(0, 4), [
+          "exec",
+          "isolated-fixture",
+          "bash",
+          "-lc",
+        ]);
+        calls.push({ script: args[4], timeoutMs: options.timeoutMs });
+        const result = spawnSync(bash, ["-c", fixture + args[4]], {
+          env: {
+            ...process.env,
+            BOOTSTRAP_TRACE: trace.replaceAll("\\", "/"),
+            BOOTSTRAP_FAIL: failStage,
+            BOOTSTRAP_EXIT: String(exitCode),
+          },
+          encoding: "utf8",
+          windowsHide: true,
+          timeout: 5000,
+        });
+        assert.ifError(result.error);
+        output.push(result.stdout);
+        if (result.status !== 0)
+          throw new Error(
+            `bootstrap shell exited ${result.status}: ${result.stderr}`,
+          );
+        return result;
+      },
+    });
+  } catch (caught) {
+    error = caught;
+  }
+  return {
+    error,
+    calls,
+    stdout: output.join(""),
+    trace: fs.existsSync(trace) ? fs.readFileSync(trace, "utf8") : "",
+  };
+}
+
+test("real bootstrap shell keeps bounded official APT acquisition and completes initialization", (t) => {
+  const result = runBootstrapShell(t);
+  assert.ifError(result.error);
+  assert.equal(result.calls.length, 3);
+  assert.equal(
+    result.stdout,
+    "[remote-ssh-bootstrap] apt-update\n[remote-ssh-bootstrap] apt-install\n[remote-ssh-bootstrap] remote-user\n",
+  );
+  assert.match(result.trace, /APT::Update::Error-Mode=any update/u);
+  assert.match(
+    result.trace,
+    /install -y --no-install-recommends ca-certificates openssh-server unzip nodejs/u,
+  );
+  for (const line of result.trace
+    .split("\n")
+    .filter((line) => line.startsWith("apt-get"))) {
+    assert.match(line, /Acquire::http::Timeout=20/u);
+    assert.match(line, /Acquire::https::Timeout=20/u);
+    assert.match(line, /Acquire::Retries=2/u);
+    assert.match(line, /Acquire::ForceIPv4=true/u);
+  }
+  assert.match(result.trace, /useradd\nmkdir\n$/u);
+  assert.deepEqual(
+    result.calls.map((call) => call.timeoutMs),
+    [180000, 360000, 30000],
+  );
+});
+
+for (const [stage, code, completed] of [
+  ["apt-update", 100, 1],
+  ["apt-install", 100, 2],
+  ["remote-user", 9, 3],
+])
+  test(`real bootstrap shell stops after ${stage} failure`, (t) => {
+    const result = runBootstrapShell(t, stage, code);
+    assert.match(
+      result.error?.message || "",
+      new RegExp(`bootstrap shell exited ${code}:`, "u"),
+    );
+    assert.equal(result.calls.length, completed);
+    assert.doesNotMatch(result.trace, /mkdir/u);
+    if (stage === "apt-update")
+      assert.doesNotMatch(result.trace, /install -y|useradd/u);
+    if (stage === "apt-install") assert.doesNotMatch(result.trace, /useradd/u);
+  });
+
+test("bootstrap phases share the original deadline and cannot start work after exhaustion", () => {
+  let clock = 0;
+  const timeouts = [];
+  assert.throws(
+    () =>
+      runner.bootstrapRemoteContainer("fixture", [], {
+        now: () => clock,
+        command(_binary, _args, options) {
+          timeouts.push(options.timeoutMs);
+          clock = timeouts.length === 1 ? 250000 : 600000;
+        },
+      }),
+    /bootstrap deadline exhausted/u,
+  );
+  assert.equal(runner.CONTAINER_BOOTSTRAP_TIMEOUT_MS, 600000);
+  assert.deepEqual(timeouts, [180000, 350000]);
+});
 
 const quotaMessage =
   "Error response from daemon: toomanyrequests: You have reached your unauthenticated pull rate limit. https://www.docker.com/increase-rate-limit\n";

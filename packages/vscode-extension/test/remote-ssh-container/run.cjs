@@ -25,6 +25,7 @@ const PINNED_VSCODE_VERSION = "1.96.4";
 const PINNED_CONTAINER_IMAGE =
   "ubuntu@sha256:019e8eb29a85e74d64925745884f2ec79aa27e3feab36353d24656f4d6b89467";
 const PINNED_CONTAINER_MIRROR = `mirror.gcr.io/library/${PINNED_CONTAINER_IMAGE}`;
+const CONTAINER_BOOTSTRAP_TIMEOUT_MS = 10 * 60_000;
 const PINNED_REMOTE_SSH = Object.freeze({
   id: "ms-vscode-remote.remote-ssh",
   version: "0.120.0",
@@ -123,13 +124,24 @@ function parseArgs(argv) {
 function runCommand(
   command,
   args,
-  { cwd, diagnostics, allowFailure = false, onResult } = {},
+  {
+    cwd,
+    diagnostics,
+    allowFailure = false,
+    onResult,
+    timeoutMs = 10 * 60_000,
+  } = {},
 ) {
+  assert.ok(
+    Number.isSafeInteger(timeoutMs) &&
+      timeoutMs > 0 &&
+      timeoutMs <= 10 * 60_000,
+  );
   const result = spawnSync(command, args, {
     cwd,
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
-    timeout: 10 * 60_000,
+    timeout: timeoutMs,
     maxBuffer: 16 * 1024 * 1024,
     windowsHide: true,
   });
@@ -142,6 +154,7 @@ function runCommand(
     ),
     status: result.status,
     signal: result.signal,
+    timeoutMs,
     stdout: redact(result.stdout || "").slice(-16_384),
     stderr: redact(result.stderr || "").slice(-16_384),
   });
@@ -424,6 +437,57 @@ function dockerExec(container, script, diagnostics, options = []) {
     ["exec", ...options, container, "bash", "-lc", script],
     { diagnostics },
   );
+}
+
+function bootstrapRemoteContainer(
+  container,
+  diagnostics,
+  { command = runCommand, now = Date.now } = {},
+) {
+  const deadline = now() + CONTAINER_BOOTSTRAP_TIMEOUT_MS;
+  // Keep the pinned image's official Ubuntu sources and signature checks.
+  // HTTPS cannot be required before this bootstrap installs its CA bundle.
+  const apt =
+    "apt-get -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 -o Acquire::Retries=2 -o Acquire::ForceIPv4=true";
+  const phases = [
+    {
+      name: "apt-update",
+      timeoutMs: 180_000,
+      script: `${apt} -o APT::Update::Error-Mode=any update`,
+    },
+    {
+      name: "apt-install",
+      timeoutMs: 360_000,
+      script: `${apt} install -y --no-install-recommends ca-certificates openssh-server unzip nodejs`,
+    },
+    {
+      name: "remote-user",
+      timeoutMs: 30_000,
+      script:
+        "useradd --create-home --shell /bin/bash cc-roadmap; mkdir -p /run/sshd",
+    },
+  ];
+  for (const phase of phases) {
+    const remaining = deadline - now();
+    assert.ok(
+      remaining > 0,
+      "Remote-SSH container bootstrap deadline exhausted",
+    );
+    command(
+      "docker",
+      [
+        "exec",
+        container,
+        "bash",
+        "-lc",
+        `set -euo pipefail; export DEBIAN_FRONTEND=noninteractive; printf '%s\\n' '[remote-ssh-bootstrap] ${phase.name}'; ${phase.script}`,
+      ],
+      {
+        diagnostics,
+        timeoutMs: Math.min(phase.timeoutMs, remaining),
+      },
+    );
+  }
 }
 
 function createKnownHostsEntry(host, port, publicKeyLine) {
@@ -736,11 +800,7 @@ async function main() {
       observation: containerImagePull,
     });
     containerStarted = true;
-    dockerExec(
-      container,
-      "export DEBIAN_FRONTEND=noninteractive; apt-get update; apt-get install -y --no-install-recommends ca-certificates openssh-server unzip nodejs; useradd --create-home --shell /bin/bash cc-roadmap; mkdir -p /run/sshd",
-      diagnostics,
-    );
+    bootstrapRemoteContainer(container, diagnostics);
     runCommand(
       "ssh-keygen",
       ["-q", "-t", "ed25519", "-N", "", "-f", path.join(runRoot, "id_ed25519")],
@@ -1222,6 +1282,7 @@ module.exports = {
   PINNED_REMOTE_SSH,
   PINNED_CONTAINER_IMAGE,
   PINNED_CONTAINER_MIRROR,
+  CONTAINER_BOOTSTRAP_TIMEOUT_MS,
   PINNED_VSCODE_VERSION,
   assertPinnedRemoteSshVsix,
   assertPinnedRemoteSshPayload,
@@ -1234,6 +1295,7 @@ module.exports = {
   pullPinnedContainerImage,
   inspectPinnedContainerImage,
   startPinnedContainer,
+  bootstrapRemoteContainer,
   containerImageSource,
   requiredArtifactNegativeControl,
   verifyCandidateReleaseBinding,
