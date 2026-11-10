@@ -76,7 +76,7 @@ Kernel 保持无文件 IO；shadow 模式不写检查点，插件默认 canonica
 - 运行记录没有单独的模型总结调用，但读取摘要仍占用上下文；尚未量化 token 节省比例，也未完成超长会话的持久化 IO 基准测试。
 - 发布提交的三平台 CLI CI、Strict Sandbox、npm OIDC 发布、Context Memory Kernel CI 与 IDE 标签工作流均已通过；公开 npm、Open VSX、JetBrains Marketplace 和 PyPI 回读成功。Desktop 原生安装包仍是独立制品，不继承这些发布证据。
 
-用户指南：[IDE 任务记录与新会话接力](../features/ide-task-worklog-user-guide.md)。
+用户指南：[IDE 任务记录与新会话接力](https://docs.chainlesschain.com/chainlesschain/ide-task-worklog.html)。
 
 ## 验收
 

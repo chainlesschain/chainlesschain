@@ -584,7 +584,7 @@ Android `core-p2p/.../SyncManager.kt::ResourceType` 含 `KNOWLEDGE_ITEM / CONVER
 
 - Android Auto 入口（车载 Voice Mode + 推送，driving safety 合规：语音 confirm/deny ApprovalUI、不依赖触摸）
 - Wear OS 入口（独立 wear/ Gradle module + tile + 简化 ApprovalDialog with vibration + Wear OS 4 BiometricPrompt 本地）
-- m-of-n 多签（手机 + 桌面 U-Key 联签，复用 [`@chainlesschain/core-mtc/publisher-signing`](../../packages/core-mtc/src/publisher-signing.js) 的 strip-all-sigs JCS 机制；marketplace.purchase $1000+ 强 2-of-2）
+- m-of-n 多签（手机 + 桌面 U-Key 联签，复用 [`@chainlesschain/core-mtc/publisher-signing`](https://github.com/chainlesschain/chainlesschain/blob/main/packages/core-mtc/lib/publisher-signing.js) 的 strip-all-sigs JCS 机制；marketplace.purchase $1000+ 强 2-of-2）
 
 **前置依赖**：v1.2 必须等 v1.1（[#19](https://github.com/chainlesschain/chainlesschain/issues/19)）close — OfflineQueue / N-peer / Whisper 是 v1.2 (Auto + Wear) 的基础设施。
 

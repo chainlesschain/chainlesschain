@@ -4,7 +4,7 @@
 >
 > **关联文档**：[`Personal_Data_Hub_Architecture.md`](./Personal_Data_Hub_Architecture.md) §4.2 (Hub core tables) + §11.1 (data lineage UX)。
 >
-> **关联 trap memo**（改前必看）：[`pdh_llm_routing_split_trap.md`](../../内存/) (category vs subtype) / [`compose_lazycolumn_key_burst_collision.md`](../../内存/) (LazyColumn burst keys) / [`android_mockk_viewmodel_androidtest_initializer_trap.md`](../../内存/) (stateful wrapper + stateless content)。
+> **关联 trap memo**（改前必看）：`pdh_llm_routing_split_trap.md`（仅本地备忘，仓库未收录） (category vs subtype) / `compose_lazycolumn_key_burst_collision.md`（仅本地备忘，仓库未收录） (LazyColumn burst keys) / `android_mockk_viewmodel_androidtest_initializer_trap.md`（仅本地备忘，仓库未收录） (stateful wrapper + stateless content)。
 
 ---
 

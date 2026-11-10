@@ -4,9 +4,9 @@
 >
 > 关联设计：[78. CLI Agent Runtime 重构实施计划](./78_CLI_Agent_Runtime重构实施计划.md) · [79. Coding Agent 系统](./79_Coding_Agent系统.md) · [83. Tool Descriptor 统一](./83_工具描述规范统一.md)
 >
-> 用户文档：[CLI Runtime 收口路线图](../../chainlesschain/cli-runtime-convergence-roadmap)
+> 用户文档：[CLI Runtime 收口路线图](https://docs.chainlesschain.com/chainlesschain/cli-runtime-convergence-roadmap.html)
 >
-> ADR：[CLI_RUNTIME_CONVERGENCE_ADR](../../../../docs/implementation-plans/CLI_RUNTIME_CONVERGENCE_ADR)
+> ADR：[CLI_RUNTIME_CONVERGENCE_ADR](https://github.com/chainlesschain/chainlesschain/blob/main/docs/implementation-plans/CLI_RUNTIME_CONVERGENCE_ADR.md)
 
 ## 0. 基线审计 (2026-04-09)
 

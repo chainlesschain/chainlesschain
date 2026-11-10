@@ -6467,7 +6467,7 @@ interface GitAPI {
 **开发中模块**: P2P社交, 交易系统, 插件系统, 浏览器扩展, 区块链集成
 
 **兼容维护模块**: Web Preview 原语（旧 WebIDE 固定三文件 playground；不再按独立浏览器 IDE 扩展，
-定位见 [`WEBIDE_PREVIEW_ARTIFACT_POSITIONING_ADR.md`](../implementation-plans/WEBIDE_PREVIEW_ARTIFACT_POSITIONING_ADR.md)）
+定位见 [`WEBIDE_PREVIEW_ARTIFACT_POSITIONING_ADR.md`](https://github.com/chainlesschain/chainlesschain/blob/main/docs/implementation-plans/WEBIDE_PREVIEW_ARTIFACT_POSITIONING_ADR.md)）
 
 ### Phase 1-3 实施完成情况
 

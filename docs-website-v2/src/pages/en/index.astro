@@ -7,7 +7,8 @@ import pdhCatalog from '../../../../docs/internal/pdh-app-data-catalog.json';
 import releaseSizes from '../../data/release-sizes.json';
 import releaseStatus from '../../data/release-status.json';
 
-const PRODUCT_VERSION = rootPkg.productVersion;
+const PRODUCT_VERSION = releaseStatus.productVersion;
+const SOURCE_PRODUCT_VERSION = rootPkg.productVersion;
 const PDH_VERSION = releaseStatus.personalDataHubVersion;
 const PDH_ADAPTER_COUNT = pdhCatalog.count;
 // Use the verified release-status snapshot for visible CLI versions. The
@@ -153,7 +154,7 @@ const badges = [
           <span class="block mt-1">Cumulative across versions, including retests on repaired sources; the original frozen-project 41/45 remains separate.</span>
         </p>
         <p class="animate-fade-in-delay-3 mt-5 text-sm text-muted max-w-3xl">
-          CLI {CLI_VERSION} includes local compute configuration, explicit goal transfer and Memory authority repairs. Native creation/model drafts require matching newer desktop builds. This documentation update adds no model-task acceptance. Kernel 0.1.11 / current public client {releaseStatus.productVersion}. <a class="text-ember hover:underline" href={releaseStatus.upgradeGuide}>Upgrade guide →</a>
+          CLI {CLI_VERSION} includes local compute configuration, explicit goal transfer and Memory authority repairs. Native creation/model drafts require matching newer desktop builds. This documentation update adds no model-task acceptance. Kernel {releaseStatus.contextMemoryKernelVersion} / current public client {releaseStatus.productVersion}. <a class="text-ember hover:underline" href={releaseStatus.upgradeGuide}>Upgrade guide →</a>
         </p>
         <p class="mt-3 text-xs text-muted leading-relaxed max-w-3xl">
           Verified public Open VSX {VSCODE_VERSION} recommends CLI {releaseStatus.openVsxRecommendedCliVersion}. Marketplace lists approved JetBrains {JETBRAINS_VERSION}, recommending CLI {releaseStatus.jetBrainsRecommendedCliVersion}; its public archive is downloadable. Public CLI archive integrity and exact-source CLI CI / Strict Sandbox were checked; official IDE artifact parity was not rerun in this review. The separate <a class="text-ember hover:underline" href={`https://github.com/chainlesschain/chainlesschain/releases/tag/${releaseStatus.productVersion}`}>{releaseStatus.productVersion} product release</a> provides desktop installers, Android APK/AAB and a signed iOS ad-hoc IPA. Documentation was reviewed at {SOURCE_HEAD_COMMIT}; Microsoft Marketplace remains unpublished.
@@ -722,7 +723,7 @@ const badges = [
     <div class="container-wide">
       <div class="max-w-3xl mb-14">
         <div class="chip mb-6">Downloads</div>
-        <h2 class="text-display-md md:text-5xl leading-tight">Same source, every target · mainline {PRODUCT_VERSION}</h2>
+        <h2 class="text-display-md md:text-5xl leading-tight">Same source, every target · mainline {SOURCE_PRODUCT_VERSION}</h2>
         <p class="mt-4 text-muted">Current downloadable Desktop and Android build: {DOWNLOAD_VERSION}</p>
       </div>
       <div class="grid md:grid-cols-3 gap-6">

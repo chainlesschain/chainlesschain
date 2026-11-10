@@ -1,0 +1,47 @@
+{
+  "schema": "chainlesschain.site-source-review/v1",
+  "checkedAt": "2026-11-10",
+  "reviewedMain": "6338e6a1b1310af6a6164d799ab544ed0bc15668",
+  "publicChannels": {
+    "cli": {
+      "version": "0.166.146",
+      "sourceSha": "daafda2cf7790580467dae8ce006ceaa1285d3b4",
+      "status": "verified-public",
+      "workflowUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42758119265"
+    },
+    "openVsx": {
+      "version": "0.37.185",
+      "sourceSha": "2ae832f9054ac834b06d00a38ce1a95038ff43bb",
+      "recommendedCliVersion": "0.166.146",
+      "status": "public-download-verified",
+      "workflowUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42819326161"
+    },
+    "jetbrains": {
+      "version": "0.4.199",
+      "sourceSha": "daafda2cf7790580467dae8ce006ceaa1285d3b4",
+      "recommendedCliVersion": "0.166.146",
+      "status": "approved-listed-public",
+      "workflowUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42761723143"
+    }
+  },
+  "childVersions": {
+    "agentProtocol": "0.1.13",
+    "agentSdk": "0.2.18",
+    "contextMemoryKernel": "0.1.12",
+    "sessionCore": "0.3.27"
+  },
+  "publicClients": "v5.0.3.145",
+  "candidateClientVersion": "v5.0.3.146",
+  "candidateClientRunId": 42831809359,
+  "candidateClientAndroidBlock": "Fixed bundle contains CLI 0.166.145; expected 0.166.146",
+  "androidBundleRefreshRunId": 42845777084,
+  "newModelTaskAcceptance": false,
+  "limits": ["NOT_PAID_READY", "NOT_ADMITTED", "HOLD"],
+  "history": "Older release channels and acceptance cohorts remain separate in release-status.json",
+  "updatedAt": "2026-11-11",
+  "mainOnlyJetBrainsFollowup": {
+    "pullRequest": 593,
+    "commit": "6338e6a1b1310af6a6164d799ab544ed0bc15668",
+    "includedInPublic199": false
+  }
+}

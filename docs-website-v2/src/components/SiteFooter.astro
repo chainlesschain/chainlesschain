@@ -1,7 +1,8 @@
 ---
+import releaseStatus from "../data/release-status.json";
 import rootPkg from '../../../package.json';
 const year = new Date().getFullYear();
-const PRODUCT_VERSION = rootPkg.productVersion;
+const PRODUCT_VERSION = releaseStatus.productVersion;
 
 const pathname = Astro.url.pathname;
 const isEn = pathname === '/en' || pathname === '/en/' || pathname.startsWith('/en/');
