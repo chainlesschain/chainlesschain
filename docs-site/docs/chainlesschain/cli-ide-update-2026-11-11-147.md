@@ -1,14 +1,16 @@
-# CLI 0.166.147 与 IDE 配套候选
+# CLI 0.166.147 公开发行与 IDE 配套进度
 
-更新日期：2026-11-11。本文记录本批候选，公开状态按下表核对。
+更新日期：2026-11-11。CLI 已公开并核验，IDE 配套仍待宿主检查及发行。
 
-| 渠道                  | 当前已核验公开版本 | 新候选    | 发布条件                                                                         |
-| --------------------- | ------------------ | --------- | -------------------------------------------------------------------------------- |
-| npm CLI               | 0.166.146          | 0.166.147 | 同一提交的完整 CLI CI / Strict Sandbox 三平台检查；Actions OIDC 发布与公开包回读 |
-| Open VSX              | 0.37.185           | 0.37.186  | CLI 先公开；同一提交的 IDE / ARM64 / Remote-SSH 检查及公开 VSIX 回读             |
-| JetBrains Marketplace | 0.4.200            | 0.4.201   | CLI 先公开；原生宿主、ARM64、构建检查及上传；审核/上架与公开下载单独核验         |
+| 渠道                  | 当前已核验公开版本 | 新候选   | 发布条件                                                                            |
+| --------------------- | ------------------ | -------- | ----------------------------------------------------------------------------------- |
+| npm CLI               | 0.166.147          | —        | 已完成三平台 CLI CI 76/76、Strict Sandbox 6/6、Actions OIDC 发布及公开字节/来源回读 |
+| Open VSX              | 0.37.185           | 0.37.186 | CLI 先公开；同一提交的 IDE / ARM64 / Remote-SSH 检查及公开 VSIX 回读                |
+| JetBrains Marketplace | 0.4.200            | 0.4.201  | CLI 先公开；原生宿主、ARM64、构建检查及上传；审核/上架与公开下载单独核验            |
 
-当前可安装 CLI：`npm i -g chainlesschain@0.166.146 --registry https://registry.npmjs.org`。候选发布核验通过后，使用 `npm i -g chainlesschain@0.166.147 --registry https://registry.npmjs.org`，重启宿主，运行 `cc --version` 和 `cc doctor`。两端 IDE 候选均推荐 0.166.147；Session Core 0.3.27、Protocol 0.1.13、Agent SDK 0.2.18、Context/Memory Kernel 0.1.12 保持现有版本。
+当前可安装 CLI：`npm i -g chainlesschain@0.166.147 --registry https://registry.npmjs.org`。重启宿主，运行 `cc --version` 和 `cc doctor`。准确发布源码 `32451e4d568e414acdb9c956208e5cff827cd6e0` 的 [OIDC 发行](https://github.com/chainlesschain/chainlesschain/actions/runs/42976618525)与[公开回读](https://github.com/chainlesschain/chainlesschain/actions/runs/43032767673)成功，公开 tarball 为 9,628,979 字节，与官方不可变制品逐字节一致，来源证明验证通过。两端 IDE 候选均推荐 0.166.147，现有公开 IDE 仍推荐 0.166.146；Session Core 0.3.27、Protocol 0.1.13、Agent SDK 0.2.18、Context/Memory Kernel 0.1.12 保持现有版本。
+
+IDE 修正提交 `c3ac7485b2e671864acc52da1fa36fa13ad134fa` 的主矩阵已通过，标准插件单元测试为 353/353。ARM64 首次 Windows JetBrains 菜单失败已保留，正在原样复跑该宿主与汇总，未改源码或断言。IDE 标签及公开状态须在完整门禁通过后另行核验。[本批发行回执](../../../docs/research/cli/evidence/release147-public/README.md)。
 
 本批 CLI 将原始 manifest catalog/head 所有权沿真实工厂传递，拒绝跨实例拼接端口或认领被替换的目录；已有自定义后端读写合同保持可用。这是自进化存储链的一个增量，不授予完整存储图或自动晋升权限。DMM 新增的是隔离受控时钟的真实 Electron 通知验收旅程，实际执行结果、真实整夜运行及已安装客户端验收分别记录。
 

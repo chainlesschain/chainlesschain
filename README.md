@@ -1,10 +1,12 @@
 # ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
-## 2026-11-11 CLI / IDE 发布候选
+## 2026-11-11 CLI 已公开 / IDE 配套待发布
 
-候选 CLI **0.166.147**、Open VSX **0.37.186**、JetBrains **0.4.201** 集成 RRSI 原组件所有权、严格审计响应校验及独立 36+9 复测准备；当前尚未公开。先完成准确提交的三平台 CLI 门禁与 OIDC 发布，再发布 IDE 并核对公开下载。自动晋升仍为 HOLD，新的实际任务完成率尚未产生。见[候选升级与发布状态](docs-site/docs/chainlesschain/cli-ide-update-2026-11-11-147.md)。
+CLI **0.166.147** 已通过 [Actions OIDC 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/42976618525)与[公开包来源及字节回读](https://github.com/chainlesschain/chainlesschain/actions/runs/43032767673)。准确源码 `32451e4d568e414acdb9c956208e5cff827cd6e0` 的 CLI CI **76/76**、Strict Sandbox **6/6** 全部通过。安装：`npm i -g chainlesschain@0.166.147 --registry https://registry.npmjs.org`，重启宿主后运行 `cc --version`、`cc doctor`。
 
-## 2026-11-10 当前公开发行
+配套 Open VSX **0.37.186**、JetBrains **0.4.201** 仍待完整宿主/ARM64 验证与发布；当前公开 IDE 为 **0.37.185 / 0.4.200**，仍推荐 CLI **0.166.146**。本批集成 RRSI 原组件所有权、严格审计响应校验及独立 36+9 复测准备；自动晋升仍 HOLD，尚无新完成率。见[升级与发布状态](docs-site/docs/chainlesschain/cli-ide-update-2026-11-11-147.md)。
+
+## 2026-11-10 历史公开发行
 
 CLI **0.166.146**、Protocol **0.1.13**、Agent SDK **0.2.18** 和 Memory Kernel **0.1.12** 已通过 [GitHub Actions OIDC 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/42758119265)，公开 npm 版本已核验。发行源码为 `daafda2cf7790580467dae8ce006ceaa1285d3b4`；官方工作流已完成准确源码门禁、公开字节与来源验证、仅 registry 的子包依赖安装。Session Core 保持 **0.3.27**。
 
