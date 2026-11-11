@@ -1,0 +1,36 @@
+{
+  "created": 1785748879,
+  "domain": "LLM",
+  "features": {
+    "batch": {
+      "batch_chat": false,
+      "batch_job": false
+    },
+    "cache": {
+      "prefix_cache": false,
+      "session_cache": false
+    },
+    "structured_outputs": {
+      "json_object": false,
+      "json_schema": false
+    },
+    "tools": {
+      "function_calling": true
+    }
+  },
+  "id": "deepseek-v4-flash-ga-260731",
+  "modalities": {
+    "input_modalities": ["text"],
+    "output_modalities": ["text"]
+  },
+  "name": "deepseek-v4-flash-ga",
+  "object": "model",
+  "task_type": ["TextGeneration"],
+  "token_limits": {
+    "context_window": 1048576,
+    "max_input_token_length": 1048576,
+    "max_output_token_length": 393216,
+    "max_reasoning_token_length": 393216
+  },
+  "version": "260731"
+}

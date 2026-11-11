@@ -506,3 +506,15 @@ Source `bcce11f6455ad2584a5ce4fed36b5de6de23f2ff`, including stream observer fix
 JetBrains 发布标签 `ide-jetbrains-v0.4.200` 固定到 `38081db870576ffb63f9e8e2d0dccb79f0251276`。同一源的候选 IDE Extensions 为 18 项成功、1 项条件跳过，ARM64 为 11/11 成功。[正式发布运行](https://github.com/chainlesschain/chainlesschain/actions/runs/42945700403) [候选检查](https://github.com/chainlesschain/chainlesschain/actions/runs/42934536614) [ARM64 检查](https://github.com/chainlesschain/chainlesschain/actions/runs/42934536692)
 
 本次补丁覆盖 Rewind 弹窗定位及切换会话后的过期结果丢弃。上传成功不等于公开上架，也不关闭本文第 2–9 项剩余验收。
+
+### 2026-11-11 自进化与新发行候选续作
+
+| 项目                       | 本批完成情况                                                                                                | 待完成                                                    |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| RRSI manifest 原组件所有权 | 实现沿真实 factory 传递；七个相关文件 84 项通过、2 项既有平台条件跳过；PR #599                              | 历史组件汇总、完整存储图、生产 producer 与实际学习收益    |
+| DMM 原生跨夜通知           | 已合入主进程跨夜回归；新增受控时钟 Electron 旅程与 Windows 工作流，驱动/观察/Memory 启动 15 项通过；PR #601 | 真实 GUI 执行、真实整夜运行、进程重开及其他平台           |
+| 安全审计                   | 更新 Mongoose 锁文件、拒绝空/错误/超时审计结果，10 项边界检查通过；PR #600                                  | 本机 registry 审计超时，需正式 Actions 审计及依赖兼容结果 |
+| CLI / IDE 新候选           | CLI 0.166.147、Open VSX 0.37.186、JetBrains 0.4.201 版本和推荐配对一致；完整 Web Panel 构建与源码审查通过   | 同一提交全平台门禁、OIDC 发布、IDE 发行及公开回读         |
+| 36+9 新复测                | 新轮次约束及实际工作流选择器 26 项检查通过；原任务/模型/预算，基准单轮 24/45                                | 公开包证明齐全后真实执行；当前新模型任务仍为 NOT_RUN      |
+
+这些实现和离线检查不表示整个自进化计划完成，也不产生实际任务完成率改善结论。详见[复测准备](../../cli/verify01-volcengine-147-full-20261111/README.md)。
