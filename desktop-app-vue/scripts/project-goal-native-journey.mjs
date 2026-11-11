@@ -16,6 +16,7 @@ const { values } = parseArgs({
     electron: { type: "string" },
     output: { type: "string" },
     workspace: { type: "boolean", default: false },
+    overnight: { type: "boolean", default: false },
     "risk-create": { type: "boolean", default: false },
     "default-off": { type: "boolean", default: false },
     "modal-revocation": { type: "boolean", default: false },
@@ -117,9 +118,31 @@ fs.writeFileSync(
   JSON.stringify({ ui: { useWebShellExperimental: false } }),
 );
 const wrapper = path.join(profile, "main.cjs");
+if (
+  values.overnight &&
+  (values.workspace ||
+    values["default-off"] ||
+    values["risk-create"] ||
+    values["modal-revocation"])
+)
+  throw new Error("Overnight is a separate synthetic-clock journey");
+const clockBootstrap = values.overnight
+  ? `globalThis.__dmmJourneyClock=require(${JSON.stringify(path.join(desktop, "scripts/lib/project-goal-journey-clock.cjs"))}).installGoalJourneyClock('2026-11-11T13:50:00.000Z');`
+  : "";
+if (values.overnight) {
+  evidence.clockMode = "synthetic-main-process-wall-clock-real-timers";
+  evidence.realOvernightWallTimeAcceptance = false;
+  evidence.clockHelperSha256 = createHash("sha256")
+    .update(
+      fs.readFileSync(
+        path.join(desktop, "scripts/lib/project-goal-journey-clock.cjs"),
+      ),
+    )
+    .digest("hex");
+}
 fs.writeFileSync(
   wrapper,
-  `const {app}=require('electron');app.setPath('userData',${JSON.stringify(profile)});app.disableHardwareAcceleration();app.on('browser-window-created',(_event,window)=>window.hide());require(${JSON.stringify(path.join(desktop, "dist/main/index.js"))});`,
+  `${clockBootstrap}const {app}=require('electron');app.setPath('userData',${JSON.stringify(profile)});app.disableHardwareAcceleration();app.on('browser-window-created',(_event,window)=>window.hide());require(${JSON.stringify(path.join(desktop, "dist/main/index.js"))});`,
 );
 const env = {
   ...process.env,
@@ -146,7 +169,9 @@ function terminateOwnedApp() {
     if (nativePid) {
       try {
         process.kill(nativePid);
-      } catch {}
+      } catch {
+        // The owned native process may already have exited.
+      }
     }
     app.process().kill();
   }
@@ -165,7 +190,9 @@ process.on("uncaughtExceptionMonitor", (error, origin) => {
   evidence.finishedAt = new Date().toISOString();
   try {
     saveEvidence(true, false);
-  } catch {}
+  } catch {
+    // Emergency observation must not prevent process termination.
+  }
 });
 journey: try {
   stage("native-launch-requested");
@@ -281,7 +308,7 @@ journey: try {
   assert.ok(project.id);
   evidence.projectId = project.id;
   await window.evaluate((id) => {
-    location.hash = "#/projects/" + id;
+    window.location.hash = "#/projects/" + id;
   }, project.id);
   await window.locator('[data-testid="project-tasks-button"]').click();
   await app.evaluate(({ BrowserWindow }) => {
@@ -438,6 +465,79 @@ journey: try {
     },
     { desktop, profile, taskId: task.id, projectId: project.id, did },
   );
+  if (values.overnight) {
+    const helper = "./lib/project-goal-overnight-journey.cjs";
+    evidence.overnightHelperSha256 = createHash("sha256")
+      .update(fs.readFileSync(new URL(helper, import.meta.url)))
+      .digest("hex");
+    evidence.overnight = {
+      synthetic: true,
+      realBusinessAcceptance: false,
+      realOvernightWallTimeAcceptance: false,
+      status: "running",
+    };
+    await require(helper).exerciseGoalOvernight({
+      window,
+      api,
+      expect,
+      output,
+      stage,
+      result: evidence.overnight,
+      advanceClock: (iso) =>
+        app.evaluate(
+          (_, stamp) => globalThis.__dmmJourneyClock.advanceTo(stamp),
+          iso,
+        ),
+      readEvents: (goalId) =>
+        app.evaluate(
+          (_, input) => {
+            const require = process
+              .getBuiltinModule("module")
+              .createRequire(input.desktop + "/package.json");
+            const fs = require("node:fs"),
+              path = require("node:path");
+            const wrapper = require(
+              path.join(input.desktop, "dist/main/database.js"),
+            )
+              .getDatabase()
+              .getDatabase();
+            const db = wrapper.db;
+            if (!db?.open) throw new Error("Owned native database is not open");
+            const relative = path.relative(
+              fs.realpathSync.native(input.profile),
+              fs.realpathSync.native(db.name),
+            );
+            if (
+              !relative ||
+              relative.startsWith("..") ||
+              path.isAbsolute(relative)
+            )
+              throw new Error(
+                "Database is outside the owned synthetic profile",
+              );
+            return db
+              .prepare(
+                "SELECT record_json FROM cc_project_goal_notice_events WHERE goal_id=? ORDER BY id LIMIT 10",
+              )
+              .all(input.goalId)
+              .map((row) => {
+                const event = JSON.parse(row.record_json);
+                return {
+                  id: event.id,
+                  goalId: event.goalId,
+                  deliveryState: event.deliveryState,
+                  dueAt: event.dueAt,
+                  deliveredAt: event.deliveredAt,
+                  sourceVersion: event.sourceVersion,
+                };
+              });
+          },
+          { desktop, profile, goalId },
+        ),
+    });
+    evidence.status = "passed";
+    break journey;
+  }
   const panel = window.locator('[data-testid="project-goal-panel"]');
   await panel
     .locator('[data-testid="goal-objective"]')
@@ -749,7 +849,9 @@ journey: try {
       String(error.stack || error),
     );
     evidence.privateFailureDetailsRetained = true;
-  } catch {}
+  } catch {
+    // Retain the original failure if private diagnostic persistence fails.
+  }
   process.exitCode = 1;
   saveEvidence(false, false);
   if (window && evidence.projectId) {
