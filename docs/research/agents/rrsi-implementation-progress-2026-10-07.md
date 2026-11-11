@@ -717,3 +717,13 @@ Windows 首次完整 10 文件运行为 **323 项通过、1 项失败、13 项�
 403 项列明的本地来源／测试／配置及 session-core 私有存储依赖在最终回归前冻结，Windows、WSL、兼容对照后逐项核对；只回传六个测试过的文件，并核对两工作区全量列明摘要一致。Node recommended ESLint、仓库 Prettier、已有 tracked diff 空白检查及 Astra 只读代码复核通过；未跟踪 reader／测试由 ESLint／Prettier 检查。共享研究目录 README 保留其它工作进度，仅更新原 RRSI 条目。逐项结果、原源码摘要、runner、平台跳过与范围见 [manifest 目录能力本地控制记录](./evidence/rrsi-manifest-directory-capability-local-controls-2026-10-18.json)。
 
 下一步先在实际 factory／composition 建立 catalog/head 原对象或原端口的私有所有权绑定，再接入历史组合并继续 witness／retention／source 的组件汇总；不得通过公开路径重建或调用者声明补齐。完整文件 inventory、实际 storageGraphDigest 认证、独立安装认可、受保护持久 pin／高水位、强制业务入口、真实 producer、tenant-wide 来源、candidate alias 和 release lease／恢复仍未闭环。真实 RRSI A/B/C 仍为 NOT_RUN，统计质量和生产晋级保持 HOLD。
+
+## 38 manifest factory 的原组件所有权（2026-11-11）
+
+接续第 37 节：manifest catalog 工厂以私有 WeakMap 保存实际 backend，head-store 工厂保存实际 load/CAS 两个端口。原始 file head backend 在构造时私下登记两个函数的共同所有者，捕获时要求二者来自同一实例。结构副本、代理、绑定函数、转发包装和跨实例拼接不能补造这份所有权，拒绝过程不执行调用者 getter 或回调。
+
+v2 manifest backend 保存实际 catalog/head-store，并通过 `captureEvolutionLedgerV2ManifestDirectoryBoundaries` 返回二者原有的冻结目录能力。捕获只复核原目录元数据；不通过 descriptor 路径重开存储，不读取叶内容、不加锁、不写文件，也不初始化或修复权限。既有自定义/内存 backend 的读写合同继续可用，但不能据此声明原始 file backend 的目录所有权。公开 backend 的 keys、descriptor、签名、CAS 与恢复协议保持原样。
+
+本机 Windows / Node 24.12.0 的七个相关文件共 **84 项通过、0 失败、2 项既有平台条件跳过**。其中新增所有权单元 7 项，真实 RRSI retained-history 组合新增 2 项；验证原始组件沿实际 preparation/observed-text 提交和重开仍一致、目录同字节替换被拒绝、混合端口/包装不能认领，以及既有故障包装仍可用于原恢复测试。只允许目录 lstat/realpath 的正对照同时禁止叶读取、锁和随机数。此前 57 项与组合 40 项重叠，不累计。
+
+本批只完成原组件所有权传递。历史报告尚未纳入这些组件的汇总摘要；witness/retention/source 汇总、完整 storage graph、生产 producer、真实 A/B/C 与自动晋级仍待完成，HOLD 不变。用户要求完成后重跑原 36 项维护任务及 9 次首次安装；本批尚未执行新的真实模型任务，不能由本地回归推断完成率提高。

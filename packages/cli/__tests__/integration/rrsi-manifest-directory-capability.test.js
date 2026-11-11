@@ -5,6 +5,7 @@ import { createHash } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { captureEvolutionLedgerFileManifestCatalogDirectoryBoundary as captureCatalog } from "../../src/lib/evolution/evolution-ledger-file-manifest-catalog.js";
 import { captureEvolutionLedgerFileManifestHeadDirectoryBoundary as captureHead } from "../../src/lib/evolution/evolution-ledger-file-manifest-head-store.js";
+import { captureEvolutionLedgerV2ManifestDirectoryBoundaries as captureComposition } from "../../src/lib/evolution/evolution-ledger-v2-manifest-backend.js";
 import { EVOLUTION_MANIFEST_STATE_READ_FAILED_CODE as FAILED } from "../../src/lib/evolution/evolution-manifest-state-reader.js";
 import { inspectRrsiTenantIndexHistory } from "../../src/lib/evolution/rrsi-tenant-index-anchor-history.js";
 import { createRrsiObservedTextIndex } from "../../src/lib/evolution/rrsi-observed-text-index.js";
@@ -30,7 +31,7 @@ describe.sequential(
     let root, fixture, index, initial, retained, components, backendDescriptors;
     beforeAll(() => {
       root = fs.mkdtempSync(path.join(temp, "cc-rrsi-manifest-cap-"));
-      fixture = openObservedTextFixture(root);
+      fixture = openObservedTextFixture(root, { originalManifestPorts: true });
       index = openObservedTextIndex(fixture);
       const manifest = fixture.store.manifest;
       components = [
@@ -88,6 +89,47 @@ describe.sequential(
       });
       expect(retained).not.toHaveProperty("manifestDirectoryBoundaryDigest");
     });
+    it("captures only the actual factory's catalog and head through retained history commits", () => {
+      const original = captureComposition(fixture.store.manifest.backend);
+      expect(Object.isFrozen(original)).toBe(true);
+      expect(captureComposition(fixture.store.manifest.backend)).toBe(original);
+      expect(original.catalog).toBe(components[0].cap);
+      expect(original.head).toBe(components[1].cap);
+      expect(
+        inspectRrsiTenantIndexHistory({ observedTextIndex: index }),
+      ).toEqual(retained);
+      expect(original.catalog.descriptor.fullPhysicalStorageGraphVerified).toBe(
+        false,
+      );
+      expect(original.head.descriptor.grantsMutationOrPromotionAuthority).toBe(
+        false,
+      );
+    });
+    it("keeps wrapped fault-injection stores usable without granting them original ownership", () => {
+      const wrapped = openObservedTextFixture(path.join(root, "wrapped"));
+      expect(() =>
+        inspectRrsiTenantIndexHistory({
+          observedTextIndex: openObservedTextIndex(wrapped),
+        }),
+      ).not.toThrow();
+      expect(() => captureComposition(wrapped.store.manifest.backend)).toThrow(
+        TypeError,
+      );
+      const original = fixture.store.manifest.backend;
+      let traps = 0;
+      const proxy = new Proxy(original, {
+        get() {
+          traps++;
+          throw new Error("untrusted getter");
+        },
+      });
+      const revoked = Proxy.revocable(original, {});
+      revoked.revoke();
+      for (const fake of [{ ...original }, proxy, revoked.proxy, null])
+        expect(() => captureComposition(fake)).toThrow(TypeError);
+      expect(() => captureComposition(original, {})).toThrow(TypeError);
+      expect(traps).toBe(0);
+    }, 60_000);
     it.each(["catalog", "head"])(
       "rejects an actual %s clone with the original component and existing history reader",
       (role) => {
@@ -103,6 +145,9 @@ describe.sequential(
           expect(() => value.capture(value.backend)).toThrowError(
             expect.objectContaining({ code: FAILED }),
           );
+          expect(() =>
+            captureComposition(fixture.store.manifest.backend),
+          ).toThrowError(expect.objectContaining({ code: FAILED }));
           let error;
           try {
             inspectRrsiTenantIndexHistory({ observedTextIndex: index });
@@ -158,8 +203,19 @@ describe.sequential(
         });
     });
     it("reopens original retained history and both original directories without changing composition or descriptors", () => {
-      const reopened = openObservedTextFixture(root),
+      const reopened = openObservedTextFixture(root, {
+          originalManifestPorts: true,
+        }),
         next = openObservedTextIndex(reopened);
+      const reopenedComposition = captureComposition(
+        reopened.store.manifest.backend,
+      );
+      expect(hash(reopenedComposition.catalog.descriptor)).toBe(
+        components[0].digest,
+      );
+      expect(hash(reopenedComposition.head.descriptor)).toBe(
+        components[1].digest,
+      );
       expect(
         inspectRrsiTenantIndexHistory({ observedTextIndex: next }),
       ).toEqual(retained);

@@ -1,4 +1,7 @@
 import { types as utilTypes } from "node:util";
+import { captureEvolutionLedgerFileManifestCatalogDirectoryBoundary } from "./evolution-ledger-file-manifest-catalog.js";
+
+const ORIGINAL_BACKENDS = new WeakMap();
 
 import {
   captureEvolutionLedgerManifestAuthority,
@@ -437,7 +440,17 @@ export function createEvolutionLedgerManifestCatalog(options = undefined) {
     readLatest,
   });
   CATALOGS.add(catalog);
+  ORIGINAL_BACKENDS.set(catalog, backend);
   return catalog;
+}
+
+/** Reuse the exact backend retained by this factory, never its public path. */
+export function captureEvolutionLedgerManifestCatalogDirectoryBoundary(value) {
+  if (arguments.length !== 1 || !ORIGINAL_BACKENDS.has(value))
+    throw new TypeError("one original manifest catalog is required");
+  return captureEvolutionLedgerFileManifestCatalogDirectoryBoundary(
+    ORIGINAL_BACKENDS.get(value),
+  );
 }
 
 export function captureEvolutionLedgerManifestCatalog(
