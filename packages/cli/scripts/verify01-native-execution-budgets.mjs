@@ -12,6 +12,11 @@ import {
   loadPublic140FullRound,
 } from "./verify01-volcengine-public140-full.mjs";
 import {
+  isPublic147FullRound,
+  public147FullBudgets,
+  loadPublic147FullRound,
+} from "./verify01-volcengine-public147-full.mjs";
+import {
   isPublic140GenerationRecovery,
   public140GenerationRecoveryBudgets,
   loadPublic140GenerationRecovery,
@@ -72,6 +77,8 @@ function readBoundEvidence(
 }
 
 export function nativeExecutionBudgets(manifest, provider = "volcengine") {
+  if (isPublic147FullRound(manifest))
+    return public147FullBudgets(manifest, provider);
   if (manifest?.volcengineGenerationRecovery !== undefined)
     return public140GenerationRecoveryBudgets(manifest, provider);
   if (manifest?.volcengineFullRound !== undefined)
@@ -139,6 +146,8 @@ export function isBudgetLimitedNativeSample(row, outputTokens) {
 }
 
 export function loadVolcengineBudgetRetry(manifest, { repositoryRoot, plan }) {
+  if (isPublic147FullRound(manifest))
+    return loadPublic147FullRound(manifest, { repositoryRoot, plan });
   if (isPublic140GenerationRecovery(manifest))
     return loadPublic140GenerationRecovery(manifest, { repositoryRoot, plan });
   if (isPublic140FullRound(manifest))

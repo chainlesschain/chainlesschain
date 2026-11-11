@@ -489,8 +489,32 @@ Remote thinking-cap/storage-failure changes were integrated at `bcce11f6455ad258
 
 新的本机 Windows / Node 24.12.0 三档双模式各 100 次 Stop 测量保留 **失败**：600 个样本中 580 次确认取消、20 次送达前完成、送达后成功为 0，锁均释放且 authority 不变；但两个确认延迟为 631.349ms 和 514.960ms，超过既有 500ms 限制，退出码 1。原因尚未定位，原样本未删除或重跑覆盖。测量 checkout 为 `ed53ce6527` 加 Stop 基准覆盖层，11 个记录源码字节匹配 main `6338e6a1b1`；不是该 main 的干净提交整体验收。
 
-main 已有 Stop 修正和 6 个定向回归，本机 6/6 再验通过；测试文件变化的 push/pull_request 路径触发已随 `b2d87568e` 合入。随后[每组 100 次的完整三系统矩阵 42850534026](https://github.com/chainlesschain/chainlesschain/actions/runs/42850534026) **12/12 job 成功**，准确源为 `6338e6a1b1310af6a6164d799ab544ed0bc15668`。每平台核对 1,500 个五模式查询、600 个 Stop、300 轮八进程混合和 900 个首次冷组合样本；13 份完整矩阵回执已归档，两批共 27 份原字节及 286 组提交/路径字节绑定通过离线复核。100K 冷分类列表 p95 为 Linux 714.699ms、Windows 506.465ms、macOS 557.493ms，均低于该场景原 1s 候选目标。托管 Stop 全部满足 500ms 送达与确认限制；本机两个超限不改变。仅关闭完整托管测量子项，第 8 项仍 Partial：产品混合/恢复 SLO、真实 IDE Stop、多语言任务及本机延迟归因未完成；完整生命周期与账单/付费准入保持原状态。
+main 已有 Stop 修正和 6 个定向回归，本机 6/6 再验通过；测试文件变化的 push/pull_request 路径触发已随 `b2d87568e` 合入。随后[每组 100 次的完整三系统矩阵 42850534026](https://github.com/chainlesschain/chainlesschain/actions/runs/42850534026) **12/12 job 成功**，准确源为 `6338e6a1b1310af6a6164d799ab544ed0bc15668`。每平台核对 1,500 个五模式查询、600 个 Stop、300 轮八进程混合和 900 个首次冷组合样本；13 份完整矩阵回执已归档，两批共 27 份原字节及 286 组提交/路径字节绑定通过离线复核。100K 冷分类列表 p95 为 Linux 714.699ms、Windows 506.465ms、macOS 557.493ms，均低于该场景原 1s 候选目标。托管 Stop 全部满足 500ms 送达与确认限制；本机两个超限不改变。仅关闭完整托管测量子项，第 8 项仍 Partial：产品混合/恢复 SLO、真实 IDE Stop、多语言任务及本机延迟归因未完成；完整生命周期与账单/付费准入保持原状态。 [Archive PR #596 merged](https://github.com/chainlesschain/chainlesschain/pull/596).
 
 ### 2026-11-09 Original native stream task with canonical physical mapping
 
 Source `bcce11f6455ad2584a5ce4fed36b5de6de23f2ff`, including stream observer fix `39d95352e7089b4c0bf9e6fe5503a870cac5480a`, passed the original Windows VS Code1.145.2 / installed development VSIX0.37.183 task journey. Four unchanged physical requests returned HTTP200; eight journal-backed diagnostics correlate all logical/fetch pairs, with planning4/4 and sourceMapping8/8 covered across50/50/51/52 sources. Independent strict nonce/total67 output validation, actual saved terminal, tab switch and IDE restart passed; restart made zero new model requests. The actual tools included the same-session WORKLOG read, input read, output write and output read: output correctness is not a general instruction-compliance or model-quality judgment. Provider usage was70638 input including45056cached,668 completion including166reasoning. The production1024 cap and read-only guard preserved exact request bytes. [Frozen archive](../../cli/evidence/vscode-stream-model-input-native-20261109/README.md) binds true prelaunch harness identities,184 package payloads and207/207 integration tests (including the earlier111). Both managed hosts completed without timeout failure and the exact temporary rule was removed; full descendant-tree cleanup snapshots were absent. Stock-host, full Stop/steer/compaction/upgrade/desktop, three-system, billing and paid-admission gates remain open. Older failed/zero-diagnostic archives are unchanged. Items2–9 remain Partial.
+
+### 2026-11-11 CLI / IDE 发布情况
+
+| 渠道                  | 版本      | 已完成                                                                                                                                | 限制与待办                                                                                      |
+| --------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| npm CLI               | 0.166.146 | OIDC 发布及公开包核验通过；本次重新查询 npm `latest` 一致                                                                             | 本次 JetBrains 补丁沿用现有公开 CLI                                                             |
+| VS Code / Open VSX    | 0.37.185  | 已公开；本次重新查询 Open VSX `latest` 一致，推荐 CLI 0.166.146                                                                       | Microsoft Marketplace 渠道仍未发布                                                              |
+| JetBrains Marketplace | 0.4.200   | 正式标签工作流及上传成功；随后已审核上架，更新 1217276；公开下载的 631 个 payload 与官方 ZIP/JAR 原始文件逐项一致，推荐 CLI 0.166.146 | 初始 `pending / version-not-visible` 是历史状态；外层 ZIP 打包字节不同，不宣称整个 ZIP 摘要一致 |
+
+JetBrains 发布标签 `ide-jetbrains-v0.4.200` 固定到 `38081db870576ffb63f9e8e2d0dccb79f0251276`。同一源的候选 IDE Extensions 为 18 项成功、1 项条件跳过，ARM64 为 11/11 成功。[正式发布运行](https://github.com/chainlesschain/chainlesschain/actions/runs/42945700403) [候选检查](https://github.com/chainlesschain/chainlesschain/actions/runs/42934536614) [ARM64 检查](https://github.com/chainlesschain/chainlesschain/actions/runs/42934536692)
+
+本次补丁覆盖 Rewind 弹窗定位及切换会话后的过期结果丢弃。上传成功不等于公开上架，也不关闭本文第 2–9 项剩余验收。
+
+### 2026-11-11 自进化与新发行候选续作
+
+| 项目                       | 本批完成情况                                                                                                | 待完成                                                    |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| RRSI manifest 原组件所有权 | 实现沿真实 factory 传递；七个相关文件 84 项通过、2 项既有平台条件跳过；PR #599                              | 历史组件汇总、完整存储图、生产 producer 与实际学习收益    |
+| DMM 原生跨夜通知           | 已合入主进程跨夜回归；新增受控时钟 Electron 旅程与 Windows 工作流，驱动/观察/Memory 启动 15 项通过；PR #601 | 真实 GUI 执行、真实整夜运行、进程重开及其他平台           |
+| 安全审计                   | 更新 Mongoose 锁文件、拒绝空/错误/超时审计结果，10 项边界检查通过；PR #600                                  | 本机 registry 审计超时，需正式 Actions 审计及依赖兼容结果 |
+| CLI / IDE 新候选           | CLI 0.166.147、Open VSX 0.37.186、JetBrains 0.4.201 版本和推荐配对一致；完整 Web Panel 构建与源码审查通过   | 同一提交全平台门禁、OIDC 发布、IDE 发行及公开回读         |
+| 36+9 新复测                | 新轮次约束及实际工作流选择器 26 项检查通过；原任务/模型/预算，基准单轮 24/45                                | 公开包证明齐全后真实执行；当前新模型任务仍为 NOT_RUN      |
+
+这些实现和离线检查不表示整个自进化计划完成，也不产生实际任务完成率改善结论。详见[复测准备](../../cli/verify01-volcengine-147-full-20261111/README.md)。

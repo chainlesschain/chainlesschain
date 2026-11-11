@@ -1,0 +1,58 @@
+{
+  "schema": "chainlesschain.volcengine-full45-retest/v1",
+  "createdAt": "2026-11-11T03:54:44.384118+00:00",
+  "status": "PREPARED_NOT_RUN",
+  "authorization": "User requested publishing new CLI/IDE changes, continuing DMM and unfinished self-evolution, then running all 36+9 tasks to check actual task-completion improvement.",
+  "provider": "volcengine",
+  "model": "deepseek-v4-flash-ga-260731",
+  "versions": {
+    "cli": "0.166.147",
+    "vscode": "0.37.186",
+    "jetbrains": "0.4.201",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "releaseSourceCommit": null,
+  "taskCount": 36,
+  "firstRunCount": 9,
+  "repeatPreviouslyAccepted": true,
+  "historicalScoresUnchanged": true,
+  "comparisonBaseline": {
+    "runId": 41638188839,
+    "executionSource": "54d0064cab09ac1fe291d4d8b83bcb689a9c7d97",
+    "path": "docs/research/cli/verify01-volcengine-140-full-20261103/internal-output-repair/final-54d0064cab/results.json",
+    "digest": "sha256:929050497bc78f0f7bd02d9ca447a420c201676245bc8899fd116b7512c37ffa",
+    "strictPassed": 24,
+    "total": 45,
+    "kind": "historical-single-round-not-cumulative"
+  },
+  "executionBudgets": {
+    "modelTurns": 40,
+    "physicalRequests": 48,
+    "outputTokens": 393216,
+    "ordinaryDeadlineMs": 2400000,
+    "firstRunDeadlineMs": 3600000,
+    "connectionAttemptTimeoutMs": 10000,
+    "parallelToolCalls": null,
+    "preserveExplicitOutputLimits": true,
+    "contextWindowTokens": 32768
+  },
+  "thinking": "disabled",
+  "reviewChanges": true,
+  "selfEvolutionTreatment": {
+    "scope": "original-manifest-component-ownership",
+    "automaticActivePromotionChanged": false,
+    "causalLearningImprovementEstablished": false
+  },
+  "prerequisites": {
+    "exactSourceCliCiAndStrictSandbox": "pending",
+    "publicCliReadback": "pending",
+    "exactSourceIdeAndArm64": "pending",
+    "publicIdeReadback": "pending",
+    "boundPackageManifest": "pending"
+  },
+  "newModelTaskResults": null,
+  "paidRequestsDispatched": 0,
+  "formalSample": false
+}

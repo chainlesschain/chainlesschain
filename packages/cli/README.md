@@ -2,7 +2,15 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
 
-## Public CLI 0.166.146 / verified IDE pairing (2026-11-10)
+## CLI 0.166.147 / IDE pairing (2026-11-11 candidate)
+
+This version retains original manifest catalog/head ownership through Evolution Ledger factories, rejecting substituted directories and mixed head ports while preserving custom-backend behavior. These local storage capabilities do not grant promotion authority. The evaluation harness has a separate original 36-task plus nine-first-run round with fixed source, model, budgets and independent acceptance; preparation is not a new task-completion result.
+
+After the official OIDC release is verified, install `npm i -g chainlesschain@0.166.147 --registry https://registry.npmjs.org`, restart hosts, and run `cc --version` and `cc doctor`. Pairing targets are Open VSX **0.37.186** and JetBrains **0.4.201**, each published after the CLI. Session Core **0.3.27**, Protocol **0.1.13**, Agent SDK **0.2.18** and Context/Memory Kernel **0.1.12** are unchanged.
+
+The [upgrade and release-status guide](../../docs-site/docs/chainlesschain/cli-ide-update-2026-11-11-147.md) separates candidate gates from public availability. Currently verified public versions are CLI **0.166.146**, Open VSX **0.37.185** and JetBrains **0.4.200**. Microsoft Marketplace and new mobile/PC client releases remain separate. Automatic promotion, independent business effects, invoice reconciliation and paid admission remain incomplete; **NOT_PAID_READY / NOT_ADMITTED / HOLD** remain.
+
+## Previous public CLI 0.166.146 / verified IDE pairing (2026-11-10)
 
 CLI **0.166.146**, Context/Memory Kernel **0.1.12**, Protocol **0.1.13** and Agent SDK **0.2.18** are public. Session Core remains **0.3.27**. Immutable source `daafda2cf7790580467dae8ce006ceaa1285d3b4` passed the [official Actions OIDC publication](https://github.com/chainlesschain/chainlesschain/actions/runs/42758119265), including exact-source CLI CI / Strict Sandbox gates, public registry bytes/provenance and registry-only child installation. Public npm version queries also succeeded. [Publication receipt](../../docs/research/cli/evidence/release146-public/publication.json).
 

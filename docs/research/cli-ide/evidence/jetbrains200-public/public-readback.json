@@ -1,0 +1,16 @@
+{
+  "version": "0.4.200",
+  "public": true,
+  "approved": true,
+  "listed": true,
+  "observedAt": "2026-11-11T03:39:54.781982+00:00",
+  "tag": "ide-jetbrains-v0.4.200",
+  "source": "38081db870576ffb63f9e8e2d0dccb79f0251276",
+  "workflowRun": 42945700403,
+  "updateId": 1217276,
+  "downloadUrl": "https://plugins.jetbrains.com/plugin/download?rel=true&updateId=1217276",
+  "publicZipSha256": "3293acab4eab458de578f476ae14c210425f071d583519330e9a3dc4b6123d85",
+  "officialZipSha256": "1b42b012e0289279f38a76e6cd6ba0168db800bcc6309d41768ac1434f52a1b9",
+  "verifiedPayloads": 631,
+  "recommendedCli": "0.166.146"
+}

@@ -1,4 +1,7 @@
 import { types as utilTypes } from "node:util";
+import { captureEvolutionLedgerFileManifestHeadPortsDirectoryBoundary } from "./evolution-ledger-file-manifest-head-store.js";
+
+const ORIGINAL_PORTS = new WeakMap();
 
 import {
   captureEvolutionLedgerManifestAuthority,
@@ -373,7 +376,21 @@ export function createEvolutionLedgerManifestHeadStore(options = undefined) {
     },
   });
   STORES.add(store);
+  ORIGINAL_PORTS.set(store, Object.freeze({ load, compareAndSet }));
   return store;
+}
+
+/** Only the same original raw backend can own both captured head-store ports. */
+export function captureEvolutionLedgerManifestHeadStoreDirectoryBoundary(
+  value,
+) {
+  if (arguments.length !== 1 || !ORIGINAL_PORTS.has(value))
+    throw new TypeError("one original manifest head store is required");
+  const ports = ORIGINAL_PORTS.get(value);
+  return captureEvolutionLedgerFileManifestHeadPortsDirectoryBoundary(
+    ports.load,
+    ports.compareAndSet,
+  );
 }
 
 export function captureEvolutionLedgerManifestHeadStore(

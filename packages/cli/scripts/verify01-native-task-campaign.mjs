@@ -691,6 +691,7 @@ export async function runNativeCampaign(options) {
     "packages/cli/scripts/verify01-native-execution-budgets.mjs",
     "packages/cli/scripts/verify01-volcengine-historical-retry.mjs",
     "packages/cli/scripts/verify01-volcengine-public140-full.mjs",
+    "packages/cli/scripts/verify01-volcengine-public147-full.mjs",
     "packages/cli/scripts/verify01-volcengine-public140-generation-recovery.mjs",
     "packages/cli/scripts/verify01-openai-diagnostic-broker.mjs",
     "packages/cli/scripts/verify01-openai-transport-preload.mjs",
@@ -1366,9 +1367,8 @@ export async function runNativeCampaign(options) {
         ]);
       else if (entry === "vscode") result = await runVSCodeNativeTask(args);
       else {
-        const { runJetBrainsNativeTask } = await import(
-          "../../jetbrains-plugin/scripts/verify01-native-task-adapter.mjs"
-        );
+        const { runJetBrainsNativeTask } =
+          await import("../../jetbrains-plugin/scripts/verify01-native-task-adapter.mjs");
         result = await runJetBrainsNativeTask(args);
       }
       row.host = {

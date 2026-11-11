@@ -1,5 +1,11 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.201] - evolved CLI pairing candidate (2026-11-11)
+
+- Recommend CLI 0.166.147 and pair with Open VSX 0.37.186 after verified CLI publication.
+- Retain the public 0.4.200 Rewind anchoring and stale-conversation result fix.
+- Require exact-source host, ARM64 and packaging gates plus Marketplace readback; model-task improvement and automatic promotion are not established.
+
 ## [0.4.200] - Rewind chooser anchoring (2026-11-11)
 
 - Anchor the Rewind chooser to the visible conversation panel so it stays open after a confirmation dialog closes.

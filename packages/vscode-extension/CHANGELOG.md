@@ -2,6 +2,12 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.186] - evolved CLI pairing candidate (2026-11-11)
+
+- Recommend CLI 0.166.147 for original manifest component ownership and the new source-bound 36+9 retest preparation.
+- Retain existing extension behavior and host gates; this pairing does not establish model-task improvements or automatic promotion.
+- Publish only after the CLI is public and the exact-source native host, Remote-SSH and browser checks pass.
+
 ## [0.37.185] - bounded Remote-SSH container bootstrap candidate (2026-11-10)
 
 - Retain CLI 0.166.146 pairing and the existing extension payload behavior.

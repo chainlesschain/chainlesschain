@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.147",
+      "cliVersions": ["0.166.147"],
+      "date": "2026-11-11",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Added - cc CLI 0.166.147: original manifest ownership and verified retest preparation (candidate, 2026-11-11)",
+          "body": "- Retain original file catalog/head ownership through the actual Evolution Ledger factories. Reject mixed load/CAS ports, forwarding wrappers and replaced directories without changing existing custom-backend read/write behavior or granting storage-graph/promotion authority.\n- Pair with VS Code/Open VSX 0.37.186 and JetBrains 0.4.201, both recommending CLI 0.166.147. Keep the public JetBrains 0.4.200 Rewind fix. Required child package versions remain unchanged.\n- Prepare a separately identified 36-task plus nine-first-run Volcengine round with the original task source/allocation, fixed model and budgets, explicit-output-limit preservation and publication evidence. This prepares evaluation; it does not claim new model-task results or self-evolution gains.\n- Update the Mongoose dependency lock and reject malformed or timed-out audit reports. Add a synthetic-clock native DMM overnight notification journey, with real timers and independent host verification; actual overnight wall time and installed-client acceptance remain separate.\n- Publish only after exact-source CLI CI and Strict Sandbox on all configured systems, using Actions OIDC, then IDE host matrices and public readback. Automatic promotion remains HOLD; complete business, billing and paid admission remain open."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.146",
       "cliVersions": ["0.166.146"],
       "date": "2026-11-09",

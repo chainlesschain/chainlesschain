@@ -9,8 +9,14 @@ import {
   verifyEvolutionLedgerManifestChain,
   readEvolutionLedgerManifestEvents,
 } from "./evolution-ledger-manifest-chain.js";
-import { captureEvolutionLedgerManifestHeadStore } from "./evolution-ledger-manifest-head-store.js";
-import { captureEvolutionLedgerManifestCatalog } from "./evolution-ledger-manifest-catalog.js";
+import {
+  captureEvolutionLedgerManifestHeadStore,
+  captureEvolutionLedgerManifestHeadStoreDirectoryBoundary,
+} from "./evolution-ledger-manifest-head-store.js";
+import {
+  captureEvolutionLedgerManifestCatalog,
+  captureEvolutionLedgerManifestCatalogDirectoryBoundary,
+} from "./evolution-ledger-manifest-catalog.js";
 import { captureEvolutionLedgerManifestWitnessAdapter } from "./evolution-ledger-manifest-witness-adapter.js";
 
 export const EVOLUTION_LEDGER_V2_MANIFEST_BACKEND_SCHEMA =
@@ -52,6 +58,7 @@ const APPEND_KEYS = new Set([
 ]);
 const VERIFY_KEYS = new Set();
 const BACKENDS = new WeakSet();
+const ORIGINAL_MANIFEST_COMPONENTS = new WeakMap();
 
 export class EvolutionLedgerV2ManifestBackendError extends Error {
   constructor(code, message, options = undefined) {
@@ -602,7 +609,27 @@ export function createEvolutionLedgerV2ManifestBackend(options = undefined) {
     },
   });
   BACKENDS.add(backend);
+  ORIGINAL_MANIFEST_COMPONENTS.set(backend, {
+    catalog,
+    headStore,
+    boundaries: null,
+  });
   return backend;
+}
+
+/** Local metadata only. Capturing these components does not authenticate state. */
+export function captureEvolutionLedgerV2ManifestDirectoryBoundaries(value) {
+  if (arguments.length !== 1 || !ORIGINAL_MANIFEST_COMPONENTS.has(value))
+    throw new TypeError("one original v2 manifest backend is required");
+  const components = ORIGINAL_MANIFEST_COMPONENTS.get(value);
+  const catalog = captureEvolutionLedgerManifestCatalogDirectoryBoundary(
+    components.catalog,
+  );
+  const head = captureEvolutionLedgerManifestHeadStoreDirectoryBoundary(
+    components.headStore,
+  );
+  components.boundaries ??= Object.freeze({ catalog, head });
+  return components.boundaries;
 }
 
 export function captureEvolutionLedgerV2ManifestBackend(value) {

@@ -20,6 +20,8 @@ const STATE_SCHEMA =
 const STATE_KEYS = new Set(["head", "schema"]);
 const DEFAULT_MAXIMUM_BYTES = 256 * 1024;
 const DIRECTORY_BOUNDARIES = new WeakMap();
+const LOAD_OWNERS = new WeakMap();
+const CAS_OWNERS = new WeakMap();
 
 function exactRecord(value, keys, label) {
   if (
@@ -222,7 +224,24 @@ export function createEvolutionLedgerFileManifestHeadBackend({
     backend,
     captureEvolutionManifestStateReaderDirectoryBoundary(stateReader),
   );
+  LOAD_OWNERS.set(backend.load, backend);
+  CAS_OWNERS.set(backend.compareAndSet, backend);
   return backend;
+}
+
+/** A head-store factory must retain both original ports from the same backend. */
+export function captureEvolutionLedgerFileManifestHeadPortsDirectoryBoundary(
+  load,
+  compareAndSet,
+) {
+  if (arguments.length !== 2)
+    throw new TypeError("head directory capture takes two original ports");
+  const owner = LOAD_OWNERS.get(load);
+  if (!owner || CAS_OWNERS.get(compareAndSet) !== owner)
+    throw new TypeError(
+      "original load and CAS ports from one file head backend are required",
+    );
+  return captureEvolutionLedgerFileManifestHeadDirectoryBoundary(owner);
 }
 
 /** Original local head directory only; structural wrappers are not owners. */
