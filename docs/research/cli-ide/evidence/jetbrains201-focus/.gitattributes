@@ -1,0 +1,2 @@
+# Immutable host artifacts include meaningful CRLF and label whitespace.
+*.raw -text -diff
