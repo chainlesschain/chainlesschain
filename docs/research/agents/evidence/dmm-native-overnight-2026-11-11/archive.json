@@ -1,0 +1,182 @@
+{
+  "schema": "chainlesschain.dmm-native-overnight-archive/v1",
+  "repository": "chainlesschain/chainlesschain",
+  "platform": "win32",
+  "scope": "actual Vue/IPC/native encrypted SQLite with synthetic main wall clock and real background timers",
+  "realOvernightWallTimeAcceptance": false,
+  "realBusinessAcceptance": false,
+  "installedProductAcceptance": false,
+  "newModelRequests": 0,
+  "runs": [
+    {
+      "label": "first-failure",
+      "sourceCommit": "b2da49fb3b7cef405b1b62e04d4197fe4a03e676",
+      "runId": 42956915425,
+      "runAttempt": 1,
+      "artifactId": 13827867107,
+      "artifactDigest": "sha256:4a104a82a6a7bdc3e2ef525cb8d082c704d9a8dbfc8c9decfd92759e63e4952f",
+      "artifactBytes": 99090,
+      "status": "failed",
+      "sourceBindings": [
+        {
+          "path": "desktop-app-vue/scripts/project-goal-native-journey.mjs",
+          "digest": "sha256:c45bc0f8b404c89a463eb3b16d12c68652989943edd320d72518f404a8815d5f",
+          "reportField": "runnerSha256"
+        },
+        {
+          "path": "desktop-app-vue/scripts/lib/project-goal-native-dialog.cjs",
+          "digest": "sha256:618d498d3d09d863b4f4d4964e987a280effc20c49e87129e7df95d5635d9c94",
+          "reportField": "nativeDialogHelperSha256"
+        },
+        {
+          "path": "desktop-app-vue/scripts/lib/project-goal-journey-clock.cjs",
+          "digest": "sha256:98949cb0cc795fe69e37e1cfbacf641de89d00948b136438b2c3746a02339631",
+          "reportField": "clockHelperSha256"
+        },
+        {
+          "path": "desktop-app-vue/scripts/lib/project-goal-overnight-journey.cjs",
+          "digest": "sha256:0e75dfa24c023aaa635db79227df830737f6b3ceb88a27c79d1ff37428b4feca",
+          "reportField": "overnightHelperSha256"
+        },
+        {
+          "path": "desktop-app-vue/src/main/task/project-goal-native-database.js",
+          "digest": "sha256:932fc6473e599b7450fcd0cb9aebbb9eb0f13a650a79d88567984d19a3ca9338",
+          "reportField": "preflight.sources"
+        },
+        {
+          "path": "desktop-app-vue/src/main/task/project-goal-ipc.js",
+          "digest": "sha256:8ce12028df94f0d9dd1cd2055b4da4118234944ba0a8ed2426ba11af5b977f35",
+          "reportField": "preflight.sources"
+        },
+        {
+          "path": "desktop-app-vue/src/main/task/project-goal-monitoring-host.js",
+          "digest": "sha256:61c676d641a2abb0c1e4613d0fe1bdf6e8c3e77ab71c944cfd0ab3a6455f45d7",
+          "reportField": "preflight.sources"
+        },
+        {
+          "path": "desktop-app-vue/src/main/database/sqlcipher-wrapper.js",
+          "digest": "sha256:5f50415f97b7080af43d0c8641fcadc50af2f651d62414ba1974ac3b4ba6fa66",
+          "reportField": "preflight.sources"
+        },
+        {
+          "path": "desktop-app-vue/src/main/task/__tests__/fixtures/project-goal-encrypted-electron.cjs",
+          "digest": "sha256:a74be0770e129a2991b8ac2ffd808925ca0053fdbb0c483e722068668d382021",
+          "reportField": "preflight.sources"
+        },
+        {
+          "path": "desktop-app-vue/scripts/project-goal-encrypted-electron-probe.mjs",
+          "digest": "sha256:890ee4a950d33eb9678287cf8660b8a5a6e26e2e8a478c5f5be57cc5eebceb91",
+          "reportField": "preflight.sources"
+        }
+      ],
+      "files": [
+        {
+          "path": "first-failure.failure.png",
+          "originalMember": "dmm-native-goal-overnight/failure.png",
+          "digest": "sha256:062825c90ed053a47cba41a3e0f6fcd4e4cfa5b67b71609ce6f435f83db6ee1e",
+          "bytes": 96285
+        },
+        {
+          "path": "first-failure.journey.json.raw",
+          "originalMember": "dmm-native-goal-overnight/journey.json",
+          "digest": "sha256:d3a89bcc5d00697658a8ca64b9ecec47c2ad2f060ab955f29613c75764c8391f",
+          "bytes": 21091
+        },
+        {
+          "path": "first-failure.encrypted-preflight.json.raw",
+          "originalMember": "dmm-encrypted-goal-preflight.json",
+          "digest": "sha256:c906fd74dc39d11d983436d52168c3f216260fffeacf4b391ba06865a1fd42aa",
+          "bytes": 3057
+        }
+      ]
+    },
+    {
+      "label": "passed",
+      "sourceCommit": "32451e4d568e414acdb9c956208e5cff827cd6e0",
+      "runId": 42959022161,
+      "runAttempt": 1,
+      "artifactId": 13828663504,
+      "artifactDigest": "sha256:c5a79a1434be0355700480d865bb43f651c7031b5c9c3341f0b17a2105ac018b",
+      "artifactBytes": 174807,
+      "status": "passed",
+      "sourceBindings": [
+        {
+          "path": "desktop-app-vue/scripts/project-goal-native-journey.mjs",
+          "digest": "sha256:0eab3649520040e15e45705e50219388241ae73348a15fd81eab6df12847e946",
+          "reportField": "runnerSha256"
+        },
+        {
+          "path": "desktop-app-vue/scripts/lib/project-goal-native-dialog.cjs",
+          "digest": "sha256:618d498d3d09d863b4f4d4964e987a280effc20c49e87129e7df95d5635d9c94",
+          "reportField": "nativeDialogHelperSha256"
+        },
+        {
+          "path": "desktop-app-vue/scripts/lib/project-goal-journey-clock.cjs",
+          "digest": "sha256:98949cb0cc795fe69e37e1cfbacf641de89d00948b136438b2c3746a02339631",
+          "reportField": "clockHelperSha256"
+        },
+        {
+          "path": "desktop-app-vue/scripts/lib/project-goal-overnight-journey.cjs",
+          "digest": "sha256:9cbacfefc6b5c0e6edd4fd3a55591bb25f5fd75fb1977999c1a68ca9b77948dd",
+          "reportField": "overnightHelperSha256"
+        },
+        {
+          "path": "desktop-app-vue/src/main/task/project-goal-native-database.js",
+          "digest": "sha256:932fc6473e599b7450fcd0cb9aebbb9eb0f13a650a79d88567984d19a3ca9338",
+          "reportField": "preflight.sources"
+        },
+        {
+          "path": "desktop-app-vue/src/main/task/project-goal-ipc.js",
+          "digest": "sha256:8ce12028df94f0d9dd1cd2055b4da4118234944ba0a8ed2426ba11af5b977f35",
+          "reportField": "preflight.sources"
+        },
+        {
+          "path": "desktop-app-vue/src/main/task/project-goal-monitoring-host.js",
+          "digest": "sha256:61c676d641a2abb0c1e4613d0fe1bdf6e8c3e77ab71c944cfd0ab3a6455f45d7",
+          "reportField": "preflight.sources"
+        },
+        {
+          "path": "desktop-app-vue/src/main/database/sqlcipher-wrapper.js",
+          "digest": "sha256:5f50415f97b7080af43d0c8641fcadc50af2f651d62414ba1974ac3b4ba6fa66",
+          "reportField": "preflight.sources"
+        },
+        {
+          "path": "desktop-app-vue/src/main/task/__tests__/fixtures/project-goal-encrypted-electron.cjs",
+          "digest": "sha256:a74be0770e129a2991b8ac2ffd808925ca0053fdbb0c483e722068668d382021",
+          "reportField": "preflight.sources"
+        },
+        {
+          "path": "desktop-app-vue/scripts/project-goal-encrypted-electron-probe.mjs",
+          "digest": "sha256:890ee4a950d33eb9678287cf8660b8a5a6e26e2e8a478c5f5be57cc5eebceb91",
+          "reportField": "preflight.sources"
+        }
+      ],
+      "files": [
+        {
+          "path": "passed.journey.json.raw",
+          "originalMember": "dmm-native-goal-overnight/journey.json",
+          "digest": "sha256:ba482cf99ede0d90f7ea3c7ced392de797de2a9139fca52437cdec0aba1a270c",
+          "bytes": 24647
+        },
+        {
+          "path": "passed.overnight-quiet-pending.png",
+          "originalMember": "dmm-native-goal-overnight/overnight-quiet-pending.png",
+          "digest": "sha256:1c4567a36875089da7a287d6c3c019406b1a8e579b3031ca83c8ceaf3782122d",
+          "bytes": 96291
+        },
+        {
+          "path": "passed.overnight-delivered-read-and-authorized-link.png",
+          "originalMember": "dmm-native-goal-overnight/overnight-delivered-read-and-authorized-link.png",
+          "digest": "sha256:e473e2b05041ee3a94d60057b3530e128366cc1f8b53fdd79c283f5a9318b020",
+          "bytes": 77753
+        },
+        {
+          "path": "passed.encrypted-preflight.json.raw",
+          "originalMember": "dmm-encrypted-goal-preflight.json",
+          "digest": "sha256:ae65fc0677d8ec8f5b5b93e79cf465b8b1f9f4fffaaf56f359441608f6d394c2",
+          "bytes": 3057
+        }
+      ]
+    }
+  ]
+}
