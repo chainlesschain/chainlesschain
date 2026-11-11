@@ -1,0 +1,27 @@
+{
+  "schema": "chainlesschain.ide-host-recovery-aggregate.v1",
+  "releaseCommit": "817903715360d762cdc9521ea81fbd6c04a61c77",
+  "exactCommitBound": true,
+  "requiredCells": [
+    "wsl",
+    "devcontainer",
+    "ssh"
+  ],
+  "cells": [
+    {
+      "transport": "wsl",
+      "manifestDigest": "sha256:1cfa7249fe8ac1216bc8645fc18c0375088ebd9e5e7f6f2743e6ed7228dca365",
+      "outcomeDigest": "sha256:86d71531e68ca0a009648d275413535c40758bf94f151644aa1d4f98a71e1424"
+    },
+    {
+      "transport": "devcontainer",
+      "manifestDigest": "sha256:9e72a72c015580f4bb9ed575ee65046cf1403575fa589ba45e46adda6ebc83e0",
+      "outcomeDigest": "sha256:fd091c09935bceefa58c8562d0fe0d0a1b5ff50ef738475920c6e0d96e7dbb80"
+    },
+    {
+      "transport": "ssh",
+      "manifestDigest": "sha256:2ffbb34e6e71584ac990d861a4945d03e73af261c39b25ba2236fb922c45e89e",
+      "outcomeDigest": "sha256:43d93eddc22051d3b8fc8dce89fd1de154df7a590c6cef893ea15878a914505b"
+    }
+  ]
+}

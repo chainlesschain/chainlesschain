@@ -13,6 +13,16 @@ CLI **0.166.147 已公开**。准确源码 `32451e4d568e414acdb9c956208e5cff827c
 
 公开 tarball 为 **9,628,979 字节**，SHA-256 为 `2d933c68e6053d9de21a16c2d2c4e245d964d957ce9663958419b8061e9969b2`。npm 审核的来源绑定固定标签、上述源码、正式运行及第 1 次 attempt，签名审核 invalid/missing 均为 0。三个 `.json.raw` 文件保留回读产物的原始成员字节，文件摘要见 [publication.json](./publication.json)。这些证据不依赖 npm metadata 是否含 `gitHead`。
 
-Open VSX **0.37.186** / JetBrains **0.4.201** 当前均**尚未发布**。旧源 `c3ac7485b` 的两次 ARM64 菜单失败保留；焦点修正 `674593a1b` 的完整 ARM64 11/11 及普通六个 JetBrains 宿主通过，但普通浏览器/SSH 依赖安装遇到 DNS 故障。当前验证候选为 `703b22e895bff2c0f40cd7f350aef0757dc3bdd5`：加入普通 runner HTTPS 解析与有界 stdin 权限交接，定向 53/53、标准单元 353/353 及托管 Linux 三个安装/加载阶段通过，完整新源门禁仍待完成。详见[焦点证据](../../../cli-ide/evidence/jetbrains201-focus/README.md)与[下载/解析修复](../../../cli-ide/evidence/ide201-infrastructure/README.md)。当前公开 IDE **0.37.185 / 0.4.200** 仍推荐 CLI **0.166.146**。
+Open VSX 0.37.186：已公开并核验；JetBrains 0.4.201：官方发行中，公开回读未完成。准确源 `703b22e89` 的 IDE 18 成功/1 项发布后条件跳过、ARM64 11/11、无障碍 4/4、桌面 E2E 4/4、质量 8 成功/2 项条件跳过及进程恢复 2/2 全部完成；两个正式标签均绑定该源。旧源码两次菜单失败、Ubuntu DNS/权限交接/ARM64 ports 失败及 Windows CIM 观测失败保持原样。详见[焦点证据](../../../cli-ide/evidence/jetbrains201-focus/README.md)与[下载/解析修复](../../../cli-ide/evidence/ide201-infrastructure/README.md)。
 
 本批自进化仅推进原 manifest 组件所有权，自动晋级仍 HOLD。受控时钟原生跨夜已通过，不代表真实整夜、已安装客户端或独立业务验收。36+9 仍为 **PREPARED_NOT_RUN**，本次归档没有模型请求或新的完成率成绩；移动/PC、Microsoft Marketplace、账单及付费准入仍保留各自条件。
+
+## 2026-11-12 IDE 正式标签与公开回读
+
+| 渠道                  | 正式工作流                                                                                                       | 实际状态                                            |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| Open VSX 0.37.186     | [43072205009](https://github.com/chainlesschain/chainlesschain/actions/runs/43072205009)，11 成功 / 3 项条件跳过 | 已公开，771,301 字节，与不可变候选逐字节一致        |
+| JetBrains 0.4.201     | [43072220080](https://github.com/chainlesschain/chainlesschain/actions/runs/43072220080)                         | 正式标签工作流仍在运行，尚未核验上传                |
+| Microsoft Marketplace | 本次 Open VSX 标签工作流的发布和回读步骤均按条件跳过                                                             | 需单独的准确标签补发；仓库密钥元数据未配置 VSCE_PAT |
+
+Open VSX VSIX 的 SHA-256 为 `3b8579bf23e6ae5f52c11d1e685e16955487f382a16e13b3dc7af805c1f4c83f`，推荐 CLI 0.166.147。[公开下载](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.186/file/chainlesschain.chainlesschain-ide-0.37.186.vsix)及[生成的回读核验结果](./vscode186-public-readback.json)可复核。`vscode186-candidate-manifest.json.raw` 保留 714 字节的原始托管成员，外层制品 ID 13882992414、原始 ZIP 摘要和内部 VSIX 摘要记录在 publication.json；生成的回读结果与原始成员明确区分。

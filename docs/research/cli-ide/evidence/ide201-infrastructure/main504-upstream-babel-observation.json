@@ -1,0 +1,47 @@
+{
+  "kind": "generated-registry-metadata-and-HEAD-observation",
+  "observedAt": "2026-11-11T20:02:01.699184+00:00",
+  "failedRunId": 43083563555,
+  "failedJobId": 130756329443,
+  "lastEtargetAt": "2026-11-11T19:54:22.9024583Z",
+  "packages": [
+    {
+      "package": "@babel/generator",
+      "version": "7.29.14",
+      "publishedAt": "2026-11-11T19:53:05.027Z",
+      "dependencies": {
+        "jsesc": "^3.0.2",
+        "@babel/types": "^7.29.14",
+        "@babel/parser": "^7.29.14",
+        "@jridgewell/gen-mapping": "^0.3.12",
+        "@jridgewell/trace-mapping": "^0.3.28"
+      },
+      "tarball": "https://registry.npmjs.org/@babel/generator/-/generator-7.29.14.tgz",
+      "tarballHeadStatus": 200,
+      "integrity": "sha512-qSY56jgW5JnSXzuekLVil6zaOQxOCtOHidr65KkaMBw772IuAY28Qx4ZykAcDn8+FRF15qk80XzKwgSc/RYW6g=="
+    },
+    {
+      "package": "@babel/parser",
+      "version": "7.29.14",
+      "publishedAt": "2026-11-11T19:54:23.671Z",
+      "dependencies": {
+        "@babel/types": "^7.29.14"
+      },
+      "tarball": "https://registry.npmjs.org/@babel/parser/-/parser-7.29.14.tgz",
+      "tarballHeadStatus": 200,
+      "integrity": "sha512-VL220vXuyO2z3rNIQwY7ftj9UwpqOt+33sH+sBWkOekbsSR2g7EEMnOx24ZlCH0xOA3DM/33SifVFGbnJD8r/w=="
+    },
+    {
+      "package": "@babel/types",
+      "version": "7.29.14",
+      "publishedAt": "2026-11-11T19:55:50.462Z",
+      "dependencies": {
+        "@babel/helper-string-parser": "^7.29.14",
+        "@babel/helper-validator-identifier": "^7.29.7"
+      },
+      "tarball": "https://registry.npmjs.org/@babel/types/-/types-7.29.14.tgz",
+      "tarballHeadStatus": 200,
+      "integrity": "sha512-UjI/dKmwJwT9pOszJitq2G6EObZPnsZUfdCr92z2TlF3EZK9J3EdfOKUrCzHl6wFthbzwhzl1Soc/UIwxRiq6w=="
+    }
+  ]
+}

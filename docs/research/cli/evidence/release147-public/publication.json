@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "checkedAt": "2026-11-11T13:51:58.654Z",
+  "checkedAt": "2026-11-11T19:29:00.463686+00:00",
   "source": "32451e4d568e414acdb9c956208e5cff827cd6e0",
   "cli": {
     "version": "0.166.147",
@@ -34,12 +34,47 @@
     "vscode": {
       "version": "0.37.186",
       "source": "703b22e895bff2c0f40cd7f350aef0757dc3bdd5",
-      "status": "candidate-not-published"
+      "status": "verified-public",
+      "tag": "ide-vscode-v0.37.186",
+      "runId": 43072205009,
+      "annotatedTagSha": "7747ebf6b4fa60f879ba911196711a3bd979a61c",
+      "officialWorkflowConclusion": "success",
+      "observedAt": "2026-11-11T19:29:00.463686+00:00",
+      "publicRegistryBytesVerified": true,
+      "byteIdentical": true,
+      "sha256": "3b8579bf23e6ae5f52c11d1e685e16955487f382a16e13b3dc7af805c1f4c83f",
+      "bytes": 771301,
+      "recommendedCliVersion": "0.166.147",
+      "downloadUrl": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.186/file/chainlesschain.chainlesschain-ide-0.37.186.vsix",
+      "officialArtifact": {
+        "runId": 43072205009,
+        "artifactId": 13882992414,
+        "artifactName": "chainlesschain-ide-vscode-candidate",
+        "artifactDigest": "sha256:08497f765acc6b9d56e414214f327dccc6829b62b0a564d70887caf6c9ad64ab",
+        "artifactBytes": 754348,
+        "sourceCommit": "703b22e895bff2c0f40cd7f350aef0757dc3bdd5",
+        "workflowConclusion": "success",
+        "file": "chainlesschain-ide.vsix",
+        "payloadDigest": "sha256:3b8579bf23e6ae5f52c11d1e685e16955487f382a16e13b3dc7af805c1f4c83f",
+        "payloadBytes": 771301,
+        "manifestBytes": 714,
+        "manifestDigest": "sha256:6d310a98aeafec634cf9cd9fbe968b012b69296c50819cab02534e3d4dcaf1a3"
+      },
+      "microsoftMarketplace": {
+        "status": "not-published-by-this-run",
+        "publishStepConclusion": "skipped",
+        "verificationStepConclusion": "skipped",
+        "reason": "Official tag push publishes Open VSX. Microsoft Marketplace requires an explicit exact-tag workflow_dispatch and VSCE_PAT; repository secret metadata has no VSCE_PAT."
+      }
     },
     "jetbrains": {
       "version": "0.4.201",
       "source": "703b22e895bff2c0f40cd7f350aef0757dc3bdd5",
-      "status": "candidate-not-published"
+      "status": "publishing",
+      "tag": "ide-jetbrains-v0.4.201",
+      "runId": 43072220080,
+      "annotatedTagSha": "877da0558092d1e47fdf58cdbe10c97b934b7189",
+      "officialWorkflowConclusion": null
     }
   },
   "rawReadbackFiles": [
@@ -57,6 +92,11 @@
       "path": "chainlesschain-release.json.raw",
       "bytes": 2610,
       "digest": "sha256:425618ba41fc42c0199ab72984159bfa99f70395fc17982bb8714a4dc29f2505"
+    },
+    {
+      "path": "vscode186-candidate-manifest.json.raw",
+      "bytes": 714,
+      "digest": "sha256:6d310a98aeafec634cf9cd9fbe968b012b69296c50819cab02534e3d4dcaf1a3"
     }
   ],
   "readbackArtifact": {
@@ -78,19 +118,20 @@
       "accessibility": 43061797894,
       "quality": 43061798091,
       "e2e": 43061797961,
-      "processRecovery": 43061798050
+      "processRecovery": 43061798050,
+      "generalCi": 43061798082
     },
-    "nativeAcceptance": "pending-new-source-gates",
+    "nativeAcceptance": "complete-exact-source-host-gates-passed",
     "arm64Validation": {
-      "runId": 43039429061,
+      "runId": 43061798113,
       "attempt": 1,
-      "source": "674593a1bb21a68d33b56dc0cb6ed420212143a2",
+      "source": "703b22e895bff2c0f40cd7f350aef0757dc3bdd5",
       "passed": 11,
       "total": 11,
       "conclusion": "success"
     },
     "ideWorkflowAttempt": 1,
-    "ideWorkflowConclusion": null,
+    "ideWorkflowConclusion": "success",
     "firstAttemptInfraFailures": {
       "runId": 43039428960,
       "attempt": 1,
@@ -102,6 +143,242 @@
     },
     "focusCandidate": "674593a1bb21a68d33b56dc0cb6ed420212143a2",
     "dnsRepairEvidence": "docs/research/cli-ide/evidence/ide201-infrastructure/receipt.json",
-    "updatedAt": "2026-11-11T16:59:59.556749+00:00"
+    "updatedAt": "2026-11-11T16:59:59.556749+00:00",
+    "focusSourceArm64Validation": {
+      "runId": 43039429061,
+      "attempt": 1,
+      "source": "674593a1bb21a68d33b56dc0cb6ed420212143a2",
+      "passed": 11,
+      "total": 11,
+      "conclusion": "success"
+    },
+    "ideMatrix": {
+      "sourceCommit": "703b22e895bff2c0f40cd7f350aef0757dc3bdd5",
+      "runId": 43061798017,
+      "attempt": 1,
+      "conclusion": "success",
+      "passed": 18,
+      "skipped": 1,
+      "total": 19,
+      "jobs": [
+        {
+          "id": 130666283551,
+          "name": "Public IDE capability manifest (drift gate)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T16:54:21Z"
+        },
+        {
+          "id": 130669912550,
+          "name": "VS Code extension (immutable candidate)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:21:32Z"
+        },
+        {
+          "id": 130669912567,
+          "name": "JetBrains real host (windows-latest, 2025.2)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:14:57Z"
+        },
+        {
+          "id": 130669912576,
+          "name": "JetBrains real host (windows-latest, 2024.2)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:28:50Z"
+        },
+        {
+          "id": 130669912577,
+          "name": "JetBrains real host (macos-latest, 2025.2)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:25:50Z"
+        },
+        {
+          "id": 130669912578,
+          "name": "Browser evidence (windows)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:18:27Z"
+        },
+        {
+          "id": 130669912590,
+          "name": "Browser evidence (linux)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:00:09Z"
+        },
+        {
+          "id": 130669912591,
+          "name": "JetBrains real host (ubuntu-latest, 2024.2)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:13:31Z"
+        },
+        {
+          "id": 130669912592,
+          "name": "JetBrains real host (macos-latest, 2024.2)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:43:32Z"
+        },
+        {
+          "id": 130669912627,
+          "name": "JetBrains real host (ubuntu-latest, 2025.2)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:10:21Z"
+        },
+        {
+          "id": 130669912629,
+          "name": "Browser evidence (macos)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:04:06Z"
+        },
+        {
+          "id": 130684038776,
+          "name": "Browser evidence (three-OS required aggregate)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:28:06Z"
+        },
+        {
+          "id": 130685826932,
+          "name": "VS Code extension (macOS host gate)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:36:18Z"
+        },
+        {
+          "id": 130685827029,
+          "name": "VS Code Remote-SSH container (scoped trusted cell)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:29:02Z"
+        },
+        {
+          "id": 130685827090,
+          "name": "VS Code extension (Windows host gate)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:27:01Z"
+        },
+        {
+          "id": 130690098224,
+          "name": "IDE roadmap evidence (trusted scoped aggregate)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:29:47Z"
+        },
+        {
+          "id": 130694171645,
+          "name": "VS Code extension (Linux host gate + publish)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:44:44Z"
+        },
+        {
+          "id": 130698189039,
+          "name": "JetBrains plugin (build + publish)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:49:45Z"
+        },
+        {
+          "id": 130701699608,
+          "name": "JetBrains Marketplace (post-publish verification)",
+          "conclusion": "skipped",
+          "completed_at": "2026-11-11T17:49:45Z"
+        }
+      ]
+    },
+    "generalCi": {
+      "name": "CI Tests",
+      "runId": 43061798082,
+      "sourceCommit": "703b22e895bff2c0f40cd7f350aef0757dc3bdd5",
+      "attempt": 1,
+      "conclusion": "success",
+      "pullRequest": 605,
+      "passed": 14,
+      "skipped": 1,
+      "total": 15,
+      "jobs": [
+        {
+          "id": 130666288888,
+          "name": "Scoped documentation check / Detect and validate scoped documentation",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:03:46Z"
+        },
+        {
+          "id": 130675434325,
+          "name": "Build Check (ubuntu-latest)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:19:25Z"
+        },
+        {
+          "id": 130675434387,
+          "name": "Build Check (windows-2022)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:14:30Z"
+        },
+        {
+          "id": 130675434410,
+          "name": "Backend model-egress and real startup regressions",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:28:58Z"
+        },
+        {
+          "id": 130675434445,
+          "name": "Code Quality",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:28:17Z"
+        },
+        {
+          "id": 130675434497,
+          "name": "Database Tests",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:30:50Z"
+        },
+        {
+          "id": 130675434565,
+          "name": "Unit Tests (ubuntu-latest, 22.x)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:40:19Z"
+        },
+        {
+          "id": 130675434568,
+          "name": "CLI Global Install Smoke (macos-latest)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:28:32Z"
+        },
+        {
+          "id": 130675434585,
+          "name": "PDH Data Hub Tests (ubuntu-latest)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:30:05Z"
+        },
+        {
+          "id": 130675434608,
+          "name": "Unit Tests (windows-latest, 22.x)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:36:47Z"
+        },
+        {
+          "id": 130675434641,
+          "name": "PDH Data Hub Tests (windows-latest)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:20:43Z"
+        },
+        {
+          "id": 130675434679,
+          "name": "CLI Global Install Smoke (ubuntu-latest)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:28:56Z"
+        },
+        {
+          "id": 130675434734,
+          "name": "CLI Global Install Smoke (windows-latest)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:17:29Z"
+        },
+        {
+          "id": 130675434799,
+          "name": "Unit Tests (macos-latest, 22.x)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T18:51:55Z"
+        },
+        {
+          "id": 130675438106,
+          "name": "Full Test Suite",
+          "conclusion": "skipped",
+          "completed_at": "2026-11-11T17:03:47Z"
+        }
+      ]
+    }
   }
 }

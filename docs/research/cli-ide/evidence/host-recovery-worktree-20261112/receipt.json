@@ -1,0 +1,221 @@
+{
+  "schema": "chainlesschain.ide-worktree-recovery-fix/v1",
+  "sourceCommit": "817903715360d762cdc9521ea81fbd6c04a61c77",
+  "pr": 608,
+  "workflowRunId": 43072452004,
+  "workflowConclusion": "success",
+  "jobsPassed": 4,
+  "jobsTotal": 4,
+  "requiredTransports": ["wsl", "devcontainer", "ssh"],
+  "originalHostedMembers": 25,
+  "artifacts": [
+    {
+      "transport": "aggregate",
+      "artifactId": 13879960824,
+      "artifactBytes": 654,
+      "artifactDigest": "sha256:2915e1e0140fcaeb0e67adf580d558c1dbf29fad8477b85afba7ecad5963d07e",
+      "files": [
+        {
+          "path": "aggregate.host-recovery-aggregate.json.raw",
+          "bytes": 953,
+          "digest": "sha256:5ecb90acc02d4bec886d7607c98b2155068bd9fb5ec890c6f8b300463da1a092",
+          "originalMember": "host-recovery-aggregate.json"
+        }
+      ]
+    },
+    {
+      "transport": "wsl",
+      "artifactId": 13880165496,
+      "artifactBytes": 2991,
+      "artifactDigest": "sha256:26f8f83e5484f711f79545dffed8ceb508963543b0ccc2761de186b7b36fb4d4",
+      "files": [
+        {
+          "path": "wsl.bridge-restart.json.raw",
+          "bytes": 370,
+          "digest": "sha256:5665ab29a656521a30140b0ce9e06fa7556ffb43f2617a23dd878068747df551",
+          "originalMember": "bridge-restart.json"
+        },
+        {
+          "path": "wsl.candidate-digests.json.raw",
+          "bytes": 244,
+          "digest": "sha256:b817dcbeabb0efb70e120032f8d68820d77b6b30639e9d80ffd1682b85add917",
+          "originalMember": "candidate-digests.json"
+        },
+        {
+          "path": "wsl.exact-commit.json.raw",
+          "bytes": 174,
+          "digest": "sha256:b25187536673eb42151dabe8cc0c8026f472fa038cdbf2322e5b5ca7833413cb",
+          "originalMember": "exact-commit.json"
+        },
+        {
+          "path": "wsl.host-environment.json.raw",
+          "bytes": 453,
+          "digest": "sha256:cf8db826cf583680acb402cf2e3c32bebb805018db545220ecb379edfdc236c3",
+          "originalMember": "host-environment.json"
+        },
+        {
+          "path": "wsl.manifest.json.raw",
+          "bytes": 915,
+          "digest": "sha256:1cfa7249fe8ac1216bc8645fc18c0375088ebd9e5e7f6f2743e6ed7228dca365",
+          "originalMember": "manifest.json"
+        },
+        {
+          "path": "wsl.network-fault.json.raw",
+          "bytes": 138,
+          "digest": "sha256:00e9f6cc383e40d169a58724bbfb114449355235b765ca2c56d5ab3aba12a5b1",
+          "originalMember": "network-fault.json"
+        },
+        {
+          "path": "wsl.outcome-observations.json.raw",
+          "bytes": 643,
+          "digest": "sha256:86d71531e68ca0a009648d275413535c40758bf94f151644aa1d4f98a71e1424",
+          "originalMember": "outcome-observations.json"
+        },
+        {
+          "path": "wsl.redacted-diagnostics.json.raw",
+          "bytes": 196,
+          "digest": "sha256:ca0f0c10a7f948ad6b3ed5362d3a8f24e9c6f5d8f0a9a59919cb78dffe010b3b",
+          "originalMember": "redacted-diagnostics.json"
+        }
+      ]
+    },
+    {
+      "transport": "ssh",
+      "artifactId": 13878737649,
+      "artifactBytes": 3098,
+      "artifactDigest": "sha256:47fbe934b1db45d4abce933e5b1ed927b669b5b45c150939367477f8ba0f22a7",
+      "files": [
+        {
+          "path": "ssh.bridge-restart.json.raw",
+          "bytes": 370,
+          "digest": "sha256:5665ab29a656521a30140b0ce9e06fa7556ffb43f2617a23dd878068747df551",
+          "originalMember": "bridge-restart.json"
+        },
+        {
+          "path": "ssh.candidate-digests.json.raw",
+          "bytes": 244,
+          "digest": "sha256:b817dcbeabb0efb70e120032f8d68820d77b6b30639e9d80ffd1682b85add917",
+          "originalMember": "candidate-digests.json"
+        },
+        {
+          "path": "ssh.exact-commit.json.raw",
+          "bytes": 174,
+          "digest": "sha256:b25187536673eb42151dabe8cc0c8026f472fa038cdbf2322e5b5ca7833413cb",
+          "originalMember": "exact-commit.json"
+        },
+        {
+          "path": "ssh.host-environment.json.raw",
+          "bytes": 581,
+          "digest": "sha256:faa2c1e6b659081d5b172e1678e9554992f8e50729dfc11ce1950a81c4b0fa8a",
+          "originalMember": "host-environment.json"
+        },
+        {
+          "path": "ssh.manifest.json.raw",
+          "bytes": 915,
+          "digest": "sha256:2ffbb34e6e71584ac990d861a4945d03e73af261c39b25ba2236fb922c45e89e",
+          "originalMember": "manifest.json"
+        },
+        {
+          "path": "ssh.network-fault.json.raw",
+          "bytes": 138,
+          "digest": "sha256:00e9f6cc383e40d169a58724bbfb114449355235b765ca2c56d5ab3aba12a5b1",
+          "originalMember": "network-fault.json"
+        },
+        {
+          "path": "ssh.outcome-observations.json.raw",
+          "bytes": 643,
+          "digest": "sha256:43d93eddc22051d3b8fc8dce89fd1de154df7a590c6cef893ea15878a914505b",
+          "originalMember": "outcome-observations.json"
+        },
+        {
+          "path": "ssh.redacted-diagnostics.json.raw",
+          "bytes": 196,
+          "digest": "sha256:ca0f0c10a7f948ad6b3ed5362d3a8f24e9c6f5d8f0a9a59919cb78dffe010b3b",
+          "originalMember": "redacted-diagnostics.json"
+        }
+      ]
+    },
+    {
+      "transport": "devcontainer",
+      "artifactId": 13878412664,
+      "artifactBytes": 3056,
+      "artifactDigest": "sha256:643f7aa3f62d6f098f165e544a2eafcf01e344ecdad1b3bba370b57be61f453b",
+      "files": [
+        {
+          "path": "devcontainer.bridge-restart.json.raw",
+          "bytes": 370,
+          "digest": "sha256:5665ab29a656521a30140b0ce9e06fa7556ffb43f2617a23dd878068747df551",
+          "originalMember": "bridge-restart.json"
+        },
+        {
+          "path": "devcontainer.exact-commit.json.raw",
+          "bytes": 174,
+          "digest": "sha256:b25187536673eb42151dabe8cc0c8026f472fa038cdbf2322e5b5ca7833413cb",
+          "originalMember": "exact-commit.json"
+        },
+        {
+          "path": "devcontainer.candidate-digests.json.raw",
+          "bytes": 244,
+          "digest": "sha256:b817dcbeabb0efb70e120032f8d68820d77b6b30639e9d80ffd1682b85add917",
+          "originalMember": "candidate-digests.json"
+        },
+        {
+          "path": "devcontainer.host-environment.json.raw",
+          "bytes": 521,
+          "digest": "sha256:97a318a480c3a3357350abb61e7434d8b857b87369ca64ec9b9a97466f7caf30",
+          "originalMember": "host-environment.json"
+        },
+        {
+          "path": "devcontainer.manifest.json.raw",
+          "bytes": 915,
+          "digest": "sha256:9e72a72c015580f4bb9ed575ee65046cf1403575fa589ba45e46adda6ebc83e0",
+          "originalMember": "manifest.json"
+        },
+        {
+          "path": "devcontainer.network-fault.json.raw",
+          "bytes": 138,
+          "digest": "sha256:00e9f6cc383e40d169a58724bbfb114449355235b765ca2c56d5ab3aba12a5b1",
+          "originalMember": "network-fault.json"
+        },
+        {
+          "path": "devcontainer.outcome-observations.json.raw",
+          "bytes": 670,
+          "digest": "sha256:fd091c09935bceefa58c8562d0fe0d0a1b5ff50ef738475920c6e0d96e7dbb80",
+          "originalMember": "outcome-observations.json"
+        },
+        {
+          "path": "devcontainer.redacted-diagnostics.json.raw",
+          "bytes": 196,
+          "digest": "sha256:ca0f0c10a7f948ad6b3ed5362d3a8f24e9c6f5d8f0a9a59919cb78dffe010b3b",
+          "originalMember": "redacted-diagnostics.json"
+        }
+      ]
+    }
+  ],
+  "localReplay": {
+    "path": "local-replay.json.raw",
+    "bytes": 779,
+    "digest": "sha256:ea6f77265e4e90b65b510e0502be0e6a6966715e0e82e95eecdb44f3d1f15f01",
+    "representation": "Local Node replay receipt, UTF-8/LF; separate from hosted original artifact members"
+  },
+  "sourceBindings": [
+    {
+      "path": "packages/vscode-extension/test/host-recovery-matrix/run.cjs",
+      "digest": "sha256:a0f5310d1d088eed1427998ce7f53a54ed9dfe60f6492337f1640e2731f4eb43"
+    },
+    {
+      "path": "packages/vscode-extension/test/host-recovery-matrix.test.cjs",
+      "digest": "sha256:a866b4741d68956f15a53bfd1b60f32c10ce77e97e18d75c0faf09a996c1200d"
+    }
+  ],
+  "localTests": {
+    "recovery": 4,
+    "standardVscode": 353,
+    "expandedVscode": 387,
+    "nodeVersion": "24.12.0"
+  },
+  "changedFilesExcludedFromVsix": true,
+  "publishedCliRuntimeChanged": false,
+  "modelGenerationRequests": 0,
+  "scope": "Git metadata and actual bridge-source process recovery; separate from public plugin installation, model generation and the original full45 campaign"
+}
