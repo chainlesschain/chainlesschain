@@ -1,0 +1,1 @@
+{"durableSequence":2,"initialGeneration":1,"phases":["environment-attested","unauthorized-request-denied","initial-bridge-connected","durable-checkpoint-1","network-disconnect-survived","bridge-process-killed","old-listener-unreachable","bridge-process-restarted","durable-checkpoint-2"],"recoveredGeneration":2,"schema":"chainlesschain.ide-bridge-restart-evidence.v1"}

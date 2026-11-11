@@ -1,0 +1,29 @@
+{
+  "version": "0.37.186",
+  "status": "verified-public",
+  "source": "703b22e895bff2c0f40cd7f350aef0757dc3bdd5",
+  "runId": 43072205009,
+  "tag": "ide-vscode-v0.37.186",
+  "observedAt": "2026-11-11T19:29:00.463686+00:00",
+  "officialWorkflowConclusion": "success",
+  "publicRegistryBytesVerified": true,
+  "byteIdentical": true,
+  "sha256": "3b8579bf23e6ae5f52c11d1e685e16955487f382a16e13b3dc7af805c1f4c83f",
+  "bytes": 771301,
+  "recommendedCliVersion": "0.166.147",
+  "downloadUrl": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.186/file/chainlesschain.chainlesschain-ide-0.37.186.vsix",
+  "officialArtifact": {
+    "runId": 43072205009,
+    "artifactId": 13882992414,
+    "artifactName": "chainlesschain-ide-vscode-candidate",
+    "artifactDigest": "sha256:08497f765acc6b9d56e414214f327dccc6829b62b0a564d70887caf6c9ad64ab",
+    "artifactBytes": 754348,
+    "sourceCommit": "703b22e895bff2c0f40cd7f350aef0757dc3bdd5",
+    "workflowConclusion": "success",
+    "file": "chainlesschain-ide.vsix",
+    "payloadDigest": "sha256:3b8579bf23e6ae5f52c11d1e685e16955487f382a16e13b3dc7af805c1f4c83f",
+    "payloadBytes": 771301,
+    "manifestBytes": 714,
+    "manifestDigest": "sha256:6d310a98aeafec634cf9cd9fbe968b012b69296c50819cab02534e3d4dcaf1a3"
+  }
+}

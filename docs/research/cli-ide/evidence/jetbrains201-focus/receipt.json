@@ -177,9 +177,198 @@
   "releaseCandidate": {
     "sourceCommit": "703b22e895bff2c0f40cd7f350aef0757dc3bdd5",
     "pr": 605,
-    "status": "AWAITING_COMPLETE_NEW_SOURCE_GATES",
+    "status": "EXACT_SOURCE_GATES_PASSED_PUBLICATION_IN_PROGRESS",
     "ideRunId": 43061798017,
     "arm64RunId": 43061798113,
-    "unchangedFocusSourceBindingsVerified": 3
+    "unchangedFocusSourceBindingsVerified": 3,
+    "windowsArm64": {
+      "sourceCommit": "703b22e895bff2c0f40cd7f350aef0757dc3bdd5",
+      "runId": 43061798113,
+      "jobId": 130676467766,
+      "attempt": 1,
+      "artifactId": 13876378419,
+      "artifactDigest": "sha256:b6ee1c67aa1769ddbc43fbe3c65c99f49b5ed154a32d89144263c197ce70b59b",
+      "artifactBytes": 1898372,
+      "result": "passed",
+      "manifestArtifactBindingsVerified": 55,
+      "popupStages": {
+        "POPUP_SELECTED": 47,
+        "POPUP_CREATED": 12,
+        "POPUP_BEFORE_SHOWN": 12,
+        "POPUP_SHOW_RETURNED": 12,
+        "POPUP_CLOSED": 12,
+        "POPUP_CHOSEN": 12,
+        "POPUP_HANDOFF_SCHEDULED": 6,
+        "POPUP_HANDOFF_ENTERED": 6
+      },
+      "files": [
+        {
+          "path": "703.success.journey-evidence.json.raw",
+          "originalMember": "jetbrains-windows-2026.2.0.1/journey-evidence.json",
+          "digest": "sha256:392d10f2a3c24068537a6eed80f62b1ed829e1825f8ce70ace5021a70971d84a",
+          "bytes": 18608
+        },
+        {
+          "path": "703.success.IdeUiSmokeTest.xml.raw",
+          "originalMember": "jetbrains-windows-2026.2.0.1/diagnostics/049-TEST-com.chainlesschain.ide.uitest.IdeUiSmokeTest.xml",
+          "digest": "sha256:edf320187a797bb5b52c7f84d8886bb2c5f3f0a89563069430bbd6962f04dcc3",
+          "bytes": 824
+        },
+        {
+          "path": "703.success.initial-host-events.jsonl.raw",
+          "originalMember": "jetbrains-windows-2026.2.0.1/diagnostics/022-host-capture-initial_host-events.jsonl",
+          "digest": "sha256:6579531c2fe9ed88fe5fa158b9c8a538c5dec50ccfd28ab498ebce23571bb2d9",
+          "bytes": 86940
+        },
+        {
+          "path": "703.success.popup-enter-regression.json.raw",
+          "originalMember": "jetbrains-windows-2026.2.0.1/diagnostics/031-popup-enter-regression.json",
+          "digest": "sha256:c5dd4d4a40005a44fa8c46defbda1c6eedfb46f140876cc11c68c462698c6add",
+          "bytes": 196
+        }
+      ],
+      "scope": "Native deterministic fixture CLI journey; not a live model or full matrix result"
+    },
+    "arm64Matrix": {
+      "sourceCommit": "703b22e895bff2c0f40cd7f350aef0757dc3bdd5",
+      "runId": 43061798113,
+      "attempt": 1,
+      "jobsPassed": 11,
+      "jobsTotal": 11,
+      "hostEvidenceCount": 11,
+      "artifactId": 13878650392,
+      "artifactDigest": "sha256:d60260fcdbd3197de77bf65449cd06c13c8235696131460a4213b438f3238c06",
+      "artifactBytes": 1761,
+      "file": {
+        "path": "703.success.arm64-aggregate.json.raw",
+        "bytes": 5140,
+        "digest": "sha256:9de4b49265e6878c0bffafc3f5fb81560348f6d727a6b0fc6918cfd442859217"
+      }
+    },
+    "ideMatrix": {
+      "sourceCommit": "703b22e895bff2c0f40cd7f350aef0757dc3bdd5",
+      "runId": 43061798017,
+      "attempt": 1,
+      "conclusion": "success",
+      "passed": 18,
+      "skipped": 1,
+      "total": 19,
+      "jobs": [
+        {
+          "id": 130666283551,
+          "name": "Public IDE capability manifest (drift gate)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T16:54:21Z"
+        },
+        {
+          "id": 130669912550,
+          "name": "VS Code extension (immutable candidate)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:21:32Z"
+        },
+        {
+          "id": 130669912567,
+          "name": "JetBrains real host (windows-latest, 2025.2)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:14:57Z"
+        },
+        {
+          "id": 130669912576,
+          "name": "JetBrains real host (windows-latest, 2024.2)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:28:50Z"
+        },
+        {
+          "id": 130669912577,
+          "name": "JetBrains real host (macos-latest, 2025.2)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:25:50Z"
+        },
+        {
+          "id": 130669912578,
+          "name": "Browser evidence (windows)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:18:27Z"
+        },
+        {
+          "id": 130669912590,
+          "name": "Browser evidence (linux)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:00:09Z"
+        },
+        {
+          "id": 130669912591,
+          "name": "JetBrains real host (ubuntu-latest, 2024.2)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:13:31Z"
+        },
+        {
+          "id": 130669912592,
+          "name": "JetBrains real host (macos-latest, 2024.2)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:43:32Z"
+        },
+        {
+          "id": 130669912627,
+          "name": "JetBrains real host (ubuntu-latest, 2025.2)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:10:21Z"
+        },
+        {
+          "id": 130669912629,
+          "name": "Browser evidence (macos)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:04:06Z"
+        },
+        {
+          "id": 130684038776,
+          "name": "Browser evidence (three-OS required aggregate)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:28:06Z"
+        },
+        {
+          "id": 130685826932,
+          "name": "VS Code extension (macOS host gate)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:36:18Z"
+        },
+        {
+          "id": 130685827029,
+          "name": "VS Code Remote-SSH container (scoped trusted cell)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:29:02Z"
+        },
+        {
+          "id": 130685827090,
+          "name": "VS Code extension (Windows host gate)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:27:01Z"
+        },
+        {
+          "id": 130690098224,
+          "name": "IDE roadmap evidence (trusted scoped aggregate)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:29:47Z"
+        },
+        {
+          "id": 130694171645,
+          "name": "VS Code extension (Linux host gate + publish)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:44:44Z"
+        },
+        {
+          "id": 130698189039,
+          "name": "JetBrains plugin (build + publish)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:49:45Z"
+        },
+        {
+          "id": 130701699608,
+          "name": "JetBrains Marketplace (post-publish verification)",
+          "conclusion": "skipped",
+          "completed_at": "2026-11-11T17:49:45Z"
+        }
+      ]
+    }
   }
 }

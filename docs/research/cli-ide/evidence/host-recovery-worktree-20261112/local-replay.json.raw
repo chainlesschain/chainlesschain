@@ -1,0 +1,19 @@
+{
+  "schema": "chainlesschain.git-worktree-head-regression/v1",
+  "brokenSource": "703b22e895bff2c0f40cd7f350aef0757dc3bdd5",
+  "fixedSource": "817903715360d762cdc9521ea81fbd6c04a61c77",
+  "checkoutType": "linked worktree with the required CLI/vendor/fixture files materialized",
+  "originalFunctionReplayedFromGit": true,
+  "oldFailure": {
+    "code": "ENOENT",
+    "file": "per-worktree/packed-refs"
+  },
+  "fixedHeadMatchesRealGit": true,
+  "changedFiles": [
+    "packages/vscode-extension/test/host-recovery-matrix.test.cjs",
+    "packages/vscode-extension/test/host-recovery-matrix/run.cjs"
+  ],
+  "changedFilesExcludedFromVsix": true,
+  "modelGenerationRequests": 0,
+  "scope": "Read-only Git metadata regression; no model, public package or live task-completion result"
+}

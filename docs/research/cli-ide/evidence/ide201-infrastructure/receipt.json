@@ -237,7 +237,7 @@
   "currentFix": {
     "sourceCommit": "703b22e895bff2c0f40cd7f350aef0757dc3bdd5",
     "pr": 605,
-    "status": "AWAITING_FULL_HOST_GATES",
+    "status": "HOST_GATES_PASSED_PUBLICATION_IN_PROGRESS",
     "localTests": {
       "dnsBootstrap": 53,
       "standardVscode": 353,
@@ -282,6 +282,425 @@
       "total": 2,
       "conclusion": "success",
       "scope": "Real Linux x64/ARM64 delegated-cgroup process recovery"
+    },
+    "accessibilityMatrix": {
+      "sourceCommit": "703b22e895bff2c0f40cd7f350aef0757dc3bdd5",
+      "runId": 43061797894,
+      "passed": 4,
+      "total": 4,
+      "conclusion": "success",
+      "artifactId": 13875470765,
+      "artifactDigest": "sha256:37d4064e6f6c7aef5cbda351abb19239ec810ad233bf5c14b5e89ddf2fbf8e3b",
+      "artifactBytes": 40932,
+      "file": {
+        "path": "703.accessibility-performance-aggregate.json.raw",
+        "originalMember": "accessibility-performance-aggregate.json",
+        "bytes": 95687,
+        "digest": "sha256:f19803da4af42b768b414479ca72264aa3a1a47bee962476d2b6c3f43b40b3af"
+      },
+      "manualExternalTail": [
+        "assistive-technology-speech-quality",
+        "interactive-real-device",
+        "continuous-eight-hour-host-soak"
+      ]
+    },
+    "completedSupplementaryGates": [
+      {
+        "name": "accessibility",
+        "runId": 43061797894,
+        "sourceCommit": "703b22e895bff2c0f40cd7f350aef0757dc3bdd5",
+        "attempt": 1,
+        "conclusion": "success",
+        "passed": 4,
+        "skipped": 0,
+        "total": 4,
+        "jobs": [
+          {
+            "id": 130666198830,
+            "name": "Accessibility/Performance macos",
+            "conclusion": "success",
+            "completed_at": "2026-11-11T17:00:52Z"
+          },
+          {
+            "id": 130666199387,
+            "name": "Accessibility/Performance windows",
+            "conclusion": "success",
+            "completed_at": "2026-11-11T17:00:41Z"
+          },
+          {
+            "id": 130666199444,
+            "name": "Accessibility/Performance linux",
+            "conclusion": "success",
+            "completed_at": "2026-11-11T16:56:04Z"
+          },
+          {
+            "id": 130673726336,
+            "name": "Trusted Accessibility/Performance three-OS aggregate",
+            "conclusion": "success",
+            "completed_at": "2026-11-11T17:02:25Z"
+          }
+        ]
+      },
+      {
+        "name": "quality",
+        "runId": 43061798091,
+        "sourceCommit": "703b22e895bff2c0f40cd7f350aef0757dc3bdd5",
+        "attempt": 1,
+        "conclusion": "success",
+        "passed": 8,
+        "skipped": 2,
+        "total": 10,
+        "jobs": [
+          {
+            "id": 130666086262,
+            "name": "Scoped documentation check / Detect and validate scoped documentation",
+            "conclusion": "success",
+            "completed_at": "2026-11-11T16:59:54Z"
+          },
+          {
+            "id": 130673144105,
+            "name": "Build Check",
+            "conclusion": "success",
+            "completed_at": "2026-11-11T17:05:55Z"
+          },
+          {
+            "id": 130673144173,
+            "name": "Validate Coding Rules",
+            "conclusion": "success",
+            "completed_at": "2026-11-11T17:20:11Z"
+          },
+          {
+            "id": 130673144181,
+            "name": "Lint & Format Check",
+            "conclusion": "success",
+            "completed_at": "2026-11-11T17:04:21Z"
+          },
+          {
+            "id": 130673144209,
+            "name": "Security Audit",
+            "conclusion": "success",
+            "completed_at": "2026-11-11T17:03:10Z"
+          },
+          {
+            "id": 130673144451,
+            "name": "Detect Changed Files",
+            "conclusion": "success",
+            "completed_at": "2026-11-11T17:02:04Z"
+          },
+          {
+            "id": 130673144504,
+            "name": "Database Tests",
+            "conclusion": "success",
+            "completed_at": "2026-11-11T17:20:25Z"
+          },
+          {
+            "id": 130674455975,
+            "name": "Java Backend Check",
+            "conclusion": "skipped",
+            "completed_at": "2026-11-11T17:02:06Z"
+          },
+          {
+            "id": 130674456069,
+            "name": "Python Backend Check",
+            "conclusion": "skipped",
+            "completed_at": "2026-11-11T17:02:06Z"
+          },
+          {
+            "id": 130685045746,
+            "name": "Quality Gate",
+            "conclusion": "success",
+            "completed_at": "2026-11-11T17:22:01Z"
+          }
+        ]
+      },
+      {
+        "name": "e2e",
+        "runId": 43061797961,
+        "sourceCommit": "703b22e895bff2c0f40cd7f350aef0757dc3bdd5",
+        "attempt": 1,
+        "conclusion": "success",
+        "passed": 4,
+        "skipped": 0,
+        "total": 4,
+        "jobs": [
+          {
+            "id": 130666052741,
+            "name": "E2E Tests (Electron + Playwright) (ubuntu-latest, 22.x)",
+            "conclusion": "success",
+            "completed_at": "2026-11-11T16:57:10Z"
+          },
+          {
+            "id": 130666053156,
+            "name": "E2E Tests (Electron + Playwright) (macos-latest, 22.x)",
+            "conclusion": "success",
+            "completed_at": "2026-11-11T17:05:47Z"
+          },
+          {
+            "id": 130666053217,
+            "name": "E2E Tests (Electron + Playwright) (windows-latest, 22.x)",
+            "conclusion": "success",
+            "completed_at": "2026-11-11T16:58:14Z"
+          },
+          {
+            "id": 130676650149,
+            "name": "Test Summary",
+            "conclusion": "success",
+            "completed_at": "2026-11-11T17:27:11Z"
+          }
+        ]
+      },
+      {
+        "name": "processRecovery",
+        "runId": 43061798050,
+        "sourceCommit": "703b22e895bff2c0f40cd7f350aef0757dc3bdd5",
+        "attempt": 1,
+        "conclusion": "success",
+        "passed": 2,
+        "skipped": 0,
+        "total": 2,
+        "jobs": [
+          {
+            "id": 130666053358,
+            "name": "kernel-recovery (ubuntu-24.04-arm)",
+            "conclusion": "success",
+            "completed_at": "2026-11-11T16:51:53Z"
+          },
+          {
+            "id": 130666053755,
+            "name": "kernel-recovery (ubuntu-24.04)",
+            "conclusion": "success",
+            "completed_at": "2026-11-11T16:51:45Z"
+          }
+        ]
+      }
+    ],
+    "ideMatrix": {
+      "sourceCommit": "703b22e895bff2c0f40cd7f350aef0757dc3bdd5",
+      "runId": 43061798017,
+      "attempt": 1,
+      "conclusion": "success",
+      "passed": 18,
+      "skipped": 1,
+      "total": 19,
+      "jobs": [
+        {
+          "id": 130666283551,
+          "name": "Public IDE capability manifest (drift gate)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T16:54:21Z"
+        },
+        {
+          "id": 130669912550,
+          "name": "VS Code extension (immutable candidate)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:21:32Z"
+        },
+        {
+          "id": 130669912567,
+          "name": "JetBrains real host (windows-latest, 2025.2)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:14:57Z"
+        },
+        {
+          "id": 130669912576,
+          "name": "JetBrains real host (windows-latest, 2024.2)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:28:50Z"
+        },
+        {
+          "id": 130669912577,
+          "name": "JetBrains real host (macos-latest, 2025.2)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:25:50Z"
+        },
+        {
+          "id": 130669912578,
+          "name": "Browser evidence (windows)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:18:27Z"
+        },
+        {
+          "id": 130669912590,
+          "name": "Browser evidence (linux)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:00:09Z"
+        },
+        {
+          "id": 130669912591,
+          "name": "JetBrains real host (ubuntu-latest, 2024.2)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:13:31Z"
+        },
+        {
+          "id": 130669912592,
+          "name": "JetBrains real host (macos-latest, 2024.2)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:43:32Z"
+        },
+        {
+          "id": 130669912627,
+          "name": "JetBrains real host (ubuntu-latest, 2025.2)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:10:21Z"
+        },
+        {
+          "id": 130669912629,
+          "name": "Browser evidence (macos)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:04:06Z"
+        },
+        {
+          "id": 130684038776,
+          "name": "Browser evidence (three-OS required aggregate)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:28:06Z"
+        },
+        {
+          "id": 130685826932,
+          "name": "VS Code extension (macOS host gate)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:36:18Z"
+        },
+        {
+          "id": 130685827029,
+          "name": "VS Code Remote-SSH container (scoped trusted cell)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:29:02Z"
+        },
+        {
+          "id": 130685827090,
+          "name": "VS Code extension (Windows host gate)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:27:01Z"
+        },
+        {
+          "id": 130690098224,
+          "name": "IDE roadmap evidence (trusted scoped aggregate)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:29:47Z"
+        },
+        {
+          "id": 130694171645,
+          "name": "VS Code extension (Linux host gate + publish)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:44:44Z"
+        },
+        {
+          "id": 130698189039,
+          "name": "JetBrains plugin (build + publish)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:49:45Z"
+        },
+        {
+          "id": 130701699608,
+          "name": "JetBrains Marketplace (post-publish verification)",
+          "conclusion": "skipped",
+          "completed_at": "2026-11-11T17:49:45Z"
+        }
+      ]
+    },
+    "completedGeneralCi": {
+      "name": "CI Tests",
+      "runId": 43061798082,
+      "sourceCommit": "703b22e895bff2c0f40cd7f350aef0757dc3bdd5",
+      "attempt": 1,
+      "conclusion": "success",
+      "pullRequest": 605,
+      "passed": 14,
+      "skipped": 1,
+      "total": 15,
+      "jobs": [
+        {
+          "id": 130666288888,
+          "name": "Scoped documentation check / Detect and validate scoped documentation",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:03:46Z"
+        },
+        {
+          "id": 130675434325,
+          "name": "Build Check (ubuntu-latest)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:19:25Z"
+        },
+        {
+          "id": 130675434387,
+          "name": "Build Check (windows-2022)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:14:30Z"
+        },
+        {
+          "id": 130675434410,
+          "name": "Backend model-egress and real startup regressions",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:28:58Z"
+        },
+        {
+          "id": 130675434445,
+          "name": "Code Quality",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:28:17Z"
+        },
+        {
+          "id": 130675434497,
+          "name": "Database Tests",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:30:50Z"
+        },
+        {
+          "id": 130675434565,
+          "name": "Unit Tests (ubuntu-latest, 22.x)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:40:19Z"
+        },
+        {
+          "id": 130675434568,
+          "name": "CLI Global Install Smoke (macos-latest)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:28:32Z"
+        },
+        {
+          "id": 130675434585,
+          "name": "PDH Data Hub Tests (ubuntu-latest)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:30:05Z"
+        },
+        {
+          "id": 130675434608,
+          "name": "Unit Tests (windows-latest, 22.x)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:36:47Z"
+        },
+        {
+          "id": 130675434641,
+          "name": "PDH Data Hub Tests (windows-latest)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:20:43Z"
+        },
+        {
+          "id": 130675434679,
+          "name": "CLI Global Install Smoke (ubuntu-latest)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:28:56Z"
+        },
+        {
+          "id": 130675434734,
+          "name": "CLI Global Install Smoke (windows-latest)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T17:17:29Z"
+        },
+        {
+          "id": 130675434799,
+          "name": "Unit Tests (macos-latest, 22.x)",
+          "conclusion": "success",
+          "completed_at": "2026-11-11T18:51:55Z"
+        },
+        {
+          "id": 130675438106,
+          "name": "Full Test Suite",
+          "conclusion": "skipped",
+          "completed_at": "2026-11-11T17:03:47Z"
+        }
+      ]
     }
   },
   "windowsCimObservationFailure": {
@@ -337,5 +756,33 @@
       "bytes": 44388
     },
     "jobTimeoutMinutesUnchanged": 15
+  },
+  "subsequentMainNpmPublicationWindow": {
+    "sourceCommit": "5044641ff004eb282d44b9bf8b17b7f1f485e9d7",
+    "runId": 43083563555,
+    "firstAttempt": 1,
+    "firstJobId": 130756329443,
+    "firstConclusion": "failure",
+    "stage": "Install packages/cli production dependencies standalone",
+    "testsStarted": false,
+    "cause": "generator 7.29.14 referenced parser/types ^7.29.14 before those packages were published",
+    "registryObservation": "main504-upstream-babel-observation.json",
+    "decodedLogExcerpt": {
+      "path": "main504.upstream-babel.decoded.log.raw",
+      "bytes": 3703,
+      "digest": "sha256:1b763ef526a471f3306cb7528778480fd3ecd73a31ed06e85d551925745f32dc",
+      "provenance": "Selected connector-decoded UTF-8/LF job-log excerpt; not original HTTP log bytes"
+    },
+    "retry": {
+      "attempt": 2,
+      "scope": "only failed jobs",
+      "requestAcknowledged": true,
+      "observedAt": "2026-11-11T20:03:12.921170+00:00",
+      "status": "in_progress",
+      "conclusion": null,
+      "uploadFailureObservation": "main504-attempt2-upload-failure-observation.json",
+      "comprehensiveTestsPassed": true,
+      "uploadStepConclusion": "failure"
+    }
   }
 }

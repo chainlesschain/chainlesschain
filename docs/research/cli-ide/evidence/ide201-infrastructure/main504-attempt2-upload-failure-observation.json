@@ -1,0 +1,183 @@
+{
+  "kind": "generated-GitHub-job-step-observation",
+  "observedAt": "2026-11-11T20:40:35.242116+00:00",
+  "runId": 43083563555,
+  "jobId": 130773815153,
+  "attempt": 2,
+  "sourceCommit": "5044641ff004eb282d44b9bf8b17b7f1f485e9d7",
+  "jobStatus": "in_progress",
+  "jobConclusion": null,
+  "comprehensiveTestsPassed": true,
+  "uploadStepConclusion": "failure",
+  "uploadErrorDetails": "Job log endpoint timed out; cause is not yet asserted. Actions API 502 observations are separate.",
+  "steps": [
+    {
+      "name": "Set up job",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-11T20:02:42Z",
+      "completed_at": "2026-11-11T20:02:43Z"
+    },
+    {
+      "name": "Enforce exact-source documentation decision",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-11T20:02:43Z",
+      "completed_at": "2026-11-11T20:02:44Z"
+    },
+    {
+      "name": "Enable Windows long paths before checkout",
+      "status": "completed",
+      "conclusion": "skipped",
+      "started_at": "2026-11-11T20:02:44Z",
+      "completed_at": "2026-11-11T20:02:44Z"
+    },
+    {
+      "name": "Run actions/checkout@v5",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-11T20:02:44Z",
+      "completed_at": "2026-11-11T20:03:06Z"
+    },
+    {
+      "name": "Setup Node.js",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-11T20:03:06Z",
+      "completed_at": "2026-11-11T20:03:11Z"
+    },
+    {
+      "name": "Setup Python",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-11T20:03:11Z",
+      "completed_at": "2026-11-11T20:03:12Z"
+    },
+    {
+      "name": "Verify npm retry cleanup ordering before installation",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-11T20:03:12Z",
+      "completed_at": "2026-11-11T20:03:12Z"
+    },
+    {
+      "name": "Run ./.github/actions/setup-linux-canvas",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-11T20:03:12Z",
+      "completed_at": "2026-11-11T20:03:25Z"
+    },
+    {
+      "name": "Install dependencies",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-11T20:03:25Z",
+      "completed_at": "2026-11-11T20:04:28Z"
+    },
+    {
+      "name": "Verify native canvas loads before comprehensive tests",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-11T20:04:28Z",
+      "completed_at": "2026-11-11T20:04:28Z"
+    },
+    {
+      "name": "Install Chromium with system dependencies (Linux)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-11T20:04:28Z",
+      "completed_at": "2026-11-11T20:04:42Z"
+    },
+    {
+      "name": "Install Chromium (Windows)",
+      "status": "completed",
+      "conclusion": "skipped",
+      "started_at": "2026-11-11T20:04:42Z",
+      "completed_at": "2026-11-11T20:04:42Z"
+    },
+    {
+      "name": "Install packages/cli production dependencies standalone",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-11T20:04:42Z",
+      "completed_at": "2026-11-11T20:05:04Z"
+    },
+    {
+      "name": "Verify CI gate integrity contracts",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-11T20:05:04Z",
+      "completed_at": "2026-11-11T20:05:05Z"
+    },
+    {
+      "name": "Run comprehensive test suite",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-11T20:05:05Z",
+      "completed_at": "2026-11-11T20:18:23Z"
+    },
+    {
+      "name": "Collect failure diagnostics (non-mutating)",
+      "status": "completed",
+      "conclusion": "skipped",
+      "started_at": "2026-11-11T20:18:23Z",
+      "completed_at": "2026-11-11T20:18:23Z"
+    },
+    {
+      "name": "Re-run tests for failure diagnosis",
+      "status": "completed",
+      "conclusion": "skipped",
+      "started_at": "2026-11-11T20:18:23Z",
+      "completed_at": "2026-11-11T20:18:23Z"
+    },
+    {
+      "name": "Upload test results",
+      "status": "completed",
+      "conclusion": "failure",
+      "started_at": "2026-11-11T20:18:23Z",
+      "completed_at": "2026-11-11T20:35:15Z"
+    },
+    {
+      "name": "Enforce comprehensive test result",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-11T20:35:15Z",
+      "completed_at": "2026-11-11T20:35:15Z"
+    },
+    {
+      "name": "Post Run ./.github/actions/setup-linux-canvas",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-11T20:35:15Z",
+      "completed_at": "2026-11-11T20:35:15Z"
+    },
+    {
+      "name": "Post Setup Python",
+      "status": "completed",
+      "conclusion": "skipped",
+      "started_at": "2026-11-11T20:35:15Z",
+      "completed_at": "2026-11-11T20:35:15Z"
+    },
+    {
+      "name": "Post Setup Node.js",
+      "status": "completed",
+      "conclusion": "skipped",
+      "started_at": "2026-11-11T20:35:15Z",
+      "completed_at": "2026-11-11T20:35:15Z"
+    },
+    {
+      "name": "Post Run actions/checkout@v5",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-11T20:35:15Z",
+      "completed_at": "2026-11-11T20:35:15Z"
+    },
+    {
+      "name": "Complete job",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-11T20:35:15Z",
+      "completed_at": "2026-11-11T20:35:15Z"
+    }
+  ]
+}

@@ -1,0 +1,1722 @@
+{
+  "schema": "chainlesschain.accessibility-performance-aggregate.v1",
+  "releaseCommit": "703b22e895bff2c0f40cd7f350aef0757dc3bdd5",
+  "exactCommitBound": true,
+  "requiredOperatingSystems": [
+    "linux",
+    "darwin",
+    "win32"
+  ],
+  "requiredHosts": [
+    "vscode",
+    "jetbrains"
+  ],
+  "scale": {
+    "messagesPerSession": 2000,
+    "diffBytes": 16777216,
+    "logBytes": 67108864,
+    "sessionCount": 128,
+    "diagnosticsRequired": 10000,
+    "diagnosticsAdvisory": 50000
+  },
+  "ideInputPerformance": {
+    "commitmentId": "IDE-INPUT-PERF",
+    "profileVersion": "ide-input-perf/v1",
+    "disposition": "required",
+    "pathCount": 100000,
+    "consecutiveQueries": 20,
+    "rapidQueries": 20,
+    "p95Ms": 200,
+    "maxCandidates": 200,
+    "staleCommitCount": 0,
+    "leakCount": 0,
+    "contentReadCount": 0
+  },
+  "manualExternalTail": [
+    "assistive-technology-speech-quality",
+    "interactive-real-device",
+    "continuous-eight-hour-host-soak"
+  ],
+  "cells": [
+    {
+      "suffix": "linux",
+      "operatingSystem": "linux",
+      "manifestDigest": "sha256:d22854348b0aa0f2caa1c12d65d68f217fb96f039ee7c8c6b585132afb7bfd62",
+      "outcomeDigest": "sha256:0312dde124241419cba3c0442951e833faf8396b7353aecea161031a445af3e2",
+      "ideInputPerformanceDigest": "sha256:ac9837bf6b58bfbf61e9e7634e79168e0e77968dbb39cdada22cf67c06c45b62",
+      "diagnosticsScale": {
+        "schema": "chainlesschain.claude-code-increment-audit-fragment.v1",
+        "commitmentId": "DIAG-SCALE",
+        "headSha": "703b22e895bff2c0f40cd7f350aef0757dc3bdd5",
+        "os": "linux",
+        "runtime": {
+          "name": "node+java",
+          "version": "v22.12.0;21.0.3",
+          "arch": "x64"
+        },
+        "profileVersion": "diagnostics-scale/v1",
+        "thresholds": {
+          "stableSnapshotP95Ms": 1000,
+          "eventLoopOrEdtMaxMs": 200,
+          "nodeRssGrowthBytes": 536870912,
+          "rendererHeapGrowthBytes": 268435456,
+          "lostCount": 0,
+          "duplicateCount": 0,
+          "staleVersionCount": 0
+        },
+        "measurements": {
+          "profiles": [
+            {
+              "host": "vscode",
+              "disposition": "required",
+              "inputCount": 10000,
+              "maxDiagnostics": 10000,
+              "publishedCount": 10000,
+              "truncatedCount": 0,
+              "lostCount": 0,
+              "duplicateCount": 0,
+              "staleVersionCount": 0,
+              "canceledGenerationCount": 20,
+              "stableSnapshot": {
+                "samples": 20,
+                "p50Ms": 16.167906000000016,
+                "p95Ms": 30.328978999999947,
+                "p99Ms": 31.429210000000012,
+                "maxMs": 31.429210000000012
+              },
+              "eventLoopMaxMs": 2.3962209999999686,
+              "nodeRssGrowthBytes": 73752576,
+              "nodeHeapGrowthBytes": 43487352,
+              "snapshotDigest": "sha256:4cab46812fb38ff6b1689f4639e9149a1df13814ca764b960f1a98f20752ef21",
+              "rendererHeapGrowthBytes": 100895172,
+              "rendererHeapMeasurement": "chromium-product-journey-peak-minus-baseline"
+            },
+            {
+              "host": "jetbrains",
+              "disposition": "required",
+              "inputCount": 10000,
+              "publishedCount": 10000,
+              "truncatedCount": 0,
+              "lostCount": 0,
+              "duplicateCount": 0,
+              "staleVersionCount": 0,
+              "canceledGenerationCount": 20,
+              "stableSnapshot": {
+                "samples": 20,
+                "p50Ms": 20.007658,
+                "p95Ms": 35.72399,
+                "p99Ms": 49.05309,
+                "maxMs": 49.05309
+              },
+              "maxWorkSliceMs": 13.016,
+              "edtMaxMs": 0,
+              "heapGrowthBytes": 57101912
+            }
+          ]
+        },
+        "testIds": [
+          "DIAG-SCALE/vscode-10k-stable-snapshot",
+          "DIAG-SCALE/jetbrains-10k-stable-snapshot"
+        ],
+        "producerDigests": {
+          "packages/vscode-extension/src/diagnostics-scheduler.js": "sha256:b96fdb2beb032b2204fe35937068d27e4e8bb1139b754818294eed3c9958e2db",
+          "packages/vscode-extension/src/vscode-facade.js": "sha256:14133718b6e3e5d471c04b367666b6d0da1f63af50f756f5a073ae1c77303277",
+          "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/DiagnosticsSnapshotScheduler.java": "sha256:e78cade7556a6845469e16087336ee30fe25e1812985e567cff2e621499f073e",
+          "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/IntellijEditorFacade.java": "sha256:e292dd37babe6e8c50be81e840a7d3b1f2c9bebfccfb66937a3c225ddba5e83f",
+          "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/IdeBridgeService.java": "sha256:183d45ac834d73e0bb5734a83eac45638e6dbc4da8f437d47c52f5e6c876c39b",
+          "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ContextCenterAction.java": "sha256:51e2a9b79988ad37274ace2e410c92277dbaccc00a3c4813216b77eeec501dec",
+          "packages/cli/scripts/ide-roadmap-accessibility-performance.mjs": "sha256:788e7ff031933eafed26a3eb2162d340c741f91e096e74ee08b5260c9f2b5dca",
+          "packages/cli/scripts/verify-ide-roadmap-accessibility-performance.mjs": "sha256:b76b03469c5fe7f76dfe2e17e775fa587605a8a9af738ab97600256f36728991"
+        },
+        "disposition": "required",
+        "source": {
+          "workflowId": "chainlesschain/chainlesschain/.github/workflows/ide-roadmap-accessibility-performance.yml@refs/pull/605/merge",
+          "runId": "43061797894",
+          "jobId": "accessibility-performance",
+          "artifactName": "ide-accessibility-performance-linux-1"
+        },
+        "outcome": "passed"
+      },
+      "ideInputPerformance": {
+        "schema": "chainlesschain.claude-code-increment-audit-fragment.v1",
+        "commitmentId": "IDE-INPUT-PERF",
+        "headSha": "703b22e895bff2c0f40cd7f350aef0757dc3bdd5",
+        "os": "linux",
+        "runtime": {
+          "name": "node+java",
+          "version": "v22.12.0;21.0.3",
+          "arch": "x64"
+        },
+        "profileVersion": "ide-input-perf/v1",
+        "thresholds": {
+          "pathCount": 100000,
+          "consecutiveQueries": 20,
+          "rapidQueries": 20,
+          "p95Ms": 200,
+          "maxCandidates": 200,
+          "staleCommitCount": 0,
+          "leakCount": 0,
+          "contentReadCount": 0
+        },
+        "measurements": {
+          "vscode": {
+            "pathCount": 100000,
+            "consecutiveQueries": 20,
+            "rapidQueries": 20,
+            "samplesMs": [
+              0.2724600000000237,
+              13.317228,
+              2.0587849999999435,
+              8.267627999999945,
+              4.055568999999991,
+              8.579376000000025,
+              5.747916000000032,
+              8.400191999999947,
+              7.512718999999947,
+              8.091598999999974,
+              1.1274159999999256,
+              8.937892999999917,
+              1.3126790000000028,
+              8.037120000000073,
+              1.4810870000000023,
+              8.314837000000011,
+              1.8446400000000267,
+              9.462242999999944,
+              2.1743850000000293,
+              7.997079999999983
+            ],
+            "p50Ms": 7.512718999999947,
+            "p95Ms": 9.462242999999944,
+            "p99Ms": 13.317228,
+            "maxCandidates": 200,
+            "workspaceRevision": 6,
+            "queryGeneration": 41,
+            "cancellationCount": 19,
+            "discardedQueryCount": 19,
+            "deniedPathCount": 3,
+            "staleCommitCount": 0,
+            "leakCount": 0,
+            "contentReadCount": 0,
+            "symbolObserved": true,
+            "workspaceTrustEnforced": true
+          },
+          "jetbrains": {
+            "pathCount": 100000,
+            "consecutiveQueries": 20,
+            "rapidQueries": 20,
+            "samplesMs": [
+              1.345817,
+              1.498121,
+              1.540614,
+              1.638368,
+              1.893502,
+              2.017955,
+              2.808166,
+              4.791119,
+              5.688078,
+              7.332825,
+              8.592225,
+              8.640496,
+              8.658933,
+              8.722726,
+              8.72522,
+              8.743232,
+              8.952815,
+              9.201921,
+              9.891223,
+              11.401623
+            ],
+            "p50Ms": 7.332825,
+            "p95Ms": 9.891223,
+            "p99Ms": 11.401623,
+            "maxCandidates": 200,
+            "workspaceRevision": 6,
+            "queryGeneration": 41,
+            "cancellationCount": 19,
+            "discardedQueryCount": 19,
+            "deniedPathCount": 3,
+            "staleCommitCount": 0,
+            "leakCount": 0,
+            "contentReadCount": 0,
+            "symbolObserved": true,
+            "workspaceTrustEnforced": true
+          }
+        },
+        "testIds": [
+          "ide-input-performance-profile#vscode100kAndRapidQueries",
+          "WorkspaceMentionIndexPerformanceTest#profiles100kPathsAndRapidQueries"
+        ],
+        "producerDigests": {
+          "packages/vscode-extension/src/chat/workspace-mention-index.js": "sha256:567896697f262fe41d0a6cab693620b8eb56bd234baaf673f67f20832f9ac3fd",
+          "packages/vscode-extension/src/chat/chat-view.js": "sha256:5cf622b3d433adcf96230d1e4ec007ac353079a250259aec9c713644c16dc072",
+          "packages/vscode-extension/src/chat/chat-html.js": "sha256:0a826f2af713ccda9513b3e7213a5cca18220c424822108750fbc8c6ffacb416",
+          "packages/vscode-extension/src/chat/symbol-mentions.js": "sha256:e60cd37153f5b7b1a26d109e50017b1a76f7caedb6b1ef50a07c3bf4b015dbcf",
+          "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/Mentions.java": "sha256:aba349899e7a47ca95d2c585cb5a36a2f2a11d86490a065ada30f0f6ff891f23",
+          "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/WorkspaceMentionIndex.java": "sha256:0f9d6b400e45ef6be6efa4f226628be05ad2d038790ea0ec6f67bf0f1e7775db",
+          "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ChatMentionPopups.java": "sha256:c1527d0db7137dbd4d46ff651ed8a55be9ea95635b331041e2fbb9664a46f303",
+          "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ConversationView.java": "sha256:519f7bb83ce0955320e6c1954b2f87586617f9ef08fbff130c76598218b5d229",
+          "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/WorkspaceMentionIndexPerformanceProfile.java": "sha256:ff295ed2d8bfe47e9f7e7e79a2c5525e82f3cbb3d6f57e7bd027d3c28e6cdff6",
+          "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/WorkspaceMentionIndexPerformanceTest.java": "sha256:afe8d87ff5f6e025591274debd3bdfbc4f77cb47c85b77592692bc80c19d7fc7",
+          "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/WorkspaceMentionIndexTest.java": "sha256:315db5146c0c79f6fb1a13756a2925f3d416141a049c82a1f48adb3c68c2d3fc",
+          "packages/cli/scripts/ide-input-performance-profile.mjs": "sha256:ecea32900de6de6e44c712a53f9c0d49600fcbe2966499b9514815f1a297ee6a",
+          "packages/cli/scripts/ide-roadmap-accessibility-performance.mjs": "sha256:788e7ff031933eafed26a3eb2162d340c741f91e096e74ee08b5260c9f2b5dca",
+          "packages/cli/scripts/verify-ide-roadmap-accessibility-performance.mjs": "sha256:b76b03469c5fe7f76dfe2e17e775fa587605a8a9af738ab97600256f36728991",
+          "packages/cli/__tests__/unit/ide-input-performance.test.js": "sha256:f7f49363d9103ae712efba7a96dc6666747a3da153a72c4559484517a679a92c",
+          ".github/workflows/ide-roadmap-accessibility-performance.yml": "sha256:2cfa65e07fcb8bdb47df6532439acad9c08f8ac59de9ac0763d0dbb0d04db3b9"
+        },
+        "disposition": "required",
+        "source": {
+          "workflowId": "chainlesschain/chainlesschain/.github/workflows/ide-roadmap-accessibility-performance.yml@refs/pull/605/merge",
+          "runId": "43061797894",
+          "jobId": "accessibility-performance",
+          "artifactName": "ide-accessibility-performance-linux-1"
+        },
+        "outcome": "passed"
+      },
+      "sessionUx": {
+        "required": {
+          "schema": "chainlesschain.claude-code-increment-audit-fragment.v1",
+          "commitmentId": "SESSION-UX",
+          "headSha": "703b22e895bff2c0f40cd7f350aef0757dc3bdd5",
+          "os": "linux",
+          "runtime": {
+            "name": "node+java",
+            "version": "v22.12.0;21.0.3",
+            "arch": "x64"
+          },
+          "profileVersion": "session-ux/v1",
+          "thresholds": {
+            "sessionCountMinimum": 128,
+            "groupCountMinimum": 1,
+            "groupedSessionCountMinimum": 128,
+            "multiSelectCountMinimum": 128,
+            "focusRowCountMinimum": 1,
+            "staleCasRejectionCountMinimum": 1,
+            "thinkingCollapseFailureCountMaximum": 0
+          },
+          "measurements": {
+            "cli": {
+              "sessionCount": 128,
+              "groupCount": 1,
+              "assignmentCount": 128,
+              "groupedSessionCount": 128,
+              "persistedAssignmentCount": 128,
+              "revisionChangedAfterCreate": true,
+              "revisionChangedAfterMove": true,
+              "staleCasRejectionCount": 1,
+              "staleCasErrorCode": "SESSION_GROUP_STALE"
+            },
+            "vscode": {
+              "projectionConnected": true,
+              "sessionCount": 128,
+              "groupCount": 1,
+              "groupRevisionPreserved": true,
+              "groupedSessionCount": 128,
+              "focusRowCount": 1,
+              "pendingQuestionPreserved": true,
+              "settledAnswerPreserved": true,
+              "atomicMoveArgumentSessionCount": 128,
+              "atomicMoveExpectedRevisionPreserved": true,
+              "renderedRowCount": 128,
+              "renderedSelectionControlCount": 128,
+              "ariaRowCount": 128,
+              "selectedSessionCount": 128,
+              "postedMoveSessionCount": 128,
+              "postedMoveRevisionPreserved": true,
+              "thinkingExpandedWhileStreaming": true,
+              "thinkingCollapsedAfterTool": true,
+              "thinkingCollapsedAfterTurnEnd": true,
+              "thinkingCollapseFailureCount": 0
+            },
+            "jetbrains": {
+              "projectionConnected": true,
+              "sessionCount": 128,
+              "groupCount": 1,
+              "groupRevisionPreserved": true,
+              "groupedSessionCount": 128,
+              "focusRowCount": 1,
+              "pendingQuestionPreserved": true,
+              "settledAnswerPreserved": true,
+              "reasoningExpandedBeforeSettlement": true,
+              "reasoningCollapsedAfterSettlement": true,
+              "reasoningRestoredAfterToggle": true,
+              "thinkingCollapseFailureCount": 0
+            }
+          },
+          "testIds": [
+            "packages/cli/__tests__/unit/session-workbench-store.test.js#persists group name/order and atomically moves 128 selected sessions",
+            "packages/cli/__tests__/unit/session-workbench-store.test.js#rejects a stale second window instead of losing the first mutation",
+            "packages/cli/__tests__/unit/session-projection.test.js#projects CLI-owned groups, bounded attention, Focus View context and offline/cloud state",
+            "packages/cli/__tests__/unit/vscode-ext-sessions-workbench.test.js#renders and locally filters a 128-session workbench",
+            "packages/cli/__tests__/unit/vscode-ext-sessions-workbench.test.js#consumes one CLI-owned group/focus schema and builds atomic batch move argv",
+            "packages/cli/__tests__/unit/vscode-ext-sessions-workbench.test.js#wires keyboard multi-selection, atomic group moves and JetBrains interval selection",
+            "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/SessionProjectionTest.java#consumesCliOwnedGroupsFocusAttentionAndCloudOfflineStatus",
+            "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/SessionsWorkbenchTest.java#scaleGateKeepsAndFiltersAtLeast128Sessions",
+            "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/ChatTranscriptTest.java#thinkingOnlyTurnCollapsesAutomaticallyWhenCompletionSettles",
+            "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/SessionUxEvidenceTest.java#measuresCanonicalProjectionAndThinkingCollapse",
+            "packages/cli/scripts/session-ux-audit-fragment.mjs#playwright-product-multiselect-and-thinking-collapse"
+          ],
+          "producerDigests": {
+            ".github/workflows/ide-roadmap-accessibility-performance.yml": "sha256:2cfa65e07fcb8bdb47df6532439acad9c08f8ac59de9ac0763d0dbb0d04db3b9",
+            "packages/cli/scripts/session-ux-audit-fragment.mjs": "sha256:5848a2a9386a8a75be2201204828b407ef55e84916a259f122da0e83d4fa065e",
+            "packages/cli/scripts/ide-roadmap-accessibility-performance.mjs": "sha256:788e7ff031933eafed26a3eb2162d340c741f91e096e74ee08b5260c9f2b5dca",
+            "packages/cli/scripts/verify-ide-roadmap-accessibility-performance.mjs": "sha256:b76b03469c5fe7f76dfe2e17e775fa587605a8a9af738ab97600256f36728991",
+            "packages/cli/src/lib/session-projection.js": "sha256:5e46c1407d182938c8d3fe476303cce81d41cb8da5148d3f9e0af663843bc48a",
+            "packages/cli/src/lib/session-workbench-store.js": "sha256:f491e371c52f022d70f42a08dfe609878bb4faf4effbc4cbf725fd803baa23e9",
+            "packages/cli/__tests__/unit/session-projection.test.js": "sha256:0161a20414ad2ccc44bec9b0864fe78442fc45211ba8842a2b1f8c4e605e695b",
+            "packages/cli/__tests__/unit/session-workbench-store.test.js": "sha256:b9bd698f89dde619ada1f06772f85e64c0ab53a171050f0b8eabe390d005d516",
+            "packages/cli/__tests__/unit/vscode-ext-sessions-workbench.test.js": "sha256:da1fe272f19b043324fe55cdd873f29cacfed7dfec846ef84a8de0178b366a33",
+            "packages/cli/__tests__/unit/session-ux-audit-fragment.test.js": "sha256:088fd3449f5f5d32cf368989e7ccda5c93d82eb5dba7df1db9633627ed4a8fe9",
+            "packages/cli/__tests__/unit/ide-roadmap-accessibility-performance.test.js": "sha256:9c8cb0c81c26e58405e9e26ecb8781fa0dc6d06cda55c25a2a5406a2621148fd",
+            "packages/vscode-extension/src/sessions-workbench.js": "sha256:14543638d07dc9c6857f58e64e2fee84a2eed52e8b29ff422a806681fada4f1b",
+            "packages/vscode-extension/src/ui/sessions-view.js": "sha256:d975b60a7349989666137bd7dc863210f4d73ce385f289d4c0230cbf7a152752",
+            "packages/vscode-extension/src/chat/chat-html.js": "sha256:0a826f2af713ccda9513b3e7213a5cca18220c424822108750fbc8c6ffacb416",
+            "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/MiniJson.java": "sha256:2f8882ad6874840605549acbf5e41b903b1c22b851638e6dfa039c61277939b6",
+            "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/SessionProjection.java": "sha256:03a9b2390bf585f6c2f12c830ae3397d9c2788ad3a00ae2901574a63a31e68e1",
+            "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/SessionsWorkbench.java": "sha256:0f49fcaf5076f0ddc694274874f264b6441909abee41e20138f769df30f32040",
+            "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ChatTranscript.java": "sha256:db0313f0825981289d9e3e73efef32afcd89ad79966636d0169c9546306a2ea6",
+            "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/SessionProjectionTest.java": "sha256:7a45445efc27bc845f8524719f85e2335e92edcf944ba7598a428983f11f7f4e",
+            "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/SessionsWorkbenchTest.java": "sha256:701047deb89c597796b1997150922abf009cb50892e1a3255910619d2046d7c5",
+            "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/ChatTranscriptTest.java": "sha256:09e249ef499bc2a0ff17f1edda6454b8043dc30b827ead28f8219b20bdf118b4",
+            "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/SessionUxEvidenceTest.java": "sha256:5784dcf60f5502e1ec73f2ceb19a28b58e48711dc5a32bd6fddd7ef57a44d401"
+          },
+          "disposition": "required",
+          "source": {
+            "workflowId": "chainlesschain/chainlesschain/.github/workflows/ide-roadmap-accessibility-performance.yml@refs/pull/605/merge",
+            "runId": "43061797894",
+            "jobId": "accessibility-performance",
+            "artifactName": "ide-accessibility-performance-linux-1"
+          },
+          "outcome": "passed"
+        },
+        "requiredDigest": "sha256:e039f2a8de09fffdd4d1e2967f29271c99da6b10d3adbc21e8ab95412a5822d2"
+      },
+      "axTranscript": {
+        "required": {
+          "schema": "chainlesschain.claude-code-increment-audit-fragment.v1",
+          "commitmentId": "AX-TRANSCRIPT",
+          "headSha": "703b22e895bff2c0f40cd7f350aef0757dc3bdd5",
+          "os": "linux",
+          "runtime": {
+            "name": "node",
+            "version": "v22.12.0",
+            "arch": "x64"
+          },
+          "profileVersion": "ax-transcript/v1",
+          "thresholds": {
+            "messagesPerSessionMinimum": 2000,
+            "inputToPaintP99Ms": 1000,
+            "scrollP99Ms": 500,
+            "diffPaintMs": 5000,
+            "logPaintMs": 5000,
+            "workbenchPaintMs": 3000,
+            "nodeRssGrowthBytes": 536870912,
+            "rendererHeapGrowthBytes": 268435456,
+            "descriptorOrHandleGrowth": 32,
+            "requiredSemanticMissCount": 0,
+            "unnamedInteractiveControlCount": 0,
+            "criticalAnnouncementMissCount": 0,
+            "announcementDuplicateCount": 0,
+            "streamingTokenReplayCount": 0,
+            "turnHeadingMissCount": 0,
+            "focusRestoreFailureCount": 0
+          },
+          "measurements": {
+            "hosts": [
+              "vscode",
+              "jetbrains"
+            ],
+            "scale": {
+              "messagesPerSession": 2000,
+              "renderedTranscriptNodes": 800
+            },
+            "semanticContract": {
+              "capture": "chromium-cdp-full-ax-tree",
+              "nodeCount": 27,
+              "unnamedInteractiveControlCount": 0,
+              "requiredSemanticMissCount": 0,
+              "visualTranscriptRole": "region",
+              "visualTranscriptLiveRegion": false,
+              "classifiedEventRegion": {
+                "role": "status",
+                "live": "polite",
+                "atomic": "true"
+              },
+              "turnHeadingCount": 2,
+              "headingKeyboardActionCount": 2,
+              "announcementCounts": {
+                "assistantResponse": 1,
+                "permissionRequest": 3,
+                "status": 2,
+                "toolError": 1
+              },
+              "announcementDuplicateCount": 0,
+              "streamingTokenReplayCount": 0,
+              "focusRestoreFailureCount": 0,
+              "criticalAnnouncementMissCount": 0,
+              "turnHeadingMissCount": 0
+            },
+            "vscodePerformance": {
+              "inputToPaint": {
+                "samples": 100,
+                "p50Ms": 33.29999999998836,
+                "p95Ms": 33.40000000002328,
+                "p99Ms": 33.40000000002328,
+                "maxMs": 33.5
+              },
+              "scrollToPaint": {
+                "samples": 100,
+                "p50Ms": 16.699999999953434,
+                "p95Ms": 16.79999999998836,
+                "p99Ms": 17,
+                "maxMs": 17
+              },
+              "diffPaintMs": 48.90000000002328,
+              "logPaintMs": 61.600000000034925,
+              "workbenchPaintMs": 25,
+              "nodeRssGrowthBytes": 114634752,
+              "rendererHeapGrowthBytes": 100895172,
+              "descriptorOrHandleGrowth": -7
+            },
+            "jetbrainsPerformance": {
+              "inputToPaint": {
+                "samples": 100,
+                "p50Ms": 3.11764,
+                "p95Ms": 8.476134,
+                "p99Ms": 14.740979
+              },
+              "scrollToPaint": {
+                "samples": 100,
+                "p50Ms": 2.528986,
+                "p95Ms": 3.542835,
+                "p99Ms": 3.669241
+              },
+              "diffPaintMs": 167.616204,
+              "logPaintMs": 85.47377,
+              "workbenchPaintMs": 0.068491,
+              "transcriptBounded": true,
+              "accessibleNamePresent": true,
+              "accessibleDescriptionPresent": true,
+              "focusable": true
+            },
+            "automationBoundary": {
+              "requiredSurface": "product DOM/CDP AX tree, live-region event projection, Swing AccessibleContext, and keyboard focus",
+              "nativeAssistiveTechnologyDisposition": "advisory",
+              "nativeAssistiveTechnologyConsumedSemanticTree": false,
+              "speechAudioCaptured": false,
+              "speechQualityAssessed": false,
+              "externalManualSpeechReviewRequired": true
+            }
+          },
+          "testIds": [
+            "packages/vscode-extension/test/host-dom-relay.test.cjs#chat HTML exposes keyboard and screen-reader semantics",
+            "packages/vscode-extension/test/host-dom-relay.test.cjs#transcript announcements are classified, whitespace-normalized, and bounded",
+            "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/ChatTranscriptTest.java#transcriptExposesAStableScreenReaderNameAndDescription",
+            "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/ChatTranscriptTest.java#turnsExposeStableUserAndAssistantHeadings",
+            "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/ChatTranscriptTest.java#categorizedAnnouncementsAreDeduplicatedAndBounded",
+            "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/AccessibilityPerformanceEvidenceTest.java#measuresNativeTranscriptPaintAndSessionProjectionAtRequiredScale",
+            "packages/cli/scripts/ide-roadmap-accessibility-performance.mjs#chromium-cdp-ax-tree-heading-keyboard-journey"
+          ],
+          "producerDigests": {
+            ".github/workflows/ide-roadmap-accessibility-performance.yml": "sha256:2cfa65e07fcb8bdb47df6532439acad9c08f8ac59de9ac0763d0dbb0d04db3b9",
+            "packages/cli/scripts/ax-transcript-audit-fragment.mjs": "sha256:8fb38d0ba5835accf1904e51bc71770fdac94e19ef30b89136d8233228327375",
+            "packages/cli/scripts/ide-roadmap-accessibility-performance.mjs": "sha256:788e7ff031933eafed26a3eb2162d340c741f91e096e74ee08b5260c9f2b5dca",
+            "packages/cli/scripts/verify-ide-roadmap-accessibility-performance.mjs": "sha256:b76b03469c5fe7f76dfe2e17e775fa587605a8a9af738ab97600256f36728991",
+            "packages/cli/__tests__/unit/ax-transcript-audit-fragment.test.js": "sha256:a11b02cece7c82e9d715506a412351164ea4ac44ebcd795174ddd963ec63cf15",
+            "packages/cli/__tests__/unit/ide-roadmap-accessibility-performance.test.js": "sha256:9c8cb0c81c26e58405e9e26ecb8781fa0dc6d06cda55c25a2a5406a2621148fd",
+            "packages/vscode-extension/src/chat/chat-html.js": "sha256:0a826f2af713ccda9513b3e7213a5cca18220c424822108750fbc8c6ffacb416",
+            "packages/vscode-extension/test/host-dom-relay.test.cjs": "sha256:3050e62e3a6f1c0b87d73bef726e19d3e0ffd5ad5641158663e2266b4c8e6f7b",
+            "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ChatTranscript.java": "sha256:db0313f0825981289d9e3e73efef32afcd89ad79966636d0169c9546306a2ea6",
+            "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ConversationView.java": "sha256:519f7bb83ce0955320e6c1954b2f87586617f9ef08fbff130c76598218b5d229",
+            "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/ChatTranscriptTest.java": "sha256:09e249ef499bc2a0ff17f1edda6454b8043dc30b827ead28f8219b20bdf118b4",
+            "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/AccessibilityPerformanceEvidenceTest.java": "sha256:5be85c7adcd6998fe74ab8cb700ae150f6fc146662a3c2c89f0388e391b2b061"
+          },
+          "disposition": "required",
+          "source": {
+            "workflowId": "chainlesschain/chainlesschain/.github/workflows/ide-roadmap-accessibility-performance.yml@refs/pull/605/merge",
+            "runId": "43061797894",
+            "jobId": "accessibility-performance",
+            "artifactName": "ide-accessibility-performance-linux-1"
+          },
+          "outcome": "passed"
+        },
+        "requiredDigest": "sha256:791a50272ef59cb548d7206f190e663a97ea1ccfb3cac0dbe353bca77b6a9a1a",
+        "advisory": {
+          "schema": "chainlesschain.claude-code-increment-audit-fragment.v1",
+          "commitmentId": "AX-TRANSCRIPT",
+          "headSha": "703b22e895bff2c0f40cd7f350aef0757dc3bdd5",
+          "os": "linux",
+          "runtime": {
+            "name": "node",
+            "version": "v22.12.0",
+            "arch": "x64"
+          },
+          "profileVersion": "ax-transcript/native-at-probe/v1",
+          "thresholds": {
+            "binaryPresent": true,
+            "automatedProcessProbeComplete": true,
+            "speechQualityRequiredForAutomatedGate": false
+          },
+          "measurements": {
+            "technology": "orca",
+            "probeScope": "binary-version-process",
+            "binaryPresent": true,
+            "automatedProcessProbeComplete": true,
+            "processProbeExternalManualRequired": false,
+            "versionDigest": "sha256:0d9e9c227d716a695ece71d1fa95488df3590a778d6b1a4b2df15856e3e076f3",
+            "nativeAssistiveTechnologyConsumedSemanticTree": false,
+            "speechAudioCaptured": false,
+            "speechQualityAssessed": false,
+            "externalManualSpeechReviewRequired": true
+          },
+          "testIds": [
+            "AX-TRANSCRIPT/native-at/orca/binary-version-process"
+          ],
+          "producerDigests": {
+            ".github/workflows/ide-roadmap-accessibility-performance.yml": "sha256:2cfa65e07fcb8bdb47df6532439acad9c08f8ac59de9ac0763d0dbb0d04db3b9",
+            "packages/cli/scripts/ax-transcript-audit-fragment.mjs": "sha256:8fb38d0ba5835accf1904e51bc71770fdac94e19ef30b89136d8233228327375",
+            "packages/cli/scripts/ide-roadmap-accessibility-performance.mjs": "sha256:788e7ff031933eafed26a3eb2162d340c741f91e096e74ee08b5260c9f2b5dca",
+            "packages/cli/scripts/verify-ide-roadmap-accessibility-performance.mjs": "sha256:b76b03469c5fe7f76dfe2e17e775fa587605a8a9af738ab97600256f36728991",
+            "packages/cli/__tests__/unit/ax-transcript-audit-fragment.test.js": "sha256:a11b02cece7c82e9d715506a412351164ea4ac44ebcd795174ddd963ec63cf15",
+            "packages/cli/__tests__/unit/ide-roadmap-accessibility-performance.test.js": "sha256:9c8cb0c81c26e58405e9e26ecb8781fa0dc6d06cda55c25a2a5406a2621148fd",
+            "packages/vscode-extension/src/chat/chat-html.js": "sha256:0a826f2af713ccda9513b3e7213a5cca18220c424822108750fbc8c6ffacb416",
+            "packages/vscode-extension/test/host-dom-relay.test.cjs": "sha256:3050e62e3a6f1c0b87d73bef726e19d3e0ffd5ad5641158663e2266b4c8e6f7b",
+            "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ChatTranscript.java": "sha256:db0313f0825981289d9e3e73efef32afcd89ad79966636d0169c9546306a2ea6",
+            "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ConversationView.java": "sha256:519f7bb83ce0955320e6c1954b2f87586617f9ef08fbff130c76598218b5d229",
+            "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/ChatTranscriptTest.java": "sha256:09e249ef499bc2a0ff17f1edda6454b8043dc30b827ead28f8219b20bdf118b4",
+            "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/AccessibilityPerformanceEvidenceTest.java": "sha256:5be85c7adcd6998fe74ab8cb700ae150f6fc146662a3c2c89f0388e391b2b061"
+          },
+          "disposition": "advisory",
+          "source": {
+            "workflowId": "chainlesschain/chainlesschain/.github/workflows/ide-roadmap-accessibility-performance.yml@refs/pull/605/merge",
+            "runId": "43061797894",
+            "jobId": "accessibility-performance",
+            "artifactName": "ide-accessibility-performance-linux-1"
+          },
+          "outcome": "passed"
+        },
+        "advisoryDigest": "sha256:e8831d5f7317d3aa999792284d200866d98dec056c196f8eea003a78ae917cbb"
+      }
+    },
+    {
+      "suffix": "macos",
+      "operatingSystem": "darwin",
+      "manifestDigest": "sha256:8aced098f1a3175556c44926c6e78bb12a7c49f4fc2158eed2eeff2eb91332e8",
+      "outcomeDigest": "sha256:a24c5583b046774a12b8ec33c2f232c6141cd2bccb71f7aa27361e75a3ab7cf2",
+      "ideInputPerformanceDigest": "sha256:94ac8f1155c778fa999e80b5ee45019f295fa03342de2126f89d4e888acfa90b",
+      "diagnosticsScale": {
+        "schema": "chainlesschain.claude-code-increment-audit-fragment.v1",
+        "commitmentId": "DIAG-SCALE",
+        "headSha": "703b22e895bff2c0f40cd7f350aef0757dc3bdd5",
+        "os": "macos",
+        "runtime": {
+          "name": "node+java",
+          "version": "v22.12.0;21.0.3",
+          "arch": "arm64"
+        },
+        "profileVersion": "diagnostics-scale/v1",
+        "thresholds": {
+          "stableSnapshotP95Ms": 1000,
+          "eventLoopOrEdtMaxMs": 200,
+          "nodeRssGrowthBytes": 536870912,
+          "rendererHeapGrowthBytes": 268435456,
+          "lostCount": 0,
+          "duplicateCount": 0,
+          "staleVersionCount": 0
+        },
+        "measurements": {
+          "profiles": [
+            {
+              "host": "vscode",
+              "disposition": "required",
+              "inputCount": 10000,
+              "maxDiagnostics": 10000,
+              "publishedCount": 10000,
+              "truncatedCount": 0,
+              "lostCount": 0,
+              "duplicateCount": 0,
+              "staleVersionCount": 0,
+              "canceledGenerationCount": 20,
+              "stableSnapshot": {
+                "samples": 20,
+                "p50Ms": 37.906334000000015,
+                "p95Ms": 70.27858300000003,
+                "p99Ms": 73.76895799999988,
+                "maxMs": 73.76895799999988
+              },
+              "eventLoopMaxMs": 6.042832999999973,
+              "nodeRssGrowthBytes": 77889536,
+              "nodeHeapGrowthBytes": 42583224,
+              "snapshotDigest": "sha256:4cab46812fb38ff6b1689f4639e9149a1df13814ca764b960f1a98f20752ef21",
+              "rendererHeapGrowthBytes": 100896848,
+              "rendererHeapMeasurement": "chromium-product-journey-peak-minus-baseline"
+            },
+            {
+              "host": "jetbrains",
+              "disposition": "required",
+              "inputCount": 10000,
+              "publishedCount": 10000,
+              "truncatedCount": 0,
+              "lostCount": 0,
+              "duplicateCount": 0,
+              "staleVersionCount": 0,
+              "canceledGenerationCount": 20,
+              "stableSnapshot": {
+                "samples": 20,
+                "p50Ms": 26.688083,
+                "p95Ms": 96.156458,
+                "p99Ms": 100.435375,
+                "maxMs": 100.435375
+              },
+              "maxWorkSliceMs": 11.276,
+              "edtMaxMs": 0,
+              "heapGrowthBytes": 110478936
+            }
+          ]
+        },
+        "testIds": [
+          "DIAG-SCALE/vscode-10k-stable-snapshot",
+          "DIAG-SCALE/jetbrains-10k-stable-snapshot"
+        ],
+        "producerDigests": {
+          "packages/vscode-extension/src/diagnostics-scheduler.js": "sha256:b96fdb2beb032b2204fe35937068d27e4e8bb1139b754818294eed3c9958e2db",
+          "packages/vscode-extension/src/vscode-facade.js": "sha256:14133718b6e3e5d471c04b367666b6d0da1f63af50f756f5a073ae1c77303277",
+          "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/DiagnosticsSnapshotScheduler.java": "sha256:e78cade7556a6845469e16087336ee30fe25e1812985e567cff2e621499f073e",
+          "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/IntellijEditorFacade.java": "sha256:e292dd37babe6e8c50be81e840a7d3b1f2c9bebfccfb66937a3c225ddba5e83f",
+          "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/IdeBridgeService.java": "sha256:183d45ac834d73e0bb5734a83eac45638e6dbc4da8f437d47c52f5e6c876c39b",
+          "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ContextCenterAction.java": "sha256:51e2a9b79988ad37274ace2e410c92277dbaccc00a3c4813216b77eeec501dec",
+          "packages/cli/scripts/ide-roadmap-accessibility-performance.mjs": "sha256:788e7ff031933eafed26a3eb2162d340c741f91e096e74ee08b5260c9f2b5dca",
+          "packages/cli/scripts/verify-ide-roadmap-accessibility-performance.mjs": "sha256:b76b03469c5fe7f76dfe2e17e775fa587605a8a9af738ab97600256f36728991"
+        },
+        "disposition": "required",
+        "source": {
+          "workflowId": "chainlesschain/chainlesschain/.github/workflows/ide-roadmap-accessibility-performance.yml@refs/pull/605/merge",
+          "runId": "43061797894",
+          "jobId": "accessibility-performance",
+          "artifactName": "ide-accessibility-performance-macos-1"
+        },
+        "outcome": "passed"
+      },
+      "ideInputPerformance": {
+        "schema": "chainlesschain.claude-code-increment-audit-fragment.v1",
+        "commitmentId": "IDE-INPUT-PERF",
+        "headSha": "703b22e895bff2c0f40cd7f350aef0757dc3bdd5",
+        "os": "macos",
+        "runtime": {
+          "name": "node+java",
+          "version": "v22.12.0;21.0.3",
+          "arch": "arm64"
+        },
+        "profileVersion": "ide-input-perf/v1",
+        "thresholds": {
+          "pathCount": 100000,
+          "consecutiveQueries": 20,
+          "rapidQueries": 20,
+          "p95Ms": 200,
+          "maxCandidates": 200,
+          "staleCommitCount": 0,
+          "leakCount": 0,
+          "contentReadCount": 0
+        },
+        "measurements": {
+          "vscode": {
+            "pathCount": 100000,
+            "consecutiveQueries": 20,
+            "rapidQueries": 20,
+            "samplesMs": [
+              0.24812500000007276,
+              15.45637499999998,
+              3.7497500000001764,
+              14.179458000000068,
+              5.010041000000001,
+              10.392041999999947,
+              7.295582999999851,
+              10.644000000000005,
+              11.458750000000009,
+              22.701041999999916,
+              3.6170830000000933,
+              15.717958999999837,
+              3.4957500000000437,
+              20.188292000000047,
+              1.7997080000000096,
+              10.432916999999861,
+              2.625833000000057,
+              9.986667000000125,
+              2.2916660000000775,
+              9.636624999999867
+            ],
+            "p50Ms": 9.636624999999867,
+            "p95Ms": 20.188292000000047,
+            "p99Ms": 22.701041999999916,
+            "maxCandidates": 200,
+            "workspaceRevision": 6,
+            "queryGeneration": 41,
+            "cancellationCount": 19,
+            "discardedQueryCount": 19,
+            "deniedPathCount": 3,
+            "staleCommitCount": 0,
+            "leakCount": 0,
+            "contentReadCount": 0,
+            "symbolObserved": true,
+            "workspaceTrustEnforced": true
+          },
+          "jetbrains": {
+            "pathCount": 100000,
+            "consecutiveQueries": 20,
+            "rapidQueries": 20,
+            "samplesMs": [
+              1.323042,
+              1.932333,
+              2.255708,
+              2.318625,
+              3.552416,
+              4.113375,
+              4.309417,
+              5.161375,
+              6.773583,
+              7.747375,
+              8.668417,
+              9.952667,
+              11.100625,
+              11.9905,
+              14.395459,
+              14.732,
+              14.76525,
+              20.39125,
+              22.378542,
+              25.128667
+            ],
+            "p50Ms": 7.747375,
+            "p95Ms": 22.378542,
+            "p99Ms": 25.128667,
+            "maxCandidates": 200,
+            "workspaceRevision": 6,
+            "queryGeneration": 41,
+            "cancellationCount": 19,
+            "discardedQueryCount": 19,
+            "deniedPathCount": 3,
+            "staleCommitCount": 0,
+            "leakCount": 0,
+            "contentReadCount": 0,
+            "symbolObserved": true,
+            "workspaceTrustEnforced": true
+          }
+        },
+        "testIds": [
+          "ide-input-performance-profile#vscode100kAndRapidQueries",
+          "WorkspaceMentionIndexPerformanceTest#profiles100kPathsAndRapidQueries"
+        ],
+        "producerDigests": {
+          "packages/vscode-extension/src/chat/workspace-mention-index.js": "sha256:567896697f262fe41d0a6cab693620b8eb56bd234baaf673f67f20832f9ac3fd",
+          "packages/vscode-extension/src/chat/chat-view.js": "sha256:5cf622b3d433adcf96230d1e4ec007ac353079a250259aec9c713644c16dc072",
+          "packages/vscode-extension/src/chat/chat-html.js": "sha256:0a826f2af713ccda9513b3e7213a5cca18220c424822108750fbc8c6ffacb416",
+          "packages/vscode-extension/src/chat/symbol-mentions.js": "sha256:e60cd37153f5b7b1a26d109e50017b1a76f7caedb6b1ef50a07c3bf4b015dbcf",
+          "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/Mentions.java": "sha256:aba349899e7a47ca95d2c585cb5a36a2f2a11d86490a065ada30f0f6ff891f23",
+          "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/WorkspaceMentionIndex.java": "sha256:0f9d6b400e45ef6be6efa4f226628be05ad2d038790ea0ec6f67bf0f1e7775db",
+          "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ChatMentionPopups.java": "sha256:c1527d0db7137dbd4d46ff651ed8a55be9ea95635b331041e2fbb9664a46f303",
+          "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ConversationView.java": "sha256:519f7bb83ce0955320e6c1954b2f87586617f9ef08fbff130c76598218b5d229",
+          "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/WorkspaceMentionIndexPerformanceProfile.java": "sha256:ff295ed2d8bfe47e9f7e7e79a2c5525e82f3cbb3d6f57e7bd027d3c28e6cdff6",
+          "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/WorkspaceMentionIndexPerformanceTest.java": "sha256:afe8d87ff5f6e025591274debd3bdfbc4f77cb47c85b77592692bc80c19d7fc7",
+          "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/WorkspaceMentionIndexTest.java": "sha256:315db5146c0c79f6fb1a13756a2925f3d416141a049c82a1f48adb3c68c2d3fc",
+          "packages/cli/scripts/ide-input-performance-profile.mjs": "sha256:ecea32900de6de6e44c712a53f9c0d49600fcbe2966499b9514815f1a297ee6a",
+          "packages/cli/scripts/ide-roadmap-accessibility-performance.mjs": "sha256:788e7ff031933eafed26a3eb2162d340c741f91e096e74ee08b5260c9f2b5dca",
+          "packages/cli/scripts/verify-ide-roadmap-accessibility-performance.mjs": "sha256:b76b03469c5fe7f76dfe2e17e775fa587605a8a9af738ab97600256f36728991",
+          "packages/cli/__tests__/unit/ide-input-performance.test.js": "sha256:f7f49363d9103ae712efba7a96dc6666747a3da153a72c4559484517a679a92c",
+          ".github/workflows/ide-roadmap-accessibility-performance.yml": "sha256:2cfa65e07fcb8bdb47df6532439acad9c08f8ac59de9ac0763d0dbb0d04db3b9"
+        },
+        "disposition": "required",
+        "source": {
+          "workflowId": "chainlesschain/chainlesschain/.github/workflows/ide-roadmap-accessibility-performance.yml@refs/pull/605/merge",
+          "runId": "43061797894",
+          "jobId": "accessibility-performance",
+          "artifactName": "ide-accessibility-performance-macos-1"
+        },
+        "outcome": "passed"
+      },
+      "sessionUx": {
+        "required": {
+          "schema": "chainlesschain.claude-code-increment-audit-fragment.v1",
+          "commitmentId": "SESSION-UX",
+          "headSha": "703b22e895bff2c0f40cd7f350aef0757dc3bdd5",
+          "os": "macos",
+          "runtime": {
+            "name": "node+java",
+            "version": "v22.12.0;21.0.3",
+            "arch": "arm64"
+          },
+          "profileVersion": "session-ux/v1",
+          "thresholds": {
+            "sessionCountMinimum": 128,
+            "groupCountMinimum": 1,
+            "groupedSessionCountMinimum": 128,
+            "multiSelectCountMinimum": 128,
+            "focusRowCountMinimum": 1,
+            "staleCasRejectionCountMinimum": 1,
+            "thinkingCollapseFailureCountMaximum": 0
+          },
+          "measurements": {
+            "cli": {
+              "sessionCount": 128,
+              "groupCount": 1,
+              "assignmentCount": 128,
+              "groupedSessionCount": 128,
+              "persistedAssignmentCount": 128,
+              "revisionChangedAfterCreate": true,
+              "revisionChangedAfterMove": true,
+              "staleCasRejectionCount": 1,
+              "staleCasErrorCode": "SESSION_GROUP_STALE"
+            },
+            "vscode": {
+              "projectionConnected": true,
+              "sessionCount": 128,
+              "groupCount": 1,
+              "groupRevisionPreserved": true,
+              "groupedSessionCount": 128,
+              "focusRowCount": 1,
+              "pendingQuestionPreserved": true,
+              "settledAnswerPreserved": true,
+              "atomicMoveArgumentSessionCount": 128,
+              "atomicMoveExpectedRevisionPreserved": true,
+              "renderedRowCount": 128,
+              "renderedSelectionControlCount": 128,
+              "ariaRowCount": 128,
+              "selectedSessionCount": 128,
+              "postedMoveSessionCount": 128,
+              "postedMoveRevisionPreserved": true,
+              "thinkingExpandedWhileStreaming": true,
+              "thinkingCollapsedAfterTool": true,
+              "thinkingCollapsedAfterTurnEnd": true,
+              "thinkingCollapseFailureCount": 0
+            },
+            "jetbrains": {
+              "projectionConnected": true,
+              "sessionCount": 128,
+              "groupCount": 1,
+              "groupRevisionPreserved": true,
+              "groupedSessionCount": 128,
+              "focusRowCount": 1,
+              "pendingQuestionPreserved": true,
+              "settledAnswerPreserved": true,
+              "reasoningExpandedBeforeSettlement": true,
+              "reasoningCollapsedAfterSettlement": true,
+              "reasoningRestoredAfterToggle": true,
+              "thinkingCollapseFailureCount": 0
+            }
+          },
+          "testIds": [
+            "packages/cli/__tests__/unit/session-workbench-store.test.js#persists group name/order and atomically moves 128 selected sessions",
+            "packages/cli/__tests__/unit/session-workbench-store.test.js#rejects a stale second window instead of losing the first mutation",
+            "packages/cli/__tests__/unit/session-projection.test.js#projects CLI-owned groups, bounded attention, Focus View context and offline/cloud state",
+            "packages/cli/__tests__/unit/vscode-ext-sessions-workbench.test.js#renders and locally filters a 128-session workbench",
+            "packages/cli/__tests__/unit/vscode-ext-sessions-workbench.test.js#consumes one CLI-owned group/focus schema and builds atomic batch move argv",
+            "packages/cli/__tests__/unit/vscode-ext-sessions-workbench.test.js#wires keyboard multi-selection, atomic group moves and JetBrains interval selection",
+            "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/SessionProjectionTest.java#consumesCliOwnedGroupsFocusAttentionAndCloudOfflineStatus",
+            "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/SessionsWorkbenchTest.java#scaleGateKeepsAndFiltersAtLeast128Sessions",
+            "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/ChatTranscriptTest.java#thinkingOnlyTurnCollapsesAutomaticallyWhenCompletionSettles",
+            "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/SessionUxEvidenceTest.java#measuresCanonicalProjectionAndThinkingCollapse",
+            "packages/cli/scripts/session-ux-audit-fragment.mjs#playwright-product-multiselect-and-thinking-collapse"
+          ],
+          "producerDigests": {
+            ".github/workflows/ide-roadmap-accessibility-performance.yml": "sha256:2cfa65e07fcb8bdb47df6532439acad9c08f8ac59de9ac0763d0dbb0d04db3b9",
+            "packages/cli/scripts/session-ux-audit-fragment.mjs": "sha256:5848a2a9386a8a75be2201204828b407ef55e84916a259f122da0e83d4fa065e",
+            "packages/cli/scripts/ide-roadmap-accessibility-performance.mjs": "sha256:788e7ff031933eafed26a3eb2162d340c741f91e096e74ee08b5260c9f2b5dca",
+            "packages/cli/scripts/verify-ide-roadmap-accessibility-performance.mjs": "sha256:b76b03469c5fe7f76dfe2e17e775fa587605a8a9af738ab97600256f36728991",
+            "packages/cli/src/lib/session-projection.js": "sha256:5e46c1407d182938c8d3fe476303cce81d41cb8da5148d3f9e0af663843bc48a",
+            "packages/cli/src/lib/session-workbench-store.js": "sha256:f491e371c52f022d70f42a08dfe609878bb4faf4effbc4cbf725fd803baa23e9",
+            "packages/cli/__tests__/unit/session-projection.test.js": "sha256:0161a20414ad2ccc44bec9b0864fe78442fc45211ba8842a2b1f8c4e605e695b",
+            "packages/cli/__tests__/unit/session-workbench-store.test.js": "sha256:b9bd698f89dde619ada1f06772f85e64c0ab53a171050f0b8eabe390d005d516",
+            "packages/cli/__tests__/unit/vscode-ext-sessions-workbench.test.js": "sha256:da1fe272f19b043324fe55cdd873f29cacfed7dfec846ef84a8de0178b366a33",
+            "packages/cli/__tests__/unit/session-ux-audit-fragment.test.js": "sha256:088fd3449f5f5d32cf368989e7ccda5c93d82eb5dba7df1db9633627ed4a8fe9",
+            "packages/cli/__tests__/unit/ide-roadmap-accessibility-performance.test.js": "sha256:9c8cb0c81c26e58405e9e26ecb8781fa0dc6d06cda55c25a2a5406a2621148fd",
+            "packages/vscode-extension/src/sessions-workbench.js": "sha256:14543638d07dc9c6857f58e64e2fee84a2eed52e8b29ff422a806681fada4f1b",
+            "packages/vscode-extension/src/ui/sessions-view.js": "sha256:d975b60a7349989666137bd7dc863210f4d73ce385f289d4c0230cbf7a152752",
+            "packages/vscode-extension/src/chat/chat-html.js": "sha256:0a826f2af713ccda9513b3e7213a5cca18220c424822108750fbc8c6ffacb416",
+            "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/MiniJson.java": "sha256:2f8882ad6874840605549acbf5e41b903b1c22b851638e6dfa039c61277939b6",
+            "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/SessionProjection.java": "sha256:03a9b2390bf585f6c2f12c830ae3397d9c2788ad3a00ae2901574a63a31e68e1",
+            "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/SessionsWorkbench.java": "sha256:0f49fcaf5076f0ddc694274874f264b6441909abee41e20138f769df30f32040",
+            "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ChatTranscript.java": "sha256:db0313f0825981289d9e3e73efef32afcd89ad79966636d0169c9546306a2ea6",
+            "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/SessionProjectionTest.java": "sha256:7a45445efc27bc845f8524719f85e2335e92edcf944ba7598a428983f11f7f4e",
+            "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/SessionsWorkbenchTest.java": "sha256:701047deb89c597796b1997150922abf009cb50892e1a3255910619d2046d7c5",
+            "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/ChatTranscriptTest.java": "sha256:09e249ef499bc2a0ff17f1edda6454b8043dc30b827ead28f8219b20bdf118b4",
+            "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/SessionUxEvidenceTest.java": "sha256:5784dcf60f5502e1ec73f2ceb19a28b58e48711dc5a32bd6fddd7ef57a44d401"
+          },
+          "disposition": "required",
+          "source": {
+            "workflowId": "chainlesschain/chainlesschain/.github/workflows/ide-roadmap-accessibility-performance.yml@refs/pull/605/merge",
+            "runId": "43061797894",
+            "jobId": "accessibility-performance",
+            "artifactName": "ide-accessibility-performance-macos-1"
+          },
+          "outcome": "passed"
+        },
+        "requiredDigest": "sha256:d132f7c97d26990a704a13eff270ad8d2bc9d835d62ae1170db2198668bdd874"
+      },
+      "axTranscript": {
+        "required": {
+          "schema": "chainlesschain.claude-code-increment-audit-fragment.v1",
+          "commitmentId": "AX-TRANSCRIPT",
+          "headSha": "703b22e895bff2c0f40cd7f350aef0757dc3bdd5",
+          "os": "macos",
+          "runtime": {
+            "name": "node",
+            "version": "v22.12.0",
+            "arch": "arm64"
+          },
+          "profileVersion": "ax-transcript/v1",
+          "thresholds": {
+            "messagesPerSessionMinimum": 2000,
+            "inputToPaintP99Ms": 1000,
+            "scrollP99Ms": 500,
+            "diffPaintMs": 5000,
+            "logPaintMs": 5000,
+            "workbenchPaintMs": 3000,
+            "nodeRssGrowthBytes": 536870912,
+            "rendererHeapGrowthBytes": 268435456,
+            "descriptorOrHandleGrowth": 32,
+            "requiredSemanticMissCount": 0,
+            "unnamedInteractiveControlCount": 0,
+            "criticalAnnouncementMissCount": 0,
+            "announcementDuplicateCount": 0,
+            "streamingTokenReplayCount": 0,
+            "turnHeadingMissCount": 0,
+            "focusRestoreFailureCount": 0
+          },
+          "measurements": {
+            "hosts": [
+              "vscode",
+              "jetbrains"
+            ],
+            "scale": {
+              "messagesPerSession": 2000,
+              "renderedTranscriptNodes": 800
+            },
+            "semanticContract": {
+              "capture": "chromium-cdp-full-ax-tree",
+              "nodeCount": 27,
+              "unnamedInteractiveControlCount": 0,
+              "requiredSemanticMissCount": 0,
+              "visualTranscriptRole": "region",
+              "visualTranscriptLiveRegion": false,
+              "classifiedEventRegion": {
+                "role": "status",
+                "live": "polite",
+                "atomic": "true"
+              },
+              "turnHeadingCount": 2,
+              "headingKeyboardActionCount": 2,
+              "announcementCounts": {
+                "assistantResponse": 1,
+                "permissionRequest": 3,
+                "status": 2,
+                "toolError": 1
+              },
+              "announcementDuplicateCount": 0,
+              "streamingTokenReplayCount": 0,
+              "focusRestoreFailureCount": 0,
+              "criticalAnnouncementMissCount": 0,
+              "turnHeadingMissCount": 0
+            },
+            "vscodePerformance": {
+              "inputToPaint": {
+                "samples": 100,
+                "p50Ms": 33.40000000002328,
+                "p95Ms": 50,
+                "p99Ms": 53.59999999997672,
+                "maxMs": 83.29999999993015
+              },
+              "scrollToPaint": {
+                "samples": 100,
+                "p50Ms": 16.699999999953434,
+                "p95Ms": 32.300000000046566,
+                "p99Ms": 33.300000000046566,
+                "maxMs": 33.5
+              },
+              "diffPaintMs": 97.29999999993015,
+              "logPaintMs": 101.40000000002328,
+              "workbenchPaintMs": 26.900000000023283,
+              "nodeRssGrowthBytes": 129040384,
+              "rendererHeapGrowthBytes": 100896848,
+              "descriptorOrHandleGrowth": -7
+            },
+            "jetbrainsPerformance": {
+              "inputToPaint": {
+                "samples": 100,
+                "p50Ms": 5.395417,
+                "p95Ms": 11.915375,
+                "p99Ms": 27.545791
+              },
+              "scrollToPaint": {
+                "samples": 100,
+                "p50Ms": 7.767,
+                "p95Ms": 11.583042,
+                "p99Ms": 14.218542
+              },
+              "diffPaintMs": 293.408875,
+              "logPaintMs": 515.236875,
+              "workbenchPaintMs": 0.053375,
+              "transcriptBounded": true,
+              "accessibleNamePresent": true,
+              "accessibleDescriptionPresent": true,
+              "focusable": true
+            },
+            "automationBoundary": {
+              "requiredSurface": "product DOM/CDP AX tree, live-region event projection, Swing AccessibleContext, and keyboard focus",
+              "nativeAssistiveTechnologyDisposition": "advisory",
+              "nativeAssistiveTechnologyConsumedSemanticTree": false,
+              "speechAudioCaptured": false,
+              "speechQualityAssessed": false,
+              "externalManualSpeechReviewRequired": true
+            }
+          },
+          "testIds": [
+            "packages/vscode-extension/test/host-dom-relay.test.cjs#chat HTML exposes keyboard and screen-reader semantics",
+            "packages/vscode-extension/test/host-dom-relay.test.cjs#transcript announcements are classified, whitespace-normalized, and bounded",
+            "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/ChatTranscriptTest.java#transcriptExposesAStableScreenReaderNameAndDescription",
+            "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/ChatTranscriptTest.java#turnsExposeStableUserAndAssistantHeadings",
+            "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/ChatTranscriptTest.java#categorizedAnnouncementsAreDeduplicatedAndBounded",
+            "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/AccessibilityPerformanceEvidenceTest.java#measuresNativeTranscriptPaintAndSessionProjectionAtRequiredScale",
+            "packages/cli/scripts/ide-roadmap-accessibility-performance.mjs#chromium-cdp-ax-tree-heading-keyboard-journey"
+          ],
+          "producerDigests": {
+            ".github/workflows/ide-roadmap-accessibility-performance.yml": "sha256:2cfa65e07fcb8bdb47df6532439acad9c08f8ac59de9ac0763d0dbb0d04db3b9",
+            "packages/cli/scripts/ax-transcript-audit-fragment.mjs": "sha256:8fb38d0ba5835accf1904e51bc71770fdac94e19ef30b89136d8233228327375",
+            "packages/cli/scripts/ide-roadmap-accessibility-performance.mjs": "sha256:788e7ff031933eafed26a3eb2162d340c741f91e096e74ee08b5260c9f2b5dca",
+            "packages/cli/scripts/verify-ide-roadmap-accessibility-performance.mjs": "sha256:b76b03469c5fe7f76dfe2e17e775fa587605a8a9af738ab97600256f36728991",
+            "packages/cli/__tests__/unit/ax-transcript-audit-fragment.test.js": "sha256:a11b02cece7c82e9d715506a412351164ea4ac44ebcd795174ddd963ec63cf15",
+            "packages/cli/__tests__/unit/ide-roadmap-accessibility-performance.test.js": "sha256:9c8cb0c81c26e58405e9e26ecb8781fa0dc6d06cda55c25a2a5406a2621148fd",
+            "packages/vscode-extension/src/chat/chat-html.js": "sha256:0a826f2af713ccda9513b3e7213a5cca18220c424822108750fbc8c6ffacb416",
+            "packages/vscode-extension/test/host-dom-relay.test.cjs": "sha256:3050e62e3a6f1c0b87d73bef726e19d3e0ffd5ad5641158663e2266b4c8e6f7b",
+            "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ChatTranscript.java": "sha256:db0313f0825981289d9e3e73efef32afcd89ad79966636d0169c9546306a2ea6",
+            "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ConversationView.java": "sha256:519f7bb83ce0955320e6c1954b2f87586617f9ef08fbff130c76598218b5d229",
+            "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/ChatTranscriptTest.java": "sha256:09e249ef499bc2a0ff17f1edda6454b8043dc30b827ead28f8219b20bdf118b4",
+            "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/AccessibilityPerformanceEvidenceTest.java": "sha256:5be85c7adcd6998fe74ab8cb700ae150f6fc146662a3c2c89f0388e391b2b061"
+          },
+          "disposition": "required",
+          "source": {
+            "workflowId": "chainlesschain/chainlesschain/.github/workflows/ide-roadmap-accessibility-performance.yml@refs/pull/605/merge",
+            "runId": "43061797894",
+            "jobId": "accessibility-performance",
+            "artifactName": "ide-accessibility-performance-macos-1"
+          },
+          "outcome": "passed"
+        },
+        "requiredDigest": "sha256:6c353e99a521b48f65bd3c25c2d5e97a1bc8069ce0a3cb7f1c837206d2072493",
+        "advisory": {
+          "schema": "chainlesschain.claude-code-increment-audit-fragment.v1",
+          "commitmentId": "AX-TRANSCRIPT",
+          "headSha": "703b22e895bff2c0f40cd7f350aef0757dc3bdd5",
+          "os": "macos",
+          "runtime": {
+            "name": "node",
+            "version": "v22.12.0",
+            "arch": "arm64"
+          },
+          "profileVersion": "ax-transcript/native-at-probe/v1",
+          "thresholds": {
+            "binaryPresent": true,
+            "automatedProcessProbeComplete": false,
+            "speechQualityRequiredForAutomatedGate": false
+          },
+          "measurements": {
+            "technology": "voiceover",
+            "probeScope": "binary-presence-semantic-contract",
+            "binaryPresent": true,
+            "automatedProcessProbeComplete": false,
+            "processProbeExternalManualRequired": true,
+            "versionDigest": "sha256:4a44dc15364204a80fe80e9039455cc1608281820fe2b24f1e5233ade6af1dd5",
+            "nativeAssistiveTechnologyConsumedSemanticTree": false,
+            "speechAudioCaptured": false,
+            "speechQualityAssessed": false,
+            "externalManualSpeechReviewRequired": true
+          },
+          "testIds": [
+            "AX-TRANSCRIPT/native-at/voiceover/binary-presence-semantic-contract"
+          ],
+          "producerDigests": {
+            ".github/workflows/ide-roadmap-accessibility-performance.yml": "sha256:2cfa65e07fcb8bdb47df6532439acad9c08f8ac59de9ac0763d0dbb0d04db3b9",
+            "packages/cli/scripts/ax-transcript-audit-fragment.mjs": "sha256:8fb38d0ba5835accf1904e51bc71770fdac94e19ef30b89136d8233228327375",
+            "packages/cli/scripts/ide-roadmap-accessibility-performance.mjs": "sha256:788e7ff031933eafed26a3eb2162d340c741f91e096e74ee08b5260c9f2b5dca",
+            "packages/cli/scripts/verify-ide-roadmap-accessibility-performance.mjs": "sha256:b76b03469c5fe7f76dfe2e17e775fa587605a8a9af738ab97600256f36728991",
+            "packages/cli/__tests__/unit/ax-transcript-audit-fragment.test.js": "sha256:a11b02cece7c82e9d715506a412351164ea4ac44ebcd795174ddd963ec63cf15",
+            "packages/cli/__tests__/unit/ide-roadmap-accessibility-performance.test.js": "sha256:9c8cb0c81c26e58405e9e26ecb8781fa0dc6d06cda55c25a2a5406a2621148fd",
+            "packages/vscode-extension/src/chat/chat-html.js": "sha256:0a826f2af713ccda9513b3e7213a5cca18220c424822108750fbc8c6ffacb416",
+            "packages/vscode-extension/test/host-dom-relay.test.cjs": "sha256:3050e62e3a6f1c0b87d73bef726e19d3e0ffd5ad5641158663e2266b4c8e6f7b",
+            "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ChatTranscript.java": "sha256:db0313f0825981289d9e3e73efef32afcd89ad79966636d0169c9546306a2ea6",
+            "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ConversationView.java": "sha256:519f7bb83ce0955320e6c1954b2f87586617f9ef08fbff130c76598218b5d229",
+            "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/ChatTranscriptTest.java": "sha256:09e249ef499bc2a0ff17f1edda6454b8043dc30b827ead28f8219b20bdf118b4",
+            "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/AccessibilityPerformanceEvidenceTest.java": "sha256:5be85c7adcd6998fe74ab8cb700ae150f6fc146662a3c2c89f0388e391b2b061"
+          },
+          "disposition": "advisory",
+          "source": {
+            "workflowId": "chainlesschain/chainlesschain/.github/workflows/ide-roadmap-accessibility-performance.yml@refs/pull/605/merge",
+            "runId": "43061797894",
+            "jobId": "accessibility-performance",
+            "artifactName": "ide-accessibility-performance-macos-1"
+          },
+          "outcome": "passed"
+        },
+        "advisoryDigest": "sha256:b4ee8ca70f512b7fad313285ccee8d79ca7de766aee2da3195ac065c64d18dd0"
+      }
+    },
+    {
+      "suffix": "windows",
+      "operatingSystem": "win32",
+      "manifestDigest": "sha256:e912a7a06f5885cb918abe9f1cf6420d7f1a3ab78c059735b4888de567570c56",
+      "outcomeDigest": "sha256:0312dde124241419cba3c0442951e833faf8396b7353aecea161031a445af3e2",
+      "ideInputPerformanceDigest": "sha256:1b0e70bddacb0284d6a518735333a869b0c3f93d90fe80e9fa42a0fde875395f",
+      "diagnosticsScale": {
+        "schema": "chainlesschain.claude-code-increment-audit-fragment.v1",
+        "commitmentId": "DIAG-SCALE",
+        "headSha": "703b22e895bff2c0f40cd7f350aef0757dc3bdd5",
+        "os": "windows",
+        "runtime": {
+          "name": "node+java",
+          "version": "v22.12.0;21.0.3",
+          "arch": "x64"
+        },
+        "profileVersion": "diagnostics-scale/v1",
+        "thresholds": {
+          "stableSnapshotP95Ms": 1000,
+          "eventLoopOrEdtMaxMs": 200,
+          "nodeRssGrowthBytes": 536870912,
+          "rendererHeapGrowthBytes": 268435456,
+          "lostCount": 0,
+          "duplicateCount": 0,
+          "staleVersionCount": 0
+        },
+        "measurements": {
+          "profiles": [
+            {
+              "host": "vscode",
+              "disposition": "required",
+              "inputCount": 10000,
+              "maxDiagnostics": 10000,
+              "publishedCount": 10000,
+              "truncatedCount": 0,
+              "lostCount": 0,
+              "duplicateCount": 0,
+              "staleVersionCount": 0,
+              "canceledGenerationCount": 20,
+              "stableSnapshot": {
+                "samples": 20,
+                "p50Ms": 16.952499999999873,
+                "p95Ms": 27.914500000000317,
+                "p99Ms": 36.305399999999736,
+                "maxMs": 36.305399999999736
+              },
+              "eventLoopMaxMs": 3.0630999999998494,
+              "nodeRssGrowthBytes": 70340608,
+              "nodeHeapGrowthBytes": 24901688,
+              "snapshotDigest": "sha256:4cab46812fb38ff6b1689f4639e9149a1df13814ca764b960f1a98f20752ef21",
+              "rendererHeapGrowthBytes": 100895168,
+              "rendererHeapMeasurement": "chromium-product-journey-peak-minus-baseline"
+            },
+            {
+              "host": "jetbrains",
+              "disposition": "required",
+              "inputCount": 10000,
+              "publishedCount": 10000,
+              "truncatedCount": 0,
+              "lostCount": 0,
+              "duplicateCount": 0,
+              "staleVersionCount": 0,
+              "canceledGenerationCount": 20,
+              "stableSnapshot": {
+                "samples": 20,
+                "p50Ms": 18.9062,
+                "p95Ms": 39.6363,
+                "p99Ms": 52.6352,
+                "maxMs": 52.6352
+              },
+              "maxWorkSliceMs": 15.747,
+              "edtMaxMs": 0,
+              "heapGrowthBytes": 84605472
+            }
+          ]
+        },
+        "testIds": [
+          "DIAG-SCALE/vscode-10k-stable-snapshot",
+          "DIAG-SCALE/jetbrains-10k-stable-snapshot"
+        ],
+        "producerDigests": {
+          "packages/vscode-extension/src/diagnostics-scheduler.js": "sha256:b96fdb2beb032b2204fe35937068d27e4e8bb1139b754818294eed3c9958e2db",
+          "packages/vscode-extension/src/vscode-facade.js": "sha256:14133718b6e3e5d471c04b367666b6d0da1f63af50f756f5a073ae1c77303277",
+          "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/DiagnosticsSnapshotScheduler.java": "sha256:e78cade7556a6845469e16087336ee30fe25e1812985e567cff2e621499f073e",
+          "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/IntellijEditorFacade.java": "sha256:e292dd37babe6e8c50be81e840a7d3b1f2c9bebfccfb66937a3c225ddba5e83f",
+          "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/IdeBridgeService.java": "sha256:183d45ac834d73e0bb5734a83eac45638e6dbc4da8f437d47c52f5e6c876c39b",
+          "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ContextCenterAction.java": "sha256:51e2a9b79988ad37274ace2e410c92277dbaccc00a3c4813216b77eeec501dec",
+          "packages/cli/scripts/ide-roadmap-accessibility-performance.mjs": "sha256:788e7ff031933eafed26a3eb2162d340c741f91e096e74ee08b5260c9f2b5dca",
+          "packages/cli/scripts/verify-ide-roadmap-accessibility-performance.mjs": "sha256:b76b03469c5fe7f76dfe2e17e775fa587605a8a9af738ab97600256f36728991"
+        },
+        "disposition": "required",
+        "source": {
+          "workflowId": "chainlesschain/chainlesschain/.github/workflows/ide-roadmap-accessibility-performance.yml@refs/pull/605/merge",
+          "runId": "43061797894",
+          "jobId": "accessibility-performance",
+          "artifactName": "ide-accessibility-performance-windows-1"
+        },
+        "outcome": "passed"
+      },
+      "ideInputPerformance": {
+        "schema": "chainlesschain.claude-code-increment-audit-fragment.v1",
+        "commitmentId": "IDE-INPUT-PERF",
+        "headSha": "703b22e895bff2c0f40cd7f350aef0757dc3bdd5",
+        "os": "windows",
+        "runtime": {
+          "name": "node+java",
+          "version": "v22.12.0;21.0.3",
+          "arch": "x64"
+        },
+        "profileVersion": "ide-input-perf/v1",
+        "thresholds": {
+          "pathCount": 100000,
+          "consecutiveQueries": 20,
+          "rapidQueries": 20,
+          "p95Ms": 200,
+          "maxCandidates": 200,
+          "staleCommitCount": 0,
+          "leakCount": 0,
+          "contentReadCount": 0
+        },
+        "measurements": {
+          "vscode": {
+            "pathCount": 100000,
+            "consecutiveQueries": 20,
+            "rapidQueries": 20,
+            "samplesMs": [
+              0.3170999999999822,
+              15.683999999999969,
+              2.7479000000000724,
+              11.26520000000005,
+              5.017599999999902,
+              10.663999999999987,
+              7.621899999999982,
+              10.870000000000005,
+              9.690600000000018,
+              16.95939999999996,
+              2.5961999999999534,
+              10.82000000000005,
+              1.6883000000000266,
+              11.211099999999988,
+              1.9266999999999825,
+              10.545299999999997,
+              2.2113999999999123,
+              10.969099999999912,
+              2.4320999999999913,
+              10.577499999999986
+            ],
+            "p50Ms": 9.690600000000018,
+            "p95Ms": 15.683999999999969,
+            "p99Ms": 16.95939999999996,
+            "maxCandidates": 200,
+            "workspaceRevision": 6,
+            "queryGeneration": 41,
+            "cancellationCount": 19,
+            "discardedQueryCount": 19,
+            "deniedPathCount": 3,
+            "staleCommitCount": 0,
+            "leakCount": 0,
+            "contentReadCount": 0,
+            "symbolObserved": true,
+            "workspaceTrustEnforced": true
+          },
+          "jetbrains": {
+            "pathCount": 100000,
+            "consecutiveQueries": 20,
+            "rapidQueries": 20,
+            "samplesMs": [
+              1.4735,
+              1.6259,
+              1.7618,
+              1.7941,
+              1.8117,
+              2.0675,
+              4.3592,
+              5.6378,
+              7.0312,
+              8.9412,
+              9.2146,
+              9.7413,
+              10.0956,
+              10.3879,
+              10.4249,
+              10.4594,
+              16.9444,
+              18.194,
+              19.9636,
+              41.905
+            ],
+            "p50Ms": 8.9412,
+            "p95Ms": 19.9636,
+            "p99Ms": 41.905,
+            "maxCandidates": 200,
+            "workspaceRevision": 6,
+            "queryGeneration": 41,
+            "cancellationCount": 19,
+            "discardedQueryCount": 19,
+            "deniedPathCount": 3,
+            "staleCommitCount": 0,
+            "leakCount": 0,
+            "contentReadCount": 0,
+            "symbolObserved": true,
+            "workspaceTrustEnforced": true
+          }
+        },
+        "testIds": [
+          "ide-input-performance-profile#vscode100kAndRapidQueries",
+          "WorkspaceMentionIndexPerformanceTest#profiles100kPathsAndRapidQueries"
+        ],
+        "producerDigests": {
+          "packages/vscode-extension/src/chat/workspace-mention-index.js": "sha256:567896697f262fe41d0a6cab693620b8eb56bd234baaf673f67f20832f9ac3fd",
+          "packages/vscode-extension/src/chat/chat-view.js": "sha256:5cf622b3d433adcf96230d1e4ec007ac353079a250259aec9c713644c16dc072",
+          "packages/vscode-extension/src/chat/chat-html.js": "sha256:0a826f2af713ccda9513b3e7213a5cca18220c424822108750fbc8c6ffacb416",
+          "packages/vscode-extension/src/chat/symbol-mentions.js": "sha256:e60cd37153f5b7b1a26d109e50017b1a76f7caedb6b1ef50a07c3bf4b015dbcf",
+          "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/Mentions.java": "sha256:aba349899e7a47ca95d2c585cb5a36a2f2a11d86490a065ada30f0f6ff891f23",
+          "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/WorkspaceMentionIndex.java": "sha256:0f9d6b400e45ef6be6efa4f226628be05ad2d038790ea0ec6f67bf0f1e7775db",
+          "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ChatMentionPopups.java": "sha256:c1527d0db7137dbd4d46ff651ed8a55be9ea95635b331041e2fbb9664a46f303",
+          "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ConversationView.java": "sha256:519f7bb83ce0955320e6c1954b2f87586617f9ef08fbff130c76598218b5d229",
+          "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/WorkspaceMentionIndexPerformanceProfile.java": "sha256:ff295ed2d8bfe47e9f7e7e79a2c5525e82f3cbb3d6f57e7bd027d3c28e6cdff6",
+          "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/WorkspaceMentionIndexPerformanceTest.java": "sha256:afe8d87ff5f6e025591274debd3bdfbc4f77cb47c85b77592692bc80c19d7fc7",
+          "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/WorkspaceMentionIndexTest.java": "sha256:315db5146c0c79f6fb1a13756a2925f3d416141a049c82a1f48adb3c68c2d3fc",
+          "packages/cli/scripts/ide-input-performance-profile.mjs": "sha256:ecea32900de6de6e44c712a53f9c0d49600fcbe2966499b9514815f1a297ee6a",
+          "packages/cli/scripts/ide-roadmap-accessibility-performance.mjs": "sha256:788e7ff031933eafed26a3eb2162d340c741f91e096e74ee08b5260c9f2b5dca",
+          "packages/cli/scripts/verify-ide-roadmap-accessibility-performance.mjs": "sha256:b76b03469c5fe7f76dfe2e17e775fa587605a8a9af738ab97600256f36728991",
+          "packages/cli/__tests__/unit/ide-input-performance.test.js": "sha256:f7f49363d9103ae712efba7a96dc6666747a3da153a72c4559484517a679a92c",
+          ".github/workflows/ide-roadmap-accessibility-performance.yml": "sha256:2cfa65e07fcb8bdb47df6532439acad9c08f8ac59de9ac0763d0dbb0d04db3b9"
+        },
+        "disposition": "required",
+        "source": {
+          "workflowId": "chainlesschain/chainlesschain/.github/workflows/ide-roadmap-accessibility-performance.yml@refs/pull/605/merge",
+          "runId": "43061797894",
+          "jobId": "accessibility-performance",
+          "artifactName": "ide-accessibility-performance-windows-1"
+        },
+        "outcome": "passed"
+      },
+      "sessionUx": {
+        "required": {
+          "schema": "chainlesschain.claude-code-increment-audit-fragment.v1",
+          "commitmentId": "SESSION-UX",
+          "headSha": "703b22e895bff2c0f40cd7f350aef0757dc3bdd5",
+          "os": "windows",
+          "runtime": {
+            "name": "node+java",
+            "version": "v22.12.0;21.0.3",
+            "arch": "x64"
+          },
+          "profileVersion": "session-ux/v1",
+          "thresholds": {
+            "sessionCountMinimum": 128,
+            "groupCountMinimum": 1,
+            "groupedSessionCountMinimum": 128,
+            "multiSelectCountMinimum": 128,
+            "focusRowCountMinimum": 1,
+            "staleCasRejectionCountMinimum": 1,
+            "thinkingCollapseFailureCountMaximum": 0
+          },
+          "measurements": {
+            "cli": {
+              "sessionCount": 128,
+              "groupCount": 1,
+              "assignmentCount": 128,
+              "groupedSessionCount": 128,
+              "persistedAssignmentCount": 128,
+              "revisionChangedAfterCreate": true,
+              "revisionChangedAfterMove": true,
+              "staleCasRejectionCount": 1,
+              "staleCasErrorCode": "SESSION_GROUP_STALE"
+            },
+            "vscode": {
+              "projectionConnected": true,
+              "sessionCount": 128,
+              "groupCount": 1,
+              "groupRevisionPreserved": true,
+              "groupedSessionCount": 128,
+              "focusRowCount": 1,
+              "pendingQuestionPreserved": true,
+              "settledAnswerPreserved": true,
+              "atomicMoveArgumentSessionCount": 128,
+              "atomicMoveExpectedRevisionPreserved": true,
+              "renderedRowCount": 128,
+              "renderedSelectionControlCount": 128,
+              "ariaRowCount": 128,
+              "selectedSessionCount": 128,
+              "postedMoveSessionCount": 128,
+              "postedMoveRevisionPreserved": true,
+              "thinkingExpandedWhileStreaming": true,
+              "thinkingCollapsedAfterTool": true,
+              "thinkingCollapsedAfterTurnEnd": true,
+              "thinkingCollapseFailureCount": 0
+            },
+            "jetbrains": {
+              "projectionConnected": true,
+              "sessionCount": 128,
+              "groupCount": 1,
+              "groupRevisionPreserved": true,
+              "groupedSessionCount": 128,
+              "focusRowCount": 1,
+              "pendingQuestionPreserved": true,
+              "settledAnswerPreserved": true,
+              "reasoningExpandedBeforeSettlement": true,
+              "reasoningCollapsedAfterSettlement": true,
+              "reasoningRestoredAfterToggle": true,
+              "thinkingCollapseFailureCount": 0
+            }
+          },
+          "testIds": [
+            "packages/cli/__tests__/unit/session-workbench-store.test.js#persists group name/order and atomically moves 128 selected sessions",
+            "packages/cli/__tests__/unit/session-workbench-store.test.js#rejects a stale second window instead of losing the first mutation",
+            "packages/cli/__tests__/unit/session-projection.test.js#projects CLI-owned groups, bounded attention, Focus View context and offline/cloud state",
+            "packages/cli/__tests__/unit/vscode-ext-sessions-workbench.test.js#renders and locally filters a 128-session workbench",
+            "packages/cli/__tests__/unit/vscode-ext-sessions-workbench.test.js#consumes one CLI-owned group/focus schema and builds atomic batch move argv",
+            "packages/cli/__tests__/unit/vscode-ext-sessions-workbench.test.js#wires keyboard multi-selection, atomic group moves and JetBrains interval selection",
+            "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/SessionProjectionTest.java#consumesCliOwnedGroupsFocusAttentionAndCloudOfflineStatus",
+            "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/SessionsWorkbenchTest.java#scaleGateKeepsAndFiltersAtLeast128Sessions",
+            "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/ChatTranscriptTest.java#thinkingOnlyTurnCollapsesAutomaticallyWhenCompletionSettles",
+            "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/SessionUxEvidenceTest.java#measuresCanonicalProjectionAndThinkingCollapse",
+            "packages/cli/scripts/session-ux-audit-fragment.mjs#playwright-product-multiselect-and-thinking-collapse"
+          ],
+          "producerDigests": {
+            ".github/workflows/ide-roadmap-accessibility-performance.yml": "sha256:2cfa65e07fcb8bdb47df6532439acad9c08f8ac59de9ac0763d0dbb0d04db3b9",
+            "packages/cli/scripts/session-ux-audit-fragment.mjs": "sha256:5848a2a9386a8a75be2201204828b407ef55e84916a259f122da0e83d4fa065e",
+            "packages/cli/scripts/ide-roadmap-accessibility-performance.mjs": "sha256:788e7ff031933eafed26a3eb2162d340c741f91e096e74ee08b5260c9f2b5dca",
+            "packages/cli/scripts/verify-ide-roadmap-accessibility-performance.mjs": "sha256:b76b03469c5fe7f76dfe2e17e775fa587605a8a9af738ab97600256f36728991",
+            "packages/cli/src/lib/session-projection.js": "sha256:5e46c1407d182938c8d3fe476303cce81d41cb8da5148d3f9e0af663843bc48a",
+            "packages/cli/src/lib/session-workbench-store.js": "sha256:f491e371c52f022d70f42a08dfe609878bb4faf4effbc4cbf725fd803baa23e9",
+            "packages/cli/__tests__/unit/session-projection.test.js": "sha256:0161a20414ad2ccc44bec9b0864fe78442fc45211ba8842a2b1f8c4e605e695b",
+            "packages/cli/__tests__/unit/session-workbench-store.test.js": "sha256:b9bd698f89dde619ada1f06772f85e64c0ab53a171050f0b8eabe390d005d516",
+            "packages/cli/__tests__/unit/vscode-ext-sessions-workbench.test.js": "sha256:da1fe272f19b043324fe55cdd873f29cacfed7dfec846ef84a8de0178b366a33",
+            "packages/cli/__tests__/unit/session-ux-audit-fragment.test.js": "sha256:088fd3449f5f5d32cf368989e7ccda5c93d82eb5dba7df1db9633627ed4a8fe9",
+            "packages/cli/__tests__/unit/ide-roadmap-accessibility-performance.test.js": "sha256:9c8cb0c81c26e58405e9e26ecb8781fa0dc6d06cda55c25a2a5406a2621148fd",
+            "packages/vscode-extension/src/sessions-workbench.js": "sha256:14543638d07dc9c6857f58e64e2fee84a2eed52e8b29ff422a806681fada4f1b",
+            "packages/vscode-extension/src/ui/sessions-view.js": "sha256:d975b60a7349989666137bd7dc863210f4d73ce385f289d4c0230cbf7a152752",
+            "packages/vscode-extension/src/chat/chat-html.js": "sha256:0a826f2af713ccda9513b3e7213a5cca18220c424822108750fbc8c6ffacb416",
+            "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/MiniJson.java": "sha256:2f8882ad6874840605549acbf5e41b903b1c22b851638e6dfa039c61277939b6",
+            "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/SessionProjection.java": "sha256:03a9b2390bf585f6c2f12c830ae3397d9c2788ad3a00ae2901574a63a31e68e1",
+            "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/SessionsWorkbench.java": "sha256:0f49fcaf5076f0ddc694274874f264b6441909abee41e20138f769df30f32040",
+            "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ChatTranscript.java": "sha256:db0313f0825981289d9e3e73efef32afcd89ad79966636d0169c9546306a2ea6",
+            "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/SessionProjectionTest.java": "sha256:7a45445efc27bc845f8524719f85e2335e92edcf944ba7598a428983f11f7f4e",
+            "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/SessionsWorkbenchTest.java": "sha256:701047deb89c597796b1997150922abf009cb50892e1a3255910619d2046d7c5",
+            "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/ChatTranscriptTest.java": "sha256:09e249ef499bc2a0ff17f1edda6454b8043dc30b827ead28f8219b20bdf118b4",
+            "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/SessionUxEvidenceTest.java": "sha256:5784dcf60f5502e1ec73f2ceb19a28b58e48711dc5a32bd6fddd7ef57a44d401"
+          },
+          "disposition": "required",
+          "source": {
+            "workflowId": "chainlesschain/chainlesschain/.github/workflows/ide-roadmap-accessibility-performance.yml@refs/pull/605/merge",
+            "runId": "43061797894",
+            "jobId": "accessibility-performance",
+            "artifactName": "ide-accessibility-performance-windows-1"
+          },
+          "outcome": "passed"
+        },
+        "requiredDigest": "sha256:02456b31bf100863b3ff3ef79b9c3ccf757cd2a80de2db95aa18a284bb11096c"
+      },
+      "axTranscript": {
+        "required": {
+          "schema": "chainlesschain.claude-code-increment-audit-fragment.v1",
+          "commitmentId": "AX-TRANSCRIPT",
+          "headSha": "703b22e895bff2c0f40cd7f350aef0757dc3bdd5",
+          "os": "windows",
+          "runtime": {
+            "name": "node",
+            "version": "v22.12.0",
+            "arch": "x64"
+          },
+          "profileVersion": "ax-transcript/v1",
+          "thresholds": {
+            "messagesPerSessionMinimum": 2000,
+            "inputToPaintP99Ms": 1000,
+            "scrollP99Ms": 500,
+            "diffPaintMs": 5000,
+            "logPaintMs": 5000,
+            "workbenchPaintMs": 3000,
+            "nodeRssGrowthBytes": 536870912,
+            "rendererHeapGrowthBytes": 268435456,
+            "descriptorOrHandleGrowth": 32,
+            "requiredSemanticMissCount": 0,
+            "unnamedInteractiveControlCount": 0,
+            "criticalAnnouncementMissCount": 0,
+            "announcementDuplicateCount": 0,
+            "streamingTokenReplayCount": 0,
+            "turnHeadingMissCount": 0,
+            "focusRestoreFailureCount": 0
+          },
+          "measurements": {
+            "hosts": [
+              "vscode",
+              "jetbrains"
+            ],
+            "scale": {
+              "messagesPerSession": 2000,
+              "renderedTranscriptNodes": 800
+            },
+            "semanticContract": {
+              "capture": "chromium-cdp-full-ax-tree",
+              "nodeCount": 27,
+              "unnamedInteractiveControlCount": 0,
+              "requiredSemanticMissCount": 0,
+              "visualTranscriptRole": "region",
+              "visualTranscriptLiveRegion": false,
+              "classifiedEventRegion": {
+                "role": "status",
+                "live": "polite",
+                "atomic": "true"
+              },
+              "turnHeadingCount": 2,
+              "headingKeyboardActionCount": 2,
+              "announcementCounts": {
+                "assistantResponse": 1,
+                "permissionRequest": 3,
+                "status": 2,
+                "toolError": 1
+              },
+              "announcementDuplicateCount": 0,
+              "streamingTokenReplayCount": 0,
+              "focusRestoreFailureCount": 0,
+              "criticalAnnouncementMissCount": 0,
+              "turnHeadingMissCount": 0
+            },
+            "vscodePerformance": {
+              "inputToPaint": {
+                "samples": 100,
+                "p50Ms": 33.39999999990687,
+                "p95Ms": 34.5,
+                "p99Ms": 34.800000000046566,
+                "maxMs": 37.5
+              },
+              "scrollToPaint": {
+                "samples": 100,
+                "p50Ms": 17,
+                "p95Ms": 18.199999999953434,
+                "p99Ms": 18.29999999993015,
+                "maxMs": 18.300000000046566
+              },
+              "diffPaintMs": 47.5,
+              "logPaintMs": 56.199999999953434,
+              "workbenchPaintMs": 29.099999999976717,
+              "nodeRssGrowthBytes": 94347264,
+              "rendererHeapGrowthBytes": 100895168,
+              "descriptorOrHandleGrowth": -44
+            },
+            "jetbrainsPerformance": {
+              "inputToPaint": {
+                "samples": 100,
+                "p50Ms": 3.8362,
+                "p95Ms": 9.9272,
+                "p99Ms": 13.1237
+              },
+              "scrollToPaint": {
+                "samples": 100,
+                "p50Ms": 4.122,
+                "p95Ms": 6.508,
+                "p99Ms": 8.5804
+              },
+              "diffPaintMs": 237.801,
+              "logPaintMs": 78.5825,
+              "workbenchPaintMs": 0.0688,
+              "transcriptBounded": true,
+              "accessibleNamePresent": true,
+              "accessibleDescriptionPresent": true,
+              "focusable": true
+            },
+            "automationBoundary": {
+              "requiredSurface": "product DOM/CDP AX tree, live-region event projection, Swing AccessibleContext, and keyboard focus",
+              "nativeAssistiveTechnologyDisposition": "advisory",
+              "nativeAssistiveTechnologyConsumedSemanticTree": false,
+              "speechAudioCaptured": false,
+              "speechQualityAssessed": false,
+              "externalManualSpeechReviewRequired": true
+            }
+          },
+          "testIds": [
+            "packages/vscode-extension/test/host-dom-relay.test.cjs#chat HTML exposes keyboard and screen-reader semantics",
+            "packages/vscode-extension/test/host-dom-relay.test.cjs#transcript announcements are classified, whitespace-normalized, and bounded",
+            "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/ChatTranscriptTest.java#transcriptExposesAStableScreenReaderNameAndDescription",
+            "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/ChatTranscriptTest.java#turnsExposeStableUserAndAssistantHeadings",
+            "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/ChatTranscriptTest.java#categorizedAnnouncementsAreDeduplicatedAndBounded",
+            "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/AccessibilityPerformanceEvidenceTest.java#measuresNativeTranscriptPaintAndSessionProjectionAtRequiredScale",
+            "packages/cli/scripts/ide-roadmap-accessibility-performance.mjs#chromium-cdp-ax-tree-heading-keyboard-journey"
+          ],
+          "producerDigests": {
+            ".github/workflows/ide-roadmap-accessibility-performance.yml": "sha256:2cfa65e07fcb8bdb47df6532439acad9c08f8ac59de9ac0763d0dbb0d04db3b9",
+            "packages/cli/scripts/ax-transcript-audit-fragment.mjs": "sha256:8fb38d0ba5835accf1904e51bc71770fdac94e19ef30b89136d8233228327375",
+            "packages/cli/scripts/ide-roadmap-accessibility-performance.mjs": "sha256:788e7ff031933eafed26a3eb2162d340c741f91e096e74ee08b5260c9f2b5dca",
+            "packages/cli/scripts/verify-ide-roadmap-accessibility-performance.mjs": "sha256:b76b03469c5fe7f76dfe2e17e775fa587605a8a9af738ab97600256f36728991",
+            "packages/cli/__tests__/unit/ax-transcript-audit-fragment.test.js": "sha256:a11b02cece7c82e9d715506a412351164ea4ac44ebcd795174ddd963ec63cf15",
+            "packages/cli/__tests__/unit/ide-roadmap-accessibility-performance.test.js": "sha256:9c8cb0c81c26e58405e9e26ecb8781fa0dc6d06cda55c25a2a5406a2621148fd",
+            "packages/vscode-extension/src/chat/chat-html.js": "sha256:0a826f2af713ccda9513b3e7213a5cca18220c424822108750fbc8c6ffacb416",
+            "packages/vscode-extension/test/host-dom-relay.test.cjs": "sha256:3050e62e3a6f1c0b87d73bef726e19d3e0ffd5ad5641158663e2266b4c8e6f7b",
+            "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ChatTranscript.java": "sha256:db0313f0825981289d9e3e73efef32afcd89ad79966636d0169c9546306a2ea6",
+            "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ConversationView.java": "sha256:519f7bb83ce0955320e6c1954b2f87586617f9ef08fbff130c76598218b5d229",
+            "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/ChatTranscriptTest.java": "sha256:09e249ef499bc2a0ff17f1edda6454b8043dc30b827ead28f8219b20bdf118b4",
+            "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/AccessibilityPerformanceEvidenceTest.java": "sha256:5be85c7adcd6998fe74ab8cb700ae150f6fc146662a3c2c89f0388e391b2b061"
+          },
+          "disposition": "required",
+          "source": {
+            "workflowId": "chainlesschain/chainlesschain/.github/workflows/ide-roadmap-accessibility-performance.yml@refs/pull/605/merge",
+            "runId": "43061797894",
+            "jobId": "accessibility-performance",
+            "artifactName": "ide-accessibility-performance-windows-1"
+          },
+          "outcome": "passed"
+        },
+        "requiredDigest": "sha256:765ce8f96200e6985153deb967d4fdd19deec0346f316582bbe6a8baa137f927",
+        "advisory": {
+          "schema": "chainlesschain.claude-code-increment-audit-fragment.v1",
+          "commitmentId": "AX-TRANSCRIPT",
+          "headSha": "703b22e895bff2c0f40cd7f350aef0757dc3bdd5",
+          "os": "windows",
+          "runtime": {
+            "name": "node",
+            "version": "v22.12.0",
+            "arch": "x64"
+          },
+          "profileVersion": "ax-transcript/native-at-probe/v1",
+          "thresholds": {
+            "binaryPresent": true,
+            "automatedProcessProbeComplete": true,
+            "speechQualityRequiredForAutomatedGate": false
+          },
+          "measurements": {
+            "technology": "nvda",
+            "probeScope": "signed-binary-version-process",
+            "binaryPresent": true,
+            "automatedProcessProbeComplete": true,
+            "processProbeExternalManualRequired": false,
+            "versionDigest": "sha256:58018741dfe38de383eb63d73c5030a1dc20817a1a36ccd0b7ff50682efe4729",
+            "nativeAssistiveTechnologyConsumedSemanticTree": false,
+            "speechAudioCaptured": false,
+            "speechQualityAssessed": false,
+            "externalManualSpeechReviewRequired": true
+          },
+          "testIds": [
+            "AX-TRANSCRIPT/native-at/nvda/signed-binary-version-process"
+          ],
+          "producerDigests": {
+            ".github/workflows/ide-roadmap-accessibility-performance.yml": "sha256:2cfa65e07fcb8bdb47df6532439acad9c08f8ac59de9ac0763d0dbb0d04db3b9",
+            "packages/cli/scripts/ax-transcript-audit-fragment.mjs": "sha256:8fb38d0ba5835accf1904e51bc71770fdac94e19ef30b89136d8233228327375",
+            "packages/cli/scripts/ide-roadmap-accessibility-performance.mjs": "sha256:788e7ff031933eafed26a3eb2162d340c741f91e096e74ee08b5260c9f2b5dca",
+            "packages/cli/scripts/verify-ide-roadmap-accessibility-performance.mjs": "sha256:b76b03469c5fe7f76dfe2e17e775fa587605a8a9af738ab97600256f36728991",
+            "packages/cli/__tests__/unit/ax-transcript-audit-fragment.test.js": "sha256:a11b02cece7c82e9d715506a412351164ea4ac44ebcd795174ddd963ec63cf15",
+            "packages/cli/__tests__/unit/ide-roadmap-accessibility-performance.test.js": "sha256:9c8cb0c81c26e58405e9e26ecb8781fa0dc6d06cda55c25a2a5406a2621148fd",
+            "packages/vscode-extension/src/chat/chat-html.js": "sha256:0a826f2af713ccda9513b3e7213a5cca18220c424822108750fbc8c6ffacb416",
+            "packages/vscode-extension/test/host-dom-relay.test.cjs": "sha256:3050e62e3a6f1c0b87d73bef726e19d3e0ffd5ad5641158663e2266b4c8e6f7b",
+            "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ChatTranscript.java": "sha256:db0313f0825981289d9e3e73efef32afcd89ad79966636d0169c9546306a2ea6",
+            "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ConversationView.java": "sha256:519f7bb83ce0955320e6c1954b2f87586617f9ef08fbff130c76598218b5d229",
+            "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/ChatTranscriptTest.java": "sha256:09e249ef499bc2a0ff17f1edda6454b8043dc30b827ead28f8219b20bdf118b4",
+            "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/AccessibilityPerformanceEvidenceTest.java": "sha256:5be85c7adcd6998fe74ab8cb700ae150f6fc146662a3c2c89f0388e391b2b061"
+          },
+          "disposition": "advisory",
+          "source": {
+            "workflowId": "chainlesschain/chainlesschain/.github/workflows/ide-roadmap-accessibility-performance.yml@refs/pull/605/merge",
+            "runId": "43061797894",
+            "jobId": "accessibility-performance",
+            "artifactName": "ide-accessibility-performance-windows-1"
+          },
+          "outcome": "passed"
+        },
+        "advisoryDigest": "sha256:c039c3bc59c37a2a3ef31c0c8c523c7ccb585e0b840c28ae7c8738bcf37b3ef6"
+      }
+    }
+  ]
+}

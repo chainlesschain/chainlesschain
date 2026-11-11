@@ -13,7 +13,7 @@
     "jetbrainsHost": "2025.2"
   },
   "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
-  "releaseSourceCommit": null,
+  "releaseSourceCommit": "32451e4d568e414acdb9c956208e5cff827cd6e0",
   "taskCount": 36,
   "firstRunCount": 9,
   "repeatPreviouslyAccepted": true,
@@ -46,13 +46,28 @@
     "causalLearningImprovementEstablished": false
   },
   "prerequisites": {
-    "exactSourceCliCiAndStrictSandbox": "pending",
-    "publicCliReadback": "pending",
-    "exactSourceIdeAndArm64": "pending",
-    "publicIdeReadback": "pending",
+    "exactSourceCliCiAndStrictSandbox": "verified",
+    "publicCliReadback": "verified",
+    "exactSourceIdeAndArm64": "verified",
+    "publicIdeReadback": "verified-open-vsx; publishing-jetbrains",
     "boundPackageManifest": "pending"
+  },
+  "upstreamCliValidation": {
+    "sourceCommit": "32451e4d568e414acdb9c956208e5cff827cd6e0",
+    "cliCiRunId": 42959022247,
+    "cliCiPassed": 76,
+    "strictSandboxRunId": 42959022282,
+    "strictSandboxPassed": 6,
+    "oidcPublishRunId": 42976618525,
+    "publicReadbackRunId": 43032767673,
+    "publicTarballSha256": "2d933c68e6053d9de21a16c2d2c4e245d964d957ce9663958419b8061e9969b2"
   },
   "newModelTaskResults": null,
   "paidRequestsDispatched": 0,
-  "formalSample": false
+  "formalSample": false,
+  "releaseSourceCommits": {
+    "cli": "32451e4d568e414acdb9c956208e5cff827cd6e0",
+    "vscode": "703b22e895bff2c0f40cd7f350aef0757dc3bdd5",
+    "jetbrains": "703b22e895bff2c0f40cd7f350aef0757dc3bdd5"
+  }
 }

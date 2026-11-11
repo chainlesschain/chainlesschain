@@ -1,0 +1,34 @@
+2026-11-11T19:53:16.4904885Z ##[group]Run bash "$GITHUB_WORKSPACE/.github/scripts/ci-install-cli-production-deps.sh"
+2026-11-11T19:53:16.4905516Z [36;1mbash "$GITHUB_WORKSPACE/.github/scripts/ci-install-cli-production-deps.sh"[0m
+2026-11-11T19:53:16.4935653Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-11T19:53:16.4936029Z env:
+2026-11-11T19:53:16.4936244Z   NODE_VERSION: 22
+2026-11-11T19:53:16.4936465Z   JAVA_VERSION: 17
+2026-11-11T19:53:16.4936979Z   PYTHON_VERSION: 3.11
+2026-11-11T19:53:16.4937290Z   pythonLocation: /opt/hostedtoolcache/Python/3.11.18/x64
+2026-11-11T19:53:16.4937721Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.11.18/x64/lib/pkgconfig
+2026-11-11T19:53:16.4938152Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.18/x64
+2026-11-11T19:53:16.4938552Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.18/x64
+2026-11-11T19:53:16.4938940Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.18/x64
+2026-11-11T19:53:16.4939393Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.11.18/x64/lib
+2026-11-11T19:53:16.4939724Z ##[endgroup]
+2026-11-11T19:53:29.8284879Z npm error code ETARGET
+2026-11-11T19:53:29.8293600Z npm error notarget No matching version found for @babel/parser@^7.29.14.
+2026-11-11T19:53:29.8294296Z npm error notarget In most cases you or one of your dependencies are requesting
+2026-11-11T19:53:29.8294906Z npm error notarget a package version that doesn't exist.
+2026-11-11T19:53:29.8307317Z npm error A complete log of this run can be found in: /home/runner/.npm/_logs/2026-11-11T19_53_16_581Z-debug-0.log
+2026-11-11T19:53:29.8473244Z ##[warning]npm install attempt 1 failed, retrying in 15s...
+2026-11-11T19:53:48.8603494Z npm error code ETARGET
+2026-11-11T19:53:48.8604844Z npm error notarget No matching version found for @babel/parser@^7.29.14.
+2026-11-11T19:53:48.8605761Z npm error notarget In most cases you or one of your dependencies are requesting
+2026-11-11T19:53:48.8606459Z npm error notarget a package version that doesn't exist.
+2026-11-11T19:53:48.8621335Z npm error A complete log of this run can be found in: /home/runner/.npm/_logs/2026-11-11T19_53_44_901Z-debug-0.log
+2026-11-11T19:53:48.8807236Z ##[warning]npm install attempt 2 failed, retrying in 30s...
+2026-11-11T19:54:22.9023045Z npm error code ETARGET
+2026-11-11T19:54:22.9024583Z npm error notarget No matching version found for @babel/parser@^7.29.14.
+2026-11-11T19:54:22.9027713Z npm error notarget In most cases you or one of your dependencies are requesting
+2026-11-11T19:54:22.9028682Z npm error notarget a package version that doesn't exist.
+2026-11-11T19:54:22.9041012Z npm error A complete log of this run can be found in: /home/runner/.npm/_logs/2026-11-11T19_54_18_931Z-debug-0.log
+2026-11-11T19:54:22.9221568Z ##[error]npm install failed after 3 attempts: npm install /home/runner/work/chainlesschain/chainlesschain/packages/context-memory-kernel /home/runner/work/chainlesschain/chainlesschain/packages/core-config /home/runner/work/chainlesschain/chainlesschain/packages/core-db /home/runner/work/chainlesschain/chainlesschain/packages/core-env /home/runner/work/chainlesschain/chainlesschain/packages/core-infra /home/runner/work/chainlesschain/chainlesschain/packages/core-mtc /home/runner/work/chainlesschain/chainlesschain/packages/core-multisig /home/runner/work/chainlesschain/chainlesschain/packages/personal-data-hub /home/runner/work/chainlesschain/chainlesschain/packages/session-core /home/runner/work/chainlesschain/chainlesschain/packages/shared-logger --install-links --no-package-lock --no-save --omit=dev --workspaces=false --legacy-peer-deps
+2026-11-11T19:54:22.9227376Z ##[error]Process completed with exit code 1.
+
