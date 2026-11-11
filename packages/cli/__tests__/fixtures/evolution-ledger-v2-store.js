@@ -31,6 +31,8 @@ const hmac = (secret, value) =>
 const digest = (letter) => `sha256:${letter.repeat(64)}`;
 
 export function createLedgerV2FixtureBackend(root, request, options = {}) {
+  if (options.originalManifestPorts && options.fault)
+    throw new Error("original manifest ports cannot install fault wrappers");
   const source = request.authority;
   const { fsImpl, clock } = evolutionDurableStoreConfiguration(root);
   const descriptor = {
@@ -135,15 +137,17 @@ export function createLedgerV2FixtureBackend(root, request, options = {}) {
   const catalog = createEvolutionLedgerManifestCatalog({
     descriptor,
     manifestAuthority: authority,
-    backend: {
-      ...catalogBackend,
-      compareAndAppend(input) {
-        const result = catalogBackend.compareAndAppend(input);
-        counts.catalog++;
-        fault("after-catalog");
-        return result;
-      },
-    },
+    backend: options.originalManifestPorts
+      ? catalogBackend
+      : {
+          ...catalogBackend,
+          compareAndAppend(input) {
+            const result = catalogBackend.compareAndAppend(input);
+            counts.catalog++;
+            fault("after-catalog");
+            return result;
+          },
+        },
   });
   const headBackend = createEvolutionLedgerFileManifestHeadBackend({
     directoryPath: path.join(storage, "head"),
@@ -153,12 +157,14 @@ export function createLedgerV2FixtureBackend(root, request, options = {}) {
     descriptor,
     authority,
     load: headBackend.load,
-    compareAndSet(input) {
-      const result = headBackend.compareAndSet(input);
-      counts.head++;
-      fault("after-head");
-      return result;
-    },
+    compareAndSet: options.originalManifestPorts
+      ? headBackend.compareAndSet
+      : function (input) {
+          const result = headBackend.compareAndSet(input);
+          counts.head++;
+          fault("after-head");
+          return result;
+        },
   });
   const witnessTrust = {
     algorithm: "hmac-sha256",
