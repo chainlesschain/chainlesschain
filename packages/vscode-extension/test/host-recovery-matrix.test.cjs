@@ -8,9 +8,52 @@ const path = require("node:path");
 const { execFileSync } = require("node:child_process");
 const test = require("node:test");
 const { verifyCell } = require("./host-recovery-matrix/verify.cjs");
+const { resolveGitHead } = require("./host-recovery-matrix/run.cjs");
 
 const ROOT = path.resolve(__dirname, "../../..");
 const read = (relative) => fs.readFileSync(path.join(ROOT, relative), "utf8");
+
+test("Git HEAD binding supports shared loose/packed refs and private worktree refs", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-recovery-git-"));
+  const expected = "a".repeat(40);
+  const stale = "b".repeat(40);
+  const common = path.join(root, "common");
+  const local = path.join(common, "worktrees", "linked");
+  const checkout = path.join(root, "checkout");
+  const write = (file, value) => {
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, value);
+  };
+  try {
+    write(path.join(checkout, ".git"), "gitdir: ../common/worktrees/linked\n");
+    write(path.join(local, "commondir"), "../..\n");
+    write(path.join(local, "HEAD"), "ref: refs/heads/main\n");
+    write(path.join(common, "refs/heads/main"), expected + "\n");
+    // An unrelated local ref must not override the shared branch.
+    write(path.join(local, "refs/heads/main"), stale + "\n");
+    assert.equal(resolveGitHead(checkout), expected);
+    fs.unlinkSync(path.join(common, "refs/heads/main"));
+    write(
+      path.join(common, "packed-refs"),
+      `# pack-refs with: peeled\n${expected} refs/heads/main\n`,
+    );
+    assert.equal(resolveGitHead(checkout), expected);
+    write(path.join(local, "HEAD"), "ref: refs/worktree/recovery\n");
+    write(path.join(common, "refs/worktree/recovery"), stale + "\n");
+    write(path.join(local, "refs/worktree/recovery"), expected + "\n");
+    assert.equal(resolveGitHead(checkout), expected);
+    fs.unlinkSync(path.join(local, "refs/worktree/recovery"));
+    assert.throws(() => resolveGitHead(checkout));
+    write(path.join(local, "HEAD"), expected + "\n");
+    assert.equal(resolveGitHead(checkout), expected);
+    write(path.join(local, "HEAD"), "ref: refs/heads/missing\n");
+    assert.throws(() => resolveGitHead(checkout), /not materialized/u);
+    write(path.join(local, "commondir"), "\n");
+    assert.throws(() => resolveGitHead(checkout), /invalid Git commondir/u);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
 
 test("host recovery workflow uses genuine WSL, devcontainer, and strict-SSH producers", () => {
   const workflow = read(".github/workflows/ide-roadmap-host-recovery.yml");
