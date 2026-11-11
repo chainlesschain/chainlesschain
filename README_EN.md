@@ -1,10 +1,14 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+## CLI / IDE release candidate (2026-11-11)
+
+Candidate CLI **0.166.147**, Open VSX **0.37.186** and JetBrains **0.4.201** integrate original RRSI manifest ownership, strict audit-response validation and a separately identified 36+9 retest. They are not public yet. Exact-source three-OS CLI gates and OIDC publication precede IDE publication and public readback. Automatic promotion remains HOLD; no new model-task completion rate has been measured. See the [candidate upgrade and release status](docs-site/docs/chainlesschain/cli-ide-update-2026-11-11-147.md).
+
 ## Current public release — 2026-11-10
 
 CLI **0.166.146**, Protocol **0.1.13**, Agent SDK **0.2.18** and Memory Kernel **0.1.12** are public through [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/42758119265); public npm versions are verified. Release source: `daafda2cf7790580467dae8ce006ceaa1285d3b4`. The official workflow passed exact-source gates, registry byte/provenance checks and registry-only child installation. Session Core remains **0.3.27**.
 
-Open VSX **0.37.185** and JetBrains **0.4.199** are publicly verified, and both recommend CLI **0.166.146**. Install the VS Code extension through Open VSX or the versioned VSIX; the Microsoft Marketplace channel remains unpublished. PC/mobile **v5.0.3.146** is not fully released; public clients remain **v5.0.3.145**. Android's bundled CLI version and the complete product asset checks still block the new client release. Successful IDE publication, other platform builds or an Android bundle refresh do not establish public client availability.
+Open VSX **0.37.185** and JetBrains **0.4.200** are publicly verified, and both recommend CLI **0.166.146**. Install the VS Code extension through Open VSX or the versioned VSIX; the Microsoft Marketplace channel remains unpublished. PC/mobile **v5.0.3.146** is not fully released; public clients remain **v5.0.3.145**. Android's bundled CLI version and the complete product asset checks still block the new client release. Successful IDE publication, other platform builds or an Android bundle refresh do not establish public client availability.
 
 Install the public CLI with `npm i -g chainlesschain@0.166.146 --registry https://registry.npmjs.org`, restart CLI/IDE hosts, then run `cc --version` and `cc doctor`. The [November 10 upgrade guide](docs-site/docs/chainlesschain/cli-ide-update-2026-11-10-146.md) records channel evidence, source identities and client limits. Multilingual quality, full lifecycle and paid admission remain incomplete; **NOT_PAID_READY / NOT_ADMITTED / HOLD** remain.
 

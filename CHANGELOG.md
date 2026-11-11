@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - cc CLI 0.166.147: original manifest ownership and verified retest preparation (candidate, 2026-11-11)
+
+- Retain original file catalog/head ownership through the actual Evolution Ledger factories. Reject mixed load/CAS ports, forwarding wrappers and replaced directories without changing existing custom-backend read/write behavior or granting storage-graph/promotion authority.
+- Pair with VS Code/Open VSX 0.37.186 and JetBrains 0.4.201, both recommending CLI 0.166.147. Keep the public JetBrains 0.4.200 Rewind fix. Required child package versions remain unchanged.
+- Prepare a separately identified 36-task plus nine-first-run Volcengine round with the original task source/allocation, fixed model and budgets, explicit-output-limit preservation and publication evidence. This prepares evaluation; it does not claim new model-task results or self-evolution gains.
+- Update the Mongoose dependency lock and reject malformed or timed-out audit reports. Add a synthetic-clock native DMM overnight notification journey, with real timers and independent host verification; actual overnight wall time and installed-client acceptance remain separate.
+- Publish only after exact-source CLI CI and Strict Sandbox on all configured systems, using Actions OIDC, then IDE host matrices and public readback. Automatic promotion remains HOLD; complete business, billing and paid admission remain open.
+
 ### Added - cc CLI 0.166.146: canonical Memory corrections and retained diagnostics (candidate, 2026-11-09)
 
 - Add `memory inspect <id>` and `memory correct <id> <text> --expected-revision <n>` for canonical Memory. Corrections retain record identity and scope, reject stale revisions, clear obsolete summaries/references, and report durable-publication failures without automatic replay.

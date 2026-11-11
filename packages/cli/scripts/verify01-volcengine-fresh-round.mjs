@@ -3,6 +3,10 @@ import net from "node:net";
 import { loadPublicGeneratorProof } from "./verify01-public-generator-binding.mjs";
 import { loadVolcengineBudgetRetry } from "./verify01-native-execution-budgets.mjs";
 import {
+  isPublic147FullRound,
+  assertPublic147FullDispatch,
+} from "./verify01-volcengine-public147-full.mjs";
+import {
   isPublic140FullRound,
   assertPublic140FullDispatch,
 } from "./verify01-volcengine-public140-full.mjs";
@@ -70,6 +74,8 @@ export function assertFreshVolcengineRound(options, plan) {
   const declaration = options.packageBinding?.bytes
     ? JSON.parse(options.packageBinding.bytes.toString("utf8"))
     : null;
+  if (isPublic147FullRound(declaration))
+    return assertPublic147FullDispatch(options, plan);
   if (isPublic140GenerationRecovery(declaration))
     return assertPublic140GenerationRecoveryDispatch(options, plan);
   if (isPublic140FullRound(declaration))

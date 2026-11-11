@@ -1,10 +1,14 @@
 # ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+## 2026-11-11 CLI / IDE 发布候选
+
+候选 CLI **0.166.147**、Open VSX **0.37.186**、JetBrains **0.4.201** 集成 RRSI 原组件所有权、严格审计响应校验及独立 36+9 复测准备；当前尚未公开。先完成准确提交的三平台 CLI 门禁与 OIDC 发布，再发布 IDE 并核对公开下载。自动晋升仍为 HOLD，新的实际任务完成率尚未产生。见[候选升级与发布状态](docs-site/docs/chainlesschain/cli-ide-update-2026-11-11-147.md)。
+
 ## 2026-11-10 当前公开发行
 
 CLI **0.166.146**、Protocol **0.1.13**、Agent SDK **0.2.18** 和 Memory Kernel **0.1.12** 已通过 [GitHub Actions OIDC 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/42758119265)，公开 npm 版本已核验。发行源码为 `daafda2cf7790580467dae8ce006ceaa1285d3b4`；官方工作流已完成准确源码门禁、公开字节与来源验证、仅 registry 的子包依赖安装。Session Core 保持 **0.3.27**。
 
-配套 Open VSX **0.37.185** 与 JetBrains **0.4.199** 均已公开核验，两端推荐 CLI **0.166.146**。VS Code 兼容编辑器可通过 Open VSX 或版本化 VSIX 安装；Microsoft Marketplace 仍未发布。PC/mobile **v5.0.3.146** 尚未完整发行，公开客户端仍为 **v5.0.3.145**；Android 内置 CLI 版本对齐和全部产品资产核验完成前，不推荐 .146 客户端下载。IDE 发布、其他平台构建成功或 Android bundle 刷新任务启动，都不等于客户端已公开。
+配套 Open VSX **0.37.185** 与 JetBrains **0.4.200** 均已公开核验，两端推荐 CLI **0.166.146**。VS Code 兼容编辑器可通过 Open VSX 或版本化 VSIX 安装；Microsoft Marketplace 仍未发布。PC/mobile **v5.0.3.146** 尚未完整发行，公开客户端仍为 **v5.0.3.145**；Android 内置 CLI 版本对齐和全部产品资产核验完成前，不推荐 .146 客户端下载。IDE 发布、其他平台构建成功或 Android bundle 刷新任务启动，都不等于客户端已公开。
 
 安装公开 CLI：`npm i -g chainlesschain@0.166.146 --registry https://registry.npmjs.org`，重启 CLI / IDE 宿主后运行 `cc --version`、`cc doctor`。[11-10 安装与升级指南](docs-site/docs/chainlesschain/cli-ide-update-2026-11-10-146.md)列出渠道、准确源码和客户端限制。本次发行不扩大多语质量、完整生命周期或付费准入结论；**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。
 

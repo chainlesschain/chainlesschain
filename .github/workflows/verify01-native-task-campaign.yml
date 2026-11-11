@@ -140,6 +140,7 @@ jobs:
           packages/cli/test-node/verify01-native-execution-budgets.node-test.mjs
           packages/cli/test-node/verify01-volcengine-historical-retry.node-test.mjs
           packages/cli/test-node/verify01-volcengine-public140-full.node-test.mjs
+          packages/cli/test-node/verify01-volcengine-public147-full.node-test.mjs
           packages/cli/test-node/verify01-volcengine-output-limits.node-test.mjs
           packages/cli/test-node/verify01-volcengine-output-repair-full.node-test.mjs
           packages/cli/test-node/verify01-volcengine-generation-recovery.node-test.mjs

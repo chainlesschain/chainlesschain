@@ -4,11 +4,11 @@ ChainlessChain agent workspace for VS Code-compatible editors with streaming cha
 
 ## Next release candidate
 
-Source candidate **0.37.185** recommends CLI **`0.166.146`** and pairs with JetBrains **0.4.199**. The extension has not been published; the earlier **0.37.184** tag and its failed infrastructure attempts remain unchanged. Agent Protocol **0.1.13**, Agent SDK **0.2.18**, Context/Memory Kernel **0.1.12** and CLI **0.166.146** completed [Actions OIDC publication and public registry verification](https://github.com/chainlesschain/chainlesschain/actions/runs/42758119265). Session Core remains **0.3.27**.
+Source candidate **0.37.186** recommends CLI **`0.166.147`** and pairs with JetBrains **0.4.201**. Publish the IDE only after the CLI is public and this exact source passes its host, Remote-SSH and browser gates. Agent Protocol **0.1.13**, Agent SDK **0.2.18**, Context/Memory Kernel **0.1.12** and Session Core **0.3.27** remain unchanged.
 
-This candidate hardens the Remote-SSH container bootstrap with finite official-source APT acquisition timeouts and retries, strict failure handling and separate phase diagnostics within the original ten-minute deadline. Extension behavior is unchanged. Exact-source VS Code host, Remote-SSH and browser evidence gates and public artifact readback remain required. Native client publication and business acceptance remain separate release stages.
+The candidate points users to the CLI's original manifest ownership checks and source-bound retest preparation. Existing extension behavior and bounded Remote-SSH bootstrap remain. Current verified public pairing is CLI **0.166.146**, Open VSX **0.37.185** and JetBrains **0.4.200**. Microsoft Marketplace remains unpublished. Package publication does not establish model-task improvements or automatic promotion.
 
-## Current release
+## Previous release record
 
 <!-- release181-status -->
 
