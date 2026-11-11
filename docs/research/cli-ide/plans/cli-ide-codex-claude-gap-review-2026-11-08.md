@@ -479,7 +479,9 @@ Remote thinking-cap/storage-failure changes were integrated at `bcce11f6455ad258
 | Windows | 通过           | 通过，无重放       | 失败，发现 1/2 个已知线程 | 通过，2 页发现 2/2 个线程 |
 | macOS   | 通过           | 通过，无重放       | 失败，发现 1/2 个已知线程 | 通过，2 页发现 2/2 个线程 |
 
-三个冷扫描报告均保留 `cold-asc:first-scan` 失败。该结果将冷发现问题确认到三个平台。第 6 项仍为部分完成，冷发现修复、模型变更验证和生产准入仍待完成。 [严格冷扫描工作流](https://github.com/chainlesschain/chainlesschain/actions/runs/42845933449)
+三个冷扫描报告均保留 `cold-asc:first-scan` 失败。首请求使用 `sortKey:recency_at`、`limit:1` 和 `useStateDbOnly:false`，每次返回 1 条记录并给出空游标。官方协议把空 `nextCursor` 定义为分页结束。 [严格冷扫描工作流](https://github.com/chainlesschain/chainlesschain/actions/runs/42845933449) [OpenAI App Server 分页文档](https://learn.chatgpt.com/docs/app-server#list-threads-with-pagination--filters)
+
+上游 `rust-v0.167.0` 源码的升序扫描先截断文件结果，只把当页命中的文件回填 SQLite。`recency_at` 分支再查询 SQLite 并返回该查询的游标。索引为空且页大小为 1 时，后续文件未入库，数据库查询可以提前返回空游标。这条路径与三平台回执一致。降序分支在回填前多取文件，本轮 2 线程样本均完成分页。第 6 项仍为部分完成，冷发现修复、模型变更验证和生产准入仍待完成。 [上游回填与分页实现](https://github.com/openai/codex/blob/086ccc833bc9cf01024ad2dd6af7dbd421b6bf9a/codex-rs/rollout/src/recorder.rs#L597)
 
 ### 2026-11-11 Memory 三系统回执审计与完整矩阵续作
 
