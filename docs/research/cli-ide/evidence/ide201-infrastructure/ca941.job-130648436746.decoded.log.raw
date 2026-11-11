@@ -1,0 +1,562 @@
+﻿2026-11-11T16:17:39.4788958Z Current runner version: '2.338.2'
+2026-11-11T16:17:39.4822962Z ##[group]Runner Image Provisioner
+2026-11-11T16:17:39.4824136Z Hosted Compute Agent
+2026-11-11T16:17:39.4824772Z Version: 20261028.624
+2026-11-11T16:17:39.4825560Z Commit: 54898b74c23fde5556c9b3c3a2290865feef0dfe
+2026-11-11T16:17:39.4826319Z Build Date: 2026-10-28T21:51:42Z
+2026-11-11T16:17:39.4827055Z Worker ID: {2c40daf1-2928-42f8-a207-c3a340b11ab7}
+2026-11-11T16:17:39.4827996Z Region: northcentralus
+2026-11-11T16:17:39.4828628Z Cloud: Azure
+2026-11-11T16:17:39.4829243Z ##[endgroup]
+2026-11-11T16:17:39.4832000Z ##[group]Operating System
+2026-11-11T16:17:39.4832729Z Ubuntu
+2026-11-11T16:17:39.4833436Z 24.04.5
+2026-11-11T16:17:39.4833955Z LTS
+2026-11-11T16:17:39.4834531Z ##[endgroup]
+2026-11-11T16:17:39.4835122Z ##[group]Runner Image
+2026-11-11T16:17:39.4835774Z Image: ubuntu-24.04-arm
+2026-11-11T16:17:39.4836492Z Version: 20261101.172.1
+2026-11-11T16:17:39.4837843Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24-arm64/20261101.172/images/ubuntu/Ubuntu2404-Arm64-Readme.md
+2026-11-11T16:17:39.4839557Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24-arm64%2F20261101.172
+2026-11-11T16:17:39.4840972Z ##[endgroup]
+2026-11-11T16:17:39.4842241Z ##[group]GITHUB_TOKEN Permissions
+2026-11-11T16:17:39.4846322Z Contents: read
+2026-11-11T16:17:39.4847149Z Metadata: read
+2026-11-11T16:17:39.4847762Z ##[endgroup]
+2026-11-11T16:17:39.4851286Z Secret source: Actions
+2026-11-11T16:17:39.4852308Z Cache mode: write
+2026-11-11T16:17:39.4853581Z Prepare workflow directory
+2026-11-11T16:17:39.5490404Z Prepare all required actions
+2026-11-11T16:17:39.5543232Z Getting action download info
+2026-11-11T16:17:39.8104034Z Download action repository 'actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09' (SHA:fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09)
+2026-11-11T16:17:40.0180829Z Download action repository 'actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444' (SHA:a0853c24544627f65ddf259abe73b1d18a591444)
+2026-11-11T16:17:40.2604000Z Download action repository 'actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f' (SHA:b7c566a772e6b6bfb58ed0dc250532a479d7789f)
+2026-11-11T16:17:40.5007062Z Complete job name: kernel-recovery (ubuntu-24.04-arm)
+2026-11-11T16:17:40.6044318Z ##[group]Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+2026-11-11T16:17:40.6046367Z with:
+2026-11-11T16:17:40.6047158Z   ref: ca941473ad55f47956090787dac39cbbeafcb408
+2026-11-11T16:17:40.6048184Z   repository: chainlesschain/chainlesschain
+2026-11-11T16:17:40.6053257Z   token: ***
+2026-11-11T16:17:40.6054019Z   ssh-strict: true
+2026-11-11T16:17:40.6055960Z   ssh-user: git
+2026-11-11T16:17:40.6056843Z   persist-credentials: true
+2026-11-11T16:17:40.6057729Z   clean: true
+2026-11-11T16:17:40.6058437Z   sparse-checkout-cone-mode: true
+2026-11-11T16:17:40.6059262Z   fetch-depth: 1
+2026-11-11T16:17:40.6060276Z   fetch-tags: false
+2026-11-11T16:17:40.6060999Z   show-progress: true
+2026-11-11T16:17:40.6062198Z   lfs: false
+2026-11-11T16:17:40.6062961Z   submodules: false
+2026-11-11T16:17:40.6063714Z   set-safe-directory: true
+2026-11-11T16:17:40.6064626Z   allow-unsafe-pr-checkout: false
+2026-11-11T16:17:40.6066061Z env:
+2026-11-11T16:17:40.6067074Z   EXPECTED_COMMIT: ca941473ad55f47956090787dac39cbbeafcb408
+2026-11-11T16:17:40.6068025Z ##[endgroup]
+2026-11-11T16:17:40.7078387Z Syncing repository: chainlesschain/chainlesschain
+2026-11-11T16:17:40.7081877Z ##[group]Getting Git version info
+2026-11-11T16:17:40.7083256Z Working directory is '/home/runner/work/chainlesschain/chainlesschain'
+2026-11-11T16:17:40.7085094Z [command]/usr/bin/git version
+2026-11-11T16:17:40.7085953Z git version 2.56.0
+2026-11-11T16:17:40.7088519Z ##[endgroup]
+2026-11-11T16:17:40.7095396Z Temporarily overriding HOME='/home/runner/work/_temp/f3d12bb5-f854-44f6-880a-6788071a9d84' before making global git config changes
+2026-11-11T16:17:40.7097209Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-11T16:17:40.7098757Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/chainlesschain/chainlesschain
+2026-11-11T16:17:40.7143421Z Deleting the contents of '/home/runner/work/chainlesschain/chainlesschain'
+2026-11-11T16:17:40.7148618Z ##[group]Initializing the repository
+2026-11-11T16:17:40.7153741Z [command]/usr/bin/git init /home/runner/work/chainlesschain/chainlesschain
+2026-11-11T16:17:40.7236340Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-11-11T16:17:40.7238369Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-11-11T16:17:40.7239567Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-11-11T16:17:40.7241063Z hint: call:
+2026-11-11T16:17:40.7241840Z hint:
+2026-11-11T16:17:40.7242820Z hint: 	git config --global init.defaultBranch <name>
+2026-11-11T16:17:40.7243682Z hint:
+2026-11-11T16:17:40.7244527Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-11-11T16:17:40.7245869Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-11-11T16:17:40.7246911Z hint:
+2026-11-11T16:17:40.7247670Z hint: 	git branch -m <name>
+2026-11-11T16:17:40.7248386Z hint:
+2026-11-11T16:17:40.7249290Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-11-11T16:17:40.7251146Z Initialized empty Git repository in /home/runner/work/chainlesschain/chainlesschain/.git/
+2026-11-11T16:17:40.7253954Z [command]/usr/bin/git remote add origin https://github.com/chainlesschain/chainlesschain
+2026-11-11T16:17:40.7324489Z ##[endgroup]
+2026-11-11T16:17:40.7325986Z ##[group]Disabling automatic garbage collection
+2026-11-11T16:17:40.7326976Z [command]/usr/bin/git config --local gc.auto 0
+2026-11-11T16:17:40.7368726Z ##[endgroup]
+2026-11-11T16:17:40.7370850Z ##[group]Setting up auth
+2026-11-11T16:17:40.7372429Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-11T16:17:40.7393854Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-11T16:17:40.7718084Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-11T16:17:40.7753363Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-11T16:17:40.7989457Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-11T16:17:40.8027580Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-11T16:17:40.8263995Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-11-11T16:17:40.8307890Z ##[endgroup]
+2026-11-11T16:17:40.8309395Z ##[group]Fetching the repository
+2026-11-11T16:17:40.8316938Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin ca941473ad55f47956090787dac39cbbeafcb408
+2026-11-11T16:17:57.7831557Z From https://github.com/chainlesschain/chainlesschain
+2026-11-11T16:17:57.7833418Z  * branch              ca941473ad55f47956090787dac39cbbeafcb408 -> FETCH_HEAD
+2026-11-11T16:17:57.7836793Z ##[endgroup]
+2026-11-11T16:17:57.7837565Z ##[group]Determining the checkout info
+2026-11-11T16:17:57.7839033Z ##[endgroup]
+2026-11-11T16:17:57.7845325Z [command]/usr/bin/git sparse-checkout disable
+2026-11-11T16:17:57.7891525Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-11-11T16:17:57.7923930Z ##[group]Checking out the ref
+2026-11-11T16:17:57.7928381Z [command]/usr/bin/git checkout --progress --force ca941473ad55f47956090787dac39cbbeafcb408
+2026-11-11T16:17:58.8719649Z Updating files:  36% (15768/42644)
+2026-11-11T16:17:59.1431855Z Updating files:  37% (15779/42644)
+2026-11-11T16:17:59.6894496Z Updating files:  38% (16205/42644)
+2026-11-11T16:17:59.7489669Z Updating files:  39% (16632/42644)
+2026-11-11T16:17:59.7716582Z Updating files:  40% (17058/42644)
+2026-11-11T16:17:59.7942315Z Updating files:  41% (17485/42644)
+2026-11-11T16:17:59.8308247Z Updating files:  42% (17911/42644)
+2026-11-11T16:17:59.8643463Z Updating files:  42% (18160/42644)
+2026-11-11T16:17:59.9001294Z Updating files:  43% (18337/42644)
+2026-11-11T16:17:59.9206109Z Updating files:  44% (18764/42644)
+2026-11-11T16:17:59.9329003Z Updating files:  45% (19190/42644)
+2026-11-11T16:17:59.9563767Z Updating files:  46% (19617/42644)
+2026-11-11T16:17:59.9763721Z Updating files:  47% (20043/42644)
+2026-11-11T16:18:00.0131318Z Updating files:  48% (20470/42644)
+2026-11-11T16:18:00.1067368Z Updating files:  49% (20896/42644)
+2026-11-11T16:18:00.1573968Z Updating files:  50% (21322/42644)
+2026-11-11T16:18:00.1897400Z Updating files:  51% (21749/42644)
+2026-11-11T16:18:00.2306479Z Updating files:  52% (22175/42644)
+2026-11-11T16:18:00.2638453Z Updating files:  53% (22602/42644)
+2026-11-11T16:18:00.3036666Z Updating files:  54% (23028/42644)
+2026-11-11T16:18:00.3323792Z Updating files:  55% (23455/42644)
+2026-11-11T16:18:00.3429202Z Updating files:  56% (23881/42644)
+2026-11-11T16:18:00.3581190Z Updating files:  57% (24308/42644)
+2026-11-11T16:18:00.3680275Z Updating files:  58% (24734/42644)
+2026-11-11T16:18:00.3943956Z Updating files:  59% (25160/42644)
+2026-11-11T16:18:00.4440650Z Updating files:  60% (25587/42644)
+2026-11-11T16:18:00.4766971Z Updating files:  61% (26013/42644)
+2026-11-11T16:18:00.4898557Z Updating files:  62% (26440/42644)
+2026-11-11T16:18:00.5020629Z Updating files:  63% (26866/42644)
+2026-11-11T16:18:00.5279211Z Updating files:  64% (27293/42644)
+2026-11-11T16:18:00.5644974Z Updating files:  65% (27719/42644)
+2026-11-11T16:18:00.8938248Z Updating files:  66% (28146/42644)
+2026-11-11T16:18:00.9634056Z Updating files:  66% (28181/42644)
+2026-11-11T16:18:01.0142408Z Updating files:  67% (28572/42644)
+2026-11-11T16:18:01.0315043Z Updating files:  68% (28998/42644)
+2026-11-11T16:18:01.0545861Z Updating files:  69% (29425/42644)
+2026-11-11T16:18:01.0891196Z Updating files:  70% (29851/42644)
+2026-11-11T16:18:01.1045764Z Updating files:  71% (30278/42644)
+2026-11-11T16:18:01.1424350Z Updating files:  72% (30704/42644)
+2026-11-11T16:18:01.1940640Z Updating files:  73% (31131/42644)
+2026-11-11T16:18:01.2382415Z Updating files:  74% (31557/42644)
+2026-11-11T16:18:01.2791452Z Updating files:  75% (31983/42644)
+2026-11-11T16:18:01.3331690Z Updating files:  76% (32410/42644)
+2026-11-11T16:18:01.3980252Z Updating files:  77% (32836/42644)
+2026-11-11T16:18:01.4749883Z Updating files:  78% (33263/42644)
+2026-11-11T16:18:01.5023340Z Updating files:  79% (33689/42644)
+2026-11-11T16:18:01.5203768Z Updating files:  80% (34116/42644)
+2026-11-11T16:18:01.5458555Z Updating files:  81% (34542/42644)
+2026-11-11T16:18:01.5702411Z Updating files:  82% (34969/42644)
+2026-11-11T16:18:01.5971884Z Updating files:  83% (35395/42644)
+2026-11-11T16:18:01.6180840Z Updating files:  84% (35821/42644)
+2026-11-11T16:18:01.6418221Z Updating files:  85% (36248/42644)
+2026-11-11T16:18:01.6642262Z Updating files:  86% (36674/42644)
+2026-11-11T16:18:01.6855452Z Updating files:  87% (37101/42644)
+2026-11-11T16:18:01.7074339Z Updating files:  88% (37527/42644)
+2026-11-11T16:18:01.7304476Z Updating files:  89% (37954/42644)
+2026-11-11T16:18:01.7633897Z Updating files:  90% (38380/42644)
+2026-11-11T16:18:01.7944876Z Updating files:  91% (38807/42644)
+2026-11-11T16:18:01.8211022Z Updating files:  92% (39233/42644)
+2026-11-11T16:18:01.8306257Z Updating files:  93% (39659/42644)
+2026-11-11T16:18:01.8517038Z Updating files:  93% (39783/42644)
+2026-11-11T16:18:01.8709379Z Updating files:  94% (40086/42644)
+2026-11-11T16:18:01.8938121Z Updating files:  95% (40512/42644)
+2026-11-11T16:18:01.9135960Z Updating files:  96% (40939/42644)
+2026-11-11T16:18:01.9367292Z Updating files:  97% (41365/42644)
+2026-11-11T16:18:01.9564069Z Updating files:  98% (41792/42644)
+2026-11-11T16:18:01.9764704Z Updating files:  99% (42218/42644)
+2026-11-11T16:18:01.9765079Z Updating files: 100% (42644/42644)
+2026-11-11T16:18:01.9765609Z Updating files: 100% (42644/42644), done.
+2026-11-11T16:18:02.0286156Z Note: switching to 'ca941473ad55f47956090787dac39cbbeafcb408'.
+2026-11-11T16:18:02.0286497Z 
+2026-11-11T16:18:02.0286981Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-11-11T16:18:02.0287507Z changes and commit them, and you can discard any commits you make in this
+2026-11-11T16:18:02.0288007Z state without impacting any branches by switching back to a branch.
+2026-11-11T16:18:02.0288361Z 
+2026-11-11T16:18:02.0288561Z If you want to create a new branch to retain commits you create, you may
+2026-11-11T16:18:02.0289081Z do so (now or later) by using -c with the switch command. Example:
+2026-11-11T16:18:02.0289363Z 
+2026-11-11T16:18:02.0289519Z   git switch -c <new-branch-name>
+2026-11-11T16:18:02.0289703Z 
+2026-11-11T16:18:02.0290126Z Or undo this operation with:
+2026-11-11T16:18:02.0290320Z 
+2026-11-11T16:18:02.0290437Z   git switch -
+2026-11-11T16:18:02.0290629Z 
+2026-11-11T16:18:02.0290861Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-11-11T16:18:02.0291242Z 
+2026-11-11T16:18:02.0291511Z HEAD is now at ca941473 fix(ci): preserve runner network transport before privileged DNS handoff
+2026-11-11T16:18:02.0420586Z ##[endgroup]
+2026-11-11T16:18:02.0453043Z [command]/usr/bin/git log -1 --format=%H
+2026-11-11T16:18:02.0481190Z ca941473ad55f47956090787dac39cbbeafcb408
+2026-11-11T16:18:02.0786143Z ##[group]Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+2026-11-11T16:18:02.0786666Z with:
+2026-11-11T16:18:02.0787022Z   node-version: 22.12.0
+2026-11-11T16:18:02.0787352Z   always-auth: false
+2026-11-11T16:18:02.0787651Z   check-latest: false
+2026-11-11T16:18:02.0790761Z   token: ***
+2026-11-11T16:18:02.0791067Z   package-manager-cache: true
+2026-11-11T16:18:02.0791425Z env:
+2026-11-11T16:18:02.0791704Z   EXPECTED_COMMIT: ca941473ad55f47956090787dac39cbbeafcb408
+2026-11-11T16:18:02.0792164Z ##[endgroup]
+2026-11-11T16:18:02.2071587Z Attempting to download 22.12.0...
+2026-11-11T16:18:02.2177474Z (node:2401) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-11T16:18:02.2178493Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-11T16:18:03.0132378Z Acquiring 22.12.0 - arm64 from https://github.com/actions/node-versions/releases/download/22.12.0-12152383658/node-22.12.0-linux-arm64.tar.gz
+2026-11-11T16:18:03.4733659Z Extracting ...
+2026-11-11T16:18:03.4837152Z [command]/usr/bin/tar xz --strip 1 --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/8b6258f2-3580-40b8-a124-5b2304b8bd5a -f /home/runner/work/_temp/78b2353d-7b2c-4878-8eb4-fe87461d6e00
+2026-11-11T16:18:04.5145202Z Adding to the cache ...
+2026-11-11T16:18:06.2425149Z ##[group]Environment details
+2026-11-11T16:18:06.7587090Z node: v22.12.0
+2026-11-11T16:18:06.7587421Z npm: 10.9.0
+2026-11-11T16:18:06.7587673Z yarn: 1.22.22
+2026-11-11T16:18:06.7588399Z ##[endgroup]
+2026-11-11T16:18:06.7826890Z Prepare all required actions
+2026-11-11T16:18:06.7827662Z Getting action download info
+2026-11-11T16:18:06.7892188Z ##[group]Run ./.github/actions/setup-linux-canvas
+2026-11-11T16:18:06.7892560Z env:
+2026-11-11T16:18:06.7892944Z   EXPECTED_COMMIT: ca941473ad55f47956090787dac39cbbeafcb408
+2026-11-11T16:18:06.7893336Z ##[endgroup]
+2026-11-11T16:18:06.7955979Z ##[start-action display=Prepare Ubuntu repository DNS;id=__self.__self]
+2026-11-11T16:18:06.7997280Z Prepare all required actions
+2026-11-11T16:18:06.8047057Z ##[group]Run ./.github/actions/prepare-ubuntu-apt-dns
+2026-11-11T16:18:06.8047408Z env:
+2026-11-11T16:18:06.8047785Z   EXPECTED_COMMIT: ca941473ad55f47956090787dac39cbbeafcb408
+2026-11-11T16:18:06.8048162Z ##[endgroup]
+2026-11-11T16:18:06.8054237Z ##[start-action display=Verify bounded Ubuntu DNS recovery controls;id=__self.__self.__run]
+2026-11-11T16:18:06.8095651Z ##[group]Run node --test scripts/__tests__/ubuntu-apt-dns.test.mjs
+2026-11-11T16:18:06.8096783Z [36;1mnode --test scripts/__tests__/ubuntu-apt-dns.test.mjs[0m
+2026-11-11T16:18:06.8212410Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-11T16:18:06.8213072Z env:
+2026-11-11T16:18:06.8213471Z   EXPECTED_COMMIT: ca941473ad55f47956090787dac39cbbeafcb408
+2026-11-11T16:18:06.8213818Z ##[endgroup]
+2026-11-11T16:18:06.8621811Z TAP version 13
+2026-11-11T16:18:06.9475304Z # Subtest: real curl argument handoff retains proxy inheritance, certificate checks, bootstrap address and transport deadlines
+2026-11-11T16:18:06.9492852Z ok 1 - real curl argument handoff retains proxy inheritance, certificate checks, bootstrap address and transport deadlines
+2026-11-11T16:18:06.9521098Z   ---
+2026-11-11T16:18:06.9550701Z   duration_ms: 20.324896
+2026-11-11T16:18:06.9551721Z   ...
+2026-11-11T16:18:06.9564393Z # Subtest: curl failures and redirects stay failed without exposing proxy diagnostics
+2026-11-11T16:18:06.9565982Z ok 2 - curl failures and redirects stay failed without exposing proxy diagnostics
+2026-11-11T16:18:06.9566735Z   ---
+2026-11-11T16:18:06.9566996Z   duration_ms: 1.442724
+2026-11-11T16:18:06.9567389Z   ...
+2026-11-11T16:18:06.9567955Z # Subtest: privileged stdin consumer accepts fragmented bounded JSON and only appends validated hosts
+2026-11-11T16:18:06.9568763Z ok 3 - privileged stdin consumer accepts fragmented bounded JSON and only appends validated hosts
+2026-11-11T16:18:06.9569421Z   ---
+2026-11-11T16:18:06.9570089Z   duration_ms: 3.623415
+2026-11-11T16:18:06.9570530Z   ...
+2026-11-11T16:18:06.9571219Z # Subtest: failed/oversized/invalid resolver handoff cannot reach hosts writes
+2026-11-11T16:18:06.9572066Z ok 4 - failed/oversized/invalid resolver handoff cannot reach hosts writes
+2026-11-11T16:18:06.9572765Z   ---
+2026-11-11T16:18:06.9573037Z   duration_ms: 4.671383
+2026-11-11T16:18:06.9573596Z   ...
+2026-11-11T16:18:06.9574206Z # Subtest: healthy OS DNS requires no HTTPS recovery or hosts-file change
+2026-11-11T16:18:06.9575013Z ok 5 - healthy OS DNS requires no HTTPS recovery or hosts-file change
+2026-11-11T16:18:06.9575726Z   ---
+2026-11-11T16:18:06.9576105Z   duration_ms: 0.725926
+2026-11-11T16:18:06.9576661Z   ...
+2026-11-11T16:18:06.9577421Z # Subtest: transient OS DNS failure uses authenticated bounded HTTPS for only fixed Ubuntu hosts
+2026-11-11T16:18:06.9578313Z ok 6 - transient OS DNS failure uses authenticated bounded HTTPS for only fixed Ubuntu hosts
+2026-11-11T16:18:06.9579104Z   ---
+2026-11-11T16:18:06.9579410Z   duration_ms: 2.666193
+2026-11-11T16:18:06.9580033Z   ...
+2026-11-11T16:18:06.9580720Z # Subtest: permission and invalid OS answers do not silently trigger another resolver
+2026-11-11T16:18:06.9581584Z ok 7 - permission and invalid OS answers do not silently trigger another resolver
+2026-11-11T16:18:06.9582283Z   ---
+2026-11-11T16:18:06.9582570Z   duration_ms: 1.514854
+2026-11-11T16:18:06.9583156Z   ...
+2026-11-11T16:18:06.9583772Z # Subtest: DNS CNAME answers must connect to the original question
+2026-11-11T16:18:06.9585240Z ok 8 - DNS CNAME answers must connect to the original question
+2026-11-11T16:18:06.9586060Z   ---
+2026-11-11T16:18:06.9586412Z   duration_ms: 0.401356
+2026-11-11T16:18:06.9586950Z   ...
+2026-11-11T16:18:06.9587429Z # Subtest: non-public or injected address is rejected: "0.0.0.0"
+2026-11-11T16:18:06.9588136Z ok 9 - non-public or injected address is rejected: "0.0.0.0"
+2026-11-11T16:18:06.9588791Z   ---
+2026-11-11T16:18:06.9589187Z   duration_ms: 0.542233
+2026-11-11T16:18:06.9589547Z   ...
+2026-11-11T16:18:06.9590434Z # Subtest: non-public or injected address is rejected: "10.1.2.3"
+2026-11-11T16:18:06.9591152Z ok 10 - non-public or injected address is rejected: "10.1.2.3"
+2026-11-11T16:18:06.9591845Z   ---
+2026-11-11T16:18:06.9592126Z   duration_ms: 0.630771
+2026-11-11T16:18:06.9592601Z   ...
+2026-11-11T16:18:06.9593045Z # Subtest: non-public or injected address is rejected: "100.64.0.1"
+2026-11-11T16:18:06.9593791Z ok 11 - non-public or injected address is rejected: "100.64.0.1"
+2026-11-11T16:18:06.9595090Z   ---
+2026-11-11T16:18:06.9595425Z   duration_ms: 0.286001
+2026-11-11T16:18:06.9595937Z   ...
+2026-11-11T16:18:06.9596447Z # Subtest: non-public or injected address is rejected: "127.0.0.1"
+2026-11-11T16:18:06.9597272Z ok 12 - non-public or injected address is rejected: "127.0.0.1"
+2026-11-11T16:18:06.9597990Z   ---
+2026-11-11T16:18:06.9598397Z   duration_ms: 0.162333
+2026-11-11T16:18:06.9598729Z   ...
+2026-11-11T16:18:06.9599317Z # Subtest: non-public or injected address is rejected: "169.254.169.254"
+2026-11-11T16:18:06.9600126Z ok 13 - non-public or injected address is rejected: "169.254.169.254"
+2026-11-11T16:18:06.9600909Z   ---
+2026-11-11T16:18:06.9601176Z   duration_ms: 0.191902
+2026-11-11T16:18:06.9601683Z   ...
+2026-11-11T16:18:06.9602422Z # Subtest: non-public or injected address is rejected: "172.16.1.1"
+2026-11-11T16:18:06.9603405Z ok 14 - non-public or injected address is rejected: "172.16.1.1"
+2026-11-11T16:18:06.9604091Z   ---
+2026-11-11T16:18:06.9604372Z   duration_ms: 0.13558
+2026-11-11T16:18:06.9604904Z   ...
+2026-11-11T16:18:06.9605489Z # Subtest: non-public or injected address is rejected: "192.168.1.1"
+2026-11-11T16:18:06.9606281Z ok 15 - non-public or injected address is rejected: "192.168.1.1"
+2026-11-11T16:18:06.9606838Z   ---
+2026-11-11T16:18:06.9607298Z   duration_ms: 0.104259
+2026-11-11T16:18:06.9607637Z   ...
+2026-11-11T16:18:06.9608286Z # Subtest: non-public or injected address is rejected: "192.0.2.1"
+2026-11-11T16:18:06.9609062Z ok 16 - non-public or injected address is rejected: "192.0.2.1"
+2026-11-11T16:18:06.9609938Z   ---
+2026-11-11T16:18:06.9610271Z   duration_ms: 0.114292
+2026-11-11T16:18:06.9610599Z   ...
+2026-11-11T16:18:06.9611290Z # Subtest: non-public or injected address is rejected: "198.18.0.1"
+2026-11-11T16:18:06.9611868Z ok 17 - non-public or injected address is rejected: "198.18.0.1"
+2026-11-11T16:18:06.9612546Z   ---
+2026-11-11T16:18:06.9612833Z   duration_ms: 0.154453
+2026-11-11T16:18:06.9613142Z   ...
+2026-11-11T16:18:06.9613607Z # Subtest: non-public or injected address is rejected: "198.51.100.1"
+2026-11-11T16:18:06.9614208Z ok 18 - non-public or injected address is rejected: "198.51.100.1"
+2026-11-11T16:18:06.9615272Z   ---
+2026-11-11T16:18:06.9615565Z   duration_ms: 0.151741
+2026-11-11T16:18:06.9615902Z   ...
+2026-11-11T16:18:06.9616357Z # Subtest: non-public or injected address is rejected: "203.0.113.1"
+2026-11-11T16:18:06.9616887Z ok 19 - non-public or injected address is rejected: "203.0.113.1"
+2026-11-11T16:18:06.9617320Z   ---
+2026-11-11T16:18:06.9617549Z   duration_ms: 0.12798
+2026-11-11T16:18:06.9617856Z   ...
+2026-11-11T16:18:06.9618291Z # Subtest: non-public or injected address is rejected: "224.0.0.1"
+2026-11-11T16:18:06.9618810Z ok 20 - non-public or injected address is rejected: "224.0.0.1"
+2026-11-11T16:18:06.9619215Z   ---
+2026-11-11T16:18:06.9619456Z   duration_ms: 0.110764
+2026-11-11T16:18:06.9619699Z   ...
+2026-11-11T16:18:06.9620573Z # Subtest: non-public or injected address is rejected: "255.255.255.255"
+2026-11-11T16:18:06.9621495Z ok 21 - non-public or injected address is rejected: "255.255.255.255"
+2026-11-11T16:18:06.9622012Z   ---
+2026-11-11T16:18:06.9622250Z   duration_ms: 0.109595
+2026-11-11T16:18:06.9622499Z   ...
+2026-11-11T16:18:06.9623065Z # Subtest: non-public or injected address is rejected: "::1"
+2026-11-11T16:18:06.9623629Z ok 22 - non-public or injected address is rejected: "::1"
+2026-11-11T16:18:06.9624064Z   ---
+2026-11-11T16:18:06.9624341Z   duration_ms: 0.097419
+2026-11-11T16:18:06.9624603Z   ...
+2026-11-11T16:18:06.9625202Z # Subtest: non-public or injected address is rejected: "91.189.91.81\\n127.0.0.1 evil"
+2026-11-11T16:18:06.9625889Z ok 23 - non-public or injected address is rejected: "91.189.91.81\\n127.0.0.1 evil"
+2026-11-11T16:18:06.9626361Z   ---
+2026-11-11T16:18:06.9626617Z   duration_ms: 0.086179
+2026-11-11T16:18:06.9626874Z   ...
+2026-11-11T16:18:06.9627483Z # Subtest: non-public or injected address is rejected: "91.189.91.81 --privileged"
+2026-11-11T16:18:06.9628119Z ok 24 - non-public or injected address is rejected: "91.189.91.81 --privileged"
+2026-11-11T16:18:06.9628901Z   ---
+2026-11-11T16:18:06.9629152Z   duration_ms: 0.089491
+2026-11-11T16:18:06.9629439Z   ...
+2026-11-11T16:18:06.9630350Z # Subtest: mismatched, expired, truncated, empty and failed DNS responses cannot supply hosts entries
+2026-11-11T16:18:06.9631160Z ok 25 - mismatched, expired, truncated, empty and failed DNS responses cannot supply hosts entries
+2026-11-11T16:18:06.9631758Z   ---
+2026-11-11T16:18:06.9632011Z   duration_ms: 1.985925
+2026-11-11T16:18:06.9632305Z   ...
+2026-11-11T16:18:06.9632841Z # Subtest: failed HTTPS, malformed JSON, timeout and oversized bodies remain failures
+2026-11-11T16:18:06.9633516Z ok 26 - failed HTTPS, malformed JSON, timeout and oversized bodies remain failures
+2026-11-11T16:18:06.9634015Z   ---
+2026-11-11T16:18:06.9634251Z   duration_ms: 2.829894
+2026-11-11T16:18:06.9634521Z   ...
+2026-11-11T16:18:06.9635185Z # Subtest: container arguments include only validated Ubuntu host entries, keeping the image and SSH options separate
+2026-11-11T16:18:06.9636117Z ok 27 - container arguments include only validated Ubuntu host entries, keeping the image and SSH options separate
+2026-11-11T16:18:06.9636696Z   ---
+2026-11-11T16:18:06.9636959Z   duration_ms: 6.423613
+2026-11-11T16:18:06.9637234Z   ...
+2026-11-11T16:18:06.9637755Z # Subtest: hosts recovery appends only failed names and preserves existing hosts bytes
+2026-11-11T16:18:06.9638425Z ok 28 - hosts recovery appends only failed names and preserves existing hosts bytes
+2026-11-11T16:18:06.9638892Z   ---
+2026-11-11T16:18:06.9639241Z   duration_ms: 0.390452
+2026-11-11T16:18:06.9639490Z   ...
+2026-11-11T16:18:06.9640438Z # Subtest: hosts modification refuses local/non-Linux/non-root execution before filesystem access
+2026-11-11T16:18:06.9641212Z ok 29 - hosts modification refuses local/non-Linux/non-root execution before filesystem access
+2026-11-11T16:18:06.9641879Z   ---
+2026-11-11T16:18:06.9642156Z   duration_ms: 0.410349
+2026-11-11T16:18:06.9642476Z   ...
+2026-11-11T16:18:06.9678624Z 1..29
+2026-11-11T16:18:06.9679357Z # tests 29
+2026-11-11T16:18:06.9680713Z # suites 0
+2026-11-11T16:18:06.9681682Z # pass 29
+2026-11-11T16:18:06.9682015Z # fail 0
+2026-11-11T16:18:06.9682536Z # cancelled 0
+2026-11-11T16:18:06.9682783Z # skipped 0
+2026-11-11T16:18:06.9683057Z # todo 0
+2026-11-11T16:18:06.9683336Z # duration_ms 116.520613
+2026-11-11T16:18:06.9743607Z ##[end-action id=__self.__self.__run;outcome=success;conclusion=success;duration_ms=168]
+2026-11-11T16:18:06.9747578Z ##[start-action display=Resolve Ubuntu repositories before package installation;id=__self.__self.__run_2]
+2026-11-11T16:18:06.9778225Z ##[group]Run set -euo pipefail
+2026-11-11T16:18:06.9778581Z [36;1mset -euo pipefail[0m
+2026-11-11T16:18:06.9779033Z [36;1m# Resolve as the runner user so curl retains the job's proxy and CA[0m
+2026-11-11T16:18:06.9779605Z [36;1m# configuration. The privileged consumer only validates and appends[0m
+2026-11-11T16:18:06.9780528Z [36;1m# the bounded JSON handoff; it never makes a network request.[0m
+2026-11-11T16:18:06.9781267Z [36;1mnode scripts/lib/ubuntu-apt-dns.cjs --resolve |[0m
+2026-11-11T16:18:06.9781681Z [36;1m  sudo --preserve-env=GITHUB_ACTIONS,RUNNER_OS \[0m
+2026-11-11T16:18:06.9782220Z [36;1m    "$(command -v node)" scripts/lib/ubuntu-apt-dns.cjs --apply-stdin[0m
+2026-11-11T16:18:06.9816850Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-11T16:18:06.9817252Z env:
+2026-11-11T16:18:06.9817537Z   EXPECTED_COMMIT: ca941473ad55f47956090787dac39cbbeafcb408
+2026-11-11T16:18:06.9818000Z ##[endgroup]
+2026-11-11T16:18:27.0503068Z {"ubuntuAptDns":[{"hostname":"archive.ubuntu.com","source":"doh","addresses":["91.189.91.82","91.189.90.13","91.189.92.22","91.189.91.83","91.189.90.12","185.125.190.82","185.125.190.81","185.125.190.83","91.189.92.23","91.189.90.11","91.189.91.81","91.189.92.24"]},{"hostname":"security.ubuntu.com","source":"doh","addresses":["91.189.91.82","91.189.91.83","185.125.190.81","185.125.190.83","185.125.190.82","91.189.92.24","91.189.90.13","91.189.90.11","91.189.92.22","91.189.90.12","91.189.91.81","91.189.92.23"]},{"hostname":"azure.archive.ubuntu.com","source":"doh","addresses":["52.154.174.208"]}],"hostsFileChanged":true}
+2026-11-11T16:18:27.0549591Z ##[end-action id=__self.__self.__run_2;outcome=success;conclusion=success;duration_ms=20080]
+2026-11-11T16:18:27.0564577Z ##[end-action id=__self.__self;outcome=success;conclusion=success;duration_ms=20260]
+2026-11-11T16:18:27.0568277Z ##[start-action display=Install and verify native canvas prerequisites;id=__self.__run]
+2026-11-11T16:18:27.0596187Z ##[group]Run set -euo pipefail
+2026-11-11T16:18:27.0596549Z [36;1mset -euo pipefail[0m
+2026-11-11T16:18:27.0596890Z [36;1mtest "$RUNNER_OS" = "Linux"[0m
+2026-11-11T16:18:27.0597215Z [36;1msudo apt-get update[0m
+2026-11-11T16:18:27.0597577Z [36;1msudo apt-get install -y --no-install-recommends \[0m
+2026-11-11T16:18:27.0598033Z [36;1m  build-essential pkg-config libcairo2-dev libpango1.0-dev \[0m
+2026-11-11T16:18:27.0598508Z [36;1m  libpixman-1-dev libjpeg-dev libgif-dev librsvg2-dev[0m
+2026-11-11T16:18:27.0599039Z [36;1mpkg-config --exists cairo pangocairo pixman-1 libjpeg librsvg-2.0[0m
+2026-11-11T16:18:27.0599633Z [36;1mpkg-config --modversion cairo pangocairo pixman-1 libjpeg librsvg-2.0[0m
+2026-11-11T16:18:27.0634389Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-11T16:18:27.0634755Z env:
+2026-11-11T16:18:27.0635237Z   EXPECTED_COMMIT: ca941473ad55f47956090787dac39cbbeafcb408
+2026-11-11T16:18:27.0635578Z ##[endgroup]
+2026-11-11T16:18:27.1446447Z Get:1 https://packages.microsoft.com/ubuntu/24.04/prod noble InRelease [3600 B]
+2026-11-11T16:18:27.1999706Z Get:2 https://packages.microsoft.com/ubuntu/24.04/prod noble/main armhf Packages [12.6 kB]
+2026-11-11T16:18:27.2077597Z Get:3 https://packages.microsoft.com/ubuntu/24.04/prod noble/main amd64 Packages [764 kB]
+2026-11-11T16:18:27.2182002Z Get:4 https://packages.microsoft.com/ubuntu/24.04/prod noble/main arm64 Packages [693 kB]
+2026-11-11T16:18:47.1451013Z Ign:5 http://ports.ubuntu.com/ubuntu-ports noble InRelease
+2026-11-11T16:19:07.1708475Z Ign:6 http://ports.ubuntu.com/ubuntu-ports noble-updates InRelease
+2026-11-11T16:19:27.1966213Z Ign:7 http://ports.ubuntu.com/ubuntu-ports noble-backports InRelease
+2026-11-11T16:19:47.2156419Z Ign:8 http://ports.ubuntu.com/ubuntu-ports noble-security InRelease
+2026-11-11T16:20:06.8453784Z Ign:5 http://ports.ubuntu.com/ubuntu-ports noble InRelease
+2026-11-11T16:20:26.8700196Z Ign:6 http://ports.ubuntu.com/ubuntu-ports noble-updates InRelease
+2026-11-11T16:20:46.8944696Z Ign:7 http://ports.ubuntu.com/ubuntu-ports noble-backports InRelease
+2026-11-11T16:21:04.8376912Z Ign:8 http://ports.ubuntu.com/ubuntu-ports noble-security InRelease
+2026-11-11T16:21:24.8639594Z Ign:5 http://ports.ubuntu.com/ubuntu-ports noble InRelease
+2026-11-11T16:21:44.8892594Z Ign:6 http://ports.ubuntu.com/ubuntu-ports noble-updates InRelease
+2026-11-11T16:22:04.9104911Z Ign:7 http://ports.ubuntu.com/ubuntu-ports noble-backports InRelease
+2026-11-11T16:22:24.9420899Z Ign:8 http://ports.ubuntu.com/ubuntu-ports noble-security InRelease
+2026-11-11T16:22:44.9649256Z Err:5 http://ports.ubuntu.com/ubuntu-ports noble InRelease
+2026-11-11T16:22:44.9649989Z   Temporary failure resolving 'ports.ubuntu.com'
+2026-11-11T16:23:04.9901514Z Err:6 http://ports.ubuntu.com/ubuntu-ports noble-updates InRelease
+2026-11-11T16:23:04.9902106Z   Temporary failure resolving 'ports.ubuntu.com'
+2026-11-11T16:23:25.0121833Z Err:7 http://ports.ubuntu.com/ubuntu-ports noble-backports InRelease
+2026-11-11T16:23:25.0123694Z   Temporary failure resolving 'ports.ubuntu.com'
+2026-11-11T16:23:45.2182660Z Err:8 http://ports.ubuntu.com/ubuntu-ports noble-security InRelease
+2026-11-11T16:23:45.2183531Z   Temporary failure resolving 'ports.ubuntu.com'
+2026-11-11T16:23:48.2145161Z Fetched 1473 kB in 5min 18s (4631 B/s)
+2026-11-11T16:23:49.6353819Z Reading package lists...
+2026-11-11T16:23:49.6484973Z W: Failed to fetch http://ports.ubuntu.com/ubuntu-ports/dists/noble/InRelease  Temporary failure resolving 'ports.ubuntu.com'
+2026-11-11T16:23:49.6486772Z W: Failed to fetch http://ports.ubuntu.com/ubuntu-ports/dists/noble-updates/InRelease  Temporary failure resolving 'ports.ubuntu.com'
+2026-11-11T16:23:49.6488417Z W: Failed to fetch http://ports.ubuntu.com/ubuntu-ports/dists/noble-backports/InRelease  Temporary failure resolving 'ports.ubuntu.com'
+2026-11-11T16:23:49.6489571Z W: Failed to fetch http://ports.ubuntu.com/ubuntu-ports/dists/noble-security/InRelease  Temporary failure resolving 'ports.ubuntu.com'
+2026-11-11T16:23:49.6490695Z W: Some index files failed to download. They have been ignored, or old ones used instead.
+2026-11-11T16:23:49.6679603Z Reading package lists...
+2026-11-11T16:23:49.9945353Z Building dependency tree...
+2026-11-11T16:23:49.9951996Z Reading state information...
+2026-11-11T16:23:50.2750343Z pkg-config is already the newest version (1.8.1-2build1).
+2026-11-11T16:23:50.2751183Z The following additional packages will be installed:
+2026-11-11T16:23:50.2751795Z   gir1.2-freedesktop gir1.2-freedesktop-dev gir1.2-gdkpixbuf-2.0
+2026-11-11T16:23:50.2752619Z   gir1.2-glib-2.0-dev gir1.2-harfbuzz-0.0 gir1.2-pango-1.0 gir1.2-rsvg-2.0
+2026-11-11T16:23:50.2753242Z   libblkid-dev libbrotli-dev libbz2-dev libcairo-script-interpreter2
+2026-11-11T16:23:50.2753783Z   libdatrie-dev libdeflate-dev libfontconfig-dev libfreetype-dev
+2026-11-11T16:23:50.2754415Z   libfribidi-dev libgdk-pixbuf-2.0-dev libgif7 libgirepository-2.0-0
+2026-11-11T16:23:50.2755045Z   libglib2.0-dev libglib2.0-dev-bin libgraphite2-dev libharfbuzz-cairo0
+2026-11-11T16:23:50.2755678Z   libharfbuzz-dev libharfbuzz-gobject0 libharfbuzz-icu0 libharfbuzz-subset0
+2026-11-11T16:23:50.2756242Z   libice-dev libjbig-dev libjpeg-turbo8-dev libjpeg8-dev liblerc-dev
+2026-11-11T16:23:50.2756849Z   liblzma-dev libmount-dev libpangoxft-1.0-0 libpng-dev libpthread-stubs0-dev
+2026-11-11T16:23:50.2757500Z   libselinux1-dev libsepol-dev libsharpyuv-dev libsm-dev libthai-dev
+2026-11-11T16:23:50.2758050Z   libtiff-dev libtiffxx6 libwebp-dev libwebpdecoder3 libx11-dev libxau-dev
+2026-11-11T16:23:50.2758687Z   libxcb-render0-dev libxcb-shm0-dev libxcb1-dev libxdmcp-dev libxext-dev
+2026-11-11T16:23:50.2759244Z   libxft-dev libxrender-dev pango1.0-tools uuid-dev x11proto-core-dev
+2026-11-11T16:23:50.2759720Z   x11proto-dev xorg-sgml-doctools xtrans-dev
+2026-11-11T16:23:50.2768628Z Suggested packages:
+2026-11-11T16:23:50.2769346Z   libcairo2-doc libdatrie-doc freetype2-doc libglib2.0-doc libxml2-utils
+2026-11-11T16:23:50.2770179Z   libgraphite2-utils libice-doc liblzma-doc libpango1.0-doc librsvg2-doc
+2026-11-11T16:23:50.2770758Z   libsm-doc libthai-doc libx11-doc libxcb-doc libxext-doc graphicsmagick
+2026-11-11T16:23:50.2771289Z Recommended packages:
+2026-11-11T16:23:50.2771575Z   bzip2-doc libpng-tools
+2026-11-11T16:23:50.3113932Z The following NEW packages will be installed:
+2026-11-11T16:23:50.3114793Z   build-essential gir1.2-freedesktop gir1.2-freedesktop-dev
+2026-11-11T16:23:50.3115453Z   gir1.2-gdkpixbuf-2.0 gir1.2-glib-2.0-dev gir1.2-harfbuzz-0.0
+2026-11-11T16:23:50.3116598Z   gir1.2-pango-1.0 gir1.2-rsvg-2.0 libblkid-dev libbrotli-dev libbz2-dev
+2026-11-11T16:23:50.3117573Z   libcairo-script-interpreter2 libcairo2-dev libdatrie-dev libdeflate-dev
+2026-11-11T16:23:50.3118175Z   libfontconfig-dev libfreetype-dev libfribidi-dev libgdk-pixbuf-2.0-dev
+2026-11-11T16:23:50.3118962Z   libgif-dev libgif7 libgirepository-2.0-0 libglib2.0-dev libglib2.0-dev-bin
+2026-11-11T16:23:50.3119564Z   libgraphite2-dev libharfbuzz-cairo0 libharfbuzz-dev libharfbuzz-gobject0
+2026-11-11T16:23:50.3120446Z   libharfbuzz-icu0 libharfbuzz-subset0 libice-dev libjbig-dev libjpeg-dev
+2026-11-11T16:23:50.3121025Z   libjpeg-turbo8-dev libjpeg8-dev liblerc-dev liblzma-dev libmount-dev
+2026-11-11T16:23:50.3121619Z   libpango1.0-dev libpangoxft-1.0-0 libpixman-1-dev libpng-dev
+2026-11-11T16:23:50.3122200Z   libpthread-stubs0-dev librsvg2-dev libselinux1-dev libsepol-dev
+2026-11-11T16:23:50.3122754Z   libsharpyuv-dev libsm-dev libthai-dev libtiff-dev libtiffxx6 libwebp-dev
+2026-11-11T16:23:50.3123689Z   libwebpdecoder3 libx11-dev libxau-dev libxcb-render0-dev libxcb-shm0-dev
+2026-11-11T16:23:50.3124237Z   libxcb1-dev libxdmcp-dev libxext-dev libxft-dev libxrender-dev
+2026-11-11T16:23:50.3125455Z   pango1.0-tools uuid-dev x11proto-core-dev x11proto-dev xorg-sgml-doctools
+2026-11-11T16:23:50.3126021Z   xtrans-dev
+2026-11-11T16:24:10.3514566Z 0 upgraded, 68 newly installed, 0 to remove and 2 not upgraded.
+2026-11-11T16:24:10.3515856Z Need to get 10.2 MB of archives.
+2026-11-11T16:24:10.3516689Z After this operation, 55.6 MB of additional disk space will be used.
+2026-11-11T16:24:10.3517398Z Ign:1 http://ports.ubuntu.com/ubuntu-ports noble/main arm64 build-essential arm64 12.10ubuntu1
+2026-11-11T16:24:30.3748466Z Ign:2 http://ports.ubuntu.com/ubuntu-ports noble/main arm64 gir1.2-freedesktop arm64 1.80.1-1
+2026-11-11T16:24:50.4022821Z Ign:3 http://ports.ubuntu.com/ubuntu-ports noble-updates/main arm64 gir1.2-glib-2.0-dev arm64 2.80.0-6ubuntu3.10
+2026-11-11T16:25:10.4362595Z Ign:4 http://ports.ubuntu.com/ubuntu-ports noble/main arm64 gir1.2-freedesktop-dev arm64 1.80.1-1
+2026-11-11T16:25:30.4678419Z Ign:5 http://ports.ubuntu.com/ubuntu-ports noble-updates/main arm64 gir1.2-gdkpixbuf-2.0 arm64 2.42.10+dfsg-3ubuntu3.3
+2026-11-11T16:25:50.4951130Z Ign:6 http://ports.ubuntu.com/ubuntu-ports noble/main arm64 libharfbuzz-gobject0 arm64 8.3.0-2build2
+2026-11-11T16:26:10.5207728Z Ign:7 http://ports.ubuntu.com/ubuntu-ports noble/main arm64 gir1.2-harfbuzz-0.0 arm64 8.3.0-2build2
+2026-11-11T16:26:30.5510807Z Ign:8 http://ports.ubuntu.com/ubuntu-ports noble/main arm64 libpangoxft-1.0-0 arm64 1.52.1+ds-1build1
+2026-11-11T16:26:50.5793115Z Ign:9 http://ports.ubuntu.com/ubuntu-ports noble/main arm64 gir1.2-pango-1.0 arm64 1.52.1+ds-1build1
+2026-11-11T16:27:10.6039462Z Ign:10 http://ports.ubuntu.com/ubuntu-ports noble-updates/main arm64 gir1.2-rsvg-2.0 arm64 2.58.0+dfsg-1ubuntu0.1
+2026-11-11T16:27:30.6240302Z Ign:11 http://ports.ubuntu.com/ubuntu-ports noble-updates/main arm64 libbrotli-dev arm64 1.1.0-2ubuntu0.1
+2026-11-11T16:27:50.4317848Z Ign:12 http://ports.ubuntu.com/ubuntu-ports noble-updates/main arm64 libbz2-dev arm64 1.0.8-5.1ubuntu0.1
+2026-11-11T16:28:10.4578799Z Ign:13 http://ports.ubuntu.com/ubuntu-ports noble/main arm64 libcairo-script-interpreter2 arm64 1.18.0-3build1
+2026-11-11T16:28:30.4819631Z Ign:14 http://ports.ubuntu.com/ubuntu-ports noble-updates/main arm64 libpng-dev arm64 1.6.43-5ubuntu0.7
+2026-11-11T16:28:50.5059173Z Ign:15 http://ports.ubuntu.com/ubuntu-ports noble-updates/main arm64 libfreetype-dev arm64 2.13.2+dfsg-1ubuntu0.2
+2026-11-11T16:29:10.5313154Z Ign:16 http://ports.ubuntu.com/ubuntu-ports noble-updates/main arm64 uuid-dev arm64 2.39.3-9ubuntu6.6
+2026-11-11T16:29:30.5567003Z Ign:17 http://ports.ubuntu.com/ubuntu-ports noble/main arm64 libfontconfig-dev arm64 2.15.0-1.1ubuntu2
+2026-11-11T16:29:50.5870827Z Ign:18 http://ports.ubuntu.com/ubuntu-ports noble-updates/main arm64 libglib2.0-dev-bin arm64 2.80.0-6ubuntu3.10
+2026-11-11T16:30:10.6119721Z Ign:19 http://ports.ubuntu.com/ubuntu-ports noble-updates/main arm64 libblkid-dev arm64 2.39.3-9ubuntu6.6
+2026-11-11T16:30:30.6377800Z Ign:20 http://ports.ubuntu.com/ubuntu-ports noble/main arm64 libsepol-dev arm64 3.5-2build1
+2026-11-11T16:30:50.6619750Z Ign:21 http://ports.ubuntu.com/ubuntu-ports noble-updates/main arm64 libselinux1-dev arm64 3.5-2ubuntu2.1
+2026-11-11T16:31:10.6830748Z Ign:22 http://ports.ubuntu.com/ubuntu-ports noble-updates/main arm64 libmount-dev arm64 2.39.3-9ubuntu6.6
+2026-11-11T16:31:30.7054656Z Ign:23 http://ports.ubuntu.com/ubuntu-ports noble-updates/main arm64 libgirepository-2.0-0 arm64 2.80.0-6ubuntu3.10
+2026-11-11T16:31:50.7251900Z Ign:24 http://ports.ubuntu.com/ubuntu-ports noble-updates/main arm64 libglib2.0-dev arm64 2.80.0-6ubuntu3.10
+2026-11-11T16:32:10.7473290Z Ign:25 http://ports.ubuntu.com/ubuntu-ports noble/main arm64 libpixman-1-dev arm64 0.42.2-1build1
+2026-11-11T16:32:30.7817247Z Ign:26 http://ports.ubuntu.com/ubuntu-ports noble/main arm64 xorg-sgml-doctools all 1:1.11-1.1
+2026-11-11T16:32:50.3804707Z Ign:27 http://ports.ubuntu.com/ubuntu-ports noble/main arm64 x11proto-dev all 2023.2-1
+2026-11-11T16:32:51.4241113Z ##[error]The operation was canceled.
+2026-11-11T16:32:51.4246034Z ##[end-action id=__self.__run;outcome=cancelled;conclusion=cancelled;duration_ms=864367]
+2026-11-11T16:32:51.4346677Z ##[group]Run actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+2026-11-11T16:32:51.4347086Z with:
+2026-11-11T16:32:51.4347411Z   name: process-recovery-ubuntu-24.04-arm-ca941473ad55f47956090787dac39cbbeafcb408
+2026-11-11T16:32:51.4348035Z   path: /home/runner/work/_temp/process-recovery.json
+/home/runner/work/_temp/process-recovery-evidence.json
+
+2026-11-11T16:32:51.4348513Z   if-no-files-found: error
+2026-11-11T16:32:51.4348715Z   retention-days: 90
+2026-11-11T16:32:51.4348900Z   compression-level: 6
+2026-11-11T16:32:51.4349086Z   overwrite: false
+2026-11-11T16:32:51.4349277Z   include-hidden-files: false
+2026-11-11T16:32:51.4349482Z env:
+2026-11-11T16:32:51.4349693Z   EXPECTED_COMMIT: ca941473ad55f47956090787dac39cbbeafcb408
+2026-11-11T16:32:51.4350274Z ##[endgroup]
+2026-11-11T16:32:51.5723923Z Multiple search paths detected. Calculating the least common ancestor of all paths
+2026-11-11T16:32:51.5726291Z The least common ancestor is /home/runner/work/_temp. This will be the root directory of the artifact
+2026-11-11T16:32:51.5741072Z ##[error]No files were found with the provided path: /home/runner/work/_temp/process-recovery.json
+/home/runner/work/_temp/process-recovery-evidence.json. No artifacts will be uploaded.
+2026-11-11T16:32:51.5914387Z Post job cleanup.
+2026-11-11T16:32:51.5986868Z Post job cleanup.
+2026-11-11T16:32:51.6741015Z [command]/usr/bin/git version
+2026-11-11T16:32:51.6773745Z git version 2.56.0
+2026-11-11T16:32:51.6806962Z Temporarily overriding HOME='/home/runner/work/_temp/372740fc-21d9-44bb-8721-5bcde45ce332' before making global git config changes
+2026-11-11T16:32:51.6807769Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-11T16:32:51.6814716Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/chainlesschain/chainlesschain
+2026-11-11T16:32:51.6850732Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-11T16:32:51.6883940Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-11T16:32:51.7164981Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-11T16:32:51.7190682Z http.https://github.com/.extraheader
+2026-11-11T16:32:51.7201637Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-11-11T16:32:51.7241566Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-11T16:32:51.7536514Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-11T16:32:51.7575394Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-11T16:32:51.7976508Z Cleaning up orphan processes
+
