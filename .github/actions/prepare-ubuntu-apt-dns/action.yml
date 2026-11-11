@@ -10,6 +10,11 @@ runs:
     - name: Resolve Ubuntu repositories before package installation
       shell: bash
       working-directory: ${{ github.workspace }}
-      run: >-
-        sudo --preserve-env=GITHUB_ACTIONS,RUNNER_OS
-        "$(command -v node)" scripts/lib/ubuntu-apt-dns.cjs --apply
+      run: |
+        set -euo pipefail
+        # Resolve as the runner user so curl retains the job's proxy and CA
+        # configuration. The privileged consumer only validates and appends
+        # the bounded JSON handoff; it never makes a network request.
+        node scripts/lib/ubuntu-apt-dns.cjs --resolve |
+          sudo --preserve-env=GITHUB_ACTIONS,RUNNER_OS \
+            "$(command -v node)" scripts/lib/ubuntu-apt-dns.cjs --apply-stdin

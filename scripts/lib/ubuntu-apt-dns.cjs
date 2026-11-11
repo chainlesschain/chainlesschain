@@ -7,6 +7,80 @@ const assert = require("node:assert/strict");
 const { lookup } = require("node:dns/promises");
 const fs = require("node:fs");
 const { isIPv4 } = require("node:net");
+const { execFile } = require("node:child_process");
+const { promisify } = require("node:util");
+
+async function curlDohFetch(url, options, execute = promisify(execFile)) {
+  assert.equal(url.origin, "https://cloudflare-dns.com");
+  assert.equal(url.pathname, "/dns-query");
+  assert.ok(APT_HOSTS.includes(url.searchParams.get("name")));
+  assert.equal(url.searchParams.get("type"), "A");
+  assert.equal(url.searchParams.get("cd"), "false");
+  assert.equal(url.username + url.password + url.hash, "");
+  let stdout;
+  try {
+    ({ stdout } = await execute(
+      "curl",
+      [
+        "--proto",
+        "=https",
+        "--fail",
+        "--silent",
+        "--show-error",
+        "--connect-timeout",
+        "4",
+        "--max-time",
+        "8",
+        "--max-filesize",
+        "65536",
+        // Bootstrap the documented resolver without requiring that broken DNS
+        // first resolve its name. TLS still authenticates cloudflare-dns.com.
+        // https://developers.cloudflare.com/1.1.1.1/ip-addresses/
+        "--resolve",
+        "cloudflare-dns.com:443:1.1.1.1",
+        "--header",
+        "accept: application/dns-json",
+        "--write-out",
+        "\n%{content_type}\n%{http_code}",
+        url.href,
+      ],
+      {
+        encoding: "utf8",
+        maxBuffer: 66048,
+        timeout: 9000,
+        windowsHide: true,
+        signal: options.signal,
+      },
+    ));
+  } catch (error) {
+    const code =
+      Number.isInteger(error.code) && error.code >= 0 && error.code <= 255
+        ? error.code
+        : [
+              "ENOENT",
+              "ABORT_ERR",
+              "ETIMEDOUT",
+              "ERR_CHILD_PROCESS_STDIO_MAXBUFFER",
+            ].includes(error.code)
+          ? error.code
+          : "unknown";
+    throw new Error(`Ubuntu HTTPS DNS transport failed (${code})`);
+  }
+  const last = stdout.lastIndexOf("\n");
+  const previous = stdout.lastIndexOf("\n", last - 1);
+  assert.ok(
+    previous >= 0 && stdout.slice(last + 1) === "200",
+    "Ubuntu HTTPS DNS transport did not return HTTP 200",
+  );
+  const body = stdout.slice(0, previous);
+  assert.ok(
+    Buffer.byteLength(body) <= 65536,
+    "Ubuntu HTTPS DNS transport exceeds 64 KiB",
+  );
+  return new Response(body, {
+    headers: { "content-type": stdout.slice(previous + 1, last) },
+  });
+}
 
 const APT_HOSTS = Object.freeze([
   "archive.ubuntu.com",
@@ -100,7 +174,8 @@ function parseDohAnswer(hostname, answer) {
   return addresses;
 }
 
-async function readDohAnswer(hostname, fetchImpl) {
+async function readDohAnswer(hostname, fetchImpl = curlDohFetch) {
+  assert.ok(APT_HOSTS.includes(hostname), "Unexpected Ubuntu repository host");
   const url = new URL("https://cloudflare-dns.com/dns-query");
   url.searchParams.set("name", hostname);
   url.searchParams.set("type", "A");
@@ -160,7 +235,7 @@ async function boundedLookup(hostname, lookupImpl) {
 
 async function resolveUbuntuAptHosts({
   lookupImpl = lookup,
-  fetchImpl = fetch,
+  fetchImpl = curlDohFetch,
 } = {}) {
   return Promise.all(
     APT_HOSTS.map(async (hostname) => {
@@ -222,16 +297,11 @@ function ubuntuAptDockerArgs(records) {
   );
 }
 
-function applyUbuntuAptDns(
-  records,
-  {
-    platform = process.platform,
-    env = process.env,
-    uid = process.getuid?.(),
-    readFile = fs.readFileSync,
-    appendFile = fs.appendFileSync,
-  } = {},
-) {
+function assertCiRoot({
+  platform = process.platform,
+  env = process.env,
+  uid = process.getuid?.(),
+} = {}) {
   assert.equal(platform, "linux", "Ubuntu DNS changes are CI Linux only");
   assert.equal(
     env.GITHUB_ACTIONS,
@@ -240,6 +310,35 @@ function applyUbuntuAptDns(
   );
   assert.equal(env.RUNNER_OS, "Linux");
   assert.equal(uid, 0, "Ubuntu DNS changes require the CI root step");
+}
+
+async function applyUbuntuAptDnsFromStdin({
+  input = process.stdin,
+  ...options
+} = {}) {
+  assertCiRoot(options);
+  const chunks = [];
+  let length = 0;
+  for await (const chunk of input) {
+    const bytes = Buffer.from(chunk);
+    length += bytes.length;
+    assert.ok(length <= 65536, "Ubuntu DNS handoff exceeds 64 KiB");
+    chunks.push(bytes);
+  }
+  const records = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+  const changed = applyUbuntuAptDns(records, options);
+  return { ubuntuAptDns: records, hostsFileChanged: changed };
+}
+
+function applyUbuntuAptDns(
+  records,
+  {
+    readFile = fs.readFileSync,
+    appendFile = fs.appendFileSync,
+    ...options
+  } = {},
+) {
+  assertCiRoot(options);
   validateRecords(records);
   const fallback = records.filter((row) => row.source === "doh");
   if (fallback.length === 0) return false;
@@ -262,20 +361,28 @@ module.exports = {
   resolveUbuntuAptHosts,
   ubuntuAptDockerArgs,
   applyUbuntuAptDns,
+  applyUbuntuAptDnsFromStdin,
+  curlDohFetch,
 };
 
 if (require.main === module) {
   (async () => {
     assert.ok(
       process.argv.length === 3 &&
-        ["--probe", "--apply"].includes(process.argv[2]),
-      "Use --probe or --apply",
+        ["--probe", "--resolve", "--apply-stdin"].includes(process.argv[2]),
+      "Use --probe, --resolve or --apply-stdin",
     );
+    if (process.argv[2] === "--apply-stdin") {
+      console.log(JSON.stringify(await applyUbuntuAptDnsFromStdin()));
+      return;
+    }
     const records = await resolveUbuntuAptHosts();
-    const changed =
-      process.argv[2] === "--apply" ? applyUbuntuAptDns(records) : false;
     console.log(
-      JSON.stringify({ ubuntuAptDns: records, hostsFileChanged: changed }),
+      JSON.stringify(
+        process.argv[2] === "--resolve"
+          ? records
+          : { ubuntuAptDns: records, hostsFileChanged: false },
+      ),
     );
   })().catch((error) => {
     console.error(error);
