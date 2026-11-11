@@ -33,12 +33,12 @@
   "ide": {
     "vscode": {
       "version": "0.37.186",
-      "source": "c3ac7485b2e671864acc52da1fa36fa13ad134fa",
+      "source": "674593a1bb21a68d33b56dc0cb6ed420212143a2",
       "status": "candidate-not-published"
     },
     "jetbrains": {
       "version": "0.4.201",
-      "source": "c3ac7485b2e671864acc52da1fa36fa13ad134fa",
+      "source": "674593a1bb21a68d33b56dc0cb6ed420212143a2",
       "status": "candidate-not-published"
     }
   },
@@ -66,5 +66,16 @@
   },
   "modelGenerationRequests": 0,
   "completePublicIdePairing": false,
-  "new36Plus9Status": "PREPARED_NOT_RUN"
+  "new36Plus9Status": "PREPARED_NOT_RUN",
+  "ideValidationHistory": {
+    "previousCandidate": "c3ac7485b2e671864acc52da1fa36fa13ad134fa",
+    "arm64Run": 42976178479,
+    "failedAttempts": [1, 2],
+    "currentCandidate": "674593a1bb21a68d33b56dc0cb6ed420212143a2",
+    "currentRuns": {
+      "ide": 43039428960,
+      "arm64": 43039429061
+    },
+    "nativeAcceptance": "pending"
+  }
 }

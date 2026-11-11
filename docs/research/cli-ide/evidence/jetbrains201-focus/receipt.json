@@ -1,0 +1,114 @@
+{
+  "schema": "chainlesschain.jetbrains-rewind-focus-failures/v1",
+  "workflowRunId": 42976178479,
+  "sourceCommit": "c3ac7485b2e671864acc52da1fa36fa13ad134fa",
+  "platform": "win32",
+  "arch": "arm64",
+  "ideVersion": "2026.2.0.1",
+  "originalFailuresUnchanged": true,
+  "newModelRequests": 0,
+  "attempts": [
+    {
+      "attempt": 1,
+      "artifactId": 13836700943,
+      "artifactDigest": "sha256:20406adc5eedd18383845cd8c11e3c191f34ee983213c3659dfbf14825d0e3cb",
+      "status": "failed",
+      "kind": "actions",
+      "popupGeneration": "2a8b12d8",
+      "shownAt": "2026-11-11T07:16:43.052926200Z",
+      "closedAt": "2026-11-11T07:16:43.147353900Z",
+      "elapsedMsRounded": 94.4,
+      "chosenCallbackObserved": false,
+      "files": [
+        {
+          "path": "attempt-1.018-host-capture-initial_host-events.jsonl.raw",
+          "originalMember": "jetbrains-windows-2026.2.0.1/diagnostics/018-host-capture-initial_host-events.jsonl",
+          "digest": "sha256:8021322708bb3fb3465e1f4a47659ed746eb373a074315ef08245b9ec2135ef5",
+          "bytes": 78431
+        },
+        {
+          "path": "attempt-1.IdeUiSmokeTest.xml.raw",
+          "originalMember": "jetbrains-windows-2026.2.0.1/diagnostics/034-TEST-com.chainlesschain.ide.uitest.IdeUiSmokeTest.xml",
+          "digest": "sha256:2fab9326c8e99f8675b55b0cfc172c5fecfa68a6269647ef137548610d2b4de0",
+          "bytes": 3082
+        },
+        {
+          "path": "attempt-1.chat-control-journey.png",
+          "originalMember": "jetbrains-windows-2026.2.0.1/diagnostics/038-chat-control-journey-1794381448327.png",
+          "digest": "sha256:02d41c2ea187098f5dbd585801e8a060bdb47ba10efc3a380bc78c480a085b5a",
+          "bytes": 304662
+        },
+        {
+          "path": "attempt-1.journey-evidence.json.raw",
+          "originalMember": "jetbrains-windows-2026.2.0.1/journey-evidence.json",
+          "digest": "sha256:68477278bc60aaec7211d9c266ed3a9f6327ee5956659ed8fde2ecca26109160",
+          "bytes": 13740
+        }
+      ]
+    },
+    {
+      "attempt": 2,
+      "artifactId": 13864445789,
+      "artifactDigest": "sha256:8dcb1f225bc2b6b10509d3a794e94ea7c28828464817c49b06f9efc0424b3d92",
+      "status": "failed",
+      "kind": "timeline",
+      "popupGeneration": "4dddd2bf",
+      "shownAt": "2026-11-11T14:20:48.442545Z",
+      "closedAt": "2026-11-11T14:20:48.453548600Z",
+      "elapsedMsRounded": 11.0,
+      "chosenCallbackObserved": false,
+      "files": [
+        {
+          "path": "attempt-2.018-host-capture-initial_host-events.jsonl.raw",
+          "originalMember": "jetbrains-windows-2026.2.0.1/diagnostics/018-host-capture-initial_host-events.jsonl",
+          "digest": "sha256:2c529cc5e4b25ea2688380c614a16f064d276eb304d0841a5e01d1bf5f89d396",
+          "bytes": 36772
+        },
+        {
+          "path": "attempt-2.IdeUiSmokeTest.xml.raw",
+          "originalMember": "jetbrains-windows-2026.2.0.1/diagnostics/034-TEST-com.chainlesschain.ide.uitest.IdeUiSmokeTest.xml",
+          "digest": "sha256:6e581341dca42164826ff98c31cbe0aec2c19b334a980abc9c021588bfec6ce5",
+          "bytes": 2151
+        },
+        {
+          "path": "attempt-2.chat-control-journey.png",
+          "originalMember": "jetbrains-windows-2026.2.0.1/diagnostics/038-chat-control-journey-1794406863257.png",
+          "digest": "sha256:657d912791b66fea22e07370c7e344859ec204b15839054f0b18ce418c302f3e",
+          "bytes": 315653
+        },
+        {
+          "path": "attempt-2.journey-evidence.json.raw",
+          "originalMember": "jetbrains-windows-2026.2.0.1/journey-evidence.json",
+          "digest": "sha256:e9002f713af1d88608cde066ca79298c92e8d04b1f89221c9952458c854f1928",
+          "bytes": 13739
+        }
+      ]
+    }
+  ],
+  "fix": {
+    "sourceCommit": "674593a1bb21a68d33b56dc0cb6ed420212143a2",
+    "pr": 605,
+    "junitPassed": 5,
+    "realMinimumSdkSourceCompilePassed": true,
+    "completeLocalGradlePassed": false,
+    "nativeAcceptance": "PENDING_EXACT_SOURCE_MATRIX",
+    "workflowRuns": {
+      "ide": 43039428960,
+      "arm64": 43039429061
+    },
+    "sourceBindings": [
+      {
+        "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/PopupFocusHandoff.java",
+        "digest": "sha256:26c0e3f590904bdde14ae106ac1b97c588260182f16769d1a8f5c122e5ee0240"
+      },
+      {
+        "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ConversationView.java",
+        "digest": "sha256:519f7bb83ce0955320e6c1954b2f87586617f9ef08fbff130c76598218b5d229"
+      },
+      {
+        "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/PopupFocusHandoffTest.java",
+        "digest": "sha256:63c48b4a0227efc87ebf9c9a45acf5eb681b4352ff1ddc80378a2c4d854e1271"
+      }
+    ]
+  }
+}

@@ -13,6 +13,6 @@ CLI **0.166.147 已公开**。准确源码 `32451e4d568e414acdb9c956208e5cff827c
 
 公开 tarball 为 **9,628,979 字节**，SHA-256 为 `2d933c68e6053d9de21a16c2d2c4e245d964d957ce9663958419b8061e9969b2`。npm 审核的来源绑定固定标签、上述源码、正式运行及第 1 次 attempt，签名审核 invalid/missing 均为 0。三个 `.json.raw` 文件保留回读产物的原始成员字节，文件摘要见 [publication.json](./publication.json)。这些证据不依赖 npm metadata 是否含 `gitHead`。
 
-Open VSX **0.37.186** / JetBrains **0.4.201** 配套源码为 `c3ac7485b2e671864acc52da1fa36fa13ad134fa`，两者当前均**尚未发布**。主 IDE 工作流 18 项成功、1 项发布条件跳过；ARM64 首次 Windows JetBrains 菜单在二级弹窗显示约 95ms 后关闭，保留失败产物 `13836700943`（SHA-256 `20406adc5eedd18383845cd8c11e3c191f34ee983213c3659dfbf14825d0e3cb`）。正在相同源码和断言下复跑失败宿主与汇总，完整门禁通过后才进入插件发行。现有公开插件 **0.37.185 / 0.4.200** 仍推荐 CLI **0.166.146**。
+Open VSX **0.37.186** / JetBrains **0.4.201** 当前均**尚未发布**。旧候选 `c3ac7485b2e671864acc52da1fa36fa13ad134fa` 的主 IDE 工作流 18 项成功、1 项发布条件跳过，但 ARM64 Windows 菜单两次执行均失败，原始产物和回调记录保留。新修正候选为 `674593a1bb21a68d33b56dc0cb6ed420212143a2`，在原生焦点恢复及下一次 UI dispatch 后显示菜单；五项新 JUnit 和真实最低 SDK 编译通过，尚待新的实际宿主与 ARM64 矩阵。[失败与修正证据](../../../cli-ide/evidence/jetbrains201-focus/README.md)。现有公开插件 **0.37.185 / 0.4.200** 仍推荐 CLI **0.166.146**。
 
 本批自进化仅推进原 manifest 组件所有权，自动晋级仍 HOLD。受控时钟原生跨夜已通过，不代表真实整夜、已安装客户端或独立业务验收。36+9 仍为 **PREPARED_NOT_RUN**，本次归档没有模型请求或新的完成率成绩；移动/PC、Microsoft Marketplace、账单及付费准入仍保留各自条件。

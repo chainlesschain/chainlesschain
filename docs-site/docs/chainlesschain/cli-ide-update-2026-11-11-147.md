@@ -10,7 +10,7 @@
 
 当前可安装 CLI：`npm i -g chainlesschain@0.166.147 --registry https://registry.npmjs.org`。重启宿主，运行 `cc --version` 和 `cc doctor`。准确发布源码 `32451e4d568e414acdb9c956208e5cff827cd6e0` 的 [OIDC 发行](https://github.com/chainlesschain/chainlesschain/actions/runs/42976618525)与[公开回读](https://github.com/chainlesschain/chainlesschain/actions/runs/43032767673)成功，公开 tarball 为 9,628,979 字节，与官方不可变制品逐字节一致，来源证明验证通过。两端 IDE 候选均推荐 0.166.147，现有公开 IDE 仍推荐 0.166.146；Session Core 0.3.27、Protocol 0.1.13、Agent SDK 0.2.18、Context/Memory Kernel 0.1.12 保持现有版本。
 
-IDE 修正提交 `c3ac7485b2e671864acc52da1fa36fa13ad134fa` 的主矩阵已通过，标准插件单元测试为 353/353。ARM64 首次 Windows JetBrains 菜单失败已保留，正在原样复跑该宿主与汇总，未改源码或断言。IDE 标签及公开状态须在完整门禁通过后另行核验。[本批发行回执](../../../docs/research/cli/evidence/release147-public/README.md)。
+旧 IDE 候选 `c3ac7485b2e671864acc52da1fa36fa13ad134fa` 的主矩阵及 353/353 标准单元通过，但 ARM64 Windows JetBrains 菜单两次执行失败，均保留。新修正 `674593a1bb21a68d33b56dc0cb6ed420212143a2` 等待原生焦点恢复后再显示菜单，五项新 JUnit 与真实最低 SDK 源码编译通过；实际宿主及完整 ARM64 矩阵仍待完成，没有调整原断言或预算。[失败与修正记录](../../../docs/research/cli-ide/evidence/jetbrains201-focus/README.md) · [本批发行回执](../../../docs/research/cli/evidence/release147-public/README.md)。
 
 本批 CLI 将原始 manifest catalog/head 所有权沿真实工厂传递，拒绝跨实例拼接端口或认领被替换的目录；已有自定义后端读写合同保持可用。这是自进化存储链的一个增量，不授予完整存储图或自动晋升权限。DMM 新增的是隔离受控时钟的真实 Electron 通知验收旅程，实际执行结果、真实整夜运行及已安装客户端验收分别记录。
 

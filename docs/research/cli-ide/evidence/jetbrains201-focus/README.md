@@ -1,0 +1,18 @@
+# JetBrains Windows ARM64 Rewind 菜单关闭（2026-11-11）
+
+CLI 0.166.147 已公开；配套 IDE 仍等待完整门禁。旧候选源码 `c3ac7485b2e671864acc52da1fa36fa13ad134fa` 的主 IDE 矩阵通过，但 [ARM64 运行 42976178479](https://github.com/chainlesschain/chainlesschain/actions/runs/42976178479) 的两次 Windows 2026.2.0.1 原生执行保留为失败：
+
+| Attempt | 实际观察                                                                                              | 产物        |
+| ------- | ----------------------------------------------------------------------------------------------------- | ----------- |
+| 1       | `Branch from here` 前的 actions 菜单已显示，约 94.4ms 后关闭，未观察到 chosen 回调。                  | 13836700943 |
+| 2       | 相同源码和断言；`Restore conversation` 前的 timeline 菜单显示约 11.0ms 后关闭，未观察到 chosen 回调。 | 13864445789 |
+
+两次事件记录均显示菜单创建时焦点仍在编辑器。该观察支持排查原生焦点恢复与菜单生命周期的竞争，但不单独证明其全部根因。没有把重跑失败改写为通过，也没有从这份失败矩阵发布插件。
+
+[receipt.json](./receipt.json) 保存原始 ZIP 摘要、八份原始成员摘要、菜单代次与时间，以及修正源码的三份 Git 绑定。两份截图、两份宿主事件 JSONL、两份原始失败 XML 和两份旅程报告保留原字节；`.raw` 避免格式化重写。数据来自合成宿主测试，没有真实模型请求。
+
+[PR #605](https://github.com/chainlesschain/chainlesschain/pull/605) 的准确源码 `674593a1bb21a68d33b56dc0cb6ed420212143a2` 将显示安排为：当前 UI dispatch 结束 → 实际 `IdeFocusManager` 焦点稳定 → 下一次 UI dispatch。各边界重新核对原会话、面板显示及非运行状态，失效后不再请求焦点或打开菜单。原菜单归属、确认、动作与预算断言没有改变。
+
+新增 JDK21/JUnit5 五项测试通过，涵盖同步/异步焦点回调及三个阶段的上下文失效。两份变更生产源码也通过真实缓存 IntelliJ 2024.2 SDK 编译，依赖原公开 0.4.200 配套类；这不是完整插件构建或 GUI 验收。本地标准 Gradle 因已有回环 daemon 连接问题失败，未调整防火墙或构建门禁。
+
+新源码的 [IDE Extensions](https://github.com/chainlesschain/chainlesschain/actions/runs/43039428960) 与 [ARM64](https://github.com/chainlesschain/chainlesschain/actions/runs/43039429061) 完整矩阵仍待完成，当前不声明修正已通过真实宿主验收。Open VSX 0.37.186 和 JetBrains 0.4.201 只有通过新提交的完整门禁后才创建标签发行。
