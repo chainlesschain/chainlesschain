@@ -9,6 +9,10 @@ const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 const { pathToFileURL } = require("node:url");
 const { retryTransientNetworkOperation } = require("../extension-host/run.cjs");
+const {
+  resolveUbuntuAptHosts,
+  ubuntuAptDockerArgs,
+} = require("../../../../scripts/lib/ubuntu-apt-dns.cjs");
 
 const PACKAGE_ROOT = path.resolve(__dirname, "..", "..");
 const REPOSITORY_ROOT = path.resolve(PACKAGE_ROOT, "..", "..");
@@ -287,8 +291,10 @@ function startPinnedContainer(
     diagnostics,
     observation,
     command = runCommand,
+    aptDnsRecords = null,
   },
 ) {
+  const aptHostArgs = aptDnsRecords ? ubuntuAptDockerArgs(aptDnsRecords) : [];
   const usedRef = pullPinnedContainerImage(imageRef, {
     diagnostics,
     observation,
@@ -311,6 +317,7 @@ function startPinnedContainer(
       containerHostname,
       "--publish",
       "127.0.0.1::22",
+      ...aptHostArgs,
       usedRef,
       "sleep",
       "infinity",
@@ -793,11 +800,14 @@ async function main() {
     assertPinnedRemoteSshVsix(remoteSshVsix);
     assertPinnedRemoteSshPayload(remoteSshPayload);
 
+    const aptDnsRecords = await resolveUbuntuAptHosts();
+    diagnostics.push({ stage: "ubuntu-apt-dns", records: aptDnsRecords });
     dockerImageId = startPinnedContainer(PINNED_CONTAINER_IMAGE, {
       container,
       containerHostname,
       diagnostics,
       observation: containerImagePull,
+      aptDnsRecords,
     });
     containerStarted = true;
     bootstrapRemoteContainer(container, diagnostics);

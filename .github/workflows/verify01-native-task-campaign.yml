@@ -324,6 +324,9 @@ jobs:
         run: |
           npm install --no-save --no-package-lock --ignore-scripts @vscode/test-electron@3.1.0 ws@8.21.2
           node -e "require('@vscode/test-electron').downloadAndUnzipVSCode({version:'1.132.0',cachePath:require('node:path').resolve('.vscode-test')}).catch(e=>{console.error(e);process.exitCode=1})"
+      - name: Prepare Ubuntu repository DNS
+        if: runner.os == 'Linux' && matrix.entry != 'cli'
+        uses: ./.github/actions/prepare-ubuntu-apt-dns
       - name: Install Linux virtual display
         if: runner.os == 'Linux' && matrix.entry != 'cli'
         run: |

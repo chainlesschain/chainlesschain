@@ -1,0 +1,20 @@
+name: Prepare Ubuntu repository DNS
+description: Recover only failed Ubuntu repository DNS in ephemeral Linux CI, retaining signed sources
+runs:
+  using: composite
+  steps:
+    - name: Verify bounded Ubuntu DNS recovery controls
+      shell: bash
+      working-directory: ${{ github.workspace }}
+      run: node --test scripts/__tests__/ubuntu-apt-dns.test.mjs
+    - name: Resolve Ubuntu repositories before package installation
+      shell: bash
+      working-directory: ${{ github.workspace }}
+      run: |
+        set -euo pipefail
+        # Resolve as the runner user so curl retains the job's proxy and CA
+        # configuration. The privileged consumer only validates and appends
+        # the bounded JSON handoff; it never makes a network request.
+        node scripts/lib/ubuntu-apt-dns.cjs --resolve |
+          sudo --preserve-env=GITHUB_ACTIONS,RUNNER_OS \
+            "$(command -v node)" scripts/lib/ubuntu-apt-dns.cjs --apply-stdin

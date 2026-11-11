@@ -21,6 +21,7 @@ import com.chainlesschain.ide.MiniJson;
 import com.chainlesschain.ide.PlanReview;
 import com.chainlesschain.ide.RemoteHandoff;
 import com.chainlesschain.ide.RewindCommands;
+import com.chainlesschain.ide.PopupFocusHandoff;
 import com.chainlesschain.ide.SessionArgs;
 import com.chainlesschain.ide.SessionModel;
 import com.chainlesschain.ide.SessionList;
@@ -1531,6 +1532,19 @@ final class ConversationView {
 
     /** Anchor to the visible conversation; lifecycle observations remain opt-in. */
     private void showRewindChooser(IPopupChooserBuilder<String> builder, Object trace,
+            String kind, String sid, List<String> labels) {
+        PopupFocusHandoff.schedule(SwingUtilities::invokeLater,
+                continuation -> com.intellij.openapi.wm.IdeFocusManager.getInstance(project)
+                        .doWhenFocusSettlesDown(continuation),
+                () -> isRewindCurrent(sid) && root.isShowing(),
+                () -> UiEventDiagnostics.observeFailure(Stage.POPUP_CALLBACK_FAILED,
+                        Map.of("type", "checkpoint-timeline", "kind", kind), trace, sid,
+                        () -> showFocusedRewindChooser(builder, trace, kind, sid, labels)),
+                () -> recordRewindPopup(Stage.POPUP_STALE, trace, kind, sid,
+                        -1, labels.size(), null, null));
+    }
+
+    private void showFocusedRewindChooser(IPopupChooserBuilder<String> builder, Object trace,
             String kind, String sid, List<String> labels) {
         if (!isRewindCurrent(sid) || !root.isShowing()) {
             recordRewindPopup(Stage.POPUP_STALE, trace, kind, sid,

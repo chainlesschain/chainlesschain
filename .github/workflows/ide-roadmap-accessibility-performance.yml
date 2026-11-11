@@ -3,6 +3,9 @@ name: IDE Roadmap Accessibility Performance
 on:
   pull_request:
     paths:
+      - ".github/actions/prepare-ubuntu-apt-dns/**"
+      - "scripts/lib/ubuntu-apt-dns.cjs"
+      - "scripts/__tests__/ubuntu-apt-dns.test.mjs"
       - ".github/workflows/ide-roadmap-accessibility-performance.yml"
       - "scripts/lib/verify01-gradle-bootstrap.mjs"
       - "scripts/lib/verify01-diagnostic-process.mjs"
@@ -68,6 +71,9 @@ on:
   push:
     branches: [main]
     paths:
+      - ".github/actions/prepare-ubuntu-apt-dns/**"
+      - "scripts/lib/ubuntu-apt-dns.cjs"
+      - "scripts/__tests__/ubuntu-apt-dns.test.mjs"
       - ".github/workflows/ide-roadmap-accessibility-performance.yml"
       - "scripts/lib/verify01-gradle-bootstrap.mjs"
       - "scripts/lib/verify01-diagnostic-process.mjs"

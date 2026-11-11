@@ -4,6 +4,9 @@ on:
   push:
     branches: [main]
     paths:
+      - ".github/actions/prepare-ubuntu-apt-dns/**"
+      - "scripts/lib/ubuntu-apt-dns.cjs"
+      - "scripts/__tests__/ubuntu-apt-dns.test.mjs"
       - ".github/workflows/_scoped-docs-check.yml"
       - "scripts/ci/scoped-docs-check.mjs"
       - ".github/workflows/ide-arm64-validation.yml"
@@ -14,6 +17,9 @@ on:
       - "tests/fixtures/ide-roadmap/**"
   pull_request:
     paths:
+      - ".github/actions/prepare-ubuntu-apt-dns/**"
+      - "scripts/lib/ubuntu-apt-dns.cjs"
+      - "scripts/__tests__/ubuntu-apt-dns.test.mjs"
       - ".github/workflows/_scoped-docs-check.yml"
       - "scripts/ci/scoped-docs-check.mjs"
       - ".github/workflows/ide-arm64-validation.yml"
@@ -144,6 +150,9 @@ jobs:
         run: >-
           node scripts/vsix-release-artifact.mjs verify
           chainlesschain-ide.vsix manifest.json
+      - name: Prepare Ubuntu repository DNS
+        if: runner.os == 'Linux'
+        uses: ./.github/actions/prepare-ubuntu-apt-dns
       - name: Install Extension Host test runtime
         working-directory: packages/vscode-extension
         run: >-
@@ -425,6 +434,9 @@ jobs:
         if: runner.os != 'Windows'
         working-directory: packages/jetbrains-plugin
         run: chmod +x ./gradlew
+      - name: Prepare Ubuntu repository DNS
+        if: runner.os == 'Linux'
+        uses: ./.github/actions/prepare-ubuntu-apt-dns
       - name: Install Linux virtual display
         if: runner.os == 'Linux'
         run: |

@@ -4,6 +4,7 @@
 
 - Recommend CLI 0.166.147 and pair with Open VSX 0.37.186 after verified CLI publication.
 - Retain the public 0.4.200 Rewind anchoring and stale-conversation result fix.
+- Defer Rewind menu display until native focus restoration settles and the callback returns; reject menus when their conversation, visibility or running-turn state changes while waiting.
 - Require exact-source host, ARM64 and packaging gates plus Marketplace readback; model-task improvement and automatic promotion are not established.
 
 ## [0.4.200] - Rewind chooser anchoring (2026-11-11)

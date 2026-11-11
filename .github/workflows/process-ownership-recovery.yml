@@ -4,6 +4,9 @@ on:
   workflow_dispatch:
   pull_request:
     paths:
+      - ".github/actions/prepare-ubuntu-apt-dns/**"
+      - "scripts/lib/ubuntu-apt-dns.cjs"
+      - "scripts/__tests__/ubuntu-apt-dns.test.mjs"
       - "packages/cli/src/commands/agent.js"
       - "packages/cli/src/commands/agent-process-ownership.js"
       - "packages/cli/src/lib/process-execution-broker/**"
@@ -16,6 +19,9 @@ on:
   push:
     branches: [main, "feature/**"]
     paths:
+      - ".github/actions/prepare-ubuntu-apt-dns/**"
+      - "scripts/lib/ubuntu-apt-dns.cjs"
+      - "scripts/__tests__/ubuntu-apt-dns.test.mjs"
       - "packages/cli/src/commands/agent.js"
       - "packages/cli/src/commands/agent-process-ownership.js"
       - "packages/cli/src/lib/process-execution-broker/**"

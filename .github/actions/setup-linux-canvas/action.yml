@@ -3,6 +3,8 @@ description: Install the supported canvas 3.x source-build prerequisites on Ubun
 runs:
   using: composite
   steps:
+    - name: Prepare Ubuntu repository DNS
+      uses: ./.github/actions/prepare-ubuntu-apt-dns
     - name: Install and verify native canvas prerequisites
       shell: bash
       # canvas 3.2 has no Linux ARM64 prebuild. X64 also needs these when
