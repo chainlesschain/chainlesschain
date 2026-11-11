@@ -193,6 +193,54 @@ test("successful canonical pull binds inspect, container execution and source ev
   assert.equal(observation.attempts.length, 1);
 });
 
+test("Ubuntu host mappings reach docker run while pinned image, loopback SSH and failure propagation remain intact", () => {
+  const aptDnsRecords = [
+    "archive.ubuntu.com",
+    "security.ubuntu.com",
+    "azure.archive.ubuntu.com",
+  ].map((hostname) => ({
+    hostname,
+    source: "doh",
+    addresses: ["91.189.91.81"],
+  }));
+  const fake = imageCommand([{ status: 0 }]);
+  runner.startPinnedContainer(runner.PINNED_CONTAINER_IMAGE, {
+    container: "test-container",
+    containerHostname: "test-host",
+    observation: {},
+    command: fake.command,
+    aptDnsRecords,
+  });
+  assert.deepEqual(fake.calls[2], [
+    "run",
+    "--detach",
+    "--name",
+    "test-container",
+    "--hostname",
+    "test-host",
+    "--publish",
+    "127.0.0.1::22",
+    ...aptDnsRecords.flatMap((row) => [
+      "--add-host",
+      `${row.hostname}:91.189.91.81`,
+    ]),
+    runner.PINNED_CONTAINER_IMAGE,
+    "sleep",
+    "infinity",
+  ]);
+  const invalid = structuredClone(aptDnsRecords);
+  invalid[0].hostname = "github.com";
+  assert.throws(() =>
+    runner.startPinnedContainer(runner.PINNED_CONTAINER_IMAGE, {
+      container: "test-container",
+      containerHostname: "test-host",
+      observation: {},
+      command: () => assert.fail("invalid host must be rejected before docker"),
+      aptDnsRecords: invalid,
+    }),
+  );
+});
+
 test("only anonymous Hub quota uses the fixed same-digest mirror and preserves full pull output", () => {
   const originalOutput = "before quota\n".repeat(3000);
   const mirrorOutput = "mirror downloaded\n".repeat(3000);

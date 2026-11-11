@@ -16,6 +16,9 @@ on:
         default: 0
   pull_request:
     paths:
+      - ".github/actions/prepare-ubuntu-apt-dns/**"
+      - "scripts/lib/ubuntu-apt-dns.cjs"
+      - "scripts/__tests__/ubuntu-apt-dns.test.mjs"
       - "packages/vscode-extension/**"
       - "packages/jetbrains-plugin/**"
       - "packages/cli/src/**"
@@ -29,6 +32,9 @@ on:
   push:
     branches: [main, "feature/cli-ide-gap-*"]
     paths:
+      - ".github/actions/prepare-ubuntu-apt-dns/**"
+      - "scripts/lib/ubuntu-apt-dns.cjs"
+      - "scripts/__tests__/ubuntu-apt-dns.test.mjs"
       - "packages/vscode-extension/**"
       - "packages/jetbrains-plugin/**"
       - "packages/cli/src/**"
@@ -134,6 +140,9 @@ jobs:
           scripts/__tests__/owned-descendant-campaign.test.mjs
           packages/vscode-extension/test/verify01-diagnostic.test.cjs
           packages/vscode-extension/test/verify01-config.test.cjs
+      - name: Prepare Ubuntu repository DNS
+        if: runner.os == 'Linux'
+        uses: ./.github/actions/prepare-ubuntu-apt-dns
       - name: Install Linux virtual display
         if: runner.os == 'Linux'
         run: |

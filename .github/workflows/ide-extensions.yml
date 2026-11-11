@@ -16,6 +16,9 @@ on:
   push:
     branches: [main]
     paths:
+      - ".github/actions/prepare-ubuntu-apt-dns/**"
+      - "scripts/lib/ubuntu-apt-dns.cjs"
+      - "scripts/__tests__/ubuntu-apt-dns.test.mjs"
       - "packages/vscode-extension/**"
       - "packages/jetbrains-plugin/**"
       - "packages/agent-sdk/**"
@@ -69,6 +72,9 @@ on:
       - "ide-jetbrains-v*"
   pull_request:
     paths:
+      - ".github/actions/prepare-ubuntu-apt-dns/**"
+      - "scripts/lib/ubuntu-apt-dns.cjs"
+      - "scripts/__tests__/ubuntu-apt-dns.test.mjs"
       - "packages/vscode-extension/**"
       - "packages/jetbrains-plugin/**"
       - "packages/agent-sdk/**"
@@ -219,6 +225,9 @@ jobs:
           __tests__/unit/vscode-ext-image-budget.test.js
           __tests__/unit/vscode-ext-chat-images.test.js
           __tests__/unit/vscode-ext-draft-store.test.js
+      - name: Prepare Ubuntu repository DNS
+        if: runner.os == 'Linux'
+        uses: ./.github/actions/prepare-ubuntu-apt-dns
       - name: Install Chromium with target-side dependencies (Linux)
         if: runner.os == 'Linux'
         run: npm exec -- playwright install --with-deps chromium
@@ -566,6 +575,8 @@ jobs:
           "$RUNNER_TEMP/cc-vscode-candidate/manifest.json"
       - name: Verify Remote-SSH driver contract
         run: node --test test/remote-ssh-container.test.cjs
+      - name: Prepare Ubuntu repository DNS
+        uses: ./.github/actions/prepare-ubuntu-apt-dns
       - name: Install exact host-test runtime and Xvfb
         run: |
           sudo apt-get update
@@ -740,6 +751,9 @@ jobs:
         run: >-
           node scripts/vsix-release-artifact.mjs verify
           chainlesschain-ide.vsix manifest.json
+
+      - name: Prepare Ubuntu repository DNS
+        uses: ./.github/actions/prepare-ubuntu-apt-dns
 
       # Real VS Code Extension Host gate: install the packaged artifact into a
       # fresh profile and verify activation, declared commands, and the local
@@ -952,6 +966,9 @@ jobs:
         if: runner.os != 'Windows'
         working-directory: packages/jetbrains-plugin
         run: chmod +x ./gradlew
+      - name: Prepare Ubuntu repository DNS
+        if: runner.os == 'Linux'
+        uses: ./.github/actions/prepare-ubuntu-apt-dns
       - name: Install Linux virtual display
         if: runner.os == 'Linux'
         run: |

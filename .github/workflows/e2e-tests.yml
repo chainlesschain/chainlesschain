@@ -42,6 +42,10 @@ jobs:
             package-lock.json
             desktop-app-vue/package-lock.json
 
+      - name: Prepare Ubuntu repository DNS
+        if: runner.os == 'Linux'
+        uses: ./.github/actions/prepare-ubuntu-apt-dns
+
       - name: Install root dependencies
         uses: ./.github/actions/setup-node-deps
         with:
