@@ -6,13 +6,11 @@
 
 该选项使用 CLI 的 `custom` OpenAI Chat Completions 路径，原子保存并回读，已有中转站协议选项保留。保存后可显式测试连接，聊天下一条消息使用新配置；现有 CLI 签名部署等前置条件继续生效。无密钥本机接口已通过真实 CLI 子进程回归，力数实机 `/models` 检查当前为 `ECONNRESET`，尚未验证其实际权重推理。真实 IDE GUI 尚未运行，本节描述未发布工作树能力。
 
-## Current public release (.195 / CLI .142)
+## Current public release (.199 / CLI .146)
 
-JetBrains **0.4.195** is approved, listed and publicly downloadable. It recommends
-CLI **0.166.142** and pairs with Open VSX **0.37.178**. All 626 original payload
-files match the official build from `b78cf0af8c8b0491189465773b148ac77c332222`.
-Native history needs the matching newer desktop client; product145 is not yet
-public. [Publication evidence](../../docs/research/cli/evidence/release142-public/README.md).
+JetBrains **0.4.199** is approved, listed and publicly downloadable. It recommends
+CLI **0.166.146** alongside Open VSX **0.37.185**.
+[Marketplace listing](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge).
 
 ## Task-creation request files (source-only)
 
@@ -301,9 +299,9 @@ See the [verified publication evidence](https://github.com/chainlesschain/chainl
 
 ## Release compatibility
 
-Plugin **0.4.199** recommends `chainlesschain@0.166.146`. Publish only after the required exact-source matrices, Session Core and CLI public readback. Once verified, install `npm i -g chainlesschain@0.166.146 --registry https://registry.npmjs.org`, restart the chat host, and run `cc --version` and `cc doctor`. The candidate adds local OpenAI-compatible compute configuration and pending task-creation controls; matching desktop support and native consent remain required. LEXDATA real inference and real IDE GUI acceptance are not established by package publication.
+Plugin **0.4.200** recommends `chainlesschain@0.166.146`. This release candidate anchors the Rewind chooser to the visible conversation and drops pending Rewind results for hidden or changed conversations. [Rewind fix](https://github.com/chainlesschain/chainlesschain/pull/593).
 
-This source candidate is not published. It pairs with VS Code/Open VSX 0.37.184 and carries the CLI goal-transfer and native Graph host changes. Matching desktop source and explicit native authorization remain required.
+Install the paired CLI with `npm i -g chainlesschain@0.166.146 --registry https://registry.npmjs.org`, restart the chat host, and run `cc --version` and `cc doctor`. Goal transfer and native Graph features require matching desktop support and explicit native authorization.
 
 ## Previous candidates and development notes
 
