@@ -109,6 +109,54 @@
         "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/PopupFocusHandoffTest.java",
         "digest": "sha256:63c48b4a0227efc87ebf9c9a45acf5eb681b4352ff1ddc80378a2c4d854e1271"
       }
-    ]
+    ],
+    "windowsArm64": {
+      "sourceCommit": "674593a1bb21a68d33b56dc0cb6ed420212143a2",
+      "runId": 43039429061,
+      "jobId": 130596694778,
+      "attempt": 1,
+      "artifactId": 13868105187,
+      "artifactDigest": "sha256:dda9edce950b1bb87adc7977b0d3fe169d3ca03b215a924072695d63ee535228",
+      "artifactBytes": 1897928,
+      "result": "passed",
+      "manifestArtifactBindingsVerified": 55,
+      "popupStages": {
+        "POPUP_SELECTED": 47,
+        "POPUP_CREATED": 12,
+        "POPUP_BEFORE_SHOWN": 12,
+        "POPUP_SHOW_RETURNED": 12,
+        "POPUP_CLOSED": 12,
+        "POPUP_CHOSEN": 12,
+        "POPUP_HANDOFF_SCHEDULED": 6,
+        "POPUP_HANDOFF_ENTERED": 6
+      },
+      "files": [
+        {
+          "path": "success.journey-evidence.json.raw",
+          "originalMember": "jetbrains-windows-2026.2.0.1/journey-evidence.json",
+          "digest": "sha256:72fe2347e72d31c485a55c6447b3fa20aeddd3d135b4d89869492a417f1230e0",
+          "bytes": 18608
+        },
+        {
+          "path": "success.IdeUiSmokeTest.xml.raw",
+          "originalMember": "jetbrains-windows-2026.2.0.1/diagnostics/049-TEST-com.chainlesschain.ide.uitest.IdeUiSmokeTest.xml",
+          "digest": "sha256:d662929ff685aec4ee23140daa5c7663294c5db6eb2dcd58738b65576396c618",
+          "bytes": 826
+        },
+        {
+          "path": "success.initial-host-events.jsonl.raw",
+          "originalMember": "jetbrains-windows-2026.2.0.1/diagnostics/022-host-capture-initial_host-events.jsonl",
+          "digest": "sha256:34282139e6a9d5d940168ed5e0e5654c5a7a2a9ab6871545c0e3ffde221a0ee2",
+          "bytes": 86193
+        },
+        {
+          "path": "success.popup-enter-regression.json.raw",
+          "originalMember": "jetbrains-windows-2026.2.0.1/diagnostics/031-popup-enter-regression.json",
+          "digest": "sha256:c5dd4d4a40005a44fa8c46defbda1c6eedfb46f140876cc11c68c462698c6add",
+          "bytes": 196
+        }
+      ],
+      "scope": "Native deterministic fixture CLI journey; not a live model or full matrix result"
+    }
   }
 }

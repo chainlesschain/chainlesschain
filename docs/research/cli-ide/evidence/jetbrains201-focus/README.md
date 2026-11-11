@@ -15,4 +15,6 @@ CLI 0.166.147 已公开；配套 IDE 仍等待完整门禁。旧候选源码 `c3
 
 新增 JDK21/JUnit5 五项测试通过，涵盖同步/异步焦点回调及三个阶段的上下文失效。两份变更生产源码也通过真实缓存 IntelliJ 2024.2 SDK 编译，依赖原公开 0.4.200 配套类；这不是完整插件构建或 GUI 验收。本地标准 Gradle 因已有回环 daemon 连接问题失败，未调整防火墙或构建门禁。
 
-新源码的 [IDE Extensions](https://github.com/chainlesschain/chainlesschain/actions/runs/43039428960) 与 [ARM64](https://github.com/chainlesschain/chainlesschain/actions/runs/43039429061) 完整矩阵仍待完成，当前不声明修正已通过真实宿主验收。Open VSX 0.37.186 和 JetBrains 0.4.201 只有通过新提交的完整门禁后才创建标签发行。
+新源码的 Windows ARM64 2026.2.0.1 原生任务已通过（run 43039429061，job 130596694778，attempt 1）。制品 13868105187 的 ZIP 摘要为 `sha256:dda9edce950b1bb87adc7977b0d3fe169d3ca03b215a924072695d63ee535228`，共 1,897,928 字节；下载后核对旅程所列 55 份制品绑定。初次宿主事件记录的 12 次菜单显示均有 chosen 回调，原生测试失败、错误、跳过均为 0。另保留四份成功原始成员；旧源码两次失败保持原样。该任务使用确定性 CLI 夹具，没有真实模型调用。
+
+新源码的 [IDE Extensions](https://github.com/chainlesschain/chainlesschain/actions/runs/43039428960) 与 [ARM64](https://github.com/chainlesschain/chainlesschain/actions/runs/43039429061) 完整矩阵仍待完成；单个宿主通过不代替完整发行门禁。Open VSX 0.37.186 和 JetBrains 0.4.201 只有通过新提交的完整门禁后才创建标签发行。
