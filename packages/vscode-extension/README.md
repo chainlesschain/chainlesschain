@@ -6,9 +6,29 @@ ChainlessChain agent workspace for VS Code-compatible editors with streaming cha
 
 Source candidate **0.37.186** recommends CLI **`0.166.147`** and pairs with JetBrains **0.4.201**. Publish the IDE only after the CLI is public and this exact source passes its host, Remote-SSH and browser gates. Agent Protocol **0.1.13**, Agent SDK **0.2.18**, Context/Memory Kernel **0.1.12** and Session Core **0.3.27** remain unchanged.
 
+The extension has not been published.
+
 The candidate points users to the CLI's original manifest ownership checks and source-bound retest preparation. Existing extension behavior and bounded Remote-SSH bootstrap remain. Current verified public pairing is CLI **0.166.146**, Open VSX **0.37.185** and JetBrains **0.4.200**. Microsoft Marketplace remains unpublished. Package publication does not establish model-task improvements or automatic promotion.
 
-## Previous release record
+## Current release
+
+<!-- release185-status -->
+
+Open VSX version **0.37.185** pairs with public CLI `0.166.146`.
+
+| Component                 | Current public status                                          |
+| ------------------------- | -------------------------------------------------------------- |
+| VS Code extension         | **0.37.185**; verified public Open VSX release                 |
+| Recommended CLI           | **`chainlesschain@0.166.146`**; verified public npm package    |
+| Base bridge compatibility | `cc >= 0.162.190`; individual features can require a newer CLI |
+
+CLI `0.166.146` is the recommended public CLI. Using `@0.166.146` selects this verified pairing.
+Install `npm i -g chainlesschain@0.166.146 --registry https://registry.npmjs.org`, restart the host, then run `cc --version` and `cc doctor`.
+The immutable extension tag is `ide-vscode-v0.37.185`.
+Download [chainlesschain-ide-0.37.185.vsix](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.185/file/chainlesschain.chainlesschain-ide-0.37.185.vsix).
+Public JetBrains **0.4.200** also recommends CLI **0.166.146**. Microsoft Marketplace remains unpublished.
+
+### Previous verified release (0.37.181)
 
 <!-- release181-status -->
 
