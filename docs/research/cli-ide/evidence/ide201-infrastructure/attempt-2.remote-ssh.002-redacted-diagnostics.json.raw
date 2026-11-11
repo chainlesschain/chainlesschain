@@ -1,0 +1,81 @@
+{
+  "schema": "chainlesschain.ide-redacted-diagnostics.v1",
+  "records": [
+    {
+      "command": "docker",
+      "args": [
+        "pull",
+        "ubuntu@sha256:019e8eb29a85e74d64925745884f2ec79aa27e3feab36353d24656f4d6b89467"
+      ],
+      "status": 0,
+      "signal": null,
+      "timeoutMs": 600000,
+      "stdout": "docker.io/library/ubuntu@sha256:019e8eb29a85e74d64925745884f2ec79aa27e3feab36353d24656f4d6b89467: Pulling from library/ubuntu\n966c395d29cb: Pulling fs layer\n966c395d29cb: Download complete\n966c395d29cb: Pull complete\nDigest: sha256:019e8eb29a85e74d64925745884f2ec79aa27e3feab36353d24656f4d6b89467\nStatus: Downloaded newer image for ubuntu@sha256:019e8eb29a85e74d64925745884f2ec79aa27e3feab36353d24656f4d6b89467\ndocker.io/library/ubuntu@sha256:019e8eb29a85e74d64925745884f2ec79aa27e3feab36353d24656f4d6b89467\n",
+      "stderr": ""
+    },
+    {
+      "command": "docker",
+      "args": [
+        "image",
+        "inspect",
+        "--format={{json .}}",
+        "ubuntu@sha256:019e8eb29a85e74d64925745884f2ec79aa27e3feab36353d24656f4d6b89467"
+      ],
+      "status": 0,
+      "signal": null,
+      "timeoutMs": 600000,
+      "stdout": "{\"Id\":\"sha256:019e8eb29a85e74d64925745884f2ec79aa27e3feab36353d24656f4d6b89467\",\"RepoTags\":[\"ubuntu@sha256:019e8eb29a85e74d64925745884f2ec79aa27e3feab36353d24656f4d6b89467\"],\"RepoDigests\":[\"ubuntu@sha256:019e8eb29a85e74d64925745884f2ec79aa27e3feab36353d24656f4d6b89467\"],\"Created\":\"2026-07-31T20:37:23.365889685Z\",\"Config\":{\"Env\":[\"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\"],\"Cmd\":[\"/bin/bash\"],\"Labels\":{\"org.opencontainers.image.version\":\"24.04\"}},\"Architecture\":\"amd64\",\"Os\":\"linux\",\"Size\":29753585,\"RootFS\":{\"Type\":\"layers\",\"Layers\":[\"sha256:42724e448bf499ec7d4b3c21d6cc68fe665ef677ed393c3dbb5357394e89ff91\"]},\"Metadata\":{\"LastTagTime\":\"2026-11-11T15:49:55.826195753Z\"},\"Descriptor\":{\"mediaType\":\"application/vnd.oci.image.manifest.v1+json\",\"digest\":\"sha256:019e8eb29a85e74d64925745884f2ec79aa27e3feab36353d24656f4d6b89467\",\"size\":424},\"Identity\":{\"Pull\":[{\"Repository\":\"docker.io/library/ubuntu\"}]}}\n",
+      "stderr": ""
+    },
+    {
+      "command": "docker",
+      "args": [
+        "run",
+        "--detach",
+        "--name",
+        "cc-roadmap-ssh-2e39de48c1176151ba0ac572",
+        "--hostname",
+        "cc-roadmap-ssh-2e39de48c1176151ba0ac572",
+        "--publish",
+        "127.0.0.1::22",
+        "ubuntu@sha256:019e8eb29a85e74d64925745884f2ec79aa27e3feab36353d24656f4d6b89467",
+        "sleep",
+        "infinity"
+      ],
+      "status": 0,
+      "signal": null,
+      "timeoutMs": 600000,
+      "stdout": "fd54fe2c76d14420f6e19fa7d1b170e19af20b84c4c96c261668b9f01fe6d111\n",
+      "stderr": ""
+    },
+    {
+      "command": "docker",
+      "args": [
+        "exec",
+        "cc-roadmap-ssh-2e39de48c1176151ba0ac572",
+        "bash",
+        "-lc",
+        "set -euo pipefail; export DEBIAN_FRONTEND=noninteractive; printf '%s\\n' '[remote-ssh-bootstrap] apt-update'; apt-get -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 -o Acquire::Retries=2 -o Acquire::ForceIPv4=true -o APT::Update::Error-Mode=any update"
+      ],
+      "status": 100,
+      "signal": null,
+      "timeoutMs": 180000,
+      "stdout": "[remote-ssh-bootstrap] apt-update\nIgn:1 http://archive.ubuntu.com/ubuntu noble InRelease\nIgn:2 http://archive.ubuntu.com/ubuntu noble-updates InRelease\nIgn:3 http://archive.ubuntu.com/ubuntu noble-backports InRelease\nIgn:1 http://archive.ubuntu.com/ubuntu noble InRelease\nIgn:2 http://archive.ubuntu.com/ubuntu noble-updates InRelease\nIgn:3 http://archive.ubuntu.com/ubuntu noble-backports InRelease\nIgn:4 http://security.ubuntu.com/ubuntu noble-security InRelease\nIgn:4 http://security.ubuntu.com/ubuntu noble-security InRelease\nErr:1 http://archive.ubuntu.com/ubuntu noble InRelease\n  Could not resolve 'archive.ubuntu.com'\nErr:2 http://archive.ubuntu.com/ubuntu noble-updates InRelease\n  Could not resolve 'archive.ubuntu.com'\nErr:3 http://archive.ubuntu.com/ubuntu noble-backports InRelease\n  Could not resolve 'archive.ubuntu.com'\nErr:4 http://security.ubuntu.com/ubuntu noble-security InRelease\n  Could not resolve 'security.ubuntu.com'\nReading package lists...\n",
+      "stderr": "E: Failed to fetch http://archive.ubuntu.com/ubuntu/dists/noble/InRelease  Could not resolve 'archive.ubuntu.com'\nE: Failed to fetch http://archive.ubuntu.com/ubuntu/dists/noble-updates/InRelease  Could not resolve 'archive.ubuntu.com'\nE: Failed to fetch http://archive.ubuntu.com/ubuntu/dists/noble-backports/InRelease  Could not resolve 'archive.ubuntu.com'\nE: Failed to fetch http://security.ubuntu.com/ubuntu/dists/noble-security/InRelease  Could not resolve 'security.ubuntu.com'\nE: Some index files failed to download. They have been ignored, or old ones used instead.\n"
+    },
+    {
+      "command": "docker",
+      "args": [
+        "rm",
+        "--force",
+        "cc-roadmap-ssh-2e39de48c1176151ba0ac572"
+      ],
+      "status": 0,
+      "signal": null,
+      "timeoutMs": 600000,
+      "stdout": "cc-roadmap-ssh-2e39de48c1176151ba0ac572\n",
+      "stderr": ""
+    }
+  ],
+  "journeyFailureDigest": "sha256:8c7fed81d17523a1f3daa72c76bf1f4f476b8ab6a05eb45280a82c7d06540aa2"
+}

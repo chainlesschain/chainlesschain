@@ -173,5 +173,13 @@
         "bytes": 5140
       }
     }
+  },
+  "releaseCandidate": {
+    "sourceCommit": "703b22e895bff2c0f40cd7f350aef0757dc3bdd5",
+    "pr": 605,
+    "status": "AWAITING_COMPLETE_NEW_SOURCE_GATES",
+    "ideRunId": 43061798017,
+    "arm64RunId": 43061798113,
+    "unchangedFocusSourceBindingsVerified": 3
   }
 }

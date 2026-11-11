@@ -1,0 +1,28 @@
+{
+  "sourceCommit": "ca941473ad55f47956090787dac39cbbeafcb408",
+  "runId": 43056839447,
+  "jobId": 130648442805,
+  "jobName": "Accessibility/Performance linux",
+  "fullJobConclusion": null,
+  "phases": [
+    {
+      "name": "Run ./.github/actions/setup-linux-canvas",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 9
+    },
+    {
+      "name": "Install exact-checkout workspace dependencies",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 10
+    },
+    {
+      "name": "Verify native canvas loads before host assertions",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 11
+    }
+  ],
+  "scope": "Partial hosted phase evidence; not a complete workflow or publication gate"
+}

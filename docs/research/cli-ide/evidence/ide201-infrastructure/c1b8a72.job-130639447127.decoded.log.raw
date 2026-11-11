@@ -1,0 +1,432 @@
+﻿2026-11-11T16:06:41.2520229Z Current runner version: '2.338.2'
+2026-11-11T16:06:41.2545073Z ##[group]Runner Image Provisioner
+2026-11-11T16:06:41.2545962Z Hosted Compute Agent
+2026-11-11T16:06:41.2546608Z Version: 20261028.624
+2026-11-11T16:06:41.2547284Z Commit: 54898b74c23fde5556c9b3c3a2290865feef0dfe
+2026-11-11T16:06:41.2548003Z Build Date: 2026-10-28T21:51:42Z
+2026-11-11T16:06:41.2548654Z Worker ID: {d0d9cd9f-f7af-43a8-a089-3fae06d3ebac}
+2026-11-11T16:06:41.2549320Z Region: westus3
+2026-11-11T16:06:41.2550130Z Cloud: Azure
+2026-11-11T16:06:41.2550699Z ##[endgroup]
+2026-11-11T16:06:41.2552058Z ##[group]Operating System
+2026-11-11T16:06:41.2552662Z Ubuntu
+2026-11-11T16:06:41.2553158Z 24.04.5
+2026-11-11T16:06:41.2553669Z LTS
+2026-11-11T16:06:41.2554190Z ##[endgroup]
+2026-11-11T16:06:41.2554750Z ##[group]Runner Image
+2026-11-11T16:06:41.2555326Z Image: ubuntu-24.04
+2026-11-11T16:06:41.2555876Z Version: 20261101.360.1
+2026-11-11T16:06:41.2557118Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261101.360/images/ubuntu/Ubuntu2404-Readme.md
+2026-11-11T16:06:41.2559560Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261101.360
+2026-11-11T16:06:41.2560975Z ##[endgroup]
+2026-11-11T16:06:41.2562290Z ##[group]GITHUB_TOKEN Permissions
+2026-11-11T16:06:41.2565200Z Contents: read
+2026-11-11T16:06:41.2565790Z Metadata: read
+2026-11-11T16:06:41.2566355Z ##[endgroup]
+2026-11-11T16:06:41.2568524Z Secret source: Actions
+2026-11-11T16:06:41.2569459Z Cache mode: write
+2026-11-11T16:06:41.2570845Z Prepare workflow directory
+2026-11-11T16:06:41.3064623Z Prepare all required actions
+2026-11-11T16:06:41.3114877Z Getting action download info
+2026-11-11T16:06:41.6563906Z Download action repository 'actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09' (SHA:fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09)
+2026-11-11T16:06:41.7689076Z Download action repository 'actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444' (SHA:a0853c24544627f65ddf259abe73b1d18a591444)
+2026-11-11T16:06:41.9263227Z Download action repository 'actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f' (SHA:b7c566a772e6b6bfb58ed0dc250532a479d7789f)
+2026-11-11T16:06:42.1942450Z Complete job name: kernel-recovery (ubuntu-24.04)
+2026-11-11T16:06:42.2698998Z ##[group]Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+2026-11-11T16:06:42.2700277Z with:
+2026-11-11T16:06:42.2700962Z   ref: c1b8a72dc60c9253688f1cc8355351b94bd16d88
+2026-11-11T16:06:42.2701648Z   repository: chainlesschain/chainlesschain
+2026-11-11T16:06:42.2705917Z   token: ***
+2026-11-11T16:06:42.2706441Z   ssh-strict: true
+2026-11-11T16:06:42.2706918Z   ssh-user: git
+2026-11-11T16:06:42.2707462Z   persist-credentials: true
+2026-11-11T16:06:42.2708011Z   clean: true
+2026-11-11T16:06:42.2708523Z   sparse-checkout-cone-mode: true
+2026-11-11T16:06:42.2709143Z   fetch-depth: 1
+2026-11-11T16:06:42.2709635Z   fetch-tags: false
+2026-11-11T16:06:42.2710294Z   show-progress: true
+2026-11-11T16:06:42.2710842Z   lfs: false
+2026-11-11T16:06:42.2711685Z   submodules: false
+2026-11-11T16:06:42.2712318Z   set-safe-directory: true
+2026-11-11T16:06:42.2712888Z   allow-unsafe-pr-checkout: false
+2026-11-11T16:06:42.2713756Z env:
+2026-11-11T16:06:42.2714436Z   EXPECTED_COMMIT: c1b8a72dc60c9253688f1cc8355351b94bd16d88
+2026-11-11T16:06:42.2715212Z ##[endgroup]
+2026-11-11T16:06:42.5838322Z Syncing repository: chainlesschain/chainlesschain
+2026-11-11T16:06:42.5841616Z ##[group]Getting Git version info
+2026-11-11T16:06:42.5843056Z Working directory is '/home/runner/work/chainlesschain/chainlesschain'
+2026-11-11T16:06:42.5844695Z [command]/usr/bin/git version
+2026-11-11T16:06:42.5937161Z git version 2.56.0
+2026-11-11T16:06:42.5965831Z ##[endgroup]
+2026-11-11T16:06:42.5976000Z Temporarily overriding HOME='/home/runner/work/_temp/ab367eac-ed24-48ad-b21f-44501d87bb50' before making global git config changes
+2026-11-11T16:06:42.5978360Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-11T16:06:42.5982252Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/chainlesschain/chainlesschain
+2026-11-11T16:06:42.6047659Z Deleting the contents of '/home/runner/work/chainlesschain/chainlesschain'
+2026-11-11T16:06:42.6053786Z ##[group]Initializing the repository
+2026-11-11T16:06:42.6057435Z [command]/usr/bin/git init /home/runner/work/chainlesschain/chainlesschain
+2026-11-11T16:06:42.6179004Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-11-11T16:06:42.6180430Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-11-11T16:06:42.6181602Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-11-11T16:06:42.6182413Z hint: call:
+2026-11-11T16:06:42.6183076Z hint:
+2026-11-11T16:06:42.6183710Z hint: 	git config --global init.defaultBranch <name>
+2026-11-11T16:06:42.6184390Z hint:
+2026-11-11T16:06:42.6185100Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-11-11T16:06:42.6186220Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-11-11T16:06:42.6187242Z hint:
+2026-11-11T16:06:42.6187876Z hint: 	git branch -m <name>
+2026-11-11T16:06:42.6188617Z hint:
+2026-11-11T16:06:42.6189662Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-11-11T16:06:42.6191208Z Initialized empty Git repository in /home/runner/work/chainlesschain/chainlesschain/.git/
+2026-11-11T16:06:42.6206473Z [command]/usr/bin/git remote add origin https://github.com/chainlesschain/chainlesschain
+2026-11-11T16:06:42.6253988Z ##[endgroup]
+2026-11-11T16:06:42.6255373Z ##[group]Disabling automatic garbage collection
+2026-11-11T16:06:42.6256761Z [command]/usr/bin/git config --local gc.auto 0
+2026-11-11T16:06:42.6300905Z ##[endgroup]
+2026-11-11T16:06:42.6302324Z ##[group]Setting up auth
+2026-11-11T16:06:42.6308689Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-11T16:06:42.6344209Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-11T16:06:42.6754018Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-11T16:06:42.6792376Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-11T16:06:42.6988206Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-11T16:06:42.7022110Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-11T16:06:42.7213585Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-11-11T16:06:42.7268723Z ##[endgroup]
+2026-11-11T16:06:42.7269994Z ##[group]Fetching the repository
+2026-11-11T16:06:42.7282746Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin c1b8a72dc60c9253688f1cc8355351b94bd16d88
+2026-11-11T16:07:01.8278484Z From https://github.com/chainlesschain/chainlesschain
+2026-11-11T16:07:01.8280111Z  * branch              c1b8a72dc60c9253688f1cc8355351b94bd16d88 -> FETCH_HEAD
+2026-11-11T16:07:01.8286294Z ##[endgroup]
+2026-11-11T16:07:01.8287392Z ##[group]Determining the checkout info
+2026-11-11T16:07:01.8288709Z ##[endgroup]
+2026-11-11T16:07:01.8293257Z [command]/usr/bin/git sparse-checkout disable
+2026-11-11T16:07:01.8349550Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-11-11T16:07:01.8381278Z ##[group]Checking out the ref
+2026-11-11T16:07:01.8384021Z [command]/usr/bin/git checkout --progress --force c1b8a72dc60c9253688f1cc8355351b94bd16d88
+2026-11-11T16:07:03.0292784Z Updating files:  30% (12812/42644)
+2026-11-11T16:07:03.0991722Z Updating files:  31% (13220/42644)
+2026-11-11T16:07:03.1214171Z Updating files:  32% (13647/42644)
+2026-11-11T16:07:03.1402800Z Updating files:  33% (14073/42644)
+2026-11-11T16:07:03.1664706Z Updating files:  34% (14499/42644)
+2026-11-11T16:07:03.1767481Z Updating files:  35% (14926/42644)
+2026-11-11T16:07:03.3067441Z Updating files:  36% (15352/42644)
+2026-11-11T16:07:03.6878221Z Updating files:  37% (15779/42644)
+2026-11-11T16:07:03.8878404Z Updating files:  38% (16205/42644)
+2026-11-11T16:07:04.3525476Z Updating files:  38% (16317/42644)
+2026-11-11T16:07:04.4390819Z Updating files:  39% (16632/42644)
+2026-11-11T16:07:04.4683648Z Updating files:  40% (17058/42644)
+2026-11-11T16:07:04.4973058Z Updating files:  41% (17485/42644)
+2026-11-11T16:07:04.5810833Z Updating files:  42% (17911/42644)
+2026-11-11T16:07:04.6247139Z Updating files:  43% (18337/42644)
+2026-11-11T16:07:04.6501958Z Updating files:  44% (18764/42644)
+2026-11-11T16:07:04.6635219Z Updating files:  45% (19190/42644)
+2026-11-11T16:07:04.6917363Z Updating files:  46% (19617/42644)
+2026-11-11T16:07:04.7154225Z Updating files:  47% (20043/42644)
+2026-11-11T16:07:04.7624329Z Updating files:  48% (20470/42644)
+2026-11-11T16:07:04.8873933Z Updating files:  49% (20896/42644)
+2026-11-11T16:07:04.8901299Z Updating files:  49% (21301/42644)
+2026-11-11T16:07:04.9552426Z Updating files:  50% (21322/42644)
+2026-11-11T16:07:04.9977340Z Updating files:  51% (21749/42644)
+2026-11-11T16:07:05.0512433Z Updating files:  52% (22175/42644)
+2026-11-11T16:07:05.0887534Z Updating files:  53% (22602/42644)
+2026-11-11T16:07:05.1450664Z Updating files:  54% (23028/42644)
+2026-11-11T16:07:05.1801953Z Updating files:  55% (23455/42644)
+2026-11-11T16:07:05.1913347Z Updating files:  56% (23881/42644)
+2026-11-11T16:07:05.2091950Z Updating files:  57% (24308/42644)
+2026-11-11T16:07:05.2192261Z Updating files:  58% (24734/42644)
+2026-11-11T16:07:05.2523788Z Updating files:  59% (25160/42644)
+2026-11-11T16:07:05.4486691Z Updating files:  60% (25587/42644)
+2026-11-11T16:07:05.4844364Z Updating files:  61% (26013/42644)
+2026-11-11T16:07:05.4988180Z Updating files:  62% (26440/42644)
+2026-11-11T16:07:05.5121742Z Updating files:  63% (26866/42644)
+2026-11-11T16:07:05.5464450Z Updating files:  64% (27293/42644)
+2026-11-11T16:07:05.5935162Z Updating files:  65% (27719/42644)
+2026-11-11T16:07:05.6237014Z Updating files:  66% (28146/42644)
+2026-11-11T16:07:05.6946727Z Updating files:  67% (28572/42644)
+2026-11-11T16:07:05.7160622Z Updating files:  68% (28998/42644)
+2026-11-11T16:07:05.7457665Z Updating files:  69% (29425/42644)
+2026-11-11T16:07:05.7886561Z Updating files:  70% (29851/42644)
+2026-11-11T16:07:05.8067303Z Updating files:  71% (30278/42644)
+2026-11-11T16:07:05.8605207Z Updating files:  72% (30704/42644)
+2026-11-11T16:07:05.8865045Z Updating files:  73% (31131/42644)
+2026-11-11T16:07:05.9361803Z Updating files:  73% (31260/42644)
+2026-11-11T16:07:06.0665346Z Updating files:  74% (31557/42644)
+2026-11-11T16:07:06.1235804Z Updating files:  75% (31983/42644)
+2026-11-11T16:07:06.1923431Z Updating files:  76% (32410/42644)
+2026-11-11T16:07:06.2795867Z Updating files:  77% (32836/42644)
+2026-11-11T16:07:06.3299673Z Updating files:  78% (33263/42644)
+2026-11-11T16:07:06.3729575Z Updating files:  79% (33689/42644)
+2026-11-11T16:07:06.3987585Z Updating files:  80% (34116/42644)
+2026-11-11T16:07:06.4332681Z Updating files:  81% (34542/42644)
+2026-11-11T16:07:06.4657897Z Updating files:  82% (34969/42644)
+2026-11-11T16:07:06.6173121Z Updating files:  83% (35395/42644)
+2026-11-11T16:07:06.6464413Z Updating files:  84% (35821/42644)
+2026-11-11T16:07:06.6785549Z Updating files:  85% (36248/42644)
+2026-11-11T16:07:06.7086861Z Updating files:  86% (36674/42644)
+2026-11-11T16:07:06.7374748Z Updating files:  87% (37101/42644)
+2026-11-11T16:07:06.7672226Z Updating files:  88% (37527/42644)
+2026-11-11T16:07:06.7983483Z Updating files:  89% (37954/42644)
+2026-11-11T16:07:06.8450043Z Updating files:  90% (38380/42644)
+2026-11-11T16:07:06.8861417Z Updating files:  91% (38807/42644)
+2026-11-11T16:07:06.8896983Z Updating files:  91% (39189/42644)
+2026-11-11T16:07:06.9267691Z Updating files:  92% (39233/42644)
+2026-11-11T16:07:06.9698924Z Updating files:  93% (39659/42644)
+2026-11-11T16:07:06.9947649Z Updating files:  94% (40086/42644)
+2026-11-11T16:07:07.0251700Z Updating files:  95% (40512/42644)
+2026-11-11T16:07:07.0506889Z Updating files:  96% (40939/42644)
+2026-11-11T16:07:07.0819358Z Updating files:  97% (41365/42644)
+2026-11-11T16:07:07.1075789Z Updating files:  98% (41792/42644)
+2026-11-11T16:07:07.1345348Z Updating files:  99% (42218/42644)
+2026-11-11T16:07:07.1346004Z Updating files: 100% (42644/42644)
+2026-11-11T16:07:07.1346368Z Updating files: 100% (42644/42644), done.
+2026-11-11T16:07:07.3141925Z Note: switching to 'c1b8a72dc60c9253688f1cc8355351b94bd16d88'.
+2026-11-11T16:07:07.3142300Z 
+2026-11-11T16:07:07.3142525Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-11-11T16:07:07.3143099Z changes and commit them, and you can discard any commits you make in this
+2026-11-11T16:07:07.3143645Z state without impacting any branches by switching back to a branch.
+2026-11-11T16:07:07.3144032Z 
+2026-11-11T16:07:07.3144310Z If you want to create a new branch to retain commits you create, you may
+2026-11-11T16:07:07.3144936Z do so (now or later) by using -c with the switch command. Example:
+2026-11-11T16:07:07.3145203Z 
+2026-11-11T16:07:07.3145381Z   git switch -c <new-branch-name>
+2026-11-11T16:07:07.3145595Z 
+2026-11-11T16:07:07.3145754Z Or undo this operation with:
+2026-11-11T16:07:07.3145986Z 
+2026-11-11T16:07:07.3146457Z   git switch -
+2026-11-11T16:07:07.3146646Z 
+2026-11-11T16:07:07.3146876Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-11-11T16:07:07.3147253Z 
+2026-11-11T16:07:07.3147533Z HEAD is now at c1b8a72d fix(ci): recover Ubuntu apt DNS for IDE host validation
+2026-11-11T16:07:07.3260809Z ##[endgroup]
+2026-11-11T16:07:07.3308227Z [command]/usr/bin/git log -1 --format=%H
+2026-11-11T16:07:07.3337382Z c1b8a72dc60c9253688f1cc8355351b94bd16d88
+2026-11-11T16:07:07.3668602Z ##[group]Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+2026-11-11T16:07:07.3669108Z with:
+2026-11-11T16:07:07.3669403Z   node-version: 22.12.0
+2026-11-11T16:07:07.3669705Z   always-auth: false
+2026-11-11T16:07:07.3670266Z   check-latest: false
+2026-11-11T16:07:07.3672942Z   token: ***
+2026-11-11T16:07:07.3673283Z   package-manager-cache: true
+2026-11-11T16:07:07.3673608Z env:
+2026-11-11T16:07:07.3673942Z   EXPECTED_COMMIT: c1b8a72dc60c9253688f1cc8355351b94bd16d88
+2026-11-11T16:07:07.3674366Z ##[endgroup]
+2026-11-11T16:07:07.5248268Z Attempting to download 22.12.0...
+2026-11-11T16:07:07.5408952Z (node:2141) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-11T16:07:07.5409739Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-11T16:07:09.0061855Z Acquiring 22.12.0 - x64 from https://github.com/actions/node-versions/releases/download/22.12.0-12152383658/node-22.12.0-linux-x64.tar.gz
+2026-11-11T16:07:09.5930028Z Extracting ...
+2026-11-11T16:07:09.6046508Z [command]/usr/bin/tar xz --strip 1 --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/e08d782b-c2e7-422c-8a72-a2fae18364f5 -f /home/runner/work/_temp/651f6767-3fd7-4c9f-9c56-7176644d90f5
+2026-11-11T16:07:10.8895715Z Adding to the cache ...
+2026-11-11T16:07:17.4482113Z ##[group]Environment details
+2026-11-11T16:07:17.6729337Z node: v22.12.0
+2026-11-11T16:07:17.6729977Z npm: 10.9.0
+2026-11-11T16:07:17.6730366Z yarn: 1.22.22
+2026-11-11T16:07:17.6731234Z ##[endgroup]
+2026-11-11T16:07:17.6957841Z Prepare all required actions
+2026-11-11T16:07:17.6958556Z Getting action download info
+2026-11-11T16:07:17.7023904Z ##[group]Run ./.github/actions/setup-linux-canvas
+2026-11-11T16:07:17.7024314Z env:
+2026-11-11T16:07:17.7024720Z   EXPECTED_COMMIT: c1b8a72dc60c9253688f1cc8355351b94bd16d88
+2026-11-11T16:07:17.7025153Z ##[endgroup]
+2026-11-11T16:07:17.7091143Z ##[start-action display=Prepare Ubuntu repository DNS;id=__self.__self]
+2026-11-11T16:07:17.7127634Z Prepare all required actions
+2026-11-11T16:07:17.7177873Z ##[group]Run ./.github/actions/prepare-ubuntu-apt-dns
+2026-11-11T16:07:17.7178284Z env:
+2026-11-11T16:07:17.7178655Z   EXPECTED_COMMIT: c1b8a72dc60c9253688f1cc8355351b94bd16d88
+2026-11-11T16:07:17.7179091Z ##[endgroup]
+2026-11-11T16:07:17.7184565Z ##[start-action display=Verify bounded Ubuntu DNS recovery controls;id=__self.__self.__run]
+2026-11-11T16:07:17.7227797Z ##[group]Run node --test scripts/__tests__/ubuntu-apt-dns.test.mjs
+2026-11-11T16:07:17.7228733Z [36;1mnode --test scripts/__tests__/ubuntu-apt-dns.test.mjs[0m
+2026-11-11T16:07:17.7250295Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-11T16:07:17.7250734Z env:
+2026-11-11T16:07:17.7251265Z   EXPECTED_COMMIT: c1b8a72dc60c9253688f1cc8355351b94bd16d88
+2026-11-11T16:07:17.7251672Z ##[endgroup]
+2026-11-11T16:07:17.7672598Z TAP version 13
+2026-11-11T16:07:17.8467798Z # Subtest: healthy OS DNS requires no HTTPS recovery or hosts-file change
+2026-11-11T16:07:17.8474834Z ok 1 - healthy OS DNS requires no HTTPS recovery or hosts-file change
+2026-11-11T16:07:17.8475796Z   ---
+2026-11-11T16:07:17.8476331Z   duration_ms: 2.81073
+2026-11-11T16:07:17.8476726Z   ...
+2026-11-11T16:07:17.8477623Z # Subtest: transient OS DNS failure uses authenticated bounded HTTPS for only fixed Ubuntu hosts
+2026-11-11T16:07:17.8478781Z ok 2 - transient OS DNS failure uses authenticated bounded HTTPS for only fixed Ubuntu hosts
+2026-11-11T16:07:17.8479567Z   ---
+2026-11-11T16:07:17.8501142Z   duration_ms: 21.343348
+2026-11-11T16:07:17.8502135Z   ...
+2026-11-11T16:07:17.8511841Z # Subtest: permission and invalid OS answers do not silently trigger another resolver
+2026-11-11T16:07:17.8513348Z ok 3 - permission and invalid OS answers do not silently trigger another resolver
+2026-11-11T16:07:17.8522820Z   ---
+2026-11-11T16:07:17.8523713Z   duration_ms: 1.478172
+2026-11-11T16:07:17.8524421Z   ...
+2026-11-11T16:07:17.8525305Z # Subtest: DNS CNAME answers must connect to the original question
+2026-11-11T16:07:17.8526309Z ok 4 - DNS CNAME answers must connect to the original question
+2026-11-11T16:07:17.8527096Z   ---
+2026-11-11T16:07:17.8527737Z   duration_ms: 0.609257
+2026-11-11T16:07:17.8528271Z   ...
+2026-11-11T16:07:17.8529559Z # Subtest: non-public or injected address is rejected: "0.0.0.0"
+2026-11-11T16:07:17.8530764Z ok 5 - non-public or injected address is rejected: "0.0.0.0"
+2026-11-11T16:07:17.8531441Z   ---
+2026-11-11T16:07:17.8532096Z   duration_ms: 0.165395
+2026-11-11T16:07:17.8532650Z   ...
+2026-11-11T16:07:17.8533532Z # Subtest: non-public or injected address is rejected: "10.1.2.3"
+2026-11-11T16:07:17.8534527Z ok 6 - non-public or injected address is rejected: "10.1.2.3"
+2026-11-11T16:07:17.8535288Z   ---
+2026-11-11T16:07:17.8535944Z   duration_ms: 0.223384
+2026-11-11T16:07:17.8536510Z   ...
+2026-11-11T16:07:17.8537351Z # Subtest: non-public or injected address is rejected: "100.64.0.1"
+2026-11-11T16:07:17.8538352Z ok 7 - non-public or injected address is rejected: "100.64.0.1"
+2026-11-11T16:07:17.8539165Z   ---
+2026-11-11T16:07:17.8539746Z   duration_ms: 0.120268
+2026-11-11T16:07:17.8540526Z   ...
+2026-11-11T16:07:17.8541295Z # Subtest: non-public or injected address is rejected: "127.0.0.1"
+2026-11-11T16:07:17.8545883Z ok 8 - non-public or injected address is rejected: "127.0.0.1"
+2026-11-11T16:07:17.8546561Z   ---
+2026-11-11T16:07:17.8546955Z   duration_ms: 0.098973
+2026-11-11T16:07:17.8547375Z   ...
+2026-11-11T16:07:17.8547956Z # Subtest: non-public or injected address is rejected: "169.254.169.254"
+2026-11-11T16:07:17.8549168Z ok 9 - non-public or injected address is rejected: "169.254.169.254"
+2026-11-11T16:07:17.8550144Z   ---
+2026-11-11T16:07:17.8550790Z   duration_ms: 0.316073
+2026-11-11T16:07:17.8551324Z   ...
+2026-11-11T16:07:17.8551881Z # Subtest: non-public or injected address is rejected: "172.16.1.1"
+2026-11-11T16:07:17.8552640Z ok 10 - non-public or injected address is rejected: "172.16.1.1"
+2026-11-11T16:07:17.8553152Z   ---
+2026-11-11T16:07:17.8553506Z   duration_ms: 0.391218
+2026-11-11T16:07:17.8554053Z   ...
+2026-11-11T16:07:17.8554880Z # Subtest: non-public or injected address is rejected: "192.168.1.1"
+2026-11-11T16:07:17.8555742Z ok 11 - non-public or injected address is rejected: "192.168.1.1"
+2026-11-11T16:07:17.8556306Z   ---
+2026-11-11T16:07:17.8556788Z   duration_ms: 0.170449
+2026-11-11T16:07:17.8557196Z   ...
+2026-11-11T16:07:17.8557772Z # Subtest: non-public or injected address is rejected: "192.0.2.1"
+2026-11-11T16:07:17.8558630Z ok 12 - non-public or injected address is rejected: "192.0.2.1"
+2026-11-11T16:07:17.8559195Z   ---
+2026-11-11T16:07:17.8559689Z   duration_ms: 0.096394
+2026-11-11T16:07:17.8560351Z   ...
+2026-11-11T16:07:17.8560979Z # Subtest: non-public or injected address is rejected: "198.18.0.1"
+2026-11-11T16:07:17.8561580Z ok 13 - non-public or injected address is rejected: "198.18.0.1"
+2026-11-11T16:07:17.8561970Z   ---
+2026-11-11T16:07:17.8562282Z   duration_ms: 0.084978
+2026-11-11T16:07:17.8562635Z   ...
+2026-11-11T16:07:17.8563039Z # Subtest: non-public or injected address is rejected: "198.51.100.1"
+2026-11-11T16:07:17.8563627Z ok 14 - non-public or injected address is rejected: "198.51.100.1"
+2026-11-11T16:07:17.8564024Z   ---
+2026-11-11T16:07:17.8564791Z   duration_ms: 0.07486
+2026-11-11T16:07:17.8565211Z   ...
+2026-11-11T16:07:17.8565656Z # Subtest: non-public or injected address is rejected: "203.0.113.1"
+2026-11-11T16:07:17.8566232Z ok 15 - non-public or injected address is rejected: "203.0.113.1"
+2026-11-11T16:07:17.8566626Z   ---
+2026-11-11T16:07:17.8566944Z   duration_ms: 0.081209
+2026-11-11T16:07:17.8567250Z   ...
+2026-11-11T16:07:17.8567661Z # Subtest: non-public or injected address is rejected: "224.0.0.1"
+2026-11-11T16:07:17.8568248Z ok 16 - non-public or injected address is rejected: "224.0.0.1"
+2026-11-11T16:07:17.8568637Z   ---
+2026-11-11T16:07:17.8568941Z   duration_ms: 0.089672
+2026-11-11T16:07:17.8569253Z   ...
+2026-11-11T16:07:17.8569686Z # Subtest: non-public or injected address is rejected: "255.255.255.255"
+2026-11-11T16:07:17.8570648Z ok 17 - non-public or injected address is rejected: "255.255.255.255"
+2026-11-11T16:07:17.8571274Z   ---
+2026-11-11T16:07:17.8571655Z   duration_ms: 0.075133
+2026-11-11T16:07:17.8572074Z   ...
+2026-11-11T16:07:17.8572735Z # Subtest: non-public or injected address is rejected: "::1"
+2026-11-11T16:07:17.8573370Z ok 18 - non-public or injected address is rejected: "::1"
+2026-11-11T16:07:17.8573883Z   ---
+2026-11-11T16:07:17.8574340Z   duration_ms: 0.070342
+2026-11-11T16:07:17.8574721Z   ...
+2026-11-11T16:07:17.8575352Z # Subtest: non-public or injected address is rejected: "91.189.91.81\\n127.0.0.1 evil"
+2026-11-11T16:07:17.8576176Z ok 19 - non-public or injected address is rejected: "91.189.91.81\\n127.0.0.1 evil"
+2026-11-11T16:07:17.8576837Z   ---
+2026-11-11T16:07:17.8577223Z   duration_ms: 0.069245
+2026-11-11T16:07:17.8577615Z   ...
+2026-11-11T16:07:17.8578292Z # Subtest: non-public or injected address is rejected: "91.189.91.81 --privileged"
+2026-11-11T16:07:17.8579407Z ok 20 - non-public or injected address is rejected: "91.189.91.81 --privileged"
+2026-11-11T16:07:17.8580737Z   ---
+2026-11-11T16:07:17.8581714Z   duration_ms: 0.063615
+2026-11-11T16:07:17.8582553Z   ...
+2026-11-11T16:07:17.8583818Z # Subtest: mismatched, expired, truncated, empty and failed DNS responses cannot supply hosts entries
+2026-11-11T16:07:17.8585446Z ok 21 - mismatched, expired, truncated, empty and failed DNS responses cannot supply hosts entries
+2026-11-11T16:07:17.8586571Z   ---
+2026-11-11T16:07:17.8587281Z   duration_ms: 2.007025
+2026-11-11T16:07:17.8588143Z   ...
+2026-11-11T16:07:17.8588912Z # Subtest: failed HTTPS, malformed JSON, timeout and oversized bodies remain failures
+2026-11-11T16:07:17.8590149Z ok 22 - failed HTTPS, malformed JSON, timeout and oversized bodies remain failures
+2026-11-11T16:07:17.8590906Z   ---
+2026-11-11T16:07:17.8591338Z   duration_ms: 1.289016
+2026-11-11T16:07:17.8591914Z   ...
+2026-11-11T16:07:17.8592840Z # Subtest: container arguments include only validated Ubuntu host entries, keeping the image and SSH options separate
+2026-11-11T16:07:17.8594242Z ok 23 - container arguments include only validated Ubuntu host entries, keeping the image and SSH options separate
+2026-11-11T16:07:17.8595363Z   ---
+2026-11-11T16:07:17.8595799Z   duration_ms: 7.456077
+2026-11-11T16:07:17.8596394Z   ...
+2026-11-11T16:07:17.8597146Z # Subtest: hosts recovery appends only failed names and preserves existing hosts bytes
+2026-11-11T16:07:17.8598252Z ok 24 - hosts recovery appends only failed names and preserves existing hosts bytes
+2026-11-11T16:07:17.8598957Z   ---
+2026-11-11T16:07:17.8599377Z   duration_ms: 0.359601
+2026-11-11T16:07:17.8600048Z   ...
+2026-11-11T16:07:17.8601299Z # Subtest: hosts modification refuses local/non-Linux/non-root execution before filesystem access
+2026-11-11T16:07:17.8602569Z ok 25 - hosts modification refuses local/non-Linux/non-root execution before filesystem access
+2026-11-11T16:07:17.8603304Z   ---
+2026-11-11T16:07:17.8603718Z   duration_ms: 0.493949
+2026-11-11T16:07:17.8604248Z   ...
+2026-11-11T16:07:17.8681188Z 1..25
+2026-11-11T16:07:17.8681790Z # tests 25
+2026-11-11T16:07:17.8682202Z # suites 0
+2026-11-11T16:07:17.8682586Z # pass 25
+2026-11-11T16:07:17.8682972Z # fail 0
+2026-11-11T16:07:17.8683401Z # cancelled 0
+2026-11-11T16:07:17.8683880Z # skipped 0
+2026-11-11T16:07:17.8684252Z # todo 0
+2026-11-11T16:07:17.8684673Z # duration_ms 112.046313
+2026-11-11T16:07:17.8744300Z ##[end-action id=__self.__self.__run;outcome=success;conclusion=success;duration_ms=155]
+2026-11-11T16:07:17.8748254Z ##[start-action display=Resolve Ubuntu repositories before package installation;id=__self.__self.__run_2]
+2026-11-11T16:07:17.8783099Z ##[group]Run sudo --preserve-env=GITHUB_ACTIONS,RUNNER_OS "$(command -v node)" scripts/lib/ubuntu-apt-dns.cjs --apply
+2026-11-11T16:07:17.8783994Z [36;1msudo --preserve-env=GITHUB_ACTIONS,RUNNER_OS "$(command -v node)" scripts/lib/ubuntu-apt-dns.cjs --apply[0m
+2026-11-11T16:07:17.8801872Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-11T16:07:17.8802496Z env:
+2026-11-11T16:07:17.8803092Z   EXPECTED_COMMIT: c1b8a72dc60c9253688f1cc8355351b94bd16d88
+2026-11-11T16:07:17.8803759Z ##[endgroup]
+2026-11-11T16:07:27.9228519Z DOMException [TimeoutError]: The operation was aborted due to timeout
+2026-11-11T16:07:27.9229210Z     at node:internal/deps/undici/undici:13484:13
+2026-11-11T16:07:27.9230155Z     at async readDohAnswer (/home/runner/work/chainlesschain/chainlesschain/scripts/lib/ubuntu-apt-dns.cjs:108:20)
+2026-11-11T16:07:27.9231246Z     at async /home/runner/work/chainlesschain/chainlesschain/scripts/lib/ubuntu-apt-dns.cjs:180:22
+2026-11-11T16:07:27.9231922Z     at async Promise.all (index 0)
+2026-11-11T16:07:27.9232506Z     at async /home/runner/work/chainlesschain/chainlesschain/scripts/lib/ubuntu-apt-dns.cjs:274:21
+2026-11-11T16:07:37.9612290Z ##[error]Process completed with exit code 1.
+2026-11-11T16:07:37.9622529Z ##[end-action id=__self.__self.__run_2;outcome=failure;conclusion=failure;duration_ms=20087]
+2026-11-11T16:07:37.9637681Z ##[end-action id=__self.__self;outcome=failure;conclusion=failure;duration_ms=20254]
+2026-11-11T16:07:37.9642204Z ##[start-action display=Install and verify native canvas prerequisites;id=__self.__run]
+2026-11-11T16:07:37.9646726Z ##[end-action id=__self.__run;outcome=skipped;conclusion=skipped;duration_ms=0]
+2026-11-11T16:07:37.9820608Z ##[group]Run actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+2026-11-11T16:07:37.9821098Z with:
+2026-11-11T16:07:37.9821513Z   name: process-recovery-ubuntu-24.04-c1b8a72dc60c9253688f1cc8355351b94bd16d88
+2026-11-11T16:07:37.9822266Z   path: /home/runner/work/_temp/process-recovery.json
+/home/runner/work/_temp/process-recovery-evidence.json
+
+2026-11-11T16:07:37.9822857Z   if-no-files-found: error
+2026-11-11T16:07:37.9823226Z   retention-days: 90
+2026-11-11T16:07:37.9823555Z   compression-level: 6
+2026-11-11T16:07:37.9823877Z   overwrite: false
+2026-11-11T16:07:37.9824255Z   include-hidden-files: false
+2026-11-11T16:07:37.9824583Z env:
+2026-11-11T16:07:37.9824965Z   EXPECTED_COMMIT: c1b8a72dc60c9253688f1cc8355351b94bd16d88
+2026-11-11T16:07:37.9825544Z ##[endgroup]
+2026-11-11T16:07:38.1545654Z Multiple search paths detected. Calculating the least common ancestor of all paths
+2026-11-11T16:07:38.1548293Z The least common ancestor is /home/runner/work/_temp. This will be the root directory of the artifact
+2026-11-11T16:07:38.1564837Z ##[error]No files were found with the provided path: /home/runner/work/_temp/process-recovery.json
+/home/runner/work/_temp/process-recovery-evidence.json. No artifacts will be uploaded.
+2026-11-11T16:07:38.2206215Z Post job cleanup.
+2026-11-11T16:07:38.2644828Z Post job cleanup.
+2026-11-11T16:07:38.3527518Z [command]/usr/bin/git version
+2026-11-11T16:07:38.3566318Z git version 2.56.0
+2026-11-11T16:07:38.3603842Z Temporarily overriding HOME='/home/runner/work/_temp/1bdbdfd2-a073-4334-b6cd-bfb351c3acd8' before making global git config changes
+2026-11-11T16:07:38.3605512Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-11T16:07:38.3610233Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/chainlesschain/chainlesschain
+2026-11-11T16:07:38.4127141Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-11T16:07:38.4168533Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-11T16:07:38.4488113Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-11T16:07:38.4711985Z http.https://github.com/.extraheader
+2026-11-11T16:07:38.4726486Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-11-11T16:07:38.5149810Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-11T16:07:38.5444866Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-11T16:07:38.5482944Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-11T16:07:38.5945014Z Cleaning up orphan processes
+

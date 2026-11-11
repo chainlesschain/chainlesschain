@@ -2,7 +2,7 @@
 
 ## 概述
 
-更新日期：2026-11-11。CLI **0.166.147 已公开并核验**。Open VSX **0.37.186** / JetBrains **0.4.201** 尚未发布；新源完整 ARM64 11/11 已通过，普通发行矩阵因 Linux 依赖下载 DNS 故障完整重跑中。现有公开插件为 **0.37.185 / 0.4.200**，均仍推荐 CLI **0.166.146**。
+CLI 发布日期：2026-11-11；验证续作：2026-11-12。CLI **0.166.147 已公开并核验**。新 Open VSX **0.37.186** / JetBrains **0.4.201** 尚未发布；当前 `703b22e89` 修正后的完整新源门禁仍在执行。当前公开 IDE 为 **0.37.185 / 0.4.200**，仍推荐 CLI **0.166.146**。
 
 ## 核心特性
 
@@ -38,12 +38,12 @@ CLI 发行源码为 `32451e4d568e414acdb9c956208e5cff827cd6e0`；IDE 焦点修�
 
 ## 测试覆盖
 
-| 范围               | 准确来源与结果                                                                                                                                                                                                                                                                                                                                                               |
-| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| CLI 完整矩阵       | 发布源码的 [CLI CI 76/76](https://github.com/chainlesschain/chainlesschain/actions/runs/42959022247)、[Strict Sandbox 6/6](https://github.com/chainlesschain/chainlesschain/actions/runs/42959022282) 全部成功，覆盖全部配置宿主                                                                                                                                             |
-| CLI 正式发布与回读 | [OIDC 发行](https://github.com/chainlesschain/chainlesschain/actions/runs/42976618525)及[公开回读](https://github.com/chainlesschain/chainlesschain/actions/runs/43032767673)成功；公开 tarball 与官方不可变制品逐字节一致                                                                                                                                                   |
-| 旧 IDE 候选        | `c3ac7485b2e671864acc52da1fa36fa13ad134fa` 的标准单元 353/353 和主矩阵通过；ARM64 Windows 菜单两次执行失败，均保留                                                                                                                                                                                                                                                           |
-| 新 IDE 修正        | `674593a1bb21a68d33b56dc0cb6ed420212143a2` 的五项新 JUnit、真实最低 SDK 源码编译、[完整 ARM64 11/11](https://github.com/chainlesschain/chainlesschain/actions/runs/43039429061) 及普通矩阵六个 JetBrains 宿主通过；[主矩阵](https://github.com/chainlesschain/chainlesschain/actions/runs/43039428960) 的 Linux 依赖下载失败，原源码完整重跑 attempt 2，尚未通过完整发行门禁 |
+| 范围               | 准确来源与结果                                                                                                                                                                                                                                                                                                                                                                                                   |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| CLI 完整矩阵       | 发布源码的 [CLI CI 76/76](https://github.com/chainlesschain/chainlesschain/actions/runs/42959022247)、[Strict Sandbox 6/6](https://github.com/chainlesschain/chainlesschain/actions/runs/42959022282) 全部成功，覆盖全部配置宿主                                                                                                                                                                                 |
+| CLI 正式发布与回读 | [OIDC 发行](https://github.com/chainlesschain/chainlesschain/actions/runs/42976618525)及[公开回读](https://github.com/chainlesschain/chainlesschain/actions/runs/43032767673)成功；公开 tarball 与官方不可变制品逐字节一致                                                                                                                                                                                       |
+| 旧 IDE 候选        | `c3ac7485b2e671864acc52da1fa36fa13ad134fa` 的标准单元 353/353 和主矩阵通过；ARM64 Windows 菜单两次执行失败，均保留                                                                                                                                                                                                                                                                                               |
+| 新 IDE 修正        | 焦点源 `674593a1b` 的完整 ARM64 11/11 及六个普通 JetBrains 宿主通过；后续 DNS 修正当前为 `703b22e895bff2c0f40cd7f350aef0757dc3bdd5`，本地定向 53/53、标准单元 353/353 与部分托管安装阶段通过。[新 IDE](https://github.com/chainlesschain/chainlesschain/actions/runs/43061798017)和[新 ARM64](https://github.com/chainlesschain/chainlesschain/actions/runs/43061798113)完整门禁待完成；历史源通过不替代新源验收 |
 
 本地扩展检查另保留工作树 Git 路径解析限制，不将其记为通过。上述结果不累加成不同源码的一次全量成绩。
 
@@ -63,8 +63,8 @@ CLI 使用 GitHub Actions OIDC Trusted Publishing，正式流程先核对公开�
 ## 关键文件
 
 - [CLI 安装说明](https://github.com/chainlesschain/chainlesschain/blob/main/packages/cli/README.md)：公开版本、安装命令及配套限制。
-- [CLI 发行回执](https://github.com/chainlesschain/chainlesschain/blob/feature/cli147-release-evidence-20261111/docs/research/cli/evidence/release147-public/README.md)：来源证明、公开字节和原始回读文件。
-- [菜单失败与修正证据](https://github.com/chainlesschain/chainlesschain/blob/feature/cli147-release-evidence-20261111/docs/research/cli-ide/evidence/jetbrains201-focus/README.md)：两次失败原始报告及新修正范围。
+- [CLI 发行回执](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release147-public/README.md)：来源证明、公开字节和原始回读文件。
+- [菜单失败与修正证据](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli-ide/evidence/jetbrains201-focus/README.md)：两次失败原始报告及新修正范围。
 
 ## 使用示例
 
@@ -82,6 +82,6 @@ cc doctor
 
 - [11-10 安装升级记录](./cli-ide-update-2026-11-10-146.md)：此前 .146 组合的历史范围。
 - [焦点修正 PR #605](https://github.com/chainlesschain/chainlesschain/pull/605)：当前候选实现及验证进度。
-- [CLI/IDE 完成情况表](https://github.com/chainlesschain/chainlesschain/blob/feature/cli147-release-evidence-20261111/docs/research/cli-ide/plans/cli-ide-codex-claude-gap-review-2026-11-08.md)：工程完成项与未完成验收。
+- [CLI/IDE 完成情况表](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli-ide/plans/cli-ide-codex-claude-gap-review-2026-11-08.md)：工程完成项与未完成验收。
 
 移动/PC 客户端、独立业务效果及真实 36+9 完成率仍需各自验证，不由本次 CLI 发布推定。

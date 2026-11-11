@@ -181,8 +181,161 @@
     "runId": 43039428941,
     "failedFirstJob": 130592925571,
     "retryJob": 130614243861,
-    "retryConclusion": null
+    "retryConclusion": "failure",
+    "retryFailureStage": "Ubuntu apt dependency DNS resolution"
   },
   "idePublished": false,
-  "fullNativeTask45Executed": false
+  "fullNativeTask45Executed": false,
+  "remoteSshSecondArtifact": {
+    "sourceCommit": "674593a1bb21a68d33b56dc0cb6ed420212143a2",
+    "runId": 43039428960,
+    "attempt": 2,
+    "jobId": 130628483798,
+    "artifactId": 13870310661,
+    "digest": "sha256:aa1488919b8c4a5f64b2e41d5a17f79e71f00d8045347ea408162d4a48c88d4d",
+    "bytes": 2236598,
+    "files": [
+      {
+        "path": "attempt-2.remote-ssh.journey-evidence.json.raw",
+        "digest": "sha256:c27bcd17509d60a7c745e1de76025d3038d974fed93f77d962bc8a854266a5bf",
+        "bytes": 6822,
+        "originalMember": "journey/journey-evidence.json"
+      },
+      {
+        "path": "attempt-2.remote-ssh.002-redacted-diagnostics.json.raw",
+        "digest": "sha256:08a9671506bedf01fe140705bb4880894c570ba382a300f8ed27b06c104553b7",
+        "bytes": 5305,
+        "originalMember": "journey/diagnostics/002-redacted-diagnostics.json"
+      }
+    ],
+    "result": "failed",
+    "reason": "Container apt-update could not resolve Ubuntu repositories"
+  },
+  "firstDnsFix": {
+    "sourceCommit": "c1b8a72dc60c9253688f1cc8355351b94bd16d88",
+    "runId": 43054282663,
+    "result": "failed",
+    "reason": "Privileged HTTPS resolution timed out in both Linux architectures",
+    "proxyEnvironmentLossProven": false,
+    "logs": [
+      {
+        "jobId": 130639446681,
+        "representation": "GitHub connector decoded UTF-8 log with LF; original HTTP bytes not claimed",
+        "path": "c1b8a72.job-130639446681.decoded.log.raw",
+        "digest": "sha256:674e162a47a39e8e5ab622197ed8d41e9ddd789f8893a74a8f3bf10561a32c12",
+        "bytes": 30535
+      },
+      {
+        "jobId": 130639447127,
+        "representation": "GitHub connector decoded UTF-8 log with LF; original HTTP bytes not claimed",
+        "path": "c1b8a72.job-130639447127.decoded.log.raw",
+        "digest": "sha256:0340991eef7f8ed3328cfd101baadf511a0f5929b0dc71b613ea865bfdb9860c",
+        "bytes": 31014
+      }
+    ]
+  },
+  "currentFix": {
+    "sourceCommit": "703b22e895bff2c0f40cd7f350aef0757dc3bdd5",
+    "pr": 605,
+    "status": "AWAITING_FULL_HOST_GATES",
+    "localTests": {
+      "dnsBootstrap": 53,
+      "standardVscode": 353,
+      "newModelCalls": 0
+    },
+    "workflowRuns": {
+      "ide": 43061798017,
+      "arm64": 43061798113,
+      "accessibility": 43061797894,
+      "quality": 43061798091,
+      "e2e": 43061797961,
+      "processRecovery": 43061798050
+    },
+    "sourceBindings": [
+      {
+        "path": "scripts/lib/ubuntu-apt-dns.cjs",
+        "digest": "sha256:090aae5677ae1d3615e39d778f8759d7a15038b631a26448f8943b465df8049c"
+      },
+      {
+        "path": "scripts/__tests__/ubuntu-apt-dns.test.mjs",
+        "digest": "sha256:2f42bdb66c8510a13c622b66298a21a7b60209ee8ee6a4f92f4a7889292b2295"
+      },
+      {
+        "path": ".github/actions/prepare-ubuntu-apt-dns/action.yml",
+        "digest": "sha256:0dbaa205ddfd13358cdbc4eacedaa9b46fb98ea738d86be7b4601ff7a4ce1703"
+      },
+      {
+        "path": "packages/vscode-extension/test/remote-ssh-container/run.cjs",
+        "digest": "sha256:e471898a5fcf9e8a35f224f751d0dbe3de4ef7f761cc74aeeaaeda439e3d27c3"
+      }
+    ],
+    "fixedRepositoryNames": [
+      "archive.ubuntu.com",
+      "security.ubuntu.com",
+      "azure.archive.ubuntu.com",
+      "ports.ubuntu.com"
+    ],
+    "processRecovery": {
+      "runId": 43061798050,
+      "sourceCommit": "703b22e895bff2c0f40cd7f350aef0757dc3bdd5",
+      "passed": 2,
+      "total": 2,
+      "conclusion": "success",
+      "scope": "Real Linux x64/ARM64 delegated-cgroup process recovery"
+    }
+  },
+  "windowsCimObservationFailure": {
+    "sourceCommit": "ca941473ad55f47956090787dac39cbbeafcb408",
+    "runId": 43056839447,
+    "attempt": 1,
+    "jobId": 130648442822,
+    "artifactId": 13871913075,
+    "artifactBytes": 17168,
+    "artifactDigest": "sha256:6304b94524e61277fe6f7a44e0a60600c4a499b99a1f24958982b0ff409191b4",
+    "result": "failed",
+    "initialSnapshotTimeoutMs": 10000,
+    "reason": "Initial Win32_Process CIM snapshot timed out; observationComplete=false",
+    "productAssertionsRelaxed": false,
+    "observationDeadlineChanged": false,
+    "files": [
+      {
+        "path": "ca941.windows-cim.failure.json.raw",
+        "originalMember": "failure.json",
+        "digest": "sha256:3a6997c0645e338f370a3a81cafb5faa3f1ea28b2858db5dc85be37c4993151a",
+        "bytes": 15689
+      },
+      {
+        "path": "ca941.windows-cim.resource-trajectory.json.raw",
+        "originalMember": "resource-trajectory.json",
+        "digest": "sha256:cde8e60016e8c74008b027d707e71f0a4d8bcc404c30a93930cfd429d5f5cbea",
+        "bytes": 16705
+      },
+      {
+        "path": "ca941.windows-cim.outcome-observations.json.raw",
+        "originalMember": "outcome-observations.json",
+        "digest": "sha256:d2d4864f4238d63ebe6fc29505203d65c32faa9133583b8b67a5e72914f9ae9a",
+        "bytes": 799
+      },
+      {
+        "path": "ca941.windows-cim.performance-samples.json.raw",
+        "originalMember": "performance-samples.json",
+        "digest": "sha256:cc2c1cbf40b7e57bef8929644cd9b9a032717af16d096e9faafa8acafd79fa70",
+        "bytes": 1102
+      }
+    ]
+  },
+  "arm64PortsFailure": {
+    "sourceCommit": "ca941473ad55f47956090787dac39cbbeafcb408",
+    "runId": 43056839753,
+    "jobId": 130648436746,
+    "result": "15-minute job budget expired",
+    "reason": "ports.ubuntu.com was omitted from the original three-name DNS handoff",
+    "representation": "GitHub connector decoded UTF-8 log; original HTTP bytes not claimed",
+    "log": {
+      "path": "ca941.job-130648436746.decoded.log.raw",
+      "digest": "sha256:7c11947fce00fd6e941a5f44e04349e5bcc8439b3d0e3df2b427343c99e8f1ce",
+      "bytes": 44388
+    },
+    "jobTimeoutMinutesUnchanged": 15
+  }
 }

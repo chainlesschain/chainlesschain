@@ -1,0 +1,181 @@
+{
+  "schema": "chainlesschain.ide-journey-evidence",
+  "schemaVersion": 2,
+  "manifestVersion": "1.9.41",
+  "journeyId": "vscode-installed-vsix-remote-ssh-container-host-api-multiroot-control",
+  "required": true,
+  "releaseCommit": "674593a1bb21a68d33b56dc0cb6ed420212143a2",
+  "host": {
+    "name": "vscode",
+    "version": "1.96.4",
+    "operatingSystem": "linux",
+    "architecture": "x64",
+    "transport": "remote-ssh-container"
+  },
+  "workspace": {
+    "layout": "multi-root",
+    "rootCount": 2,
+    "orderedRootsDigest": "sha256:a7f3f76e19099d57addd68c649e694547f108e9853a6062028c9f6420a69fb07"
+  },
+  "provenance": {
+    "provider": "github-actions",
+    "repository": "chainlesschain/chainlesschain",
+    "workflowRef": "chainlesschain/chainlesschain/.github/workflows/ide-extensions.yml@refs/pull/605/merge",
+    "workflowSha": "3b1b4bf7c1e864607a3f1ae1e1004056f9913fd3",
+    "runId": "43039428960",
+    "runAttempt": "2",
+    "job": "vscode-remote-ssh-container",
+    "artifactName": "vscode-remote-ssh-container-evidence-2",
+    "eventName": "pull_request"
+  },
+  "roadmapArtifacts": {
+    "exact-commit": {
+      "path": "roadmap-artifacts/001-exact-commit.json",
+      "sha256": "sha256:e0b88ee410f166fc5e93c3142421173eac4da4f94f9b6141d677592bd344015f",
+      "bytes": 123
+    },
+    "host-environment": {
+      "path": "roadmap-artifacts/002-host-environment.json",
+      "sha256": "sha256:a8ddfa73f971bed0061cbfe3a784056ad4f58f23717e629107a4537b09917771",
+      "bytes": 2097
+    },
+    "remote-environment": {
+      "path": "roadmap-artifacts/003-remote-environment.json",
+      "sha256": "sha256:4f73bd23d6e870bb9eb6addbf764557e05332155fb18d3ed8328f7425eb75487",
+      "bytes": 189
+    },
+    "redacted-diagnostics": {
+      "path": "roadmap-artifacts/004-redacted-diagnostics.json",
+      "sha256": "sha256:08a9671506bedf01fe140705bb4880894c570ba382a300f8ed27b06c104553b7",
+      "bytes": 5305
+    },
+    "artifact-digests": {
+      "path": "roadmap-artifacts/005-artifact-digests.json",
+      "sha256": "sha256:621e2f7824c1c7a0b71fe5ebf21daee6e0266fcc8a98c97056f09bee14f23000",
+      "bytes": 1208
+    },
+    "candidate-vsix": {
+      "path": "roadmap-artifacts/006-candidate-vsix.vsix",
+      "sha256": "sha256:9e7abadb57cac5f8635aad1bde91b504a0b6615c51db9231f5972f126a73880f",
+      "bytes": 771301
+    },
+    "candidate-manifest": {
+      "path": "roadmap-artifacts/007-candidate-manifest.json",
+      "sha256": "sha256:6829b1298b5bdf73fab71501314eaf499450ae43b245d5cde65b41177f42a750",
+      "bytes": 714
+    },
+    "outcome-observations": {
+      "path": "roadmap-artifacts/008-outcome-observations.json",
+      "sha256": "sha256:6996ef95bcecead12a7b928c99572ea82d61ab396b7520491c29338e3da7c3a6",
+      "bytes": 305
+    }
+  },
+  "dependencies": [
+    {
+      "id": "ms-vscode-remote.remote-ssh",
+      "version": "0.120.0",
+      "source": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/ms-vscode-remote/vsextensions/remote-ssh/0.120.0/vspackage",
+      "transportSha256": "sha256:4caa944dc6c81c8e1a345f3aefed2c0b8efacfe91ba46dff04cb6da2238b949e",
+      "sha256": "sha256:0fd6262ca183b486f6c067cb3516dccea2f87f32c049b642ff9eb77b0cea195d"
+    }
+  ],
+  "cliVersion": "0.166.147",
+  "extensionVersion": "0.37.186",
+  "startedAt": "2026-11-11T15:49:53.513Z",
+  "finishedAt": "2026-11-11T15:50:06.764Z",
+  "result": "failed",
+  "evidenceComplete": true,
+  "artifactBundleDigest": "sha256:3e5015d46123acbe514205871774514a6f601e4737e92e4208b1e988357fa2bf",
+  "artifacts": [
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/001-container-image-pull.json.bin",
+      "sha256": "sha256:d3baffb7bedbfb37d21428a7423ee403be60e601f3ff3b230aae9fd0db16b1d6",
+      "bytes": 1171,
+      "truncated": false,
+      "redacted": false,
+      "sensitivity": "restricted-binary"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/002-redacted-diagnostics.json",
+      "sha256": "sha256:08a9671506bedf01fe140705bb4880894c570ba382a300f8ed27b06c104553b7",
+      "bytes": 5305,
+      "truncated": false,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "release-artifact",
+      "name": "remote-ssh-0.120.0.vsix.gz",
+      "path": "release-artifacts/001-remote-ssh-0.120.0.vsix.gz",
+      "sha256": "sha256:4caa944dc6c81c8e1a345f3aefed2c0b8efacfe91ba46dff04cb6da2238b949e",
+      "bytes": 736432
+    },
+    {
+      "kind": "release-artifact",
+      "name": "remote-ssh-0.120.0.vsix",
+      "path": "release-artifacts/002-remote-ssh-0.120.0.vsix",
+      "sha256": "sha256:0fd6262ca183b486f6c067cb3516dccea2f87f32c049b642ff9eb77b0cea195d",
+      "bytes": 744451
+    },
+    {
+      "kind": "roadmap-artifact",
+      "name": "exact-commit",
+      "path": "roadmap-artifacts/001-exact-commit.json",
+      "sha256": "sha256:e0b88ee410f166fc5e93c3142421173eac4da4f94f9b6141d677592bd344015f",
+      "bytes": 123
+    },
+    {
+      "kind": "roadmap-artifact",
+      "name": "host-environment",
+      "path": "roadmap-artifacts/002-host-environment.json",
+      "sha256": "sha256:a8ddfa73f971bed0061cbfe3a784056ad4f58f23717e629107a4537b09917771",
+      "bytes": 2097
+    },
+    {
+      "kind": "roadmap-artifact",
+      "name": "remote-environment",
+      "path": "roadmap-artifacts/003-remote-environment.json",
+      "sha256": "sha256:4f73bd23d6e870bb9eb6addbf764557e05332155fb18d3ed8328f7425eb75487",
+      "bytes": 189
+    },
+    {
+      "kind": "roadmap-artifact",
+      "name": "redacted-diagnostics",
+      "path": "roadmap-artifacts/004-redacted-diagnostics.json",
+      "sha256": "sha256:08a9671506bedf01fe140705bb4880894c570ba382a300f8ed27b06c104553b7",
+      "bytes": 5305
+    },
+    {
+      "kind": "roadmap-artifact",
+      "name": "artifact-digests",
+      "path": "roadmap-artifacts/005-artifact-digests.json",
+      "sha256": "sha256:621e2f7824c1c7a0b71fe5ebf21daee6e0266fcc8a98c97056f09bee14f23000",
+      "bytes": 1208
+    },
+    {
+      "kind": "roadmap-artifact",
+      "name": "candidate-vsix",
+      "path": "roadmap-artifacts/006-candidate-vsix.vsix",
+      "sha256": "sha256:9e7abadb57cac5f8635aad1bde91b504a0b6615c51db9231f5972f126a73880f",
+      "bytes": 771301
+    },
+    {
+      "kind": "roadmap-artifact",
+      "name": "candidate-manifest",
+      "path": "roadmap-artifacts/007-candidate-manifest.json",
+      "sha256": "sha256:6829b1298b5bdf73fab71501314eaf499450ae43b245d5cde65b41177f42a750",
+      "bytes": 714
+    },
+    {
+      "kind": "roadmap-artifact",
+      "name": "outcome-observations",
+      "path": "roadmap-artifacts/008-outcome-observations.json",
+      "sha256": "sha256:6996ef95bcecead12a7b928c99572ea82d61ab396b7520491c29338e3da7c3a6",
+      "bytes": 305
+    }
+  ],
+  "incidents": [],
+  "evidenceDigest": "sha256:a06adada9af2af85ddf2a986d019ecbebd212e47c7f56b9e31bd619275fa2f82"
+}

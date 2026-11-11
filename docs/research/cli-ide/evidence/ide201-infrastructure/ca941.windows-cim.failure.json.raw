@@ -1,0 +1,517 @@
+{
+  "schema": "chainlesschain.accessibility-performance-failure.v1",
+  "releaseCommit": "ca941473ad55f47956090787dac39cbbeafcb408",
+  "operatingSystem": "win32",
+  "diagnosticDigest": "sha256:0d56a80f848823540b40535a9f13a8958f0fe70fb86ae4b73b7b890fc10b4a63",
+  "browserProcessLifecycle": {
+    "schema": "chainlesschain.browser-process-lifecycle.v1",
+    "identityPrecision": "windows-win32-creation-time-cim",
+    "processTreeIdentityPrecision": "win32-cim-parent-and-creation-time",
+    "observationComplete": false,
+    "ownedDescendantIdentityComplete": true,
+    "rootDescendantTrackingComplete": true,
+    "shutdownSettled": true,
+    "shutdownSettleTimeoutMs": 30000,
+    "shutdownSettleElapsedMs": 2020,
+    "shutdownSettleCleanSampleCount": 3,
+    "browserCloseSucceeded": true,
+    "browserCloseTimedOut": false,
+    "browserServerCloseSucceeded": true,
+    "browserServerCloseTimedOut": false,
+    "browserServerKillSucceeded": false,
+    "browserServerKillTimedOut": false,
+    "baselineIdentityComplete": true,
+    "rootProcessHandleObserved": true,
+    "rootProcessPid": 3884,
+    "rootProcessIdentity": "3884:/Date(1794414445776)/",
+    "rootProcessRecord": {
+      "pid": 3884,
+      "ppid": 1732,
+      "pgrp": null,
+      "session": null,
+      "state": "running",
+      "name": "chrome-headless-shell.exe",
+      "startIdentity": "/Date(1794414445776)/",
+      "stage": "launched"
+    },
+    "rootProcessExitObserved": true,
+    "rootProcessCloseObserved": true,
+    "forcedCleanupAttempted": false,
+    "cleanupErrorCount": 0,
+    "cleanupErrorDigests": [],
+    "observationErrors": [
+      "ETIMEDOUT"
+    ],
+    "sampleCount": 8,
+    "baselineBrowserProcesses": [],
+    "observations": [
+      {
+        "stage": "initial",
+        "complete": false,
+        "browserProcessCount": 0,
+        "browserProcesses": []
+      },
+      {
+        "stage": "launched",
+        "complete": true,
+        "terminalClean": false,
+        "survivorCount": 3,
+        "browserProcessCount": 3,
+        "newlyObservedBrowserCount": 3,
+        "ownedDescendantCount": 2,
+        "browserProcesses": [
+          {
+            "pid": 3884,
+            "ppid": 1732,
+            "pgrp": null,
+            "session": null,
+            "state": "running",
+            "name": "chrome-headless-shell.exe",
+            "startIdentity": "/Date(1794414445776)/",
+            "stage": "launched"
+          },
+          {
+            "pid": 1980,
+            "ppid": 3884,
+            "pgrp": null,
+            "session": null,
+            "state": "running",
+            "name": "chrome-headless-shell.exe",
+            "startIdentity": "/Date(1794414445825)/",
+            "stage": "launched"
+          },
+          {
+            "pid": 9424,
+            "ppid": 3884,
+            "pgrp": null,
+            "session": null,
+            "state": "running",
+            "name": "chrome-headless-shell.exe",
+            "startIdentity": "/Date(1794414445836)/",
+            "stage": "launched"
+          }
+        ],
+        "ownedDescendants": [
+          {
+            "pid": 1980,
+            "ppid": 3884,
+            "pgrp": null,
+            "session": null,
+            "state": "running",
+            "name": "chrome-headless-shell.exe",
+            "startIdentity": "/Date(1794414445825)/",
+            "stage": "launched"
+          },
+          {
+            "pid": 9424,
+            "ppid": 3884,
+            "pgrp": null,
+            "session": null,
+            "state": "running",
+            "name": "chrome-headless-shell.exe",
+            "startIdentity": "/Date(1794414445836)/",
+            "stage": "launched"
+          }
+        ],
+        "previouslyObservedProcesses": [
+          {
+            "pid": 3884,
+            "ppid": 1732,
+            "pgrp": null,
+            "session": null,
+            "state": "running",
+            "name": "chrome-headless-shell.exe",
+            "startIdentity": "/Date(1794414445776)/",
+            "stage": "launched"
+          },
+          {
+            "pid": 1980,
+            "ppid": 3884,
+            "pgrp": null,
+            "session": null,
+            "state": "running",
+            "name": "chrome-headless-shell.exe",
+            "startIdentity": "/Date(1794414445825)/",
+            "stage": "launched"
+          },
+          {
+            "pid": 9424,
+            "ppid": 3884,
+            "pgrp": null,
+            "session": null,
+            "state": "running",
+            "name": "chrome-headless-shell.exe",
+            "startIdentity": "/Date(1794414445836)/",
+            "stage": "launched"
+          }
+        ]
+      },
+      {
+        "stage": "shutdown-pre-close",
+        "complete": true,
+        "terminalClean": false,
+        "survivorCount": 4,
+        "browserProcessCount": 4,
+        "newlyObservedBrowserCount": 4,
+        "ownedDescendantCount": 1,
+        "browserProcesses": [
+          {
+            "pid": 3884,
+            "ppid": 1732,
+            "pgrp": null,
+            "session": null,
+            "state": "running",
+            "name": "chrome-headless-shell.exe",
+            "startIdentity": "/Date(1794414445776)/",
+            "stage": "shutdown-pre-close"
+          },
+          {
+            "pid": 1980,
+            "ppid": 3884,
+            "pgrp": null,
+            "session": null,
+            "state": "running",
+            "name": "chrome-headless-shell.exe",
+            "startIdentity": "/Date(1794414445825)/",
+            "stage": "shutdown-pre-close"
+          },
+          {
+            "pid": 9424,
+            "ppid": 3884,
+            "pgrp": null,
+            "session": null,
+            "state": "running",
+            "name": "chrome-headless-shell.exe",
+            "startIdentity": "/Date(1794414445836)/",
+            "stage": "shutdown-pre-close"
+          },
+          {
+            "pid": 9088,
+            "ppid": 3884,
+            "pgrp": null,
+            "session": null,
+            "state": "running",
+            "name": "chrome-headless-shell.exe",
+            "startIdentity": "/Date(1794414450649)/",
+            "stage": "shutdown-pre-close"
+          }
+        ],
+        "ownedDescendants": [
+          {
+            "pid": 9088,
+            "ppid": 3884,
+            "pgrp": null,
+            "session": null,
+            "state": "running",
+            "name": "chrome-headless-shell.exe",
+            "startIdentity": "/Date(1794414450649)/",
+            "stage": "shutdown-pre-close"
+          }
+        ],
+        "previouslyObservedProcesses": [
+          {
+            "pid": 3884,
+            "ppid": 1732,
+            "pgrp": null,
+            "session": null,
+            "state": "running",
+            "name": "chrome-headless-shell.exe",
+            "startIdentity": "/Date(1794414445776)/",
+            "stage": "shutdown-pre-close"
+          },
+          {
+            "pid": 1980,
+            "ppid": 3884,
+            "pgrp": null,
+            "session": null,
+            "state": "running",
+            "name": "chrome-headless-shell.exe",
+            "startIdentity": "/Date(1794414445825)/",
+            "stage": "shutdown-pre-close"
+          },
+          {
+            "pid": 9424,
+            "ppid": 3884,
+            "pgrp": null,
+            "session": null,
+            "state": "running",
+            "name": "chrome-headless-shell.exe",
+            "startIdentity": "/Date(1794414445836)/",
+            "stage": "shutdown-pre-close"
+          },
+          {
+            "pid": 9088,
+            "ppid": 3884,
+            "pgrp": null,
+            "session": null,
+            "state": "running",
+            "name": "chrome-headless-shell.exe",
+            "startIdentity": "/Date(1794414450649)/",
+            "stage": "shutdown-pre-close"
+          }
+        ]
+      },
+      {
+        "stage": "shutdown-settle",
+        "complete": true,
+        "terminalClean": true,
+        "survivorCount": 0,
+        "browserProcessCount": 0,
+        "newlyObservedBrowserCount": 4,
+        "ownedDescendantCount": 0,
+        "browserProcesses": [],
+        "ownedDescendants": [],
+        "previouslyObservedProcesses": []
+      },
+      {
+        "stage": "shutdown-settle",
+        "complete": true,
+        "terminalClean": true,
+        "survivorCount": 0,
+        "browserProcessCount": 0,
+        "newlyObservedBrowserCount": 4,
+        "ownedDescendantCount": 0,
+        "browserProcesses": [],
+        "ownedDescendants": [],
+        "previouslyObservedProcesses": []
+      },
+      {
+        "stage": "shutdown-settle",
+        "complete": true,
+        "terminalClean": true,
+        "survivorCount": 0,
+        "browserProcessCount": 0,
+        "newlyObservedBrowserCount": 4,
+        "ownedDescendantCount": 0,
+        "browserProcesses": [],
+        "ownedDescendants": [],
+        "previouslyObservedProcesses": []
+      },
+      {
+        "stage": "settled-final",
+        "complete": true,
+        "terminalClean": true,
+        "survivorCount": 0,
+        "browserProcessCount": 0,
+        "newlyObservedBrowserCount": 4,
+        "ownedDescendantCount": 0,
+        "browserProcesses": [],
+        "ownedDescendants": [],
+        "previouslyObservedProcesses": []
+      },
+      {
+        "stage": "campaign-final",
+        "complete": true,
+        "terminalClean": true,
+        "survivorCount": 0,
+        "browserProcessCount": 0,
+        "newlyObservedBrowserCount": 4,
+        "newlyObservedOwnedDescendantCount": 3,
+        "ownedProcesses": [],
+        "browserProcesses": [],
+        "previouslyObservedProcesses": []
+      }
+    ],
+    "observedNewBrowserProcesses": [
+      {
+        "identity": "3884:/Date(1794414445776)/",
+        "firstSeen": "launched",
+        "firstRecord": {
+          "pid": 3884,
+          "ppid": 1732,
+          "pgrp": null,
+          "session": null,
+          "state": "running",
+          "name": "chrome-headless-shell.exe",
+          "startIdentity": "/Date(1794414445776)/",
+          "stage": "launched"
+        },
+        "ownership": "unresolved",
+        "observationCount": 2,
+        "lastSeen": "shutdown-pre-close",
+        "lastRecord": {
+          "pid": 3884,
+          "ppid": 1732,
+          "pgrp": null,
+          "session": null,
+          "state": "running",
+          "name": "chrome-headless-shell.exe",
+          "startIdentity": "/Date(1794414445776)/",
+          "stage": "shutdown-pre-close"
+        }
+      },
+      {
+        "identity": "1980:/Date(1794414445825)/",
+        "firstSeen": "launched",
+        "firstRecord": {
+          "pid": 1980,
+          "ppid": 3884,
+          "pgrp": null,
+          "session": null,
+          "state": "running",
+          "name": "chrome-headless-shell.exe",
+          "startIdentity": "/Date(1794414445825)/",
+          "stage": "launched"
+        },
+        "ownership": "browser-descendant-observed",
+        "observationCount": 2,
+        "lastSeen": "shutdown-pre-close",
+        "lastRecord": {
+          "pid": 1980,
+          "ppid": 3884,
+          "pgrp": null,
+          "session": null,
+          "state": "running",
+          "name": "chrome-headless-shell.exe",
+          "startIdentity": "/Date(1794414445825)/",
+          "stage": "shutdown-pre-close"
+        },
+        "parentIdentity": "3884:/Date(1794414445776)/"
+      },
+      {
+        "identity": "9424:/Date(1794414445836)/",
+        "firstSeen": "launched",
+        "firstRecord": {
+          "pid": 9424,
+          "ppid": 3884,
+          "pgrp": null,
+          "session": null,
+          "state": "running",
+          "name": "chrome-headless-shell.exe",
+          "startIdentity": "/Date(1794414445836)/",
+          "stage": "launched"
+        },
+        "ownership": "browser-descendant-observed",
+        "observationCount": 2,
+        "lastSeen": "shutdown-pre-close",
+        "lastRecord": {
+          "pid": 9424,
+          "ppid": 3884,
+          "pgrp": null,
+          "session": null,
+          "state": "running",
+          "name": "chrome-headless-shell.exe",
+          "startIdentity": "/Date(1794414445836)/",
+          "stage": "shutdown-pre-close"
+        },
+        "parentIdentity": "3884:/Date(1794414445776)/"
+      },
+      {
+        "identity": "9088:/Date(1794414450649)/",
+        "firstSeen": "shutdown-pre-close",
+        "firstRecord": {
+          "pid": 9088,
+          "ppid": 3884,
+          "pgrp": null,
+          "session": null,
+          "state": "running",
+          "name": "chrome-headless-shell.exe",
+          "startIdentity": "/Date(1794414450649)/",
+          "stage": "shutdown-pre-close"
+        },
+        "ownership": "browser-descendant-observed",
+        "observationCount": 1,
+        "lastSeen": "shutdown-pre-close",
+        "lastRecord": {
+          "pid": 9088,
+          "ppid": 3884,
+          "pgrp": null,
+          "session": null,
+          "state": "running",
+          "name": "chrome-headless-shell.exe",
+          "startIdentity": "/Date(1794414450649)/",
+          "stage": "shutdown-pre-close"
+        },
+        "parentIdentity": "3884:/Date(1794414445776)/"
+      }
+    ],
+    "observedOwnedDescendantProcesses": [
+      {
+        "identity": "1980:/Date(1794414445825)/",
+        "firstSeen": "launched",
+        "firstRecord": {
+          "pid": 1980,
+          "ppid": 3884,
+          "pgrp": null,
+          "session": null,
+          "state": "running",
+          "name": "chrome-headless-shell.exe",
+          "startIdentity": "/Date(1794414445825)/",
+          "stage": "launched"
+        },
+        "ownership": "launch-server-descendant-observed",
+        "observationCount": 1,
+        "lastSeen": "launched",
+        "lastRecord": {
+          "pid": 1980,
+          "ppid": 3884,
+          "pgrp": null,
+          "session": null,
+          "state": "running",
+          "name": "chrome-headless-shell.exe",
+          "startIdentity": "/Date(1794414445825)/",
+          "stage": "launched"
+        }
+      },
+      {
+        "identity": "9424:/Date(1794414445836)/",
+        "firstSeen": "launched",
+        "firstRecord": {
+          "pid": 9424,
+          "ppid": 3884,
+          "pgrp": null,
+          "session": null,
+          "state": "running",
+          "name": "chrome-headless-shell.exe",
+          "startIdentity": "/Date(1794414445836)/",
+          "stage": "launched"
+        },
+        "ownership": "launch-server-descendant-observed",
+        "observationCount": 1,
+        "lastSeen": "launched",
+        "lastRecord": {
+          "pid": 9424,
+          "ppid": 3884,
+          "pgrp": null,
+          "session": null,
+          "state": "running",
+          "name": "chrome-headless-shell.exe",
+          "startIdentity": "/Date(1794414445836)/",
+          "stage": "launched"
+        }
+      },
+      {
+        "identity": "9088:/Date(1794414450649)/",
+        "firstSeen": "shutdown-pre-close",
+        "firstRecord": {
+          "pid": 9088,
+          "ppid": 3884,
+          "pgrp": null,
+          "session": null,
+          "state": "running",
+          "name": "chrome-headless-shell.exe",
+          "startIdentity": "/Date(1794414450649)/",
+          "stage": "shutdown-pre-close"
+        },
+        "ownership": "launch-server-descendant-observed",
+        "observationCount": 1,
+        "lastSeen": "shutdown-pre-close",
+        "lastRecord": {
+          "pid": 9088,
+          "ppid": 3884,
+          "pgrp": null,
+          "session": null,
+          "state": "running",
+          "name": "chrome-headless-shell.exe",
+          "startIdentity": "/Date(1794414450649)/",
+          "stage": "shutdown-pre-close"
+        }
+      }
+    ],
+    "settledBrowserProcesses": [],
+    "orphanProcessCount": 0,
+    "passed": false,
+    "finalObservationComplete": true,
+    "finalObservationErrors": []
+  }
+}
