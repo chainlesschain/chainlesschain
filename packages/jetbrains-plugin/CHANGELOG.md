@@ -1,5 +1,11 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.200] - Rewind chooser anchoring (2026-11-11)
+
+- Anchor the Rewind chooser to the visible conversation panel so it stays open after a confirmation dialog closes.
+- Discard pending Rewind results when the conversation changes or its panel is hidden.
+- Recommend CLI `0.166.146` alongside Open VSX `0.37.185`.
+
 ## [0.4.199] - canonical Memory correction and retained diagnostics (2026-11-09)
 
 - Recommend CLI 0.166.146 and pair with VS Code/Open VSX 0.37.184 after verified Agent Protocol 0.1.13, Agent SDK 0.2.18, Context/Memory Kernel 0.1.12 and CLI publication.
