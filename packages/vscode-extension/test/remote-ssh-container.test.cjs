@@ -198,6 +198,7 @@ test("Ubuntu host mappings reach docker run while pinned image, loopback SSH and
     "archive.ubuntu.com",
     "security.ubuntu.com",
     "azure.archive.ubuntu.com",
+    "ports.ubuntu.com",
   ].map((hostname) => ({
     hostname,
     source: "doh",

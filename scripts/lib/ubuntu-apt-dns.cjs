@@ -86,6 +86,8 @@ const APT_HOSTS = Object.freeze([
   "archive.ubuntu.com",
   "security.ubuntu.com",
   "azure.archive.ubuntu.com",
+  // Canonical's ARM64/other-ports archive; x64's main archive is separate.
+  "ports.ubuntu.com",
 ]);
 const MARKER = "# chainlesschain CI Ubuntu apt DNS";
 

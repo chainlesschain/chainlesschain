@@ -40,6 +40,34 @@ function dohUrl() {
   );
 }
 
+test("ARM64 ports archive participates in resolution, privileged handoff and Docker mappings", async () => {
+  assert.ok(APT_HOSTS.includes("ports.ubuntu.com"));
+  const requested = [];
+  const resolved = await resolveUbuntuAptHosts({
+    lookupImpl: dnsFailure,
+    fetchImpl: async (url) => {
+      requested.push(url.searchParams.get("name"));
+      return jsonResponse(answer(url.searchParams.get("name")));
+    },
+  });
+  assert.ok(requested.includes("ports.ubuntu.com"));
+  assert.ok(
+    ubuntuAptDockerArgs(resolved).includes(`ports.ubuntu.com:${address}`),
+  );
+  let appended = "";
+  await applyUbuntuAptDnsFromStdin({
+    platform: "linux",
+    env: { GITHUB_ACTIONS: "true", RUNNER_OS: "Linux" },
+    uid: 0,
+    input: Readable.from([JSON.stringify(resolved)]),
+    readFile: () => "127.0.0.1 localhost\n",
+    appendFile: (_file, text) => {
+      appended += text;
+    },
+  });
+  assert.match(appended, /91\.189\.91\.81 ports\.ubuntu\.com/u);
+});
+
 test("real curl argument handoff retains proxy inheritance, certificate checks, bootstrap address and transport deadlines", async () => {
   const response = await curlDohFetch(
     dohUrl(),
