@@ -96,14 +96,25 @@ function resolveGitHead(root) {
   if (SHA_RE.test(head)) return head;
   assert.match(head, /^ref: refs\//u);
   const ref = head.slice("ref: ".length);
-  const loose = path.join(gitDirectory, ...ref.split("/"));
+  // Linked worktrees keep HEAD locally but share ordinary refs through
+  // commondir. WSL/container recovery producers intentionally need no Git binary.
+  const commonPointer = path.join(gitDirectory, "commondir");
+  let commonDirectory = gitDirectory;
+  if (fs.existsSync(commonPointer)) {
+    const common = fs.readFileSync(commonPointer, "utf8").trim();
+    assert.ok(common && !/[\r\n\0]/u.test(common), "invalid Git commondir");
+    commonDirectory = path.resolve(gitDirectory, common);
+  }
+  const privateRef = /^refs\/(?:bisect|worktree|rewritten)\//u.test(ref);
+  const refDirectory = privateRef ? gitDirectory : commonDirectory;
+  const loose = path.join(refDirectory, ...ref.split("/"));
   if (fs.existsSync(loose)) {
     const value = fs.readFileSync(loose, "utf8").trim();
     assert.match(value, SHA_RE);
     return value;
   }
   const packed = fs.readFileSync(
-    path.join(gitDirectory, "packed-refs"),
+    path.join(refDirectory, "packed-refs"),
     "utf8",
   );
   const match = packed
