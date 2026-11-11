@@ -113,7 +113,9 @@ describe("real monitor to persistent notification to default IPC source recheck"
   afterEach(async () => {
     vi.restoreAllMocks();
     await engine?.close();
-    if (db?.open) db.close();
+    if (db?.open) {
+      db.close();
+    }
     rmSync(directory, { recursive: true, force: true });
   });
 
@@ -181,6 +183,75 @@ describe("real monitor to persistent notification to default IPC source recheck"
     expect(count("cc_project_goal_checks")).toBe(1);
     expect(show).not.toHaveBeenCalled();
   });
+  it.each([
+    {
+      timeZone: "Asia/Shanghai",
+      observedAt: "2026-10-07T15:30:00Z",
+      quietTicks: ["2026-10-07T16:00:00Z"],
+      endMinute: 480,
+      deliveryAt: "2026-10-08T00:00:00Z",
+    },
+    {
+      timeZone: "America/New_York",
+      observedAt: "2026-11-01T03:30:00Z",
+      quietTicks: [
+        "2026-11-01T04:00:00Z",
+        "2026-11-01T05:30:00Z",
+        "2026-11-01T06:30:00Z",
+      ],
+      endMinute: 120,
+      deliveryAt: "2026-11-01T07:00:00Z",
+    },
+  ])(
+    "delivers an overnight notice once after reopening in $timeZone",
+    async ({ timeZone, observedAt, quietTicks, endMinute, deliveryAt }) => {
+      now = Date.parse(observedAt);
+      const dueAt = Date.parse(deliveryAt);
+      const g = goal({
+        channel: "in-app",
+        mode: "changes-only",
+        quietHours: { timeZone, startMinute: 1320, endMinute },
+      });
+      expect((await check(g)).status).toBe("succeeded");
+      const events = () =>
+        engine.state.notifications.list({ goalId: g.id }).events;
+      const pending = events();
+      expect(pending.length).toBeGreaterThan(0);
+      for (const notice of pending) {
+        expect(notice).toMatchObject({ deliveryState: "pending", dueAt });
+      }
+      const ids = pending.map(({ id }) => id);
+      expect(show).not.toHaveBeenCalled();
+
+      now = Date.parse(quietTicks[0]);
+      await reopen();
+      for (const at of [...quietTicks.map(Date.parse), dueAt - 1]) {
+        now = at;
+        await engine.tick();
+        expect((await call("get-goals")).notifications).toEqual([]);
+        expect(events()).toEqual(pending);
+      }
+
+      now = dueAt;
+      await engine.tick();
+      const delivered = (await call("get-goals")).notifications;
+      expect(delivered.map(({ id }) => id).sort()).toEqual(ids);
+      expect(rows().map(({ created_at }) => created_at)).toEqual(
+        ids.map(() => dueAt),
+      );
+      expect(show).not.toHaveBeenCalled();
+      await call("mark-read", ids[0]);
+
+      await reopen();
+      now++;
+      await engine.tick();
+      expect(rows().map(({ id }) => id)).toEqual(ids);
+      const readback = (await call("get-goals")).notifications;
+      expect(readback.find(({ id }) => id === ids[0]).is_read).toBe(1);
+      expect(count("cc_project_goal_checks")).toBe(1);
+      expect(show).not.toHaveBeenCalled();
+    },
+  );
   it("silent policy records checks but has no in-app or OS delivery", async () => {
     await check(goal({ channel: "in-app", mode: "silent" }));
     await engine.tick();
@@ -207,12 +278,15 @@ describe("real monitor to persistent notification to default IPC source recheck"
       const g = goal();
       await check(g);
       const notice = rows()[0];
-      if (change === "owner")
+      if (change === "owner") {
         db.prepare("UPDATE projects SET user_id=?").run("did:other");
-      if (change === "task")
+      }
+      if (change === "task") {
         db.exec("UPDATE project_tasks SET org_id='org-other'");
-      if (change === "digest")
+      }
+      if (change === "digest") {
         db.exec("UPDATE cc_project_risk_reviews SET content_digest='corrupt'");
+      }
       if (change === "actor") {
         actor = "did:other";
         generation++;
@@ -252,7 +326,9 @@ describe("real monitor to persistent notification to default IPC source recheck"
       "INSERT INTO notifications VALUES(?,?,'system','Normal','Normal',NULL,0,?)",
     );
     db.transaction(() => {
-      for (let i = 0; i < 130; i++) insert.run(`normal-${i}`, owner, now + 100);
+      for (let i = 0; i < 130; i++) {
+        insert.run(`normal-${i}`, owner, now + 100);
+      }
     }).immediate();
     expect((await call("get-goals", { limit: 50 })).notifications).toHaveLength(
       expected,
