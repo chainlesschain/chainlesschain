@@ -1,0 +1,153 @@
+{
+  "schema": "chainlesschain.memory-platform-receipts/v1",
+  "hostedRunId": 42850534026,
+  "hostedSourceCommit": "6338e6a1b1310af6a6164d799ab544ed0bc15668",
+  "hostedSamplesPerCase": 100,
+  "hostedEvent": "workflow_dispatch",
+  "hostedConclusion": "success",
+  "paidReady": false,
+  "productPerformanceSloAccepted": false,
+  "fullDependencyClosureVerified": false,
+  "metadata": [
+    {
+      "path": "artifacts.json",
+      "sha256": "4fdb476b33be523aa17ea8a758638b24f4269734b245adb5b1871185b311d599"
+    },
+    {
+      "path": "jobs.json",
+      "sha256": "2901a14de12f227bb54dd4ecb592100bce74c55c1258adbee6fed3305a76323f"
+    }
+  ],
+  "records": [
+    {
+      "path": "raw/memory-compound-macos-latest.json.gz",
+      "kind": "compound",
+      "runner": "macos",
+      "matchedSourceCommit": "6338e6a1b1310af6a6164d799ab544ed0bc15668",
+      "rawSha256": "2a864c623ca39d26bf109134bff4090c087d8090e8f5b0b811d327b08a9da0f5",
+      "archiveSha256": "c7fe47994fd27f93bc45c1d10f0841e3baf042fb76984fc8fbd06810fdf1b2cf",
+      "artifactId": 13789821861,
+      "upstreamZipDigestNotLocallyRecomputed": "sha256:a1fbc052137d84afa04d8cc51d76dca90723fcc9caae30baaf7d35883396d520"
+    },
+    {
+      "path": "raw/memory-compound-ubuntu-latest.json.gz",
+      "kind": "compound",
+      "runner": "ubuntu",
+      "matchedSourceCommit": "6338e6a1b1310af6a6164d799ab544ed0bc15668",
+      "rawSha256": "84dc3bac407e6cf3ef1ceffbe4da7e2627e93d48f1760cca73a5c60f353c3898",
+      "archiveSha256": "f1104e1b3b1fdb486f97ef87ab6ff92d4c3de3dd2cd6f21301c464d43e0acb3e",
+      "artifactId": 13782144245,
+      "upstreamZipDigestNotLocallyRecomputed": "sha256:38f11bd1f6be28667327e5cc43e8114ee38371c48f321959129f3a0c6805a3df"
+    },
+    {
+      "path": "raw/memory-compound-windows-latest.json.gz",
+      "kind": "compound",
+      "runner": "windows",
+      "matchedSourceCommit": "6338e6a1b1310af6a6164d799ab544ed0bc15668",
+      "rawSha256": "9a073c3ccbd2606b814321cf15d15ae51947c1c785f22bd74d45143b0817fbe0",
+      "archiveSha256": "95e3002b3b79609fe489d2827f509411a44c9173f29aa4064fa7a16da6ad1997",
+      "artifactId": 13780898497,
+      "upstreamZipDigestNotLocallyRecomputed": "sha256:80010b57546265a80f1d966a62c4af3a939e91de386afad1c9c39f9c55719603"
+    },
+    {
+      "path": "raw/memory-file-identity.json.gz",
+      "kind": "file-identity",
+      "runner": "",
+      "matchedSourceCommit": "6338e6a1b1310af6a6164d799ab544ed0bc15668",
+      "rawSha256": "428ce0ccec6ae298be5725494181b62c22006141665dfcaed2cf5a26e7dcbacc",
+      "archiveSha256": "60be92b1ab69b4c691a89de71e4ee7de66f1250ea162b8f11f7987762fb46362",
+      "artifactId": 13783954918,
+      "upstreamZipDigestNotLocallyRecomputed": "sha256:cfc065b1c58a84d566d829e0f1308820debb73e46776ce7438f105471aa1645a"
+    },
+    {
+      "path": "raw/memory-mixed-macos-latest.json.gz",
+      "kind": "mixed",
+      "runner": "macos",
+      "matchedSourceCommit": "6338e6a1b1310af6a6164d799ab544ed0bc15668",
+      "rawSha256": "7baa852af811c38e6ba202b30337827c465d9d05350d8a59c2237df427aa3594",
+      "archiveSha256": "5bc49f36a12e3d24e6de8afbdd5c3f26b4a2b435b8d526c4459065c6cb6b0e53",
+      "artifactId": 13797374541,
+      "upstreamZipDigestNotLocallyRecomputed": "sha256:078cfbf47b0e33f39ef5bd504f08bcff2a311d4adfe946f32adeae850df28fd7"
+    },
+    {
+      "path": "raw/memory-mixed-ubuntu-latest.json.gz",
+      "kind": "mixed",
+      "runner": "ubuntu",
+      "matchedSourceCommit": "6338e6a1b1310af6a6164d799ab544ed0bc15668",
+      "rawSha256": "5ae9ee6bc7a597338e8449f8e2699fc904a1bbf560da684319ee82ece6dbec83",
+      "archiveSha256": "5e3414ecf4c73e3a8e51742380e1645a720dc9df77dbd83ab4cb5f71425f3daa",
+      "artifactId": 13782050297,
+      "upstreamZipDigestNotLocallyRecomputed": "sha256:be3500fc563bc1c2b4972ba40de372222532b691fa0b5ed526f8cf0a1babda49"
+    },
+    {
+      "path": "raw/memory-mixed-windows-latest.json.gz",
+      "kind": "mixed",
+      "runner": "windows",
+      "matchedSourceCommit": "6338e6a1b1310af6a6164d799ab544ed0bc15668",
+      "rawSha256": "4ce63689f62422f28c5402863495258cf5deeca2d59b4eb3c935e0f5904279ff",
+      "archiveSha256": "5d9f33fb0dc7106e39fb43d235fc5951e37c50b3a1fe0722502a07840878ef55",
+      "artifactId": 13782466536,
+      "upstreamZipDigestNotLocallyRecomputed": "sha256:4569bdb3741f5a3e2fc3874416efe3a1e5576ffbba18992eba379e333678303f"
+    },
+    {
+      "path": "raw/memory-query-index-macos-latest.json.gz",
+      "kind": "query-index",
+      "runner": "macos",
+      "matchedSourceCommit": "6338e6a1b1310af6a6164d799ab544ed0bc15668",
+      "rawSha256": "6d544879a8e372359f01bc5401a1ab3bb5903e29acf59e59cc0a971698f01e28",
+      "archiveSha256": "4c7616a96ef261553096c4d72c5f0f96f6583487f4995e609f5ad68a1bdb2b18",
+      "artifactId": 13797190867,
+      "upstreamZipDigestNotLocallyRecomputed": "sha256:f84be322a40756e350b1d6b7842f3eef3b2dc79cb14fab822677ac4e84f8590c"
+    },
+    {
+      "path": "raw/memory-query-index-ubuntu-latest.json.gz",
+      "kind": "query-index",
+      "runner": "ubuntu",
+      "matchedSourceCommit": "6338e6a1b1310af6a6164d799ab544ed0bc15668",
+      "rawSha256": "a7c4bfc47ea0c4f6a4ab204c4b9f0f1be1e9bd962779acb0043765ee8ced0bb6",
+      "archiveSha256": "fce180d9ebfe25a2aadacb6b7988e27a062936743ac91df198f77600aad34719",
+      "artifactId": 13786215090,
+      "upstreamZipDigestNotLocallyRecomputed": "sha256:1eea3a7fbc006594c2c5792d8282e3a9db9501ea5ab68d8dc91547c909f10255"
+    },
+    {
+      "path": "raw/memory-query-index-windows-latest.json.gz",
+      "kind": "query-index",
+      "runner": "windows",
+      "matchedSourceCommit": "6338e6a1b1310af6a6164d799ab544ed0bc15668",
+      "rawSha256": "3f82e91cc6d7677afac7a03976330a92fcc02502f2d2c90aa353cb5ca5643401",
+      "archiveSha256": "ebedc8ab424c16147c63cc8c61ec2d2b08f5da9b317b56622f7fbf9545a62cac",
+      "artifactId": 13786255695,
+      "upstreamZipDigestNotLocallyRecomputed": "sha256:49ef9191ad27b6f8a4983263aba4f6e4cd6f660821b188ceb384798dab2ad5be"
+    },
+    {
+      "path": "raw/memory-stop-macos-latest.json.gz",
+      "kind": "stop",
+      "runner": "macos",
+      "matchedSourceCommit": "6338e6a1b1310af6a6164d799ab544ed0bc15668",
+      "rawSha256": "af047e29e3ea2f4585f0159273372d845ab489bc3bcf6a86bfb181c43acf7088",
+      "archiveSha256": "b105a8cd3214ac4ff3e74ccd16d9cccc50ba94e9cbb2d1e10e9daed9cd028b3a",
+      "artifactId": 13792834032,
+      "upstreamZipDigestNotLocallyRecomputed": "sha256:443939361c762ef710197574aef2fcad7a8eea3f52911d09c4b3fe2ca8312fe1"
+    },
+    {
+      "path": "raw/memory-stop-ubuntu-latest.json.gz",
+      "kind": "stop",
+      "runner": "ubuntu",
+      "matchedSourceCommit": "6338e6a1b1310af6a6164d799ab544ed0bc15668",
+      "rawSha256": "c38d376e1aba22edc64d7306767766a27c3a03d6259e138d5bd367540e1bfc81",
+      "archiveSha256": "41a6680f53823cdc75cda14b830f986795023754fe96acfd8f496b90aac345a2",
+      "artifactId": 13779689837,
+      "upstreamZipDigestNotLocallyRecomputed": "sha256:669e0ec2643c42cb67af306488210ff06b32028c330a85587be44776ae757e4d"
+    },
+    {
+      "path": "raw/memory-stop-windows-latest.json.gz",
+      "kind": "stop",
+      "runner": "windows",
+      "matchedSourceCommit": "6338e6a1b1310af6a6164d799ab544ed0bc15668",
+      "rawSha256": "7a606b6328ebe8eaf5e42852f6e9038230e512a6441798d89e5a81dcab408e0c",
+      "archiveSha256": "e0b486330d76971e9b22d6cab2dddb7d7b229f1e095a58a38465d98d345fec2a",
+      "artifactId": 13781521708,
+      "upstreamZipDigestNotLocallyRecomputed": "sha256:46683ebc04668bc2e6155d89290646c5e0cfb679583d9a733679a4c39bb0718c"
+    }
+  ]
+}

@@ -6,20 +6,21 @@
 
 保存前工作区已有原评审文档和 Memory 实现的未提交修改；本文不将这些修改视为准确提交的验证结果。初次保存时，本文只记录分析与建议，未重新执行模型任务、性能测试、GUI 旅程、GitHub Actions 或公开包下载核验。历史测试结果保持原版本、平台和样本范围，不累计为当前 HEAD 成绩。
 
-**实施进展（2026-11-08）**
+**完成情况（截至 2026-11-11）**
 
-本文已进入逐项实施阶段。上方“未执行测试”等表述记录保存前的审核范围；后续新增执行证据单独记载，不覆盖历史结果。整项目标尚未完成。
+第 1 项的上游比较基线已记录。第 2–9 项均已取得部分证据，仍有验收项未完成。下表汇总当前完成情况，各轮历史结果保留在后文。
 
-| 对应项                                    | 已有证据                                                                                                                                                                                                                              | 当前状态 | 剩余完成证据                                                                                                                        |
-| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| Item 2: actual input and attribution      | Native VS Code real task at bcce11f maps all four physical requests with 8 canonical diagnostics and 50/50/51/52 sources; JetBrains real task assertions passed with retained cleanup failure                                         | Partial  | Broader independent tasks/failure attribution; JetBrains unadapted mapping, safe teardown and cross-platform acceptance remain open |
-| Item 3: lifecycle recovery                | Source-bound recovery archives plus bcce11f real VS Code file task, visible canonical final result and actual IDE restart with zero new model requests; conditional JetBrains fixture recovery retained                               | Partial  | Complete cross-entry task/steer/compaction/disconnect recovery, safe teardown and multiplatform acceptance remain open              |
-| Item 4: MCP Tasks                         | Durable continuation and 3/3 crash windows, 755/755 regression; one real Volcengine DeepSeek continuation passed HTTP 200 with independent settled readback and no duplicate dispatch after REPL restart                              | Partial  | Remote production service, input continuation, expiry/revocation, dual IDE/desktop and multiplatform remain open                    |
-| Item 5: cost, context, and paid admission | Volcengine live probe, output-cap check, usage capture, official price snapshot, and unknown settlement boundary verified; scoped native price windows and expired-settlement recovery implemented with 234/234 offline budget checks | Partial  | Invoice reconciliation, real-account time-window pricing/FX acceptance, and formal paid admission remain open                       |
-| Item 6: Codex compatibility               | Source-bound native .167 and static 137/137 evidence archived; strict cold scan records upstream first-page omission                                                                                                                  | Partial  | Strict cold-scan repair/acceptance, three-system CI, Linux/macOS native cancellation/recovery, and model-change closure remain open |
-| Item 7: IDE / desktop journey             | Windows installed-VSIX fixture journeys and one original real-provider file/result/restart journey passed under temporary loopback conditions; native JetBrains task/UI/restart assertions retain overall cleanup failure             | Partial  | Stock-host ingress, exact-head platform/desktop matrix, full lifecycle, accessibility and upgrade/rollback remain open              |
-| Item 8: Memory performance and quality    | Production source wiring; daafda2 three-OS 11-sample query/Stop/mixed/compound matrix audited; new local 100-sample Stop failure retained                                                                                             | Partial  | Full 100-sample three-OS matrix, cold/hot/mixed SLO, local Stop latency cause and multilingual real-user tasks remain open          |
-| Item 9: shared logic and guidance         | Shared source-bound diagnostic projections; stream observer persistence fixed and real-body mapping verified; JetBrains history trace captures complete; conditional standard Gradle build and standing guidance retained             | Partial  | Unconditional/cross-platform acceptance, full safe lifecycle and independent desktop failure localization remain open               |
+| 对应项                    | 完成情况 | 已完成或已验证                                                                                                                                                                                                    | 仍待完成                                                                                                                                                                                                    |
+| ------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. 上游比较基线           | 已完成   | 已记录本轮核对的 Codex CLI `0.167.0` 和 Claude Code `2.1.319`。                                                                                                                                                   | —                                                                                                                                                                                                           |
+| 2. 模型实际输入与任务归因 | 部分完成 | 原生 VS Code 真实任务的 4 个实际请求均完成输入映射，共 8 条诊断记录。JetBrains 真实任务通过功能断言，保留清理失败。                                                                                               | 扩展真实任务和失败归因样本，完成 JetBrains 原始输入映射、安全退出和跨平台验收。                                                                                                                             |
+| 3. 跨入口生命周期与恢复   | 部分完成 | VS Code 真实任务在重启后恢复原结果，新增模型请求为 0。JetBrains 已完成有条件的恢复验证。                                                                                                                          | 覆盖追加要求、压缩、断线、恢复和安全退出的完整流程，验证其他平台和入口。                                                                                                                                    |
+| 4. MCP Tasks              | 部分完成 | 已验证持久化续跑和 3 个崩溃窗口。火山 DeepSeek 真实续跑返回 HTTP 200，REPL 重启后无重复派发。                                                                                                                     | 验证生产远程服务、追加输入、任务过期及撤销，并完成双 IDE、桌面端和跨平台验收。                                                                                                                              |
+| 5. 成本、上下文与付费准入 | 部分完成 | 已验证火山真实调用、输出上限和用量采集，归档官方价格并保留未知结算状态。离线预算检查 234/234 通过。                                                                                                               | 用真实任务比较上下文配置的交付成本，完成真实账号时段定价和汇率核对、账单对账及正式付费准入。                                                                                                                |
+| 6. Codex 兼容性           | 部分完成 | `71d392c0b` 的三系统兼容工作流 **24/24** 通过，`.167` 在三系统均通过原生回合、取消和数据库重启恢复。                                                                                                              | 三系统严格冷升序扫描均只返回 1/2 个已知线程。仍需冷发现修复、模型变更验证及生产准入。                                                                                                                       |
+| 7. IDE 与桌面端完整流程   | 部分完成 | Windows 安装版 VSIX 已通过受限条件下的真实任务、结果展示和重启验证。JetBrains 原生任务、界面及重启断言已有证据，保留整体清理失败。                                                                                | 验证常规宿主入口、三系统与桌面端完整流程、安全清理、无障碍以及安装升级与回滚。                                                                                                                              |
+| 8. Memory 性能与质量      | 部分完成 | Linux、Windows、macOS 每组 100 次的完整托管矩阵 **12/12** 通过。三个平台的 100K 冷分类列表 p95 均低于该场景的 1 秒候选目标。[运行回执](https://github.com/chainlesschain/chainlesschain/actions/runs/42850534026) | 本机两次 Stop 确认超出 500ms，原因待定位。仍需产品混合与恢复 SLO、真实 IDE Stop 和多语言真实用户任务验收。原始完整矩阵归档待合入。[草稿 PR #596](https://github.com/chainlesschain/chainlesschain/pull/596) |
+| 9. 共享逻辑与指导         | 部分完成 | 已共享输入诊断投影、修复流式诊断持久化并验证实际请求映射。已归档 JetBrains 历史记录跟踪与有条件的标准 Gradle 构建。                                                                                               | 完成常规环境与跨平台验收、安全退出流程及独立桌面故障定位。                                                                                                                                                  |
 
 本批兼容实现使用独立分支 feature/cli-ide-gap-20261108，工作区位于 .worktrees/cli-ide-gap-20261108。这样可满足现有协议探针对干净准确提交的要求，并保留主工作区已有 Memory / CLI CI 改动。尚未合并、发布或宣称生产支持扩大。
 
@@ -248,9 +249,9 @@ Four repository-hosted JetBrains journey/evidence suites passed **85/85** with N
 
 2026-11-09 MCP 续跑后续：消费凭据、真实输入保留、三种 Windows REPL 窗口及 HTTP 429 未决回执见[续跑实施记录](../implementation/cli-ide-mcp-continuation-authority-progress-2026-11-09.md)。真实模型成功消费仍未验收，不把未知用量改成零费用。
 
-## Current completion audit (2026-11-09)
+## Completion audit snapshot (2026-11-09)
 
-This table is the authoritative status snapshot for this plan. A row is marked complete only when the evidence matches the stated scope; fixture or static evidence does not satisfy a live-host, paid, native, or cross-platform gate.
+This table records the November 9 audit. The completion table at the top of the plan includes later evidence.
 
 | Scope                                      | Current evidence                                                                                                                                                                                                                        | Audit result                                                                                                                          | Remaining gate                                                                                                                      |
 | ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
@@ -468,13 +469,27 @@ Commit `39d95352e7089b4c0bf9e6fe5503a870cac5480a` connects the persisted model-i
 
 Remote thinking-cap/storage-failure changes were integrated at `bcce11f6455ad2584a5ce4fed36b5de6de23f2ff` (including remote `773e740`). The final integration regression passed **207/207 across six files** at that merge: the observer-related 111 tests plus thinking 26, history 17 and storage 53. The earlier 111-test result is included in this total and is not added again. A new native observer-mapping task was not yet started and has no acceptance result here. All Items2–9 remain **Partial**; full native lifecycle, safe teardown, three-system and paid-production gates stay open.
 
+### 2026-11-11 Codex 0.167 三系统兼容性复核
+
+核对提交 `71d392c0b36ffa26b5e7b19fe25054b1ebe3eecd` 的两组工作流与 Codex `0.167.0` 的 9 份原始报告。兼容工作流 **24/24** 通过，三系统 `.167` 的原生回合报告和数据库历史报告均为通过。数据库报告确认进程重启、设置恢复和已完成请求无重放。 [兼容工作流](https://github.com/chainlesschain/chainlesschain/actions/runs/42845933201)
+
+| 平台    | 原生回合与取消 | 数据库历史重启恢复 | 严格首次冷升序扫描        | 独立首次冷降序扫描        |
+| ------- | -------------- | ------------------ | ------------------------- | ------------------------- |
+| Linux   | 通过           | 通过，无重放       | 失败，发现 1/2 个已知线程 | 通过，2 页发现 2/2 个线程 |
+| Windows | 通过           | 通过，无重放       | 失败，发现 1/2 个已知线程 | 通过，2 页发现 2/2 个线程 |
+| macOS   | 通过           | 通过，无重放       | 失败，发现 1/2 个已知线程 | 通过，2 页发现 2/2 个线程 |
+
+三个冷扫描报告均保留 `cold-asc:first-scan` 失败。首请求使用 `sortKey:recency_at`、`limit:1` 和 `useStateDbOnly:false`，每次返回 1 条记录并给出空游标。官方协议把空 `nextCursor` 定义为分页结束。 [严格冷扫描工作流](https://github.com/chainlesschain/chainlesschain/actions/runs/42845933449) [OpenAI App Server 分页文档](https://learn.chatgpt.com/docs/app-server#list-threads-with-pagination--filters)
+
+上游 `rust-v0.167.0` 源码的升序扫描先截断文件结果，只把当页命中的文件回填 SQLite。`recency_at` 分支再查询 SQLite 并返回该查询的游标。索引为空且页大小为 1 时，后续文件未入库，数据库查询可以提前返回空游标。这条路径与三平台回执一致。降序分支在回填前多取文件，本轮 2 线程样本均完成分页。第 6 项仍为部分完成，冷发现修复、模型变更验证和生产准入仍待完成。 [上游回填与分页实现](https://github.com/openai/codex/blob/086ccc833bc9cf01024ad2dd6af7dbd421b6bf9a/codex-rs/rollout/src/recorder.rs#L597)
+
 ### 2026-11-11 Memory 三系统回执审计与完整矩阵续作
 
 第 8 项已补核发布源 `daafda2cf7790580467dae8ce006ceaa1285d3b4` 的 [Memory Actions 42722731666](https://github.com/chainlesschain/chainlesschain/actions/runs/42722731666)：12 个 job 均成功。三系统各档各模式仍为 11 次；各平台分别有 165 个五模式查询样本、66 个 Stop 样本、33 轮八进程混合及 99 个首次冷组合样本。所有 Stop 均在两个 500ms 限制内，没有送达后成功返回；送达前完成与取消确认分别计数。14 份原始报告、154 组提交/路径字节绑定及校验器 5 个拒绝边界用例已核对，详见[原始归档与离线校验器](../../cli/evidence/memory-platform-20261111/README.md)。这不将 11 次提升为 100 次验收，不给其他 HEAD 或完整依赖闭包背书。
 
 新的本机 Windows / Node 24.12.0 三档双模式各 100 次 Stop 测量保留 **失败**：600 个样本中 580 次确认取消、20 次送达前完成、送达后成功为 0，锁均释放且 authority 不变；但两个确认延迟为 631.349ms 和 514.960ms，超过既有 500ms 限制，退出码 1。原因尚未定位，原样本未删除或重跑覆盖。测量 checkout 为 `ed53ce6527` 加 Stop 基准覆盖层，11 个记录源码字节匹配 main `6338e6a1b1`；不是该 main 的干净提交整体验收。
 
-main 已有 Stop 修正和 6 个定向回归，本机 6/6 再验通过。本批继续补齐测试文件变化对 push/pull_request 的 CI 路径触发。使用既有工作流启动[每组 100 次的完整三系统矩阵 42850534026](https://github.com/chainlesschain/chainlesschain/actions/runs/42850534026)，准确源为 `6338e6a1b1310af6a6164d799ab544ed0bc15668`；启动后的运行状态不作为通过，终态与完整产物另行补记。第 8 项、全计划、真实 IDE 生命周期、多语言任务和账单/付费准入仍未完成。
+main 已有 Stop 修正和 6 个定向回归，本机 6/6 再验通过；测试文件变化的 push/pull_request 路径触发已随 `b2d87568e` 合入。随后[每组 100 次的完整三系统矩阵 42850534026](https://github.com/chainlesschain/chainlesschain/actions/runs/42850534026) **12/12 job 成功**，准确源为 `6338e6a1b1310af6a6164d799ab544ed0bc15668`。每平台核对 1,500 个五模式查询、600 个 Stop、300 轮八进程混合和 900 个首次冷组合样本；13 份完整矩阵回执已归档，两批共 27 份原字节及 286 组提交/路径字节绑定通过离线复核。100K 冷分类列表 p95 为 Linux 714.699ms、Windows 506.465ms、macOS 557.493ms，均低于该场景原 1s 候选目标。托管 Stop 全部满足 500ms 送达与确认限制；本机两个超限不改变。仅关闭完整托管测量子项，第 8 项仍 Partial：产品混合/恢复 SLO、真实 IDE Stop、多语言任务及本机延迟归因未完成；完整生命周期与账单/付费准入保持原状态。
 
 ### 2026-11-09 Original native stream task with canonical physical mapping
 
