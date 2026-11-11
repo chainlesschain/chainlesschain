@@ -525,6 +525,7 @@ journey: try {
                 return {
                   id: event.id,
                   goalId: event.goalId,
+                  kind: event.kind,
                   deliveryState: event.deliveryState,
                   dueAt: event.dueAt,
                   deliveredAt: event.deliveredAt,

@@ -15,6 +15,8 @@
 
 本批不将受控时钟等同真实整夜运行，也不关闭 DMM-05/09/10 的完整业务与发行条件。
 
+首次组合候选 `b2da49fb3b7cef405b1b62e04d4197fe4a03e676` 的 Windows [原生运行 42956915425](https://github.com/chainlesschain/chainlesschain/actions/runs/42956915425) 已实际构建、登录并完成一次风险检查，随后失败于驱动错误地假设只产生一条通知。生产代码为风险新增和待决策提案分别生成通知；本次保留失败证据，并修正驱动以核对这两种事件各自的原 ID、免打扰时间、投递次数及已读隔离。修正后的完整原生验收仍待新提交运行，不能将首次失败记为通过。
+
 [返回 Agent 研究索引](./README.md) · [返回研究索引](../README.md)
 
 参考：[ChainlessChain 对照 Palantir 的能力差距与优化建议](../palantir/chainlesschain-palantir-gap-analysis-2026-10-06.md)及其[实施进度](../palantir/palantir-gap-implementation-progress-2026-10-06.md)。

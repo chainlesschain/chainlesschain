@@ -66,10 +66,19 @@ async function exerciseGoalOvernight({
     )
     .toBe(1);
   result.night = await readEvents(goalId);
-  assert.equal(result.night.length, 1);
-  const pending = result.night[0];
-  assert.equal(pending.deliveryState, "pending");
-  assert.equal(pending.dueAt, Date.parse("2026-11-12T00:00:00.000Z"));
+  // One risk check also creates a proposal requiring a decision. These are
+  // distinct production events; each must retain its own ID and deliver once.
+  assert.deepEqual(result.night.map((event) => event.kind).sort(), [
+    "decision-needed",
+    "risk-added",
+  ]);
+  const pendingIds = result.night.map((event) => event.id).sort();
+  assert.equal(new Set(pendingIds).size, 2);
+  const pending = result.night.find((event) => event.kind === "risk-added");
+  for (const event of result.night) {
+    assert.equal(event.deliveryState, "pending");
+    assert.equal(event.dueAt, Date.parse("2026-11-12T00:00:00.000Z"));
+  }
   assert.deepEqual(await notices(), []);
   await window.screenshot({
     path: path.join(output, "overnight-quiet-pending.png"),
@@ -97,14 +106,18 @@ async function exerciseGoalOvernight({
   result.boundaryAt = await advanceClock("2026-11-12T00:00:00.000Z");
   await expect
     .poll(async () => (await notices()).length, { timeout: 30000 })
-    .toBe(1);
-  const delivered = (await notices())[0];
-  assert.equal(delivered.id, pending.id);
-  assert.equal(delivered.is_read, 0);
+    .toBe(2);
+  const delivered = await notices();
+  assert.deepEqual(delivered.map((event) => event.id).sort(), pendingIds);
+  for (const event of delivered) assert.equal(event.is_read, 0);
   result.morning = await readEvents(goalId);
-  assert.equal(result.morning.length, 1);
-  assert.equal(result.morning[0].deliveryState, "delivered");
-  assert.equal(result.morning[0].id, pending.id);
+  assert.deepEqual(result.morning.map((event) => event.id).sort(), pendingIds);
+  for (const event of result.morning) {
+    assert.equal(event.deliveryState, "delivered");
+    const original = result.night.find((item) => item.id === event.id);
+    assert.equal(event.kind, original.kind);
+    assert.equal(event.sourceVersion, original.sourceVersion);
+  }
   assert.equal(
     (await api("getGoalMonitoringStatus", { id: goalId })).usage.checks,
     1,
@@ -133,9 +146,12 @@ async function exerciseGoalOvernight({
   assert(window.url().includes(`goalNoticeId=${pending.id}`));
   await new Promise((resolve) => setTimeout(resolve, 2000));
   result.finalNotices = await notices();
-  assert.equal(result.finalNotices.length, 1);
-  assert.equal(result.finalNotices[0].id, pending.id);
-  assert.equal(result.finalNotices[0].is_read, 1);
+  assert.deepEqual(
+    result.finalNotices.map((event) => event.id).sort(),
+    pendingIds,
+  );
+  for (const event of result.finalNotices)
+    assert.equal(event.is_read, event.id === pending.id ? 1 : 0);
   result.finalStatus = await api("getGoalMonitoringStatus", { id: goalId });
   assert.equal(result.finalStatus.usage.checks, 1);
   assert.equal(result.finalStatus.monitor?.enabled ?? false, false);
