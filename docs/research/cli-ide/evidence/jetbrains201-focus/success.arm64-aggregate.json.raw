@@ -1,0 +1,147 @@
+{
+  "schema": "chainlesschain.ide-arm64-validation.v1",
+  "releaseCommit": "674593a1bb21a68d33b56dc0cb6ed420212143a2",
+  "result": "passed",
+  "required": true,
+  "architecture": "arm64",
+  "operatingSystems": [
+    "darwin",
+    "linux",
+    "win32"
+  ],
+  "vscodeVersionsPerOs": 2,
+  "jetbrainsVersionsByOs": {
+    "darwin": [
+      "2024.2",
+      "2025.2"
+    ],
+    "linux": [
+      "2024.2",
+      "2025.2"
+    ],
+    "win32": [
+      "2026.2.0.1"
+    ]
+  },
+  "vendorSupportBoundaries": {
+    "jetbrainsWindowsArm64": {
+      "validatedNativeVersion": "2026.2.0.1",
+      "distributionKey": "windowsARM64",
+      "source": "https://data.services.jetbrains.com/products/releases?code=IIU&type=release"
+    }
+  },
+  "evidenceCount": 11,
+  "matrix": [
+    {
+      "key": "jetbrains:darwin:2024.2",
+      "host": "jetbrains",
+      "operatingSystem": "darwin",
+      "version": "2024.2",
+      "slot": "2024.2",
+      "sourceRunAttempt": 1,
+      "evidenceDigest": "sha256:0a0e42108e225306809cff7ff92261fefd7c4faa29f15d8aaae92fb25781a0db",
+      "evidenceSha256": "sha256:3f6d8567a715e92885279b2b5cd68209ce55f8f1e4cf71ee4aac0caa3a2eabe6"
+    },
+    {
+      "key": "jetbrains:darwin:2025.2",
+      "host": "jetbrains",
+      "operatingSystem": "darwin",
+      "version": "2025.2",
+      "slot": "2025.2",
+      "sourceRunAttempt": 1,
+      "evidenceDigest": "sha256:6a6b9d249e14f954ff62404c567a67af64b0d10d3b1ccecf5459db8540614a2f",
+      "evidenceSha256": "sha256:7e3c9eb89344feaa1011e59caafb5b27b337437c7c2b5e18d76ae7531e71306c"
+    },
+    {
+      "key": "jetbrains:linux:2024.2",
+      "host": "jetbrains",
+      "operatingSystem": "linux",
+      "version": "2024.2",
+      "slot": "2024.2",
+      "sourceRunAttempt": 1,
+      "evidenceDigest": "sha256:37459759a53b547d1064326878fa0cef86dd323747b55acd4386e1dff55f6dec",
+      "evidenceSha256": "sha256:51feeb2b665e4328e8ce42d6577adf20517325c10586135d2d88d6a586c7c1bf"
+    },
+    {
+      "key": "jetbrains:linux:2025.2",
+      "host": "jetbrains",
+      "operatingSystem": "linux",
+      "version": "2025.2",
+      "slot": "2025.2",
+      "sourceRunAttempt": 1,
+      "evidenceDigest": "sha256:63a6cfb3fdf7eb69fc8900d8a3e264743fb3c37aeea20c09dc18bdef6acd0ce8",
+      "evidenceSha256": "sha256:6beee794df770fd26252ffb5c01ecf78af8d5def1174b261607965c496a3a1bf"
+    },
+    {
+      "key": "jetbrains:win32:2026.2.0.1",
+      "host": "jetbrains",
+      "operatingSystem": "win32",
+      "version": "2026.2.0.1",
+      "slot": "2026.2.0.1",
+      "sourceRunAttempt": 1,
+      "evidenceDigest": "sha256:3dd02d38aaffa8e4e6bbd818006d2d5677e68b5b2e53cf65ef523279a5c1acf6",
+      "evidenceSha256": "sha256:72fe2347e72d31c485a55c6447b3fa20aeddd3d135b4d89869492a417f1230e0"
+    },
+    {
+      "key": "vscode:darwin:minimum",
+      "host": "vscode",
+      "operatingSystem": "darwin",
+      "version": "1.85.2",
+      "slot": "minimum",
+      "sourceRunAttempt": 1,
+      "evidenceDigest": "sha256:edcc402847fca8e93173622c4a37b55a0b39a9837602ad26359fe77195a7b40f",
+      "evidenceSha256": "sha256:7719868a3a7abef1bdc99c5092609c3e7eebf957aa347bd0b10f4040703cf7bb"
+    },
+    {
+      "key": "vscode:darwin:stable",
+      "host": "vscode",
+      "operatingSystem": "darwin",
+      "version": "1.146.0",
+      "slot": "stable",
+      "sourceRunAttempt": 1,
+      "evidenceDigest": "sha256:8eb86d7fe9c381452d7a5408928853dd99c1924bce17d4c78b94cabeab877521",
+      "evidenceSha256": "sha256:065f712e41ac8c47eb1e76d9779620b9d4bd62ed87bcf695d47280ca2a01bb15"
+    },
+    {
+      "key": "vscode:linux:minimum",
+      "host": "vscode",
+      "operatingSystem": "linux",
+      "version": "1.85.2",
+      "slot": "minimum",
+      "sourceRunAttempt": 1,
+      "evidenceDigest": "sha256:0942beda8e460c6f0c8f2d26019efaddc01b466f844919f49a2a84b0c807e9d2",
+      "evidenceSha256": "sha256:b1a2c568e5d22c3a7e259f98450806c5adb9ebd38ecabc2c09d3a5860a6c93c8"
+    },
+    {
+      "key": "vscode:linux:stable",
+      "host": "vscode",
+      "operatingSystem": "linux",
+      "version": "1.146.0",
+      "slot": "stable",
+      "sourceRunAttempt": 1,
+      "evidenceDigest": "sha256:dc51872590f5ab75b4b0c7aa1e63f9c4af4e9e7799c6e50a2cc6972dd86f6136",
+      "evidenceSha256": "sha256:0e2b91847068a13e9671f1509a19db026e3491b53e39edf0f191688e13e8f462"
+    },
+    {
+      "key": "vscode:win32:minimum",
+      "host": "vscode",
+      "operatingSystem": "win32",
+      "version": "1.85.2",
+      "slot": "minimum",
+      "sourceRunAttempt": 1,
+      "evidenceDigest": "sha256:9eb8ee1482e464d178fc25b7a8ccf2c40a90e7914db6d8645531cf3b397cdc05",
+      "evidenceSha256": "sha256:cea65967ebfb8df86a488329cc80c0516433d61e2b226cffb4701e4683e24036"
+    },
+    {
+      "key": "vscode:win32:stable",
+      "host": "vscode",
+      "operatingSystem": "win32",
+      "version": "1.146.0",
+      "slot": "stable",
+      "sourceRunAttempt": 1,
+      "evidenceDigest": "sha256:ca38dd481d0a5ef9194df248200a4f8cc72287b78fa5dc0fd3b44e966f53d39d",
+      "evidenceSha256": "sha256:beba9245111015cdd4c666f38703d128d9ff70f2bcb0d9043b61bfa1be5a1100"
+    }
+  ],
+  "aggregateDigest": "sha256:ca015f163b5a8ff2c7d17c48e4c409a88db0f704f5e99b3cb71b9d97a1b1f2da"
+}

@@ -76,6 +76,25 @@
       "ide": 43039428960,
       "arm64": 43039429061
     },
-    "nativeAcceptance": "pending"
+    "nativeAcceptance": "pending",
+    "arm64Validation": {
+      "runId": 43039429061,
+      "attempt": 1,
+      "source": "674593a1bb21a68d33b56dc0cb6ed420212143a2",
+      "passed": 11,
+      "total": 11,
+      "conclusion": "success"
+    },
+    "ideWorkflowAttempt": 2,
+    "ideWorkflowConclusion": null,
+    "firstAttemptInfraFailures": {
+      "runId": 43039428960,
+      "attempt": 1,
+      "passed": 12,
+      "failed": 2,
+      "skipped": 5,
+      "total": 19,
+      "evidence": "docs/research/cli-ide/evidence/ide201-infrastructure/receipt.json"
+    }
   }
 }

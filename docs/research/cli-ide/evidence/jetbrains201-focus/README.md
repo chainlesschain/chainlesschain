@@ -17,4 +17,4 @@ CLI 0.166.147 已公开；配套 IDE 仍等待完整门禁。旧候选源码 `c3
 
 新源码的 Windows ARM64 2026.2.0.1 原生任务已通过（run 43039429061，job 130596694778，attempt 1）。制品 13868105187 的 ZIP 摘要为 `sha256:dda9edce950b1bb87adc7977b0d3fe169d3ca03b215a924072695d63ee535228`，共 1,897,928 字节；下载后核对旅程所列 55 份制品绑定。初次宿主事件记录的 12 次菜单显示均有 chosen 回调，原生测试失败、错误、跳过均为 0。另保留四份成功原始成员；旧源码两次失败保持原样。该任务使用确定性 CLI 夹具，没有真实模型调用。
 
-新源码的 [IDE Extensions](https://github.com/chainlesschain/chainlesschain/actions/runs/43039428960) 与 [ARM64](https://github.com/chainlesschain/chainlesschain/actions/runs/43039429061) 完整矩阵仍待完成；单个宿主通过不代替完整发行门禁。Open VSX 0.37.186 和 JetBrains 0.4.201 只有通过新提交的完整门禁后才创建标签发行。
+新源码的 [ARM64](https://github.com/chainlesschain/chainlesschain/actions/runs/43039429061) 完整矩阵已 11/11 通过，三系统 11 个实际宿主单元均有汇总绑定；原始汇总保存在 `success.arm64-aggregate.json.raw`。普通矩阵六个 JetBrains 原生宿主也已通过；[IDE Extensions](https://github.com/chainlesschain/chainlesschain/actions/runs/43039428960) 的 Linux 浏览器/Remote-SSH 因依赖下载 DNS 故障失败，保持源码完整重跑 attempt 2，详见[基础设施记录](../ide201-infrastructure/README.md)。Open VSX 0.37.186 和 JetBrains 0.4.201 只有通过完整新门禁后才创建标签发行。

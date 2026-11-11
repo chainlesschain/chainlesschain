@@ -157,6 +157,21 @@
         }
       ],
       "scope": "Native deterministic fixture CLI journey; not a live model or full matrix result"
+    },
+    "arm64Matrix": {
+      "sourceCommit": "674593a1bb21a68d33b56dc0cb6ed420212143a2",
+      "runId": 43039429061,
+      "attempt": 1,
+      "jobsPassed": 11,
+      "jobsTotal": 11,
+      "hostEvidenceCount": 11,
+      "artifactId": 13868626192,
+      "artifactDigest": "sha256:2797c533cc1651696a3637a3c4dd14b44da73d76ad3df3f318e429e8073adcaf",
+      "file": {
+        "path": "success.arm64-aggregate.json.raw",
+        "digest": "sha256:492a4e7dbe1e4b61e81d113d81c9b262925a9455c3bac9858ef80c1707d99678",
+        "bytes": 5140
+      }
     }
   }
 }

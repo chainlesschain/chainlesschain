@@ -2,7 +2,7 @@
 
 ## 概述
 
-更新日期：2026-11-11。CLI **0.166.147 已公开并核验**。Open VSX **0.37.186** / JetBrains **0.4.201** 仍等待新提交的完整宿主及 ARM64 验证，当前未发布。现有公开插件为 **0.37.185 / 0.4.200**，均仍推荐 CLI **0.166.146**。
+更新日期：2026-11-11。CLI **0.166.147 已公开并核验**。Open VSX **0.37.186** / JetBrains **0.4.201** 尚未发布；新源完整 ARM64 11/11 已通过，普通发行矩阵因 Linux 依赖下载 DNS 故障完整重跑中。现有公开插件为 **0.37.185 / 0.4.200**，均仍推荐 CLI **0.166.146**。
 
 ## 核心特性
 
@@ -38,12 +38,12 @@ CLI 发行源码为 `32451e4d568e414acdb9c956208e5cff827cd6e0`；IDE 焦点修�
 
 ## 测试覆盖
 
-| 范围               | 准确来源与结果                                                                                                                                                                                                                                                                   |
-| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| CLI 完整矩阵       | 发布源码的 [CLI CI 76/76](https://github.com/chainlesschain/chainlesschain/actions/runs/42959022247)、[Strict Sandbox 6/6](https://github.com/chainlesschain/chainlesschain/actions/runs/42959022282) 全部成功，覆盖全部配置宿主                                                 |
-| CLI 正式发布与回读 | [OIDC 发行](https://github.com/chainlesschain/chainlesschain/actions/runs/42976618525)及[公开回读](https://github.com/chainlesschain/chainlesschain/actions/runs/43032767673)成功；公开 tarball 与官方不可变制品逐字节一致                                                       |
-| 旧 IDE 候选        | `c3ac7485b2e671864acc52da1fa36fa13ad134fa` 的标准单元 353/353 和主矩阵通过；ARM64 Windows 菜单两次执行失败，均保留                                                                                                                                                               |
-| 新 IDE 修正        | `674593a1bb21a68d33b56dc0cb6ed420212143a2` 的五项新 JUnit 及真实最低 SDK 源码编译通过；[新主矩阵](https://github.com/chainlesschain/chainlesschain/actions/runs/43039428960)和[新 ARM64 矩阵](https://github.com/chainlesschain/chainlesschain/actions/runs/43039429061)尚待完成 |
+| 范围               | 准确来源与结果                                                                                                                                                                                                                                                                                                                                                               |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| CLI 完整矩阵       | 发布源码的 [CLI CI 76/76](https://github.com/chainlesschain/chainlesschain/actions/runs/42959022247)、[Strict Sandbox 6/6](https://github.com/chainlesschain/chainlesschain/actions/runs/42959022282) 全部成功，覆盖全部配置宿主                                                                                                                                             |
+| CLI 正式发布与回读 | [OIDC 发行](https://github.com/chainlesschain/chainlesschain/actions/runs/42976618525)及[公开回读](https://github.com/chainlesschain/chainlesschain/actions/runs/43032767673)成功；公开 tarball 与官方不可变制品逐字节一致                                                                                                                                                   |
+| 旧 IDE 候选        | `c3ac7485b2e671864acc52da1fa36fa13ad134fa` 的标准单元 353/353 和主矩阵通过；ARM64 Windows 菜单两次执行失败，均保留                                                                                                                                                                                                                                                           |
+| 新 IDE 修正        | `674593a1bb21a68d33b56dc0cb6ed420212143a2` 的五项新 JUnit、真实最低 SDK 源码编译、[完整 ARM64 11/11](https://github.com/chainlesschain/chainlesschain/actions/runs/43039429061) 及普通矩阵六个 JetBrains 宿主通过；[主矩阵](https://github.com/chainlesschain/chainlesschain/actions/runs/43039428960) 的 Linux 依赖下载失败，原源码完整重跑 attempt 2，尚未通过完整发行门禁 |
 
 本地扩展检查另保留工作树 Git 路径解析限制，不将其记为通过。上述结果不累加成不同源码的一次全量成绩。
 
@@ -58,7 +58,7 @@ CLI 使用 GitHub Actions OIDC Trusted Publishing，正式流程先核对公开�
 - `cc --version` 仍为旧版本：关闭旧 CLI/IDE 宿主，重启后用 `cc doctor` 核对实际 CLI 路径，再检查全局安装。
 - 编辑器找不到 0.37.186 或 0.4.201：这两个版本仍待发布，源码版本号不代表渠道已提供下载。
 - 插件提示 CLI 配对版本：先核对安装渠道和版本，再更新 CLI 并重启宿主；现有公开 IDE 仍推荐 .146，新候选推荐 .147。
-- ARM64 Rewind 菜单关闭：两次失败及新焦点交接修正已记录，等待完整新宿主验收；不将本地单元通过视为已解决全部原生问题。
+- ARM64 Rewind 菜单关闭：旧源两次失败保留；新焦点修正在 Windows ARM64 实际宿主及完整 ARM64 汇总通过。普通发行矩阵的 Linux 下载故障另行处理，插件仍未发布。
 
 ## 关键文件
 
