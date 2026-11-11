@@ -5,9 +5,8 @@
  * Usage: node scripts/audit-check.js [--omit=dev] [--audit-level=critical]
  */
 
-/* eslint-disable @typescript-eslint/no-require-imports */
 const { execSync } = require("child_process");
-/* eslint-enable @typescript-eslint/no-require-imports */
+const { parseAuditResult } = require("./audit-check-result.cjs");
 
 // Known unfixable vulnerabilities (no upstream fix available)
 // Update this list as fixes become available
@@ -47,6 +46,11 @@ const omitDev = args.includes("--omit=dev");
 const auditLevel =
   args.find((a) => a.startsWith("--audit-level="))?.split("=")[1] || "critical";
 
+if (!["critical", "high", "moderate", "low", "info"].includes(auditLevel)) {
+  console.error("Invalid npm audit severity level");
+  process.exit(1);
+}
+
 try {
   // Run npm audit with JSON output
   const cmd = `npm audit --json ${omitDev ? "--omit=dev" : ""} --audit-level=${auditLevel}`;
@@ -56,15 +60,19 @@ try {
     result = execSync(cmd, {
       encoding: "utf8",
       stdio: ["pipe", "pipe", "pipe"],
+      timeout: 60_000,
+      maxBuffer: 4 * 1024 * 1024,
     });
   } catch (e) {
+    if (e.signal || e.killed || e.code === "ETIMEDOUT")
+      throw new Error("npm audit did not finish within its deadline");
     // npm audit exits with non-zero when vulnerabilities found
     result = e.stdout || "{}";
   }
 
-  const audit = JSON.parse(result);
+  const audit = parseAuditResult(result);
 
-  if (!audit.vulnerabilities) {
+  if (Object.keys(audit.vulnerabilities).length === 0) {
     console.log("No vulnerabilities found");
     process.exit(0);
   }
