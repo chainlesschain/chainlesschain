@@ -2,6 +2,12 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
 
+## CLI 0.166.148 / IDE pairing candidate (2026-11-13)
+
+This candidate carries the CLI-owned self-evolution capability status projection into deployment status and the paired IDE configuration surfaces. Publication remains gated on the exact CLI CI, Strict Sandbox, and OIDC workflow for this commit.
+
+CLI **0.166.148** is a release candidate; install it only after the exact tag workflow publishes it. The paired candidates are VS Code **0.37.187** and JetBrains **0.4.202**.
+
 ## Public CLI 0.166.147 / IDE pairing (2026-11-12)
 
 This version retains original manifest catalog/head ownership through Evolution Ledger factories, rejecting substituted directories and mixed head ports while preserving custom-backend behavior. These local storage capabilities do not grant promotion authority. The separate original 36-task plus nine-first-run evaluation retains fixed source, model, budgets and independent acceptance; preparation is not a new task-completion result.

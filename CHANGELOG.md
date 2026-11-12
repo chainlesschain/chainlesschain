@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - cc CLI 0.166.148: self-evolution capability status projection (candidate, 2026-11-13)
+
+- Expose source-level self-evolution capability status and the governed deployment policy through the CLI deployment status command, making production authority, runtime evidence and automatic-promotion state explicit.
+- Pair with VS Code/Open VSX 0.37.187 and JetBrains 0.4.202; both IDEs surface the same CLI-owned capability state and recommend CLI 0.166.148. Publication remains gated on exact-source CI, host matrices and public readback.
+- Keep automatic promotion on HOLD: this release reports wiring evidence only and does not claim runtime producer/storage graphs, experiment acceptance or production promotion authority.
+
 ### Added - cc CLI 0.166.147: original manifest ownership and verified retest preparation (candidate, 2026-11-11)
 
 - Retain original file catalog/head ownership through the actual Evolution Ledger factories. Reject mixed load/CAS ports, forwarding wrappers and replaced directories without changing existing custom-backend read/write behavior or granting storage-graph/promotion authority.

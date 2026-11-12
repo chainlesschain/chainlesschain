@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.148",
+      "cliVersions": ["0.166.148"],
+      "date": "2026-11-13",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Added - cc CLI 0.166.148: self-evolution capability status projection (candidate, 2026-11-13)",
+          "body": "- Expose source-level self-evolution capability status and the governed deployment policy through the CLI deployment status command, making production authority, runtime evidence and automatic-promotion state explicit.\n- Pair with VS Code/Open VSX 0.37.187 and JetBrains 0.4.202; both IDEs surface the same CLI-owned capability state and recommend CLI 0.166.148. Publication remains gated on exact-source CI, host matrices and public readback.\n- Keep automatic promotion on HOLD: this release reports wiring evidence only and does not claim runtime producer/storage graphs, experiment acceptance or production promotion authority."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.147",
       "cliVersions": ["0.166.147"],
       "date": "2026-11-11",
