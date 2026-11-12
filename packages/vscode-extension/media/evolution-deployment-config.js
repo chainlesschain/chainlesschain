@@ -89,6 +89,27 @@
         el(`readiness-${command}-remediation`).textContent =
           row?.remediation || "";
       }
+      const capabilities = Array.isArray(data.evolutionCapabilityRows)
+        ? data.evolutionCapabilityRows
+        : [];
+      const capabilityRoot = el("evolution-capabilities");
+      capabilityRoot.textContent = capabilities.length
+        ? capabilities
+            .map(
+              (capability) =>
+                `${capability.id}: ${capability.state} ` +
+                `(implemented=${capability.implemented}; ` +
+                `wired=${capability.wired}; verified=${capability.verified}; ` +
+                `defaultEnabled=${capability.defaultEnabled})`,
+            )
+            .join("\n")
+        : "当前 CLI 未提供能力状态，请更新 CLI。";
+      const policy = data.evolutionPolicy;
+      el("evolution-policy").textContent = policy
+        ? `自动晋升=${policy.automaticPromotion || "unknown"}; ` +
+          `生产权威=${policy.productionAuthority === true ? "是" : "否"}; ` +
+          `运行时证据=${policy.runtimeEvidence === true ? "有" : "无"}`
+        : "CLI 未提供自动晋升/生产权威状态。";
       if (current.error) {
         el("notice").textContent = current.error;
         el("notice").className = "notice error";

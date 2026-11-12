@@ -40,6 +40,32 @@ function deploymentReadinessRows(status) {
   });
 }
 
+// The CLI owns this projection. An absent/invalid field is intentionally
+// rendered as unavailable rather than inferred from deployment.enabled or a
+// valid signature.
+function evolutionCapabilityRows(status) {
+  const projection = status?.evolutionStatus;
+  if (
+    !projection ||
+    projection.schemaVersion !== 1 ||
+    !Array.isArray(projection.capabilities)
+  ) {
+    return [];
+  }
+  return projection.capabilities
+    .filter((value) => value && typeof value === "object")
+    .map((value) => ({
+      id: typeof value.id === "string" ? value.id : "unknown",
+      state: typeof value.state === "string" ? value.state : "unknown",
+      implemented: value.implemented === true,
+      wired: value.wired === true,
+      verified: value.verified === true,
+      defaultEnabled: value.defaultEnabled === true,
+      lastEvidence:
+        typeof value.lastEvidence === "string" ? value.lastEvidence : null,
+    }));
+}
+
 function parseStatus(text) {
   let value;
   try {
@@ -119,6 +145,7 @@ function setEvolutionDeploymentEnabled(enabled, options = {}) {
 
 module.exports = {
   deploymentReadinessRows,
+  evolutionCapabilityRows,
   parseStatus,
   getEvolutionDeploymentStatus,
   configureEvolutionDeployment,

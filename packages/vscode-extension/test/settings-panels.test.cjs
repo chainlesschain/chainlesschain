@@ -16,6 +16,7 @@ const {
 const d = (c) => "sha256:" + c.repeat(64);
 const {
   deploymentReadinessRows,
+  evolutionCapabilityRows,
 } = require("../src/evolution-deployment-config.js");
 
 function admissionProjection(command, state = "admitted") {
@@ -61,6 +62,41 @@ test("deployment admission remains distinct from runtime verification and old CL
   ]) {
     assert.equal(deploymentReadinessRows(status)[0].state, "unknown");
   }
+});
+
+test("evolution capability projection stays fail-closed for IDE clients", () => {
+  assert.deepEqual(
+    evolutionCapabilityRows({
+      evolutionStatus: {
+        schemaVersion: 1,
+        capabilities: [
+          {
+            id: "skill-candidate-registry",
+            state: "not-wired",
+            implemented: true,
+            wired: false,
+            verified: false,
+            defaultEnabled: false,
+          },
+        ],
+      },
+    }),
+    [
+      {
+        id: "skill-candidate-registry",
+        state: "not-wired",
+        implemented: true,
+        wired: false,
+        verified: false,
+        defaultEnabled: false,
+        lastEvidence: null,
+      },
+    ],
+  );
+  assert.deepEqual(
+    evolutionCapabilityRows({ evolutionStatus: { schemaVersion: 2, capabilities: [] } }),
+    [],
+  );
 });
 
 test("deployment webview renders literal diagnostics and clears readiness on an older response", () => {

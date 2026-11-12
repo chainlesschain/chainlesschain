@@ -27,6 +27,22 @@ function printStatus(status) {
       chalk.yellow("  Warning:         TEST ONLY — not production credentials"),
     );
   logger.log(`  Auto promotion:  HOLD (manual review required)`);
+  const policy = status.evolutionPolicy || {};
+  logger.log(
+    `  Production auth:  ${policy.productionAuthority === true ? "available" : "not available"}`,
+  );
+  logger.log(
+    `  Runtime evidence:  ${policy.runtimeEvidence === true ? "present" : "absent"}`,
+  );
+  const capabilities = status.evolutionStatus?.capabilities;
+  if (Array.isArray(capabilities) && capabilities.length) {
+    logger.log("  Capability state:");
+    for (const capability of capabilities) {
+      logger.log(
+        `    ${capability.id}: ${capability.state} (wired=${capability.wired === true}, verified=${capability.verified === true})`,
+      );
+    }
+  }
   logger.log(`  Profile:         ${status.profilePath}`);
   if (status.descriptorPath)
     logger.log(`  Descriptor:      ${status.descriptorPath}`);

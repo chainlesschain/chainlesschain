@@ -410,6 +410,24 @@ describe("persistent evolution deployment configuration", () => {
       effectiveEnabled: true,
       verified: false,
       error: expect.stringContaining("revision rollback rejected"),
+      evolutionPolicy: {
+        automaticPromotion: "hold",
+        productionAuthority: false,
+        runtimeEvidence: false,
+      },
+      evolutionStatus: {
+        schemaVersion: 1,
+        capabilities: expect.arrayContaining([
+          expect.objectContaining({
+            id: "skill-candidate-registry",
+            implemented: true,
+            wired: true,
+            verified: false,
+            defaultEnabled: false,
+            state: "unverified",
+          }),
+        ]),
+      },
     });
     await expect(
       loadEvolutionDeploymentCommandDependencies("evolution", value.options),

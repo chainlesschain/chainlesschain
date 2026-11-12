@@ -19,7 +19,9 @@ public final class EvolutionDeploymentConfig {
                          boolean verified, String source, String descriptorPath,
                          String trustRootPath, String profilePath, String error,
                          String deploymentMode, String modulePath,
-                         List<String> commands, Map<String, Admission> readiness) {}
+                         List<String> commands, Map<String, Admission> readiness,
+                         Map<String, Object> evolutionStatus,
+                         Map<String, Object> evolutionPolicy) {}
 
     public static List<String> statusArgs() {
         return List.of("evolution", "deployment", "status", "--json");
@@ -72,7 +74,18 @@ public final class EvolutionDeploymentConfig {
                 text(value.get("profilePath")), text(value.get("error")),
                 text(value.get("deploymentMode")), text(value.get("modulePath")), List.copyOf(commands),
                 Map.of("ask", parseAdmission(value.get("readiness"), "ask"),
-                        "agent", parseAdmission(value.get("readiness"), "agent")));
+                        "agent", parseAdmission(value.get("readiness"), "agent")),
+                mapValue(value.get("evolutionStatus")),
+                mapValue(value.get("evolutionPolicy")));
+    }
+
+    private static Map<String, Object> mapValue(Object raw) {
+        if (!(raw instanceof Map<?, ?> map)) return Map.of();
+        Map<String, Object> result = new java.util.LinkedHashMap<>();
+        for (Map.Entry<?, ?> entry : map.entrySet()) {
+            if (entry.getKey() instanceof String key) result.put(key, entry.getValue());
+        }
+        return Map.copyOf(result);
     }
 
     private static Admission parseAdmission(Object raw, String command) {

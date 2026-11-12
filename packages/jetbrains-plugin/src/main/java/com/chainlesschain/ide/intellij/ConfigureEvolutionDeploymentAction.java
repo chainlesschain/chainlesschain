@@ -189,6 +189,28 @@ public final class ConfigureEvolutionDeploymentAction extends AnAction implement
                 if (admission.detail() != null) status.append("\n" + admission.detail());
                 if (admission.remediation() != null) status.append("\n" + admission.remediation());
             }
+            status.append("\n\nSelf-evolution capability status (CLI-owned):");
+            Object rawCapabilities = value.evolutionStatus().get("capabilities");
+            if (rawCapabilities instanceof List<?> capabilities && !capabilities.isEmpty()) {
+                for (Object raw : capabilities) {
+                    if (!(raw instanceof java.util.Map<?, ?> capability)) continue;
+                    status.append("\n" + String.valueOf(capability.get("id"))
+                            + ": " + String.valueOf(capability.get("state"))
+                            + " (implemented=" + String.valueOf(capability.get("implemented"))
+                            + ", wired=" + String.valueOf(capability.get("wired"))
+                            + ", verified=" + String.valueOf(capability.get("verified"))
+                            + ", defaultEnabled=" + String.valueOf(capability.get("defaultEnabled"))
+                            + ")");
+                }
+            } else {
+                status.append("\nUnavailable: update the CLI to expose the capability projection.");
+            }
+            status.append("\nAutomatic promotion: "
+                    + String.valueOf(value.evolutionPolicy().getOrDefault("automaticPromotion", "unknown"))
+                    + "; production authority: "
+                    + (Boolean.TRUE.equals(value.evolutionPolicy().get("productionAuthority")) ? "yes" : "no")
+                    + "; runtime evidence: "
+                    + (Boolean.TRUE.equals(value.evolutionPolicy().get("runtimeEvidence")) ? "present" : "absent"));
         }
     }
 }

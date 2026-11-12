@@ -47,6 +47,8 @@ final class EvolutionDeploymentConfigTest {
         assertEquals("test", status.deploymentMode());
         assertEquals("C:/host.mjs", status.modulePath());
         assertEquals(List.of("evolution", "learning"), status.commands());
+        assertTrue(status.evolutionStatus().isEmpty());
+        assertTrue(status.evolutionPolicy().isEmpty());
 
         EvolutionDeploymentConfig.Status disabled = EvolutionDeploymentConfig.parseStatus(
                 "{\"source\":\"none\",\"effectiveEnabled\":false,\"profileEnabled\":false,\"verified\":false}");
@@ -72,6 +74,23 @@ final class EvolutionDeploymentConfigTest {
         assertFalse(status.readiness().get("agent").admitted());
         assertEquals("ask the deployment owner", status.readiness().get("agent").remediation());
         assertFalse(EvolutionDeploymentConfig.parseStatus("{}").readiness().get("ask").known());
+    }
+
+    @Test
+    void parsesCliOwnedEvolutionCapabilityProjectionWithoutInferringReadiness() {
+        EvolutionDeploymentConfig.Status status = EvolutionDeploymentConfig.parseStatus("""
+                {"evolutionStatus":{"schemaVersion":1,"capabilities":[
+                  {"id":"skill-candidate-registry","implemented":true,"wired":false,
+                   "verified":false,"defaultEnabled":false,"state":"not-wired"}]},
+                 "evolutionPolicy":{"automaticPromotion":"hold","productionAuthority":false,
+                   "runtimeEvidence":false}}
+                """);
+        assertEquals(1L, status.evolutionStatus().get("schemaVersion"));
+        assertEquals("hold", status.evolutionPolicy().get("automaticPromotion"));
+        assertFalse((Boolean) status.evolutionPolicy().get("productionAuthority"));
+        @SuppressWarnings("unchecked")
+        List<Object> capabilities = (List<Object>) status.evolutionStatus().get("capabilities");
+        assertEquals("not-wired", ((java.util.Map<?, ?>) capabilities.get(0)).get("state"));
     }
 
     @Test

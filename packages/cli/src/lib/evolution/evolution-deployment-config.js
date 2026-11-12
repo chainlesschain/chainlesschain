@@ -14,6 +14,31 @@ import {
   resolveEvolutionEnabled,
   writeEvolutionEnabled,
 } from "./evolution-enabled.js";
+import {
+  CAPABILITY_MANIFEST,
+  buildEvolutionStatus,
+} from "../capability-manifest.js";
+
+// This is deliberately a static, fail-closed projection. Deployment
+// verification proves that a signed host may be selected; it does not prove
+// that a capability has produced a verified learning receipt or that active
+// promotion is safe. Keep those claims separate so CLI and IDE clients cannot
+// infer production readiness from a valid deployment alone.
+const EVOLUTION_STATUS_PROJECTION = Object.freeze({
+  automaticPromotion: "hold",
+  productionAuthority: false,
+  runtimeEvidence: false,
+  scope: "cli-manifest-and-deployment-admission",
+});
+
+// The CLI composition owns these capability seams. Marking them wired only
+// records source-level composition; verification still requires a digest-bound
+// receipt and therefore remains false until a real evaluator/producer emits it.
+const EVOLUTION_WIRING_EVIDENCE = Object.freeze(
+  Object.fromEntries(
+    CAPABILITY_MANIFEST.evolutionCapabilities.map(({ id }) => [id, { wired: true }]),
+  ),
+);
 
 function environmentSelection(env) {
   const descriptorPath = env.CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_DESCRIPTOR;
@@ -155,6 +180,8 @@ export async function getEvolutionDeploymentStatus(options = {}) {
     verified: false,
     error: saved.error,
     autoPromotion: "hold",
+    evolutionStatus: buildEvolutionStatus({ evidence: EVOLUTION_WIRING_EVIDENCE }),
+    evolutionPolicy: EVOLUTION_STATUS_PROJECTION,
   };
   if (!selected || saved.error) return withDeploymentReadiness(base);
   try {
