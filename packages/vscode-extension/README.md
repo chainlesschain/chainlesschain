@@ -4,7 +4,7 @@ ChainlessChain agent workspace for VS Code-compatible editors with streaming cha
 
 ## Next release candidate
 
-Source candidate **0.37.187** recommends CLI **`0.166.147`** and pairs with JetBrains **0.4.201**. Publish the IDE only after the CLI is public and this exact source passes its host, Remote-SSH and browser gates. Agent Protocol **0.1.13**, Agent SDK **0.2.18**, Context/Memory Kernel **0.1.12** and Session Core **0.3.27** remain unchanged.
+Source candidate **0.37.187** recommends CLI **`0.166.148`** and pairs with JetBrains **0.4.202**. Publish the IDE only after the CLI is public and this exact source passes its host, Remote-SSH and browser gates. Agent Protocol **0.1.13**, Agent SDK **0.2.18**, Context/Memory Kernel **0.1.12** and Session Core **0.3.27** remain unchanged.
 
 The extension has not been published.
 

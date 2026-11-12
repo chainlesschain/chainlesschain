@@ -1,5 +1,11 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.202] - CLI-owned self-evolution capability status (candidate, 2026-11-13)
+
+- Recommend CLI 0.166.148 and pair with VS Code/Open VSX 0.37.187 after verified CLI publication.
+- Surface the CLI-owned self-evolution capability projection in the deployment configuration view, keeping production authority, runtime evidence and automatic promotion boundaries explicit.
+- Require exact-source host, ARM64, packaging and Marketplace readback gates before publication.
+
 ## [0.4.201] - evolved CLI pairing candidate (2026-11-11)
 
 - Recommend CLI 0.166.147 and pair with Open VSX 0.37.186 after verified CLI publication.
