@@ -2,6 +2,11 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.187] - CLI-owned self-evolution capability status (candidate, 2026-11-12)
+
+- Surface the CLI-owned self-evolution capability projection in the deployment configuration panel, including wired/verified/default-enabled state and explicit production-authority and promotion boundaries.
+- Keep the release candidate paired with CLI `0.166.147`; public artifact and host-gate verification remain required before publication.
+
 ## [0.37.186] - evolved CLI pairing candidate (2026-11-11)
 
 - Recommend CLI 0.166.147 for original manifest component ownership and the new source-bound 36+9 retest preparation.
