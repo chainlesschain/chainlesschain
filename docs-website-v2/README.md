@@ -1,5 +1,9 @@
 # ChainlessChain 官方网站
 
+## 2026-11-13 官网发布状态
+
+Website release status now tracks CLI `0.166.148`, Open VSX `0.37.187`, and JetBrains `0.4.202` upload status. The website distinguishes public channels from the Marketplace pending-review build and exposes the self-evolution governance boundary.
+
 ## 2026-11-09 当前发行与主线核对
 
 公开组合 **CLI 0.166.145 / Session Core 0.3.27 / Open VSX 0.37.181 / JetBrains 0.4.198**，两款 IDE 推荐 CLI .145。Open VSX 下载突破 **7 万+**（项目方确认）。PC/mobile 仍为 **v5.0.3.145**；源码产品 .146 与 VS Code .182 不作为已发布下载推荐。

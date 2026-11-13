@@ -1,5 +1,12 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+
+## 2026-11-13 CLI / IDE self-evolution status release
+
+CLI **0.166.148** was published through GitHub Actions OIDC from exact source `146b3fbd438eece981aa14327d9481156683acd4`; CLI CI **76/76** and Strict Sandbox passed on all configured systems. Open VSX **0.37.187** is public and recommends CLI **0.166.148**. JetBrains **0.4.202** completed build, host-matrix and Marketplace upload steps, but is still awaiting manual Marketplace listing review.
+
+The release projects one CLI-owned self-evolution capability state into CLI, VS Code and JetBrains: `automaticPromotion=HOLD`, `productionAuthority=false`, and `runtimeEvidence=false`. This confirms configuration wiring only; it does not claim a production producer/storage graph, A/B acceptance, business-effect acceptance, or promotion authority. Run `cc evolution deployment status --json` after upgrading.
+
 ## Public CLI / IDE release status (2026-11-12)
 
 CLI **0.166.147** is public through [Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/42976618525), with [public provenance and immutable artifact byte verification](https://github.com/chainlesschain/chainlesschain/actions/runs/43032767673). Exact source `32451e4d568e414acdb9c956208e5cff827cd6e0` passed all **76 CLI CI** and **6 Strict Sandbox** jobs. Install `npm i -g chainlesschain@0.166.147 --registry https://registry.npmjs.org`, restart hosts, then run `cc --version` and `cc doctor`.
