@@ -96,3 +96,28 @@ CLI 包含 RRSI 评估相关模块。这个开关控制普通模型入口是否�
 - [VS Code 插件使用说明](../../packages/vscode-extension/README.md)
 - [JetBrains 插件使用说明](../../packages/jetbrains-plugin/README.md)
 - [CLI 文档索引](./README.md)
+
+## 2026-11-13 状态投影与发布边界
+
+CLI `0.166.148`, VS Code/Open VSX `0.37.187`, and JetBrains `0.4.202` share one CLI-owned self-evolution capability projection. IDEs render the projection but do not store governance keys or receive review, publication, or production-promotion authority.
+
+Run:
+
+```bash
+cc evolution deployment status
+cc evolution deployment status --json
+```
+
+The `evolutionStatus` object separates source wiring from runtime verification. `sourceWiring` records whether the CLI/IDE configuration surface is connected; `verified` is only true after deployment and runtime evidence is verified. This release reports source-level wiring evidence and keeps `verified` false.
+
+The `evolutionPolicy` projection is:
+
+```json
+{
+  "automaticPromotion": "hold",
+  "productionAuthority": false,
+  "runtimeEvidence": false
+}
+```
+
+This status does not claim a production producer/storage graph, A/B experiment acceptance, business-effect acceptance, or automatic publication authority. Those conclusions require independent runtime evidence and protected deployment approval. The CLI and both IDEs continue to write the shared `evolution.enabled` setting; restart running Agent sessions after changing it.

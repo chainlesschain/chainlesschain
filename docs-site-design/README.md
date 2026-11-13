@@ -1,5 +1,9 @@
 # ChainlessChain 设计文档网站
 
+## 2026-11-13 设计文档状态
+
+Module 112 now defines the CLI/IDE capability projection boundary: `sourceWiring` is separate from runtime `verified`, `automaticPromotion` remains `HOLD`, and production authority/runtime evidence remain disabled. The source of truth is `docs/design/`.
+
 ## 2026-11-09 当前发行与主线核对
 
 公开组合 **CLI 0.166.145 / Session Core 0.3.27 / Open VSX 0.37.181 / JetBrains 0.4.198**，两款 IDE 推荐 CLI .145。Open VSX 下载突破 **7 万+**（项目方确认）。PC/mobile 仍为 **v5.0.3.145**；源码产品 .146 与 VS Code .182 不作为已发布下载推荐。

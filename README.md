@@ -1,5 +1,12 @@
 # ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+
+## 2026-11-13 CLI / IDE 自进化状态发布
+
+CLI **0.166.148** was published through GitHub Actions OIDC from exact source `146b3fbd438eece981aa14327d9481156683acd4`; CLI CI **76/76** and Strict Sandbox passed. Open VSX **0.37.187** is public and recommends CLI **0.166.148**. JetBrains **0.4.202** completed build, host-matrix and Marketplace upload steps, but remains pending manual listing review.
+
+The release projects one CLI-owned self-evolution capability state into CLI, VS Code and JetBrains: `automaticPromotion=HOLD`, `productionAuthority=false`, and `runtimeEvidence=false`. This confirms configuration wiring only; it does not claim a production producer/storage graph, A/B acceptance, business-effect acceptance, or promotion authority. Run `cc evolution deployment status --json` after upgrading.
+
 ## 2026-11-13 CLI / IDE ????
 
 CLI **0.166.148** ??? GitHub Actions OIDC ???????? `146b3fbd438eece981aa14327d9481156683acd4`?CLI CI **76/76** ? Strict Sandbox ??????npm ?????? provenance ????????????`npm i -g chainlesschain@0.166.148 --registry https://registry.npmjs.org`?

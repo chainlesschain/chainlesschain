@@ -1,43 +1,43 @@
 {
-  "checkedAt": "2026-11-11",
-  "recommendedCliVersion": "0.166.146",
-  "npmLatestCliVersion": "0.166.146",
-  "sourceMainCliVersion": "0.166.146",
-  "cliReleaseTag": "v-npm-0-166-146",
-  "cliReleaseCommit": "daafda2cf7790580467dae8ce006ceaa1285d3b4",
-  "npmLatestReleaseTag": "v-npm-0-166-146",
-  "npmLatestReleaseCommit": "daafda2cf7790580467dae8ce006ceaa1285d3b4",
-  "npmLatestGateStatus": "Exact-source CLI CI: 76 success; Strict Sandbox: 6 success. GitHub Actions OIDC publication and public registry bytes/provenance verification succeeded. Both paired IDE releases are public.",
+  "checkedAt": "2026-11-13",
+  "recommendedCliVersion": "0.166.148",
+  "npmLatestCliVersion": "0.166.148",
+  "sourceMainCliVersion": "0.166.148",
+  "cliReleaseTag": "v-npm-0-166-148",
+  "cliReleaseCommit": "146b3fbd438eece981aa14327d9481156683acd4",
+  "npmLatestReleaseTag": "v-npm-0-166-148",
+  "npmLatestReleaseCommit": "146b3fbd438eece981aa14327d9481156683acd4",
+  "npmLatestGateStatus": "Exact-source CLI CI 76/76 and Strict Sandbox passed; GitHub Actions OIDC publication and public registry bytes/provenance verification succeeded.",
   "cliReleaseGateConclusion": "success",
-  "sourceCandidateCommit": "daafda2cf7790580467dae8ce006ceaa1285d3b4",
-  "sourceHeadCommit": "6338e6a1b1310af6a6164d799ab544ed0bc15668",
+  "sourceCandidateCommit": "146b3fbd438eece981aa14327d9481156683acd4",
+  "sourceHeadCommit": "d04ca3e6559350614b04561f14fc9e3e06a2da48",
   "documentedDesktopCommit": "93917e15d6fd65a4a0147f2e5b5aace1bc87294a",
   "postReleaseDesktopGovernanceCommit": "3fa3a4b258bbcb60b23b4298cec375661ad6f410",
-  "sourceMainStatus": "Reviewed main 6338e6a1b1310af6a6164d799ab544ed0bc15668 includes canonical Memory corrections, durable MCP continuation, explicit output-token limits and diagnostic recovery. #591 tightens history page-size diagnostics while upstream #572 remains unresolved. #593 fixes rewind popup anchoring in main only; public JetBrains .199 retains source daaf and does not contain that later change.",
+  "sourceMainStatus": "Main includes CLI/IDE self-evolution capability status projection. The projection is CLI-owned, source-wiring evidence only; automatic promotion remains HOLD and production authority/runtime evidence remain disabled.",
   "agentSdkVersion": "0.2.18",
   "pythonAgentSdkVersion": "0.2.9",
   "agentProtocolVersion": "0.1.13",
-  "openVsxVersion": "0.37.185",
-  "sourceVsCodeVersion": "0.37.185",
-  "vsCodeCandidateVersion": "0.37.185",
-  "vsCodeCandidateCommit": "2ae832f9054ac834b06d00a38ce1a95038ff43bb",
-  "vsCodeCandidateStatus": "Verified public Open VSX .185, paired with public CLI .146; complete official release workflow succeeded.",
-  "developmentCheckedAt": "2026-11-10",
-  "openVsxRecommendedCliVersion": "0.166.146",
+  "openVsxVersion": "0.37.187",
+  "sourceVsCodeVersion": "0.37.187",
+  "vsCodeCandidateVersion": "0.37.187",
+  "vsCodeCandidateCommit": "146b3fbd438eece981aa14327d9481156683acd4",
+  "vsCodeCandidateStatus": "Open VSX 0.37.187 is public and recommends CLI 0.166.148; exact-source IDE workflow succeeded.",
+  "developmentCheckedAt": "2026-11-13",
+  "openVsxRecommendedCliVersion": "0.166.148",
   "openVsxDownloadsMilestone": "70,000+",
   "openVsxDownloadsDisplayZh": "7 万+",
   "openVsxDownloadsDisplayEn": "70K+",
-  "jetBrainsMarketplaceVersion": "0.4.199",
-  "sourceJetBrainsVersion": "0.4.199",
-  "vsCodeReleaseCommit": "2ae832f9054ac834b06d00a38ce1a95038ff43bb",
-  "lastFullyGatedVsCodeVersion": "0.37.185",
-  "lastFullyGatedJetBrainsVersion": "0.4.199",
+  "jetBrainsMarketplaceVersion": "0.4.200",
+  "sourceJetBrainsVersion": "0.4.202",
+  "vsCodeReleaseCommit": "146b3fbd438eece981aa14327d9481156683acd4",
+  "lastFullyGatedVsCodeVersion": "0.37.187",
+  "lastFullyGatedJetBrainsVersion": "0.4.202",
   "sessionCoreVersion": "0.3.27",
   "contextMemoryKernelVersion": "0.1.12",
   "personalDataHubVersion": "0.4.66",
   "coreDbVersion": "0.1.5",
   "jetBrainsRecommendedCliVersion": "0.166.146",
-  "jetBrainsReleaseCommit": "daafda2cf7790580467dae8ce006ceaa1285d3b4",
+  "jetBrainsReleaseCommit": "146b3fbd438eece981aa14327d9481156683acd4",
   "unpublishedCliVersions": [
     "0.166.23",
     "0.166.27",
@@ -55,16 +55,16 @@
     "0.166.134",
     "0.166.137"
   ],
-  "jetBrainsCandidateStatus": "Official release workflow and actual upload succeeded; Marketplace approval, listing and public version .199 were verified.",
+  "jetBrainsCandidateStatus": "JetBrains 0.4.202 build, host matrix and Marketplace upload succeeded; public listing is pending manual Marketplace review.",
   "sourceSessionCoreVersion": "0.3.27",
   "sourcePersonalDataHubVersion": "0.4.66",
   "productVersion": "v5.0.3.145",
   "sourceContextMemoryKernelVersion": "0.1.12",
   "productReleaseWorkflowStatus": "Public product145 at source93917e15d6fd65a4a0147f2e5b5aace1bc87294a; official Release run41961242898 attempt2 succeeded. Public metadata lists22 assets. Product source predates new native v6 task creation/model drafts in CLI143 source.",
-  "jetBrainsCandidateVersion": "0.4.199",
-  "jetBrainsCandidateRecommendedCliVersion": "0.166.146",
-  "jetBrainsCandidateCommit": "daafda2cf7790580467dae8ce006ceaa1285d3b4",
-  "jetBrainsPublicationStatus": "verified-public",
+  "jetBrainsCandidateVersion": "0.4.202",
+  "jetBrainsCandidateRecommendedCliVersion": "0.166.148",
+  "jetBrainsCandidateCommit": "146b3fbd438eece981aa14327d9481156683acd4",
+  "jetBrainsPublicationStatus": "uploaded-pending-review",
   "taskRetestStatus": "COMPLETE_VERIFIED_HISTORICAL_PUBLIC140_CORRECTED_ROUND",
   "taskRetestRecords": 45,
   "taskRetestNewAccepted": 1,
@@ -87,7 +87,9 @@
     "microsoftMarketplace": "deferred-unpublished",
     "historicalAcceptanceInventory": "Provider, source and cohort scopes remain separate; engineering checks and release add no acceptance.",
     "volcengineLatest140CorrectedRound": "generation39/45;strict24/45;run41638188839",
-    "solLatest140RepairedFour": "2/4;other41 samples not run in this cohort"
+    "solLatest140RepairedFour": "2/4;other41 samples not run in this cohort",
+    "productionAuthority": "DISABLED",
+    "runtimeEvidence": "NOT_VERIFIED"
   },
   "release108Channels": {
     "cli": {
@@ -126,9 +128,9 @@
   },
   "jetBrainsUpdateId": null,
   "historicalTaskRetestRelease": "0.166.138",
-  "upgradeGuide": "https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-11-10-146.html",
+  "upgradeGuide": "https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-11-13-148.html",
   "recoveryGuide": "https://docs.chainlesschain.com/chainlesschain/agent-input-and-recovery.html",
-  "runtimeDesign": "https://design.chainlesschain.com/release-runtime-update-2026-11-10.html",
+  "runtimeDesign": "https://design.chainlesschain.com/modules/112-governed-skill-evolution-design.html",
   "release117Channels": {
     "cli": {
       "version": "0.166.117",
@@ -491,7 +493,7 @@
       "publicListingVerified": true
     }
   },
-  "jetBrainsCandidateArtifactsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/42761723143#artifacts",
+  "jetBrainsCandidateArtifactsUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/43323403954#artifacts",
   "historical138Limits": {
     "paidReadiness": "NOT_PAID_READY",
     "nativeAdmission": "NOT_ADMITTED",
@@ -502,7 +504,10 @@
     "usageCompleteRequests": "80/80",
     "knownTokenOnlyEstimateUsd": 2.6309597,
     "actualBilledCostUsd": null,
-    "authorFailures": ["verify-08", "verify-36"],
+    "authorFailures": [
+      "verify-08",
+      "verify-36"
+    ],
     "failureTerminal": "error_max_turns (20/20); independent review not reached",
     "microsoftMarketplace": "deferred-unpublished",
     "historicalAcceptanceInventory": "41/45 retained cross-version historical acceptance. Public .138 accepted 2/4 selected samples; do not add this result to the historical inventory or present it as a full 45-task cohort. Engineering, release and documentation checks add no model acceptance."
@@ -574,7 +579,9 @@
   "taskRetestRelease": "0.166.140",
   "taskRetestProvider": "volcengine",
   "taskRetestRunId": 41638188839,
-  "taskRetestNewAcceptedSampleIds": ["verify-04"],
+  "taskRetestNewAcceptedSampleIds": [
+    "verify-04"
+  ],
   "taskRetestNewAcceptedScope": "New to historical union35->36, not this round total or new .141 acceptance",
   "taskInventoryProvider": "openai",
   "taskInventoryScope": "original-frozen-project-historical-acceptance",
@@ -600,7 +607,9 @@
       "generationPassed": 39,
       "strictAccepted": 24,
       "total": 45,
-      "newToHistoricalUnion": ["verify-04"]
+      "newToHistoricalUnion": [
+        "verify-04"
+      ]
     }
   },
   "release141Channels": {

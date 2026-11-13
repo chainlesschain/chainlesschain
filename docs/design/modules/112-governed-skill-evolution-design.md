@@ -523,3 +523,19 @@ autoPromotion: hold
 - [Agent Platform 发布与证据边界](./110-agent-platform-release-boundaries.md)
 - [Record & Replay → Skill](./111-record-replay-skill-design.md)
 - [Desktop 受治理模型入口](./113-governed-desktop-model-ingress-design.md)
+
+## 2026-11-13 CLI/IDE 能力状态投影更新
+
+Release commit `146b3fbd438eece981aa14327d9481156683acd4` centralizes deployment status projection in a CLI-owned contract. CLI `evolution deployment status`, the VS Code panel, and the JetBrains action expose the same boundary; IDEs do not duplicate governance logic or receive signing, review, publication, or production authority.
+
+The contract separates code wiring from runtime verification: `sourceWiring` records whether the configuration surface is connected, while `verified` can become true only after deployment and runtime evidence are complete. This release provides source-level wiring evidence only, so runtime evidence remains false.
+
+```json
+{
+  "automaticPromotion": "hold",
+  "productionAuthority": false,
+  "runtimeEvidence": false
+}
+```
+
+The UI state must not be interpreted as a production producer/storage graph, A/B result, business-effect acceptance, or promotion authorization. Any future change requires independent runtime evidence, protected deployment records, and readback verification.
