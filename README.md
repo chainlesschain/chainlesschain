@@ -1,12 +1,12 @@
 # ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
-## 2026-11-13 CLI / IDE 自进化历史校验候选版
+## 2026-11-14 CLI / IDE 发布状态
 
-待发布组合为 CLI **0.166.149**、VS Code/Open VSX **0.37.188**、JetBrains **0.4.203**，两款 IDE 均推荐 CLI **0.166.149**。本次把原始 catalog/head 目录边界校验接入保留历史报告，并在最终日志验证后再次检查目录替换。公开发行须先通过准确源码的全平台 CLI CI / Strict Sandbox 和 Actions OIDC 发布回读，再发布 IDE 插件。见[升级说明](docs-site/docs/chainlesschain/cli-ide-update-2026-11-13-149.md)。
+CLI **0.166.149** 已通过 [GitHub Actions OIDC 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/43475425890)。准确源码 `168a3d561b5a16e9d27b060944c63b2264c99df0` 的 CLI CI **76/76**、Strict Sandbox **6/6** 全部通过，官方公开归档及来源验证成功，独立公开下载与正式制品逐字节一致。安装：`npm i -g chainlesschain@0.166.149 --registry https://registry.npmjs.org`，重启宿主后运行 `cc --version`、`cc doctor`。
 
-当前已公开组合仍为 CLI **0.166.148**、Open VSX **0.37.187**、JetBrains **0.4.202**；JetBrains .202 已获批准并列出。安装已公开 CLI：`npm i -g chainlesschain@0.166.148 --registry https://registry.npmjs.org`。新候选版公开前请使用这一组合。
+Open VSX **0.37.188** 已公开，推荐 CLI **0.166.149**，完整宿主门禁及独立公开 VSIX 字节回读通过。配套 JetBrains **0.4.203** 推荐同一 CLI，已通过完整正式门禁并上传，待商店审核及公开下载核验；此前已核验的公开 JetBrains **0.4.202** 推荐 CLI **0.166.148**。见[升级说明](docs-site/docs/chainlesschain/cli-ide-update-2026-11-13-149.md)和[发布证据](docs/research/cli/evidence/release149-public/publication.json)。
 
-本次能力限于本地目录元数据检查，自定义或包装后端不能取得原组件所有权。`automaticPromotion=HOLD`、`productionAuthority=false`、`runtimeEvidence=false` 保持；完整运行时存储图、独立安装器与固定依赖、A/B/C 评测、业务效果和自动晋升尚未完成。Microsoft Marketplace 仍未发布。升级后运行 `cc --version`、`cc doctor` 和 `cc evolution deployment status --json`。
+本次将原始 catalog/head 目录边界检查接入保留历史报告，并在最终日志验证后再次检查目录替换，能力限于本地目录元数据。自定义或包装后端不能取得原组件所有权。`automaticPromotion=HOLD`、`productionAuthority=false`、`runtimeEvidence=false` 保持；完整运行时存储图、独立安装器与固定依赖、A/B/C 评测、业务效果和自动晋升尚未完成。本轮没有新增模型任务验收。Microsoft Marketplace 仍未发布，PC/mobile 公开版本仍为 **v5.0.3.145**。**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保持。
 
 ## 2026-11-12 CLI / IDE 发布状态
 

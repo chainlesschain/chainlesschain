@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 系统设计文档
-  tagline: "CLI 0.166.146 / Open VSX 0.37.185 / JetBrains 0.4.199 已公开；PC/mobile 当前公开 .145，.146 构建与制品仍待核验"
+  tagline: "CLI 0.166.149 / Open VSX 0.37.188 已公开；JetBrains .203 已上传待审，PC/mobile 当前公开 .145"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -22,8 +22,8 @@ hero:
 features:
   - icon: 🛡️
     title: 主线 Runtime 与发行边界
-    details: "公开 CLI .146 / IDE .185/.199 与主线分别记录；Memory 修正、MCP 续接、诊断恢复和原生入口按各自证据范围判断。"
-    link: /release-runtime-update-2026-11-10
+    details: "CLI .149 / Open VSX .188 已通过正式门禁及公开回读，JetBrains .203 已上传待审。原始目录边界检查限于本地元数据，运行时证据、生产权限和自动晋升仍不具备。"
+    link: /release-runtime-update-2026-11-13-149
   - icon: 🏢
     title: 组织目标、授权记忆与站内通知（主线）
     details: 历史产品 .140 已包含显式巡检、多级审批、独立验收、共享记忆与授权通知；当前 .145 独立发行，记忆不自动注入模型。

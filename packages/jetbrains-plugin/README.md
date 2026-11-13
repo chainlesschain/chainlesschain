@@ -1,12 +1,18 @@
 # ChainlessChain IDE Bridge (JetBrains)
 
+## Current release 0.4.203 / CLI 0.166.149 (2026-11-14)
+
+The [official tag workflow](https://github.com/chainlesschain/chainlesschain/actions/runs/43478484313) passed its complete Windows/Linux/macOS host, browser, unit, build and compatibility gates. JetBrains **0.4.203** has been uploaded and awaits Marketplace approval and public download verification. It recommends CLI **0.166.149**. Verified public **0.4.202** remains paired with CLI **0.166.148** until the new version is approved and publicly verified. [Publication evidence](../../docs/research/cli/evidence/release149-public/jetbrains.json).
+
+CLI **0.166.149** is public through Actions OIDC. Install `npm i -g chainlesschain@0.166.149 --registry https://registry.npmjs.org`, restart the host, then run `cc --version` and `cc doctor`. Self-evolution checks cover local original-directory metadata; production authority/runtime evidence remain false and automatic promotion remains **HOLD**.
+
 ## 工作树新增：本地算力平台（待发布）
 
 在“配置大模型 / Configure LLM”选择 **Local compute / OpenAI compatible (LEXDATA / vLLM / SGLang)**，填写平台 Base URL 与 API 模型 ID。力数截图给出的示例为 `http://192.168.31.79:8889/v1`、`glm5.3-flash-tensorfold`；模型 ID 仍以平台 `/v1/models` 为准。API Key 按平台要求填写，可留空；HTTP 局域网地址须显式勾选允许。不要填写具体 `/chat/completions` 路径或复用云端密钥。
 
 该选项使用 CLI 的 `custom` OpenAI Chat Completions 路径，原子保存并回读，已有中转站协议选项保留。保存后可显式测试连接，聊天下一条消息使用新配置；现有 CLI 签名部署等前置条件继续生效。无密钥本机接口已通过真实 CLI 子进程回归，力数实机 `/models` 检查当前为 `ECONNRESET`，尚未验证其实际权重推理。真实 IDE GUI 尚未运行，本节描述未发布工作树能力。
 
-## Current public release (.200 / CLI .146)
+## Previous public release (.200 / CLI .146)
 
 JetBrains **0.4.200** is approved, listed and publicly downloadable. It recommends
 CLI **0.166.146** alongside Open VSX **0.37.185**.
@@ -299,9 +305,9 @@ See the [verified publication evidence](https://github.com/chainlesschain/chainl
 
 ## Release compatibility
 
-Plugin **0.4.203** recommends `chainlesschain@0.166.149`. This release candidate pairs with the CLI original manifest directory boundary checks in retained-history reports and the CLI-owned self-evolution capability status surface and retains the Rewind chooser anchoring and stale-conversation result fix. [Rewind fix](https://github.com/chainlesschain/chainlesschain/pull/593).
+Plugin **0.4.203** recommends `chainlesschain@0.166.149`. This release pairs with the CLI original manifest directory boundary checks in retained-history reports and the CLI-owned self-evolution capability status surface and retains the Rewind chooser anchoring and stale-conversation result fix. [Rewind fix](https://github.com/chainlesschain/chainlesschain/pull/593).
 
-After verified CLI publication, install `npm i -g chainlesschain@0.166.149 --registry https://registry.npmjs.org`, restart the chat host, and run `cc --version` and `cc doctor`. Goal transfer and native Graph features require matching desktop support and explicit native authorization. Model-task improvement and automatic promotion remain unverified.
+Install the public paired CLI with `npm i -g chainlesschain@0.166.149 --registry https://registry.npmjs.org`, restart the chat host, and run `cc --version` and `cc doctor`. Goal transfer and native Graph features require matching desktop support and explicit native authorization. Model-task improvement and automatic promotion remain unverified.
 
 ## Previous candidates and development notes
 

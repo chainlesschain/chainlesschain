@@ -1,0 +1,119 @@
+{
+  "schema": 1,
+  "checkedAt": "2026-11-13T18:02:16.673Z",
+  "source": "168a3d561b5a16e9d27b060944c63b2264c99df0",
+  "officialBuild": {
+    "schema": 2,
+    "package": "chainlesschain",
+    "version": "0.166.149",
+    "commit": "168a3d561b5a16e9d27b060944c63b2264c99df0",
+    "workflowRun": "https://github.com/chainlesschain/chainlesschain/actions/runs/43475425890",
+    "artifact": "chainlesschain-0.166.149.tgz",
+    "bytes": 9632233,
+    "sha256": "ec7036ec2e8e81a845e059f21c6fa3d106bc9809476ee18667ccfcf103cdbbf7",
+    "sha512": "a0a0d57ed608bc542583a46a4a5f0aed768b19a731e6df6776c204389dc1656249c0ad16067d1597ab0e84d6dc77c4bd9e6249766a81353a39f0f64930e12b97",
+    "createdAt": "2026-11-13T17:47:43.655Z",
+    "provenance": "npm --provenance",
+    "releaseIdentity": {
+      "packageJson": {
+        "path": "package/package.json",
+        "bytes": 7405,
+        "sha256": "6cb733bc93722d75743f84ba7142b8c167efca3e1e82b6073e2ad5a5ba1e5dc2",
+        "name": "chainlesschain",
+        "version": "0.166.149"
+      },
+      "changelog": {
+        "path": "package/src/data/changelog.json",
+        "bytes": 410351,
+        "sha256": "020482ad94ebf6f150951c17e5192f551098a0fa7690b12791e7ffb0431fc389",
+        "cliVersion": "0.166.149"
+      }
+    },
+    "webPanel": {
+      "index": "package/src/assets/web-panel/index.html",
+      "indexBytes": 661,
+      "indexSha256": "eb6a1c9029e0aa477f42e0ebec04df78ecc69f6b1ea7b574a1fd84b8d5a4ee2f",
+      "assets": [
+        {
+          "path": "package/src/assets/web-panel/assets/icons-DlxlFL4g.js",
+          "bytes": 208741
+        },
+        {
+          "path": "package/src/assets/web-panel/assets/index-CfX1DEtk.css",
+          "bytes": 7215
+        },
+        {
+          "path": "package/src/assets/web-panel/assets/index-Dd0OgZmt.js",
+          "bytes": 418060
+        },
+        {
+          "path": "package/src/assets/web-panel/assets/vendor-BXcBOG8b.js",
+          "bytes": 107773
+        }
+      ]
+    },
+    "linuxSubreapers": [
+      {
+        "schema": "chainlesschain.linux-subreaper-artifact/v1",
+        "platform": "linux",
+        "arch": "x64",
+        "sourceDigest": "sha256:e920e24b4a79121484f2e8e97886755f88eaa1af93b55326dfa68c7a7f571424",
+        "imageDigest": "sha256:f162e55ad3f3f72f8a52e9d7f12b5b8db44506c2ca66a14d7d62d5cd4f12498e",
+        "bytes": 934160,
+        "linkage": "static",
+        "commit": "168a3d561b5a16e9d27b060944c63b2264c99df0"
+      },
+      {
+        "schema": "chainlesschain.linux-subreaper-artifact/v1",
+        "platform": "linux",
+        "arch": "arm64",
+        "sourceDigest": "sha256:e920e24b4a79121484f2e8e97886755f88eaa1af93b55326dfa68c7a7f571424",
+        "imageDigest": "sha256:6395a47a5bd9b038303e94a5e93754258c8480dab64635460f973eb93dc6f4d8",
+        "bytes": 778808,
+        "linkage": "static",
+        "commit": "168a3d561b5a16e9d27b060944c63b2264c99df0"
+      }
+    ]
+  },
+  "independentPublicReadback": {
+    "schema": 1,
+    "checkedAt": "2026-11-13T18:02:16.673Z",
+    "package": "chainlesschain",
+    "version": "0.166.149",
+    "source": "168a3d561b5a16e9d27b060944c63b2264c99df0",
+    "method": "Independent exact byte comparison, SHA-256/SHA-512 and length against the official immutable tarball",
+    "publicRegistryBytesVerified": true,
+    "bytes": 9632233,
+    "sha256": "ec7036ec2e8e81a845e059f21c6fa3d106bc9809476ee18667ccfcf103cdbbf7",
+    "sha512": "a0a0d57ed608bc542583a46a4a5f0aed768b19a731e6df6776c204389dc1656249c0ad16067d1597ab0e84d6dc77c4bd9e6249766a81353a39f0f64930e12b97",
+    "integrity": "sha512-oKDVftYIvFQlg6RqSl8K7XaLGacx5t9ndsIEOJ3BZWJJwK0WBn0Vl6sOhNbcd8S9nmJJdmqBNTo58PZJMOErlw==",
+    "tarball": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.149.tgz",
+    "internalDependencies": {
+      "@chainlesschain/context-memory-kernel": "0.1.12",
+      "@chainlesschain/core-config": "0.1.2",
+      "@chainlesschain/core-db": "0.1.5",
+      "@chainlesschain/core-env": "0.1.2",
+      "@chainlesschain/core-infra": "0.1.1",
+      "@chainlesschain/core-mtc": "0.2.3",
+      "@chainlesschain/core-multisig": "0.1.4",
+      "@chainlesschain/personal-data-hub": "0.4.66",
+      "@chainlesschain/session-core": "0.3.27",
+      "@chainlesschain/shared-logger": "0.1.1"
+    },
+    "attestations": {
+      "url": "https://registry.npmjs.org/-/npm/v1/attestations/chainlesschain@0.166.149",
+      "provenance": {
+        "predicateType": "https://slsa.dev/provenance/v1"
+      }
+    },
+    "localCryptographicProvenanceRecheck": false,
+    "officialWorkflow": "https://github.com/chainlesschain/chainlesschain/actions/runs/43475425890",
+    "byteIdentical": true
+  },
+  "officialProvenanceVerification": {
+    "runId": 43475425890,
+    "jobId": 132061147538,
+    "step": "Verify published CLI npm provenance",
+    "conclusion": "success"
+  }
+}

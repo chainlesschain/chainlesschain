@@ -1,0 +1,45 @@
+{
+  "schema": 1,
+  "checkedAt": "2026-11-13T18:26:53.822247+00:00",
+  "source": "168a3d561b5a16e9d27b060944c63b2264c99df0",
+  "workflowRun": 43478454182,
+  "officialWorkflowConclusion": "success",
+  "jobs": {
+    "passed": 11,
+    "notApplicableSkipped": 3
+  },
+  "officialArtifact": {
+    "id": 14062484364,
+    "name": "chainlesschain-ide-vscode-candidate",
+    "manifest": {
+      "schema": 1,
+      "artifact": "chainlesschain-ide.vsix",
+      "bytes": 772316,
+      "sha256": "e139894f26449c44041a61744b0de18378085d427636d393b85acf31be278bbc",
+      "sha512": "e2f1af345ac192e2aafd2dbaed0a590e3c19cd449444d6e1633462cfa5d9835fb26ea47e91cf65a2a1eaaaa0b39aca9c1b6cc36cd52a6ebec91e66940b965fb6",
+      "package": "chainlesschain-ide",
+      "publisher": "chainlesschain",
+      "version": "0.37.188",
+      "vsixmanifestIdentity": {
+        "id": "chainlesschain-ide",
+        "publisher": "chainlesschain",
+        "version": "0.37.188"
+      },
+      "commit": "168a3d561b5a16e9d27b060944c63b2264c99df0",
+      "workflowRun": "https://github.com/chainlesschain/chainlesschain/actions/runs/43478454182",
+      "createdAt": "2026-11-13T18:02:52.549Z"
+    }
+  },
+  "independentPublicReadback": {
+    "channel": "open-vsx",
+    "endpoint": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide",
+    "status": "ready",
+    "version": "0.37.188",
+    "latest": "0.37.188",
+    "downloadable": true,
+    "listed": true,
+    "registryArchiveSha256": "e139894f26449c44041a61744b0de18378085d427636d393b85acf31be278bbc",
+    "localArchiveSha256": "e139894f26449c44041a61744b0de18378085d427636d393b85acf31be278bbc",
+    "contentSha256": "c00bbdcb80cc4beeacd434c0873facaaf935ab01f2d1771d97ba2a5b61310559"
+  }
+}

@@ -1,28 +1,28 @@
 # ChainlessChain 系统概述
 
-截至 **2026-11-09**，ChainlessChain 提供本地优先的个人 AI、知识管理、Agent 任务、去中心化通信与跨设备数据入口。CLI、IDE 插件和桌面/移动客户端独立发行；下面分别列出可安装版本与最新源码进展。
+截至 **2026-11-14**，ChainlessChain 提供本地优先的个人 AI、知识管理、Agent 任务、去中心化通信与跨设备数据入口。CLI、IDE 插件和桌面/移动客户端独立发行；下面按各渠道实际发布与回读状态分别记录。
 
 ## 当前公开版本
 
-| 入口 / 组件                  | 已核对的公开版本    | 使用说明                                                    |
-| ---------------------------- | ------------------- | ----------------------------------------------------------- |
-| CLI                          | **0.166.145**       | npm 官方源可安装；升级后重启旧 CLI / IDE 宿主               |
-| VS Code / Open VSX           | **0.37.181**        | 推荐 CLI .145；下载突破 **7 万+**（项目方确认）             |
-| JetBrains                    | **0.4.198**         | 商店 update 1215424 已批准、列出并可下载；推荐 CLI .145     |
-| PC / Android / iOS           | **v5.0.3.145**      | 独立产品源码与 22 个公开资产；不能据 CLI 版本推断客户端功能 |
-| Session Core / Memory Kernel | **0.3.27 / 0.1.11** | 会话与上下文/记忆共享组件，各自保留独立版本                 |
-| Agent SDK TS / Python        | **0.2.17 / 0.2.9**  | Agent Protocol **0.1.12**                                   |
-| Personal Data Hub            | **0.4.66**          | 个人数据采集、索引与受控访问                                |
+| 入口 / 组件                  | 已核对的公开版本    | 使用说明                                                                                |
+| ---------------------------- | ------------------- | --------------------------------------------------------------------------------------- |
+| CLI                          | **0.166.149**       | OIDC 发布、来源与公开字节回读均通过                                                     |
+| VS Code / Open VSX           | **0.37.188**        | 推荐 CLI .149，已核验列出、下载与正式制品字节一致性                                     |
+| JetBrains                    | **0.4.202**         | 已批准并列出，推荐 CLI .148；新 .203 已通过完整正式门禁并上传，待商店审核及公开下载核验 |
+| PC / Android / iOS           | **v5.0.3.145**      | 独立产品源码与 22 个公开资产；不能据 CLI 版本推断客户端功能                             |
+| Session Core / Memory Kernel | **0.3.27 / 0.1.12** | 会话与上下文/记忆共享组件，各自保留独立版本                                             |
+| Agent SDK TS / Python        | **0.2.18 / 0.2.9**  | Agent Protocol **0.1.13**                                                               |
+| Personal Data Hub            | **0.4.66**          | 个人数据采集、索引与受控访问                                                            |
 
-源码中的 VS Code **0.37.182** 和产品 **v5.0.3.146** 尚不作为本页已核对的公开下载推荐。CLI .145 不可变发行源为 `4e4b421bfb42e524f071c9ad70c2a2a2ce607374`；本轮主线能力按 `c34a664f42` 及对应提交/证据核对。
+CLI .149 的不可变发行源为 `168a3d561b5a16e9d27b060944c63b2264c99df0`，CLI CI **76/76**、Strict Sandbox **6/6** 通过。Open VSX **0.37.188** 已公开且回读通过，推荐 CLI .149；JetBrains **0.4.203** 推荐同一 CLI，已通过完整正式门禁并上传，待商店审核及公开下载核验。产品 **v5.0.3.146** 尚不作为已核对的公开下载推荐，客户端仍为 **v5.0.3.145**。
 
 ```bash
-npm i -g chainlesschain@0.166.145 --registry https://registry.npmjs.org
+npm i -g chainlesschain@0.166.149 --registry https://registry.npmjs.org
 cc --version
 cc doctor
 ```
 
-[本轮升级指南](./cli-ide-update-2026-11-09-145) · [CLI 使用指南](./cli) · [IDE 安装与配置](./ide-plugin) · [运行时设计](https://design.chainlesschain.com/release-runtime-update-2026-11-09.html)
+[本轮升级指南](./cli-ide-update-2026-11-13-149) · [CLI 使用指南](./cli) · [IDE 安装与配置](./ide-plugin) · [运行时设计](https://design.chainlesschain.com/release-runtime-update-2026-11-13-149.html)
 
 ## 近期能力与交付边界
 
@@ -188,18 +188,18 @@ ChainlessChain 将知识库、个人数据、AI Agent、去中心化社交和交
 
 ## 项目统计
 
-| 指标                 | 当前核对值                                        | 统计范围                                                   |
-| -------------------- | ------------------------------------------------- | ---------------------------------------------------------- |
-| CLI 注册顶层命令     | **175**                                           | `packages/cli/src/command-manifest.json` 的 `commandCount` |
-| CLI 活跃注册命令     | **150**                                           | 同一清单的 `activeRegisteredCommandCount`                  |
-| 推荐顶层命令面       | **151**                                           | 包含兼容入口的 `lab` 虚拟命名空间；它不是额外默认注册命令  |
-| 弃用兼容入口         | **25**                                            | 保留兼容周期，不能与推荐命令面重复相加                     |
-| CLI / IDE 公开组合   | **.145 / .181 / .198**                            | CLI 0.166.145 / Open VSX 0.37.181 / JetBrains 0.4.198      |
-| Open VSX 下载        | **7 万+**                                         | 2026-11-09 项目方确认，原始 API 采样另行保留               |
-| PC / mobile 公开产品 | **v5.0.3.145**                                    | 22 个公开资产，独立发行身份                                |
-| 当前发行门禁         | **CLI CI 75 成功、1 跳过；Strict Sandbox 6 成功** | 仅对应公开 .145 的准确发行源，不是最新主线全部 CI 通过     |
+| 指标                 | 当前核对值                           | 统计范围                                                              |
+| -------------------- | ------------------------------------ | --------------------------------------------------------------------- |
+| CLI 注册顶层命令     | **175**                              | `packages/cli/src/command-manifest.json` 的 `commandCount`            |
+| CLI 活跃注册命令     | **150**                              | 同一清单的 `activeRegisteredCommandCount`                             |
+| 推荐顶层命令面       | **151**                              | 包含兼容入口的 `lab` 虚拟命名空间；它不是额外默认注册命令             |
+| 弃用兼容入口         | **25**                               | 保留兼容周期，不能与推荐命令面重复相加                                |
+| CLI / IDE 公开组合   | **.149 / .188 / .202**               | CLI .149 / Open VSX .188 已公开，JetBrains .203 已上传待审            |
+| Open VSX 下载        | **7 万+**                            | 2026-11-09 项目方确认，原始 API 采样另行保留                          |
+| PC / mobile 公开产品 | **v5.0.3.145**                       | 22 个公开资产，独立发行身份                                           |
+| 当前发行门禁         | **CLI CI 76/76；Strict Sandbox 6/6** | 公开 CLI .149 的准确发行源 `168a3d561b5a16e9d27b060944c63b2264c99df0` |
 
-[命令清单来源](https://github.com/chainlesschain/chainlesschain/blob/c34a664f426f8ff1c026d21a25bf8d3fd2f6f959/packages/cli/src/command-manifest.json) · [公开下载和发行回读](https://github.com/chainlesschain/chainlesschain/blob/feature/site-refresh-20261109/docs/research/cli/evidence/documentation-refresh-20261109/README.md)
+[命令清单来源](https://github.com/chainlesschain/chainlesschain/blob/168a3d561b5a16e9d27b060944c63b2264c99df0/packages/cli/src/command-manifest.json) · [公开下载和发行回读](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release149-public/publication.json)
 
 旧版代码行数、组件数、用例数与阶段完成标签不作为本轮准确提交的统计或测试结果。历史版本记录在上方折叠区保留。
 
