@@ -20,12 +20,12 @@ jobs:
           - site: docs
             directory: docs-site
             dist: docs/.vitepress/dist
-            required: chainlesschain/cli-ide-update-2026-11-09-145.html
+            required: chainlesschain/cli-ide-update-2026-11-13-149.html
             minimum: 600
           - site: design
             directory: docs-site-design
             dist: docs/.vitepress/dist
-            required: release-runtime-update-2026-11-09.html
+            required: release-runtime-update-2026-11-13-149.html
             minimum: 250
           - site: www
             directory: docs-website-v2
@@ -69,21 +69,27 @@ jobs:
           git diff --exit-code
           test -f "$DIST/index.html"
           test -f "$DIST/$REQUIRED"
-          for version in 0.166.145 0.37.181 0.4.198 v5.0.3.145 2/4; do
+          for version in 0.166.149 0.37.188 0.4.203 v5.0.3.145 NOT_PAID_READY HOLD; do
             grep -Fq "$version" "$DIST/$REQUIRED"
           done
           if [ "$SITE" = www ]; then
             test -f "$DIST/en/index.html"
-            for version in 0.166.145 0.37.181 0.4.198 v5.0.3.145 2/4; do
+            for version in 0.166.149 0.37.188 0.4.203 v5.0.3.145 NOT_PAID_READY HOLD 2/4; do
               grep -Fq "$version" "$DIST/en/index.html"
             done
           fi
           if [ "$SITE" = docs ]; then
             test -f "$DIST/design/cli-goal-transfer-source-2026-11-07.html"
+            grep -Fq 'transfer-to-project' "$DIST/design/cli-goal-transfer-source-2026-11-07.html"
+            grep -Fq '2/4' "$DIST/chainlesschain/cli-ide-update-2026-11-09-145.html"
           elif [ "$SITE" = design ]; then
             test -f "$DIST/cli-goal-transfer-source-2026-11-07.html"
+            grep -Fq 'transfer-to-project' "$DIST/cli-goal-transfer-source-2026-11-07.html"
+            grep -Fq '2/4' "$DIST/release-runtime-update-2026-11-09.html"
+          else
+            grep -Fq 'transfer-to-project' "$DIST/$REQUIRED"
+            grep -Fq '2/4' "$DIST/$REQUIRED"
           fi
-          grep -Fq 'transfer-to-project' "$DIST/$REQUIRED"
           if [ "$SITE" = docs ]; then
             test "$(wc -c < "$DIST/changelog.html")" -ge 2000
           fi

@@ -137,8 +137,8 @@ export default defineConfig({
             link: "/modules/110-agent-platform-release-boundaries",
           },
           {
-            text: "CLI .146 / IDE .185/.199 公开与运行时边界",
-            link: "/release-runtime-update-2026-11-10",
+            text: "CLI .149 / IDE 渠道与运行时边界",
+            link: "/release-runtime-update-2026-11-13-149",
           },
           {
             text: "CLI 目标移交与签名回退（需匹配桌面）",
@@ -307,8 +307,8 @@ export default defineConfig({
                   link: "/cli-runtime-current",
                 },
                 {
-                  text: "11-10：CLI .146 / IDE 公开与客户端边界",
-                  link: "/release-runtime-update-2026-11-10",
+                  text: "11-14：CLI .149 / IDE 渠道与目录边界",
+                  link: "/release-runtime-update-2026-11-13-149",
                 },
               ],
             },
@@ -1158,6 +1158,10 @@ export default defineConfig({
               text: "运行时设计记录",
               collapsed: true,
               items: [
+                {
+                  text: "CLI .149 / IDE 渠道与目录边界",
+                  link: "/release-runtime-update-2026-11-13-149",
+                },
                 {
                   text: "CLI .146 / IDE .185/.199 公开与运行时边界",
                   link: "/release-runtime-update-2026-11-10",

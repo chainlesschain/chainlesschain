@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "checkedAt": "2026-11-13T19:08:59.355627+00:00",
+  "source": "168a3d561b5a16e9d27b060944c63b2264c99df0",
+  "version": "0.4.203",
+  "workflow": "https://github.com/chainlesschain/chainlesschain/actions/runs/43478484313",
+  "workflowAttempt": 3,
+  "endpoint": "https://plugins.jetbrains.com/api/plugins/32208/updates",
+  "officialArtifact": {
+    "name": "chainlesschain-ide-bridge-0.4.203.zip",
+    "bytes": 1608990,
+    "sha256": "d4b3e47d696b8d8a33a97979e316b6862db7a0604d807b81d47754695efab0ff",
+    "plugin": {
+      "path": "chainlesschain-ide-bridge/lib/chainlesschain-ide-bridge-0.4.203.jar!/META-INF/plugin.xml",
+      "id": "com.chainlesschain.ide",
+      "version": "0.4.203"
+    },
+    "recommendedCliVersion": "0.166.149",
+    "compiledRecommendationPath": "chainlesschain-ide-bridge/lib/chainlesschain-ide-bridge-0.4.203.jar!/com/chainlesschain/ide/CliVersionCheck.class"
+  },
+  "publicReadbackVerified": false,
+  "marketplace": null,
+  "status": "pending",
+  "reason": "version-not-visible",
+  "officialWorkflowConclusion": "success",
+  "officialUploadVerified": true,
+  "publicationStatus": "uploaded-pending-review",
+  "officialArtifactId": 14069240606,
+  "officialArtifactName": "chainlesschain-ide-jetbrains-3",
+  "uploadJobId": 132100819075,
+  "postPublishJobId": 132104781569,
+  "jobs": {
+    "passed": 13,
+    "notApplicableSkipped": 6
+  }
+}

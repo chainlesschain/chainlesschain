@@ -1,5 +1,15 @@
 # CLI 命令行工具
 
+## 当前发行核对（2026-11-14）
+
+CLI **0.166.149** 已通过 [GitHub Actions OIDC 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/43475425890)。准确源码 `168a3d561b5a16e9d27b060944c63b2264c99df0` 的 CLI CI **76/76**、Strict Sandbox **6/6** 全部通过，官方来源与归档验证成功，独立公开下载与正式制品逐字节一致。
+
+安装：`npm i -g chainlesschain@0.166.149 --registry https://registry.npmjs.org`，重启宿主后运行 `cc --version`、`cc doctor`。新版本加强保留历史的原始 catalog/head 目录边界重验，持久化格式和签名保持兼容。自动晋升仍 **HOLD**，生产权限与运行时证据仍未具备，本轮没有新增模型任务验收。
+
+Open VSX **0.37.188** 已公开并通过完整宿主门禁和公开字节回读，推荐 CLI **0.166.149**。JetBrains **0.4.203** 推荐同一 CLI，已通过完整正式门禁并上传，待商店审核及公开下载核验；当前已核验公开 JetBrains **0.4.202** 推荐 CLI **0.166.148**。Protocol **0.1.13**、Agent SDK **0.2.18**、Memory Kernel **0.1.12**、Session Core **0.3.27** 保持原版本。Microsoft Marketplace 本轮仍不发布，PC/mobile 公开版仍为 **v5.0.3.145**。见[当前安装与升级指南](./cli-ide-update-2026-11-13-149)。
+
+## 历史公开发行（2026-11-10）
+
 CLI **0.166.146**、Protocol **0.1.13**、Agent SDK **0.2.18** 和 Memory Kernel **0.1.12** 已通过 [GitHub Actions OIDC 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/42758119265)，公开 npm 版本已核验。发行源码为 `daafda2cf7790580467dae8ce006ceaa1285d3b4`；官方工作流已完成准确源码门禁、公开字节与来源验证、仅 registry 的子包依赖安装。Session Core 保持 **0.3.27**。
 
 配套 Open VSX **0.37.185** 与 JetBrains **0.4.199** 均已公开核验，两端推荐 CLI **0.166.146**。VS Code 兼容编辑器可通过 Open VSX 或版本化 VSIX 安装；Microsoft Marketplace 仍未发布。PC/mobile **v5.0.3.146** 尚未完整发行，公开客户端仍为 **v5.0.3.145**；Android 内置 CLI 版本对齐和全部产品资产核验完成前，不推荐 .146 客户端下载。IDE 发布、其他平台构建成功或 Android bundle 刷新任务启动，都不等于客户端已公开。
@@ -168,7 +178,7 @@ CLI 主配置文件位于 `~/.chainlesschain/config.json`，支持通过 `chainl
 ## 快速开始
 
 ```bash
-npm install -g chainlesschain@0.166.105 --registry https://registry.npmjs.org
+npm install -g chainlesschain@0.166.149 --registry https://registry.npmjs.org
 chainlesschain setup
 chainlesschain start
 ```
@@ -185,7 +195,7 @@ chainlesschain start
 ### 全局安装
 
 ```bash
-npm install -g chainlesschain@0.166.105 --registry https://registry.npmjs.org
+npm install -g chainlesschain@0.166.149 --registry https://registry.npmjs.org
 ```
 
 安装后提供 4 个等价命令：

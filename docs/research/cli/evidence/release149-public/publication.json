@@ -1,0 +1,93 @@
+{
+  "schema": 1,
+  "checkedAt": "2026-11-13T19:09:14.958899+00:00",
+  "source": "168a3d561b5a16e9d27b060944c63b2264c99df0",
+  "cli": {
+    "version": "0.166.149",
+    "status": "verified-public",
+    "source": "168a3d561b5a16e9d27b060944c63b2264c99df0",
+    "method": "GitHub Actions OIDC Trusted Publishing",
+    "runId": 43475425890,
+    "tag": "v-npm-0-166-149",
+    "publicRegistryBytesVerified": true,
+    "byteIdentical": true,
+    "sha256": "ec7036ec2e8e81a845e059f21c6fa3d106bc9809476ee18667ccfcf103cdbbf7",
+    "bytes": 9632233,
+    "officialWorkflowConclusion": "success",
+    "provenanceVerified": true,
+    "localCryptographicProvenanceRecheck": false,
+    "exactSourceGates": [
+      {
+        "name": "CLI CI",
+        "runId": 43442500176,
+        "attempt": 3,
+        "passed": 76,
+        "total": 76
+      },
+      {
+        "name": "CLI Strict Sandbox",
+        "runId": 43442499774,
+        "attempt": 1,
+        "passed": 6,
+        "total": 6
+      }
+    ]
+  },
+  "ide": {
+    "vscode": {
+      "version": "0.37.188",
+      "source": "168a3d561b5a16e9d27b060944c63b2264c99df0",
+      "status": "verified-public",
+      "tag": "ide-vscode-v0.37.188",
+      "runId": 43478454182,
+      "recommendedCliVersion": "0.166.149",
+      "publicRegistryBytesVerified": true,
+      "officialWorkflowConclusion": "success",
+      "byteIdentical": true,
+      "sha256": "e139894f26449c44041a61744b0de18378085d427636d393b85acf31be278bbc",
+      "bytes": 772316,
+      "listed": true,
+      "downloadable": true,
+      "downloadUrl": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.188/file/chainlesschain.chainlesschain-ide-0.37.188.vsix",
+      "jobs": {
+        "passed": 11,
+        "notApplicableSkipped": 3
+      },
+      "microsoftMarketplace": {
+        "status": "not-published-by-this-tag-workflow",
+        "reason": "An explicit exact-tag workflow_dispatch backfill is required."
+      }
+    },
+    "jetbrains": {
+      "version": "0.4.203",
+      "source": "168a3d561b5a16e9d27b060944c63b2264c99df0",
+      "status": "uploaded-pending-review",
+      "tag": "ide-jetbrains-v0.4.203",
+      "runId": 43478484313,
+      "recommendedCliVersion": "0.166.149",
+      "publicRegistryBytesVerified": false,
+      "officialWorkflowConclusion": "success",
+      "officialUploadVerified": true,
+      "workflowAttempt": 3,
+      "jobs": {
+        "passed": 13,
+        "notApplicableSkipped": 6
+      },
+      "publicListingVerified": false,
+      "publicDownloadVerified": false,
+      "officialArchiveSha256": "d4b3e47d696b8d8a33a97979e316b6862db7a0604d807b81d47754695efab0ff",
+      "officialArchiveBytes": 1608990,
+      "pendingReason": "version-not-visible"
+    }
+  },
+  "limits": {
+    "productionAuthority": false,
+    "runtimeEvidence": false,
+    "automaticPromotion": "HOLD",
+    "paidReadiness": "NOT_PAID_READY",
+    "nativeAdmission": "NOT_ADMITTED",
+    "additionalModelTaskAcceptance": false,
+    "publicClients": "v5.0.3.145",
+    "microsoftMarketplace": "not-published-by-these-tag-workflows"
+  }
+}
