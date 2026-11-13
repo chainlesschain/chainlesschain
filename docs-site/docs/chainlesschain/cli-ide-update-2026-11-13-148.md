@@ -28,7 +28,7 @@ CLI CI passed 76/76, Strict Sandbox passed on all configured systems, and both I
 
 ## 安全考虑
 
-Automatic promotion remains **HOLD**. Production authority and runtime evidence remain disabled.
+Automatic promotion remains **HOLD**. Production authority and runtime evidence remain disabled. `NOT_PAID_READY / NOT_ADMITTED / HOLD` remain.
 
 ## 故障排查
 
