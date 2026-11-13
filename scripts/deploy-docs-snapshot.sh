@@ -168,13 +168,19 @@ done
 curl --resolve docs.chainlesschain.com:443:127.0.0.1 -fsSL --max-time 30 https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-11-13-148.html -o "$prefix-origin-docs.html"
 curl --resolve design.chainlesschain.com:443:127.0.0.1 -fsSL --max-time 30 https://design.chainlesschain.com/release-runtime-update-2026-11-13-148.html -o "$prefix-origin-design.html"
 curl --resolve www.chainlesschain.com:443:127.0.0.1 -fsSL --max-time 30 https://www.chainlesschain.com/ -o "$prefix-origin-www.html"
-for site in docs design www; do
-  for version in 0.166.148 0.37.187 0.4.200 0.4.202; do
-    grep -Fq "$version" "$prefix-origin-$site.html"
-  done
-  grep -Fq 'NOT_PAID_READY' "$prefix-origin-$site.html"
-  grep -Fq '0.37.187' "$prefix-origin-$site.html"
-done
+grep -Fq '0.166.148' "$prefix-origin-docs.html"
+grep -Fq '0.37.187' "$prefix-origin-docs.html"
+grep -Fq '0.4.202' "$prefix-origin-docs.html"
+grep -Fq 'NOT_PAID_READY' "$prefix-origin-docs.html"
+grep -Fq '0.166.148' "$prefix-origin-design.html"
+grep -Fq '0.37.187' "$prefix-origin-design.html"
+grep -Fq '0.4.202' "$prefix-origin-design.html"
+grep -Fq 'NOT_PAID_READY' "$prefix-origin-design.html"
+grep -Fq '0.166.148' "$prefix-origin-www.html"
+grep -Fq '0.37.187' "$prefix-origin-www.html"
+grep -Fq '0.4.200' "$prefix-origin-www.html"
+grep -Fq '0.4.202' "$prefix-origin-www.html"
+grep -Fq 'NOT_PAID_READY' "$prefix-origin-www.html"
 grep -Fq 'v5.0.3.145' "$prefix-origin-www.html"
 grep -Fq '7 万+' "$prefix-origin-www.html"
 trap - EXIT
