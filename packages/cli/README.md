@@ -2,11 +2,17 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
 
-## CLI 0.166.148 / IDE pairing candidate (2026-11-13)
+## CLI 0.166.149 / IDE pairing candidate (2026-11-13)
 
-This candidate carries the CLI-owned self-evolution capability status projection into deployment status and the paired IDE configuration surfaces. Publication remains gated on the exact CLI CI, Strict Sandbox, and OIDC workflow for this commit.
+This candidate binds retained observed-text and signed-anchor history to the genuine original catalog/head directory boundaries, including a recheck after final journal verification. Temporary reports add manifestDirectoryBoundaryDigest, manifestDirectoryBoundaryRechecked and manifestBoundaryScope; persistent schemas and signatures remain unchanged. Custom or wrapped backends cannot claim original-directory ownership. These are local directory metadata checks, not a complete runtime storage graph or promotion authority.
 
-CLI **0.166.148** is a release candidate; install it only after the exact tag workflow publishes it. The paired candidates are VS Code **0.37.187** and JetBrains **0.4.202**.
+CLI **0.166.149** is a release candidate; install `npm i -g chainlesschain@0.166.149 --registry https://registry.npmjs.org` only after the exact tag workflow publishes it. The paired candidates are VS Code **0.37.188** and JetBrains **0.4.203**. Exact-source CLI CI and Strict Sandbox on all configured operating systems, Actions OIDC publication and public readback must pass before IDE publication. Automatic promotion remains **HOLD**; no new model-task acceptance is claimed.
+
+## Public CLI 0.166.148 / verified IDE pairing (2026-11-13)
+
+CLI **0.166.148** is public through [Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/43314842279), including public archive/provenance and registry-only dependency verification. Exact source `146b3fbd438eece981aa14327d9481156683acd4` passed all 76 CLI CI and six Strict Sandbox jobs. Install `npm i -g chainlesschain@0.166.148 --registry https://registry.npmjs.org`, restart hosts, then run `cc --version` and `cc doctor`.
+
+Open VSX **0.37.187** is public through its [official workflow](https://github.com/chainlesschain/chainlesschain/actions/runs/43319226240). JetBrains **0.4.202** completed its [official publication workflow](https://github.com/chainlesschain/chainlesschain/actions/runs/43323403954) and is now approved, listed and not hidden in the Marketplace API. Both recommend CLI **0.166.148**. Microsoft Marketplace remains unpublished. This release exposes the CLI-owned capability state; productionAuthority and runtimeEvidence remain false, and automaticPromotion remains HOLD.
 
 ## Public CLI 0.166.147 / IDE pairing (2026-11-12)
 

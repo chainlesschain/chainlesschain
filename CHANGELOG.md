@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - cc CLI 0.166.149: retained-history manifest directory rechecks (candidate, 2026-11-13)
+
+- Bind observed-text and signed-anchor history reports to the genuine original journal catalog/head directory boundaries, with rechecks after capture, replay and final journal verification. Reject replaced directories and mixed or wrapped ownership without invoking caller callbacks.
+- Add temporary manifestDirectoryBoundaryDigest, manifestDirectoryBoundaryRechecked and manifestBoundaryScope report fields. Persistent schemas, signatures, CAS and localCompositionDigest remain unchanged; custom backends report this original-directory capability as unavailable.
+- Pair with VS Code/Open VSX 0.37.188 and JetBrains 0.4.203, both recommending CLI 0.166.149. Child package versions remain unchanged. Require exact-source three-OS CLI CI and Strict Sandbox, Actions OIDC publication and public readback before IDE publication.
+- Local focused validation: 138 passed and two existing platform-specific skips across nine files. This verifies local directory metadata only; independent installer/pins, complete runtime producer/storage graphs, A/B/C evaluation, business effects and automatic promotion remain incomplete. HOLD remains.
+
 ### Added - cc CLI 0.166.148: self-evolution capability status projection (candidate, 2026-11-13)
 
 - Expose source-level self-evolution capability status and the governed deployment policy through the CLI deployment status command, making production authority, runtime evidence and automatic-promotion state explicit.

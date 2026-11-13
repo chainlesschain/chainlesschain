@@ -1,11 +1,11 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
 
-## 2026-11-13 CLI / IDE self-evolution status release
+## 2026-11-13 CLI / IDE retained-history release candidate
 
-CLI **0.166.148** was published through GitHub Actions OIDC from exact source `146b3fbd438eece981aa14327d9481156683acd4`; CLI CI **76/76** and Strict Sandbox passed on all configured systems. Open VSX **0.37.187** is public and recommends CLI **0.166.148**. JetBrains **0.4.202** completed build, host-matrix and Marketplace upload steps, but is still awaiting manual Marketplace listing review.
+The next candidates are CLI **0.166.149**, VS Code/Open VSX **0.37.188** and JetBrains **0.4.203**; both IDEs recommend CLI **0.166.149**. Retained-history reports now recheck genuine original catalog/head directory boundaries, including after final journal verification. Publication requires exact-source three-OS CLI CI and Strict Sandbox, Actions OIDC and public readback before IDE publication. See the [upgrade guide](docs-site/docs/chainlesschain/cli-ide-update-2026-11-13-149.md).
 
-The release projects one CLI-owned self-evolution capability state into CLI, VS Code and JetBrains: `automaticPromotion=HOLD`, `productionAuthority=false`, and `runtimeEvidence=false`. This confirms configuration wiring only; it does not claim a production producer/storage graph, A/B acceptance, business-effect acceptance, or promotion authority. Run `cc evolution deployment status --json` after upgrading.
+The current public pairing remains CLI **0.166.148**, Open VSX **0.37.187** and JetBrains **0.4.202**, now approved and listed. Install `npm i -g chainlesschain@0.166.148 --registry https://registry.npmjs.org` until the candidates become public. These changes check local directory metadata only. Full runtime storage graphs, independent installer/pins, A/B/C evaluation, business effects and automatic promotion remain incomplete. `automaticPromotion=HOLD`, `productionAuthority=false` and `runtimeEvidence=false` remain. Microsoft Marketplace is unpublished. After upgrading, run `cc --version`, `cc doctor` and `cc evolution deployment status --json`.
 
 ## Public CLI / IDE release status (2026-11-12)
 
