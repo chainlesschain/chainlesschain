@@ -6,19 +6,23 @@ import { createEvolutionLedgerManifestAuthority } from "../../src/lib/evolution/
 import {
   createEvolutionLedgerFileManifestCatalogBackend as createCatalogBackend,
   captureEvolutionLedgerFileManifestCatalogDirectoryBoundary as captureRawCatalog,
+  hasEvolutionLedgerFileManifestCatalogDirectoryBoundary as hasRawCatalog,
 } from "../../src/lib/evolution/evolution-ledger-file-manifest-catalog.js";
 import {
   createEvolutionLedgerFileManifestHeadBackend as createHeadBackend,
   captureEvolutionLedgerFileManifestHeadDirectoryBoundary as captureRawHead,
   captureEvolutionLedgerFileManifestHeadPortsDirectoryBoundary as captureHeadPorts,
+  hasEvolutionLedgerFileManifestHeadPortsDirectoryBoundary as hasHeadPorts,
 } from "../../src/lib/evolution/evolution-ledger-file-manifest-head-store.js";
 import {
   createEvolutionLedgerManifestCatalog,
   captureEvolutionLedgerManifestCatalogDirectoryBoundary as captureCatalog,
+  hasEvolutionLedgerManifestCatalogDirectoryBoundary as hasCatalog,
 } from "../../src/lib/evolution/evolution-ledger-manifest-catalog.js";
 import {
   createEvolutionLedgerManifestHeadStore,
   captureEvolutionLedgerManifestHeadStoreDirectoryBoundary as captureHead,
+  hasEvolutionLedgerManifestHeadStoreDirectoryBoundary as hasHead,
 } from "../../src/lib/evolution/evolution-ledger-manifest-head-store.js";
 
 const temp = fs.realpathSync.native(os.tmpdir());
@@ -119,6 +123,13 @@ describe("manifest factory ownership", () => {
   it("propagates the same raw capabilities without reading leaves or acquiring locks", () => {
     const value = fixture();
     value.io.metadataOnly = true;
+    expect(hasRawCatalog(value.rawCatalog)).toBe(true);
+    expect(hasCatalog(value.catalog)).toBe(true);
+    expect(hasHead(value.head)).toBe(true);
+    expect(hasHeadPorts(value.rawHead.load, value.rawHead.compareAndSet)).toBe(
+      true,
+    );
+    expect(value.io.calls).toEqual([]);
     expect(captureCatalog(value.catalog)).toBe(
       captureRawCatalog(value.rawCatalog),
     );
@@ -156,6 +167,8 @@ describe("manifest factory ownership", () => {
       [first.rawHead.load.bind(first.rawHead), first.rawHead.compareAndSet],
       [first.rawHead.compareAndSet, first.rawHead.load],
     ]) {
+      expect(hasHeadPorts(load, cas)).toBe(false);
+      expect(hasHead(head(load, cas))).toBe(false);
       expect(() => captureHeadPorts(load, cas)).toThrow(TypeError);
       expect(() => captureHead(head(load, cas))).toThrow(TypeError);
     }
@@ -194,8 +207,12 @@ describe("manifest factory ownership", () => {
         revoked.proxy,
         value.rawHead,
         value.rawCatalog,
-      ])
+      ]) {
+        expect(role === "catalog" ? hasCatalog(fake) : hasHead(fake)).toBe(
+          false,
+        );
         expect(() => capture(fake)).toThrow(TypeError);
+      }
       expect(() => capture(original, accessor)).toThrow(TypeError);
       expect(() => capture()).toThrow(TypeError);
       expect(invoked).toBe(0);

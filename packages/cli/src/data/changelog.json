@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.149",
+      "cliVersions": ["0.166.149"],
+      "date": "2026-11-13",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Added - cc CLI 0.166.149: retained-history manifest directory rechecks (candidate, 2026-11-13)",
+          "body": "- Bind observed-text and signed-anchor history reports to the genuine original journal catalog/head directory boundaries, with rechecks after capture, replay and final journal verification. Reject replaced directories and mixed or wrapped ownership without invoking caller callbacks.\n- Add temporary manifestDirectoryBoundaryDigest, manifestDirectoryBoundaryRechecked and manifestBoundaryScope report fields. Persistent schemas, signatures, CAS and localCompositionDigest remain unchanged; custom backends report this original-directory capability as unavailable.\n- Pair with VS Code/Open VSX 0.37.188 and JetBrains 0.4.203, both recommending CLI 0.166.149. Child package versions remain unchanged. Require exact-source three-OS CLI CI and Strict Sandbox, Actions OIDC publication and public readback before IDE publication.\n- Local focused validation: 138 passed and two existing platform-specific skips across nine files. This verifies local directory metadata only; independent installer/pins, complete runtime producer/storage graphs, A/B/C evaluation, business effects and automatic promotion remain incomplete. HOLD remains."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.148",
       "cliVersions": ["0.166.148"],
       "date": "2026-11-13",

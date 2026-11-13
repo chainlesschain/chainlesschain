@@ -1,17 +1,12 @@
 # ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+## 2026-11-13 CLI / IDE 自进化历史校验候选版
 
-## 2026-11-13 CLI / IDE 自进化状态发布
+待发布组合为 CLI **0.166.149**、VS Code/Open VSX **0.37.188**、JetBrains **0.4.203**，两款 IDE 均推荐 CLI **0.166.149**。本次把原始 catalog/head 目录边界校验接入保留历史报告，并在最终日志验证后再次检查目录替换。公开发行须先通过准确源码的全平台 CLI CI / Strict Sandbox 和 Actions OIDC 发布回读，再发布 IDE 插件。见[升级说明](docs-site/docs/chainlesschain/cli-ide-update-2026-11-13-149.md)。
 
-CLI **0.166.148** was published through GitHub Actions OIDC from exact source `146b3fbd438eece981aa14327d9481156683acd4`; CLI CI **76/76** and Strict Sandbox passed. Open VSX **0.37.187** is public and recommends CLI **0.166.148**. JetBrains **0.4.202** completed build, host-matrix and Marketplace upload steps, but remains pending manual listing review.
+当前已公开组合仍为 CLI **0.166.148**、Open VSX **0.37.187**、JetBrains **0.4.202**；JetBrains .202 已获批准并列出。安装已公开 CLI：`npm i -g chainlesschain@0.166.148 --registry https://registry.npmjs.org`。新候选版公开前请使用这一组合。
 
-The release projects one CLI-owned self-evolution capability state into CLI, VS Code and JetBrains: `automaticPromotion=HOLD`, `productionAuthority=false`, and `runtimeEvidence=false`. This confirms configuration wiring only; it does not claim a production producer/storage graph, A/B acceptance, business-effect acceptance, or promotion authority. Run `cc evolution deployment status --json` after upgrading.
-
-## 2026-11-13 CLI / IDE ????
-
-CLI **0.166.148** ??? GitHub Actions OIDC ???????? `146b3fbd438eece981aa14327d9481156683acd4`?CLI CI **76/76** ? Strict Sandbox ??????npm ?????? provenance ????????????`npm i -g chainlesschain@0.166.148 --registry https://registry.npmjs.org`?
-
-Open VSX **0.37.187** ??????????? CLI **0.166.148**?JetBrains **0.4.202** ??? Marketplace??????????????????? Marketplace ????/????????????????? CLI-owned wiring projection?automatic promotion ?? **HOLD**??? authority ? runtime evidence ?????
+本次能力限于本地目录元数据检查，自定义或包装后端不能取得原组件所有权。`automaticPromotion=HOLD`、`productionAuthority=false`、`runtimeEvidence=false` 保持；完整运行时存储图、独立安装器与固定依赖、A/B/C 评测、业务效果和自动晋升尚未完成。Microsoft Marketplace 仍未发布。升级后运行 `cc --version`、`cc doctor` 和 `cc evolution deployment status --json`。
 
 ## 2026-11-12 CLI / IDE 发布状态
 

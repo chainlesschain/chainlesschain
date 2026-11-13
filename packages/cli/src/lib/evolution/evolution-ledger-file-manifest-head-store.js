@@ -230,6 +230,14 @@ export function createEvolutionLedgerFileManifestHeadBackend({
 }
 
 /** A head-store factory must retain both original ports from the same backend. */
+export function hasEvolutionLedgerFileManifestHeadPortsDirectoryBoundary(
+  load,
+  compareAndSet,
+) {
+  const owner = LOAD_OWNERS.get(load);
+  return owner !== undefined && CAS_OWNERS.get(compareAndSet) === owner;
+}
+
 export function captureEvolutionLedgerFileManifestHeadPortsDirectoryBoundary(
   load,
   compareAndSet,

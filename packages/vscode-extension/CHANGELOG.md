@@ -2,6 +2,12 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.188] - retained-history CLI pairing (candidate, 2026-11-13)
+
+- Recommend CLI 0.166.149 and pair with JetBrains 0.4.203 after verified CLI publication.
+- Carry the CLI's original manifest directory boundary checks into retained-history reports; preserve the existing CLI-owned capability view and host behavior.
+- Require exact-source native, Remote-SSH, browser and public VSIX readback gates. Local storage checks do not establish runtime evidence, model-task gains or automatic promotion.
+
 ## [0.37.187] - CLI-owned self-evolution capability status (candidate, 2026-11-13)
 
 - Surface the CLI-owned self-evolution capability projection in the deployment configuration panel, including wired/verified/default-enabled state and explicit production-authority and promotion boundaries.

@@ -1,5 +1,11 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.203] - retained-history CLI pairing (candidate, 2026-11-13)
+
+- Recommend CLI 0.166.149 and pair with VS Code/Open VSX 0.37.188 after verified CLI publication.
+- Pair with the CLI's genuine manifest directory checks in retained-history reports while retaining the capability status projection and Rewind fixes.
+- Require exact-source host, ARM64, packaging and Marketplace readback gates. Model-task improvement and automatic promotion remain unverified.
+
 ## [0.4.202] - CLI-owned self-evolution capability status (candidate, 2026-11-13)
 
 - Recommend CLI 0.166.148 and pair with VS Code/Open VSX 0.37.187 after verified CLI publication.

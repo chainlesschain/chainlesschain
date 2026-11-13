@@ -299,9 +299,9 @@ See the [verified publication evidence](https://github.com/chainlesschain/chainl
 
 ## Release compatibility
 
-Plugin **0.4.202** recommends `chainlesschain@0.166.148`. This release candidate pairs with the CLI-owned self-evolution capability status surface and retains the Rewind chooser anchoring and stale-conversation result fix. [Rewind fix](https://github.com/chainlesschain/chainlesschain/pull/593).
+Plugin **0.4.203** recommends `chainlesschain@0.166.149`. This release candidate pairs with the CLI original manifest directory boundary checks in retained-history reports and the CLI-owned self-evolution capability status surface and retains the Rewind chooser anchoring and stale-conversation result fix. [Rewind fix](https://github.com/chainlesschain/chainlesschain/pull/593).
 
-After verified CLI publication, install `npm i -g chainlesschain@0.166.148 --registry https://registry.npmjs.org`, restart the chat host, and run `cc --version` and `cc doctor`. Goal transfer and native Graph features require matching desktop support and explicit native authorization. Model-task improvement and automatic promotion remain unverified.
+After verified CLI publication, install `npm i -g chainlesschain@0.166.149 --registry https://registry.npmjs.org`, restart the chat host, and run `cc --version` and `cc doctor`. Goal transfer and native Graph features require matching desktop support and explicit native authorization. Model-task improvement and automatic promotion remain unverified.
 
 ## Previous candidates and development notes
 

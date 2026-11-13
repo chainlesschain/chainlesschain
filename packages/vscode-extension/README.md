@@ -4,29 +4,29 @@ ChainlessChain agent workspace for VS Code-compatible editors with streaming cha
 
 ## Next release candidate
 
-Source candidate **0.37.187** recommends CLI **`0.166.148`** and pairs with JetBrains **0.4.202**. Publish the IDE only after the CLI is public and this exact source passes its host, Remote-SSH and browser gates. Agent Protocol **0.1.13**, Agent SDK **0.2.18**, Context/Memory Kernel **0.1.12** and Session Core **0.3.27** remain unchanged.
+Source candidate **0.37.188** recommends CLI **`0.166.149`** and pairs with JetBrains **0.4.203**. Publish only after the CLI is public and this exact source passes its host, Remote-SSH and browser gates. Child package versions remain unchanged.
 
 The extension has not been published.
 
-The candidate points users to the CLI's original manifest ownership checks and source-bound retest preparation. Existing extension behavior and bounded Remote-SSH bootstrap remain. Current verified public pairing is CLI **0.166.146**, Open VSX **0.37.185** and JetBrains **0.4.200**. Microsoft Marketplace remains unpublished. Package publication does not establish model-task improvements or automatic promotion.
+The paired CLI adds original manifest catalog/head directory boundary rechecks to retained-history reports. Existing IDE behavior and the CLI-owned capability projection remain. Local directory checks do not establish complete runtime storage graphs, model-task gains or automatic promotion; HOLD remains.
 
 ## Current release
 
-<!-- release185-status -->
+<!-- release187-status -->
 
-Open VSX version **0.37.185** pairs with public CLI `0.166.146`.
+Open VSX version **0.37.187** pairs with public CLI `0.166.148`.
 
 | Component                 | Current public status                                          |
 | ------------------------- | -------------------------------------------------------------- |
-| VS Code extension         | **0.37.185**; verified public Open VSX release                 |
-| Recommended CLI           | **`chainlesschain@0.166.146`**; verified public npm package    |
+| VS Code extension         | **0.37.187**; verified public Open VSX release                 |
+| Recommended CLI           | **`chainlesschain@0.166.148`**; verified public npm package    |
 | Base bridge compatibility | `cc >= 0.162.190`; individual features can require a newer CLI |
 
-CLI `0.166.146` is the recommended public CLI. Using `@0.166.146` selects this verified pairing.
-Install `npm i -g chainlesschain@0.166.146 --registry https://registry.npmjs.org`, restart the host, then run `cc --version` and `cc doctor`.
-The immutable extension tag is `ide-vscode-v0.37.185`.
-Download [chainlesschain-ide-0.37.185.vsix](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.185/file/chainlesschain.chainlesschain-ide-0.37.185.vsix).
-Public JetBrains **0.4.200** also recommends CLI **0.166.146**. Microsoft Marketplace remains unpublished.
+CLI `0.166.148` is the recommended public CLI. Using `@0.166.148` selects this verified pairing.
+Install `npm i -g chainlesschain@0.166.148 --registry https://registry.npmjs.org`, restart the host, then run `cc --version` and `cc doctor`.
+The immutable extension tag is `ide-vscode-v0.37.187`.
+Download [chainlesschain-ide-0.37.187.vsix](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.187/file/chainlesschain.chainlesschain-ide-0.37.187.vsix).
+Public JetBrains **0.4.202** also recommends CLI **0.166.148**. Microsoft Marketplace remains unpublished.
 
 ### Previous verified release (0.37.181)
 

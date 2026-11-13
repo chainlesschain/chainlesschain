@@ -155,6 +155,9 @@ describe.sequential(
     it("authenticates both prefixes from real retained readback while all external authority stays HOLD", () => {
       const result = verify();
       expect(result).toMatchObject({
+        manifestDirectoryBoundaryDigest: null,
+        manifestDirectoryBoundaryRechecked: false,
+        manifestBoundaryScope: null,
         localJournalPrefixVerified: true,
         localRestrictionPrefixVerified: true,
         localRetainedHistoryReplayed: true,
