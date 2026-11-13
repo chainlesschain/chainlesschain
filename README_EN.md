@@ -1,6 +1,5 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
-
 ## 2026-11-13 CLI / IDE retained-history release candidate
 
 The next candidates are CLI **0.166.149**, VS Code/Open VSX **0.37.188** and JetBrains **0.4.203**; both IDEs recommend CLI **0.166.149**. Retained-history reports now recheck genuine original catalog/head directory boundaries, including after final journal verification. Publication requires exact-source three-OS CLI CI and Strict Sandbox, Actions OIDC and public readback before IDE publication. See the [upgrade guide](docs-site/docs/chainlesschain/cli-ide-update-2026-11-13-149.md).

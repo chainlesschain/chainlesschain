@@ -1,6 +1,5 @@
 # ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
-
 ## 2026-11-13 CLI / IDE 自进化历史校验候选版
 
 待发布组合为 CLI **0.166.149**、VS Code/Open VSX **0.37.188**、JetBrains **0.4.203**，两款 IDE 均推荐 CLI **0.166.149**。本次把原始 catalog/head 目录边界校验接入保留历史报告，并在最终日志验证后再次检查目录替换。公开发行须先通过准确源码的全平台 CLI CI / Strict Sandbox 和 Actions OIDC 发布回读，再发布 IDE 插件。见[升级说明](docs-site/docs/chainlesschain/cli-ide-update-2026-11-13-149.md)。
