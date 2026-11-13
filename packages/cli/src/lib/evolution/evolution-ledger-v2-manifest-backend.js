@@ -19,7 +19,11 @@ import {
   captureEvolutionLedgerManifestCatalogDirectoryBoundary,
   hasEvolutionLedgerManifestCatalogDirectoryBoundary,
 } from "./evolution-ledger-manifest-catalog.js";
-import { captureEvolutionLedgerManifestWitnessAdapter } from "./evolution-ledger-manifest-witness-adapter.js";
+import {
+  captureEvolutionLedgerManifestWitnessAdapter,
+  captureEvolutionLedgerManifestWitnessDirectoryBoundaries,
+  hasEvolutionLedgerManifestWitnessDirectoryBoundaries,
+} from "./evolution-ledger-manifest-witness-adapter.js";
 
 export const EVOLUTION_LEDGER_V2_MANIFEST_BACKEND_SCHEMA =
   "chainlesschain.evolution-ledger-v2-manifest-backend/v2";
@@ -614,6 +618,7 @@ export function createEvolutionLedgerV2ManifestBackend(options = undefined) {
   ORIGINAL_MANIFEST_COMPONENTS.set(backend, {
     catalog,
     headStore,
+    witnessAdapter,
     boundaries: null,
   });
   return backend;
@@ -641,6 +646,19 @@ export function captureEvolutionLedgerV2ManifestDirectoryBoundaries(value) {
   );
   components.boundaries ??= Object.freeze({ catalog, head });
   return components.boundaries;
+}
+
+export function captureEvolutionLedgerV2ManifestWitnessDirectoryBoundaries(
+  value,
+) {
+  if (arguments.length !== 1 || !ORIGINAL_MANIFEST_COMPONENTS.has(value))
+    throw new TypeError("one original v2 manifest backend is required");
+  const { witnessAdapter } = ORIGINAL_MANIFEST_COMPONENTS.get(value);
+  if (!hasEvolutionLedgerManifestWitnessDirectoryBoundaries(witnessAdapter))
+    return null;
+  return captureEvolutionLedgerManifestWitnessDirectoryBoundaries(
+    witnessAdapter,
+  );
 }
 
 export function captureEvolutionLedgerV2ManifestBackend(value) {

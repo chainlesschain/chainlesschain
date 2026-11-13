@@ -739,3 +739,21 @@ v2 manifest backend 保存实际 catalog/head-store，并通过 `captureEvolutio
 本机 Windows / Node 22.20.0 的最终九文件回归为 **138 项通过、0 失败、2 项既有平台条件跳过**，包括真实跨进程 anchor history、v2 journal、原组件所有权和 observed-text 历史；与前面分轮运行重叠，不重复累计。改动文件 Prettier 与 `git diff --check` 通过。
 
 后续继续补齐 witness/retention 组件汇总与完整存储图、独立安装认可、受保护 pin/高水位、强制业务路由、真实 producer、candidate alias 和 release lease/恢复。`fullPhysicalStorageGraphVerified`、`storageGraphDigestVerified`、生产权限与自动晋级保持 false/HOLD。真实 RRSI A/B/C 与新一轮原 36+9 模型任务均未执行。
+
+## 40 source 与 manifest witness 原目录汇入历史（2026-11-14）
+
+接续第 39 节，分别处理实际 source journal witness 和 v2 manifest witness，避免把一套 witness 的局部证明套用于另一套。[evolution-file-witness.js](../../../packages/cli/src/lib/evolution/evolution-file-witness.js) 用私有 WeakMap 保留原 witness 和原 physical reader 的关系。能力捕获与重验只使用原目录的完整 BigInt 身份、owner/mode 及既有 birthtime 规则；没有叶读取、descriptor 打开、锁、random、验签、权限准备或目录初始化。
+
+旧单文件 witness 没有分段 reader 时，仅报告原状态目录，segments 为 null。即使调用者此后创建同名目录，捕获也不自动认领；由 witness 自身正常首次分段写入捕获 reader 后，才可生成两目录能力。两目录 witness 的旧能力继续固定原 reader，目录同字节复制替换、缺失或链接别名均拒绝。能力的 source ownership 不认证注入的任意 fsImpl 为可信原生文件系统，也不是文件清单、保留策略或完整图证明。
+
+file backend 私下保存真正 source witness；manifest witness adapter 私下保存实际构造输入，v2 backend/journal 沿原 adapter 传递所有权。品牌探测不读取公开 descriptor、caller getter 或代理，也不执行 I/O。原自定义 manifest witness、故障注入 wrapper 的读写合同保留，原目录能力不可用；不能依据相同 id、路径或函数名补造品牌。
+
+observed-text 历史在实际 retained replay 前后及固定 head 的最终 verification 前后复查两套 witness。临时报告增加 `sourceWitnessDirectoryBoundaryDigest`、`sourceWitnessDirectoryBoundaryRechecked`、`sourceWitnessBoundaryScope` 和对应的 `manifestWitness*` 三字段，使用独立的 source/manifest 摘要域。没有原 manifest witness 时，其三字段为 null / false / null；source witness 的局部范围仍单独报告。签名 anchor history 将这些字段带入临时检查结果，原持久 descriptor、index/anchor/witness schema、签名、CAS 和 `localCompositionDigest` 均不变。
+
+新增单元用真实分段 witness 验证元数据只读、精度拒绝、同字节 clone、缺失、junction/symlink、伪造/代理/撤销代理、上下文拒绝、合法追加及同目录重开；叶内容损坏时局部目录能力仍通过，而原 witness 内容验证拒绝。两项真正 FIFO 反例在 Windows 条件跳过。集成使用真实 preparation、observed 文本、v2 retained replay 和显式 Ed25519 anchor 签名，覆盖 source-state、source-segments、manifest-state、manifest-segments 四角色的实际复制替换，以及最终 journal verification 返回后的末端替换。集成的分段目录为空目录并由新 genuine factory 在构造时捕获，不将它称作已重放 manifest 分段内容；实际分段内容另由单元和既有 witness-state 文件验证。
+
+Windows / Node.js 22.20.0 的最终 **12 文件一次完整回归：285 项通过、9 项平台条件跳过，零失败**。其中新增 34 项通过、2 项 Windows FIFO 条件跳过；不重复累计前置单元 21 项或初次集成通过项。初次集成有四项断言把 observed HOLD 当成 anchor-history 外层码，实际四处替换均已被底层拒绝；修正测试后同时检查外层 anchor HOLD、中间 observed HOLD 与原 witness 错误，生产拒绝逻辑未放宽。变更 JS 的 Node ESLint（零 warning）、Prettier 与 `git diff --check` 通过。测试文件集合、原始诊断说明、运行后源码摘要与验证范围见[本地记录](./evidence/rrsi-witness-directory-boundaries-2026-11-14.json)；没有记录运行前摘要检查点。本地结果不替代准确提交的 Linux/macOS/Windows Actions，也不是新增模型任务验收。
+
+本批为未发布源码，公开 CLI/IDE 版本不变。完整 retention/inventory 图、实际 storageGraphDigest、独立安装认可与受保护 pin/高水位、强制业务路由、真实 producer、candidate alias 及 release lease/恢复仍需完成。`productionAuthority=false`、`runtimeEvidence=false`、自动晋升 **HOLD** 保持；真实 A/B/C 与新的原 36+9 模型任务仍未执行。
+
+另一次独立补充回归覆盖 CLI deployment config、VS Code deployment config 与 local UI deployment 三文件，**46 项通过、零失败和跳过**；该次只核对既有配置合同，不代表 JetBrains/VS Code 原生 GUI、真实模型任务或生产部署已验收。与上述 12 文件结果分开记录，不称作一次 15 文件运行。

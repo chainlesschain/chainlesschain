@@ -1,11 +1,15 @@
 /** Retained observations and prohibitions, never proof of causal generation. */
 import { createHash } from "node:crypto";
 import { isProxy } from "node:util/types";
-import { captureEvolutionLedgerV2JournalManifestDirectoryBoundaries } from "./evolution-ledger-v2-journal.js";
+import {
+  captureEvolutionLedgerV2JournalManifestDirectoryBoundaries,
+  captureEvolutionLedgerV2JournalWitnessDirectoryBoundaries,
+} from "./evolution-ledger-v2-journal.js";
 import { captureRrsiRegistryStorePolicy } from "./rrsi-registry-store-policy.js";
 import {
   captureEvolutionLedgerFileBackend,
   captureEvolutionLedgerFileBackendSourceDirectoryBoundary,
+  captureEvolutionLedgerFileBackendWitnessDirectoryBoundaries,
 } from "./evolution-ledger-file-backend.js";
 import {
   EvolutionArtifactPorts,
@@ -606,7 +610,13 @@ export function createRrsiObservedTextIndex(input) {
     )
       hold("preparation declaration reference differs");
   }
-  function load(manifestBoundaries = null) {
+  function load(
+    manifestBoundaries = null,
+    witnessBoundary = null,
+    manifestWitnessBoundary = null,
+  ) {
+    witnessBoundary?.recheck();
+    manifestWitnessBoundary?.recheck();
     manifestBoundaries?.catalog.recheck();
     manifestBoundaries?.head.recheck();
     sourceJournalBoundary.recheck();
@@ -699,6 +709,8 @@ export function createRrsiObservedTextIndex(input) {
     sourceJournalBoundary.recheck();
     manifestBoundaries?.head.recheck();
     manifestBoundaries?.catalog.recheck();
+    witnessBoundary?.recheck();
+    manifestWitnessBoundary?.recheck();
     return { head: before, events, records, entries, operations };
   }
   function historyPrefix(state, checkpoint) {
@@ -759,13 +771,31 @@ export function createRrsiObservedTextIndex(input) {
       hold("observed history requires at most two checkpoints");
     const manifestBoundaries =
       captureEvolutionLedgerV2JournalManifestDirectoryBoundaries(ledger);
+    const witnessBoundary =
+      captureEvolutionLedgerFileBackendWitnessDirectoryBoundaries(backend);
+    const sourceWitnessDirectoryBoundaryDigest = rrsiHash(
+      "chainlesschain.rrsi-source-witness-directory-boundaries/v1",
+      witnessBoundary.descriptor,
+    );
+    const manifestWitnessBoundary =
+      captureEvolutionLedgerV2JournalWitnessDirectoryBoundaries(ledger);
+    const manifestWitnessDirectoryBoundaryDigest = manifestWitnessBoundary
+      ? rrsiHash(
+          "chainlesschain.rrsi-manifest-witness-directory-boundaries/v1",
+          manifestWitnessBoundary.descriptor,
+        )
+      : null;
     const manifestDirectoryBoundaryDigest = manifestBoundaries
       ? rrsiHash("chainlesschain.rrsi-manifest-directory-boundaries/v1", {
           catalog: manifestBoundaries.catalog.descriptor,
           head: manifestBoundaries.head.descriptor,
         })
       : null;
-    const state = load(manifestBoundaries);
+    const state = load(
+      manifestBoundaries,
+      witnessBoundary,
+      manifestWitnessBoundary,
+    );
     // Anchor v1 cannot represent the genuine null digest at sequence zero.
     // Fresh v2 migration events are included in this nonempty event prefix.
     const current = historyPrefix(state, state.head);
@@ -810,6 +840,14 @@ export function createRrsiObservedTextIndex(input) {
         manifestBoundaryScope: manifestBoundaries
           ? "original-catalog-and-head-directories"
           : null,
+        sourceWitnessDirectoryBoundaryDigest,
+        sourceWitnessDirectoryBoundaryRechecked: true,
+        sourceWitnessBoundaryScope: witnessBoundary.descriptor.scope,
+        manifestWitnessDirectoryBoundaryDigest,
+        manifestWitnessDirectoryBoundaryRechecked:
+          manifestWitnessBoundary !== null,
+        manifestWitnessBoundaryScope:
+          manifestWitnessBoundary?.descriptor.scope ?? null,
         fullPhysicalStorageGraphVerified: false,
         tenantWideIndexAuthorityVerified: false,
         generationProvenanceVerified: false,
@@ -819,6 +857,8 @@ export function createRrsiObservedTextIndex(input) {
     );
     const recheck = () =>
       guarded(() => {
+        witnessBoundary.recheck();
+        manifestWitnessBoundary?.recheck();
         manifestBoundaries?.catalog.recheck();
         manifestBoundaries?.head.recheck();
         sourceJournalBoundary.recheck();
@@ -829,6 +869,8 @@ export function createRrsiObservedTextIndex(input) {
         sourceJournalBoundary.recheck();
         manifestBoundaries?.head.recheck();
         manifestBoundaries?.catalog.recheck();
+        witnessBoundary.recheck();
+        manifestWitnessBoundary?.recheck();
         return true;
       });
     recheck();

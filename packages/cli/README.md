@@ -4,6 +4,8 @@ Command-line interface for installing, configuring, and managing [ChainlessChain
 
 ## Public CLI 0.166.149 / IDE pairing (2026-11-14)
 
+Source development after this public release adds original source-journal and manifest-witness directory checks to retained-history reports, including rechecks after final journal verification. These changes are **unreleased**. Legacy single-file witnesses report only their original state directory; wrapped/custom manifest witnesses remain usable without claiming original-directory ownership. Directory metadata does not establish complete retention/storage graphs or production authority; automatic promotion remains **HOLD**. [Implementation progress, section 40](../../docs/research/agents/rrsi-implementation-progress-2026-10-07.md).
+
 CLI **0.166.149** is public through [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/43475425890). Exact source `168a3d561b5a16e9d27b060944c63b2264c99df0` passed all **76 CLI CI** and **6 Strict Sandbox** jobs on all configured systems. The official workflow verified child registry bytes, registry-only dependencies and CLI provenance. An independent public download is byte-identical to the immutable official tarball. [Publication evidence](../../docs/research/cli/evidence/release149-public/publication.json).
 
 Install `npm i -g chainlesschain@0.166.149 --registry https://registry.npmjs.org`, restart CLI/IDE hosts, then run `cc --version` and `cc doctor`.
