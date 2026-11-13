@@ -2,13 +2,19 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { createHash } from "node:crypto";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { captureEvolutionLedgerFileManifestCatalogDirectoryBoundary as captureCatalog } from "../../src/lib/evolution/evolution-ledger-file-manifest-catalog.js";
 import { captureEvolutionLedgerFileManifestHeadDirectoryBoundary as captureHead } from "../../src/lib/evolution/evolution-ledger-file-manifest-head-store.js";
 import { captureEvolutionLedgerV2ManifestDirectoryBoundaries as captureComposition } from "../../src/lib/evolution/evolution-ledger-v2-manifest-backend.js";
+import { captureEvolutionLedgerV2JournalManifestDirectoryBoundaries as captureJournal } from "../../src/lib/evolution/evolution-ledger-v2-journal.js";
+import { rrsiHash } from "../../src/lib/evolution/rrsi-data.js";
 import { EVOLUTION_MANIFEST_STATE_READ_FAILED_CODE as FAILED } from "../../src/lib/evolution/evolution-manifest-state-reader.js";
 import { inspectRrsiTenantIndexHistory } from "../../src/lib/evolution/rrsi-tenant-index-anchor-history.js";
-import { createRrsiObservedTextIndex } from "../../src/lib/evolution/rrsi-observed-text-index.js";
+import {
+  createRrsiObservedTextIndex,
+  captureRrsiObservedTextIndex,
+  RRSI_OBSERVED_TEXT_HOLD_CODE,
+} from "../../src/lib/evolution/rrsi-observed-text-index.js";
 import {
   openObservedTextFixture,
   openObservedTextIndex,
@@ -87,7 +93,16 @@ describe.sequential(
         grantsMutationOrPromotionAuthority: false,
         decision: "HOLD",
       });
-      expect(retained).not.toHaveProperty("manifestDirectoryBoundaryDigest");
+      expect(retained.manifestDirectoryBoundaryDigest).toBe(
+        rrsiHash("chainlesschain.rrsi-manifest-directory-boundaries/v1", {
+          catalog: components[0].cap.descriptor,
+          head: components[1].cap.descriptor,
+        }),
+      );
+      expect(retained.manifestDirectoryBoundaryDigest).toBe(
+        initial.manifestDirectoryBoundaryDigest,
+      );
+      expect(retained.manifestDirectoryBoundaryRechecked).toBe(true);
     });
     it("captures only the actual factory's catalog and head through retained history commits", () => {
       const original = captureComposition(fixture.store.manifest.backend);
@@ -95,6 +110,7 @@ describe.sequential(
       expect(captureComposition(fixture.store.manifest.backend)).toBe(original);
       expect(original.catalog).toBe(components[0].cap);
       expect(original.head).toBe(components[1].cap);
+      expect(captureJournal(fixture.store.journal)).toBe(original);
       expect(
         inspectRrsiTenantIndexHistory({ observedTextIndex: index }),
       ).toEqual(retained);
@@ -112,6 +128,18 @@ describe.sequential(
           observedTextIndex: openObservedTextIndex(wrapped),
         }),
       ).not.toThrow();
+      expect(captureJournal(wrapped.store.journal)).toBeNull();
+      expect(
+        inspectRrsiTenantIndexHistory({
+          observedTextIndex: openObservedTextIndex(wrapped),
+        }),
+      ).toMatchObject({
+        manifestDirectoryBoundaryDigest: null,
+        manifestDirectoryBoundaryRechecked: false,
+        manifestBoundaryScope: null,
+        fullPhysicalStorageGraphVerified: false,
+        decision: "HOLD",
+      });
       expect(() => captureComposition(wrapped.store.manifest.backend)).toThrow(
         TypeError,
       );
@@ -128,6 +156,17 @@ describe.sequential(
       for (const fake of [{ ...original }, proxy, revoked.proxy, null])
         expect(() => captureComposition(fake)).toThrow(TypeError);
       expect(() => captureComposition(original, {})).toThrow(TypeError);
+      expect(traps).toBe(0);
+      for (const fake of [
+        { ...fixture.store.journal },
+        proxy,
+        revoked.proxy,
+        null,
+      ])
+        expect(() => captureJournal(fake)).toThrow(TypeError);
+      expect(() => captureJournal(fixture.store.journal, {})).toThrow(
+        TypeError,
+      );
       expect(traps).toBe(0);
     }, 60_000);
     it.each(["catalog", "head"])(
@@ -177,6 +216,65 @@ describe.sequential(
         TypeError,
       );
     });
+    it.each(["catalog", "head"])(
+      "rechecks the original %s after the final journal verification has returned",
+      (role) => {
+        const history = captureRrsiObservedTextIndex(
+          index,
+        ).captureHistoryCheckpoints({ checkpoints: [] });
+        const directory = components.find((value) => value.role === role).cap
+          .descriptor.directory.path;
+        const saved = path.join(root, `late-${role}`);
+        for (const target of [directory, saved])
+          if (!path.resolve(target).startsWith(path.resolve(root) + path.sep))
+            throw new Error("unsafe late manifest clone");
+        const artifactFiles = path.join(root, "store", "artifacts", "files");
+        const nativeLstat = fs.lstatSync;
+        let count = 0,
+          at = Infinity,
+          fired = false;
+        const spy = vi
+          .spyOn(fs, "lstatSync")
+          .mockImplementation((target, ...args) => {
+            const stat = nativeLstat(target, ...args);
+            if (target === artifactFiles && ++count === at) {
+              fired = true;
+              fs.renameSync(directory, saved);
+              fs.cpSync(saved, directory, { recursive: true });
+            }
+            return stat;
+          });
+        try {
+          expect(history.recheck()).toBe(true);
+          expect(count).toBeGreaterThan(0);
+          at = count;
+          count = 0;
+          let error;
+          try {
+            history.recheck();
+          } catch (cause) {
+            error = cause;
+          }
+          expect(fired).toBe(true);
+          expect(count).toBe(at);
+          expect(error?.code).toBe(RRSI_OBSERVED_TEXT_HOLD_CODE);
+          expect(chain(error).some((cause) => cause.code === FAILED)).toBe(
+            true,
+          );
+        } finally {
+          spy.mockRestore();
+          if (fired) {
+            fs.rmSync(directory, { recursive: true, force: true });
+            fs.renameSync(saved, directory);
+          }
+        }
+        expect(history.recheck()).toBe(true);
+        expect(
+          inspectRrsiTenantIndexHistory({ observedTextIndex: index }),
+        ).toEqual(retained);
+      },
+      60_000,
+    );
     it("does not accept caller capabilities as a graph or history-composition grant", () => {
       let getters = 0;
       expect(() =>

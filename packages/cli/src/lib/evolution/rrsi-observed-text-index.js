@@ -1,6 +1,7 @@
 /** Retained observations and prohibitions, never proof of causal generation. */
 import { createHash } from "node:crypto";
 import { isProxy } from "node:util/types";
+import { captureEvolutionLedgerV2JournalManifestDirectoryBoundaries } from "./evolution-ledger-v2-journal.js";
 import { captureRrsiRegistryStorePolicy } from "./rrsi-registry-store-policy.js";
 import {
   captureEvolutionLedgerFileBackend,
@@ -605,7 +606,9 @@ export function createRrsiObservedTextIndex(input) {
     )
       hold("preparation declaration reference differs");
   }
-  function load() {
+  function load(manifestBoundaries = null) {
+    manifestBoundaries?.catalog.recheck();
+    manifestBoundaries?.head.recheck();
     sourceJournalBoundary.recheck();
     artifactBoundary.recheck();
     const before = head(methods.verify());
@@ -694,6 +697,8 @@ export function createRrsiObservedTextIndex(input) {
       hold("text index journal changed during authenticated readback");
     artifactBoundary.recheck();
     sourceJournalBoundary.recheck();
+    manifestBoundaries?.head.recheck();
+    manifestBoundaries?.catalog.recheck();
     return { head: before, events, records, entries, operations };
   }
   function historyPrefix(state, checkpoint) {
@@ -752,7 +757,15 @@ export function createRrsiObservedTextIndex(input) {
     rrsiExact(request, ["checkpoints"], "observed history checkpoint request");
     if (!Array.isArray(request.checkpoints) || request.checkpoints.length > 2)
       hold("observed history requires at most two checkpoints");
-    const state = load();
+    const manifestBoundaries =
+      captureEvolutionLedgerV2JournalManifestDirectoryBoundaries(ledger);
+    const manifestDirectoryBoundaryDigest = manifestBoundaries
+      ? rrsiHash("chainlesschain.rrsi-manifest-directory-boundaries/v1", {
+          catalog: manifestBoundaries.catalog.descriptor,
+          head: manifestBoundaries.head.descriptor,
+        })
+      : null;
+    const state = load(manifestBoundaries);
     // Anchor v1 cannot represent the genuine null digest at sequence zero.
     // Fresh v2 migration events are included in this nonempty event prefix.
     const current = historyPrefix(state, state.head);
@@ -792,6 +805,11 @@ export function createRrsiObservedTextIndex(input) {
         sourceJournalDirectoryBoundaryDigest,
         sourceJournalDirectoryBoundaryRechecked: true,
         sourceJournalBoundaryScope: "source-journal-four-directories",
+        manifestDirectoryBoundaryDigest,
+        manifestDirectoryBoundaryRechecked: manifestBoundaries !== null,
+        manifestBoundaryScope: manifestBoundaries
+          ? "original-catalog-and-head-directories"
+          : null,
         fullPhysicalStorageGraphVerified: false,
         tenantWideIndexAuthorityVerified: false,
         generationProvenanceVerified: false,
@@ -801,12 +819,16 @@ export function createRrsiObservedTextIndex(input) {
     );
     const recheck = () =>
       guarded(() => {
+        manifestBoundaries?.catalog.recheck();
+        manifestBoundaries?.head.recheck();
         sourceJournalBoundary.recheck();
         artifactBoundary.recheck();
         if (!same(state.head, head(methods.verify())))
           hold("observed history head changed after prefix capture");
         artifactBoundary.recheck();
         sourceJournalBoundary.recheck();
+        manifestBoundaries?.head.recheck();
+        manifestBoundaries?.catalog.recheck();
         return true;
       });
     recheck();

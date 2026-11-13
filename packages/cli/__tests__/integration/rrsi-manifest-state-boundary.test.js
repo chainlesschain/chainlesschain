@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
+import { generateKeyPairSync } from "node:crypto";
 import {
   afterAll,
   afterEach,
@@ -13,7 +14,18 @@ import {
   it,
 } from "vitest";
 import { EVOLUTION_MANIFEST_STATE_READ_FAILED_CODE as FAILED } from "../../src/lib/evolution/evolution-manifest-state-reader.js";
-import { inspectRrsiTenantIndexHistory } from "../../src/lib/evolution/rrsi-tenant-index-anchor-history.js";
+import {
+  inspectRrsiTenantIndexHistory,
+  verifyRrsiTenantIndexAnchorHistory,
+} from "../../src/lib/evolution/rrsi-tenant-index-anchor-history.js";
+import { captureRrsiObservedTextIndex } from "../../src/lib/evolution/rrsi-observed-text-index.js";
+import { captureEvolutionLedgerV2JournalManifestDirectoryBoundaries } from "../../src/lib/evolution/evolution-ledger-v2-journal.js";
+import { rrsiHash } from "../../src/lib/evolution/rrsi-data.js";
+import { v2FixtureDomainEvent } from "../fixtures/evolution-ledger-v2-store.js";
+import {
+  historyAnchorInput,
+  signHistoryAnchor,
+} from "../fixtures/rrsi-anchor-history.js";
 import {
   openObservedTextFixture,
   openObservedTextIndex,
@@ -101,7 +113,7 @@ describe.sequential(
     let root, fixture, index, retained;
     beforeAll(() => {
       root = fs.mkdtempSync(path.join(temp, "cc-manifest-state-history-"));
-      fixture = openObservedTextFixture(root);
+      fixture = openObservedTextFixture(root, { originalManifestPorts: true });
       index = openObservedTextIndex(fixture);
     }, 60_000);
     beforeAll(() => {
@@ -119,6 +131,8 @@ describe.sequential(
     it("authenticates signed retained history while complete physical graph and external authority remain HOLD", () => {
       expect(retained).toMatchObject({
         localRetainedHistoryReplayed: true,
+        manifestDirectoryBoundaryRechecked: true,
+        manifestBoundaryScope: "original-catalog-and-head-directories",
         fullPhysicalStorageGraphVerified: false,
         tenantWideIndexAuthorityVerified: false,
         generationProvenanceVerified: false,
@@ -128,6 +142,36 @@ describe.sequential(
       expect(
         inspectRrsiTenantIndexHistory({ observedTextIndex: index }),
       ).toEqual(retained);
+      const original =
+        captureEvolutionLedgerV2JournalManifestDirectoryBoundaries(
+          fixture.store.journal,
+        );
+      expect(retained.manifestDirectoryBoundaryDigest).toBe(
+        rrsiHash("chainlesschain.rrsi-manifest-directory-boundaries/v1", {
+          catalog: original.catalog.descriptor,
+          head: original.head.descriptor,
+        }),
+      );
+      const keys = generateKeyPairSync("ed25519");
+      const signed = signHistoryAnchor(
+        historyAnchorInput(index, retained.current, keys),
+        keys,
+      );
+      const verified = verifyRrsiTenantIndexAnchorHistory({
+        observedTextIndex: index,
+        previous: signed,
+        current: signed,
+      });
+      expect(verified).toMatchObject({
+        manifestDirectoryBoundaryDigest:
+          retained.manifestDirectoryBoundaryDigest,
+        manifestDirectoryBoundaryRechecked: true,
+        manifestBoundaryScope: "original-catalog-and-head-directories",
+        storageGraphDigestVerified: false,
+        rootAuthorityVerified: false,
+        routingPinVerified: false,
+        decision: "HOLD",
+      });
     }, 60_000);
 
     it.each(["catalog", "head"])(
@@ -171,6 +215,9 @@ describe.sequential(
             originalBytes,
           );
           expect(fs.readdirSync(target)).toEqual([name]);
+          // A pre-existing capability must still check the original directory;
+          // even opening a new observed-text index cannot claim this clone.
+          expect(() => openObservedTextIndex(fixture)).toThrow();
         } finally {
           fs.rmSync(copy, { recursive: true, force: true });
           fs.renameSync(saved, target);
@@ -182,5 +229,37 @@ describe.sequential(
       },
       60_000,
     );
+
+    it("retains the same directory digest across real append and independent reopen without granting full-graph authority", () => {
+      const capture = captureRrsiObservedTextIndex(
+        index,
+      ).captureHistoryCheckpoints({ checkpoints: [] });
+      fixture.store.journal.appendDomainEvent(
+        v2FixtureDomainEvent(fixture.store, "manifest-history-append"),
+      );
+      expect(() => capture.recheck()).toThrow();
+      const current = inspectRrsiTenantIndexHistory({
+        observedTextIndex: index,
+      });
+      expect(current.current.checkpoint.sequence).toBeGreaterThan(
+        retained.current.checkpoint.sequence,
+      );
+      expect(current.manifestDirectoryBoundaryDigest).toBe(
+        retained.manifestDirectoryBoundaryDigest,
+      );
+      const reopened = openObservedTextFixture(root, {
+        originalManifestPorts: true,
+      });
+      const reopenedHistory = inspectRrsiTenantIndexHistory({
+        observedTextIndex: openObservedTextIndex(reopened),
+      });
+      expect(reopenedHistory).toEqual(current);
+      expect(current).toMatchObject({
+        fullPhysicalStorageGraphVerified: false,
+        generationProvenanceVerified: false,
+        grantsMutationOrPromotionAuthority: false,
+        decision: "HOLD",
+      });
+    }, 60_000);
   },
 );

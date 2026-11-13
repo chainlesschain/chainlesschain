@@ -727,3 +727,15 @@ v2 manifest backend 保存实际 catalog/head-store，并通过 `captureEvolutio
 本机 Windows / Node 24.12.0 的七个相关文件共 **84 项通过、0 失败、2 项既有平台条件跳过**。其中新增所有权单元 7 项，真实 RRSI retained-history 组合新增 2 项；验证原始组件沿实际 preparation/observed-text 提交和重开仍一致、目录同字节替换被拒绝、混合端口/包装不能认领，以及既有故障包装仍可用于原恢复测试。只允许目录 lstat/realpath 的正对照同时禁止叶读取、锁和随机数。此前 57 项与组合 40 项重叠，不累计。
 
 本批只完成原组件所有权传递。历史报告尚未纳入这些组件的汇总摘要；witness/retention/source 汇总、完整 storage graph、生产 producer、真实 A/B/C 与自动晋级仍待完成，HOLD 不变。用户要求完成后重跑原 36 项维护任务及 9 次首次安装；本批尚未执行新的真实模型任务，不能由本地回归推断完成率提高。
+
+## 39 原始 manifest 目录能力进入历史报告（2026-11-13）
+
+接续第 38 节，真实 v2 journal 通过模块私有 WeakMap 保存实际 manifest backend，历史报告沿这条原组合取得 catalog/head 的目录能力。所有权探测只查询原工厂登记，不读取 caller descriptor、getter 或代理，不执行回调或文件 I/O；捕获成功仍须复核原目录。原组件的目录身份或权限错误继续抛出，不会降级为“未提供证明”。自定义、转发或混合端口保持既有读写行为，但历史报告不认领其文件目录所有权。
+
+`captureHistoryCheckpoints` 在原 retained history 回读前后及固定 head recheck 前后复核两目录。临时 history snapshot 与签名 anchor history 检查新增 `manifestDirectoryBoundaryDigest`、`manifestDirectoryBoundaryRechecked`、`manifestBoundaryScope`，摘要域固定为 `chainlesschain.rrsi-manifest-directory-boundaries/v1`，显式区分 catalog 和 head 角色；仅当两者均为原组件时给出 `original-catalog-and-head-directories`。缺少原始所有权时分别返回 null、false、null。目录证明只覆盖本机原目录元数据，不认证叶文件 inventory、retention 或完整物理图；捕获和逐次复查不是原子快照。
+
+持久 index descriptor、限制记录、anchor 签名格式以及 `localCompositionDigest` 输入不变；临时报告的摘要随新增字段变化。真实追加及同原目录独立重开保留目录摘要；旧报告 recheck 仍因 head 变化拒绝。回归覆盖原始组件和签名历史投影、自定义端口不认领、结构副本/Proxy 不执行 getter、同字节目录 clone、恢复原目录、真实 append/reopen，以及最终 journal verification 返回后才替换 catalog/head 的末端窗口。两项实际 FIFO 检查在 Windows 按既有条件跳过；本机结果不替代 Linux/macOS 矩阵或真实模型评测。
+
+本机 Windows / Node 22.20.0 的最终九文件回归为 **138 项通过、0 失败、2 项既有平台条件跳过**，包括真实跨进程 anchor history、v2 journal、原组件所有权和 observed-text 历史；与前面分轮运行重叠，不重复累计。改动文件 Prettier 与 `git diff --check` 通过。
+
+后续继续补齐 witness/retention 组件汇总与完整存储图、独立安装认可、受保护 pin/高水位、强制业务路由、真实 producer、candidate alias 和 release lease/恢复。`fullPhysicalStorageGraphVerified`、`storageGraphDigestVerified`、生产权限与自动晋级保持 false/HOLD。真实 RRSI A/B/C 与新一轮原 36+9 模型任务均未执行。

@@ -137,6 +137,11 @@ export function verifyRrsiTenantIndexAnchorHistory(input) {
           snapshot.sourceJournalDirectoryBoundaryDigest,
         sourceJournalDirectoryBoundaryRechecked: true,
         sourceJournalBoundaryScope: "source-journal-four-directories",
+        manifestDirectoryBoundaryDigest:
+          snapshot.manifestDirectoryBoundaryDigest,
+        manifestDirectoryBoundaryRechecked:
+          snapshot.manifestDirectoryBoundaryRechecked,
+        manifestBoundaryScope: snapshot.manifestBoundaryScope,
         previous: snapshot.prefixes[0],
         current: snapshot.current,
         signaturesVerifiedRelativeToExplicitKey: true,

@@ -206,6 +206,12 @@ export function createEvolutionLedgerFileManifestCatalogBackend({
 }
 
 /** Original local catalog directory only; structural wrappers are not owners. */
+export function hasEvolutionLedgerFileManifestCatalogDirectoryBoundary(
+  backend,
+) {
+  return DIRECTORY_BOUNDARIES.has(backend);
+}
+
 export function captureEvolutionLedgerFileManifestCatalogDirectoryBoundary(
   backend,
 ) {

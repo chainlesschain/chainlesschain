@@ -539,3 +539,9 @@ The contract separates code wiring from runtime verification: `sourceWiring` rec
 ```
 
 The UI state must not be interpreted as a production producer/storage graph, A/B result, business-effect acceptance, or promotion authorization. Any future change requires independent runtime evidence, protected deployment records, and readback verification.
+
+## 2026-11-13 RRSI 历史报告的原始 manifest 目录复核
+
+v2 journal 保存实际 factory backend 的私有关联，observed-text 历史报告沿原组合捕获 catalog/head 目录能力，在 retained history 回读与最终 head 校验前后重新检查。`manifestDirectoryBoundaryDigest` 使用独立摘要域并绑定两个组件角色；`manifestDirectoryBoundaryRechecked` 与 `manifestBoundaryScope` 明确限定为原始 catalog/head 两目录。合法追加和同目录独立重开不改变该目录摘要，目录同字节替换则沿现有错误链 HOLD。
+
+自定义或包装端口不取得原工厂所有权，其报告给出 null 摘要与 false 复核标志，原读写合同继续保留。已有签名、CAS、持久 index/anchor 与 `localCompositionDigest` 不变；这是临时报告新增的局部证明，不是全图原子快照、安装认可、跨进程防回滚或 producer 因果来源证明。完整图、真实 A/B/C 和生产自动晋级仍待闭环。实施与验证范围见 [RRSI 进度第 39 节](../../research/agents/rrsi-implementation-progress-2026-10-07.md)。

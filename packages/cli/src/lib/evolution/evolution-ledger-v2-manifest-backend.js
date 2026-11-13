@@ -12,10 +12,12 @@ import {
 import {
   captureEvolutionLedgerManifestHeadStore,
   captureEvolutionLedgerManifestHeadStoreDirectoryBoundary,
+  hasEvolutionLedgerManifestHeadStoreDirectoryBoundary,
 } from "./evolution-ledger-manifest-head-store.js";
 import {
   captureEvolutionLedgerManifestCatalog,
   captureEvolutionLedgerManifestCatalogDirectoryBoundary,
+  hasEvolutionLedgerManifestCatalogDirectoryBoundary,
 } from "./evolution-ledger-manifest-catalog.js";
 import { captureEvolutionLedgerManifestWitnessAdapter } from "./evolution-ledger-manifest-witness-adapter.js";
 
@@ -618,6 +620,15 @@ export function createEvolutionLedgerV2ManifestBackend(options = undefined) {
 }
 
 /** Local metadata only. Capturing these components does not authenticate state. */
+export function hasEvolutionLedgerV2ManifestDirectoryBoundaries(value) {
+  const components = ORIGINAL_MANIFEST_COMPONENTS.get(value);
+  return (
+    components !== undefined &&
+    hasEvolutionLedgerManifestCatalogDirectoryBoundary(components.catalog) &&
+    hasEvolutionLedgerManifestHeadStoreDirectoryBoundary(components.headStore)
+  );
+}
+
 export function captureEvolutionLedgerV2ManifestDirectoryBoundaries(value) {
   if (arguments.length !== 1 || !ORIGINAL_MANIFEST_COMPONENTS.has(value))
     throw new TypeError("one original v2 manifest backend is required");

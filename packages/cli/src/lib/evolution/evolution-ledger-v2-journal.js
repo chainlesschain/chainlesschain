@@ -10,13 +10,18 @@ import {
   EVOLUTION_LEDGER_V2_MIGRATION_INTENT,
   EVOLUTION_LEDGER_V2_CUTOVER_COMPLETED,
 } from "./evolution-ledger.js";
-import { captureEvolutionLedgerV2ManifestBackend } from "./evolution-ledger-v2-manifest-backend.js";
+import {
+  captureEvolutionLedgerV2ManifestBackend,
+  captureEvolutionLedgerV2ManifestDirectoryBoundaries,
+  hasEvolutionLedgerV2ManifestDirectoryBoundaries,
+} from "./evolution-ledger-v2-manifest-backend.js";
 
 export const EVOLUTION_LEDGER_V2_JOURNAL_SCHEMA =
   "chainlesschain.evolution-ledger-v2-journal/v2";
 export const EVOLUTION_LEDGER_V2_FINALIZATION_SCHEMA =
   "chainlesschain.evolution-ledger-v2-finalization/v2";
 const JOURNALS = new WeakSet();
+const MANIFEST_BACKENDS = new WeakMap();
 const RESERVED = new Set([
   EVOLUTION_LEDGER_V2_MIGRATION_INTENT,
   EVOLUTION_LEDGER_V2_CUTOVER_COMPLETED,
@@ -518,7 +523,20 @@ export function createEvolutionLedgerV2Journal(options) {
   });
   locked(recover);
   JOURNALS.add(journal);
+  MANIFEST_BACKENDS.set(journal, backend);
   return journal;
+}
+
+/** Original factory components only. Custom ports remain usable but unclaimed. */
+export function captureEvolutionLedgerV2JournalManifestDirectoryBoundaries(
+  value,
+) {
+  if (arguments.length !== 1 || !MANIFEST_BACKENDS.has(value))
+    throw new TypeError("one original v2 journal is required");
+  const backend = MANIFEST_BACKENDS.get(value);
+  if (!hasEvolutionLedgerV2ManifestDirectoryBoundaries(backend)) return null;
+  // Do not catch identity/permission failures as merely unavailable ownership.
+  return captureEvolutionLedgerV2ManifestDirectoryBoundaries(backend);
 }
 
 export function isEvolutionLedgerV2Journal(value) {
