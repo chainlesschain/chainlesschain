@@ -1,6 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
-import { createEvolutionFileWitness } from "./evolution-file-witness.js";
+import {
+  createEvolutionFileWitness,
+  captureEvolutionFileWitnessDirectoryBoundaries,
+} from "./evolution-file-witness.js";
 import {
   EvolutionLedger,
   captureEvolutionLedgerMigrationSource,
@@ -14,6 +17,7 @@ export const EVOLUTION_LEDGER_FILE_BACKEND_SCHEMA =
 const BACKENDS = new WeakSet();
 const BACKEND_BINDINGS = new WeakMap();
 const SOURCE_DIRECTORY_BOUNDARIES = new WeakMap();
+const ORIGINAL_WITNESSES = new WeakMap();
 
 function requiredString(value, label) {
   if (typeof value !== "string" || value.trim() === "") {
@@ -209,7 +213,9 @@ export function createEvolutionLedgerFileBackend({
   });
   const sourceDirectoryBoundary =
     captureEvolutionLedgerDirectoryBoundary(sourceLedger);
+  captureEvolutionFileWitnessDirectoryBoundaries(witness);
   BACKENDS.add(backend);
+  ORIGINAL_WITNESSES.set(backend, witness);
   SOURCE_DIRECTORY_BOUNDARIES.set(backend, sourceDirectoryBoundary);
   BACKEND_BINDINGS.set(
     backend,
@@ -255,4 +261,15 @@ export function captureEvolutionLedgerFileBackendSourceDirectoryBoundary(
     );
   boundary.recheck();
   return boundary;
+}
+
+/** Resolve the actual factory witness, never the public descriptor or methods. */
+export function captureEvolutionLedgerFileBackendWitnessDirectoryBoundaries(
+  value,
+) {
+  if (arguments.length !== 1)
+    throw new TypeError("witness directory capture takes one original backend");
+  const witness = ORIGINAL_WITNESSES.get(value);
+  if (!witness) throw new TypeError("an original file backend is required");
+  return captureEvolutionFileWitnessDirectoryBoundaries(witness);
 }

@@ -14,7 +14,7 @@
 - [Dots / Muse / Mods 实施进度](./dots-muse-mods-implementation-progress-2026-10-07.md)：含当前完成情况表、目标/调度、CLI 目标显式移交/备份/签名回退、CLI/两端 IDE 创建与 v6 回执、事件账本及恢复、组合交付助手 0.3.0、逐次授权的本机/火山/本地 OpenAI 起草、火山真实推理、两端 IDE 力数等本地算力配置、Memory 输出重验/到期清屏、共享 usage、真实进程恢复及 CLI/IDE .143 发行证据。
 - [Windows 原生跨夜通知验收（2026-11-11）](./evidence/dmm-native-overnight-2026-11-11/README.md)：受控主进程时钟、真实 Vue/IPC/后台投递，保留首次失败和修正后通过的 7 份原始文件及 20 组源码绑定；真实整夜等完整条件仍待完成。
 - [ChainlessChain RRSI 实施方案](./rrsi-implementation-plan-2026-10-07.md)：在既有 RSI 上增加泛化、成本、噪声和修改历史约束，包含六批交付、等预算对照及晋级验收。
-- [RRSI 实施进度](./rrsi-implementation-progress-2026-10-07.md)：记录五池合同、耐久历史、受限来源登记及索引／产物／manifest／witness／journal 状态边界、原 source／manifest 目录能力、manifest factory 原组件所有权及旧状态兼容的本地验证（至第 38 节）；真实对照与生产晋级仍未闭环。
+- [RRSI 实施进度](./rrsi-implementation-progress-2026-10-07.md)：记录五池合同、耐久历史、受限来源登记及索引／产物／manifest／witness／journal 状态边界、原 source／manifest 目录能力、manifest factory 原组件所有权、两套 witness 目录的历史复查及旧状态兼容的本地验证（至第 40 节）；真实对照与生产晋级仍未闭环。
 
 ## 部署参考
 

@@ -5,7 +5,10 @@ import { types } from "node:util";
 import { ensurePrivateDirectory, ensurePrivateFile } from "../secure-fs.js";
 import { withFileLock } from "../with-file-lock.js";
 import { evolutionPrivateStorageOptions } from "./evolution-private-storage.js";
-import { createEvolutionPhysicalStateReader } from "./evolution-physical-state-reader.js";
+import {
+  createEvolutionPhysicalStateReader,
+  captureEvolutionPhysicalStateReaderDirectoryBoundary,
+} from "./evolution-physical-state-reader.js";
 import {
   createEvolutionWitnessSegments,
   EVOLUTION_SEGMENTED_WITNESS_SCHEMA,
@@ -31,6 +34,7 @@ const MAXIMUM_CACHED_RECORDS = 1024;
 const MAXIMUM_CACHED_TEXT_BYTES = 16 * 1024 * 1024;
 const MAXIMUM_TRUST_EPOCH_CHARS = 256;
 const MAXIMUM_TRUST_EPOCH_RETRIES = 2;
+const DIRECTORY_BOUNDARIES = new WeakMap();
 const STORE_KEYS = new Set([
   "current",
   "discardedAnchors",
@@ -918,5 +922,64 @@ export function createEvolutionFileWitness({
       "evolution-ledger-witness-ancestry",
     );
   };
-  return Object.freeze(port);
+  const witness = Object.freeze(port);
+  const stateBoundary =
+    captureEvolutionPhysicalStateReaderDirectoryBoundary(rootReader);
+  let capturedSegmentReader;
+  let directoryBoundary;
+  const captureDirectories = () => {
+    if (!directoryBoundary || capturedSegmentReader !== segmentReader) {
+      // A legacy witness need not have segmented storage. Only the reader
+      // already owned by this witness may supply that role: capture never
+      // creates a directory or adopts a caller-created pathname.
+      const segmentBoundary = segmentReader
+        ? captureEvolutionPhysicalStateReaderDirectoryBoundary(segmentReader)
+        : null;
+      const descriptor = Object.freeze({
+        schema: "chainlesschain.evolution-file-witness-directory-boundaries/v1",
+        scope: segmentBoundary
+          ? "original-witness-state-and-segment-directories"
+          : "original-witness-state-directory",
+        state: stateBoundary.descriptor,
+        segments: segmentBoundary?.descriptor ?? null,
+        fileContentsVerified: false,
+        storageInventoryVerified: false,
+        retentionStorageVerified: false,
+        fullPhysicalStorageGraphVerified: false,
+        grantsMutationOrPromotionAuthority: false,
+      });
+      const recheck = (...args) => {
+        if (args.length)
+          throw new TypeError("witness directory boundary takes no context");
+        stateBoundary.recheck();
+        segmentBoundary?.recheck();
+        stateBoundary.recheck();
+        return descriptor;
+      };
+      directoryBoundary = Object.freeze({
+        descriptor,
+        recheck: Object.freeze(recheck),
+      });
+      capturedSegmentReader = segmentReader;
+    }
+    directoryBoundary.recheck();
+    return directoryBoundary;
+  };
+  captureDirectories();
+  DIRECTORY_BOUNDARIES.set(witness, captureDirectories);
+  return witness;
+}
+
+/** Original readers only; no leaf reads, lock, repair or lazy segment capture. */
+export function captureEvolutionFileWitnessDirectoryBoundaries(witness) {
+  if (arguments.length !== 1)
+    throw new TypeError("witness directory capture takes one original witness");
+  const capture = DIRECTORY_BOUNDARIES.get(witness);
+  if (!capture) throw new TypeError("an original file witness is required");
+  return capture();
+}
+
+/** Pure ownership probe: never inspects caller methods, getters or proxies. */
+export function hasEvolutionFileWitnessDirectoryBoundaries(witness) {
+  return DIRECTORY_BOUNDARIES.has(witness);
 }

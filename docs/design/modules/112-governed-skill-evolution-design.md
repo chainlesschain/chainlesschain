@@ -545,3 +545,13 @@ The UI state must not be interpreted as a production producer/storage graph, A/B
 v2 journal 保存实际 factory backend 的私有关联，observed-text 历史报告沿原组合捕获 catalog/head 目录能力，在 retained history 回读与最终 head 校验前后重新检查。`manifestDirectoryBoundaryDigest` 使用独立摘要域并绑定两个组件角色；`manifestDirectoryBoundaryRechecked` 与 `manifestBoundaryScope` 明确限定为原始 catalog/head 两目录。合法追加和同目录独立重开不改变该目录摘要，目录同字节替换则沿现有错误链 HOLD。
 
 自定义或包装端口不取得原工厂所有权，其报告给出 null 摘要与 false 复核标志，原读写合同继续保留。已有签名、CAS、持久 index/anchor 与 `localCompositionDigest` 不变；这是临时报告新增的局部证明，不是全图原子快照、安装认可、跨进程防回滚或 producer 因果来源证明。完整图、真实 A/B/C 和生产自动晋级仍待闭环。实施与验证范围见 [RRSI 进度第 39 节](../../research/agents/rrsi-implementation-progress-2026-10-07.md)。
+
+## 原始 witness 目录进入保留历史（2026-11-14，未发布源码）
+
+source journal 与 v2 manifest 使用不同的 witness，分别沿 file backend 与 manifest witness adapter → v2 backend → journal 的私有所有权关系捕获。能力只来自原 file witness 已拥有的 physical reader，不从公开路径或同名方法重建。结构副本、转发包装和代理不能获得原始所有权；纯品牌探针不执行 getter、回调或 I/O。
+
+保留历史在回读前后及最终 journal verification 前后分别重验两套 witness。临时 snapshot 与签名 anchor history 检查增加 `sourceWitnessDirectoryBoundaryDigest` / `sourceWitnessDirectoryBoundaryRechecked` / `sourceWitnessBoundaryScope`，以及对应的 `manifestWitness*` 三字段。两角色使用不同摘要域。目录复制替换、丢失、别名或精度回退均拒绝，不通过修复或重新认领目录继续验证。
+
+原 witness 已捕获分段 reader 时，scope 为 `original-witness-state-and-segment-directories`；旧单文件 witness 的分段 reader 尚不存在时，只报告 `original-witness-state-directory`，不会为了收集能力创建目录或补获调用者新建的路径。由 witness 自身正常写入首次创建并捕获分段 reader 后，可获得新的两目录能力。自定义 manifest witness 保留原读写合同，但其三字段为 null / false / null。
+
+本批没有修改持久 index、anchor、witness 状态格式、签名、CAS 或 `localCompositionDigest`。目录能力既不读取叶字节，也不认证完整 retention/inventory、独立安装或生产权限。`fullPhysicalStorageGraphVerified=false` 与 `storageGraphDigestVerified=false` 保持；真实 A/B/C、模型任务增益与自动晋升仍未完成。实现与本地验证见 [RRSI 进度第 40 节](../../research/agents/rrsi-implementation-progress-2026-10-07.md)。本节不代表已公开 CLI 0.166.149 包含本次未发布改动。

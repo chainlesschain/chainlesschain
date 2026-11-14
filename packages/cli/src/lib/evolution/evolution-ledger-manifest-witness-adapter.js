@@ -1,4 +1,8 @@
 import { types as utilTypes } from "node:util";
+import {
+  captureEvolutionFileWitnessDirectoryBoundaries,
+  hasEvolutionFileWitnessDirectoryBoundaries,
+} from "./evolution-file-witness.js";
 
 import { EVOLUTION_LEDGER_WITNESS_SCHEMA } from "./evolution-ledger.js";
 import {
@@ -22,6 +26,7 @@ export const EVOLUTION_LEDGER_MANIFEST_WITNESS_COMMIT_UNKNOWN_CODE =
 
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const ADAPTERS = new WeakSet();
+const ORIGINAL_WITNESSES = new WeakMap();
 const CONFIG_KEYS = new Set(["descriptor", "manifestAuthority", "witness"]);
 const DESCRIPTOR_KEYS = new Set([
   "epoch",
@@ -523,6 +528,7 @@ export function createEvolutionLedgerManifestWitnessAdapter(
     },
   });
   ADAPTERS.add(adapter);
+  ORIGINAL_WITNESSES.set(adapter, data(fields, "witness"));
   return adapter;
 }
 
@@ -551,4 +557,20 @@ export function captureEvolutionLedgerManifestWitnessAdapter(
     }
   }
   return value;
+}
+
+export function hasEvolutionLedgerManifestWitnessDirectoryBoundaries(value) {
+  return hasEvolutionFileWitnessDirectoryBoundaries(
+    ORIGINAL_WITNESSES.get(value),
+  );
+}
+
+export function captureEvolutionLedgerManifestWitnessDirectoryBoundaries(
+  value,
+) {
+  if (arguments.length !== 1 || !ORIGINAL_WITNESSES.has(value))
+    throw new TypeError("one original manifest witness adapter is required");
+  return captureEvolutionFileWitnessDirectoryBoundaries(
+    ORIGINAL_WITNESSES.get(value),
+  );
 }

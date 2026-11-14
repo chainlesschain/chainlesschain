@@ -13,6 +13,7 @@ import {
 import {
   captureEvolutionLedgerV2ManifestBackend,
   captureEvolutionLedgerV2ManifestDirectoryBoundaries,
+  captureEvolutionLedgerV2ManifestWitnessDirectoryBoundaries,
   hasEvolutionLedgerV2ManifestDirectoryBoundaries,
 } from "./evolution-ledger-v2-manifest-backend.js";
 
@@ -537,6 +538,16 @@ export function captureEvolutionLedgerV2JournalManifestDirectoryBoundaries(
   if (!hasEvolutionLedgerV2ManifestDirectoryBoundaries(backend)) return null;
   // Do not catch identity/permission failures as merely unavailable ownership.
   return captureEvolutionLedgerV2ManifestDirectoryBoundaries(backend);
+}
+
+export function captureEvolutionLedgerV2JournalWitnessDirectoryBoundaries(
+  value,
+) {
+  if (arguments.length !== 1 || !MANIFEST_BACKENDS.has(value))
+    throw new TypeError("one original v2 journal is required");
+  return captureEvolutionLedgerV2ManifestWitnessDirectoryBoundaries(
+    MANIFEST_BACKENDS.get(value),
+  );
 }
 
 export function isEvolutionLedgerV2Journal(value) {

@@ -1,0 +1,94 @@
+{
+  "schema": 1,
+  "recordedAt": "2026-11-13T21:58:56.112976+00:00",
+  "sourceBase": "ee37ef02f77b833cc20c4cd5ebaef75c156f1989",
+  "publicationStatus": "unreleased-working-tree",
+  "environment": {
+    "os": "Windows",
+    "node": "22.20.0",
+    "vitest": "4.1.10"
+  },
+  "finalRun": {
+    "testFiles": 12,
+    "passedFiles": 12,
+    "passedTests": 285,
+    "platformSkippedTests": 9,
+    "failedTests": 0,
+    "durationSeconds": 139.93,
+    "command": "node ../../node_modules/vitest/vitest.mjs run __tests__/unit/evolution-witness-directory-boundary.test.js __tests__/unit/evolution-file-witness.test.js __tests__/unit/evolution-witness-state-boundary.test.js __tests__/unit/evolution-ledger-file-backend.test.js __tests__/unit/evolution-ledger-v2-manifest-backend.test.js __tests__/unit/evolution-ledger-v2-journal.test.js __tests__/unit/rrsi-observed-text-index.test.js __tests__/unit/rrsi-tenant-index-anchor-history.test.js __tests__/integration/rrsi-witness-directory-boundary.test.js __tests__/integration/rrsi-tenant-index-anchor-history-process.test.js __tests__/integration/rrsi-manifest-directory-capability.test.js __tests__/integration/rrsi-source-journal-directory-boundary.test.js",
+    "workingDirectory": "packages/cli",
+    "files": [
+      "__tests__/unit/evolution-witness-directory-boundary.test.js",
+      "__tests__/unit/evolution-file-witness.test.js",
+      "__tests__/unit/evolution-witness-state-boundary.test.js",
+      "__tests__/unit/evolution-ledger-file-backend.test.js",
+      "__tests__/unit/evolution-ledger-v2-manifest-backend.test.js",
+      "__tests__/unit/evolution-ledger-v2-journal.test.js",
+      "__tests__/unit/rrsi-observed-text-index.test.js",
+      "__tests__/unit/rrsi-tenant-index-anchor-history.test.js",
+      "__tests__/integration/rrsi-witness-directory-boundary.test.js",
+      "__tests__/integration/rrsi-tenant-index-anchor-history-process.test.js",
+      "__tests__/integration/rrsi-manifest-directory-capability.test.js",
+      "__tests__/integration/rrsi-source-journal-directory-boundary.test.js"
+    ]
+  },
+  "newTestsWithinFinalRun": {
+    "passed": 34,
+    "windowsFifoSkipped": 2,
+    "notAdditionalToAggregate": true
+  },
+  "diagnostics": {
+    "initialIntegrationPassed": 9,
+    "initialIntegrationFailed": 4,
+    "reason": "Test expected observed-text HOLD at the outer anchor-history boundary. Actual errors contained anchor HOLD -> observed HOLD -> witness state failure. Assertions were corrected to require all three layers; production rejection was not loosened."
+  },
+  "sourceHashes": {
+    "timing": "Captured after the completed final run; no pre-run hash checkpoint was recorded.",
+    "algorithm": "sha256",
+    "files": {
+      "packages/cli/__tests__/fixtures/evolution-ledger-v2-store.js": "860e2b54556ae3b46b8d5cb5a125e2be28fbdb8e17fdd627b89f10cdd822ef9a",
+      "packages/cli/__tests__/integration/rrsi-witness-directory-boundary.test.js": "305269d7568a1a177fa16dd04aba03c0489b1a2e26456cee6ce92da3237f40a3",
+      "packages/cli/__tests__/unit/evolution-witness-directory-boundary.test.js": "92ea0475a8b89c0b164f3883c0081c788e1d65d72c5327d03b955edb7af80101",
+      "packages/cli/src/lib/evolution/evolution-file-witness.js": "70ebe8e50d882effa396191ed35004cbbb02f1cace7f375fd36c585e584ef9fe",
+      "packages/cli/src/lib/evolution/evolution-ledger-file-backend.js": "e860ff0801068e503a8b926a0cfcfcea4c952ca0e3be51a5be74e821cea99da3",
+      "packages/cli/src/lib/evolution/evolution-ledger-manifest-witness-adapter.js": "1aaad061d73f03dc412fc853a04a10ef693d5d9128b53d6dd28064844ed849fc",
+      "packages/cli/src/lib/evolution/evolution-ledger-v2-journal.js": "c35f4c052986c93a7711f95ebddb95c3f462bb255164c73ae41a3fcdc0c928ca",
+      "packages/cli/src/lib/evolution/evolution-ledger-v2-manifest-backend.js": "defbb757a413637dc2dfc6096fe75ee7cc8fb7a296d5069a99e8b9edd11a61ca",
+      "packages/cli/src/lib/evolution/rrsi-observed-text-index.js": "8e6599afd8081c5e38a33f03e72b13dc0bae01d16a51d2a035ef8bad17a1e831",
+      "packages/cli/src/lib/evolution/rrsi-tenant-index-anchor-history.js": "6ff47d9f09e909ee9cf61258900d19d731c57824a5e5e3049bed57bb9bfea98a"
+    }
+  },
+  "checks": {
+    "eslintChangedJavaScript": "passed; repository Node configuration; max-warnings=0",
+    "prettier": "passed",
+    "gitDiffWhitespace": "passed"
+  },
+  "limits": {
+    "nativeFilesystemTrustForInjectedPorts": false,
+    "completeRetentionInventory": false,
+    "fullPhysicalStorageGraphVerified": false,
+    "storageGraphDigestVerified": false,
+    "independentInstallationAuthority": false,
+    "productionAuthority": false,
+    "runtimeEvidence": false,
+    "automaticPromotion": "HOLD",
+    "realABC": "NOT_RUN",
+    "newOriginal36Plus9ModelTaskRetest": "NOT_RUN",
+    "actionsReleaseMatrix": "NOT_RUN_FOR_THIS_WORKING_TREE",
+    "ideNativeGui": "NOT_RUN"
+  },
+  "configurationRegression": {
+    "testFiles": 3,
+    "passedTests": 46,
+    "failedTests": 0,
+    "skippedTests": 0,
+    "durationSeconds": 16.03,
+    "workingDirectory": "packages/cli",
+    "files": [
+      "__tests__/unit/evolution-deployment-config.test.js",
+      "__tests__/unit/vscode-ext-evolution-deployment-config.test.js",
+      "__tests__/unit/local-ui-evolution-deployment.test.js"
+    ],
+    "scope": "Existing CLI/VS Code/local UI configuration contracts; not native IDE GUI or model-task acceptance; separate run from the 12-file finalRun"
+  }
+}

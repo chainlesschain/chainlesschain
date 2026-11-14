@@ -33,6 +33,8 @@ const digest = (letter) => `sha256:${letter.repeat(64)}`;
 export function createLedgerV2FixtureBackend(root, request, options = {}) {
   if (options.originalManifestPorts && options.fault)
     throw new Error("original manifest ports cannot install fault wrappers");
+  if (options.originalWitnessPorts && options.fault)
+    throw new Error("original witness ports cannot install fault wrappers");
   const source = request.authority;
   const { fsImpl, clock } = evolutionDurableStoreConfiguration(root);
   const descriptor = {
@@ -201,16 +203,18 @@ export function createLedgerV2FixtureBackend(root, request, options = {}) {
       storeMarkerId: source.storeMarkerId,
       witnessTrust,
     },
-    witness: {
-      id: witness.id,
-      read: witness.read.bind(witness),
-      compareAndSwap(input) {
-        const result = witness.compareAndSwap(input);
-        counts.witness++;
-        fault("after-witness");
-        return result;
-      },
-    },
+    witness: options.originalWitnessPorts
+      ? witness
+      : {
+          id: witness.id,
+          read: witness.read.bind(witness),
+          compareAndSwap(input) {
+            const result = witness.compareAndSwap(input);
+            counts.witness++;
+            fault("after-witness");
+            return result;
+          },
+        },
   });
   const backend = createEvolutionLedgerV2ManifestBackend({
     descriptor,
@@ -229,6 +233,7 @@ export function createLedgerV2FixtureBackend(root, request, options = {}) {
     catalogBackend,
     headBackend,
     witness,
+    witnessAdapter,
   };
 }
 
